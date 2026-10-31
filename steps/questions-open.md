@@ -9,6 +9,7 @@ Every question open before 2026-10-29 was closed in the answer pass of Round FOL
 Q148 Place villas before Floors and Levels after 5c. Q149 M14 boundary wall of an irregular plot. Q150 M15 foundation depth, at least or equal. Q151 Q075 moved without the majority run. Q152 Mode of the last run of a button. Q153 A lone copy of a tagged element.
 Q154 Freeze guard limit for an image job. Q155 The parameter sheet of button 1. Q156 The GUID of Plot. Q157 The type button 1 copies new types from. Q158 Step 1 Done on a model already set up. Q159 Q055 reads 11 more 1.4 plots off the ramp. Q160 A plot list takes unit plots only. Q161 A changed step reruns every higher step. Q162 Reads of entryM with heightM or rampFrontM. Q163 A yard that stands only by its mirror. Q164 Levels count and the link Z of 7. Q165 Shape of the block manualRules. Q166 Manual rule of a check row. Q167 Manual rule on the other sheets. Q168 The villa type of Update from report. Q169 Key of an update entry with none of its job. Q170 updateChecks of manualRules. Q171 Which breaks untick a change. Q172 heightM gap with an El @ Entry edit. Q173 Level profile of Update from report. Q174 The plan Update from report reads. Q175 Run log format 9 Report reads. Q176 Plain names of the update rule checks. Q177 Manual rule ids in Rule check. Q178 A computed mirror edit breaks the hand rule. Q179 Guide line, side box and row mark of Update.
 Q180 designValues status in the R401 block. Q181 Timing of the labels J11 and J14. Q182 Side band of majority.side_neighbours. Q183 Time cap of a buttons job. Q184 Plain rule names of the check table. Q185 A plot list over two NBHs. Q186 Close J2 as no work. Q187 Prefill of a new project, J16. Q188 Entity load on a session unseen. Q189 Check table modal or modeless. Q190 Where buttons 5 to 8 find the plan. Q191 The plan name of a plot list. Q192 Solid height of light mode. Q193 Footprint limit of the base. Q194 RRE parameters on Generic Models. Q195 Dry run of button 4. Q196 addin.overrideFile in config. Q197 key_join.json and key reads as inputs. Q198 Past gaps of the missing and question rows. Q199 What the tool does per manual rule. Q200 Export to Excel of the two windows. Q201 Data book files with no Python. Q202 The schedule folder in config. Q203 A worker end on a document not active. Q204 Manual rule of a Review data row. Q205 Corner table coordinates of Review data. Q206 Base boundary of a prototype. Q207 No foot and no Esc in the windows. Q208 How to use line of Rules. Q209 Manual column mixes section and revision. Q210 Q015 in a past job text. Q211 7 after a plot list 4 Check. Q212 4 Check stops 7 on another NBH. Q213 Use of an override entry under Skip. Q214 The build reads pastJob, not the pane. Q215 Where the 2024 prototypes come from. Q216 Rows of 4 Check with no past job. Q217 Follow every rule count, table against chip. Q218 Config files beside a user's config. Q219 First run of 7 against the step limit. Q220 Judge rows of J10 test the old claim. Q221 Judge rows for Q146 and Q147. Q222 The NBH 03 image of Q063. Q223 The test host gives up after a refused raise.
+Q224 The mode the ROSHN config runs. Q225 The level of a yard floor under Rev 6. Q226 The hand of a detached unit. Q227 Civil file format and plot match. Q228 Default slopes of road plus slope. Q229 A row with no single cluster split. Q230 Value status of the Rev 6 values. Q231 Civil door level where no road level. Q232 yardGrade in plan.json. Q233 Slope limit at 3 or 4 decimals. Q234 Read step road levels under Rev 6. Q235 Hand table cover per unit code. Q236 Label size in the PDF check. Q237 Folder of the Rev 9 workbooks. Q238 TH1-IM in the cluster sequences. Q239 Mirror of DP2 and DP4. Q240 The 121 IMC plots of the audit. Q241 doorLevel.source reads as a note in R401.
 
 Q148. Place villas before Floors and Levels in the run after 5c (Round FOLD, review of the design PR 102). The new order of docs/design/13-workflow-changes.md has each step wait for the one before, so 7 Place villas waits for 6 Levels, and 5d builds 5 Floors and ramps and 6 Levels. The phase changes of 28 Oct 2026 give 5c the Place villas button with light mode, and the Revit run after 5c places villas in Masses and in one NBH in Links. Round FOLD wrote that the test host runs 7 by Buttons.Run on the plan before 5 and 6 are built (CHOSEN, steps/01_next.md). It does not block 5b or 5c.
 - Recommended: keep it. The test host runs 7 from the plan in the run after 5c, which measures light mode and the base boundary as 28 Oct asks, and the pane keeps the order, so a user cannot run 7 before 6.
@@ -315,3 +316,75 @@ Q222. The NBH 03 image of Q063 was not run (Revit run after 5c). Its spec (area 
 Q223. The test host gives up after one refused raise of its phase event (Revit run after 5c). One Denied in the first run, the second run held 18 of 21. Latent line in steps/latent.md.
 - Recommended: retry a refused raise on the next tick, a test host change in 5d.
 - Other: keep one raise and run again on a Denied.
+
+Q224. The mode the ROSHN config runs (R407, round 4i). designBasis.mode of config/project.json is roshnPastJob, so every build of today is unchanged, and newProjectMode rev6 is what a new project starts on.
+- Recommended: keep roshnPastJob for ROSHN Makkah, its answer keys are the past job, and rev6 for every new project.
+- Other: switch ROSHN Makkah to rev6, the plots then leave the keys by the door level, road and yard rules.
+
+Q225. The level of a yard floor under Rev 6 (R410, round 4i). Manual 2.3.B and 2.3.C give the grade of the back yard, not the level it starts from, so backYard.floor true under rev6 is refused.
+- Recommended: keep the yard floor off under rev6, the owner builds it (2.3.B).
+- Other: name the level, for example FFL less floors.yardBelowFflM at the front edge of the yard, and the slope within 0.3% to 0.5%.
+
+Q226. The hand of a detached unit under Rev 6 (R411, round 4i). Manual 2.1.A gives a detached unit no hand, the past job took the mirror flag of the footprint block.
+- Recommended: the team sets it in 3 Review data, the proposal stays empty with its reason.
+- Other: propose the hand of the footprint block where a footprint is given.
+
+Q227. Civil file format and plot match (R408, round 4i). civilFile is a CSV, plotColumn matched to the plot number as text, stripped, so 12.0 does not match 12.
+- Recommended: a CSV with Plot No. and El @ Entry, the plot matched as text, a civil export with another layout converted before it is named.
+- Other: read numbers as numbers, or take entrance points by coordinate and match them to the plot face.
+
+Q228. Default slopes of road plus slope (R408, round 4i). doorLevel.slopePercent holds 0.5% by default and 2.0% for C10, VL4 and VL6, the values of rampSlopePercent of parsons2024Rev6, CHOSEN by Code. The manual gives only 0.5% to 2% (2.3.A).
+- Recommended: keep these defaults, the user sets them per project.
+- Other: one slope for every unit.
+
+Q229. A row of attached units with no single cluster split (R411, round 4i). A row of DP, DT and TH plots that splits into no combination of 2.1.E, or into more than one, or a plot with two neighbours on a side, gets no proposal.
+- Recommended: the team sets the cluster in 3 Review data, the reason names the row.
+- Other: propose the split of the footprint blocks where they are given.
+
+Q230. Value status of the Rev 6 values (R401, R408, round 4i). Under rev6 El @ Entry and the ramp type still map to the keyRules entries of valueStatus, which has no mode axis.
+- Recommended: a valueStatus.fieldsRev6 overlay keyed as fields, El @ Entry and the ramp type to designBasis.doorLevel, the yard fields empty.
+- Other: one map with the mode in each entry.
+
+Q231. Civil door level where no road level (R408, round 4i). A plot with no road level at both front corners gets no El @ Entry, also from the civil file, since the slope and the ramp need the road.
+- Recommended: keep it so, the plot listed in noRoadLevel.
+- Other: take the civil level and leave the slope and the ramp empty.
+
+Q232. yardGrade in plan.json (R410, round 4i). The grade is in the step floors only, not in plan.json, so the placer and the Excel do not see it.
+- Recommended: add floors.yardGrade to plan.json under rev6 in the round that shows it in the Excel.
+- Other: keep it in the step only.
+
+Q233. Slope limit at 3 or 4 decimals (R408, round 4i). The slope is held against 0.5% to 2% from the raw El @ Entry as the plan writes it at 3 decimals, since from the 4 decimal value a 0.5% plot would fall either side of the limit.
+- Recommended: keep the raw value at 3 decimals.
+- Other: hold the slope of the 4 decimal El @ Entry.
+
+Q234. Read step road levels under Rev 6 (R409, round 4i). read_steps.py and button 2 still read every surface of siteBuild.roadSurfaces, the build takes the one surface.
+- Recommended: leave the read as it is, it reads, the build chooses.
+- Other: read the one surface only under rev6.
+
+Q235. Hand table cover per unit code (R412, round 4i). The new project check holds every unit code to a hand table entry.
+- Recommended: only the codes with a hand, the hand tables of keyRules.
+- Other: every unit code, as coded.
+
+Q236. Label size in the PDF check (R412, round 4i). The check holds the page count and the label patterns, not labelSize or searchWords.
+- Recommended: no, pdfplumber and PdfPig words may differ in size.
+- Other: add both.
+
+Q237. Folder of the Rev 9 workbooks (R412, round 4i). The check reads them from the data book work folder of the work root, CHOSEN by Code.
+- Recommended: a config key that names the folder of the workbooks of a new project.
+- Other: keep the data book folder.
+
+Q238. TH1-IM in the cluster sequences (R411, round 4i). clusters of the rules profile hold no sequence with TH1-IM, so a row such as DP1 TH1-IM TH1-IM DP1 gets no proposal, 8 IMC plots and most of the 96 no split plots of the whole project (RAN).
+- Recommended: add the TH1-IM sequences, DP1 TH1-IM TH1-IM DP1 and those the manual table of 2.1.D allows, to clusters as data, no code change.
+- Other: read TH1-IM as TH1 for the split only.
+
+Q239. Mirror of DP2 and DP4 with no cluster table (R411, round 4i). Their prototype files have no entry in the hand cluster table (Q089), so their proposed mirror is empty, 40 IMC plots and 323 of the whole project (RAN).
+- Recommended: take pair left and pair right of the hand alone table of the same file, the fallback plan_rules.hand_table makes since Q098.
+- Other: leave the mirror to the team in 3 Review data.
+
+Q240. The 121 IMC plots of the audit (R411, round 4i). No definition reproduces 121 on the IMC key: detached plus no proposal 116, with DP2 and DP4 156, no footprint cluster 144, villa or alone 148 (RAN).
+- Recommended: record 116, detached plus no proposal, as the plots with no Rev 6 mirror.
+- Other: Bader gives the audit's definition and it is measured again.
+
+Q241. designBasis.doorLevel.source reads as a note in R401 (round 4i). rule_status.py takes a key named source as a note, so the value roadPlusSlope is not counted and the slopes beside it read DOCUMENT with roadPlusSlope as their document.
+- Recommended: rename the key to sourceKind in config, Python and C# in the next Lane A round.
+- Other: teach rule_status.py that designBasis.doorLevel.source is a value.
