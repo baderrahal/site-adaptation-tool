@@ -16,7 +16,6 @@ namespace SiteAdaptation.Common.Floors
     public sealed class LevelsRun
     {
         public const string Command = "levelExcel";
-        public const string ReadBackRole = "readBack";
         public const string LevelsFormat = "site-adaptation-levels";
 
         private readonly IFloorDocument document;
@@ -103,6 +102,12 @@ namespace SiteAdaptation.Common.Floors
                 {
                     throw new InvalidOperationException(held.Floor.Label + ", element " + held.Element.UniqueId + ": the level read back is not the plan, " + mismatch);
                 }
+                if (held.Move)
+                {
+                    // R368. A floor moved under the tag of an older plan stands at neither on the next plan, and 5 would leave it as
+                    // changed by hand. So it takes the tag 5 writes on a move: the latest version, the plan values, its placedId kept
+                    document.Tag(held.Element.UniqueId, new PlacedTag(PlacedSchema.Latest.Version, held.Floor.Item.Key, context.RunId, inputs.Profile, held.Element.Tag.PlacedId, held.Floor.Item.Plan));
+                }
                 floors.Add(Row(held, read, decision.View.Offset[2]));
             }
             // A plot counts as set when every floor the plan gives it stands tagged and read back at the plan
@@ -118,7 +123,7 @@ namespace SiteAdaptation.Common.Floors
             string levelsPath = context.Output(LevelsName(context.RunId));
             File.WriteAllText(levelsPath, levels.ToString(Newtonsoft.Json.Formatting.Indented), new System.Text.UTF8Encoding(false));
             var issues = new List<string>(decision.Listed);
-            string excel = Excel(context, decision, levelsPath, issues);
+            string excel = Excel(context, decision, issues);
 
             var log = new JObject
             {
@@ -135,15 +140,14 @@ namespace SiteAdaptation.Common.Floors
 
         // R364. The worker writes the Excel into a stage folder of the run, which is moved to the temporary name of the run here, so the
         // flow moves it onto its name only after the commit. The stage folder is deleted whatever happens
-        private string Excel(RunContext context, Decision decision, string levelsPath, List<string> issues)
+        private string Excel(RunContext context, Decision decision, List<string> issues)
         {
             LevelRunInputs inputs = decision.Inputs;
             string name = ExcelName(decision.Nbh, inputs.Profile);
             string stage = Path.Combine(context.WorkFolder, "levelexcel_" + context.RunId);
-            var files = new List<WorkerFile>(inputs.ExcelInputs ?? new List<WorkerFile>())
-            {
-                new WorkerFile { Role = ReadBackRole, Path = levelsPath, Sha256 = FileHash.Sha256(levelsPath) },
-            };
+            // levels_<run id>.json is not an input: it stands under its temporary name until the commit, which the worker refuses, and
+            // the worker does not read it (Q226)
+            var files = new List<WorkerFile>(inputs.ExcelInputs ?? new List<WorkerFile>());
             var request = new WorkerRequest
             {
                 FormatVersion = WorkerRequest.CurrentFormatVersion, RunId = context.RunId, Command = Command, Document = inputs.Document, Inputs = files,
