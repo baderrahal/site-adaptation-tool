@@ -330,6 +330,13 @@ if ($round) {
                 Copy-Item -LiteralPath (Join-Path $repo ([string]$config.profile)) -Destination $profileCopy
                 $roundJob.setUp = $true
             }
+            # R405. A plain addinRun, with neither setUp nor buttons, takes a copy of the config of the repo in config of the run folder,
+            # since the folder of Revit has no config above it and the test host reads its design values there before its first write
+            if (-not $round.setUp -and -not $round.buttons) {
+                $plainConfig = Join-Path $runFolder 'config'
+                New-Item -ItemType Directory $plainConfig | Out-Null
+                Copy-Item -LiteralPath (Join-Path $repo 'config\project.json') -Destination (Join-Path $plainConfig 'project.json')
+            }
             # QL20. The whole run, the exit of Revit included, ends by 15 minutes. CHOSEN: the job gets 13 and the window 15, so the
             # 2 minutes between leave Revit time to exit after the job posts it, before the window stops Revit. Tool timings
             $addinRunWindowMinutes = 15

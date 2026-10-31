@@ -41,6 +41,8 @@ namespace SiteAdaptation.Common
         public long CmGrainMm { get; private set; }
         public int Decimals { get; private set; }
         public int AngleDecimals { get; private set; }
+        // The config file the values were read from, null for a config given as JSON
+        public string Source { get; private set; }
 
         public static DesignValues From(JObject config)
         {
@@ -82,7 +84,40 @@ namespace SiteAdaptation.Common
 
         public static DesignValues Load(string path)
         {
-            return From(PyMath.ReadJson(path, "config", true) as JObject ?? throw new InvalidDataException("the config is no JSON object (R405): " + path));
+            DesignValues values = From(Read(path));
+            values.Source = path;
+            return values;
+        }
+
+        // A run that names its config file, a button by the settings of its session or a plain addinRun of the test host, takes its
+        // values before its body. Null when they are set or no file is named, else the text the run stops with, so a config the run
+        // cannot read never throws into Revit. A config with no block leaves the values as UseConfigOf does
+        public static string UseConfigFile(string path)
+        {
+            if (string.IsNullOrEmpty(path))
+            {
+                return null;
+            }
+            try
+            {
+                JObject config = Read(path);
+                if (config[Block] is JObject)
+                {
+                    DesignValues values = From(config);
+                    values.Source = path;
+                    Use(values);
+                }
+                return null;
+            }
+            catch (Exception failure) when (failure is IOException || failure is UnauthorizedAccessException || failure is InvalidDataException)
+            {
+                return "the design values were not read from the config " + path + ": " + failure.Message + " (R405)";
+            }
+        }
+
+        private static JObject Read(string path)
+        {
+            return PyMath.ReadJson(path, "config", true) as JObject ?? throw new InvalidDataException("the config is no JSON object (R405): " + path);
         }
 
         // The values of the run. The first read falls back on the config of the repo, refused by R405 when no repo lies above

@@ -41,7 +41,8 @@ namespace SiteAdaptation.AddIn
         {
             Document document = application.ActiveUIDocument == null ? null : application.ActiveUIDocument.Document;
             Pane.DocumentSession session = document == null ? null : PaneHost.Current.Sessions.Seen(document, document.PathName, document.Title);
-            string problem = RulesWindow.RulesWindowBody.Problem(session?.Settings?.RulesFile);
+            // R405, the design values of the config of the session, as Bodies.WithDesignValues sets them for a button
+            string problem = Common.DesignValues.UseConfigFile(session?.Settings?.ConfigFile) ?? RulesWindow.RulesWindowBody.Problem(session?.Settings?.RulesFile);
             if (problem != null)
             {
                 TaskDialog.Show(RibbonLayout.Tab, problem);
@@ -66,6 +67,23 @@ namespace SiteAdaptation.AddIn
         {
             Document document = application.ActiveUIDocument == null ? null : application.ActiveUIDocument.Document;
             var flow = new ButtonFlow(State, new RevitModel(document), new TaskDialogConfirm(), InputHash.Of, () => RunIds.New(button.Number, DateTime.Now));
+            string configFile = document == null ? null : PaneHost.Current?.Sessions.Seen(document, document.PathName, document.Title)?.Settings?.ConfigFile;
+            ButtonBody body = Bodies.WithDesignValues(configFile, button.Number, () => Body(button, application, document));
+            RunOutcome outcome = flow.Run(button.Number, button.Label, body, document == null ? null : document.PathName, later => Ended(application, document, button.Number, later));
+            // R367. The pane takes the settings again from the entity button 1 wrote, only after its commit
+            if (button.Number == 1 && outcome.End == RunEnd.Committed && document != null)
+            {
+                PaneHost.Current.Sessions.Find(document)?.LoadFrom(new SettingsEntity(document));
+            }
+            if (outcome.Message != null)
+            {
+                TaskDialog.Show(RibbonLayout.Tab, outcome.Message);
+            }
+            return outcome.End == RunEnd.Cancelled ? Result.Cancelled : Result.Succeeded;
+        }
+
+        private static ButtonBody Body(RibbonButtonSpec button, UIApplication application, Document document)
+        {
             Func<ButtonBody> readData = () => ReadDataBody.For(PaneHost.Current.Sessions.Seen(document, document.PathName, document.Title));
             Func<ButtonBody> reviewData = () =>
             {
@@ -90,17 +108,7 @@ namespace SiteAdaptation.AddIn
             {
                 body = ReportBody.For(application);
             }
-            RunOutcome outcome = flow.Run(button.Number, button.Label, body, document == null ? null : document.PathName, later => Ended(application, document, button.Number, later));
-            // R367. The pane takes the settings again from the entity button 1 wrote, only after its commit
-            if (button.Number == 1 && outcome.End == RunEnd.Committed && document != null)
-            {
-                PaneHost.Current.Sessions.Find(document)?.LoadFrom(new SettingsEntity(document));
-            }
-            if (outcome.Message != null)
-            {
-                TaskDialog.Show(RibbonLayout.Tab, outcome.Message);
-            }
-            return outcome.End == RunEnd.Cancelled ? Result.Cancelled : Result.Succeeded;
+            return body;
         }
 
         // R375. The end of a worker, in the API context of Revit, goes to the document of its run, the active one or not, and to
@@ -134,6 +142,18 @@ namespace SiteAdaptation.AddIn
     // buttons 3, 4 and 7 once their windows and loads are set, every other one stops with the text of R371 through the flow
     public static class Bodies
     {
+        // R405. The body of a button is made only once the design values of the config the settings of its session name are set,
+        // since inside Revit no config/project.json lies above the folder of Revit and a write of JsonOut, the placer or a position
+        // read would refuse the run. The values are process wide (L10 of steps/latent.md), so the last config used wins. A config
+        // that cannot be read stops the button with the R405 text through the flow. Button 1 still runs on it, since it sets the
+        // settings and reads its own config. A session with no config leaves the values as they are, and a body that needs them
+        // stops in the flow with the R405 text of DesignValues.Current
+        public static ButtonBody WithDesignValues(string configFile, int number, Func<ButtonBody> make)
+        {
+            string problem = Common.DesignValues.UseConfigFile(configFile);
+            return problem != null && number != 1 ? new ButtonBody { NotBuilt = problem } : make();
+        }
+
         public static ButtonBody Of(int number)
         {
             return Of(RibbonLayout.Button(number));

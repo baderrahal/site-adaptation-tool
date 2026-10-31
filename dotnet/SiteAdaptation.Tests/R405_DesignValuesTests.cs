@@ -103,6 +103,51 @@ namespace SiteAdaptation.Tests
             }
         }
 
+        internal static string RepoConfigPath()
+        {
+            return Path.Combine(ThemeGateTests.RepoRoot(), "config", "project.json");
+        }
+
+        // A run folder holding a copy of the config of the repo, so the values the test sets are those every other test reads
+        internal static string RunFolderWithConfig()
+        {
+            string folder = Path.Combine(Path.GetTempPath(), "sa_r405_" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(Path.Combine(folder, "config"));
+            File.Copy(RepoConfigPath(), Path.Combine(folder, "config", "project.json"));
+            return folder;
+        }
+
+        // The plain addinRun of the Revit run after 5c failed to write its result: the test host takes the config copy of its run
+        // folder the run script writes, else that of the repo above the test host
+        [Fact]
+        public void R405_a_plain_addinRun_takes_the_config_copy_of_its_run_folder_else_that_of_the_repo()
+        {
+            string folder = RunFolderWithConfig();
+            try
+            {
+                string copy = Path.Combine(folder, "config", "project.json");
+                Assert.Equal(copy, AddinRunFiles.Config(folder, AppContext.BaseDirectory));
+                Assert.Null(DesignValues.UseConfigFile(AddinRunFiles.Config(folder, AppContext.BaseDirectory)));
+                Assert.Equal(copy, DesignValues.Current.Source);
+                File.Delete(copy);
+                Assert.Equal(Path.GetFullPath(RepoConfigPath()), Path.GetFullPath(AddinRunFiles.Config(folder, AppContext.BaseDirectory)));
+            }
+            finally
+            {
+                DesignValues.Use(DesignValues.Load(RepoConfigPath()));
+                Directory.Delete(folder, true);
+            }
+            string root = ThemeGateTests.RepoRoot();
+            string script = File.ReadAllText(Path.Combine(root, "dotnet", "SiteAdaptation.TestHost", "Run-TestHost.ps1"));
+            int branch = script.IndexOf("        'addinRun' {", StringComparison.Ordinal);
+            int plain = script.IndexOf("            if (-not $round.setUp -and -not $round.buttons) {", branch, StringComparison.Ordinal);
+            int copied = script.IndexOf("Copy-Item -LiteralPath (Join-Path $repo 'config\\project.json') -Destination (Join-Path $plainConfig 'project.json')", plain, StringComparison.Ordinal);
+            Assert.True(branch > 0 && plain > branch && copied > plain);
+            string session = File.ReadAllText(Path.Combine(root, "dotnet", "SiteAdaptation.TestHost", "AddinRunSession.cs"));
+            int use = session.IndexOf("DesignValues.UseConfigFile(AddinRunFiles.Config(folder,", StringComparison.Ordinal);
+            Assert.True(use > 0 && use < session.IndexOf("record.HomeEvent.Raise(", StringComparison.Ordinal));
+        }
+
         [Fact]
         public void R405_a_config_of_a_test_with_no_block_leaves_the_values_of_the_run()
         {
