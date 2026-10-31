@@ -66,6 +66,9 @@ namespace SiteAdaptation.Common.Floors
             public string Nbh;
             public readonly List<Held> Floors = new List<Held>();
             public readonly List<string> Listed = new List<string>();
+
+            // The plots of the scope with a tagged floor that is not the plan besides its level, never counted as set
+            public readonly HashSet<string> OffPlan = new HashSet<string>(StringComparer.Ordinal);
         }
 
         private RunSummary Preview(RunContext context)
@@ -115,10 +118,11 @@ namespace SiteAdaptation.Common.Floors
                 }
                 floors.Add(Row(held, read, decision.View.Offset[2]));
             }
-            // A plot counts as set when every floor the plan gives it stands tagged and read back at the plan
+            // A plot counts as set when every floor the plan gives it stands tagged and read back at the plan and no other tagged floor
+            // of it stands off the plan
             var set = new HashSet<string>(decision.Floors.Select(held => held.Floor.Key), StringComparer.Ordinal);
             List<string> levelPlots = decision.View.Floors.Where(floor => floor.InScope).GroupBy(floor => floor.Plot, StringComparer.Ordinal)
-                .Where(plot => plot.All(floor => set.Contains(floor.Key))).Select(plot => plot.Key).OrderBy(plot => plot, StringComparer.Ordinal).ToList();
+                .Where(plot => !decision.OffPlan.Contains(plot.Key) && plot.All(floor => set.Contains(floor.Key))).Select(plot => plot.Key).OrderBy(plot => plot, StringComparer.Ordinal).ToList();
 
             var levels = new JObject
             {
@@ -239,6 +243,11 @@ namespace SiteAdaptation.Common.Floors
                     {
                         decision.Listed.Add("element " + element.UniqueId + " is tagged for plot " + element.Tag.Key.Plot + " " + kind + ", which the plan holds no floor of, left as it is");
                     }
+                    else if (inScope(element.Tag.Key.Plot))
+                    {
+                        decision.Listed.Add("plot " + element.Tag.Key.Plot + " " + kind + ": element " + element.UniqueId + " is tagged for a floor the plan no longer gives this plot, left as it is and the plot not set (R379)");
+                        decision.OffPlan.Add(element.Tag.Key.Plot);
+                    }
                     continue;
                 }
                 if (!floor.InScope)
@@ -248,6 +257,13 @@ namespace SiteAdaptation.Common.Floors
                 if (!string.Equals(element.UniqueId, element.Tag.PlacedId, StringComparison.Ordinal) || !standing.Add(key))
                 {
                     decision.Listed.Add(floor.Label + ": element " + element.UniqueId + " is a copy of the floor this tool placed, never changed");
+                    continue;
+                }
+                IReadOnlyList<string> off = FloorPlan.OffPlan(element, floor);
+                if (off.Count > 0)
+                {
+                    decision.Listed.Add(floor.Label + ": element " + element.UniqueId + ", its " + string.Join(", ", off) + " is not the plan, left to 5 Floors and ramps, no level set (R379)");
+                    decision.OffPlan.Add(floor.Plot);
                     continue;
                 }
                 decision.Floors.Add(Compare(floor, element, view.Offset[2]));
