@@ -1133,7 +1133,7 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
                 named = mine_overrides.get("rampType")
                 if named is not None:
                     moved.append("rampType")
-                if rev6 and named is None:
+                if rev6 and not named:
                     # R408. The ramp type of the band of the slope, the result, never keyRules.rampSlope
                     ramp_class, kind = None, floor_fit.type_of(slopes[number], inputs["bands"])
                 else:
@@ -1141,7 +1141,7 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
                     ramp_class = named or (plan_rules.key_ramp_class(key, unit) if key is not None else plan_rules.slope_class(slopes[number]))
                     kind = rules["levelProfile"]["rampTypes"].get(ramp_class) if ramp_class is not None else None
             if key is not None and kind is None:
-                builder.lack("floors.ramp", NO_BAND % slopes[number] if rev6 and named is None else "keyRules.rampSlope and rampTypes give no ramp type for " + unit)
+                builder.lack("floors.ramp", NO_BAND % slopes[number] if rev6 and not named else "keyRules.rampSlope and rampTypes give no ramp type for " + unit)
                 made = None
             else:
                 made = ramp_floor(builder, item["frame"], item["corners"], ramp_front, builder.entry["levels"]["entry"]["value"], slopes[number], inputs, kind)

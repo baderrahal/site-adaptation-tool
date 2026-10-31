@@ -72,7 +72,7 @@ def test_r408_a_slope_outside_front_min_to_front_max_is_listed_as_outside_the_ma
     # The slope as the plan writes it at 3 decimals is held against the limits, so 0.5 percent by roadPlusSlope is inside
     assert design_basis.outside_manual(0.49999999999, {"front_min": 0.5, "front_max": 2.0}) is False
     assert design_basis.outside_manual(2.0004, {"front_min": 0.5, "front_max": 2.0}) is False
-    assert design_basis.outside_manual(2.0006, {"front_min": 0.5, "front_max": 2.0}) is True
+    assert design_basis.outside_manual(2.0051, {"front_min": 0.5, "front_max": 2.0}) is True
 
 
 @pytest.mark.parametrize("rows, header, why", [

@@ -32,8 +32,10 @@ def test_r365_r401_parity_summary_the_step_holds_the_counts_and_names_of_the_pla
     assert tables == {"summary": {"frontRule": summary["frontRule"], "roadSurfacesOfFrontCorners": summary["roadSurfacesOfFrontCorners"], "floorsFound": summary["floorsFound"],
                                   "floorTypes": summary["floorTypes"], "handRules": rules["handRules"], "overridesNotApplied": rules["overridesNotApplied"],
                                   "steps": rules["steps"], "statusByField": rules["statusByField"], "assumedByField": rules["assumedByField"],
-                                  "statusPlots": rules["statusPlots"], "conflicts": built["conflicts"]}}
-    assert list(tables["summary"]) == list(plan_from_book.SUMMARY_TABLE)
+                                  "statusPlots": rules["statusPlots"], "conflicts": built["conflicts"], "noDoorLevel": None, "slopeOutsideManual": None}}
+    # R407. The lists of rev6 are null in the table of a build of the past job, whose plan holds neither
+    assert "noDoorLevel" not in summary and "slopeOutsideManual" not in summary
+    assert list(tables["summary"]) == list(plan_from_book.SUMMARY_TABLE) + list(plan_from_book.SUMMARY_REV6)
     # By hand on the made row: six unit plots written, 7 no row, the front of each by its corner rule and the six with two road levels
     assert plots["7"] == {"unit": None, "written": False} and all(plots[number] == {"unit": built["rows"][number]["typologyRev9"], "written": True} for number in "123456")
     assert sum(tables["summary"]["roadSurfacesOfFrontCorners"].values()) == 12 and tables["summary"]["floorsFound"]["generic"] == 6
@@ -65,7 +67,7 @@ def test_r365_parity_summary_compares_every_count_and_name_of_the_table_exact(mo
     other["summary"]["handRules"]["override"] += 1
     other["summary"]["statusPlots"]["moved"] = 1
     report = parity.compare(python, parity.step_file("summary", "csharp", "made", entries, settings, [], tables=copy.deepcopy(tables)), parity.tolerances(settings))
-    assert report["failures"] == [] and report["tables"]["summary"] == {"equal": 11, "differ": 0}
+    assert report["failures"] == [] and report["tables"]["summary"] == {"equal": 13, "differ": 0}
     report = parity.compare(python, parity.step_file("summary", "csharp", "made", entries, settings, [], tables=other), parity.tolerances(settings))
     assert [(item["field"], item["index"], item["why"]) for item in report["failures"]] == [("tables.summary", "handRules", "not equal"), ("tables.summary", "statusPlots", "not equal")]
     assert "summary" in plan_from_book.BUILD_STEPS and "summary" in parity.LISTED_STEPS

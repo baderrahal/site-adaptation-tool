@@ -16,6 +16,9 @@ namespace SiteAdaptation.Common
         public double Raw { get; set; }
 
         public double Rule { get; set; }
+
+        // R408. The ramp slope in percent: under rev6 the result of El @ Entry, under the past job the slope of the level profile
+        public double Slope { get; set; }
     }
 
     // R359. The levels of a plot by keyRules: the piece that shares its FFL, the highest El @ Entry plus base of the piece unrounded and
@@ -42,6 +45,21 @@ namespace SiteAdaptation.Common
         public Dictionary<string, EntryLevel> Entries { get; set; }
 
         public Dictionary<string, LevelRow> Rows { get; set; }
+
+        // R407. The design basis of the build, read once, and under rev6 the bands of the ramp types of the floor file (R408)
+        public DesignBasis Basis { get; set; }
+
+        public JArray Bands { get; set; }
+
+        // R408. Under rev6 why each plot with a road level has no El @ Entry, the plots of the scope with none and the plots of the scope whose
+        // slope lies outside slopes_percent front_min to front_max, null under the past job
+        public Dictionary<string, string> NoDoorWhy { get; set; }
+
+        public JArray NoDoor { get; set; }
+
+        public JArray Outside { get; set; }
+
+        public bool Rev6 => Basis != null && Basis.IsRev6;
     }
 
     // R359, R339, R340. The levels of a build by the level rules of keyRules, plan_rules.entry_of, row_partners, key_pieces, level_pieces,
@@ -295,8 +313,9 @@ namespace SiteAdaptation.Common
         // plan_from_book.build: the plots of the clusters of the scope, the scope and the row partner of each plot of the scope, by their numbers,
         // their fronts with the road levels, El @ Entry of each with a road level at both front corners and the levels by key_level_rows
         public static LevelBuild Of(IReadOnlyList<string> numbers, IReadOnlyDictionary<string, Dictionary<string, string>> rows, IEnumerable<SiteCluster> clusters, HandContext context,
-            Func<IEnumerable<string>, Dictionary<string, FrontItem>> frontsOf, JObject rules, JObject keyRules, JObject levelProfile, string profileName)
+            Func<IEnumerable<string>, Dictionary<string, FrontItem>> frontsOf, JObject rules, JObject keyRules, JObject levelProfile, string profileName, DesignBasis basis = null, JArray bands = null)
         {
+            bool rev6 = basis != null && basis.IsRev6;
             if (keyRules["ffl"] == null)
             {
                 throw new InvalidDataException(string.Format(CultureInfo.InvariantCulture, NoFfl, profileName));
@@ -309,13 +328,36 @@ namespace SiteAdaptation.Common
             List<string> ordered = members.OrderBy(number => number, PyMath.SortKey).ToList();
             Dictionary<string, FrontItem> fronts = frontsOf(ordered);
             var entries = new Dictionary<string, EntryLevel>();
+            var noDoorWhy = new Dictionary<string, string>();
+            var noDoor = new JArray();
             foreach (string number in ordered)
             {
                 FrontItem item = fronts[number];
                 if (item.Front != null)
                 {
-                    double raw = EntryOf(item.Front, item.Unit, levelProfile, item.Depth.Value);
-                    entries[number] = new EntryLevel { Unit = item.Unit, Raw = raw, Rule = Rounding.Fixed(raw, 4) };
+                    double raw, slope;
+                    if (rev6)
+                    {
+                        // R408. El @ Entry the input, from the civil file or the road at front plus the slope of the unit, the slope the result
+                        Tuple<double?, string> door = basis.DoorEntry(number, item.Unit, item.Front, item.Depth.Value);
+                        if (!door.Item1.HasValue)
+                        {
+                            noDoorWhy[number] = door.Item2;
+                            if (wanted.Contains(number))
+                            {
+                                noDoor.Add(new JObject { ["plot"] = number, ["reason"] = door.Item2 });
+                            }
+                            continue;
+                        }
+                        raw = door.Item1.Value;
+                        slope = DesignBasis.SlopeOf(raw, item.Front, item.Depth.Value);
+                    }
+                    else
+                    {
+                        raw = EntryOf(item.Front, item.Unit, levelProfile, item.Depth.Value);
+                        slope = SlopeOf(item.Unit, levelProfile);
+                    }
+                    entries[number] = new EntryLevel { Unit = item.Unit, Raw = raw, Rule = Rounding.Fixed(raw, 4), Slope = slope };
                 }
             }
             // The code of plots.csv as it stands, an empty one kept empty, as key_levels takes it for the split of a cluster
@@ -333,7 +375,17 @@ namespace SiteAdaptation.Common
                     levels[entry.Key] = new LevelRow { Piece = piece, Top = top.Value, Ffl = Rounding.Fixed(top.Value, 3) };
                 }
             }
-            return new LevelBuild { Partners = partners, Members = ordered, Fronts = fronts, Entries = entries, Rows = levels };
+            var made = new LevelBuild { Partners = partners, Members = ordered, Fronts = fronts, Entries = entries, Rows = levels, Basis = basis, Bands = bands };
+            if (rev6)
+            {
+                // R408. The plots of the scope with no El @ Entry and why, and those whose slope lies outside the manual, as plan_from_book.build lists them
+                JObject limits = (JObject)rules["slopes_percent"];
+                made.NoDoorWhy = noDoorWhy;
+                made.NoDoor = noDoor;
+                made.Outside = new JArray(numbers.Where(number => entries.ContainsKey(number) && DesignBasis.OutsideManual(entries[number].Slope, limits))
+                    .Select(number => new JObject { ["plot"] = number, ["slopePercent"] = Rounding.Fixed(entries[number].Slope, DesignBasis.SlopeDecimals) }));
+            }
+            return made;
         }
 
         // plan_from_book.level_step: per plot of the scope its levels by the rule before an override, each raw the value just before its last
@@ -355,8 +407,17 @@ namespace SiteAdaptation.Common
                 {
                     ["unit"] = unit, ["partner"] = build.Partners.TryGetValue(number, out string partner) ? partner : null, ["piece"] = null,
                     ["roadAtFront"] = item?.Front == null ? null : (object)RoadAtFront(item.Front), ["entry"] = entry == null ? null : (object)entry.Raw,
-                    ["ffl"] = null, ["ssl"] = null, ["height"] = null, ["steps"] = null, ["parameters"] = null,
+                    ["ffl"] = null, ["ssl"] = null, ["height"] = null, ["steps"] = null, ["parameters"] = null, ["doorSource"] = null, ["slopePercent"] = null,
                 };
+                if (build.Rev6 && unit != null)
+                {
+                    // R408. The source of El @ Entry under rev6, the input, and the slope it leaves, the result
+                    made["doorSource"] = build.Basis.DoorSource;
+                }
+                if (build.Rev6 && entry != null)
+                {
+                    made["slopePercent"] = entry.Slope;
+                }
                 if (level != null)
                 {
                     double height = level.Ffl - entry.Rule;

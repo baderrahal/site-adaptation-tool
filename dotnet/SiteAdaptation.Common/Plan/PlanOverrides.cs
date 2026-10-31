@@ -604,6 +604,11 @@ namespace SiteAdaptation.Common
                         }
                     }
                 }
+                else if (mine.Property("entryM") != null && item?.Front != null && build.Rev6 && build.NoDoorWhy.TryGetValue(number, out string noDoor))
+                {
+                    // R408. A plot with a road level and no El @ Entry of the design basis, left with why
+                    outcomes.Leave(number, "entryM", noDoor);
+                }
                 else if (mine.Property("entryM") != null)
                 {
                     outcomes.Leave(number, "entryM", "no road level at a front corner, so no El @ Entry to move");
@@ -779,8 +784,10 @@ namespace SiteAdaptation.Common
                     {
                         moved.Add("rampType");
                     }
-                    JToken rampClass = Truthy(named) ? named : keyRules["rampSlope"]["table"][unit];
-                    JToken kind = rampClass != null && rampClass.Type == JTokenType.String ? levelProfile["rampTypes"][(string)rampClass] : null;
+                    // R408. Under rev6 a ramp with no rampType override takes the type of the band of its slope, never keyRules.rampSlope
+                    bool byBand = build.Rev6 && !Truthy(named);
+                    JToken rampClass = Truthy(named) ? named : byBand ? null : keyRules["rampSlope"]["table"][unit];
+                    JToken kind = byBand ? DesignBasis.RampType(entry.Slope, build.Bands) : rampClass != null && rampClass.Type == JTokenType.String ? levelProfile["rampTypes"][(string)rampClass] : null;
                     bool ramp = kind != null && kind.Type != JTokenType.Null;
                     noRamp = !ramp;
                     if (ramp)
@@ -796,10 +803,12 @@ namespace SiteAdaptation.Common
                         }
                         else
                         {
-                            outcomes.Leave(number, field, "no ramp floor, keyRules.rampSlope and rampTypes give no ramp type for " + unit);
+                            outcomes.Leave(number, field, "no ramp floor, " + (byBand ? string.Format(CultureInfo.InvariantCulture, FloorOutlines.NoBand, SheetRows.PyRepr(entry.Slope))
+                                : "keyRules.rampSlope and rampTypes give no ramp type for " + unit));
                         }
                     }
-                    double? below = FloorOutlines.YardDepth(keyRules, zone ?? "");
+                    // R410. No yard floor under rev6
+                    double? below = build.Rev6 ? null : FloorOutlines.YardDepth(keyRules, zone ?? "");
                     if (below.HasValue)
                     {
                         JToken keo = (rules["typologies"]?[unit] as JObject)?["keo_file"];
