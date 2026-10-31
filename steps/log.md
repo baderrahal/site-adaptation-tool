@@ -2,6 +2,37 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Lane C NEWPROJ-UI, 2026-10-31, New project, How it works and the pane text, Lane C on the laptop
+
+Goal:
+- Build the window New project, the page How it works and the pane text from Bader's boards of 31 Oct 2026, one PR
+
+Done:
+- Boards copied from C:\SA-boards to docs/design/boards. Design part 18, labels in part 14, a note in 12-ui-spec 7.2
+- Common/Settings: SetupRows, SetupCheck, SetupSave, SavedStarts, TemplateBook, rules R430 to R434 (ids past Lane D R420 to R427)
+- AddIn/NewProject and AddIn/HowItWorks, pane rows Setup, Rules and Help, first open box, wired in PaneHost
+- Saved project ROSHN Makkah written to the work root, Saved projects, by PreSetting.Export, read back by SavedStarts.List (RAN, 1)
+- Reviewer and breaker, one pass each: 7 REAL faults fixed with tests, 10 LATENT to steps/latent.md
+
+Checked:
+- Gate at the PR head, RAN: net48 1525, net8.0 1341, pytest 2110 passed, 1 skipped. The four pictures in steps/ui-shots with their differences from the boards
+- Template read back by the OpenXML reader of the worker, a second method (R433)
+
+Remains:
+- No Revit run, the windows are checked offscreen only. Change and View wait for the scanner (lane-b.md C1)
+
+Known bugs:
+- Save setup reaches the model with the next real run (Q280). Messages that name a work file (Q287)
+
+Next:
+- Bader answers Q280 to Q287, Lane B fills the scanner hook, Lane A writes R430 to R434 into docs/rules
+
+Your turn:
+- Opened Q280 to Q287: Q280 Save setup writes the model at once. Q281 Board rows against the nine pane inputs. Q282 Where the project name is kept.
+  Q283 Picks of layers, sheets, columns and coordinates. Q284 Villa mode row the boards drop. Q285 Name the Rules row shows. Q286 Approve the four drafts of
+  NEWPROJ-UI. Q287 Button messages that name a work file. Closed: none
+- 84 questions open, full text: steps/questions-open.md
+
 ## Lane B 5c, 2026-10-31, buttons 2, 3, 4 and 7 and the Revit run after 5c, Lane B on the laptop
 
 Goal:

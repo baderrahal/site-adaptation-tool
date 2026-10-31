@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Autodesk.Revit.ApplicationServices;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.DB.Events;
@@ -8,6 +9,7 @@ using Autodesk.Revit.UI.Events;
 using System.Windows.Threading;
 using SiteAdaptation.AddIn.Pane;
 using SiteAdaptation.AddIn.Theme;
+using SiteAdaptation.Common.Settings;
 
 namespace SiteAdaptation.AddIn
 {
@@ -25,6 +27,7 @@ namespace SiteAdaptation.AddIn
         private ExternalEvent runEvent;
         private ExternalEvent answerEvent;
         private ExternalEvent tellEvent;
+        private IntPtr owner;
 
         public static PaneHost Current { get; private set; }
 
@@ -91,6 +94,18 @@ namespace SiteAdaptation.AddIn
                 teller.Text = text;
                 host.tellEvent.Raise();
             };
+            // Lane C NEWPROJ-UI. New project and How it works open from the pane on the UI thread of Revit. Neither needs the API context,
+            // since Save setup changes the settings in memory only and the next real run writes them (R367)
+            host.owner = application.MainWindowHandle;
+            host.model.NewProjectRequested += host.OpenNewProject;
+            host.model.HowItWorksRequested += () =>
+            {
+                if (HowItWorks.HowItWorksDialog.Show(host.owner, host.model.Document != null))
+                {
+                    host.OpenNewProject();
+                }
+            };
+            host.SavedStartsChanged();
             Buttons.State = new PaneRunState(host.model, WorkRoot, WorkFolder.ReadIfThere);
             application.RegisterDockablePane(PaneId, PaneText.Title, host);
             application.ControlledApplication.DocumentOpened += host.OnOpened;
@@ -106,6 +121,29 @@ namespace SiteAdaptation.AddIn
         {
             return WorkFolder.Root(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
                 Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), WorkFolder.ReadIfThere);
+        }
+
+        // The settings of the document shown, laid over by Save setup, the pane takes them as a pick. Cancel and a document with no
+        // settings yet change nothing. How it works pressed with no document open leaves New project shut, as its pane button is grey then
+        private void OpenNewProject()
+        {
+            DocumentSession document = model.Document;
+            if (document == null)
+            {
+                return;
+            }
+            string root = WorkRoot();
+            ProjectSettings saved = NewProject.NewProjectDialog.Show(owner, document.Settings.Project, document.Title, root, WorkFolder.For(root, document.Path), new DialogPicker());
+            if (saved != null)
+            {
+                model.LoadSettings(new PaneSettings(saved));
+            }
+            SavedStartsChanged();
+        }
+
+        private void SavedStartsChanged()
+        {
+            model.SetSavedStarts(SavedStarts.List(SavedStarts.Folder(WorkRoot())).Select(start => start.Name).ToList());
         }
 
         public void SetupDockablePane(DockablePaneProviderData data)

@@ -1,54 +1,59 @@
-# Heads up
+# Heads-up
 
 ## Live status
 
 - Lane: B, phase 5d, branch feat/lane-b-5d, worktree Site Adaptation Tool Lane B WT
-- Time: 2026-10-31 19:45
-- Now: the Revit run of buttons 1 to 8 on NBH 012 in Masses at 12c8171, and the ramp front fix of Q116
-- Done: buttons 5, 6 and 8 with tests, W6, Q115, Q116, Q214, Q215, Q156, Q220, the worker path, all fixes of review 1 and breaker pass 1, review 2 approved
-- Next: merge the fixes, the gate, the Revit run of 1 to 8 on NBH 012 in Masses, the questions moved to Q260 up, records, the PR
+- Time: 2026-10-31 20:05
+- Now: the cause of the third stop of button 6 in Revit (a temporary levels file not found), measured before any fix (D11)
+- Done: buttons 5, 6 and 8 with tests, W6, Q115, Q116 and its front fix, Q214, Q215, Q156, Q220, the worker path, review 1, breaker pass 1, review 2, update from main after PR 112
+- Next: the cause of 6, the gate, the PR, the merge, a message to all lanes
 - Blocked: none
+- Lane C: NEWPROJ-UI merged as PR 112 on 31 Oct
+
+Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane B 5d, 31 Oct 2026.
 
 ## Repo map
 
-- config/: project.json, the project settings, and the layer, area and plot number lists
-- rules/: the rules profile of each project, roshn-makkah.json with the R401 status block
-- docs/rules/: the rules by part, index.md finds a rule by id
-- docs/design/: the add-in design by part, its README names each part
-- python/: the readers, the plan build and the checkers, the twin of the C# side, tests in python/tests
-- dotnet/: the C# solution, CadReader the worker, SiteAdaptation.Common the logic, AddIn the Revit add-in, TestHost the Revit runs, Tests
-- steps/: the live state, the log, the plan, the questions, the latent findings and the history of old rounds
-- tools/: the retired run script of the lanes
+- .claude and .github: agents, hooks, the AI MAX skill, the gate workflow
+- config and rules: project.json with the files beside it, the override list, the rules profile with the R401 status block
+- docs: rules (index.md finds a rule by id), design parts and boards, the mock, the repo map
+- dotnet/CadReader: the worker, reads CAD, PDF and xlsx, writes the Excel files
+- dotnet/SiteAdaptation.AddIn: the Revit add-in, ribbon, pane, windows and the Revit side of each button
+- dotnet/SiteAdaptation.Common: the logic of the add-in and the worker, no Revit type
+- dotnet/SiteAdaptation.Tests and UiShots: the gate tests, the offscreen renders of the windows
+- dotnet, others: the placer, the test host, the prototype reader, the Civil 3D probe and watchers
+- python and tools: the readers and the plan build, the twin of the C# side, the run scripts
+- steps: progress, log, plan, questions, latent findings, ui-shots, the history of the rounds
 
 ## What this round changed
 
-- Button 5 Floors and ramps and 6 Levels with the level Excel wait (R378, R379)
-- Button 8 Walls of type BW along the plan walls (R380)
-- Button 7 places each villa at its FFL and writes Prototype-FFL (W6)
-- Plan walls leave the measured span of a cluster pair open, keyRules.wallOpen, weak at 0.7409 (Q115)
-- The ramp of the 18 turned plots on the open edge the walls take (Q116)
-- The build takes the Prototypes folder of the pane (Q214), the 2024 copies go under the work root (Q215)
-- Plot takes its fixed GUID from addin.fixedParameters (Q156)
+- Lane B 5d: button 5 Floors and ramps, 6 Levels with the level Excel wait, 8 Walls of type BW
+- Lane B 5d: button 7 places each villa at its FFL and writes Prototype-FFL (W6)
+- Lane B 5d: plan walls leave the measured span of a cluster pair open, weak at 0.7409 (Q115)
+- Lane B 5d: the ramp of the 18 turned plots on the open edge at its road level (Q116)
+- Lane B 5d: the build takes the pane Prototypes folder (Q214), Plot takes a fixed GUID (Q156)
+- Lane C NEWPROJ-UI: the New project window, the How it works page, the pane rows with no file name
 
 ## New rules
 
-- R378 Button 5 Floors and ramps
-- R379 Button 6 Levels
-- R380 Button 8 Walls
+- R378 Button 5 Floors and ramps. R379 Button 6 Levels. R380 Button 8 Walls (Lane B 5d)
+- R430 to R434 of New project and saved starts (Lane C NEWPROJ-UI)
 
 ## Wiring
 
-- Buttons.cs calls FloorsBody.For, LevelsBody.For and WallsBody.For for buttons 5, 6 and 8
-- FloorLoad and WallLoad find the plan of the last done 4 Check, FloorsRun, LevelsRun and WallsRun decide, RevitFloorDocument and RevitWallDocument carry it out
-- LevelsRun waits for the worker command levelExcel through ReportWorkerClient
-- ButtonsRun.Known lets the test host run buttons 1 to 8
+- Buttons.cs calls FloorsBody.For, LevelsBody.For and WallsBody.For for 5, 6 and 8, ButtonsRun.Known lets the test host run 1 to 8
+- FloorLoad and WallLoad find the plan of the last done 4 Check, FloorsRun, LevelsRun and WallsRun decide, RevitFloorDocument and RevitWallDocument act
+- LevelsRun waits for the worker command levelExcel through ReportWorkerClient, which starts Worker\CadReader.exe
+- Lane C: the pane opens NewProjectDialog and HowItWorksDialog, Save setup goes through SetupSave.Apply
 
 ## Open risks
 
-- 6 Levels and 8 Walls have not yet committed in Revit, the Revit run of 5d stopped at 6 twice
-- Links mode is not run in 5d, it moves to 6a. A Links run needs the pane Prototypes row on the 2024 copies (Q214, Q215)
+- 6 Levels, 7 at the FFL and 8 Walls have not yet committed in Revit, button 6 stopped three times
+- Links mode moves to 6a, a Links run needs the pane Prototypes row on the 2024 copies (Q214, Q215)
 - The wall rule is weak, 888 of 3,427 walls differ from the keys (Q115, Q266)
+- Lane C: Save setup reaches the model only with the next real run (Q280)
 
 ## Next
 
-- 6a, one NBH through all 9 steps from a new project, with Links mode
+- Lane B: 6a, one NBH through all 9 steps from a new project, with Links mode
+- Lane C: Bader answers Q280 to Q287, Lane B fills IDrawingFacts (join item C1)

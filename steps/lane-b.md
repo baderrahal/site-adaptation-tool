@@ -73,3 +73,7 @@ Changes Lane B needs in files it may not edit while Phase 4 is open.
 ## Open Lane B questions
 
 Q154 Freeze guard limit for an image job. Q155 The parameter sheet of button 1. Q157 The type button 1 copies new types from. Q158 Step 1 Done on a model already set up. Full text in steps/questions-open.md. Q146 and Q147 were closed in the answer pass of 2026-10-29.
+
+## Join items from Lane C NEWPROJ-UI
+
+- C1. The scanner fills the block "What the tool read from the drawing" of New project: a class of IDrawingFacts set as NewProjectDialog.Facts at the start of the add-in, giving the layer count, the survey point and the lists behind Change and View (dotnet/SiteAdaptation.AddIn/NewProject/DrawingFacts.cs). Until then LastReadFacts gives the plots and villa types of the latest read and Change and View are grey. The picks they make wait for Q283. Lane D fixed the scanner result on 31 Oct 2026: one scan.json per run from the worker command scan, its lists inputs, rows, conflicts, checks and plots, in docs/design/17-scanner.md of feat/addin-4j1-scanner, not merged yet.

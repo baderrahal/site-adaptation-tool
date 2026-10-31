@@ -10,6 +10,7 @@ Q149 M14 boundary wall of an irregular plot. Q150 M15 foundation depth, at least
 Q154 Freeze guard limit for an image job. Q155 The parameter sheet of button 1. Q157 The type button 1 copies new types from. Q158 Step 1 Done on a model already set up. Q159 Q055 reads 11 more 1.4 plots off the ramp. Q160 A plot list takes unit plots only. Q161 A changed step reruns every higher step. Q162 Reads of entryM with heightM or rampFrontM. Q163 A yard that stands only by its mirror. Q164 Levels count and the link Z of 7. Q165 Shape of the block manualRules. Q166 Manual rule of a check row. Q167 Manual rule on the other sheets. Q168 The villa type of Update from report. Q169 Key of an update entry with none of its job. Q170 updateChecks of manualRules. Q171 Which breaks untick a change. Q172 heightM gap with an El @ Entry edit. Q173 Level profile of Update from report. Q174 The plan Update from report reads. Q175 Run log format 9 Report reads. Q176 Plain names of the update rule checks. Q177 Manual rule ids in Rule check. Q178 A computed mirror edit breaks the hand rule. Q179 Guide line, side box and row mark of Update.
 Q180 designValues status in the R401 block. Q181 Timing of the labels J11 and J14. Q182 Side band of majority.side_neighbours. Q183 Time cap of a buttons job. Q184 Plain rule names of the check table. Q185 A plot list over two NBHs. Q186 Close J2 as no work. Q187 Prefill of a new project, J16. Q188 Entity load on a session unseen. Q189 Check table modal or modeless. Q191 The plan name of a plot list. Q192 Solid height of light mode. Q193 Footprint limit of the base. Q194 RRE parameters on Generic Models. Q195 Dry run of button 4. Q196 addin.overrideFile in config. Q197 key_join.json and key reads as inputs. Q198 Past gaps of the missing and question rows. Q199 What the tool does per manual rule. Q200 Export to Excel of the two windows. Q201 Data book files with no Python. Q202 The schedule folder in config. Q203 A worker end on a document not active. Q204 Manual rule of a Review data row. Q205 Corner table coordinates of Review data. Q206 Base boundary of a prototype. Q207 No foot and no Esc in the windows. Q208 How to use line of Rules. Q209 Manual column mixes section and revision. Q210 Q015 in a past job text. Q211 7 after a plot list 4 Check. Q212 4 Check stops 7 on another NBH. Q213 Use of an override entry under Skip. Q217 Follow every rule count, table against chip. Q222 The NBH 03 image of Q063. Q223 The test host gives up after a refused raise.
 Q260 Outline change of a placed floor. Q262 Level Excel and the read back values. Q263 Levels count still at its level. Q265 Ends status of walls after Q115. Q266 Walls on edges other units meet. Q267 Base level of a boundary wall. Q268 Scope of a wall on two plots. Q269 Untagged BW wall on a plan wall. Q270 Where a prototype set upgrades now. Q271 Python build takes the pane folder. Q273 6 Levels on a floor moved by hand.
+Q280 Save setup writes the model at once. Q281 Board rows against the nine pane inputs. Q282 Where the project name is kept. Q283 Picks of layers, sheets, columns and coordinates. Q284 Villa mode row the boards drop. Q285 Name the Rules row shows. Q286 Approve the four drafts of NEWPROJ-UI. Q287 Button messages that name a work file.
 
 Q149. M14, the boundary wall of an irregular plot (Round FOLD, docs/design/15-manual-rules.md). The canvas text reads "boundary wall 200 mm inside the plot limit". The Rev 06 manual, 2.8.A, p. 20 (PDF 23), reads "the boundary wall external face will be identical to the plot limit, and the 200mm will be positioned fully inside the plot", the outer face on the limit and the 200 mm wall thickness inside it. The canvas text is kept until Bader answers. It does not block, M14 is checked by 8 Walls in 5d.
 - Recommended: the PDF reading, the outer face of the wall on the plot limit and its 200 mm inside the plot, and the canvas text written so.
@@ -320,3 +321,35 @@ Q271. Python build takes the pane folder (Lane B 5d, Q214, R357). The C# build t
 Q273. 6 Levels on a floor moved by hand (Lane B 5d breaker, R379, R368). A tagged yard or Generic floor a person moved up or down by hand is set back to the plan by 6, shown as an ordinary move, as R379 reads. R368 and the second run of 03b say the tool never reverts a hand change on its own and lists it.
 - Recommended: 6 lists a floor whose level differs from both its tag and the plan as changed by hand and leaves it, as the other buttons do, unless the user sets it to the plan.
 - Other: 6 sets every tagged floor to the plan, as R379 reads now.
+
+Q280. Save setup writes the model at once (Lane C NEWPROJ-UI). R367 writes the Settings entity only inside the transaction of a real run, so Save setup puts the setup into the pane in memory and the next real run of a button writes it. The foot line of the board says the next person who opens the project sees the same setup, which holds only after that run.
+- Recommended: Save setup writes the Settings entity in a transaction of its own, a change of R367 by Bader, in a later round.
+- Other: keep it, the setup reaches the model with the next real run.
+
+Q281. Board rows against the nine pane inputs (Lane C NEWPROJ-UI). The board has five files, the pane nine inputs. Code maps Site drawing to baseplan and Plot list to the sales workbook (addin.workbookRoles), and Villa blocks, Curbs, the DLUS workbook, Plot numbers and Prototypes keep their rows in the pane only (CHOSEN, docs/design/18-new-project.md).
+- Recommended: keep the mapping, the other inputs stay in the pane.
+- Other: add a row for each of them to New project.
+
+Q282. Where the project name is kept (Lane C NEWPROJ-UI). The settings JSON has no name field, so the Project name box shows the document title read only.
+- Recommended: keep it read only, the name is the title of the model.
+- Other: add a name to the settings JSON, a change of its format.
+
+Q283. Picks of layers, sheets, columns and coordinates (Lane C NEWPROJ-UI). Each would change a config file (cad_layers, dataBook.rev9, the position file), so Change and View are grey and the help lines of the board stay as text.
+- Recommended: with the scanner round, Save setup writes a copy of the config files into the work folder with the picks and the settings name that copy.
+- Other: keep them read only.
+
+Q284. Villa mode row the boards drop (Lane C NEWPROJ-UI). The Pane board shows no Villa mode row under the dry run box. Q129 and Q133 set it.
+- Recommended: keep the row.
+- Other: drop it and take villaModeDefault of config only.
+
+Q285. Name the Rules row shows (Lane C NEWPROJ-UI). The row shows the field project of the rules file, "ROSHN Makkah Phase 1", the board "ROSHN Makkah".
+- Recommended: keep the project field as it is.
+- Other: Lane A adds a short name to the rules profile.
+
+Q286. Approve the four drafts of NEWPROJ-UI (Lane C NEWPROJ-UI). steps/ui-shots/new-project.png, how-it-works.png, pane.png and pane-first-open.png with the differences listed in steps/ui-shots/README.md.
+- Recommended: approve each as drafted, then each is copied into baseline/.
+- Other: name the changes per picture.
+
+Q287. Button messages that name a work file (Lane C NEWPROJ-UI). The test NEWPROJ_no_text_of_any_window_names_a_json_file holds every text literal of the add-in, but a message that adds a file name from a constant still names one, as the stop of 3 Review data names read.json (ReviewLoad.Load).
+- Recommended: a later round rewords those messages by what the file holds.
+- Other: keep them, they name work files, not settings.

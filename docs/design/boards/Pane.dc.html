@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Pane in use</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#0052CC}a:hover{color:#003F9E}
+.sec{display:flex;flex-direction:column;gap:10px;padding:16px 16px 18px;border-top:1px solid #DCE2E9}
+.st{font-size:15px;font-weight:600;color:#1B3349}
+.help{font-size:13px;color:#4A5663;line-height:19px;margin-top:-4px}
+.row{display:grid;grid-template-columns:18px 96px minmax(0,1fr) auto;gap:8px;align-items:center;min-height:32px}
+.lbl{font-size:13px;color:#1B1F24}
+.fn{font-size:13px;color:#1B1F24;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.br{height:28px;padding:0 10px;font:inherit;font-size:13px;color:#1B3349;background:#FFFFFF;border:1px solid #B8C2CD;border-radius:3px;cursor:pointer}
+.br:hover{background:#EEF3FA;border-color:#8FA6C4}
+.combo{height:30px;box-sizing:border-box;font:inherit;font-size:13px;color:#1B1F24;background:#FFFFFF;border:1px solid #B8C2CD;border-radius:3px;padding:0 8px;min-width:0;width:100%}
+.radio{display:flex;align-items:center;gap:8px;font-size:13px;color:#1B1F24;min-height:30px}
+</style>
+</helmet>
+<div style="width:380px;height:1620px;box-sizing:border-box;background:#FFFFFF;font-family:'Libre Franklin','Franklin Gothic Book','Segoe UI',sans-serif;color:#1B1F24;display:flex;flex-direction:column;border:1px solid #C3CCD6">
+  <div style="display:flex;align-items:center;justify-content:space-between;height:26px;padding:0 8px;background:#DDE3EA;border-bottom:1px solid #C3CCD6;font-family:'Segoe UI',sans-serif;font-size:12px">
+    <div>Site Adaptation</div><div style="color:#5A6672">&#215;</div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:4px;padding:16px;background:#1B3349;color:#FFFFFF">
+    <div style="font-size:13px;color:#9ED9FD">Project</div>
+    <div style="font-size:16px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">01101-PSN-IMC-R17B-TEST-NEW</div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:10px;padding:16px;background:#EAF3FC;border-bottom:1px solid #C9DDF3">
+    <div style="font-size:13px;font-weight:600;color:#0A3D91">Next step</div>
+    <div style="font-size:18px;font-weight:600;color:#1B3349">5 Floors and ramps</div>
+    <div style="font-size:13px;line-height:19px;color:#1B1F24">Makes the generic, yard and ramp floors on the 337 plots of NBH 012. Dry run is on, so you see the result first and nothing changes.</div>
+    <button type="button" style="align-self:flex-start;height:34px;padding:0 18px;font:inherit;font-size:14px;font-weight:600;color:#FFFFFF;background:#0052CC;border:1px solid #0052CC;border-radius:3px;cursor:pointer">Run 5 Floors and ramps</button>
+  </div>
+
+  <div class="sec" style="border-top:none">
+    <div class="st">Project</div>
+    <div class="help">Rules and settings for this job. Set once.</div>
+    <div class="row"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="9" r="8" fill="#0B7A3E"/><path d="M5 9.2l2.6 2.6L13 6.4" stroke="#FFFFFF" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg><div class="lbl">Setup</div><div class="fn">Saved for this project</div><button class="br" type="button">Edit</button></div>
+    <div class="row"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="9" r="8" fill="#0B7A3E"/><path d="M5 9.2l2.6 2.6L13 6.4" stroke="#FFFFFF" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg><div class="lbl">Rules</div><div class="fn">ROSHN Makkah</div><button class="br" type="button">Change</button></div>
+    <div class="row"><div></div><div class="lbl">Help</div><div style="grid-column:3 / 5;display:flex;gap:6px;flex-wrap:wrap"><button class="br" type="button">How it works</button><button class="br" type="button">New project</button></div></div>
+    <div class="row"><div></div><label class="lbl" for="lvl">Level profile</label><select id="lvl" class="combo" style="grid-column:3 / 5"><option>parsons2024Rev6</option></select></div>
+    <div class="row"><div></div><div class="lbl">Pre-setting</div><div style="grid-column:3 / 5;display:flex;gap:6px;flex-wrap:wrap"><button type="button" style="height:28px;padding:0 10px;font:inherit;font-size:13px;color:#1B3349;background:#FFFFFF;border:1px solid #B8C2CD;border-radius:3px;cursor:pointer">Use a saved project</button><button type="button" style="height:28px;padding:0 10px;font:inherit;font-size:13px;color:#1B3349;background:#FFFFFF;border:1px solid #B8C2CD;border-radius:3px;cursor:pointer">Export</button></div></div>
+  </div>
+
+  <div class="sec">
+    <div class="st">Input files</div>
+    <div class="help">The drawings and schedules the tool reads. All 8 found.</div>
+    <sc-for list="{{inputs}}" as="it" hint-placeholder-count="7">
+      <div class="row"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="9" r="8" fill="#0B7A3E"/><path d="M5 9.2l2.6 2.6L13 6.4" stroke="#FFFFFF" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg><div class="lbl">{{it.label}}</div><div class="fn" title="{{it.name}}">{{it.name}}</div><button class="br" type="button">Browse</button></div>
+    </sc-for>
+  </div>
+
+  <div class="sec">
+    <div class="st">Scope</div>
+    <div class="help">Which plots the next button works on.</div>
+    <label class="radio" for="sc1"><input id="sc1" type="radio" name="scope">Whole project</label>
+    <div style="display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:center">
+      <label class="radio" for="sc2"><input id="sc2" type="radio" name="scope" checked="checked">Neighbourhood</label>
+      <select id="nbh" class="combo" aria-label="Neighbourhood code"><option>012</option></select>
+    </div>
+    <div style="display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:center">
+      <label class="radio" for="sc3"><input id="sc3" type="radio" name="scope">Plot list</label>
+      <input id="plots" class="combo" type="text" placeholder="2290-2299, 2311" aria-label="Plot list">
+    </div>
+    <label class="radio" for="dry" style="margin-top:2px;padding:8px 10px;background:#F5F7FA;border:1px solid #DCE2E9;border-radius:3px"><input id="dry" type="checkbox" checked="checked">Dry run first, change nothing</label>
+  </div>
+
+  <div class="sec">
+    <div class="st">Steps</div>
+    <div class="help">Run them in order. Each one waits for the one before.</div>
+    <div style="display:flex;flex-direction:column">
+      <sc-for list="{{steps}}" as="s" hint-placeholder-count="8">
+        <div style="display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:10px;align-items:start;padding:6px 0">
+          <div style="width:26px;height:26px;border-radius:13px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:{{s.nfg}};background:{{s.nbg}};border:2px solid {{s.nbd}}">{{s.n}}</div>
+          <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+            <div style="font-size:14px;font-weight:{{s.w}};color:#1B1F24">{{s.name}}</div>
+            <div style="font-size:12px;color:#4A5663">{{s.what}}</div>
+          </div>
+          <div style="font-size:12px;font-weight:600;padding:3px 9px;border-radius:12px;color:{{s.fg}};background:{{s.bg}};white-space:nowrap;font-variant-numeric:tabular-nums">{{s.status}}</div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":380,"height":1620}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var done = { nfg: '#FFFFFF', nbg: '#1B3349', nbd: '#1B3349', fg: '#0B6B2E', bg: '#E6F4EA', w: 500 };
+    var issues = { nfg: '#FFFFFF', nbg: '#B26B00', nbd: '#B26B00', fg: '#7A4B00', bg: '#FFF4D6', w: 500 };
+    var next = { nfg: '#0052CC', nbg: '#FFFFFF', nbd: '#0052CC', fg: '#0A3D91', bg: '#E6EEFB', w: 600 };
+    var ready = { nfg: '#0052CC', nbg: '#FFFFFF', nbd: '#8FB0E6', fg: '#0A3D91', bg: '#E6EEFB', w: 500 };
+    var wait = { nfg: '#5A6672', nbg: '#FFFFFF', nbd: '#C3CCD6', fg: '#4A5663', bg: '#F0F2F5', w: 500 };
+    function s(n, name, what, status, k) { return Object.assign({ n: n, name: name, what: what, status: status }, k); }
+    return {
+      inputs: [
+        { label: 'Baseplan', name: 'ROSHN Makkah Baseplan.dwg' },
+        { label: 'Villa blocks', name: 'Makkah Building Footprint.dwg' },
+        { label: 'Curbs', name: 'Makkah Phase 1_Road Layout.dwg' },
+        { label: 'Road surface', name: 'landxml, 6 surfaces' },
+        { label: 'DLUS and sales', name: 'DLUS Schedule_Rev9.0.xlsx' },
+        { label: 'Plot numbers', name: '01101-PSN-ZZZ-XXX-DWG-TU-005000.pdf' },
+        { label: 'Prototypes', name: 'Prototypes_2024' },
+        { label: 'Shared parameters', name: '[parameter sheet].xlsx' }
+      ],
+      steps: [
+        s('1', 'Set up site', 'Coordinates, levels and types from CAD', 'Done', done),
+        s('2', 'Read data', 'Reads the drawings and schedules', 'Done', done),
+        s('3', 'Review data', 'The team checks what was read', 'Done', done),
+        s('4', 'Check', 'Compares the rules with the past job', '1,247 issues', issues),
+        s('5', 'Floors and ramps', 'Generic, yard and ramp floors', 'Ready', next),
+        s('6', 'Levels', 'Sets FFL and entry levels', 'Needs step 5', wait),
+        s('7', 'Place villas', 'Places a villa on each plot at its FFL', 'Needs step 6', wait),
+        s('8', 'Walls', 'Boundary and garden walls', 'Needs step 7', wait),
+        s('9', 'Report', 'Excel report of the run', 'Ready', ready)
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>New project</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+.st{font-size:15px;font-weight:600;color:#1B3349}
+.hl{font-size:12px;color:#4A5663;line-height:17px}
+.ph{color:#6B7682}
+.tbl{width:100%;border-collapse:collapse;font-size:13px;line-height:18px}
+.tbl th{text-align:left;font-weight:600;color:#1B3349;background:#F5F7FA;border-bottom:1px solid #D5DCE4;padding:8px 10px}
+.tbl td{padding:8px 10px;border-bottom:1px solid #EEF1F5;vertical-align:top}
+.b1{height:34px;min-width:96px;padding:0 18px;font:inherit;font-size:14px;border-radius:3px;cursor:pointer}
+.b2{height:26px;padding:0 10px;font:inherit;font-size:12px;color:#1B3349;background:#FFFFFF;border:1px solid #B8C2CD;border-radius:3px;cursor:pointer}
+.sel{height:28px;box-sizing:border-box;font:inherit;font-size:13px;color:#1B1F24;background:#FFFFFF;border:1px solid #B8C2CD;border-radius:3px;padding:0 8px;min-width:150px}
+.ok{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:#0B6B2E;white-space:nowrap}
+.no{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:#7A4B00;white-space:nowrap}
+.fl{display:flex;flex-direction:column;gap:3px}
+</style>
+</helmet>
+<div style="width:1080px;height:860px;box-sizing:border-box;background:#FFFFFF;font-family:'Libre Franklin','Franklin Gothic Book','Segoe UI',sans-serif;color:#1B1F24;display:flex;flex-direction:column;border:1px solid #9AA6B2;box-shadow:0 8px 24px rgba(27,51,73,.18)">
+  <div style="display:flex;align-items:center;justify-content:space-between;height:32px;padding:0 12px;border-bottom:1px solid #D5DCE4;font-family:'Segoe UI',sans-serif;font-size:12px">
+    <div>Site Adaptation</div><div style="font-size:14px;color:#5A6672">&#215;</div>
+  </div>
+
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:24px;padding:20px 24px;background:#1B3349;color:#FFFFFF">
+    <div style="display:flex;flex-direction:column;gap:6px;min-width:0">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="font-size:20px;font-weight:600">New project</div>
+        <div style="font-size:12px;font-weight:600;padding:3px 10px;border-radius:12px;color:#1B3349;background:#9ED9FD">Start here</div>
+      </div>
+      <div style="font-size:14px;line-height:20px;color:#DCE8F5;max-width:640px">Tell the tool where your files are. It reads them, shows what it found, and saves your settings. No file editing.</div>
+      <div style="font-size:13px;color:#9ED9FD">Using another project's settings? Pick them under Start from.</div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex-shrink:0">
+      <div style="font-size:28px;font-weight:600;font-variant-numeric:tabular-nums">3 of 5</div>
+      <div style="font-size:13px;color:#DCE8F5">files ready</div>
+    </div>
+  </div>
+
+  <div style="flex:1;min-height:0;display:flex;flex-direction:column;gap:16px;padding:18px 24px;overflow:hidden">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <label for="pn" class="st" style="font-size:13px">Project name</label>
+      <input id="pn" type="text" value="[project name]" style="height:28px;width:240px;box-sizing:border-box;font:inherit;font-size:13px;color:#1B1F24;border:1px solid #B8C2CD;border-radius:3px;padding:0 8px">
+      <label for="sf" class="st" style="font-size:13px;margin-left:12px">Start from</label>
+      <select id="sf" class="sel" style="min-width:210px"><option selected="selected">Empty project</option><option>ROSHN Makkah (saved)</option></select>
+      <span class="hl">ROSHN Makkah is kept as a saved start, not built in.</span>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:6px;min-height:0">
+      <div class="st">Files the tool needs</div>
+      <div class="hl">Each file comes from a team. Send them the template if it is missing.</div>
+      <table class="tbl">
+        <thead><tr><th style="width:210px">File</th><th style="width:180px">Who gives it</th><th style="width:120px">Used by</th><th>Pick and check</th><th style="width:96px">Status</th></tr></thead>
+        <tbody>
+          <tr><td>Site drawing (CAD)</td><td>Civil team</td><td>Buttons 1 to 4</td><td><div class="fl"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="ph">[site drawing].dwg</span><button type="button" class="b2">Browse</button></div><div class="hl">Layers found: 12. Pick plots, roads, curbs below.</div></div></td><td><span class="ok"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#0B6B2E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 7.5l3 3 6-7"/></svg>Found</span></td></tr>
+          <tr><td>Plot list (Excel)</td><td>Sales team</td><td>Button 3</td><td><div class="fl"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="ph">[plot list].xlsx</span><button type="button" class="b2">Browse</button><button type="button" class="b2">Get template</button></div><div class="hl">Pick the sheet and the columns for plot, code and cluster.</div></div></td><td><span class="ok"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#0B6B2E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 7.5l3 3 6-7"/></svg>Found</span></td></tr>
+          <tr><td>Villa levels (Excel)</td><td>Architect</td><td>Buttons 4 and 5</td><td><div class="fl"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="ph">[villa levels].xlsx</span><button type="button" class="b2">Browse</button><button type="button" class="b2">Get template</button></div><div class="hl">Floor level and door level for each villa type.</div></div></td><td><span class="ok"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#0B6B2E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 7.5l3 3 6-7"/></svg>Found</span></td></tr>
+          <tr style="background:#FFF4D6"><td>Road levels (civil file)</td><td>Civil team</td><td>Button 4</td><td><div class="fl"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="ph">[road levels]</span><button type="button" class="b2">Browse</button></div><div class="hl">Optional. Without it the tool uses road level plus slope.</div></div></td><td><span class="no"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#7A4B00" stroke-width="2" stroke-linecap="round"><path d="M7 3v5M7 10.5v.5"/></svg>Missing</span></td></tr>
+          <tr style="background:#FFF4D6"><td>Parameter sheet (Excel)</td><td>BIM team</td><td>Button 1</td><td><div class="fl"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="ph">[parameter sheet].xlsx</span><button type="button" class="b2">Browse</button><button type="button" class="b2">Get template</button></div><div class="hl">The shared parameters the tool adds to the model.</div></div></td><td><span class="no"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#7A4B00" stroke-width="2" stroke-linecap="round"><path d="M7 3v5M7 10.5v.5"/></svg>Missing</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div style="display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:24px;min-height:0">
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div class="st">What the tool read from the drawing</div>
+        <div class="hl">Coordinates are read from the CAD. You only confirm them.</div>
+        <table class="tbl">
+          <tbody>
+            <tr><td style="width:180px;color:#4A5663">Survey point</td><td class="ph">[coordinate]</td><td style="width:90px"><button type="button" class="b2">Change</button></td></tr>
+            <tr><td style="color:#4A5663">Plots found</td><td>[count] plots on layer <span class="ph">[layer]</span></td><td><button type="button" class="b2">Change</button></td></tr>
+            <tr><td style="color:#4A5663">Villa types</td><td>[count] types, [count] without a level</td><td><button type="button" class="b2">View</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;padding:14px 16px;background:#FFF4D6;border:1px solid #E8D08A;border-radius:3px;align-self:start">
+        <div style="font-size:14px;font-weight:600;color:#7A4B00">The tool stops here</div>
+        <div style="font-size:13px;line-height:19px;color:#1B1F24">The parameter sheet is missing, so button 1 cannot add the shared parameters.</div>
+        <div style="font-size:13px;line-height:19px;color:#1B1F24">What to do: ask the BIM team for the sheet, or press Get template and fill it.</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 24px;background:#F5F7FA;border-top:1px solid #D5DCE4">
+    <div class="hl" style="max-width:520px">Save keeps your settings in the project folder. The next person who opens it sees the same setup.</div>
+    <div style="display:flex;gap:10px">
+      <button class="b1" type="button" style="color:#1B1F24;background:#FFFFFF;border:1px solid #B8C2CD">Cancel</button>
+      <button class="b1" type="button" style="color:#1B3349;background:#FFFFFF;border:1px solid #1B3349">Check files</button>
+      <button class="b1" type="button" style="color:#FFFFFF;background:#0052CC;border:1px solid #0052CC;font-weight:600">Save setup</button>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1080,"height":860}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -36,12 +36,13 @@ namespace SiteAdaptation.AddIn.Pane
         private IReadOnlyList<string> levelProfiles = new string[0];
         private string levelProfile;
         private IReadOnlyList<string> nbhCodes = new string[0];
+        private string startSavedLine = PaneText.StartSavedNone;
 
         public PaneViewModel(IInputProbe probe, IPathPicker picker = null)
         {
             this.probe = probe;
             this.picker = picker;
-            SettingsRow = new FileRowViewModel(PaneText.Settings, false);
+            SettingsRow = new FileRowViewModel(PaneText.Setup, false);
             RulesRow = new FileRowViewModel(PaneText.Rules, false);
             InputRows = new ReadOnlyCollection<FileRowViewModel>(new[]
             {
@@ -55,20 +56,40 @@ namespace SiteAdaptation.AddIn.Pane
                 new FileRowViewModel(PaneText.SharedParameters, false, InputKeys.ParameterSheet),
             });
             Steps = new ReadOnlyCollection<StepRowViewModel>(RibbonLayout.Buttons.Select(button => new StepRowViewModel(button.Number, StepName(button.Number), PaneText.StepLines[button.Number - 1])).ToList());
+            // PaneFirst board: on first open steps 1 to 4, then one row for the steps after 4 up to the last
+            FoldedStep = new StepRowViewModel(FoldFrom, TextTemplate.Fill(PaneText.FoldedSteps, StepName(FoldFrom), StepPlan.Count, StepName(StepPlan.Count)), string.Empty);
+            FirstSteps = new ReadOnlyCollection<StepRowViewModel>(Steps.Take(FoldFrom - 1).Concat(new[] { FoldedStep }).ToList());
             BoxCommand = new PaneCommand(OnBox, () => document != null);
             ImportCommand = new PaneCommand(ImportPreSetting, () => document != null);
             ExportCommand = new PaneCommand(ExportPreSetting, () => document != null);
+            NewProjectCommand = new PaneCommand(() => NewProjectRequested?.Invoke(), () => document != null);
+            HowItWorksCommand = new PaneCommand(() => HowItWorksRequested?.Invoke(), () => true);
             Load(null);
         }
 
-        // The box button picks the settings file on first open, else asks for a run of the ribbon button it names
+        private const int FoldFrom = 5;
+
+        // The box button opens New project on first open, else asks for a run of the ribbon button it names
         public event Action<int> RunRequested;
+
+        // NEWPROJ-UI. The Revit side opens the window of each, the pane holds no window
+        public event Action NewProjectRequested;
+        public event Action HowItWorksRequested;
 
         // A message for the user, which the Revit side shows in a TaskDialog
         public event Action<string> Told;
 
         public bool HasDocument { get { return document != null; } }
         public bool FirstOpen { get { return document == null || !document.Settings.Chosen; } }
+        public bool InUse { get { return !FirstOpen; } }
+        public string StartSavedLine { get { return startSavedLine; } private set { Set(ref startSavedLine, value); } }
+        public PaneCommand NewProjectCommand { get; }
+        public PaneCommand HowItWorksCommand { get; }
+        public StepRowViewModel FoldedStep { get; }
+        public ReadOnlyCollection<StepRowViewModel> FirstSteps { get; }
+
+        // The steps the pane shows: all of them in use, steps 1 to 4 and the folded row on first open
+        public ReadOnlyCollection<StepRowViewModel> ShownSteps { get { return FirstOpen ? FirstSteps : Steps; } }
         public PaneSettings Settings { get { return document == null ? null : document.Settings; } }
         public string ProjectName { get { return projectName; } private set { Set(ref projectName, value); } }
         public string BoxLabel { get { return boxLabel; } private set { Set(ref boxLabel, value); } }
@@ -179,28 +200,28 @@ namespace SiteAdaptation.AddIn.Pane
             RefreshAll();
         }
 
-        // The box on first open picks the config file, as Browse of the Settings row does. The settings JSON of a document is R367,
-        // kept in the project in 5c and never picked by the user
-        public void ChooseSettings()
+        // R434. The names of the saved projects of Start from, the first named in the line of the first open box
+        public void SetSavedStarts(IReadOnlyList<string> names)
         {
-            string path = document == null || picker == null ? null : picker.File(null);
-            if (path != null)
-            {
-                PickConfig(path);
-            }
+            StartSavedLine = names == null || names.Count == 0 ? PaneText.StartSavedNone : TextTemplate.Fill(PaneText.StartSaved, names[0]);
         }
 
         // Browse asks the user for a path by the row. DLUS and sales asks for each workbook by its role, one dialog after the
-        // other, and a Cancel keeps the workbook the row had
+        // other, and a Cancel keeps the workbook the row had. The Setup row opens New project, so no settings file is ever picked by
+        // its path in the pane (NEWPROJ-UI)
         public void Browse(FileRowViewModel row)
         {
-            if (document == null || picker == null)
+            if (document == null)
             {
                 return;
             }
             if (row == SettingsRow)
             {
-                ChooseSettings();
+                NewProjectRequested?.Invoke();
+                return;
+            }
+            if (picker == null)
+            {
                 return;
             }
             if (row == RulesRow)
@@ -315,6 +336,7 @@ namespace SiteAdaptation.AddIn.Pane
             }
             RefreshRow(SettingsRow, document == null ? null : new[] { document.Settings.ConfigFile });
             RefreshRow(RulesRow, document == null ? null : new[] { document.Settings.RulesFile });
+            RefreshNames();
             foreach (FileRowViewModel row in InputRows)
             {
                 RefreshRow(row, document == null ? null : row.Keys.Select(key => document.Settings.InputPath(key)).ToArray());
@@ -330,7 +352,8 @@ namespace SiteAdaptation.AddIn.Pane
             BoxCommand.Refresh();
             ImportCommand.Refresh();
             ExportCommand.Refresh();
-            foreach (string name in new[] { nameof(HasDocument), nameof(FirstOpen), nameof(Settings), nameof(ScopeWhole), nameof(ScopeNbh), nameof(ScopePlots), nameof(Nbh), nameof(Plots), nameof(DryRun), nameof(VillaMasses), nameof(VillaLinks) })
+            NewProjectCommand.Refresh();
+            foreach (string name in new[] { nameof(HasDocument), nameof(FirstOpen), nameof(InUse), nameof(ShownSteps), nameof(Settings), nameof(ScopeWhole), nameof(ScopeNbh), nameof(ScopePlots), nameof(Nbh), nameof(Plots), nameof(DryRun), nameof(VillaMasses), nameof(VillaLinks) })
             {
                 Changed(name);
             }
@@ -391,6 +414,20 @@ namespace SiteAdaptation.AddIn.Pane
             // QL15. The row shows the file name alone, at 380 wide the size and hash showed on no row, so the tooltip gives each
             // under its full path
             row.Show(true, found && names.Count == paths.Length, name, tips.Count == 0 ? null : string.Join(Environment.NewLine, tips));
+        }
+
+        // NEWPROJ-UI, no file name ending in .json in the pane. The Setup row says whether the project has its setup, the Rules row
+        // shows the project its rules file names, else that file's name with no extension. Neither shows a path in its tooltip
+        private void RefreshNames()
+        {
+            if (document == null)
+            {
+                return;
+            }
+            SettingsRow.Show(true, SettingsRow.Found, document.Settings.Chosen ? PaneText.SetupSaved : PaneText.NotDone, null);
+            string rules = document.Settings.RulesFile;
+            string name = string.IsNullOrEmpty(rules) ? PaneText.NotChosen : probe.RulesName(rules) ?? Path.GetFileNameWithoutExtension(rules);
+            RulesRow.Show(true, RulesRow.Found, name, null);
         }
 
         // The hash is kept by path, so it shows on whatever document is shown when it ends, the one of the request again after the
@@ -494,6 +531,11 @@ namespace SiteAdaptation.AddIn.Pane
                 InputHelp = string.Empty;
                 return;
             }
+            if (FirstOpen)
+            {
+                InputHelp = PaneText.InputHelpFirst;
+                return;
+            }
             int found = InputRows.Count(row => row.Found);
             InputHelp = found == InputRows.Count
                 ? TextTemplate.Fill(PaneText.InputHelpAll, InputRows.Count)
@@ -520,6 +562,7 @@ namespace SiteAdaptation.AddIn.Pane
             {
                 step.Show(shown ? statuses[step.Number - 1] : new StepStatus(StepKind.None), step.Number == next && shown);
             }
+            FoldedStep.Show(shown ? statuses[FoldFrom - 1] : new StepStatus(StepKind.None), false);
         }
 
         private void RefreshBox()
@@ -545,7 +588,7 @@ namespace SiteAdaptation.AddIn.Pane
         {
             if (FirstOpen)
             {
-                ChooseSettings();
+                NewProjectRequested?.Invoke();
                 return;
             }
             int next = StepPlan.Next(statuses);
@@ -559,7 +602,7 @@ namespace SiteAdaptation.AddIn.Pane
         // next real run. A file the reader refuses or cannot read is told and changes nothing
         private void ImportPreSetting()
         {
-            string path = document == null || picker == null ? null : picker.File(PaneText.ImportPastJob);
+            string path = document == null || picker == null ? null : picker.File(PaneText.UseSaved);
             if (path == null)
             {
                 return;

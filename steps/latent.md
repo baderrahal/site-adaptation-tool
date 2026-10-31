@@ -403,3 +403,9 @@ All paths under dotnet/. A line number the reviewer did not note is left out.
 
 - RevitFloorDocument.cs:101: ChangeTypeId drops its return value. If Revit made a new element on a type change, the next lookup of the old UniqueId fails and the run rolls back, loud. Not probed in Revit 2024.
 - FloorPlan.cs:212-225 Named: a tag of 5d from before the type and plot values reads them from the floor as it stands, so a type the user changed by hand on such a floor reads as a plan change and 5 sets it to the plan with no line. Only floors of the 5d test runs hold such tags.
+
+- Lane C NEWPROJ-UI, TemplateBook.cs Write: a sheet name over 31 characters, one with []:*?/\ or two roles giving one sheet name make an xlsx Excel repairs, and a header with outer spaces loses them. The real names of dataBook.rev9 are 27 and 24 characters and clean (breaker).
+- Lane C NEWPROJ-UI, NewProjectViewModel.GetTemplate: a relative inputRoot, an 8.3 short name, a subst drive or a UNC alias of the input folder slips past WorkFolder.Inside. inputRoot of config is a full drive path (breaker).
+- Lane C NEWPROJ-UI, SavedStarts.List: a refused saved project is left out with no word to the user, the skipped list has no caller in the add-in (reviewer).
+- Lane C NEWPROJ-UI, LastReadFacts: a plot table that does not read shows Not read yet, with no log line. The block shows the latest read of the work folder and is not read again after Browse picks another drawing (reviewer, breaker).
+- Lane C NEWPROJ-UI, TemplateBook.SheetsFor: its refusal names addin.workbookRoles and dataBook.rev9, code names on the Template line of New project, reached only by a config with no such block (reviewer).

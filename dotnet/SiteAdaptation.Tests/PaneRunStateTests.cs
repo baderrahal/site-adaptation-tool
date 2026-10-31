@@ -126,7 +126,7 @@ namespace SiteAdaptation.Tests
 
             DocumentSession first = model.Document;
             model.Load(new DocumentSession("other", Folder + "Other.rvt", "Other"));
-            Assert.Equal("Needs settings", model.Steps[0].ChipText);
+            Assert.Equal("Needs setup", model.Steps[0].ChipText);
             model.Load(first);
             Assert.Equal("Done", model.Steps[0].ChipText);
         }
@@ -334,6 +334,11 @@ namespace SiteAdaptation.Tests
                 return new string[0];
             }
 
+            public string RulesName(string rulesFile)
+            {
+                return null;
+            }
+
             public string VillaModeDefault(string configFile)
             {
                 return VillaDefault;
@@ -358,6 +363,11 @@ namespace SiteAdaptation.Tests
             {
                 fallback = null;
                 return new string[0];
+            }
+
+            public string RulesName(string rulesFile)
+            {
+                return null;
             }
 
             public string VillaModeDefault(string configFile)
@@ -396,6 +406,11 @@ namespace SiteAdaptation.Tests
             {
                 fallback = null;
                 return new string[0];
+            }
+
+            public string RulesName(string rulesFile)
+            {
+                return null;
             }
 
             public string VillaModeDefault(string configFile)
