@@ -312,3 +312,16 @@ What the tool read (scan-results.png):
 11. The conflicts list scrolls inside SA.Size.ScanList (300), 20 rows first and all after Show all, virtualized. The board clips at the window.
 12. The foot line becomes "Saved <name>." after Export to Excel, or the reason when it is refused. The board has the one line.
 13. Use these picks is always on. A value still on Pick when it is pressed stays unsaved, so the next step sees it as unclear.
+
+## The Revit shots of 6a against the boards
+
+Taken in Revit 2024 by the buttons job of R384 with shots true, run LB6A on NBH 012 in Masses, 31 Oct 2026, 10 PNGs, none blank (RAN). The PNGs stay under the work root, addin_run\LB6A_20261031-232100\shots, since they show real file names and values. The references are the boards of docs/design/boards and the offscreen renders of this folder. Not drawn: Update from report, it stopped before its window (Q278), and the confirm windows, which are Revit TaskDialogs.
+
+- Pane: the pane is 765 px wide in Revit, the board 380, so the file names show whole. The shot holds only the visible part of the pane, so Scope and Steps are not in it.
+- Pane: the Rules row reads "ROSHN Makkah Phase 1", the board "ROSHN Makkah".
+- Pane: after the run the Next step box shows 3 Review data, since the host cancels 3 and step 3 is never Done.
+- New project: Plots found and Villa types read "Not read yet. Run 2 Read data." after button 2 ran, the drawing facts come from the scanner hook, join item C1, not built. The board shows 337 plots and 14 types.
+- New project: the Parameter sheet row shows testhost_KC_parameters.json, the test input of the run, a .json name in a window.
+- New project: 4 of 4 files ready and no stop box, the inputs of the run are all there, as expected.
+- Ribbon: the four panels Setup, Rules, Build, Output and the 11 buttons with their 32 px icons as the board. The title of the tab is not seen, it sits past the overflow mark at 1922 px (Q146).
+- Set up site, Review data, Check table, Rules and How it works were drawn at their design sizes, 1280 and 1080 px wide, not compared pixel by pixel here.

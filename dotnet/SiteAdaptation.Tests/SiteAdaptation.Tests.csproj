@@ -39,5 +39,6 @@
     <Compile Remove="NewProjectTests.cs" />
     <Compile Remove="ScanResultsTests.cs" />
     <Compile Remove="ScanGateTests.cs" />
+    <Compile Remove="R384_WindowShotsTests.cs" />
   </ItemGroup>
 </Project>

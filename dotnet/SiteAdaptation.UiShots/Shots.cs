@@ -374,22 +374,10 @@ namespace SiteAdaptation.UiShots
             return window;
         }
 
-        // A window that is not shown builds no visual tree of its own, so its content is measured at the width the window takes from the
-        // theme, the dialog width when it names none, and the height it asks for, capped by the MaxHeight of the theme, and arranged there.
-        // Its data context comes down the logical tree
+        // The layout the test host draws its shots of a run with (R384), so a shot and its baseline are laid out alike
         public static FrameworkElement LayOut(Window window)
         {
-            var body = (FrameworkElement)window.Content;
-            double width = double.IsNaN(window.Width) ? (double)window.FindResource("SA.Size.DialogWidth") : window.Width;
-            double cap = (double)window.FindResource("SA.Size.DialogMaxHeight");
-            for (int pass = 0; pass < 3; pass++)
-            {
-                body.Measure(new Size(width, cap));
-                double height = Math.Min(Math.Ceiling(body.DesiredSize.Height), cap);
-                body.Arrange(new Rect(0, 0, width, height));
-                body.UpdateLayout();
-            }
-            return body;
+            return WindowShots.LayOut(window);
         }
 
         public static FrameworkElement Body(Window window)

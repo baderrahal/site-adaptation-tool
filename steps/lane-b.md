@@ -10,8 +10,8 @@ Phase 5 and 6 on Bader's company laptop (D1 of steps/decisions-2026-10-28.md). T
 | 5a Install, ribbon, pane, one transaction per button | done, Lane B, laptop, 29 Oct 2026, on the unit tests and Revit run 3 (Q147) |
 | 5b Button 1 Set up site | done, Lane B, laptop, 29 Oct 2026, the PR of 5b and Revit runs 1 to 3 of button 1 |
 | 5c with the Revit run after 5c | done, Lane B, laptop, 2026-10-31, PR 111, Masses on NBH 012, Links to Q215 |
-| 5d | open, code merged 2026-10-31, Revit 1 to 5 on NBH 012 in Masses, 6 stops on Q274, Links to 6a |
-| 6a | open |
+| 5d | done, Lane B, laptop, 2026-10-31, PR 113, proven in Revit by the runs of 6a |
+| 6a | done for Masses, Lane B, laptop, 2026-10-31, Links waits on Q275 |
 | 6b, Lane B share, IMD, IME, IMF, IMG | open |
 | 6c | open |
 

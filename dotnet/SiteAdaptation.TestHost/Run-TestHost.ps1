@@ -424,6 +424,14 @@ if ($round) {
                 $roundJob.linksAfterMasses = [bool]$round.linksAfterMasses
                 $roundJob.dryRunFirst = ($round.dryRunFirst -ne $false)
                 $roundJob.paneSettings = $paneSettingsPath
+                # 6a (R384). The commands with no number run after the buttons by their command names, the host refuses an unknown one
+                if ($round.named) {
+                    $roundJob.named = [string[]]@($round.named)
+                }
+                # 6a (R384). Each window the host answers, the pane and the ribbon drawn to PNG under shots of the run folder
+                if ($round.shots -eq $true) {
+                    $roundJob.shots = $true
+                }
                 # R404 and D19. The loops the host reads of each prototype for its corner compare after 7, kept across runs by the SHA-256
                 # of each file in a JSON file of the work root, so a 2021 prototype is opened once in all runs and not once in each
                 if ($round.prototypeLoops) {
@@ -467,7 +475,7 @@ if ($round) {
 if (-not $DryStart -and -not $round) {
     $root = if ($env:SITE_ADAPTATION_INPUT) { $env:SITE_ADAPTATION_INPUT } else { $config.inputRoot }
     $original = Join-Path $root $config.testHost.model
-    $planPath = if ($spec -and $spec.plan) { $spec.plan } else { $config.pastJob.output }
+    $planPath = if ($spec -and $spec.plan) { $spec.plan } else { Resolve-WorkRootPath -Path $config.pastJob.output -Docs $docs }
     $sourceFolder = if ($set) { Join-Path $root $set.source } else { Join-Path $root $config.pastJob.prototypeFolder }
 
     if ($set) {

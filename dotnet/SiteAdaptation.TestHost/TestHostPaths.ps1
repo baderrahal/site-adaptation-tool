@@ -136,3 +136,17 @@ function Get-UpgradeFolder([string]$Docs, [string[]]$InputRoots) {
     Assert-OutsideInputRoots -Folder $folder -InputRoots $InputRoots
     return $folder
 }
+
+# Q127, J5. A path of config under the work root starts with the mark {workRoot}, taken as WorkRoot.Resolve of Common takes it, so the
+# run script reads the same file as the add-in. A path with no mark stays as it is
+function Resolve-WorkRootPath([string]$Path, [string]$Docs) {
+    $mark = '{workRoot}'
+    if (-not $Path -or -not $Path.StartsWith($mark, [StringComparison]::Ordinal)) {
+        return $Path
+    }
+    $at = $Docs
+    foreach ($part in @($Path.Substring($mark.Length).Replace('\', '/').Split('/') | Where-Object { $_ })) {
+        $at = Join-Path $at $part
+    }
+    return $at
+}
