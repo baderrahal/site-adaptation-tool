@@ -14,7 +14,7 @@ Done:
 - The footprint flags of 336 of 336 masses measured: the masses stand right, 305 inside their block, the drawing holds plot blocks (Q276)
 
 Checked:
-- Gate at f007959, clean build, RAN: net48 1647, net8.0 1454, pytest GATEPY
+- Gate at f007959, clean build, RAN: net48 1647, net8.0 1454, pytest 2162 passed, 1 skipped, 1 failed on the R401 block of Q277, fixed, its 25 pass
 - Revit LB6A at f007959, RAN: 1 to 9 commit on NBH 012 in Masses from a new project, 6.7 min, peak 2444 MiB, least free 16.7 GiB, 42 of 42 inputs unchanged
 - Times, s: open 19.3, 1 2.5, 2 57.8, 3 1.1, 4 25.7, 5 23.6, 6 4.7, 7 8.5, 8 4.1, 9 3.7, Rules 0.3. 336 masses, 1003 floors, the level and report Excel written
 - Shots: 10 PNGs none blank, the differences from the boards in steps/ui-shots/README.md. Review 1 APPROVE, 6 latent lines
