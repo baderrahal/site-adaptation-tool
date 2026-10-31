@@ -12,15 +12,33 @@ namespace SiteAdaptation.AddIn.Pane
         public const string DryRunOn = "Dry run is on.";
         public const string DryRunOff = "Dry run is off.";
 
+        // docs/design/boards/PaneFirst.dc.html, the first open box of Lane C NEWPROJ-UI
         public const string StartLabel = "Start here";
-        public const string StartName = "Choose the settings file";
-        public const string StartLine = "It names the drawings, the rules and the prototypes for this job. The tool fills the rest of this panel from it.";
-        public const string StartButton = "Choose settings file";
+        public const string StartName = "Set up this project";
+        public const string StartLine = "Tell the tool where your files are. It reads them, shows what it found, and saves your setup. No file editing.";
+        public const string StartButton = "Open New project";
+        public const string StartSaved = "Or start from a saved project such as <name>:";
+        public const string StartSavedNone = "Or start from a saved project:";
+        public const string UseSaved = "Use a saved project";
+        public const string NewHere = ". New here? Read";
+        public const string FirstSuffix = "first.";
 
         public const string InputHelpAll = "The drawings and schedules the tool reads. All <n> found.";
         public const string InputHelpSome = "The drawings and schedules the tool reads. <m> of <n> found.";
+        public const string InputHelpFirst = "Filled from your setup. You can change any of them after.";
 
+        // The name of the config file among the inputs of a run, which the step hashes of R366 hold, never shown since NEWPROJ-UI
         public const string Settings = "Settings";
+        public const string Setup = "Setup";
+        public const string SetupSaved = "Saved for this project";
+        public const string NotDone = "Not done";
+        public const string FromSetup = "From setup";
+        public const string Edit = "Edit";
+        public const string Open = "Open";
+        public const string Change = "Change";
+        public const string Help = "Help";
+        public const string HowItWorks = "How it works";
+        public const string NewProject = "New project";
         public const string Rules = "Rules";
         public const string Baseplan = "Baseplan";
         public const string VillaBlocks = "Villa blocks";
@@ -32,7 +50,6 @@ namespace SiteAdaptation.AddIn.Pane
         public const string SalesTitle = "Sales schedule";
         public const string Prototypes = "Prototypes";
         public const string SharedParameters = "Shared parameters";
-        public const string ImportPastJob = "Import from past job";
         public const string Export = "Export";
 
         public const string NotChosen = "Not chosen";
@@ -54,7 +71,10 @@ namespace SiteAdaptation.AddIn.Pane
         public const string DoneWithIssues = "Done with <n> issues";
         public const string Ready = "Ready";
         public const string NeedsStep = "Needs step <n>";
-        public const string NeedsSettings = "Needs settings";
+        public const string NeedsSettings = "Needs setup";
+
+        // The steps after 4 folded into one row on first open, as "Floors and ramps to 9 Report"
+        public const string FoldedSteps = "<name> to <n> <name>";
 
         public static readonly string[] StepLines = { StepLine1, StepLine2, StepLine3, StepLine4, StepLine5, StepLine6, StepLine7, StepLine8, StepLine9 };
     }

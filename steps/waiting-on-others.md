@@ -20,3 +20,15 @@ The asks of the questions Bader closed in the answer pass of 2026-10-29 whose re
 | Q070 | Parsons | The schedules of IME, IMF and IMG | El @ Entry from the ELl@Entry parameter of the key |
 | Q071 | The architect | The wall top rule | Base at the yard level of the higher plot, centre on the plot edge, front edge open, top at FFL plus 1.7 m (weak, 0.346), wall overrides per plot side once button 8 places walls |
 | Q082 | The road designer | The road surface or road model of the fronts of 33 key plots | Those plots are listed in noRoadLevel with the reason and not written |
+
+## Lane C NEWPROJ-UI, 31 Oct 2026
+
+The placeholders of the window New project (docs/design/18-new-project.md). Each waits for another lane, the window shows it grey or as text until then.
+
+| Item | Who is asked | For what | What the tool does until then |
+|---|---|---|---|
+| Scanner hook | Lane B, a later round (Lane D builds the scanner) | Fill IDrawingFacts through NewProjectDialog.Facts: the layer count, the survey point, the lists behind Change and View | LastReadFacts: unit plots and villa types of the latest read, the plot line layers of the layer list. Change and View grey, Survey point says Comes with the drawing scan |
+| Villa levels row | Lane A | The door level source, and with it the input and the sheets of the villa levels Excel | The row shows Comes later, Browse grey, no template, never saved |
+| Cluster proposal | Lane A | Whether New project proposes clusters | Nothing in the window |
+| Rules R430 to R434 | Lane A | Write the five rules of Lane C NEWPROJ-UI into docs/rules with their tests, from steps/HEADSUP.md, so docs/design may name their ids (R343) | The ids stand in the code, the tests and steps/HEADSUP.md only |
+| Back yard | Lane A | Whether New project sets the back yard | Nothing in the window |

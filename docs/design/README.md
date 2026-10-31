@@ -20,3 +20,4 @@ Parts 01 to 10 are docs/addin-design.md of Round ADDIN Phase 3b, cut in Round RE
 | 13-workflow-changes.md | Lane B 5a | Bader's workflow changes of 28 Oct 2026: the 9 steps, the ribbon of four panels, Review data, Site Adaptation Rules, Update from report, and the phase of each |
 | 14-ui-labels.md | Lane B 5a | The label list of the text test, every window text grouped by window |
 | 15-manual-rules.md | Round FOLD | The manual rules M01 to M15 of the canvas with their Rev 06 section and page, for manualRules of the rules profile (W3) |
+| 18-new-project.md | Lane C NEWPROJ-UI | New project, How it works and the pane changes from Bader's boards of 31 Oct 2026 in boards/, the five rules of the round |

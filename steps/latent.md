@@ -368,3 +368,8 @@ All paths under dotnet/. A line number the reviewer did not note is left out.
 - Revit run after 5c, probe 1b: the probe subscribed to Idling inside Idling, so 1b stays UNKNOWN. Probe 1a answers the need of the run.
 - Revit run after 5c: an ExtentReports FileNotFoundException at Revit shutdown, seen in every window and not from the tool.
 - Revit run after 5c, AddinRun.cs:262-268 and AddinRunSession.cs:516-524: the host raises its phase event once and never again after a refusal (Denied), a refused raise ends the run (Q223).
+- Lane C NEWPROJ-UI, TemplateBook.cs Write: a sheet name over 31 characters, one with []:*?/\ or two roles giving one sheet name make an xlsx Excel repairs, and a header with outer spaces loses them. The real names of dataBook.rev9 are 27 and 24 characters and clean (breaker).
+- Lane C NEWPROJ-UI, NewProjectViewModel.GetTemplate: a relative inputRoot, an 8.3 short name, a subst drive or a UNC alias of the input folder slips past WorkFolder.Inside. inputRoot of config is a full drive path (breaker).
+- Lane C NEWPROJ-UI, SavedStarts.List: a refused saved project is left out with no word to the user, the skipped list has no caller in the add-in (reviewer).
+- Lane C NEWPROJ-UI, LastReadFacts: a plot table that does not read shows Not read yet, with no log line. The block shows the latest read of the work folder and is not read again after Browse picks another drawing (reviewer, breaker).
+- Lane C NEWPROJ-UI, TemplateBook.SheetsFor: its refusal names addin.workbookRoles and dataBook.rev9, code names on the Template line of New project, reached only by a config with no such block (reviewer).

@@ -62,6 +62,8 @@ Ribbon tab "Site Adaptation" with four panels in this order (Bader 28 Oct 2026, 
 
 ### 7.2 Pane
 
+Bader's boards of 31 Oct 2026 in docs/design/boards/ prevail over this part for the first open box, the rows Setup, Rules and Help, and the band, Lane C NEWPROJ-UI (docs/design/18-new-project.md). The tokens, fonts and sizes below are unchanged.
+
 Top to bottom:
 
 - Band, SA.Band: small "Project" in SA.BandAccent, the project name 16 SemiBold white, "not saved" when the title is empty or the document has no saved path (answer of Revit run 3: a detached document has a title but no saved path, as its steps show no status).
