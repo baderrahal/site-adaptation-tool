@@ -51,13 +51,11 @@ namespace SiteAdaptation.Common
 
         public JArray Bands { get; set; }
 
-        // R408. Under rev6 why each plot with a road level has no El @ Entry, the plots of the scope with none and the plots of the scope whose
-        // slope lies outside slopes_percent front_min to front_max, null under the past job
+        // R408. Under rev6 why each plot with a road level has no El @ Entry and the plots of the scope with none, null under the past job.
+        // The slopes outside the manual are listed after the overrides, PlanOverrides.Outside
         public Dictionary<string, string> NoDoorWhy { get; set; }
 
         public JArray NoDoor { get; set; }
-
-        public JArray Outside { get; set; }
 
         public bool Rev6 => Basis != null && Basis.IsRev6;
     }
@@ -378,12 +376,9 @@ namespace SiteAdaptation.Common
             var made = new LevelBuild { Partners = partners, Members = ordered, Fronts = fronts, Entries = entries, Rows = levels, Basis = basis, Bands = bands };
             if (rev6)
             {
-                // R408. The plots of the scope with no El @ Entry and why, and those whose slope lies outside the manual, as plan_from_book.build lists them
-                JObject limits = (JObject)rules["slopes_percent"];
+                // R408. The plots of the scope with no El @ Entry and why, as plan_from_book.build lists them
                 made.NoDoorWhy = noDoorWhy;
                 made.NoDoor = noDoor;
-                made.Outside = new JArray(numbers.Where(number => entries.ContainsKey(number) && DesignBasis.OutsideManual(entries[number].Slope, limits))
-                    .Select(number => new JObject { ["plot"] = number, ["slopePercent"] = Rounding.Fixed(entries[number].Slope, DesignBasis.SlopeDecimals) }));
             }
             return made;
         }

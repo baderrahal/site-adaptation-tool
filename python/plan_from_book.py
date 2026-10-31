@@ -385,7 +385,7 @@ def floor_step(numbers, rows, trace, links, rules, profile, step):
 
 
 OVERRIDE_FIELDS = ("unit", "skip", "written", "applied", "notApplied", "mirrored", "insert", "rotationDeg", "roadAtFront", "entry", "ffl", "ssl", "height", "steps", "rampZ",
-                   "rampType", "yardZ", "yardOutline")
+                   "rampType", "yardZ", "yardOutline", "slopePercent")
 
 
 def held_plan(number, name, made, written):
@@ -453,6 +453,9 @@ def override_step(numbers, rows, trace, hands, files, rules, profile, step):
             made["roadAtFront"] = plan_rules.road_at_front(item["front"])
             gap = plan_rules.gap_of(mine.get("entryM"))
             made["entry"] = trace["entryRaw"][number] if gap is None else entry["rule"] + gap
+            if rev6:
+                # R408. The slope of El @ Entry after its override, the result the plan writes
+                made["slopePercent"] = trace["slopes"][number] if gap is None else design_basis.slope_of(made["entry"], item["front"], item["depth"])
         if level is not None:
             gap = plan_rules.gap_of(mine.get("heightM"))
             if gap is None:
@@ -474,9 +477,12 @@ def override_step(numbers, rows, trace, hands, files, rules, profile, step):
             continue
         gap = plan_rules.gap_of(mine.get("rampFrontM"))
         ramp_front = item["front"] if gap is None else [z + gap for z in item["front"]]
-        # R408. Under rev6 a ramp with no rampType override takes the type of the band of its slope, never keyRules.rampSlope
+        if rev6 and gap is not None:
+            # R408. The slope of the front corners after the rampFrontM override, which the plan writes
+            made["slopePercent"] = design_basis.slope_of(made["entry"], ramp_front, item["depth"])
+        # R408. Under rev6 a ramp with no rampType override takes the type of the band of its slope after the overrides, never keyRules.rampSlope
         ramp_class = mine.get("rampType") or (None if rev6 else plan_rules.key_ramp_class(key, unit))
-        kind = lp["rampTypes"].get(ramp_class) if ramp_class is not None else floor_fit.type_of(trace["slopes"][number], trace["bands"]) if rev6 else None
+        kind = lp["rampTypes"].get(ramp_class) if ramp_class is not None else floor_fit.type_of(made["slopePercent"], trace["bands"]) if rev6 else None
         if kind is not None:
             made.update(rampZ=ramp_heights(ramp_front, entry["entry"]), rampType=kind)
         # R410. No yard floor under rev6
@@ -499,6 +505,8 @@ def override_step(numbers, rows, trace, hands, files, rules, profile, step):
         held_plan(number, "ramp corner Z", None if made["rampZ"] is None else [common.r3(z) for z in made["rampZ"]],
                   None if ramp is None else [corner[2] for corner in ramp["corners"]["value"]])
         held_plan(number, "ramp type", made["rampType"], None if ramp is None else ramp["type"]["value"])
+        if rev6:
+            held_plan(number, "ramp slope", None if ramp is None else common.r3(made["slopePercent"]), None if ramp is None else ramp["slopePercent"]["value"])
         held_plan(number, "yard outline", None if made["yardOutline"] is None else [plan_from_past.point(point) for loop in made["yardOutline"] for point in loop],
                   None if yard is None else [point for loop in yard["outline"]["value"]["loops"] for point in loop["points"]])
         held_plan(number, "yard Z", None if made["yardZ"] is None else common.r3(made["yardZ"]), None if yard is None else yard["z"]["value"])
@@ -923,7 +931,8 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
     proposals = cluster_proposals.proposals(numbers, rows, rules["neighbours"], profile, key, files) if design_basis.proposes(basis) else {}
     if trace is not None:
         trace.update(roles=roles, hands={}, proposals=proposals)
-    entries, slopes, no_door = {}, {}, []
+    # R408. slopes the slope by the rule for the step levels, finals and ends the slope and the raw El @ Entry after the overrides for the plan
+    entries, slopes, finals, ends, no_door = {}, {}, {}, {}, []
     overrides = {} if rules is None else rules["overrides"]
     outcomes = Outcomes(overrides, numbers, [] if rules is None else rules.get("laterFields") or [], "the estimate of R209" if rules is None else rules["name"])
     in_build = set(numbers)
@@ -935,6 +944,7 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
             rule = None
             if rules is None:
                 value, slope = entry_estimate(item["front"], item["unit"], profile, steep, item["depth"])
+                end, final = value, slope
             else:
                 if rev6:
                     # R408. El @ Entry the input, from the civil file or the road at front plus the slope of the unit, the slope the result
@@ -951,18 +961,23 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
                 if trace is not None:
                     # R359. El @ Entry unrounded, the value the step levels holds its rounding to 4 decimals against
                     trace.setdefault("entryRaw", {})[number] = value
+                end, final = value, slope
                 if by_levels:
                     # R340. At the 4 decimals of R2, as R339 measured it, so a gap moves it onto the key exactly
                     value = rule = common.fixed(value, plan_rules.ENTRY_DECIMALS)
                 gap = plan_rules.gap_of(overrides.get(number, {}).get("entryM"))
                 # R340. With the level rules a gap moves the El @ Entry of its own plot only, so one of a plot outside the build moves nothing
                 if gap is not None and not (by_levels and number not in in_build):
-                    value = common.fixed(value + gap, plan_rules.ENTRY_DECIMALS) if by_levels else value + gap
+                    shifted = value + gap
+                    value = common.fixed(shifted, plan_rules.ENTRY_DECIMALS) if by_levels else shifted
+                    if rev6:
+                        # R408. The slope the plan writes is that of the El @ Entry the override moved, raw as the step overrides holds it
+                        end, final = shifted, design_basis.slope_of(shifted, item["front"], item["depth"])
                     outcomes.applied(number, "entryM")
                 elif gap is None and "entryM" in overrides.get(number, {}):
                     outcomes.left(number, "entryM", NO_GAP)
             entries[number] = {"unit": item["unit"], "entry": value, **({"rule": rule} if by_levels else {})}
-            slopes[number] = slope
+            slopes[number], finals[number], ends[number] = slope, final, end
         elif "entryM" in overrides.get(number, {}):
             outcomes.left(number, "entryM", "no road level at a front corner, so no El @ Entry to move")
     if rules is None:
@@ -1134,23 +1149,26 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
                 if gap is not None:
                     ramp_front = [z + gap for z in item["front"]]
                     moved.append("rampFrontM")
+                    if rev6:
+                        # R408. The slope the plan writes is that of the front corners the override moved
+                        finals[number] = design_basis.slope_of(ends[number], ramp_front, item["depth"])
                 elif "rampFrontM" in mine_overrides:
                     outcomes.left(number, "rampFrontM", NO_GAP)
                 named = mine_overrides.get("rampType")
                 if named is not None:
                     moved.append("rampType")
                 if rev6 and not named:
-                    # R408. The ramp type of the band of the slope, the result, never keyRules.rampSlope
-                    ramp_class, kind = None, floor_fit.type_of(slopes[number], inputs["bands"])
+                    # R408. The ramp type of the band of the slope after the overrides, the result, never keyRules.rampSlope
+                    ramp_class, kind = None, floor_fit.type_of(finals[number], inputs["bands"])
                 else:
                     # R337. The ramp class the keys give the Rev 9 code, the slope of the level profile only for the Round 17 build
                     ramp_class = named or (plan_rules.key_ramp_class(key, unit) if key is not None else plan_rules.slope_class(slopes[number]))
                     kind = rules["levelProfile"]["rampTypes"].get(ramp_class) if ramp_class is not None else None
             if key is not None and kind is None:
-                builder.lack("floors.ramp", NO_BAND % slopes[number] if rev6 and not named else "keyRules.rampSlope and rampTypes give no ramp type for " + unit)
+                builder.lack("floors.ramp", NO_BAND % finals[number] if rev6 and not named else "keyRules.rampSlope and rampTypes give no ramp type for " + unit)
                 made = None
             else:
-                made = ramp_floor(builder, item["frame"], item["corners"], ramp_front, builder.entry["levels"]["entry"]["value"], slopes[number], inputs, kind)
+                made = ramp_floor(builder, item["frame"], item["corners"], ramp_front, builder.entry["levels"]["entry"]["value"], finals[number], inputs, kind)
             for field in moved:
                 if made:
                     outcomes.applied(number, field)
@@ -1243,10 +1261,10 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
         "conflicts": conflicts,
     }
     if rev6:
-        # R408. The plots of the scope with no El @ Entry and why, and those whose slope lies outside slopes_percent front_min to front_max
+        # R408. The plots of the scope with no El @ Entry and why, and those whose slope after the overrides lies outside slopes_percent front_min to front_max
         limits = profile.get("slopes_percent")
-        plan["summary"].update(noDoorLevel=no_door, slopeOutsideManual=[{"plot": number, "slopePercent": common.fixed(slopes[number], design_basis.SLOPE_DECIMALS)}
-                                                                        for number in numbers if number in entries and design_basis.outside_manual(slopes[number], limits)])
+        plan["summary"].update(noDoorLevel=no_door, slopeOutsideManual=[{"plot": number, "slopePercent": common.fixed(finals[number], design_basis.SLOPE_DECIMALS)}
+                                                                        for number in numbers if number in entries and design_basis.outside_manual(finals[number], limits)])
     if proposals:
         plan["summary"]["proposals"] = cluster_proposals.counts(proposals)
     return plan

@@ -521,7 +521,7 @@ namespace SiteAdaptation.Common
                             {
                                 // R365, Q116. The plan summary of step 15 from the plots after the overrides, the fronts of the build and the status of every value
                                 Tuple<Dictionary<string, Dictionary<string, object>>, JObject> summary = PlanSummary.Step(site.Numbers, plans, build.Fronts, hands, status, statusTable,
-                                    site.Settings, key, profileName, KeyLevels.LaterParameters(site.Settings, levelProfile), site.Faces, build.NoDoor, build.Outside);
+                                    site.Settings, key, profileName, KeyLevels.LaterParameters(site.Settings, levelProfile), site.Faces, build.NoDoor, PlanOverrides.Outside(site.Numbers, build, plans, site.Rules));
                                 made[PlanSummary.StepName] = summary.Item1;
                                 tables[PlanSummary.StepName] = summary.Item2;
                                 run.Counts["conflicts of the scope"] = ((JArray)summary.Item2["summary"]["conflicts"]).Count;

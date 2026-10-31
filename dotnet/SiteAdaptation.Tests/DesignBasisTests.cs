@@ -126,7 +126,6 @@ namespace SiteAdaptation.Tests
             Assert.Equal("\"0.5\" \"Ramps 0.5%\" 0.1", ((JToken)past.Floors["5"]["rampClass"]).ToString(Newtonsoft.Json.Formatting.None) + " "
                 + ((JToken)past.Floors["5"]["rampType"]).ToString(Newtonsoft.Json.Formatting.None) + " " + past.Floors["5"]["yardDepth"]);
             Assert.Null(past.Build.NoDoor);
-            Assert.Null(past.Build.Outside);
             Assert.Equal(Text(plain.Levels), Text(past.Levels));
             Assert.Equal(Text(plain.Floors), Text(past.Floors));
         }
@@ -190,7 +189,7 @@ namespace SiteAdaptation.Tests
             Assert.Equal(Road6 + 2.0 / 100.0 * Depth, (double)made.Levels["6"]["entry"]);
             Assert.Equal("Ramps 2%", (string)(JToken)made.Floors["6"]["rampType"]);
             Assert.Empty(made.Build.NoDoor);
-            Assert.Empty(made.Build.Outside);
+            Assert.Empty(RuleOutside(made));
         }
 
         [Fact]
@@ -200,7 +199,7 @@ namespace SiteAdaptation.Tests
             Func<double, string> text = value => Math.Round(value, 6).ToString("R", System.Globalization.CultureInfo.InvariantCulture);
             string path = Civil("Plot No.,El @ Entry", "1,10.2", "2," + text(road2 + 0.01 * Depth), "3," + text(road3 + 0.01 * Depth), "5," + text(Road5 + 0.003 * Depth), "6,10.9");
             LevelFloorStepTests.Made made = LevelFloorStepTests.MadeBuild(basis: Rev6(CivilFile(path), path), bands: Bands());
-            List<JObject> listed = made.Build.Outside.OfType<JObject>().Where(item => (string)item["plot"] != "1").ToList();
+            List<JObject> listed = RuleOutside(made).OfType<JObject>().Where(item => (string)item["plot"] != "1").ToList();
             Assert.Equal("5 6", string.Join(" ", listed.Select(item => (string)item["plot"])));
             Assert.Equal(0.3, (double)listed[0]["slopePercent"]);
             Assert.Equal(Rounding.Fixed((10.9 - Road6) / Depth * 100.0, 3), (double)listed[1]["slopePercent"]);
@@ -208,6 +207,75 @@ namespace SiteAdaptation.Tests
             Assert.False(DesignBasis.OutsideManual(0.49999999999, limits));
             Assert.False(DesignBasis.OutsideManual(2.0004, limits));
             Assert.True(DesignBasis.OutsideManual(2.0051, limits));
+        }
+
+        // The list of a build with no override, whose slopes after the overrides are those of the rule
+        private static JArray RuleOutside(LevelFloorStepTests.Made made)
+        {
+            return DesignBasis.OutsideList(made.Levels.Keys, made.Build.Entries.ToDictionary(item => item.Key, item => item.Value.Slope),
+                (JObject)LevelFloorStepTests.MadeRules()["slopes_percent"]);
+        }
+
+        // test_r408_door_level.slope_build: the made up row under rev6 with roadPlusSlope at 1.5 percent, in the band Ramps 2% and inside the manual
+        private static OverrideParameterStepTests.Built SlopeBuild(string overrides)
+        {
+            JObject parsed = JObject.Parse(overrides);
+            var list = new OverrideList(parsed.Properties().ToDictionary(item => item.Name, item => (JObject)item.Value));
+            DesignBasis basis = Rev6(block => block["doorLevel"]["slopePercent"] = new JObject { ["default"] = 1.5 });
+            return OverrideParameterStepTests.Build(list, basis: basis, bands: Bands());
+        }
+
+        private static JArray Outside(OverrideParameterStepTests.Built built)
+        {
+            return PlanOverrides.Outside(built.Plans.Keys.ToList(), built.Build, built.Plans, built.Rules);
+        }
+
+        // El @ Entry of the rule at 4 decimals moved by its gap, less the road at front moved by its gap, over the ramp depth
+        private static double FinalSlope(double road, double entryGap, double frontGap)
+        {
+            double rule = Rounding.Fixed(road + 1.5 / 100.0 * Depth, 4);
+            return (rule + entryGap - (road + frontGap)) / Depth * 100.0;
+        }
+
+        [Fact]
+        public void R408_an_entry_override_gives_the_slope_ramp_type_and_outside_list_of_the_moved_el_at_entry()
+        {
+            OverrideParameterStepTests.Built built = SlopeBuild("{\"5\": {\"entryM\": {\"gapToRuleM\": -0.06}}}");
+            Dictionary<string, object> five = built.Plans["5"].Overrides;
+            Assert.Equal("Ramps 0.5%", (string)(JToken)five["rampType"]);
+            Assert.Equal(FinalSlope(Road5, -0.06, 0.0), (double)five["slopePercent"], 9);
+            Assert.Equal(0.413, Rounding.Fixed((double)five["slopePercent"], 3));
+            Assert.Equal("[{\"plot\":\"5\",\"slopePercent\":0.413}]", Outside(built).ToString(Newtonsoft.Json.Formatting.None));
+            // The step levels keeps the slope by the rule, the step before the overrides
+            Assert.Equal(1.5, built.Build.Entries["5"].Slope, 12);
+        }
+
+        [Fact]
+        public void R408_a_ramp_front_override_gives_the_slope_ramp_type_and_outside_list_of_the_moved_front()
+        {
+            OverrideParameterStepTests.Built built = SlopeBuild("{\"6\": {\"rampFrontM\": {\"gapToRuleM\": 0.07}}}");
+            Dictionary<string, object> six = built.Plans["6"].Overrides;
+            Assert.Equal("Ramps 0.5%", (string)(JToken)six["rampType"]);
+            Assert.Equal(FinalSlope(Road6, 0.0, 0.07), (double)six["slopePercent"], 9);
+            Assert.Equal(0.232, Rounding.Fixed((double)six["slopePercent"], 3));
+            Assert.Equal("[{\"plot\":\"6\",\"slopePercent\":0.232}]", Outside(built).ToString(Newtonsoft.Json.Formatting.None));
+            Assert.Equal(1.5, built.Build.Entries["6"].Slope, 12);
+        }
+
+        [Fact]
+        public void R408_a_plot_with_no_override_keeps_the_slope_of_the_rule()
+        {
+            OverrideParameterStepTests.Built built = SlopeBuild("{}");
+            foreach (string number in new[] { "4", "5", "6" })
+            {
+                Assert.Equal("Ramps 2%", (string)(JToken)built.Plans[number].Overrides["rampType"]);
+                Assert.Equal(built.Build.Entries[number].Slope, (double)built.Plans[number].Overrides["slopePercent"]);
+            }
+            Assert.Empty(Outside(built));
+            // The step overrides of a build of the past job carries no slope and no list
+            OverrideParameterStepTests.Built past = OverrideParameterStepTests.Build(new OverrideList(new Dictionary<string, JObject>()));
+            Assert.All(past.Plans.Values, plan => Assert.Null(plan.Overrides["slopePercent"]));
+            Assert.Null(Outside(past));
         }
 
         [Theory]
