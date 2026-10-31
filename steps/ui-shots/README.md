@@ -12,7 +12,7 @@ Control 3 of docs/design/12-ui-spec.md, UI controls. Each PNG is a render of a w
 | setup-site.png | The Set up site window of button 1, an existing site file after the dry run, 7 of 7 check points pass, made up numbers, the content of the window at 1280 wide with no title bar of Windows | Draft |
 | review-data.png | The Review data window of button 3, NBH 012 with 5 made up plots, the first three with a plan of button 4 and corners, two checked OK and one Wrong, plot 31 selected, the cluster confirm of R442 with plots 32 and 33 proposed as one cluster, 32 confirmed, 34 with no proposal, the content of the window at 1280 wide with no title bar of Windows | Draft |
 | rules.png | The Site Adaptation Rules window of the ribbon button of that name, the 15 rules of the block manualRules of the rules profile, rule M06 selected, the content of the window at 1280 wide with no title bar of Windows | Draft |
-| check-table.png | The check table window of button 4, NBH 012 with 5 made up plots and 8 rows of every kind, the first row selected, Save overrides on, the content of the window at 1280 wide with no title bar of Windows | Draft |
+| check-table.png | The check table window of button 4, NBH 012 with 5 made up plots and 8 rows of every kind, the first row selected, Save overrides on, Door level from with no civil file and 5 plots by road level plus slope (R443), the content of the window at 1280 wide with no title bar of Windows | Draft |
 | update-from-report.png | The Update from report window of 5f, the level Excel and the report Excel of NBH 012 picked, 4 changes and 1 cell not editable, one change that breaks manual rule M08 unticked, made up numbers, the content of the window at 1280 wide with no title bar of Windows | Draft |
 | new-project.png | The New project window of Lane C NEWPROJ-UI, the site drawing and the plot list found, road levels and the parameter sheet missing as on the board, sample counts 337 plots and 14 villa types, the content of the window at 1080 wide with no title bar of Windows | Draft (Q286) |
 | how-it-works.png | The How it works page of Lane C NEWPROJ-UI, the 9 steps, the content of the window at 1080 wide with no title bar of Windows | Draft (Q286) |
@@ -326,3 +326,12 @@ Taken in Revit 2024 by the buttons job of R384 with shots true, run LB6A on NBH 
 - New project: 4 of 4 files ready and no stop box, the inputs of the run are all there, as expected.
 - Ribbon: the four panels Setup, Rules, Build, Output and the 11 buttons with their 32 px icons as the board. The title of the tab is not seen, it sits past the overflow mark at 1922 px (Q146).
 - Set up site, Review data, Check table, Rules and How it works were drawn at their design sizes, 1280 and 1080 px wide, not compared pixel by pixel here.
+
+## Lane C SCAN-UI task 6, Door level from in 4 Check (R443)
+
+No board, so the row follows the style of the check table window and is a DRAFT. check-table.png was rendered again with made up counts, a config with no civil file and 5 plots by road level plus slope, no coordinate, level or file name. No Revit window ran, so the picture is the offscreen render only (UNKNOWN in Revit).
+
+1. The row stands above the chips, the label in HeadText of the window (the style of the table header), the dropdown SA.Pane.Combo as the Use column, its items by the style UseItem, so the grey civil item takes SA.Wait with the help line as its tooltip.
+2. The dropdown is SA.Size.SideBox (340) wide, CHOSEN so the longest label fits with no new key in Theme.xaml.
+3. The help line is SA.Pane.Help, shown only while the civil item is grey. A gap SA.Gap.Bottom16 parts the row from the chips.
+4. A pick goes to DoorLevelSource of the pane settings at once, not with Save overrides, since it is a setting of the project and no override. The build of 4 Check still takes designBasis.doorLevel.source of config until Lane A reads the pick.

@@ -104,6 +104,7 @@ namespace SiteAdaptation.Common.Settings
             }
             Scope(settings.Scope, "the scope");
             OneOf(settings.VillaMode, VillaModes.All, "villaMode");
+            OneOf(settings.DoorLevelSource, DoorLevelSources.All, "doorLevelSource");
             Picks(settings.ScanPicks, "scanPicks");
             Picks(settings.ConflictPicks, "conflictPicks");
             foreach (string entry in settings.CurrentFiles ?? new List<string>())

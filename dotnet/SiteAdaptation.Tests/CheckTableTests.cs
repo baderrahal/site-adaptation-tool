@@ -266,7 +266,7 @@ namespace SiteAdaptation.Tests
                 Assert.Equal(1, items.Count(item => item.IsSelected));
                 Border mark = Visuals(items.Single(item => item.IsSelected)).OfType<Border>().Single(border => border.Background == window.FindResource("SA.Accent"));
                 Assert.Equal(3.0, mark.Width);
-                List<ComboBox> uses = all.OfType<ComboBox>().ToList();
+                List<ComboBox> uses = all.OfType<ComboBox>().Where(combo => combo.DataContext is CheckRowViewModel).ToList();
                 Assert.Equal(8, uses.Count);
                 Assert.Equal(new[] { "Rule", "Past", "Skip" }, uses[0].Items.OfType<UseOptionViewModel>().Select(option => option.Name));
             });
@@ -334,6 +334,121 @@ namespace SiteAdaptation.Tests
             Assert.Equal("M99", line("M99"));
             Assert.Equal("M13", CheckTableDialog.RuleLine(Path.Combine(Path.GetTempPath(), "no-such-rules.json"))("M13"));
             Assert.Equal("M13", CheckTableDialog.RuleLine(null)("M13"));
+        }
+
+        // A made up civil file in a folder of its own, so the civil choice can be picked
+        private static DoorLevelPick CivilDoorLevel(string pick)
+        {
+            string folder = Path.Combine(Path.GetTempPath(), "r443-window-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(Path.Combine(folder, "config"));
+            File.WriteAllText(Path.Combine(folder, "entry.csv"), "Plot No.,El @ Entry\n31,1.5\n");
+            var config = Newtonsoft.Json.Linq.JObject.Parse("{ 'designBasis': { 'doorLevel': { 'source': 'roadPlusSlope', 'civilFile': { 'path': 'entry.csv' } } } }");
+            return DoorLevelPick.Of(config, Path.Combine(folder, "config", "project.json"), null, pick);
+        }
+
+        [Fact]
+        public void R443_the_window_shows_door_level_from_above_the_chips_with_the_plot_counts_the_civil_item_grey_and_one_help_line()
+        {
+            OnSta(() =>
+            {
+                CheckTableWindow window = Shots.LaidOutCheck(Shots.SampleCheckView(false));
+                List<FrameworkElement> all = Visuals(Shots.Body(window)).OfType<FrameworkElement>().ToList();
+
+                ComboBox door = all.OfType<ComboBox>().Single(combo => combo.ItemsSource is IReadOnlyList<DoorOptionViewModel>);
+                List<DoorOptionViewModel> options = door.Items.OfType<DoorOptionViewModel>().ToList();
+                Assert.Equal(new[] { "Civil entry file (0 plots)", "Road level plus slope (5 plots)" }, options.Select(option => option.Text));
+                Assert.Equal(new[] { false, true }, options.Select(option => option.Enabled));
+                Assert.Equal(DoorLevelPick.HelpLine, options[0].Tip);
+                Assert.Equal("roadPlusSlope", door.SelectedValue);
+                Assert.Equal(window.FindResource("SA.Pane.Combo"), door.Style);
+                Assert.True(Showing(door));
+
+                TextBlock label = all.OfType<TextBlock>().Single(block => block.Text == DoorLevelText.From);
+                Assert.True(Showing(label));
+                TextBlock help = all.OfType<TextBlock>().Single(block => block.Text == DoorLevelPick.HelpLine);
+                Assert.True(Showing(help));
+                Assert.Equal(window.FindResource("SA.Pane.Help"), help.Style);
+
+                // Above the chips and the table, as the other controls of the table stand
+                Button firstChip = all.OfType<Button>().First(button => button.Content is string text && text.StartsWith("All "));
+                Point chipAt = firstChip.TranslatePoint(new Point(0, 0), Shots.Body(window));
+                Point doorAt = door.TranslatePoint(new Point(0, 0), Shots.Body(window));
+                Assert.True(doorAt.Y < chipAt.Y, doorAt.Y + " " + chipAt.Y);
+            });
+        }
+
+        [Fact]
+        public void R443_with_a_civil_file_both_items_can_be_picked_no_help_line_shows_and_with_no_door_level_no_row_shows()
+        {
+            OnSta(() =>
+            {
+                CheckTableView view = Shots.SampleCheckView(false);
+                view.DoorLevel = CivilDoorLevel("civilFile");
+                CheckTableWindow window = Shots.LaidOutCheck(view);
+                List<FrameworkElement> all = Visuals(Shots.Body(window)).OfType<FrameworkElement>().ToList();
+                ComboBox door = all.OfType<ComboBox>().Single(combo => combo.ItemsSource is IReadOnlyList<DoorOptionViewModel>);
+                Assert.All(door.Items.OfType<DoorOptionViewModel>(), option => Assert.True(option.Enabled));
+                Assert.Equal("civilFile", door.SelectedValue);
+                Assert.DoesNotContain(all.OfType<TextBlock>(), block => block.Text == DoorLevelPick.HelpLine && Showing(block));
+
+                CheckTableView none = Shots.SampleCheckView(false);
+                none.DoorLevel = null;
+                List<FrameworkElement> plain = Visuals(Shots.Body(Shots.LaidOutCheck(none))).OfType<FrameworkElement>().ToList();
+                Assert.False(Showing(plain.OfType<TextBlock>().Single(block => block.Text == DoorLevelText.From)));
+            });
+        }
+
+        [Fact]
+        public void R443_a_pick_of_door_level_from_goes_to_the_callback_once_and_a_grey_item_is_not_taken()
+        {
+            var picked = new List<string>();
+            CheckTableView view = Shots.SampleCheckView(false);
+            var session = new CheckTableSession(view, new CheckTableCallbacks { DoorLevel = picked.Add }, null, null);
+
+            Assert.True(session.Model.DoorShown);
+            Assert.True(session.Model.DoorHelpShown);
+            session.PickDoorLevel("civilFile");
+            session.PickDoorLevel("roadPlusSlope");
+            Assert.Empty(picked);
+            Assert.Equal("roadPlusSlope", session.Model.DoorSource);
+
+            view.DoorLevel = CivilDoorLevel(null);
+            var civil = new CheckTableSession(view, new CheckTableCallbacks { DoorLevel = picked.Add }, null, null);
+            Assert.False(civil.Model.DoorHelpShown);
+            Assert.Equal("", civil.Model.DoorHelp);
+            civil.PickDoorLevel("civilFile");
+            civil.PickDoorLevel("civilFile");
+            civil.PickDoorLevel("survey");
+            Assert.Equal(new[] { "civilFile" }, picked);
+            Assert.Equal("civilFile", civil.Model.DoorSource);
+            // A pick is no override, so Save overrides stays as it was
+            Assert.False(civil.Model.NotSavedShown);
+        }
+
+        [Fact]
+        public void R443_button_4_hands_the_door_level_pick_of_the_pane_settings_to_the_run_and_a_pick_back_into_them()
+        {
+            var settings = new PaneSettings();
+            CheckRun run = CheckTableBody.DoorWired(new CheckRun(CheckTableBody.Roles, null, null, null, null, null, null, null), settings);
+
+            Assert.Null(run.DoorPick());
+            run.DoorPicked(DoorLevelSources.CivilFile);
+            Assert.Equal(DoorLevelSources.CivilFile, settings.Project.DoorLevelSource);
+            Assert.Equal(DoorLevelSources.CivilFile, run.DoorPick());
+            Assert.Contains("return DoorWired(run, settings).Body();", File.ReadAllText(Path.Combine(ThemeGateTests.RepoRoot(), "dotnet", "SiteAdaptation.AddIn", "CheckTable", "CheckTableBody.cs")));
+        }
+
+        // The window is laid out and not shown, so IsVisible stays false. An element shows when it and every element above it is Visible
+        private static bool Showing(DependencyObject element)
+        {
+            for (DependencyObject at = element; at != null; at = VisualTreeHelper.GetParent(at))
+            {
+                if (at is UIElement shown && shown.Visibility != Visibility.Visible)
+                {
+                    return false;
+                }
+            }
+            return true;
         }
 
         private static IEnumerable<DependencyObject> Visuals(DependencyObject root)

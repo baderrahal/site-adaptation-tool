@@ -62,6 +62,12 @@ namespace SiteAdaptation.AddIn.CheckTable
             Model.Message = callbacks.Zoom(Model.Selected.Row) ?? "";
         }
 
+        // R443. A pick of Door level from, as the dropdown sets it, so a test drives it with no click
+        public void PickDoorLevel(string source)
+        {
+            Model.DoorSource = source;
+        }
+
         public void Export()
         {
             if (callbacks.Export != null)

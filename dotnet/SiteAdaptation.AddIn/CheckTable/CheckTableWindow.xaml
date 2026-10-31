@@ -206,6 +206,15 @@
     </Border>
 
     <StackPanel Margin="{StaticResource SA.Pad.Side}">
+      <!-- R443. Door level from, above the chips and the table, the civil file grey with one help line when the setup holds none -->
+      <StackPanel Margin="{StaticResource SA.Gap.Bottom16}" Visibility="{Binding DoorShown, Converter={StaticResource Shown}}">
+        <StackPanel Orientation="Horizontal">
+          <TextBlock Style="{StaticResource HeadText}" Margin="{StaticResource SA.Gap.Right8}" Text="{Binding DoorLabel}" />
+          <ComboBox Style="{StaticResource SA.Pane.Combo}" Width="{StaticResource SA.Size.SideBox}" ItemsSource="{Binding DoorOptions}" DisplayMemberPath="Text"
+                    SelectedValuePath="Source" SelectedValue="{Binding DoorSource, Mode=TwoWay}" ItemContainerStyle="{StaticResource UseItem}" />
+        </StackPanel>
+        <TextBlock Style="{StaticResource SA.Pane.Help}" Text="{Binding DoorHelp}" Visibility="{Binding DoorHelpShown, Converter={StaticResource Shown}}" />
+      </StackPanel>
       <Grid>
         <Grid.ColumnDefinitions>
           <ColumnDefinition Width="*" />
