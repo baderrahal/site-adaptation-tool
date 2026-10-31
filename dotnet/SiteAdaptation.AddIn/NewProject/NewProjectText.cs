@@ -47,6 +47,8 @@ namespace SiteAdaptation.AddIn.NewProject
         public const string Types = "<n> types";
         public const string NotRead = "Not read yet. Run 2 Read data.";
         public const string FromScan = "Comes with the drawing scan";
+        public const string NoSurveyPoint = "The scan reads no survey point yet";
+        public const string SheetColumn = "Villa type sheet and column";
 
         public const string StopTitle = "The tool stops here";
         public const string NoStart = "No saved project is chosen, so no button has its rules.";

@@ -294,6 +294,25 @@ Pane (pane.png and pane-first-open.png, boards Pane.dc.html and PaneFirst.dc.htm
 5. The Rules row shows the project field of the rules file, "ROSHN Makkah Phase 1" in the real file (Q285). The sample shows "ROSHN Makkah".
 6. First open: steps 1 to 4 keep their line under the name and a grey chip. The board shows the name and plain "Needs step n". The sample document has a saved path, so the band shows its name, where the board says "not saved". The Setup mark is the filled amber disc, the board an amber ring.
 
+## Lane C SCAN-UI, the differences from the board ScanResults.dc.html
+
+The board is docs/design/boards/ScanResults.dc.html. scan-results.png is the offscreen render with made up file names, layers and counts and no coordinate or level, 4 files, 296 plots, 30 conflicts, the villa type on Pick as on the board. No Revit window ran in this round, so the picture is the offscreen render only (UNKNOWN in Revit).
+
+What the tool read (scan-results.png):
+1. Height follows the content, 721 in the picture, capped at 800 by SA.Size.DialogMaxHeight. The board is 860. The width is 1400 as the board.
+2. Band and body padding 16 (SA.Pad.Side), board 20 and 24, and 18 and 24. The gap of the counts is 24, board 28.
+3. Row lines SA.Border, the yellow box border SA.Border, file names SA.Text. The board uses #EEF1F5, #E8D08A and a grey placeholder, which are not tokens.
+4. The conflicts count in the band is SA.WarnGround, the board's #FFD580 is not a token and SA.Warn is unreadable on the band.
+5. The dropdowns are SA.Pane.Combo, 30 high with the arrow of the theme, board 28. Show all and Use the proposed for all are SA.Button.Base, 28 high 13 SA.Text, board 26 high 12 Heading. Foot buttons 13, board 14 with min width 96. Export to Excel has the SA.Heading border.
+6. Chips pad 8 and 4 (SA.Pad.Chip), board 3 and 9. The Pick chip sits on the amber row, so only its text shows, as on the board.
+7. The table holds the four values the scanner reads: Plot outline, Plot number, Villa block and Villa type. The board's Mirror, Survey point and Road level have no scan row in scan.json yet. Villa block is added, the board has no row for it.
+8. The source of a villa type read from blocks says "blocks on <layer>", the board says "blocks in plots". A count of 1 reads "1 files" and "1 layers" as the templates of the board.
+9. A value on Pick shows an empty dropdown. Its yellow box lists one box for each Pick value and goes when the user picks a source. The line "What to do" of a value other than the villa type is CHOSEN, the board gives the villa type only.
+10. The Conflicts section and its title are hidden when scan.json has no conflict. Show all is hidden once all are shown or when there are 20 or fewer. The board draws both always.
+11. The conflicts list scrolls inside SA.Size.ScanList (300), 20 rows first and all after Show all, virtualized. The board clips at the window.
+12. The foot line becomes "Saved <name>." after Export to Excel, or the reason when it is refused. The board has the one line.
+13. Use these picks is always on. A value still on Pick when it is pressed stays unsaved, so the next step sees it as unclear.
+
 ## The Revit shots of 6a against the boards
 
 Taken in Revit 2024 by the buttons job of R384 with shots true, run LB6A on NBH 012 in Masses, 31 Oct 2026, 10 PNGs, none blank (RAN). The PNGs stay under the work root, addin_run\LB6A_20261031-232100\shots, since they show real file names and values. The references are the boards of docs/design/boards and the offscreen renders of this folder. Not drawn: Update from report, it stopped before its window (Q278), and the confirm windows, which are Revit TaskDialogs.

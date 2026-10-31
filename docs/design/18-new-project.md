@@ -48,3 +48,29 @@ LastReadFacts gives what the current readers already give: the unit plots and th
 ### Not built, each a question or a wait
 
 Save setup does not write the model at once (Q280). The project name box shows the document title read only, since the settings JSON has no name (Q282). Picking a layer, a sheet, a column or a coordinate would change a config file (Q283). The Villa mode row stays, though the boards drop it (Q284). The rules name is the project field of the rules file, "ROSHN Makkah Phase 1" (Q285).
+
+## SCAN-UI, What the tool read and the step gates, Lane C, 1 Nov 2026
+
+The rules are R435 to R441 of docs/rules/12-lane-c-r430-up.md. The board is docs/design/boards/ScanResults.dc.html, Bader's approved board. The section Current files, the column Cluster and the dropdown Door level from have no board, they follow the style of the SetUpSite, ReviewData and CheckTable windows and are drafts (Q293).
+
+### What the user does
+
+1. Presses 2 Read data. The scan of Lane D (R427) runs first on the drawings, schedules, plot numbers and prototypes of the pane, or a scan of the same files is reused (R438, R439).
+2. When every value has a source and no conflict is open, one pane line says what was read and the read goes on. Else the window What the tool read opens: a source dropdown per value, a yellow box for a value below the strong share, the conflicts with a pick per plot and Use the proposed for all, Export to Excel of the three tables, and Use these picks, which keeps the picks with the setup and lets the read go on (R435, R436).
+3. In New project the layer, sheet and column rows are dropdowns of what the scan found, and View opens the same window (R440).
+4. In 1 Set up site ticks the drawings that are the current issue and picks the rules profile. Apply stays grey until the site drawing is ticked, and button 9 names the ticked files in one line (R441).
+
+### Settings
+
+The settings JSON of R367 gains scanPicks (value kind to source), conflictPicks ("<plot>|<field>" to source) and currentFiles (input names). Each is left out while null, so formatVersion stays 1 (Q288). A saved project carries scanPicks, not the conflicts of its plots.
+
+### Wiring
+
+- Buttons.Body calls ReadDataBody.For, which wraps the read of ReadDataRun with ScanStep.Wrap and the gate ScanGate.Ask, ScanGate.Window opening ScanResultsDialog.Show. A run of the test host reads with no scan (Q295).
+- NewProjectDialog.Facts is LatestScanFacts, View calls ScanResultsDialog.Show, Save setup gives the picks to SetupSave.Apply.
+- SetUpSiteBody wraps the window of button 1 in CurrentFilesDialog, ReportBody adds the line of CurrentFiles.WithReportLine.
+
+### Not built, each a question or a wait
+
+The board rows Mirror, Survey point and Road level have no scan row (Q289). Curbs and road surface are not scanned (Q290). The read of button 2 does not take the picks yet (Q292). The line Current files is in the pane, not the Excel report (Q291).
+

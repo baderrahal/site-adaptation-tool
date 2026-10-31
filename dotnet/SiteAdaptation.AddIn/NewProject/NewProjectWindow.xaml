@@ -177,7 +177,7 @@
             <ColumnDefinition Width="*" />
             <ColumnDefinition Width="{StaticResource SA.Grid.SetupStop}" />
           </Grid.ColumnDefinitions>
-          <!-- What the current readers give. Change and View wait for the scanner of a later Lane B round (steps/waiting-on-others.md) -->
+          <!-- What the scan of button 2 gives (R440), else the latest read. View opens What the tool read, Change waits for a later round -->
           <StackPanel Margin="{StaticResource SA.Gap.Right24}">
             <TextBlock Style="{StaticResource SA.Type.Section}" Foreground="{StaticResource SA.Heading}" Text="{x:Static np:NewProjectText.ReadTitle}" />
             <TextBlock Style="{StaticResource HelpText}" Margin="{StaticResource SA.Gap.Top4}" Text="{x:Static np:NewProjectText.ReadHelp}" />
@@ -189,7 +189,8 @@
                   <ColumnDefinition Width="{StaticResource SA.Grid.SetupFactButton}" />
                 </Grid.ColumnDefinitions>
                 <TextBlock Style="{StaticResource CellText}" Foreground="{StaticResource SA.TextMuted}" VerticalAlignment="Center" Text="{x:Static np:NewProjectText.SurveyPoint}" />
-                <TextBlock Grid.Column="1" Style="{StaticResource CellText}" Foreground="{StaticResource SA.TextMuted}" VerticalAlignment="Center" Text="{Binding SurveyPoint}" />
+                <ComboBox Grid.Column="1" Style="{StaticResource SA.Pane.Combo}" Margin="{StaticResource SA.Gap.Right8}" ItemsSource="{Binding SurveyChoices}" SelectedIndex="0"
+                          IsEnabled="{Binding HasSurvey}" />
                 <Button Grid.Column="2" Style="{StaticResource SA.Button.Base}" HorizontalAlignment="Left" Content="{x:Static np:NewProjectText.Change}" IsEnabled="{Binding CanChange}" />
               </Grid>
             </Border>
@@ -201,7 +202,11 @@
                   <ColumnDefinition Width="{StaticResource SA.Grid.SetupFactButton}" />
                 </Grid.ColumnDefinitions>
                 <TextBlock Style="{StaticResource CellText}" Foreground="{StaticResource SA.TextMuted}" VerticalAlignment="Center" Text="{x:Static np:NewProjectText.PlotsFound}" />
-                <TextBlock Grid.Column="1" Style="{StaticResource CellText}" VerticalAlignment="Center" Text="{Binding PlotsFound}" />
+                <StackPanel Grid.Column="1" Margin="{StaticResource SA.Gap.Right8}" VerticalAlignment="Center">
+                  <TextBlock Style="{StaticResource CellText}" Text="{Binding PlotsFound}" />
+                  <ComboBox Style="{StaticResource SA.Pane.Combo}" Margin="{StaticResource SA.Gap.Top4}" ItemsSource="{Binding LayerChoices}" SelectedIndex="{Binding LayerIndex, Mode=TwoWay}"
+                            Visibility="{Binding HasLayers, Converter={StaticResource Shown}}" />
+                </StackPanel>
                 <Button Grid.Column="2" Style="{StaticResource SA.Button.Base}" HorizontalAlignment="Left" Content="{x:Static np:NewProjectText.Change}" IsEnabled="{Binding CanChange}" />
               </Grid>
             </Border>
@@ -214,7 +219,21 @@
                 </Grid.ColumnDefinitions>
                 <TextBlock Style="{StaticResource CellText}" Foreground="{StaticResource SA.TextMuted}" VerticalAlignment="Center" Text="{x:Static np:NewProjectText.VillaTypes}" />
                 <TextBlock Grid.Column="1" Style="{StaticResource CellText}" VerticalAlignment="Center" Text="{Binding VillaTypes}" />
-                <Button Grid.Column="2" Style="{StaticResource SA.Button.Base}" HorizontalAlignment="Left" Content="{x:Static np:NewProjectText.View}" IsEnabled="{Binding CanChange}" />
+                <Button Grid.Column="2" Style="{StaticResource SA.Button.Base}" HorizontalAlignment="Left" Content="{x:Static np:NewProjectText.View}" IsEnabled="{Binding CanView}" Click="OnView" />
+              </Grid>
+            </Border>
+            <!-- R440, Q283: the sheet and the column of the plot list the villa type comes from, the Excel sources the scan found -->
+            <Border Padding="{StaticResource SA.Pad.Cell}" BorderBrush="{StaticResource SA.Border}" BorderThickness="{StaticResource SA.Line.Under}"
+                    Visibility="{Binding HasSheets, Converter={StaticResource Shown}}">
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="{StaticResource SA.Grid.SetupFact}" />
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Style="{StaticResource CellText}" Foreground="{StaticResource SA.TextMuted}" VerticalAlignment="Center" Text="{x:Static np:NewProjectText.SheetColumn}" />
+                <ComboBox Grid.Column="1" Style="{StaticResource SA.Pane.Combo}" Margin="{StaticResource SA.Gap.Right8}" ItemsSource="{Binding SheetChoices}" SelectedIndex="{Binding SheetIndex, Mode=TwoWay}" />
+                <ComboBox Grid.Column="2" Style="{StaticResource SA.Pane.Combo}" ItemsSource="{Binding ColumnChoices}" SelectedIndex="{Binding ColumnIndex, Mode=TwoWay}" />
               </Grid>
             </Border>
             <TextBlock Style="{StaticResource HelpText}" Margin="{StaticResource SA.Gap.Top8}" Text="{Binding TemplateLine}" />

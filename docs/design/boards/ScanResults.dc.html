@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>What the tool read</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+.st{font-size:15px;font-weight:600;color:#1B3349}
+.hl{font-size:12px;color:#4A5663;line-height:17px}
+.ph{color:#6B7682}
+.tbl{width:100%;border-collapse:collapse;font-size:13px;line-height:18px}
+.tbl th{text-align:left;font-weight:600;color:#1B3349;background:#F5F7FA;border-bottom:1px solid #D5DCE4;padding:8px 10px}
+.tbl td{padding:8px 10px;border-bottom:1px solid #EEF1F5;vertical-align:top}
+.b1{height:34px;min-width:96px;padding:0 18px;font:inherit;font-size:14px;border-radius:3px;cursor:pointer}
+.b2{height:26px;padding:0 10px;font:inherit;font-size:12px;color:#1B3349;background:#FFFFFF;border:1px solid #B8C2CD;border-radius:3px;cursor:pointer}
+.sel{height:28px;box-sizing:border-box;font:inherit;font-size:13px;color:#1B1F24;background:#FFFFFF;border:1px solid #B8C2CD;border-radius:3px;padding:0 8px;width:100%}
+.chip{font-size:12px;font-weight:600;padding:3px 9px;border-radius:12px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.num{font-variant-numeric:tabular-nums}
+</style>
+</helmet>
+<div style="width:1400px;height:860px;box-sizing:border-box;background:#FFFFFF;font-family:'Libre Franklin','Franklin Gothic Book','Segoe UI',sans-serif;color:#1B1F24;display:flex;flex-direction:column;border:1px solid #9AA6B2;box-shadow:0 8px 24px rgba(27,51,73,.18)">
+  <div style="display:flex;align-items:center;justify-content:space-between;height:32px;padding:0 12px;border-bottom:1px solid #D5DCE4;font-family:'Segoe UI',sans-serif;font-size:12px">
+    <div>Site Adaptation</div><div style="font-size:14px;color:#5A6672">&#215;</div>
+  </div>
+
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:24px;padding:20px 24px;background:#1B3349;color:#FFFFFF">
+    <div style="display:flex;flex-direction:column;gap:6px;min-width:0">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="font-size:20px;font-weight:600">What the tool read</div>
+        <div style="font-size:12px;font-weight:600;padding:3px 10px;border-radius:12px;color:#1B3349;background:#9ED9FD">Check before step 3</div>
+      </div>
+      <div style="font-size:14px;line-height:20px;color:#DCE8F5;max-width:760px">The tool read your files and proposes where each value comes from. If a pick is wrong, change it from the list. Nothing changes in the model.</div>
+    </div>
+    <div style="display:flex;gap:28px;flex-shrink:0">
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px"><div class="num" style="font-size:28px;font-weight:600">[n]</div><div style="font-size:13px;color:#DCE8F5">files read</div></div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px"><div class="num" style="font-size:28px;font-weight:600">[n]</div><div style="font-size:13px;color:#DCE8F5">plots found</div></div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px"><div class="num" style="font-size:28px;font-weight:600;color:#FFD580">[n]</div><div style="font-size:13px;color:#DCE8F5">conflicts</div></div>
+    </div>
+  </div>
+
+  <div style="flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:24px;padding:18px 24px;overflow:hidden">
+    <div style="display:flex;flex-direction:column;gap:18px;min-width:0">
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div class="st">Where each value comes from</div>
+        <div class="hl">The tool picks the source that covers the most plots. The others stay as checks.</div>
+        <table class="tbl">
+          <thead><tr><th style="width:150px">Value</th><th>Source</th><th style="width:120px">Covers</th><th style="width:110px">Checks</th><th style="width:90px">Status</th></tr></thead>
+          <tbody>
+            <sc-for list="{{rows}}" as="r" hint-placeholder-count="6">
+              <tr style="background:{{r.bg}}">
+                <td style="font-weight:600;color:#1B3349">{{r.value}}</td>
+                <td><select class="sel" aria-label="Source for {{r.value}}"><option>{{r.source}}</option></select></td>
+                <td class="num">{{r.covers}}</td>
+                <td class="num">{{r.checks}}</td>
+                <td><span class="chip" style="color:{{r.fg}};background:{{r.cbg}}">{{r.status}}</span></td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div class="st">Files read</div>
+        <div class="hl">Every file you gave, and what the tool found inside.</div>
+        <table class="tbl">
+          <thead><tr><th style="width:280px">File</th><th style="width:80px">Kind</th><th>What it found</th><th style="width:90px">Status</th></tr></thead>
+          <tbody>
+            <sc-for list="{{files}}" as="f" hint-placeholder-count="4">
+              <tr><td class="ph">{{f.name}}</td><td>{{f.kind}}</td><td>{{f.found}}</td><td><span class="chip" style="color:{{f.fg}};background:{{f.bg}}">{{f.status}}</span></td></tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
+      <div style="display:flex;flex-direction:column;gap:6px;padding:14px 16px;background:#FFF4D6;border:1px solid #E8D08A;border-radius:3px">
+        <div style="font-size:14px;font-weight:600;color:#7A4B00">Villa type is not clear</div>
+        <div style="font-size:13px;line-height:19px">No source matches your prototype names on enough plots. The best covers [n] of [n].</div>
+        <div style="font-size:13px;line-height:19px">What to do: pick the source in the row Villa type, or ask the master planner which file is current.</div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:6px;min-height:0">
+        <div class="st">Conflicts</div>
+        <div class="hl">Two files disagree on these plots. Pick the right one.</div>
+        <table class="tbl">
+          <thead><tr><th style="width:64px">Plot</th><th style="width:90px">Value</th><th>Use</th></tr></thead>
+          <tbody>
+            <sc-for list="{{conflicts}}" as="c" hint-placeholder-count="5">
+              <tr><td class="num">{{c.plot}}</td><td>{{c.value}}</td><td><select class="sel" aria-label="Use for plot {{c.plot}}"><option>{{c.a}}</option><option>{{c.b}}</option></select></td></tr>
+            </sc-for>
+          </tbody>
+        </table>
+        <div style="display:flex;gap:8px;align-items:center"><button type="button" class="b2">Show all [n]</button><button type="button" class="b2">Use the proposed for all</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 24px;background:#F5F7FA;border-top:1px solid #D5DCE4">
+    <div class="hl" style="max-width:620px">Your picks are saved with the setup. Step 2 Read data uses them next time.</div>
+    <div style="display:flex;gap:10px">
+      <button class="b1" type="button" style="color:#1B1F24;background:#FFFFFF;border:1px solid #B8C2CD">Cancel</button>
+      <button class="b1" type="button" style="color:#1B3349;background:#FFFFFF;border:1px solid #1B3349">Export to Excel</button>
+      <button class="b1" type="button" style="color:#FFFFFF;background:#0052CC;border:1px solid #0052CC;font-weight:600">Use these picks</button>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1400,"height":860}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var ok = { fg: '#0B6B2E', cbg: '#E6F4EA', bg: '#FFFFFF' };
+    var warn = { fg: '#7A4B00', cbg: '#FFF4D6', bg: '#FFF4D6' };
+    function r(value, source, covers, checks, status, k) { return Object.assign({ value: value, source: source, covers: covers, checks: checks, status: status }, k); }
+    return {
+      rows: [
+        r('Plot outline', '[site drawing], layer [layer]', '[n] plots', '[n] files', 'Clear', ok),
+        r('Plot number', '[site drawing], layer [layer]', '[n] plots', '[n] files', 'Clear', ok),
+        r('Villa type', '[footprint drawing], blocks in plots', '[n] of [n]', '[n] files', 'Pick', warn),
+        r('Mirror', '[footprint drawing], block scale', '[n] plots', '[n] files', 'Clear', ok),
+        r('Survey point', '[site drawing], [point]', 'whole site', '[n] files', 'Clear', ok),
+        r('Road level', '[road levels]', '[n] plots', '[n] files', 'Clear', ok)
+      ],
+      files: [
+        { name: '[site drawing].dwg', kind: 'CAD', found: '[n] layers, [n] closed outlines, [n] texts', status: 'Read', fg: '#0B6B2E', bg: '#E6F4EA' },
+        { name: '[footprint drawing].dwg', kind: 'CAD', found: '[n] layers, [n] blocks', status: 'Read', fg: '#0B6B2E', bg: '#E6F4EA' },
+        { name: '[plot list].xlsx', kind: 'Excel', found: '[n] sheets, [n] rows, columns [names]', status: 'Read', fg: '#0B6B2E', bg: '#E6F4EA' },
+        { name: '[plot numbers].pdf', kind: 'PDF', found: '[n] labels', status: 'Read', fg: '#0B6B2E', bg: '#E6F4EA' }
+      ],
+      conflicts: [
+        { plot: '[n]', value: 'Villa type', a: '[code] from [file]', b: '[code] from [file]' },
+        { plot: '[n]', value: 'Plot number', a: '[n] from [file]', b: '[n] from [file]' },
+        { plot: '[n]', value: 'Outline', a: '[file]', b: '[file]' },
+        { plot: '[n]', value: 'Villa type', a: '[code] from [file]', b: '[code] from [file]' },
+        { plot: '[n]', value: 'Villa type', a: '[code] from [file]', b: '[code] from [file]' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

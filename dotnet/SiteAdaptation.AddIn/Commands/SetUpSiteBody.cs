@@ -8,7 +8,7 @@ using SiteAdaptation.Common.SetUp;
 
 namespace SiteAdaptation.AddIn
 {
-    // R373, R374, R383, R367. The body of button 1 on the active document of Revit, SetUpRun of Common with the Revit side, the window,
+    // R373, R374, R383, R367, R441. The body of button 1 on the active document of Revit, SetUpRun of Common with the Revit side, the window,
     // the tag step and the Settings entity, written with the settings the pane holds for the document (J1, J19)
     public static class SetUpSiteBody
     {
@@ -20,7 +20,13 @@ namespace SiteAdaptation.AddIn
         {
             Autodesk.Revit.DB.Document document = application.ActiveUIDocument.Document;
             DocumentSession session = PaneHost.Current.Sessions.Seen(document, document.PathName, document.Title);
-            var run = new SetUpRun(new RevitSiteDocument(document, application.Application), Dialog(application.MainWindowHandle), new NoTags(),
+            // R441, the section Current files: the ticks and the rules file chosen go into the settings of the pane before the record
+            ISetUpSiteDialog dialog = new CurrentFilesDialog(Dialog(application.MainWindowHandle), () => session.Settings.Project, next =>
+            {
+                session.Settings.Project.CurrentFiles = next.CurrentFiles;
+                session.Settings.RulesFile = next.RulesFile;
+            }, folder => System.IO.Directory.GetFiles(folder, "*.json"), WorkFiles.ReadText);
+            var run = new SetUpRun(new RevitSiteDocument(document, application.Application), dialog, new NoTags(),
                 WorkFiles.ReadText, PaneText.Settings, null)
                 .Recording(() => session.Settings.Project, new SettingsEntity(document), () => DateTime.UtcNow);
             return run.Body();

@@ -8,6 +8,7 @@ using SiteAdaptation.AddIn.HowItWorks;
 using SiteAdaptation.AddIn.NewProject;
 using SiteAdaptation.AddIn.Pane;
 using SiteAdaptation.Common.ReadData;
+using SiteAdaptation.Common.Scan;
 using SiteAdaptation.Common.Settings;
 using Xunit;
 
@@ -202,7 +203,16 @@ namespace SiteAdaptation.Tests
             DrawingFactsResult none = new LastReadFacts().Read(null, Path.Combine(folder, "none"));
             Assert.Null(none.Plots);
             Assert.Null(none.PlotLayer);
-            Assert.IsType<LastReadFacts>(NewProjectDialog.Facts);
+            // R440: the dialog reads the latest scan of the work folder first and the latest read when there is none
+            Assert.IsType<LatestScanFacts>(NewProjectDialog.Facts);
+            Assert.Equal(4, new LatestScanFacts().Read(config, work).Plots);
+            string scan = Path.Combine(work, "scan_2-20261031T110000Z");
+            Directory.CreateDirectory(scan);
+            File.WriteAllText(Path.Combine(scan, "scan.json"), R435_ScanViewTests.Scan(true, 0).ToString());
+            DrawingFactsResult scanned = new LatestScanFacts().Read(config, work);
+            Assert.Equal(5, scanned.Plots);
+            Assert.Equal("OUTLINE", scanned.PlotLayer);
+            Assert.Equal(Path.Combine(scan, "scan.json"), scanned.ScanPath);
         }
 
         [Fact]
@@ -223,6 +233,50 @@ namespace SiteAdaptation.Tests
             plots.Add(new JObject { ["officialNumber"] = null, ["nbhId"] = "012", ["typologyRev9"] = "ROAD" });
             plots.Add(new JObject { ["officialNumber"] = "100", ["nbhId"] = "012", ["typologyRev9"] = "DP3" });
             File.WriteAllText(Path.Combine(read, ReadDataRun.PlotTableFile), new JObject { ["plots"] = plots }.ToString());
+        }
+
+        [Fact]
+        public void R440_the_layer_sheet_and_column_dropdowns_come_from_the_scan_and_save_setup_keeps_the_picks()
+        {
+            var scan = R435_ScanViewTests.Scan(false, 1);
+            DrawingFactsResult facts = new DrawingFactsResult { ScanPath = "scan.json", Scan = ScanFacts.Of(scan.ToString()), Plots = 5, PlotLayer = "OUTLINE", VillaTypes = 2 };
+            ProjectSettings shownWith = null;
+            var model = new NewProjectViewModel(Settings(), "Site", new SavedStart[0], facts, NewProjectDialog.There, new Picker(), path => null, (path, settings) =>
+            {
+                shownWith = settings;
+                ProjectSettings next = SettingsJson.Read(SettingsJson.Write(settings));
+                next.ConflictPicks = new SortedDictionary<string, string> { ["1|villa type|list.xlsx|Sheet 1|Type|shift 0"] = "feet.dwg|block|BLOCKS" };
+                return next;
+            });
+            Assert.True(model.HasLayers);
+            Assert.Equal(0, model.LayerIndex);
+            Assert.True(model.HasSheets);
+            // Breaker of SCAN-UI: no Excel source is proposed, so the sheet and column stay empty until the user picks
+            Assert.Equal(-1, model.SheetIndex);
+            Assert.Empty(model.ColumnChoices);
+            model.SheetIndex = 0;
+            Assert.Equal(new[] { "Type" }, model.ColumnChoices);
+            Assert.False(model.HasSurvey);
+            Assert.Equal(new[] { "The scan reads no survey point yet" }, model.SurveyChoices);
+            Assert.True(model.CanView);
+
+            model.LayerIndex = 1;
+            model.ViewScan();
+            Assert.Equal("site.dwg|OUTLINE + EDGE", shownWith.ScanPicks["plotOutline"]);
+            model.Save();
+            Assert.Equal("site.dwg|OUTLINE + EDGE", model.Result.ScanPicks["plotOutline"]);
+            Assert.Equal("list.xlsx|Sheet 1|Type|shift 0", model.Result.ScanPicks["villaType"]);
+            Assert.Equal("feet.dwg|block|BLOCKS", model.Result.ConflictPicks["1|villa type|list.xlsx|Sheet 1|Type|shift 0"]);
+        }
+
+        [Fact]
+        public void R440_with_no_scan_the_dropdowns_hide_and_view_stays_grey()
+        {
+            NewProjectViewModel model = Model(Settings(), new Picker());
+            Assert.False(model.HasLayers);
+            Assert.False(model.HasSheets);
+            Assert.False(model.CanView);
+            Assert.Equal(new[] { "Comes with the drawing scan" }, model.SurveyChoices);
         }
 
         private NewProjectViewModel Model(ProjectSettings settings, Picker picker)

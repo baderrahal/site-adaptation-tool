@@ -200,6 +200,12 @@ One phase per session (Q096). Two lanes run the phases (D10, D17): tools/run-lan
 - What: the window New project, the page How it works and the pane changes from Bader's boards of 31 Oct 2026 (docs/design/boards, docs/design/18-new-project.md), rules R430 to R434
 - Left: Q280 to Q287 for Bader, the scanner hook for a later Lane B round, the villa levels row for Lane A (steps/waiting-on-others.md), a Revit run that shows both windows
 
+## Lane C SCAN-UI, What the tool read and the step gates
+
+- Status: running, Lane C, laptop, 2026-11-01, PR 1 of 2 with tasks 1 to 4, PR 2 with tasks 5 and 6 on 4i, in the worktree Site Adaptation Tool Lane C WT
+- What: the window What the tool read from the board ScanResults, button 2 runs the scan (Q246), New project picks from the scan (Q283), Current files in 1 Set up site, rules R435 to R441
+- Left: tasks 5 cluster confirm and 6 door level picker (R442, R443), task 7 Revit pictures, Q288 to Q295 for Bader, the read taking the picks (Q292)
+
 ## Lane D 4j-1, the scanner
 
 - Status: done, Lane D, laptop, 2026-10-31, one PR with code, tests and records, in the worktree Site Adaptation Tool Lane D WT
