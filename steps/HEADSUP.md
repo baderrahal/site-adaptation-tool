@@ -3,10 +3,10 @@
 ## Live status
 
 - Lane: B, round DEMO, branch feat/lane-b-demo, worktree Site Adaptation Tool Lane B WT
-- Time: 2026-11-01 00:35, demo freeze at 09:30
-- Now: a Revit probe of the base boundary of the 13 prototypes and of DT3 against its mass, then the install and C:\SA-demo
-- Done: 6a merged as PR 115
-- Next: install, demo inputs and saved project, demo models, footprint picture, demo sheet, PR. Wait for Lane C SCAN-UI
+- Time: 2026-11-01 01:20, demo freeze at 09:30
+- Now: the probe of the base boundary of the 13 prototypes and DT3, the timed demo run of 1 to 9 on the demo copies
+- Done: 6a PR 115. C:\SA-demo: inputs 43 copies hashed, the demo config on them, the footprint picture
+- Next: the demo models, the saved project with the villa type pick after SCAN-UI, the install, the demo sheet, PR
 - Blocked: none
 - Lane C: NEWPROJ-UI merged as PR 112, round SCAN-UI next. Lane D: 4j-1 the scanner merged as PR 114, 4j-1b next (Q250)
 
