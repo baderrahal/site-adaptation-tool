@@ -115,13 +115,71 @@ namespace SiteAdaptation.Tests
             Assert.Equal(LevelsRun.Command, asked[0].Command);
             Assert.Equal(60, asked[0].TimeLimitS);
             Assert.Equal(Profile, asked[0].LevelProfile);
-            Assert.Contains(asked[0].Inputs, input => input.Role == LevelsRun.ReadBackRole);
             Assert.True(File.Exists(WorkFiles.TemporaryName(Path.Combine(work, LevelsRun.ExcelName("012", Profile)), "6_1")));
             Assert.Empty(issues);
         }
 
+        // The Revit run of 5d: levels_<run id>.json, named in the request under its temporary name, made the worker refuse the request
         [Fact]
-        public void R379_a_floor_moved_by_hand_is_set_to_the_plan_and_read_back_and_its_tag_is_left()
+        public void R379_the_request_of_levelExcel_names_no_input_of_a_temporary_name()
+        {
+            PlanFile plan = FloorPlans.Plan(FloorPlans.Plot("101"));
+            FakeFloors document = Placed(plan);
+
+            Make(document, plan).Body().Apply(Context());
+
+            Assert.Single(asked);
+            Assert.DoesNotContain(asked[0].Inputs, input => WorkFiles.IsTemporary(input.Path));
+            Assert.True(File.Exists(WorkFiles.TemporaryName(Path.Combine(work, LevelsRun.LevelsName("6_1")), "6_1")));
+        }
+
+        // The review of 5d: 6 moved a floor and left the tag of the old plan, so 5 on the next plan found it at neither and left it as
+        // changed by hand
+        [Fact]
+        public void R379_R368_a_floor_6_moved_to_plan_2_is_moved_by_5_on_plan_3_not_changed_by_hand()
+        {
+            FakeFloors document = Placed(FloorPlans.Plan(FloorPlans.Plot("101")));
+            Make(document, FloorPlans.Plan(FloorPlans.Plot("101", 10.8))).Body().Apply(Context());
+            FakeFloors.Floor generic = Find(document, "101", PlacedKinds.Generic);
+            Assert.Equal(10.8, generic.Top, 9);
+
+            var floors = new FloorsRun(document, context => new FloorInputs { Plan = FloorPlans.Plan(FloorPlans.Plot("101", 11.0)), PlanPath = planPath, Profile = Profile });
+            var third = new RunContext(5, "5 Floors and ramps", "5_3", work, null, true, new RunInput[0], new Dictionary<string, string>());
+            RunSummary summary = floors.Body().Preview(third);
+            floors.Body().Apply(third);
+
+            Assert.DoesNotContain(summary.PerPlot, line => line.Contains(MatchCase.ChangedByHand.ToString()));
+            Assert.Contains(summary.PerPlot, line => line.StartsWith("plot 101 generic: change element " + generic.UniqueId + " in place", StringComparison.Ordinal));
+            Assert.Equal(11.0, generic.Top, 9);
+            Assert.Equal("5_3", generic.Tag.Run);
+        }
+
+        // The breaker of 5d, Q225: a plot of the scope the plan does not write has no entry in plan.Plots and got no line
+        [Fact]
+        public void R379_a_plot_of_the_scope_the_plan_does_not_write_is_listed_with_the_reason_of_the_missing_list()
+        {
+            PlanFile plan = FloorPlans.Plan(FloorPlans.Plot("101"));
+            FakeFloors document = Placed(plan);
+
+            IReadOnlyList<string> issues = Make(document, plan, new Dictionary<string, string> { ["102"] = "the sales book gives no FFL" }).Body().Apply(Context());
+
+            Assert.Contains(issues, issue => issue.StartsWith("plot 102", StringComparison.Ordinal) && issue.Contains("the sales book gives no FFL"));
+        }
+
+        // The breaker of 5d: with no tagged floor of the scope standing 6 ended done, where 5 and 8 fail
+        [Fact]
+        public void R379_levels_fails_when_no_floor_of_the_scope_stands()
+        {
+            PlanFile plan = FloorPlans.Plan(FloorPlans.Plot("101"));
+
+            var failure = Assert.Throws<InvalidOperationException>(() => Make(new FakeFloors(), plan).Body().Apply(Context()));
+
+            Assert.Contains("run 5 Floors and ramps", failure.Message);
+            Assert.Empty(asked);
+        }
+
+        [Fact]
+        public void R379_a_floor_moved_by_hand_is_set_to_the_plan_and_read_back_and_tagged_with_the_plan_by_this_run()
         {
             PlanFile plan = FloorPlans.Plan(FloorPlans.Plot("101"));
             FakeFloors document = Placed(plan);
@@ -138,8 +196,9 @@ namespace SiteAdaptation.Tests
             Assert.Contains("plot 101 generic, element " + generic.UniqueId + ": top 10.55 m to 10.5 m, by -0.05 m", summary.PerPlot);
             Assert.Equal(10.5, generic.Top, 9);
             Assert.Equal(0.1, ramp.CornerOffsets[1], 9);
-            Assert.Equal("5_1", generic.Tag.Run);
+            Assert.Equal("6_1", generic.Tag.Run);
             Assert.Equal(generic.UniqueId, generic.Tag.PlacedId);
+            Assert.Equal("5_1", Find(document, "101", PlacedKinds.Yard).Tag.Run);
         }
 
         [Fact]

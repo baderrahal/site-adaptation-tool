@@ -139,6 +139,18 @@ namespace SiteAdaptation.Common
             }
         }
 
+        // True when Current has values to give, from a config of the run or the config/project.json above the assembly
+        public static bool Known
+        {
+            get
+            {
+                lock (Gate)
+                {
+                    return current != null || RepoConfig(AppDomain.CurrentDomain.BaseDirectory) != null;
+                }
+            }
+        }
+
         public static void Use(DesignValues values)
         {
             lock (Gate)
