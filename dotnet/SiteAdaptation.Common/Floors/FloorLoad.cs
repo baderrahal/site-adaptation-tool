@@ -83,7 +83,7 @@ namespace SiteAdaptation.Common.Floors
         }
 
         // The request of the run of 4 Check that built the plan, in its check folder by the run id of its check.json
-        private static WorkerRequest Request(string planPath)
+        internal static WorkerRequest Request(string planPath)
         {
             string folder = Path.GetDirectoryName(Path.GetFullPath(planPath));
             string runId = (string)CheckRun.RecordOf(folder)?["runId"];
