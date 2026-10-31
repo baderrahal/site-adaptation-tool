@@ -16,6 +16,7 @@ Q154 Freeze guard limit for an image job. Q155 The parameter sheet of button 1. 
 Q180 designValues status in the R401 block. Q181 Timing of the labels J11 and J14. Q182 Side band of majority.side_neighbours. Q183 Time cap of a buttons job. Q184 Plain rule names of the check table. Q185 A plot list over two NBHs. Q186 Close J2 as no work. Q187 Prefill of a new project, J16. Q188 Entity load on a session unseen. Q189 Check table modal or modeless. Q191 The plan name of a plot list. Q192 Solid height of light mode. Q193 Footprint limit of the base. Q194 RRE parameters on Generic Models. Q195 Dry run of button 4. Q196 addin.overrideFile in config. Q197 key_join.json and key reads as inputs. Q198 Past gaps of the missing and question rows. Q199 What the tool does per manual rule. Q200 Export to Excel of the two windows. Q201 Data book files with no Python. Q202 The schedule folder in config. Q203 A worker end on a document not active. Q204 Manual rule of a Review data row. Q205 Corner table coordinates of Review data. Q206 Base boundary of a prototype. Q207 No foot and no Esc in the windows. Q208 How to use line of Rules. Q209 Manual column mixes section and revision. Q210 Q015 in a past job text. Q211 7 after a plot list 4 Check. Q212 4 Check stops 7 on another NBH. Q213 Use of an override entry under Skip. Q217 Follow every rule count, table against chip. Q222 The NBH 03 image of Q063. Q223 The test host gives up after a refused raise.
 Q260 Outline change of a placed floor. Q262 Level Excel and the read back values. Q263 Levels count still at its level. Q265 Ends status of walls after Q115. Q266 Walls on edges other units meet. Q267 Base level of a boundary wall. Q268 Scope of a wall on two plots. Q269 Untagged BW wall on a plan wall. Q270 Where a prototype set upgrades now. Q271 Python build takes the pane folder. Q273 6 Levels on a floor moved by hand. Q275 First log step limit of an upgrade job. Q276 What the footprint check of R404 measures. Q277 Footprint block names unlike the unit. Q278 Where Update from report finds the plan.
 Q280 Save setup writes the model at once. Q281 Board rows against the nine pane inputs. Q282 Where the project name is kept. Q283 Picks of layers, sheets, columns and coordinates. Q284 Villa mode row the boards drop. Q285 Name the Rules row shows. Q286 Approve the four drafts of NEWPROJ-UI. Q287 Button messages that name a work file.
+Q288 Scan picks in the settings at version 1. Q289 Board rows the scan does not read. Q290 Curbs and road surface left out of scan. Q291 Where the line Current files is shown. Q292 The read does not use the picks yet. Q293 Approve the three drafts of SCAN-UI. Q294 Rules chosen in Set up site, when used. Q295 Test host runs skip the scan.
 
 Q149. M14, the boundary wall of an irregular plot (Round FOLD, docs/design/15-manual-rules.md). The canvas text reads "boundary wall 200 mm inside the plot limit". The Rev 06 manual, 2.8.A, p. 20 (PDF 23), reads "the boundary wall external face will be identical to the plot limit, and the 200mm will be positioned fully inside the plot", the outer face on the limit and the 200 mm wall thickness inside it. The canvas text is kept until Bader answers. It does not block, M14 is checked by 8 Walls in 5d.
 - Recommended: the PDF reading, the outer face of the wall on the plot limit and its 200 mm inside the plot, and the canvas text written so.
@@ -416,3 +417,35 @@ Q277. Footprint block names unlike the unit (Lane B 6a, R404, R300). The footpri
 Q278. Where Update from report finds the plan (Lane B 6a, R402, Lane A 5f). In the Revit run of 6a on NBH 012, buttons 1 to 9 committed, then Update from report run by name stopped: "the work folder holds no plan_012.json, the plan of NBH 012 that 4 Check writes". 4 Check writes the plan into its check_4_<run id> folder, buttons 5 to 9 find it as the latest done check (Q190) and 9 by the run log run_4_<run id>.json. Update looks in the work folder root. Lane A's part, told to lane-a.
 - Recommended: Update from report takes the plan the last run_4_<run id>.json names, as 9 Report does.
 - Other: 4 Check also copies its plan to the work folder root.
+
+Q288. Scan picks in the settings at version 1 (Lane C SCAN-UI, R436, R441). The settings JSON of R367 gains scanPicks, conflictPicks and currentFiles. Each is left out of the file while null, so a file written before reads as before and formatVersion stays 1. An add-in built before SCAN-UI refuses a file that holds one of them, since its reader refuses a field it does not know.
+- Recommended: keep formatVersion 1, every PC runs the same add-in after the install of Part 1.
+- Other: raise formatVersion to 2 so an older add-in names the version instead of the field.
+
+Q289. Board rows the scan does not read (Lane C SCAN-UI, R435). The board ScanResults shows six values, Plot outline, Plot number, Villa type, Mirror, Survey point and Road level. scan.json of Lane D gives rows for plot outline, plot number, villa block and villa type only. The window shows those four, Villa block in the place of Mirror.
+- Recommended: keep the four until a scanner round reads mirror, survey point and road level, then add their rows.
+- Other: show the three rows now with Not read yet.
+
+Q290. Curbs and road surface left out of the scan (Lane C SCAN-UI, R438). Button 2 scans the baseplan, villa blocks, schedules, plot numbers and prototypes. Curbs and the road surface are left out, since Lane D measured the Road Layout scan at over 40 minutes (Q250) and the road surfaces are LandXML, which the scan does not read.
+- Recommended: leave them out until round 4j-1b makes the Road Layout scan fast.
+- Other: scan the curbs too and accept the time.
+
+Q291. Where the line Current files is shown (Lane C SCAN-UI, R441). Button 9 gives the line "Current files: <files>" after the lines of its preview in the pane. The Excel report of the worker is not changed.
+- Recommended: the pane line now, a row of the Excel report in Part 2.
+- Other: a row of the Excel report now, a change to the worker of Lane A.
+
+Q292. The read does not use the picks yet (Lane C SCAN-UI, R436, R438). Use these picks saves the picks with the setup, and the foot line of the board says step 2 Read data uses them next time. Button 2 then reads with the layers and columns of config as before, so a pick changes no value yet. Making the read take the picks is a change to the reader of Lane A and the scanner of Lane D.
+- Recommended: a reader round makes the read take scanPicks over config, the window stays as it is.
+- Other: change the foot line until then to say the picks are kept for a later read.
+
+Q293. Approve the three drafts of SCAN-UI (Lane C SCAN-UI). Three parts have no board and follow the style of the SetUpSite, ReviewData and CheckTable windows: the section Current files with the Rules dropdown in 1 Set up site (R441), the column Cluster with Confirmed in 3 Review data (R442) and the dropdown Door level from in 4 Check (R443). Their pictures are in steps/ui-shots.
+- Recommended: approve the three as drawn, the labels in docs/design/14-ui-labels.md.
+- Other: name the changes, Code redraws them.
+
+Q294. Rules chosen in Set up site, when used (Lane C SCAN-UI, R441). The Rules dropdown of 1 Set up site saves the rules file with the setup on Apply. The run of button 1 has read its rules before its window opens, so the choice takes effect from the next button run.
+- Recommended: keep it so, the window says the choice is saved with the setup.
+- Other: read the rules again after Apply in the same run.
+
+Q295. Test host runs skip the scan (Lane C SCAN-UI, R438). A run of the test host has no one to pick in the window What the tool read, so button 2 reads with no scan while SITEADAPT_JOB is set, and the runs of Lane B keep their time. The scan and its gate are proven by the tests of R438 and by Bader's run by hand only.
+- Recommended: keep it so until the test host can answer the window.
+- Other: let a job ask for the scan and answer the window with the proposed for all.
