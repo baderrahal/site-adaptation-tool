@@ -368,3 +368,19 @@ All paths under dotnet/. A line number the reviewer did not note is left out.
 - Revit run after 5c, probe 1b: the probe subscribed to Idling inside Idling, so 1b stays UNKNOWN. Probe 1a answers the need of the run.
 - Revit run after 5c: an ExtentReports FileNotFoundException at Revit shutdown, seen in every window and not from the tool.
 - Revit run after 5c, AddinRun.cs:262-268 and AddinRunSession.cs:516-524: the host raises its phase event once and never again after a refusal (Denied), a refused raise ends the run (Q223).
+
+## 4i, review 1 and breaker pass 1
+
+No real input reaches these, since the ROSHN config runs roshnPastJob (Q224) and no civil file exists. They become real on a project that runs rev6.
+
+- Review 4, breaker F7, LevelWorkbook.cs:49, level_excel_check.py:282, read_steps.py:380, majority.py:676: the level Excel, the read step and majority.py take the six surfaces of siteBuild.roadSurfaces under rev6 while the plan takes the one surface of R409 (Q234).
+- Review 6, config/project.json designBasis.doorLevel.slopePercent repeats rampSlopePercent of parsons2024Rev6 and back_rev6_min, back_rev6_max and townhouse_back_rev6 repeat the older rev6 block of the rules profile, nothing ties the two copies (Q228).
+- Review 7, new_project_check.py:316, 237, 82 against NewProjectCheck.cs:526, 431, 165, design_basis.py:68 against DesignBasis.cs:176: Python and C# word a config fault apart, a workbook None against an empty name, a unit code mapped to null present against missing, an OSError read as none against an IOException, an empty civil path as path against none.
+- Review 8, breaker boundaries, design_basis.py:183 and DesignBasis.cs:231: a ramp depth of zero raises ZeroDivisionError in Python and gives NaN and Ramps 2% in C#. The depth is the setback of a unit, never 0 in the profile.
+- Review 8, breaker wrong shape, cluster_proposals.py:69 and ClusterProposals.cs:144: a cluster of the rules profile with an empty unit list loops for ever. No such entry today. ClusterProposals.cs:167 a byFile entry of JSON null throws.
+- Breaker F4, plan_from_book.py:946 and plan_rules.piece_top:622: a civil file that lacks one plot of a row pair or cluster leaves the other plot an FFL from its own El @ Entry alone, only the missing plot listed in noDoorLevel.
+- Breaker F5, cluster_proposals.py:39-57 and ClusterProposals.cs RowOf: a corner plot whose left and right are swapped against its neighbour makes both plots of a pair the left half with one hand. On the real rev6 run 0 of 1,461 clustered plots disagree (RAN by the breaker).
+- Breaker F6, design_basis.py:79-87 and CsvRows.Read(path, out header): a civil file with a header and no rows is taken, every plot goes to noDoorLevel, and a row with an empty plot cell is kept under the empty text. Python lets a UnicodeDecodeError through where C# refuses by name. Arabic-Indic digits pass float() in Python and throw FormatException in C#. A level in mm is taken as metres and shows only in slopeOutsideManual.
+- Breaker F8, floor_fit.type_of: a door level under the road gives a negative slope, listed outside the manual, and the plan still draws Ramps 0.5%, NO_BAND never fires with the bands of floor_outlines.json.
+- Breaker F9, new_project_check.py:347, 281, 136, 431 and their C# twins: no Schedules line when connect.neighbourhoods holds no schedule, the three hand tables merged so DP2 and DP4 read ok while R411 finds no hand cluster entry (Q239), a header cell that is a number read as empty, the config and the rules read before they are marked.
+
