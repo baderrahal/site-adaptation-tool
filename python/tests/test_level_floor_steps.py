@@ -104,7 +104,9 @@ def test_r359_parity_levels_the_road_at_front_el_at_entry_and_the_fl_of_a_piece_
     assert levels["5"]["parameters"] == {"parameter RRE_ZZ_SP_Prototype-FFL": "%.3f" % ((int(common.fixed(ffl * 1000, 0)) // 10) / 100.0)}
     # Plot 7 has no row and no face: every level null
     assert levels["7"] == {"unit": None, "partner": None, "piece": None, "roadAtFront": None, "entry": None, "ffl": None, "ssl": None, "height": None, "steps": None,
-                           "parameters": None}
+                           "parameters": None, "doorSource": None, "slopePercent": None}
+    # R407. The fields of round 4i are null on a build of the past job
+    assert (levels["5"]["doorSource"], levels["5"]["slopePercent"]) == (None, None)
     # The written values are those the plan writes in levelRule and levels for a plot with no override
     entries = plan_from_book.step_entries(project_profile.load_settings(), "levels", levels)
     plan = built["plan"]["5"]
@@ -186,7 +188,9 @@ def test_r358_parity_floors_the_ramp_generic_and_yard_outlines_and_the_ramp_type
     assert links["4"]["mirrored"] is True and floors["4"]["yardOutline"] is None
     assert floors["4"]["lacks"] == [{"key": "floors.yard", "why": "no fitted outline for DP2 mirrored on a plot 12.0 m wide"}]
     assert floors["7"] == {"unit": None, "generic": None, "rampOutline": None, "rampZ": None, "rampClass": None, "rampType": None, "yardDepth": None, "yardUnit": None,
-                           "yardWidth": None, "yardType": None, "yardOutline": None, "lacks": []}
+                           "yardWidth": None, "yardType": None, "yardOutline": None, "lacks": [], "yardGrade": None}
+    # R407. yardGrade of round 4i is null on a build of the past job
+    assert floors["5"]["yardGrade"] is None
     # The written values are those the plan writes for a plot with no override
     entries = plan_from_book.step_entries(project_profile.load_settings(), "floors", floors)
     plan = built["plan"]["5"]["floors"]
@@ -263,10 +267,11 @@ def test_r358_r359_the_config_names_the_fields_of_the_steps_levels_and_floors_by
     steps = project_profile.load_settings().get("addin")["parity"]["steps"]
     assert {name: (field["kind"], field.get("decimals")) for name, field in steps["levels"].items()} == {
         "unit": ("noGeometry", None), "partner": ("noGeometry", None), "piece": ("noGeometry", None), "roadAtFront": ("levels", 4), "entry": ("levels", 4),
-        "ffl": ("levels", 3), "ssl": ("levels", 3), "height": ("levels", 4), "steps": ("noGeometry", None), "parameters": ("noGeometry", None)}
+        "ffl": ("levels", 3), "ssl": ("levels", 3), "height": ("levels", 4), "steps": ("noGeometry", None), "parameters": ("noGeometry", None),
+        "doorSource": ("noGeometry", None), "slopePercent": ("levels", 3)}
     assert {name: (field["kind"], field.get("decimals")) for name, field in steps["floors"].items()} == {
         "unit": ("noGeometry", None), "generic": ("points", 3), "rampOutline": ("points", 3), "rampZ": ("levels", 3), "rampClass": ("noGeometry", None),
         "rampType": ("noGeometry", None), "yardDepth": ("levels", 3), "yardUnit": ("noGeometry", None), "yardWidth": ("points", 3), "yardType": ("noGeometry", None),
-        "yardOutline": ("points", 3), "lacks": ("noGeometry", None)}
+        "yardOutline": ("points", 3), "lacks": ("noGeometry", None), "yardGrade": ("noGeometry", None)}
     assert plan_from_book.BUILD_STEPS == ("clusters", "fronts", "hands", "linkFrame", "levels", "floors", "walls", "overrides", "parameters", "status", "checkRows", "summary")
     assert "floors" in plan_from_book.PROTOTYPE_STEPS and "levels" not in plan_from_book.PROTOTYPE_STEPS

@@ -694,7 +694,9 @@
             "ssl": {"kind": "levels", "decimals": 3},
             "height": {"kind": "levels", "decimals": 4},
             "steps": {"kind": "noGeometry"},
-            "parameters": {"kind": "noGeometry"}
+            "parameters": {"kind": "noGeometry"},
+            "doorSource": {"kind": "noGeometry"},
+            "slopePercent": {"kind": "levels", "decimals": 3}
         },
         "floors": {
             "unit": {"kind": "noGeometry"},
@@ -708,7 +710,8 @@
             "yardWidth": {"kind": "points", "decimals": 3},
             "yardType": {"kind": "noGeometry"},
             "yardOutline": {"kind": "points", "decimals": 3},
-            "lacks": {"kind": "noGeometry"}
+            "lacks": {"kind": "noGeometry"},
+            "yardGrade": {"kind": "noGeometry"}
         },
         "walls": {
             "unit": {"kind": "noGeometry"},
