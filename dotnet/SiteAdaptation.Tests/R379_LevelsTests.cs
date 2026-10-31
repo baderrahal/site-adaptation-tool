@@ -201,6 +201,65 @@ namespace SiteAdaptation.Tests
             Assert.Equal("5_1", Find(document, "101", PlacedKinds.Yard).Tag.Run);
         }
 
+        private string[] LevelPlots(string runId)
+        {
+            JObject levels = JObject.Parse(File.ReadAllText(WorkFiles.TemporaryName(Path.Combine(work, LevelsRun.LevelsName(runId)), runId)));
+            return levels["levelPlots"].Select(plot => (string)plot).ToArray();
+        }
+
+        [Fact]
+        public void R379_a_tagged_floor_of_a_kind_the_plan_no_longer_gives_is_listed_and_its_plot_is_not_set()
+        {
+            FakeFloors document = Placed(FloorPlans.Plan(FloorPlans.Plot("101"), FloorPlans.Plot("102")));
+            FakeFloors.Floor yard = Find(document, "101", PlacedKinds.Yard);
+            PlanFile changed = FloorPlans.Plan(FloorPlans.Plot("101", yard: false), FloorPlans.Plot("102"));
+
+            IReadOnlyList<string> issues = Make(document, changed).Body().Apply(Context());
+
+            Assert.Contains(issues, issue => issue.Contains(yard.UniqueId) && issue.Contains("plot 101 yard") && issue.Contains("no longer"));
+            Assert.Equal(new[] { "102" }, LevelPlots("6_1"));
+        }
+
+        [Fact]
+        public void R379_a_floor_whose_outline_the_plan_changed_is_listed_not_set_and_its_plot_is_not_set()
+        {
+            FakeFloors document = Placed(FloorPlans.Plan(FloorPlans.Plot("101"), FloorPlans.Plot("102")));
+            FakeFloors.Floor yard = Find(document, "101", PlacedKinds.Yard);
+            PlanFile changed = FloorPlans.Plan(FloorPlans.Plot("101", ffl: 10.7), FloorPlans.Plot("102"));
+            changed.Plots[0].Floors.Yard.Outline.Value.Loops[0].Points = FloorPlans.Square(1100, 2020, 10, 12);
+
+            IReadOnlyList<string> issues = Make(document, changed).Body().Apply(Context());
+
+            Assert.Equal(10.4, yard.Top, 9);
+            Assert.Equal("5_1", yard.Tag.Run);
+            Assert.Equal(10.7, Find(document, "101", PlacedKinds.Generic).Top, 9);
+            Assert.Contains(issues, issue => issue.Contains(yard.UniqueId) && issue.Contains("outline"));
+            Assert.Equal(new[] { "102" }, LevelPlots("6_1"));
+        }
+
+        [Fact]
+        public void R379_a_floor_whose_type_or_plot_value_is_not_the_plan_is_left_to_5_and_its_plot_is_not_set()
+        {
+            FakeFloors document = Placed(FloorPlans.Plan(FloorPlans.Plot("101"), FloorPlans.Plot("102")));
+            document.Types.Add(new FloorTypeEntry { Name = "Ramp 2", Key = "4" });
+            FakeFloors.Floor ramp = Find(document, "101", PlacedKinds.Ramp);
+            FakeFloors.Floor generic = Find(document, "102", PlacedKinds.Generic);
+            PlanFile changed = FloorPlans.Plan(FloorPlans.Plot("101"), FloorPlans.Plot("102"));
+            changed.FloorSettings.Types["ramp"].Add("Ramp 2");
+            changed.Plots[0].Floors.Ramp.Type.Value = "Ramp 2";
+            changed.Plots[1].Floors.Generic.PlotValue.Value = "VD5-102";
+            ramp.CornerOffsets[1] += 0.02;
+
+            IReadOnlyList<string> issues = Make(document, changed).Body().Apply(Context());
+
+            Assert.Equal("3", ramp.TypeKey);
+            Assert.Equal(0.12, ramp.CornerOffsets[1], 9);
+            Assert.Equal("VD4-102", generic.Parameters["Plot"]);
+            Assert.Contains(issues, issue => issue.Contains(ramp.UniqueId) && issue.Contains("type") && issue.Contains("5 Floors and ramps"));
+            Assert.Contains(issues, issue => issue.Contains(generic.UniqueId) && issue.Contains("Plot value") && issue.Contains("5 Floors and ramps"));
+            Assert.Empty(LevelPlots("6_1"));
+        }
+
         [Fact]
         public void R379_the_dry_run_lists_every_move_and_the_excel_it_would_write_and_changes_nothing()
         {

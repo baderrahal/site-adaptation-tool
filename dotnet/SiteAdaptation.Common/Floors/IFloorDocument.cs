@@ -24,6 +24,9 @@ namespace SiteAdaptation.Common.Floors
 
         void SetHeightOffset(string uniqueId, double metres);
 
+        // Gives the floor the type of the key in place, so it keeps its UniqueId when the plan types it anew
+        void SetType(string uniqueId, string typeKey);
+
         // Brings the geometry up to date. A run calls it twice, never once per floor
         void Regenerate();
 

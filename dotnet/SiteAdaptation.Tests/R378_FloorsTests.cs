@@ -139,6 +139,76 @@ namespace SiteAdaptation.Tests
             Assert.Contains(issues, issue => issue.Contains("plot 101 yard: element " + yard.UniqueId + ", its outline changed in the plan, left as it is"));
         }
 
+        private static PlanFile WithRamp2(FakeFloors document, PlanFile plan)
+        {
+            if (!document.Types.Any(type => type.Name == "Ramp 2"))
+            {
+                document.Types.Add(new FloorTypeEntry { Name = "Ramp 2", Key = "4" });
+            }
+            plan.FloorSettings.Types["ramp"].Add("Ramp 2");
+            return plan;
+        }
+
+        [Fact]
+        public void R378_a_ramp_whose_type_the_plan_changed_takes_the_plan_type_in_place_keeping_its_unique_id()
+        {
+            var document = new FakeFloors();
+            Apply(Make(document, WithRamp2(document, FloorPlans.Plan(FloorPlans.Plot("101")))), Context("5_1"));
+            FakeFloors.Floor ramp = Find(document, "101", PlacedKinds.Ramp);
+            PlanFile changed = WithRamp2(document, FloorPlans.Plan(FloorPlans.Plot("101")));
+            changed.Plots[0].Floors.Ramp.Type.Value = "Ramp 2";
+
+            RunSummary summary = Make(document, changed).Body().Preview(Context("5_2"));
+            IReadOnlyList<string> issues = Apply(Make(document, changed), Context("5_2"));
+
+            Assert.Contains("place 0, move 1, already placed 2", summary.Counts);
+            Assert.Equal(3, document.Items.Count);
+            Assert.Equal("4", ramp.TypeKey);
+            Assert.Equal("5_2", ramp.Tag.Run);
+            Assert.Equal(ramp.UniqueId, ramp.Tag.PlacedId);
+            Assert.Empty(issues);
+        }
+
+        [Fact]
+        public void R378_a_floor_whose_plot_value_the_plan_changed_takes_the_plan_value_in_place()
+        {
+            var document = new FakeFloors();
+            Apply(Make(document, FloorPlans.Plan(FloorPlans.Plot("101"))), Context("5_1"));
+            FakeFloors.Floor generic = Find(document, "101", PlacedKinds.Generic);
+            PlanFile changed = FloorPlans.Plan(FloorPlans.Plot("101"));
+            changed.Plots[0].Floors.Generic.PlotValue.Value = "VD5-101";
+
+            IReadOnlyList<string> issues = Apply(Make(document, changed), Context("5_2"));
+
+            Assert.Equal("VD5-101", generic.Parameters["Plot"]);
+            Assert.Equal("5_2", generic.Tag.Run);
+            Assert.Empty(issues);
+        }
+
+        // A floor placed before the type and the Plot value were placed values holds a tag without them, which names neither
+        [Fact]
+        public void R378_a_floor_tagged_without_type_and_plot_reads_as_already_placed_and_takes_a_plan_type_change()
+        {
+            var document = new FakeFloors();
+            Apply(Make(document, WithRamp2(document, FloorPlans.Plan(FloorPlans.Plot("101")))), Context("5_1"));
+            foreach (FakeFloors.Floor floor in document.Items)
+            {
+                PlacedTag tag = floor.Tag;
+                var values = tag.Placed.Values.Where(value => value.Key != "type" && value.Key != "plot").ToDictionary(value => value.Key, value => value.Value.ToArray(), StringComparer.Ordinal);
+                floor.Tag = new PlacedTag(tag.Version, tag.Key, tag.Run, tag.Profile, tag.PlacedId, new PlacedValues(values));
+            }
+            FakeFloors.Floor ramp = Find(document, "101", PlacedKinds.Ramp);
+
+            RunSummary same = Make(document, WithRamp2(document, FloorPlans.Plan(FloorPlans.Plot("101")))).Body().Preview(Context("5_2"));
+            PlanFile changed = WithRamp2(document, FloorPlans.Plan(FloorPlans.Plot("101")));
+            changed.Plots[0].Floors.Ramp.Type.Value = "Ramp 2";
+            IReadOnlyList<string> issues = Apply(Make(document, changed), Context("5_3"));
+
+            Assert.Contains("place 0, move 0, already placed 3", same.Counts);
+            Assert.Equal("4", ramp.TypeKey);
+            Assert.Empty(issues);
+        }
+
         [Fact]
         public void R378_a_floor_of_the_plot_and_kind_with_no_tag_is_skipped_listed_and_never_changed()
         {
