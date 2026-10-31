@@ -2,6 +2,49 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Lane B 5c, 2026-10-31, buttons 2, 3, 4 and 7 and the Revit run after 5c, Lane B on the laptop
+
+Goal:
+- 5c of steps/01_next.md with the Revit run after 5c on NBH 012 in Masses mode, one PR (D20)
+
+Done:
+- D15 (RAN): 7 read steps, 14 parity lines, 0 failures. Q126 manifest 528 of 837 equal, 0 differ. Border made, 747 of 747 plots
+- Merged: review data 16f181f, read data 3fa905f, rules window 806ede8, button 4 4322123, plan file b937702, check table 49a8e4b, pane 528f99d, button 7 bbfa302
+- Merged: names fabce9c, UI fixes dc83fc0, logic fixes 2d122b9 and db0fa66, step shape e6adc6c, host loops b3a6202. Rules R375 to R377, R403 to R406
+- Fixed with a test: pane hashed wrong folders, plot list scope never worked, scope matched on the IM letter, 2 plan yard faults, worker path
+- D20 reviews: reviewer, breaker and a second pass of both. REAL: two Saves duplicated an override, a reverted input locked 4 Check, a plan hash guard compared a file with itself, taking a plot off Skip rewrote its entries. All fixed
+- Revit run: 4 spec faults, 3 host layout faults, the step shape fault (0 rows) fixed. 3 button 7 timeouts, 2 host faults fixed
+
+Checked:
+- Gate at db0fa66, RAN: net48 1482 of 1482, net8.0 1307 of 1307, pytest 2110 passed, 1 skipped. After e6adc6c net48 1489, net8.0 1314, after b3a6202 net48 1500, net8.0 1325
+- Plan parity, RAN: 754,451 values equal, 0 differ, 8 covers, both runtimes. 5 random plots equal, 2518 plots same ids. 248 inputs unchanged by hash
+- PNGs looked at by me. Window 10 (exit 0): 1 to 4 and 7 done, 336 solids placed and read back, 201.6 s for 7
+- Peaks, RAN: private 3906 MiB, working set 4131 MiB, least free 31.57 GiB. 42 of 42 inputs unchanged. Probes 1a, 2 to 5 answered, 1b UNKNOWN
+- Base boundary (Q206): add-in and host read other elements on 13 of 13 prototypes, 0 of 336 solids hold at 1 mm
+
+Remains:
+- J10, Q146 and Q147 of the Revit run and the whole NBH 03 image (Q063): running at the time of writing, added before the PR
+- Links mode not run (Q215). 5d, 6a to 6c, J11 and J14
+
+Known bugs:
+- The build ignores the pane Prototypes row (Q214). Latent lines: steps/latent.md
+
+Next:
+- 5d on Lane B after the PR of 5c merges
+
+Your turn:
+- Opened Q180 up in 5c:
+  Q180 designValues status in the R401 block. Q181 Timing of the labels J11 and J14. Q182 Side band of majority.side_neighbours. Q183 Time cap of a buttons job. Q184 Plain rule names of
+  the check table. Q185 A plot list over two NBHs. Q186 Close J2 as no work. Q187 Prefill of a new project, J16. Q188 Entity load on a session unseen. Q189 Check table modal or modeless.
+  Q190 Where buttons 5 to 8 find the plan. Q191 The plan name of a plot list. Q192 Solid height of light mode. Q193 Footprint limit of the base. Q194 RRE parameters on Generic Models.
+  Q195 Dry run of button 4. Q196 addin.overrideFile in config. Q197 key_join.json and key reads as inputs. Q198 Past gaps of the missing and question rows. Q199 What the tool does per
+  manual rule. Q200 Export to Excel of the two windows. Q201 Data book files with no Python. Q202 The schedule folder in config. Q203 A worker end on a document not active. Q204 Manual
+  rule of a Review data row. Q205 Corner table coordinates of Review data. Q206 Base boundary of a prototype. Q207 No foot and no Esc in the windows. Q208 How to use line of Rules. Q209
+  Manual column mixes section and revision. Q210 Q015 in a past job text. Q211 7 after a plot list 4 Check. Q212 4 Check stops 7 on another NBH. Q213 Use of an override entry under Skip.
+  Q214 The build reads pastJob, not the pane. Q215 Where the 2024 prototypes come from. Q216 Rows of 4 Check with no past job. Q217 Follow every rule count, table against chip. Q218
+  Config files beside a user's config. Q219 First run of 7 against the step limit.
+- 72 questions open, full text: steps/questions-open.md
+
 ## Round ADDIN 5e and 5f, 2026-10-30, button 9 Report and Update from report, Lane A on the laptop
 
 Goal:

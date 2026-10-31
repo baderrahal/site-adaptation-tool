@@ -363,3 +363,7 @@ All paths under dotnet/. A line number the reviewer did not note is left out.
 - Second breaker: the first write turns CRLF into LF, the real list has no CR.
 - Gate, R310 tests of ParsonsModelTests (R310_a_sample_counts and R310_helpers_running_before_the_window): they fail under load on the laptop, the CIM query of Get-WindowSample (2 s) gives null childProcesses, and they pass alone and on an idle machine (RAN: 12 of 12 alone on both runtimes, 2 failed on each runtime while 3 gates ran at once).
 - Probe warning box, JobSession.cs:148-149 and 327 on: a job run of the test host deletes warnings in FailuresProcessing and answers dialog boxes, a probe has no job session, so a probe that opens an old file needs its own handlers (RAN, probe 5c_base_boundary, attempt 1 hung on a modal warning, attempt 2 with handlers ran).
+- Revit run after 5c, Run-TestHost.ps1:368-384: the run script and the job guard check no required input before Revit, a bad input name costs a Revit window.
+- Revit run after 5c, Run-TestHost.ps1:355-357: keyCopy with buttons copies onto the new project path that the job then makes, the host refuses it.
+- Revit run after 5c, probe 1b: the probe subscribed to Idling inside Idling, so 1b stays UNKNOWN. Probe 1a answers the need of the run.
+- Revit run after 5c: an ExtentReports FileNotFoundException at Revit shutdown, seen in every window and not from the tool.
