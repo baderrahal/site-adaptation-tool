@@ -155,7 +155,7 @@ namespace SiteAdaptation.Common.Floors
             string name = ExcelName(decision.Nbh, inputs.Profile);
             string stage = Path.Combine(context.WorkFolder, "levelexcel_" + context.RunId);
             // levels_<run id>.json is not an input: it stands under its temporary name until the commit, which the worker refuses, and
-            // the worker does not read it (Q226)
+            // the worker does not read it (Q262)
             var files = new List<WorkerFile>(inputs.ExcelInputs ?? new List<WorkerFile>());
             var request = new WorkerRequest
             {
@@ -212,7 +212,7 @@ namespace SiteAdaptation.Common.Floors
                 throw new InvalidDataException("6 Levels stops, a plot of the scope has no FFL in the plan: " + string.Join(". ", noFfl) + " (R379)");
             }
             var decision = new Decision { Inputs = inputs, View = FloorPlan.Read(document, plan, inputs.InScope, null), Nbh = plan.Neighbourhood ?? "all" };
-            // Q225. A plot of the missing list the plan does not write has no entry in plan.Plots, so it is listed, not stopped on
+            // Q261. A plot of the missing list the plan does not write has no entry in plan.Plots, so it is listed, not stopped on
             var written = new HashSet<string>((plan?.Plots ?? new List<PlanPlot>()).Where(plot => plot?.Plot != null).Select(plot => plot.Plot.Trim()), StringComparer.Ordinal);
             decision.Listed.AddRange(inputs.NoFfl.Where(missing => !written.Contains(missing.Key.Trim()) && inScope(missing.Key.Trim())).OrderBy(missing => missing.Key, StringComparer.Ordinal)
                 .Select(missing => "plot " + missing.Key.Trim() + ": the plan does not write it, " + missing.Value + ", no level set (R379)"));

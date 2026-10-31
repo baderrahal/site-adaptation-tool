@@ -9,7 +9,7 @@ Every question open before 2026-10-29 was closed in the answer pass of Round FOL
 Q149 M14 boundary wall of an irregular plot. Q150 M15 foundation depth, at least or equal. Q151 Q075 moved without the majority run. Q152 Mode of the last run of a button. Q153 A lone copy of a tagged element.
 Q154 Freeze guard limit for an image job. Q155 The parameter sheet of button 1. Q157 The type button 1 copies new types from. Q158 Step 1 Done on a model already set up. Q159 Q055 reads 11 more 1.4 plots off the ramp. Q160 A plot list takes unit plots only. Q161 A changed step reruns every higher step. Q162 Reads of entryM with heightM or rampFrontM. Q163 A yard that stands only by its mirror. Q164 Levels count and the link Z of 7. Q165 Shape of the block manualRules. Q166 Manual rule of a check row. Q167 Manual rule on the other sheets. Q168 The villa type of Update from report. Q169 Key of an update entry with none of its job. Q170 updateChecks of manualRules. Q171 Which breaks untick a change. Q172 heightM gap with an El @ Entry edit. Q173 Level profile of Update from report. Q174 The plan Update from report reads. Q175 Run log format 9 Report reads. Q176 Plain names of the update rule checks. Q177 Manual rule ids in Rule check. Q178 A computed mirror edit breaks the hand rule. Q179 Guide line, side box and row mark of Update.
 Q180 designValues status in the R401 block. Q181 Timing of the labels J11 and J14. Q182 Side band of majority.side_neighbours. Q183 Time cap of a buttons job. Q184 Plain rule names of the check table. Q185 A plot list over two NBHs. Q186 Close J2 as no work. Q187 Prefill of a new project, J16. Q188 Entity load on a session unseen. Q189 Check table modal or modeless. Q191 The plan name of a plot list. Q192 Solid height of light mode. Q193 Footprint limit of the base. Q194 RRE parameters on Generic Models. Q195 Dry run of button 4. Q196 addin.overrideFile in config. Q197 key_join.json and key reads as inputs. Q198 Past gaps of the missing and question rows. Q199 What the tool does per manual rule. Q200 Export to Excel of the two windows. Q201 Data book files with no Python. Q202 The schedule folder in config. Q203 A worker end on a document not active. Q204 Manual rule of a Review data row. Q205 Corner table coordinates of Review data. Q206 Base boundary of a prototype. Q207 No foot and no Esc in the windows. Q208 How to use line of Rules. Q209 Manual column mixes section and revision. Q210 Q015 in a past job text. Q211 7 after a plot list 4 Check. Q212 4 Check stops 7 on another NBH. Q213 Use of an override entry under Skip. Q217 Follow every rule count, table against chip. Q222 The NBH 03 image of Q063. Q223 The test host gives up after a refused raise.
-Q224 Outline change of a placed floor. Q226 Level Excel and the read back values. Q227 Levels count still at its level. Q229 Ends status of walls after Q115. Q230 Walls on edges other units meet. Q231 Base level of a boundary wall. Q232 Scope of a wall on two plots. Q233 Untagged BW wall on a plan wall. Q234 Where a prototype set upgrades now. Q235 Python build takes the pane folder. Q237 6 Levels on a floor moved by hand.
+Q260 Outline change of a placed floor. Q262 Level Excel and the read back values. Q263 Levels count still at its level. Q265 Ends status of walls after Q115. Q266 Walls on edges other units meet. Q267 Base level of a boundary wall. Q268 Scope of a wall on two plots. Q269 Untagged BW wall on a plan wall. Q270 Where a prototype set upgrades now. Q271 Python build takes the pane folder. Q273 6 Levels on a floor moved by hand.
 
 Q149. M14, the boundary wall of an irregular plot (Round FOLD, docs/design/15-manual-rules.md). The canvas text reads "boundary wall 200 mm inside the plot limit". The Rev 06 manual, 2.8.A, p. 20 (PDF 23), reads "the boundary wall external face will be identical to the plot limit, and the 200mm will be positioned fully inside the plot", the outer face on the limit and the 200 mm wall thickness inside it. The canvas text is kept until Bader answers. It does not block, M14 is checked by 8 Walls in 5d.
 - Recommended: the PDF reading, the outer face of the wall on the plot limit and its 200 mm inside the plot, and the canvas text written so.
@@ -277,46 +277,46 @@ Q223. The test host gives up after one refused raise of its phase event (Revit r
 - Recommended: retry a refused raise on the next tick, a test host change in 5d.
 - Other: keep one raise and run again on a Denied.
 
-Q224. Outline change of a placed floor (Lane B 5d, R378). Button 5 lists a tagged floor whose outline the plan changed and leaves it. SketchEditScope opens its own transaction, so it cannot run inside the transaction of the flow.
+Q260. Outline change of a placed floor (Lane B 5d, R378). Button 5 lists a tagged floor whose outline the plan changed and leaves it. SketchEditScope opens its own transaction, so it cannot run inside the transaction of the flow.
 - Recommended: In 5, delete the tagged floor and place it again inside the transaction, listing the old UniqueId.
 - Other: A SketchEditScope step before the transaction, as Load is in 7.
 
-Q226. Level Excel and the read back values (Lane B 5d, R379, R364). 03b makes the level Excel from the plan and the values the add-in read back. The worker writes the plan values only, levels_<run id>.json is passed as an input it does not read.
+Q262. Level Excel and the read back values (Lane B 5d, R379, R364). 03b makes the level Excel from the plan and the values the add-in read back. The worker writes the plan values only, levels_<run id>.json is passed as an input it does not read.
 - Recommended: The Levels sheet reads levels_<run id>.json and shows the level read back beside the plan.
 - Other: The Excel keeps the plan values only.
 
-Q227. Levels count still at its level (Lane B 5d, R379, R381). 03b section 9 counts a plot whose floors still stand at the level the last run of 6 read back. 9 counts levelPlots of the run log of 6 today.
+Q263. Levels count still at its level (Lane B 5d, R379, R381). 03b section 9 counts a plot whose floors still stand at the level the last run of 6 read back. 9 counts levelPlots of the run log of 6 today.
 - Recommended: RevitCountsReader takes levels_<run id>.json of the last committed run of 6 and counts a plot only while its tagged floors stand within 1 mm of it.
 - Other: Keep the count of the run log.
 
-Q229. Ends status of walls after Q115 (Lane B 5d, R362, keyRules.wallOpen). Every wall end is still UNKNOWN through the walls.ends statusFrom block of config/project.json, whose why text says the wall runs along the whole edge. Since Q115 a wall part on two units of one cluster leaves the measured span open.
+Q265. Ends status of walls after Q115 (Lane B 5d, R362, keyRules.wallOpen). Every wall end is still UNKNOWN through the walls.ends statusFrom block of config/project.json, whose why text says the wall runs along the whole edge. Since Q115 a wall part on two units of one cluster leaves the measured span open.
 - Recommended: Set walls.ends to MEASURED weak by keyRules.wallOpen for the parted cluster walls and keep UNKNOWN for the rest, a change of config by Lane A.
 - Other: Leave every end UNKNOWN until Q071.
 
-Q230. Walls on edges other units meet (Lane B 5d, Q115). The keys leave a span open on 696 of 1,709 edges other units meet, the build walls them whole, the largest group of the 888 misses of keyRules.wallOpen (0.7409, weak).
+Q266. Walls on edges other units meet (Lane B 5d, Q115). The keys leave a span open on 696 of 1,709 edges other units meet, the build walls them whole, the largest group of the 888 misses of keyRules.wallOpen (0.7409, weak).
 - Recommended: Measure in Phase 6 whether a villa stands on the edge, from the prototype base shapes of light mode, and leave the span open the same way.
 - Other: Accept the weak 0.7409.
 
-Q231. Base level of a boundary wall (Lane B 5d, R380). 03b puts the wall base at the yard level of the higher plot but names no Revit level. Button 8 takes the level of floorSettings.levels.yard of the plan with the base offset to the plan base (CHOSEN by Code).
+Q267. Base level of a boundary wall (Lane B 5d, R380). 03b puts the wall base at the yard level of the higher plot but names no Revit level. Button 8 takes the level of floorSettings.levels.yard of the plan with the base offset to the plan base (CHOSEN by Code).
 - Recommended: The level of floorSettings.levels.yard, the base offset to the plan base, as coded.
 - Other: A level of its own for the walls, made by button 1.
 
-Q232. Scope of a wall on two plots (Lane B 5d, R380). A wall on the edge two plots share is placed when any plot it stands on is in the scope (CHOSEN by Code).
+Q268. Scope of a wall on two plots (Lane B 5d, R380). A wall on the edge two plots share is placed when any plot it stands on is in the scope (CHOSEN by Code).
 - Recommended: Any plot in the scope, as coded.
 - Other: Only when both plots are in the scope.
 
-Q233. Untagged BW wall on a plan wall (Lane B 5d, R380, R368). An untagged BW wall holds back the plan wall whose two ends it lies on within designValues.walls.readBackM, skipped and listed, never changed (CHOSEN by Code). SecondRun matches untagged elements by plot and kind alone, which would skip every wall of the plot.
+Q269. Untagged BW wall on a plan wall (Lane B 5d, R380, R368). An untagged BW wall holds back the plan wall whose two ends it lies on within designValues.walls.readBackM, skipped and listed, never changed (CHOSEN by Code). SecondRun matches untagged elements by plot and kind alone, which would skip every wall of the plot.
 - Recommended: Match by both ends, skip and list it, never change it, as coded.
 - Other: Match by plot and kind as the other buttons do.
 
-Q234. Where a prototype set upgrades now (Lane B 5d, Q215, R313, D19). -Upgrade now refuses every target under an input root, so -Upgrade -PrototypeSet STR, whose target R313 puts under inputRoot, is refused.
+Q270. Where a prototype set upgrades now (Lane B 5d, Q215, R313, D19). -Upgrade now refuses every target under an input root, so -Upgrade -PrototypeSet STR, whose target R313 puts under inputRoot, is refused.
 - Recommended: The set target goes under the work root as prototypes_2024\<discipline>, STR to prototypes_2024\STR.
 - Other: Keep the set target under inputRoot as an exception to D19.
 
-Q235. Python build takes the pane folder (Lane B 5d, Q214, R357). The C# build takes the Prototypes folder the request of 4 Check names. plan_from_book.py still takes the folder of pastJob, so a parity run with another pane folder lists other files.
+Q271. Python build takes the pane folder (Lane B 5d, Q214, R357). The C# build takes the Prototypes folder the request of 4 Check names. plan_from_book.py still takes the folder of pastJob, so a parity run with another pane folder lists other files.
 - Recommended: plan_from_book.py takes a --prototypes folder for parity runs, the config folder by default.
 - Other: Parity runs only with the pane folder equal to the config folder.
 
-Q237. 6 Levels on a floor moved by hand (Lane B 5d breaker, R379, R368). A tagged yard or Generic floor a person moved up or down by hand is set back to the plan by 6, shown as an ordinary move, as R379 reads. R368 and the second run of 03b say the tool never reverts a hand change on its own and lists it.
+Q273. 6 Levels on a floor moved by hand (Lane B 5d breaker, R379, R368). A tagged yard or Generic floor a person moved up or down by hand is set back to the plan by 6, shown as an ordinary move, as R379 reads. R368 and the second run of 03b say the tool never reverts a hand change on its own and lists it.
 - Recommended: 6 lists a floor whose level differs from both its tag and the plan as changed by hand and leaves it, as the other buttons do, unless the user sets it to the plan.
 - Other: 6 sets every tagged floor to the plan, as R379 reads now.

@@ -47,7 +47,7 @@
 
 - 6 Levels and 8 Walls have not yet committed in Revit, the Revit run of 5d stopped at 6 twice
 - Links mode is not run in 5d, it moves to 6a. A Links run needs the pane Prototypes row on the 2024 copies (Q214, Q215)
-- The wall rule is weak, 888 of 3,427 walls differ from the keys (Q115, Q230)
+- The wall rule is weak, 888 of 3,427 walls differ from the keys (Q115, Q266)
 
 ## Next
 
