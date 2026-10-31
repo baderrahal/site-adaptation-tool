@@ -1298,6 +1298,60 @@ namespace SiteAdaptation.Tests
             Assert.Contains("the prototype folder " + prototypes + " of pastJob is not on disk (R357)", WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, "h7")).Message);
         }
 
+        // Q214 (Bader, 2026-10-31). The Revit run after 5c listed the pane folder in 4 Check and refused the build on the folder of pastJob
+        [Fact]
+        public void R357_Q214_the_build_takes_the_prototype_folder_the_request_names_else_that_of_past_job()
+        {
+            string prototypes = Path.Combine(folder, "prototypes");
+            string pane = Path.Combine(folder, "pane");
+            WorkerRequest named = HandRequest("q1");
+            Directory.CreateDirectory(pane);
+            foreach (string name in new[] { Dp2File, Vd2File })
+            {
+                File.Copy(Path.Combine(prototypes, name), Path.Combine(pane, name), true);
+            }
+            named.Inputs[8] = Input(BuildSteps.PrototypeRole + Dp2File, Path.Combine(pane, Dp2File));
+            named.Inputs[9] = Input(BuildSteps.PrototypeRole + Vd2File, Path.Combine(pane, Vd2File));
+            named.PrototypeFolder = pane;
+            Directory.Delete(prototypes, true);
+            Assert.Equal(0, WorkerRunner.Run(named.Write(folder), WorkerCommands.Default(), () => 9000.0));
+            JObject hands = RunStamp.Read(Path.Combine(folder, "steps", "step_hands_csharp.json"));
+            Assert.Equal(Vd2File, (string)hands["plots"]["1"]["written"]["linkFile"]);
+
+            WorkerRequest config = HandRequest("q2");
+            config.PrototypeFolder = pane;
+            Assert.Equal(2, WorkerRunner.Run(config.Write(folder), WorkerCommands.Default(), () => 9000.0));
+            Assert.Contains("the prototype files of the request lie in " + prototypes + ", the request names the prototype folder " + pane + " (R357)",
+                WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, "q2")).Message);
+
+            WorkerRequest none = HandRequest("q3");
+            Assert.Null(none.PrototypeFolder);
+            Assert.Equal(0, WorkerRunner.Run(none.Write(folder), WorkerCommands.Default(), () => 9000.0));
+
+            WorkerRequest gone = HandRequest("q4");
+            gone.PrototypeFolder = Path.Combine(folder, "gone");
+            Assert.Equal(2, WorkerRunner.Run(gone.Write(folder), WorkerCommands.Default(), () => 9000.0));
+            Assert.Contains("the prototype folder " + gone.PrototypeFolder + " of the request is not on disk (R357)", WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, "q4")).Message);
+
+            WorkerRequest relative = HandRequest("q5");
+            relative.PrototypeFolder = "pane";
+            Assert.Equal(2, WorkerRunner.Run(relative.Write(folder), WorkerCommands.Default(), () => 9000.0));
+            Assert.Contains("the request names the prototype folder pane, no full path (R357)", WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, "q5")).Message);
+        }
+
+        // Q214. The plan of a build names the folder its prototypes came from, the one button 7 loads them from
+        [Fact]
+        public void R357_Q214_the_prototype_folder_of_a_build_is_that_of_the_request_else_upgraded_else_past_of_past_job()
+        {
+            var settings = new JObject { ["inputRoot"] = folder, ["pastJob"] = new JObject { ["prototypeFolder"] = "p2021", ["upgradedPrototypeFolder"] = "p2024" } };
+            string pane = Path.Combine(folder, "pane");
+            Assert.Equal(pane, BuildSteps.PrototypeFolder(settings, pane));
+            Assert.Equal(Path.Combine(folder, "p2024"), BuildSteps.PrototypeFolder(settings, null));
+            Assert.Equal(Path.Combine(folder, "p2024"), BuildSteps.PrototypeFolder(settings, ""));
+            ((JObject)settings["pastJob"]).Remove("upgradedPrototypeFolder");
+            Assert.Equal(Path.Combine(folder, "p2021"), BuildSteps.PrototypeFolder(settings, null));
+        }
+
         private static string Text(IEnumerable<double[]> ring)
         {
             return string.Join(" ", ring.Select(point => point[0].ToString(System.Globalization.CultureInfo.InvariantCulture) + "," + point[1].ToString(System.Globalization.CultureInfo.InvariantCulture)));

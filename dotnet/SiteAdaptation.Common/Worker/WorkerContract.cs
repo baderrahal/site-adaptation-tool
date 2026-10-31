@@ -24,6 +24,10 @@ namespace SiteAdaptation.Common
         public string Command { get; set; }
         public List<WorkerFile> Inputs { get; set; } = new List<WorkerFile>();
         public string LevelProfile { get; set; }
+
+        // Q214. The Prototypes folder of the pane a build takes, null takes the folder of pastJob in config (R357)
+        public string PrototypeFolder { get; set; }
+
         public WorkerScope Scope { get; set; }
         public string OutputFolder { get; set; }
 
