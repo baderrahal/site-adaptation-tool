@@ -37,5 +37,6 @@
     <Compile Remove="UpdateFromReportWindowTests.cs" />
     <Compile Remove="AddinRunAddInTests.cs" />
     <Compile Remove="NewProjectTests.cs" />
+    <Compile Remove="ScanResultsTests.cs" />
   </ItemGroup>
 </Project>

@@ -617,4 +617,19 @@
   <Thickness x:Key="SA.Gap.Right24">0,0,24,0</Thickness>
   <Thickness x:Key="SA.Line.Over">0,1,0,0</Thickness>
 
+  <!-- Lane C SCAN-UI, docs/design/boards/ScanResults.dc.html. The width of the window, its side column and the columns of its three tables, as
+       the board gives them. No colour, font or size of the theme above is changed -->
+  <sys:Double x:Key="SA.Size.ScanWidth">1400</sys:Double>
+  <GridLength x:Key="SA.Grid.ScanSide">400</GridLength>
+  <sys:Double x:Key="SA.Size.ScanList">300</sys:Double>
+  <sys:Double x:Key="SA.Size.ScanLine">760</sys:Double>
+  <GridLength x:Key="SA.Grid.ScanValue">150</GridLength>
+  <GridLength x:Key="SA.Grid.ScanCovers">120</GridLength>
+  <GridLength x:Key="SA.Grid.ScanChecks">110</GridLength>
+  <GridLength x:Key="SA.Grid.ScanStatus">90</GridLength>
+  <GridLength x:Key="SA.Grid.ScanFile">280</GridLength>
+  <GridLength x:Key="SA.Grid.ScanKind">80</GridLength>
+  <GridLength x:Key="SA.Grid.ScanPlot">64</GridLength>
+  <GridLength x:Key="SA.Grid.ScanConflictValue">90</GridLength>
+
 </ResourceDictionary>
