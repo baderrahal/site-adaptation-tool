@@ -360,6 +360,9 @@ if ($round) {
                 $settingsPath = Join-Path $runFolder 'config\project.json'
                 New-Item -ItemType Directory (Split-Path $settingsPath) | Out-Null
                 $settingsCopy | ConvertTo-Json -Depth 50 | Set-Content -LiteralPath $settingsPath -Encoding utf8
+                # R375. Button 2 reads the layer list beside the config it is given, so the copy of config takes it along
+                $layersName = [string]$settingsCopy.addin.readData.cadLayers
+                Copy-Item -LiteralPath (Join-Path $repo (Join-Path 'config' $layersName)) -Destination (Join-Path (Split-Path $settingsPath) $layersName)
                 $profileCopy = Join-Path $runFolder ([string]$config.profile)
                 New-Item -ItemType Directory -Force (Split-Path $profileCopy) | Out-Null
                 Copy-Item -LiteralPath (Join-Path $repo ([string]$config.profile)) -Destination $profileCopy

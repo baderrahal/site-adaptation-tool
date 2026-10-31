@@ -212,6 +212,19 @@ namespace SiteAdaptation.Tests
                 < script.IndexOf("if (-not $DryStart -and ($stopReason -or $logResult -ne 'ok')) {", StringComparison.Ordinal));
         }
 
+        // R375. Button 2 stops when the layer list of addin.readData.cadLayers is not beside the config of the run, which the Revit run
+        // after 5c met on its first input check
+        [Fact]
+        public void R375_the_run_script_copies_the_layer_list_beside_the_config_of_a_buttons_run()
+        {
+            string script = Text("dotnet", "SiteAdaptation.TestHost", "Run-TestHost.ps1");
+            int buttons = script.IndexOf("            if ($round.buttons) {", StringComparison.Ordinal);
+            int copy = script.IndexOf("$layersName = [string]$settingsCopy.addin.readData.cadLayers", buttons, StringComparison.Ordinal);
+            int pane = script.IndexOf("$paneSettingsPath = Join-Path $runFolder 'pane_settings.json'", buttons, StringComparison.Ordinal);
+            Assert.True(buttons > 0 && copy > buttons && pane > copy);
+            Assert.Contains("Copy-Item -LiteralPath (Join-Path $repo (Join-Path 'config' $layersName)) -Destination (Join-Path (Split-Path $settingsPath) $layersName)", script);
+        }
+
         private static double[] Round(double[] point)
         {
             return point.Select(value => Math.Round(value, 9)).ToArray();
