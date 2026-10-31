@@ -116,3 +116,23 @@ function New-AddinRunFolder([string]$Docs, [string]$Code, [string]$Stamp) {
         model  = Join-Path $folder ($Code + '-TEST-NEW.rvt')
     }
 }
+
+# Q215, D19. A run writes only under the work root, so a folder that is an input root or lies inside one stops the run. The full paths are
+# compared in any case, as Windows matches names, and a folder that only starts with the same letters is a folder of its own
+function Assert-OutsideInputRoots([string]$Folder, [string[]]$InputRoots) {
+    $full = [IO.Path]::GetFullPath($Folder).TrimEnd('\')
+    foreach ($root in @($InputRoots | Where-Object { $_ })) {
+        $inputRoot = [IO.Path]::GetFullPath($root).TrimEnd('\')
+        if ($full -ieq $inputRoot -or $full.StartsWith($inputRoot + '\', [StringComparison]::OrdinalIgnoreCase)) {
+            throw "The folder lies under the input root $inputRoot, a run writes only under the work root (D19): $Folder"
+        }
+    }
+}
+
+# Q215 (Bader, 2026-10-31). The ARC prototypes are saved as Revit 2024 files once, into this folder under the work root, and the pane
+# Prototypes row of a run names it. -NewUpgradeFolder makes it on the first upgrade
+function Get-UpgradeFolder([string]$Docs, [string[]]$InputRoots) {
+    $folder = Join-Path $Docs 'prototypes_2024'
+    Assert-OutsideInputRoots -Folder $folder -InputRoots $InputRoots
+    return $folder
+}

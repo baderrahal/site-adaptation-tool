@@ -254,7 +254,13 @@ namespace SiteAdaptation.Tests
             Assert.True(branch > 0 && setFile > branch && other > setFile && plan > other);
             Assert.DoesNotContain("$plan", script.Substring(branch, other - branch));
             Assert.Contains("$sourceFolder = if ($set) { Join-Path $root $set.source } else { Join-Path $root $config.pastJob.prototypeFolder }", script);
-            Assert.Contains("$targetFolder = if ($set) { Join-Path $root $set.target } else { Join-Path $root $config.pastJob.upgradedPrototypeFolder }", script);
+            // Q215, D19. The ARC copies go into the folder under the work root, and no target of an upgrade lies under an input root
+            Assert.Contains("$targetFolder = if ($set) { Join-Path $root $set.target } else { Get-UpgradeFolder -Docs $docs -InputRoots $inputRoots }", script);
+            Assert.DoesNotContain("Join-Path $root $config.pastJob.upgradedPrototypeFolder", script);
+            int target = script.IndexOf("$targetFolder = if ($set)", StringComparison.Ordinal);
+            int outside = script.IndexOf("Assert-OutsideInputRoots -Folder $targetFolder -InputRoots $inputRoots", StringComparison.Ordinal);
+            int made = script.IndexOf("New-Item -ItemType Directory $targetFolder", StringComparison.Ordinal);
+            Assert.True(target > 0 && outside > target && made > outside);
             Assert.Contains("$source = Join-Path $sourceFolder $prototype", script);
             // The guard of the test host sees the discipline and the prefix of the set in the job
             Assert.Contains("$job.discipline = [string]$set.discipline", script);
