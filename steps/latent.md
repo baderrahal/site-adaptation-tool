@@ -424,3 +424,12 @@ All paths under dotnet/. A line number the reviewer did not note is left out.
 
 - build_proof.py:312-314: on a turned plot rampFrontM now stands in notApplied with the Q116 why, so a ramp front that missed the key would read as an explained override, not a finding. The 18 turned plots lie within 1 mm of the keys.
 - The 18 turned plots keep a rampFrontM entry in the override list that the build always leaves, an edit of it has no effect but the why in notApplied.
+
+## Lane B 6a, review 1
+
+- ButtonsRunHostTests.cs:198-210: the test of the named commands holds the text of ReadNoApply, which is Revit bound and never runs in a test, so that it never applies rests on the code as read.
+- ButtonsRunHost.cs:457 and 462: the two Shoot overloads part by the conversion of a string over an object, a later call with another third argument would take the other.
+- DialogWatcher Program.cs:152-154: a progress window is marked handled before it is left, a dialog Revit drew in the same window after it would not be read. No Revit 2024 run showed it.
+- WindowShots.cs:113-117: a throw inside LayOut leaves the window it built unclosed until it is collected.
+- RevitShots.cs:301 and 339: the current process is not disposed, and the old bitmap is put back only on success.
+- TestHostPaths.ps1:142 Resolve-WorkRootPath is a third copy of the work root mark beside WorkRoot.Resolve and project_profile.py, held to the C# one by its test, and none of the three refuses a part of two dots. The input is the config of the repo.
