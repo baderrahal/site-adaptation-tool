@@ -404,6 +404,13 @@ if ($round) {
                 }
                 $paneSettingsPath = Join-Path $runFolder 'pane_settings.json'
                 $paneSettings | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $paneSettingsPath -Encoding utf8
+                # R377. The base shapes an earlier run read, each named by the SHA-256 of its prototype, so a run starts as a second run of
+                # the add-in would and skips the open of each 2021 prototype in Revit 2024, about 100 s each
+                if ($round.baseShapes) {
+                    $shapesFolder = Join-Path $runFolder 'work\buttons\base_shapes'
+                    New-Item -ItemType Directory -Force $shapesFolder | Out-Null
+                    Get-ChildItem -LiteralPath ([string]$round.baseShapes) -File -Filter '*.json' | Copy-Item -Destination $shapesFolder
+                }
                 $roundJob.buttons = [int[]]@($round.buttons)
                 $roundJob.nbh = [string]$round.nbh
                 $roundJob.villaMode = [string]$round.villaMode

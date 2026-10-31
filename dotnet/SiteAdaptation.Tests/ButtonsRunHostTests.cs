@@ -268,6 +268,21 @@ namespace SiteAdaptation.Tests
             Assert.Contains("if ($round.inputs.prototypes) {", script);
         }
 
+        // R377. Light mode reads the base of each prototype once into base_shapes of the work folder, keyed by the SHA-256 of the
+        // file, and a 2021 prototype takes about 100 s to open in Revit 2024. A buttons run may start from the shapes an earlier run
+        // read, copied in before Revit starts, so its work folder holds them as a second run of the add-in would
+        [Fact]
+        public void R377_the_run_script_copies_the_base_shapes_of_the_spec_into_the_work_folder_before_revit_starts()
+        {
+            string script = Text("dotnet", "SiteAdaptation.TestHost", "Run-TestHost.ps1");
+            int buttons = script.IndexOf("            if ($round.buttons) {", StringComparison.Ordinal);
+            int shapes = script.IndexOf("if ($round.baseShapes) {", buttons, StringComparison.Ordinal);
+            int copy = script.IndexOf("Get-ChildItem -LiteralPath ([string]$round.baseShapes) -File -Filter '*.json' | Copy-Item -Destination $shapesFolder", buttons, StringComparison.Ordinal);
+            int job = script.IndexOf("$roundJob.paneSettings = $paneSettingsPath", buttons, StringComparison.Ordinal);
+            Assert.True(buttons > 0 && shapes > buttons && copy > shapes && job > copy);
+            Assert.Contains("$shapesFolder = Join-Path $runFolder 'work\\buttons\\base_shapes'", script);
+        }
+
         private static double[] Round(double[] point)
         {
             return point.Select(value => Math.Round(value, 9)).ToArray();
