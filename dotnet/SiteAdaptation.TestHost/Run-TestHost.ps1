@@ -424,6 +424,10 @@ if ($round) {
                 $roundJob.linksAfterMasses = [bool]$round.linksAfterMasses
                 $roundJob.dryRunFirst = ($round.dryRunFirst -ne $false)
                 $roundJob.paneSettings = $paneSettingsPath
+                # 6a (R384). The commands with no number run after the buttons by their command names, the host refuses an unknown one
+                if ($round.named) {
+                    $roundJob.named = [string[]]@($round.named)
+                }
                 # R404 and D19. The loops the host reads of each prototype for its corner compare after 7, kept across runs by the SHA-256
                 # of each file in a JSON file of the work root, so a 2021 prototype is opened once in all runs and not once in each
                 if ($round.prototypeLoops) {

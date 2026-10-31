@@ -11,9 +11,11 @@ using Newtonsoft.Json.Linq;
 using SiteAdaptation.Common;
 using SiteAdaptation.Common.CheckTable;
 using SiteAdaptation.Common.Flow;
+using SiteAdaptation.Common.ManualRules;
 using SiteAdaptation.Common.Review;
 using SiteAdaptation.Common.SetUp;
 using SiteAdaptation.Common.Settings;
+using SiteAdaptation.Common.Update;
 
 namespace SiteAdaptation.TestHost
 {
@@ -22,7 +24,9 @@ namespace SiteAdaptation.TestHost
     // nothing, the check table keeps every Use as it opens and saves nothing, and the confirm of the flow and the link types to load
     // take their first link while the step runs. 2 and 4 return once their worker started, so the session waits on its Idling clock
     // until the add-in handed the end on, then the next phase goes on. After 7 each placed solid and link is read by the Revit API
-    // here, a route of its own apart from the read back of the add-in. Everything goes into buttons_result.json of the run folder
+    // here, a route of its own apart from the read back of the add-in. The named commands of the job run after the buttons by Buttons.Run
+    // of their names, Site Adaptation Rules opens and closes, Update from report reads the two Excel files of the run and applies nothing.
+    // Everything goes into buttons_result.json of the run folder
     internal sealed class ButtonsRunHost
     {
         private const BindingFlags Any = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance;
@@ -54,6 +58,9 @@ namespace SiteAdaptation.TestHost
         private object setUpBefore;
         private object reviewBefore;
         private object checkBefore;
+        private object updateBefore;
+        private object rulesBefore;
+        private bool answered;
         private JObject current;
         private JObject waiting;
         private ButtonsStep waitingStep;
@@ -160,11 +167,15 @@ namespace SiteAdaptation.TestHost
             setUpBefore = Get(AddinRunNames.SetUpSiteBody, AddinRunNames.Dialog);
             reviewBefore = Get(AddinRunNames.ReviewDataBody, AddinRunNames.Dialog);
             checkBefore = Get(AddinRunNames.CheckTableBody, AddinRunNames.Dialog);
+            updateBefore = Get(AddinRunNames.UpdateFromReportBody, AddinRunNames.Dialog);
+            rulesBefore = Get(AddinRunNames.RulesWindowBody, AddinRunNames.Dialog);
             swapped = true;
             Put(AddinRunNames.Buttons, AddinRunNames.State, state);
             Put(AddinRunNames.SetUpSiteBody, AddinRunNames.Dialog, (Func<IntPtr, ISetUpSiteDialog>)(owner => new SeenSetUp(this)));
             Put(AddinRunNames.ReviewDataBody, AddinRunNames.Dialog, (Func<IntPtr, IReviewDialog>)(owner => new NoReview(this)));
             Put(AddinRunNames.CheckTableBody, AddinRunNames.Dialog, (Func<IntPtr, string, ICheckTableDialog>)((owner, rules) => new KeepUses(this)));
+            Put(AddinRunNames.UpdateFromReportBody, AddinRunNames.Dialog, (Func<IntPtr, IUpdateFromReportDialog>)(owner => new ReadNoApply(this)));
+            Put(AddinRunNames.RulesWindowBody, AddinRunNames.Dialog, (Action<IntPtr, ManualRuleTable, string>)((owner, rules, selected) => Opened(rules)));
             result["model"] = Path.GetFileName(job.Model);
             result["privateMiBAtOpen"] = PrivateMiB();
             stopped = false;
@@ -173,20 +184,21 @@ namespace SiteAdaptation.TestHost
 
         private string RunStep(ButtonsStep step)
         {
-            var entry = new JObject { ["step"] = step.Name, ["button"] = step.Button, ["villaMode"] = step.VillaMode, ["startedUtc"] = DateTime.UtcNow };
+            var entry = new JObject { ["step"] = step.Name, ["button"] = step.Button, ["command"] = step.Command, ["villaMode"] = step.VillaMode, ["startedUtc"] = DateTime.UtcNow };
             entries.Add(entry);
             current = entry;
             startedUtc = DateTime.UtcNow;
             commitsBefore = state.Commits;
             dialogsBefore = Dialogs().Count;
+            answered = false;
             stopped = true;
             Apply(step);
             before = step.Button == 7 ? Inventory() : null;
             Result pressed;
-            DialogAnswers.Armed = Armed(step.Button);
+            DialogAnswers.Armed = Armed(step);
             try
             {
-                pressed = Press(step.Button);
+                pressed = step.Command == null ? Press(step.Button) : Press(step.Command);
             }
             finally
             {
@@ -221,7 +233,8 @@ namespace SiteAdaptation.TestHost
         private string Finish(ButtonsStep step, JObject entry, Result pressed, bool timedOut)
         {
             bool committed = state.Commits > commitsBefore;
-            string outcome = committed ? ButtonOutcomes.Committed : timedOut ? ButtonOutcomes.TimedOut : pressed == Result.Cancelled ? ButtonOutcomes.Cancelled : ButtonOutcomes.Stopped;
+            string outcome = step.Command != null ? ButtonsRun.NamedOutcome(answered, committed)
+                : committed ? ButtonOutcomes.Committed : timedOut ? ButtonOutcomes.TimedOut : pressed == Result.Cancelled ? ButtonOutcomes.Cancelled : ButtonOutcomes.Stopped;
             entry["outcome"] = outcome;
             entry["record"] = committed && state.Last != null ? JObject.FromObject(state.Last) : null;
             entry["dialogs"] = new JArray(Dialogs().Skip(dialogsBefore).Select(dialog => new JObject
@@ -243,7 +256,7 @@ namespace SiteAdaptation.TestHost
                 }
             }
             Save();
-            if (!ButtonsRun.GoesOn(step.Button, outcome))
+            if (!ButtonsRun.GoesOn(step, outcome))
             {
                 stopped = true;
                 throw new InvalidOperationException(step.Name + " ended " + outcome + ", the steps after it need its commit");
@@ -282,11 +295,28 @@ namespace SiteAdaptation.TestHost
             }
         }
 
-        private string[] Armed(int button)
+        // A named command, by Buttons.Run(string, UIApplication) as its ribbon command runs it
+        private Result Press(string command)
         {
-            object spec = addIn.GetType(AddinRunNames.RibbonLayout, true).GetMethod(AddinRunNames.Button, new[] { typeof(int) }).Invoke(null, new object[] { button });
+            Type buttons = addIn.GetType(AddinRunNames.Buttons, true);
+            MethodInfo run = buttons.GetMethod(AddinRunNames.Run, new[] { typeof(string), typeof(UIApplication) });
+            try
+            {
+                return (Result)run.Invoke(null, new object[] { command, ui });
+            }
+            catch (TargetInvocationException failure) when (failure.InnerException != null)
+            {
+                throw failure.InnerException;
+            }
+        }
+
+        private string[] Armed(ButtonsStep step)
+        {
+            Type layout = addIn.GetType(AddinRunNames.RibbonLayout, true);
+            object spec = step.Command == null ? layout.GetMethod(AddinRunNames.Button, new[] { typeof(int) }).Invoke(null, new object[] { step.Button })
+                : layout.GetMethod(AddinRunNames.ButtonOf, new[] { typeof(string) }).Invoke(null, new object[] { step.Command });
             var texts = new List<string> { (string)Member(spec, AddinRunNames.ButtonLabel), RunTexts.NothingChangedYet };
-            if (button == 7)
+            if (step.Button == 7)
             {
                 texts.AddRange(LinkLoadTexts);
             }
@@ -316,6 +346,8 @@ namespace SiteAdaptation.TestHost
                 Put(AddinRunNames.SetUpSiteBody, AddinRunNames.Dialog, setUpBefore);
                 Put(AddinRunNames.ReviewDataBody, AddinRunNames.Dialog, reviewBefore);
                 Put(AddinRunNames.CheckTableBody, AddinRunNames.Dialog, checkBefore);
+                Put(AddinRunNames.UpdateFromReportBody, AddinRunNames.Dialog, updateBefore);
+                Put(AddinRunNames.RulesWindowBody, AddinRunNames.Dialog, rulesBefore);
                 swapped = false;
             }
             // The copy keeps what the buttons did, for a look after the run. It lies in the run folder under the work root
@@ -704,6 +736,55 @@ namespace SiteAdaptation.TestHost
             {
                 host.current["review"] = new JObject { ["nbh"] = view.Nbh, ["rows"] = view.State?.Rows?.Count, ["sources"] = view.Sources == null ? null : new JArray(view.Sources) };
                 return new ReviewAnswer { Saved = false };
+            }
+        }
+
+        // Site Adaptation Rules with no click: the window opens on the table of the rules file of the pane and closes, it changes nothing.
+        // A rules file with no usable block shows its line in place of the window, so the step is not answered
+        private void Opened(ManualRuleTable rules)
+        {
+            current["rulesWindow"] = new JObject { ["rules"] = rules.Block.Rules.Count, ["revision"] = rules.Block.Manual?.Revision };
+            answered = true;
+        }
+
+        // Update from report with no click: it reads the level Excel of 6 and the report Excel of 9 of the run through the worker as a
+        // pick of both would, keeps the counts of the list and closes with no change, so the override list is not written
+        private sealed class ReadNoApply : IUpdateFromReportDialog
+        {
+            private readonly ButtonsRunHost host;
+
+            public ReadNoApply(ButtonsRunHost host)
+            {
+                this.host = host;
+            }
+
+            public UpdateFromReportAnswer Show(UpdateFromReportCallbacks callbacks)
+            {
+                var window = new JObject();
+                host.current["updateFromReport"] = window;
+                string missing;
+                List<string> files = ButtonsRun.UpdateFiles(host.work, host.job.Nbh, out missing);
+                if (files == null)
+                {
+                    window["notRead"] = missing;
+                    return new UpdateFromReportAnswer { Apply = false };
+                }
+                window["files"] = new JArray(files.Select(Path.GetFileName));
+                try
+                {
+                    UpdateList list = callbacks.Read(files);
+                    window["refusal"] = list.Refusal;
+                    window["changes"] = list.Changes.Count;
+                    window["ignored"] = list.Ignored.Count;
+                    window["lacks"] = new JArray(list.Lacks);
+                    window["tiles"] = new JObject(list.Tiles().Select(pair => new JProperty(pair.Key, pair.Value)));
+                    host.answered = list.Refusal == null;
+                }
+                catch (Exception failure)
+                {
+                    window["notRead"] = failure.GetType().Name + " " + failure.Message;
+                }
+                return new UpdateFromReportAnswer { Apply = false };
             }
         }
 
