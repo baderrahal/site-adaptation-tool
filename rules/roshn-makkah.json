@@ -587,6 +587,7 @@
       "levelProfiles.parsons2024Rev6.keyRules.wallTop.rule": {"status": "MEASURED", "share": 0.3465, "strength": "weak", "measuredBy": "levelProfiles.parsons2024Rev6.keyRules.wallTop"},
       "levelProfiles.parsons2024Rev6.keyRules.wallLine.rule": {"status": "MEASURED", "share": 0.9208, "strength": "strong", "measuredBy": "levelProfiles.parsons2024Rev6.keyRules.wallLine"},
       "levelProfiles.parsons2024Rev6.keyRules.frontOpen.rule": {"status": "MEASURED", "share": 0.9883, "strength": "strong", "measuredBy": "levelProfiles.parsons2024Rev6.keyRules.frontOpen"},
+      "levelProfiles.parsons2024Rev6.keyRules.wallOpen.rule": {"status": "MEASURED", "share": 0.7409, "strength": "weak", "measuredBy": "levelProfiles.parsons2024Rev6.keyRules.wallOpen"},
       "levelProfiles.parsons2024Rev6.keyRules.parameter RRE_ZZ_SP_Plot-Number.rule": {"status": "MEASURED", "share": 1.0, "strength": "strong", "measuredBy": "levelProfiles.parsons2024Rev6.keyRules.parameter RRE_ZZ_SP_Plot-Number"},
       "levelProfiles.parsons2024Rev6.keyRules.parameter RRE_ZZ_SP_Prototype.rule": {"status": "MEASURED", "share": 1.0, "strength": "strong", "measuredBy": "levelProfiles.parsons2024Rev6.keyRules.parameter RRE_ZZ_SP_Prototype"},
       "levelProfiles.parsons2024Rev6.keyRules.parameter RRE_ZZ_SP_RVT-Name.rule": {"status": "MEASURED", "share": 0.9916, "strength": "strong", "measuredBy": "levelProfiles.parsons2024Rev6.keyRules.parameter RRE_ZZ_SP_RVT-Name"},
