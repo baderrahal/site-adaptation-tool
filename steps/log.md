@@ -12,13 +12,13 @@ Done:
 - R409 one named road surface, the 0.21 m of the 1.4 job in config. R410 back yard by 2.3.B and 2.3.C, no yard floor (Q225)
 - R411 cluster and mirror proposals by 2.1.A to 2.1.E (Q226, Q229). R412 read only new project check, worker command newProjectCheck
 - Review 1 and breaker 1: F1 fixed with a test (the rev6 slope after the overrides), the workbook closed, 10 LATENT lines, Q242, Q255, Q256
-- Main merged after PR 112 and PR 113, the rev6 slope of a ramp on the open edge of Q116 added in the merge
+- Main merged after PR 112, 113 and 114, the rev6 slope of a ramp on the open edge of Q116 added in the merge
 
 Checked:
-- Past job against main d2f252a, RAN: PASTJOB
-- Parity, RAN: PARITY
+- Past job against main c145089, RAN: whole project and the 7 keys, 0 of 636,012 values differ on the whole project, 0 differ on each key, every plan byte-equal, the new fields null
+- Parity, RAN: 13 steps, net48 and net8.0, whole project and the 7 keys, both modes, 32 runs, 0 failures, 0 refused (336,934 fields per mode on the whole project)
 - New project check on the real inputs, RAN: 14 lines, Python and C# equal on net48 and net8.0, 7 inputs unchanged
-- Status block, RAN: main 639 values, branch 658, DOCUMENT +8, RECOMMENDED +6, UNKNOWN +5, 0 entries changed
+- Status block, RAN: main c145089 655 values (Bader 55, MEASURED 51, DOCUMENT 287, RECOMMENDED 4, Code 3, UNKNOWN 255), branch 674: DOCUMENT +8, RECOMMENDED +6, UNKNOWN +5
 - Gate, RAN: pytest 2,159 passed 1 skipped before the merge, 170 after. C# net48 1,647, net8.0 1,460, 0 failed
 
 Remains:
@@ -38,7 +38,7 @@ Your turn:
   levels under Rev 6. Q235 Hand table cover per unit code. Q236 Label size in the PDF check. Q237 Folder of the Rev 9 workbooks. Q238 TH1-IM in the
   cluster sequences. Q239 Mirror of DP2 and DP4. Q240 The 121 IMC plots of the audit. Q241 doorLevel.source reads as a note in R401. Q242 The reason
   of an unreadable input. Q255 The override list under rev6. Q256 The one road surface covers a quarter. Closed: none
-- OPENCOUNT questions open, full text: steps/questions-open.md
+- 118 questions open, full text: steps/questions-open.md
 
 ## Lane D 4j-1, 2026-10-31, the scanner of any CAD, Excel and PDF, Lane D on the laptop
 
