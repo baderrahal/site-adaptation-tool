@@ -6,7 +6,9 @@ those faces end, so each part is one wall on the plots it divides, placed once f
 of the plot numbers. The base is the yard level, the FFL less yardBelowFflM of the level profile, of the higher or the lower plot of keyRules.wallBase,
 and the top the FFL of the plot of keyRules.wallTop plus rev6.boundary_wall_top_above_ffl, weak until Q071 is answered. The garden walls have
 no measured rule, so a build places none (conflict 8 of docs/design/10-rule-ids.md). Where a wall starts and ends along its edge no key rule
-measures, so the ends of a wall carry UNKNOWN through valueStatus.
+measures, so the ends of a wall carry UNKNOWN through valueStatus. Since Q115 keyRules.wallOpen clusterPairSpan leaves open the part of an edge
+two written units of one footprint cluster share that the keys leave open for their pair of units, the party wall of the two villas, measured
+from the end of the edge at the front of R355 of the plot, a weak rule on the keys.
 """
 import math
 from collections import Counter
@@ -30,6 +32,9 @@ BASE_RULES = {"yardLevelOfTheHigherPlot": True, "yardLevelOfTheLowerPlot": False
 TOP_RULES = {"higherFflPlusRev6": True, "lowerFflPlusRev6": False}
 LINE_RULES = ("centreOnTheEdge",)
 OPEN_RULES = ("all",)
+# Q115. The rule of keyRules.wallOpen, which a profile may leave out to wall the whole edge
+SPAN_RULES = ("clusterPairSpan",)
+SPAN_LINE = "keyRules.wallOpen of %s holds no span table a build leaves an edge open by, it takes %s with spans of two numbers, the first under the second (R362, Q115)"
 RULE_LINE = "keyRules.%s of %s holds no rule a build places boundary walls by, it takes %s (R362)"
 NUMBER_LINE = "%s is no number of 0 or more, a build places no boundary wall without it (R362)"
 
@@ -60,7 +65,19 @@ def wall_rules(key, level_profile, name, profile, near):
         if not is_number(value):
             raise project_profile.ProfileError(NUMBER_LINE % label)
     return {"higherBase": BASE_RULES[key["wallBase"]["rule"]], "higherTop": TOP_RULES[key["wallTop"]["rule"]], "depth": float(depth),
-            "rise": profile.metres("rev6.boundary_wall_top_above_ffl"), "near": float(near)}
+            "rise": profile.metres("rev6.boundary_wall_top_above_ffl"), "near": float(near), "open": open_spans(key.get("wallOpen"), name)}
+
+
+def open_spans(entry, name):
+    """Q115. The spans of keyRules.wallOpen by unit pair, the two units in order joined by a bar, each the start and the end in metres from the
+    front end of the edge, None when the profile holds no wallOpen."""
+    if entry is None:
+        return None
+    spans = entry.get("spans") if isinstance(entry, dict) else None
+    if not isinstance(entry, dict) or entry.get("rule") not in SPAN_RULES or not isinstance(spans, dict) or not all(
+            isinstance(span, list) and len(span) == 2 and all(is_number(value) for value in span) and span[0] < span[1] for span in spans.values()):
+        raise project_profile.ProfileError(SPAN_LINE % (name, " or ".join(SPAN_RULES)))
+    return {pair: (float(span[0]), float(span[1])) for pair, span in spans.items()}
 
 
 def edges_of(ring):
@@ -116,11 +133,11 @@ def pick(writers, ffls, higher):
     return best
 
 
-def walls(order, written, rings, frames, ffls, rules, fronts=None):
+def walls(order, written, rings, frames, ffls, rules, fronts=None, kin=None):
     """R362. The boundary walls of the plots of order the plan writes, those of written, on the rings of every face of the site by plot, the open
     edges of the written plots as (left, right) and their FFL at 3 decimals. A wall in the order of its plot, its edge and its part. fronts
     holds the front of R355 of each written plot before a turn, so turned lists the plots whose front a wall lies on, which stands only as
-    their turn opened another edge (Q120)."""
+    their turn opened another edge (Q120). kin holds the footprint cluster and the unit of each plot for keyRules.wallOpen (Q115)."""
     near = rules["near"]
     fronts = fronts or {}
     numbers = list(rings)
@@ -142,11 +159,29 @@ def walls(order, written, rings, frames, ffls, rules, fronts=None):
         for edge, (a, b) in enumerate(edges_of(rings[plot])):
             if same_edge(a, b, frames.get(plot)):
                 continue
-            found.extend(edge_walls(plot, edge, a, b, others, written, ffls, rules, same_edge(a, b, fronts.get(plot))))
+            found.extend(edge_walls(plot, edge, a, b, others, written, ffls, rules, same_edge(a, b, fronts.get(plot)), kin, fronts.get(plot)))
     return found
 
 
-def edge_walls(plot, edge, a, b, others, written, ffls, rules, turned=False):
+def opening(plot, owners, written, a, b, length, rules, kin, front):
+    """Q115. The part of the edge a b that keyRules.wallOpen leaves open for a part of owners, two written units of one footprint cluster whose
+    pair the table holds, as start and end along the edge from a, measured from the end nearer the middle of front, else None."""
+    spans = rules.get("open")
+    if not spans or not kin or front is None or len(owners) != 2 or not all(other in written and other in kin for other in owners):
+        return None
+    (first, unit_a), (second, unit_b) = kin[owners[0]], kin[owners[1]]
+    if first is None or first != second or not unit_a or not unit_b:
+        return None
+    span = spans.get("|".join(sorted((unit_a, unit_b))))
+    if span is None:
+        return None
+    middle = ((front[0][0] + front[1][0]) / 2.0, (front[0][1] + front[1][1]) / 2.0)
+    to_a = (a[0] - middle[0]) * (a[0] - middle[0]) + (a[1] - middle[1]) * (a[1] - middle[1])
+    to_b = (b[0] - middle[0]) * (b[0] - middle[0]) + (b[1] - middle[1]) * (b[1] - middle[1])
+    return span if to_a <= to_b else (length - span[1], length - span[0])
+
+
+def edge_walls(plot, edge, a, b, others, written, ffls, rules, turned=False, kin=None, own_front=None):
     """R362. The walls of one edge: the edges of the other faces that lie along it within near, the parts between their ends, a part on the
     front of a written plot open and a part another written plot comes first on left to it. turned is the edge on the front of plot before
     its turn, and a part on the front of another written plot before its turn names that plot in turned (Q120)."""
@@ -188,11 +223,24 @@ def edge_walls(plot, edge, a, b, others, written, ffls, rules, turned=False):
         writers = [other for other in owners if other in written and other in ffls]
         if shut or writers[0] != plot:
             continue
-        first = [a[0], a[1]] if start == 0.0 else [a[0] + ux * start, a[1] + uy * start]
-        last = [b[0], b[1]] if end == length else [a[0] + ux * end, a[1] + uy * end]
         base, top = pick(writers, ffls, rules["higherBase"]), pick(writers, ffls, rules["higherTop"])
-        found.append({"plot": plot, "edge": edge, "plots": owners, "ends": [first, last], "base": ffls[base] - rules["depth"], "top": ffls[top] + rules["rise"],
-                      "basePlot": base, "topPlot": top, "turned": [other for other in owners if other in moved]})
+        for low, high in pieces(start, end, opening(plot, owners, written, a, b, length, rules, kin, own_front), near):
+            first = [a[0], a[1]] if low == 0.0 else [a[0] + ux * low, a[1] + uy * low]
+            last = [b[0], b[1]] if high == length else [a[0] + ux * high, a[1] + uy * high]
+            found.append({"plot": plot, "edge": edge, "plots": owners, "ends": [first, last], "base": ffls[base] - rules["depth"], "top": ffls[top] + rules["rise"],
+                          "basePlot": base, "topPlot": top, "turned": [other for other in owners if other in moved]})
+    return found
+
+
+def pieces(start, end, gap, near):
+    """Q115. The part start to end less the open gap, each piece left longer than near, the whole part when there is no gap."""
+    if gap is None or gap[1] <= start or gap[0] >= end:
+        return [(start, end)]
+    found = []
+    if gap[0] - start > near:
+        found.append((start, gap[0]))
+    if end - gap[1] > near:
+        found.append((gap[1], end))
     return found
 
 
