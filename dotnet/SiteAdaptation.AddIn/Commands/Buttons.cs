@@ -94,9 +94,14 @@ namespace SiteAdaptation.AddIn
             Func<ButtonBody> checkTable = () => CheckTable.CheckTableBody.For(PaneHost.Current.Sessions.Seen(document, document.PathName, document.Title), application.MainWindowHandle);
             // Null until the pane sets the load, so this class names the Revit side only here, where Revit types are at home
             Func<ButtonBody> placeVillas = PlaceVillas.PlaceVillasBody.IsSet ? (Func<ButtonBody>)(() => PlaceVillas.PlaceVillasBody.For(application)) : null;
+            // R378, R379. Made on the settings of the session of the document, so the test host runs each step by Run as the ribbon does
+            Func<ButtonBody> floors = () => Floors.FloorsBody.For(application, PaneHost.Current?.Sessions.Seen(document, document.PathName, document.Title)?.Settings);
+            Func<ButtonBody> levels = () => Floors.LevelsBody.For(application, PaneHost.Current?.Sessions.Seen(document, document.PathName, document.Title)?.Settings);
             ButtonBody body = button.Number == 2 && document != null ? Bodies.Of(button, null, readData)
                 : button.Number == 3 ? Bodies.Of(button, null, null, reviewData)
                 : button.Number == 4 && document != null ? Bodies.Of(button, null, null, null, checkTable)
+                : button.Number == 5 && document != null ? Bodies.Of(button, null, null, null, null, null, floors, null)
+                : button.Number == 6 && document != null ? Bodies.Of(button, null, null, null, null, null, null, levels)
                 : button.Number == 7 && document != null ? Bodies.Of(button, null, null, null, null, placeVillas) : Bodies.Of(button, () => SetUpSiteBody.For(application));
             // 5f. Update from report has no number, so Bodies.Of leaves it not built, its body is made here on the active document
             if (document != null && button == RibbonLayout.ButtonOf("UpdateFromReportCommand") && UpdateFromReportBody.Dialog != null)
@@ -139,7 +144,8 @@ namespace SiteAdaptation.AddIn
     }
 
     // R382. The body of each button. Button 1 is built in 5b and runs once its window is set, button 2 in 5c once its worker is set,
-    // buttons 3, 4 and 7 once their windows and loads are set, every other one stops with the text of R371 through the flow
+    // buttons 3, 4 and 7 once their windows and loads are set, 5 and 6 in 5d on the active document, every other one stops with the
+    // text of R371 through the flow
     public static class Bodies
     {
         // R405. The body of a button is made only once the design values of the config the settings of its session name are set,
@@ -187,6 +193,21 @@ namespace SiteAdaptation.AddIn
         public static ButtonBody Of(RibbonButtonSpec button, Func<ButtonBody> setUp, Func<ButtonBody> readData, Func<ButtonBody> reviewData, Func<ButtonBody> checkTable)
         {
             return Of(button, setUp, readData, reviewData, checkTable, null);
+        }
+
+        // R378, R379. floors and levels make the bodies of buttons 5 and 6 on the active document
+        public static ButtonBody Of(RibbonButtonSpec button, Func<ButtonBody> setUp, Func<ButtonBody> readData, Func<ButtonBody> reviewData, Func<ButtonBody> checkTable,
+            Func<ButtonBody> placeVillas, Func<ButtonBody> floors, Func<ButtonBody> levels)
+        {
+            if (button.Number == 5 && floors != null)
+            {
+                return floors();
+            }
+            if (button.Number == 6 && levels != null)
+            {
+                return levels();
+            }
+            return Of(button, setUp, readData, reviewData, checkTable, placeVillas);
         }
 
         // R377. placeVillas makes the body of button 7 on the active document, given only once the pane set the load of its inputs

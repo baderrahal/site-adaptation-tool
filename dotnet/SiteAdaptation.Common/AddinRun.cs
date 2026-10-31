@@ -756,8 +756,8 @@ namespace SiteAdaptation.Common
         public const string ResultFile = "buttons_result.json";
         public const string PaneSettingsFile = "pane_settings.json";
 
-        // The buttons built by 5c, in the order of the pane
-        public static readonly int[] Known = { 1, 2, 3, 4, 7 };
+        // The buttons built by 5c and 5d, in the order of the pane
+        public static readonly int[] Known = { 1, 2, 3, 4, 5, 6, 7 };
 
         // 2 Read data and 4 Check start the worker and return, their end comes later through the ExternalEvent of the add-in
         public static bool Waits(int button)

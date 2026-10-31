@@ -20,7 +20,7 @@ namespace SiteAdaptation.Common
         // Revit refuses a curve shorter than about 0.8 mm, so a shorter edge is a plan error found before any change
         public static double ShortestEdge => DesignValues.Current.FloorShortestEdgeM;
 
-        private sealed class Candidate
+        internal sealed class Candidate
         {
             public string Plot;
             public string Kind;
@@ -262,7 +262,7 @@ namespace SiteAdaptation.Common
         }
 
         // Null and a candidate when the floor can be placed, null and no candidate when it stops the step, else the reason it is skipped
-        private static string Check(PlanFloorSettings settings, string plot, string kind, PlanFloor floor, double[] offset, Dictionary<string, FloorTypeEntry> types,
+        internal static string Check(PlanFloorSettings settings, string plot, string kind, PlanFloor floor, double[] offset, Dictionary<string, FloorTypeEntry> types,
             Dictionary<string, LevelEntry> levels, HashSet<string> existing, SortedSet<string> missingTypes, List<string> stops, out Candidate candidate)
         {
             candidate = null;

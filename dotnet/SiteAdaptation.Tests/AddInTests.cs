@@ -120,6 +120,23 @@ namespace SiteAdaptation.Tests
             Assert.Equal("7 Place villas is not built yet.", untouched.Run(7, "7 Place villas", Bodies.Of(7), @"C:\Models\Site.rvt").Message);
         }
 
+        // R378, R379. Buttons 5 and 6 take the body the entry makes on the active document, each only its own, and with none they stay
+        // not built, so Bodies.Of names no Revit type
+        [Fact]
+        public void R378_R379_buttons_5_and_6_take_their_own_body_and_no_other()
+        {
+            var floors = new ButtonBody();
+            var levels = new ButtonBody();
+            RibbonButtonSpec five = RibbonLayout.Button(5);
+            RibbonButtonSpec six = RibbonLayout.Button(6);
+
+            Assert.Same(floors, Bodies.Of(five, null, null, null, null, null, () => floors, () => levels));
+            Assert.Same(levels, Bodies.Of(six, null, null, null, null, null, () => floors, () => levels));
+            Assert.Equal("5 Floors and ramps is not built yet.", Bodies.Of(five, null, null, null, null, null, null, () => levels).NotBuilt);
+            Assert.Equal("6 Levels is not built yet.", Bodies.Of(six).NotBuilt);
+            Assert.Equal("7 Place villas is not built yet.", Bodies.Of(RibbonLayout.Button(7), null, null, null, null, null, () => floors, () => levels).NotBuilt);
+        }
+
         // R403. The window changes no model element, so the ribbon command opens it on the rules file of the pane with no flow, and a
         // missing or bad rules file is told, never thrown into Revit
         [Fact]
