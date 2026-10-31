@@ -34,4 +34,6 @@ The whole run 1 to 9 took 5.9 min in the test, peak memory 2.4 GB. The two Excel
 
 - Open C:\SA-demo\footprint-vs-mass.png: 5 masses, one per kind, inside their footprint blocks.
 - Say plainly: every mass stands inside its block, 305 of 336. The check still flags all 336, because the footprint drawing holds plot blocks 22 m deep, 2 duplex or 4 townhouse plots per block, while a house is 10 to 16 m deep. Bader decides how the check measures (Q276).
-- The base of each mass is the lowest floor outline of its prototype. BASELINE
+- The base of each mass is the outline of the largest floor slab on the lowest level of its prototype, every corner, never a box, read from the prototype file (13 of 13, the floor ids in steps/log.md). Five prototypes have a rectangular slab, so their mass is a rectangle: DP2, DP3, DP4, VD2, VD4.
+- Say plainly: the slab is not the outer face of the walls. On DT3, the most used prototype (68 plots), the walls stand up to 649 mm outside the slab, 304 mm leaving out the entrance recess, more than the 100 mm limit of config (Q279). The four townhouses DT1, TH1, DT3, TH3 lie 600 to 650 mm from their walls. For the other nine the walls do not close into a ring, so no wall outline was found and the mass uses the slab.
+- Slides: C:\SA-demo\dt3-outline-vs-mass.png, the DT3 walls over its mass base. C:\SA-demo\dt3-link-vs-mass.png, a real DT3 link placed on plot 2294 over its mass, the same 649 mm, so the placement is exact and the gap is the outline. The model is C:\SA-demo\SA-demo-link-check.rvt.
