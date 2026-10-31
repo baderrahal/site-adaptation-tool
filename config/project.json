@@ -766,6 +766,33 @@
       }
     }
   },
+  "designBasis": {
+    "note": "R407, round 4i. The one switch of what a build follows: rev6 the ROSHN Makkah Site Adaptation Manual Rev 06, roshnPastJob the past job as the keys measured it, every build of today. mode is the build of this project, newProjectMode the mode a new project starts on (J16). Under roshnPastJob doorLevel, roadLevel, backYard and clusters are not read and the plan is the plan of before 4i. docs/design/16-design-basis.md",
+    "mode": "roshnPastJob",
+    "modes": ["rev6", "roshnPastJob"],
+    "newProjectMode": "rev6",
+    "doorLevel": {
+      "note": "R408, Bader's decision C of round 4i. The entry door level, El @ Entry, is the input and the ramp slope the result. civilFile reads the door level of each plot from the civil file, roadPlusSlope gives it as the road at front plus slopePercent of the unit times the ramp depth. Either way the slope is (El @ Entry less the road at front) over the ramp depth, its ramp type by the slope band of road_surfaces.json bands, and a slope outside slopes_percent front_min to front_max of the rules profile, manual 2.3.A, is listed",
+      "source": "roadPlusSlope",
+      "sources": ["civilFile", "roadPlusSlope"],
+      "civilFile": {"path": null, "plotColumn": "Plot No.", "levelColumn": "El @ Entry"},
+      "slopePercent": {"default": 0.5, "C10": 2.0, "VL4": 2.0, "VL6": 2.0}
+    },
+    "roadLevel": {
+      "note": "R409, round 4i. Under rev6 the road at a front corner comes from the one surface named here, the road role of config/road_surfaces.json, Top Surface-02 by Bader's choice there, never from the surfaces of siteBuild.roadSurfaces in their order. oldJobOffsetM is the steady difference of the past 1.4 job to today's Top Surface-02, held in the status block, never added to a level",
+      "surface": "Makkah Phase 1_Road Surface C3D__Top Surface-02",
+      "oldJobOffsetM": 0.21,
+      "oldJobOffsetSource": "steps/investigations/data-book.md Part X: the ramp corners of the 1.4 key on NBH 022, 294 plots, a median 212 mm under Top Surface-02 and 164 within 5 mm once 0.212 m is taken off (R242, R247 to R249)"
+    },
+    "backYard": {
+      "note": "R410, Bader's decision B of round 4i. Under rev6 the back yard follows the manual, 2.3.B graded to the front within slopes_percent back_rev6_min to back_rev6_max and 2.3.C the townhouse back yard at townhouse_back_rev6 to the trench of the back boundary, and the owner builds it, so no yard floor is placed while floor is false. The manual gives no level for a yard floor, so floor true under rev6 is refused until Q225 is answered. Under roshnPastJob the yard is the flat floor of keyRules.yard as before",
+      "floor": false
+    },
+    "clusters": {
+      "note": "R411, Bader's decision B of round 4i. Under rev6 the build proposes a cluster and a mirror flag for each unit plot by the manual, 2.1.A to 2.1.E, each with its reason, and the team confirms them in 3 Review data. A proposal sets no value of the plan until confirmed",
+      "propose": true
+    }
+  },
   "designValues": {
     "note": "R405, Q103 (Bader, 2026-10-27). The design values a build, the placer and button 1 take, moved out of the code in Lane B 5c, each read by python/design_values.py and DesignValues.cs and refused by its name when missing. The note of each block names the rule of each key and its row of section 7 of steps/investigations/rule-status-audit.md. The tolerances of the one-off checkers of past rounds stay in their code with a note there. Rounding.Significant and common.SIGNIFICANT stay in code, the 15 digits of the G15 text of a double (CHOSEN by Code)",
     "placer": {

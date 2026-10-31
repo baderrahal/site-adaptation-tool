@@ -369,3 +369,12 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R373 Button 1 on an empty project.
 - R374 Button 1 on an existing site file.
 - R383 Element tags in Revit.
+
+## 10-addin-r407-up.md
+
+- R407 Design basis switch, Rev 6 or past.
+- R408 Door level as the input.
+- R409 One named road level surface.
+- R410 Back yard by Rev 6.
+- R411 Cluster and mirror proposals.
+- R412 Read only new project check.

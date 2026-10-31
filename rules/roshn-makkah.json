@@ -53,7 +53,11 @@
     "front_default": 0.5,
     "back_min": 0.5,
     "back_target_max": 1.0,
-    "back_hard_max": 2.0
+    "back_hard_max": 2.0,
+    "back_rev6_min": 0.3,
+    "back_rev6_max": 0.5,
+    "townhouse_back_rev6": 2.0,
+    "rev6_source": "Rev 06, 2.3.B p. 11 (PDF 14) the back yard and side stretch graded to the front at 0.3% to 0.5%, 2.3.C p. 12 (PDF 15) the townhouse back yard at 2% to a soak away trench along the back boundary"
   },
   "steps": {
     "front_min": 1,
