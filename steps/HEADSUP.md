@@ -3,10 +3,10 @@
 ## Live status
 
 - Lane: B, round 6a, branch feat/lane-b-6a, worktree Site Adaptation Tool Lane B WT
-- Time: 2026-10-31 21:30
-- Now: Q274 fix and R384 named jobs (button 9, Site Adaptation Rules, Update from report) by a developer, the 13 Revit 2024 prototype copies under the work root by a runner
-- Done: 5d merged as PR 113, plan of 6a written
-- Next: window shots in the host, the Masses run 1 to 9 on NBH 012, the Links run, shots against the boards, records, PR
+- Time: 2026-10-31 22:15
+- Now: window shots in the host by a developer, the 13 Revit 2024 prototype copies under the work root by a runner
+- Done: 5d merged as PR 113, Q274 fixed (levelExcel run id), R384 button 9 and the named Rules and Update from report jobs, the work root mark of the run script (f48d57e)
+- Next: the Masses run 1 to 9 with the named jobs and shots on NBH 012, the Links run, shots against the boards, review, records, PR
 - Blocked: none
 - Lane C: NEWPROJ-UI merged as PR 112 on 31 Oct, changes the windows of buttons 1 to 4 tonight
 
