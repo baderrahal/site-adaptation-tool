@@ -340,7 +340,7 @@ namespace SiteAdaptation.Tests
                 WorkFolder = AddinRunJudge.ExpectedFolder(root, first), WorkFolderRead = true });
             record.Documents.Add(new RunDocument { Label = "second", Made = RunDocument.Opened, Title = "SA5A-SECOND-TEST-NEW", PathName = second, SessionId = "s4" });
             record.Documents.Add(new RunDocument { Label = "central.new", Made = RunDocument.Created, Title = "Project3", PathName = "", SessionId = "s5" });
-            record.Documents.Add(new RunDocument { Label = "detached", Made = RunDocument.Detached, Title = "", PathName = "", SessionId = "s6", IsDetached = true,
+            record.Documents.Add(new RunDocument { Label = "detached", Made = RunDocument.Detached, Title = "SA5A-CENTRAL-TEST-NEW_detached", PathName = "SA5A-CENTRAL-TEST-NEW_detached.rvt", SessionId = "s6", IsDetached = true,
                 WorkFolderRead = true, ButtonStop = SaveFirst, ButtonStopRead = true });
             record.Documents.Add(new RunDocument { Label = "unsaved", Made = RunDocument.Created, Title = "Project4", PathName = "", SessionId = "s7",
                 WorkFolderRead = true, ButtonStop = SaveFirst, ButtonStopRead = true });
@@ -395,7 +395,7 @@ namespace SiteAdaptation.Tests
             record.Steps.Single(step => step.Step == "closeSecond").LoadsAfter = 9;
             record.Answers[0].RoutedSession = "s3";
             record.Answers[1].Issue = null;
-            record.Documents.Single(document => document.Label == "detached").Title = "SA5A-CENTRAL-TEST-NEW_detached";
+            record.Documents.Single(document => document.Label == "detached").Title = "";
             record.Documents.Single(document => document.Label == "detached").ButtonStop = null;
             record.Documents.Single(document => document.Label == "first").WorkFolder = Documents + @"\SiteAdaptation\SA5A-TEST-NEW_00000000";
             record.Shots[1].Blank = true;

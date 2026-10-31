@@ -47,7 +47,7 @@ namespace SiteAdaptation.Common.PlaceVillas
 
         PlacedTransform ReadBackLink(string uniqueId);
 
-        // The outer loop of the lowest face of a solid in internal plan coordinates, read from its geometry
+        // The outer loop of the lowest face of a solid in internal coordinates, x, y and z, read from its geometry
         IReadOnlyList<double[]> ReadBackBase(string uniqueId);
 
         // 03a Shared parameters: by its GUID, Element.get_Parameter(Guid), never by name, since LookupParameter gives one of two

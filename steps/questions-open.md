@@ -6,14 +6,11 @@ Every question open before 2026-10-29 was closed in the answer pass of Round FOL
 
 ## Open
 
-Q148 Place villas before Floors and Levels after 5c. Q149 M14 boundary wall of an irregular plot. Q150 M15 foundation depth, at least or equal. Q151 Q075 moved without the majority run. Q152 Mode of the last run of a button. Q153 A lone copy of a tagged element.
-Q154 Freeze guard limit for an image job. Q155 The parameter sheet of button 1. Q156 The GUID of Plot. Q157 The type button 1 copies new types from. Q158 Step 1 Done on a model already set up. Q159 Q055 reads 11 more 1.4 plots off the ramp. Q160 A plot list takes unit plots only. Q161 A changed step reruns every higher step. Q162 Reads of entryM with heightM or rampFrontM. Q163 A yard that stands only by its mirror. Q164 Levels count and the link Z of 7. Q165 Shape of the block manualRules. Q166 Manual rule of a check row. Q167 Manual rule on the other sheets. Q168 The villa type of Update from report. Q169 Key of an update entry with none of its job. Q170 updateChecks of manualRules. Q171 Which breaks untick a change. Q172 heightM gap with an El @ Entry edit. Q173 Level profile of Update from report. Q174 The plan Update from report reads. Q175 Run log format 9 Report reads. Q176 Plain names of the update rule checks. Q177 Manual rule ids in Rule check. Q178 A computed mirror edit breaks the hand rule. Q179 Guide line, side box and row mark of Update.
-Q180 designValues status in the R401 block. Q181 Timing of the labels J11 and J14. Q182 Side band of majority.side_neighbours. Q183 Time cap of a buttons job. Q184 Plain rule names of the check table. Q185 A plot list over two NBHs. Q186 Close J2 as no work. Q187 Prefill of a new project, J16. Q188 Entity load on a session unseen. Q189 Check table modal or modeless. Q190 Where buttons 5 to 8 find the plan. Q191 The plan name of a plot list. Q192 Solid height of light mode. Q193 Footprint limit of the base. Q194 RRE parameters on Generic Models. Q195 Dry run of button 4. Q196 addin.overrideFile in config. Q197 key_join.json and key reads as inputs. Q198 Past gaps of the missing and question rows. Q199 What the tool does per manual rule. Q200 Export to Excel of the two windows. Q201 Data book files with no Python. Q202 The schedule folder in config. Q203 A worker end on a document not active. Q204 Manual rule of a Review data row. Q205 Corner table coordinates of Review data. Q206 Base boundary of a prototype. Q207 No foot and no Esc in the windows. Q208 How to use line of Rules. Q209 Manual column mixes section and revision. Q210 Q015 in a past job text. Q211 7 after a plot list 4 Check. Q212 4 Check stops 7 on another NBH. Q213 Use of an override entry under Skip. Q214 The build reads pastJob, not the pane. Q215 Where the 2024 prototypes come from. Q216 Rows of 4 Check with no past job. Q217 Follow every rule count, table against chip. Q218 Config files beside a user's config. Q219 First run of 7 against the step limit. Q220 Judge rows of J10 test the old claim. Q221 Judge rows for Q146 and Q147. Q222 The NBH 03 image of Q063. Q223 The test host gives up after a refused raise.
+Q149 M14 boundary wall of an irregular plot. Q150 M15 foundation depth, at least or equal. Q151 Q075 moved without the majority run. Q152 Mode of the last run of a button. Q153 A lone copy of a tagged element.
+Q154 Freeze guard limit for an image job. Q155 The parameter sheet of button 1. Q157 The type button 1 copies new types from. Q158 Step 1 Done on a model already set up. Q159 Q055 reads 11 more 1.4 plots off the ramp. Q160 A plot list takes unit plots only. Q161 A changed step reruns every higher step. Q162 Reads of entryM with heightM or rampFrontM. Q163 A yard that stands only by its mirror. Q164 Levels count and the link Z of 7. Q165 Shape of the block manualRules. Q166 Manual rule of a check row. Q167 Manual rule on the other sheets. Q168 The villa type of Update from report. Q169 Key of an update entry with none of its job. Q170 updateChecks of manualRules. Q171 Which breaks untick a change. Q172 heightM gap with an El @ Entry edit. Q173 Level profile of Update from report. Q174 The plan Update from report reads. Q175 Run log format 9 Report reads. Q176 Plain names of the update rule checks. Q177 Manual rule ids in Rule check. Q178 A computed mirror edit breaks the hand rule. Q179 Guide line, side box and row mark of Update.
+Q180 designValues status in the R401 block. Q181 Timing of the labels J11 and J14. Q182 Side band of majority.side_neighbours. Q183 Time cap of a buttons job. Q184 Plain rule names of the check table. Q185 A plot list over two NBHs. Q186 Close J2 as no work. Q187 Prefill of a new project, J16. Q188 Entity load on a session unseen. Q189 Check table modal or modeless. Q191 The plan name of a plot list. Q192 Solid height of light mode. Q193 Footprint limit of the base. Q194 RRE parameters on Generic Models. Q195 Dry run of button 4. Q196 addin.overrideFile in config. Q197 key_join.json and key reads as inputs. Q198 Past gaps of the missing and question rows. Q199 What the tool does per manual rule. Q200 Export to Excel of the two windows. Q201 Data book files with no Python. Q202 The schedule folder in config. Q203 A worker end on a document not active. Q204 Manual rule of a Review data row. Q205 Corner table coordinates of Review data. Q206 Base boundary of a prototype. Q207 No foot and no Esc in the windows. Q208 How to use line of Rules. Q209 Manual column mixes section and revision. Q210 Q015 in a past job text. Q211 7 after a plot list 4 Check. Q212 4 Check stops 7 on another NBH. Q213 Use of an override entry under Skip. Q217 Follow every rule count, table against chip. Q222 The NBH 03 image of Q063. Q223 The test host gives up after a refused raise.
+Q260 Outline change of a placed floor. Q262 Level Excel and the read back values. Q263 Levels count still at its level. Q265 Ends status of walls after Q115. Q266 Walls on edges other units meet. Q267 Base level of a boundary wall. Q268 Scope of a wall on two plots. Q269 Untagged BW wall on a plan wall. Q270 Where a prototype set upgrades now. Q271 Python build takes the pane folder. Q273 6 Levels on a floor moved by hand. Q274 Run id of the levelExcel worker.
 Q280 Save setup writes the model at once. Q281 Board rows against the nine pane inputs. Q282 Where the project name is kept. Q283 Picks of layers, sheets, columns and coordinates. Q284 Villa mode row the boards drop. Q285 Name the Rules row shows. Q286 Approve the four drafts of NEWPROJ-UI. Q287 Button messages that name a work file.
-
-Q148. Place villas before Floors and Levels in the run after 5c (Round FOLD, review of the design PR 102). The new order of docs/design/13-workflow-changes.md has each step wait for the one before, so 7 Place villas waits for 6 Levels, and 5d builds 5 Floors and ramps and 6 Levels. The phase changes of 28 Oct 2026 give 5c the Place villas button with light mode, and the Revit run after 5c places villas in Masses and in one NBH in Links. Round FOLD wrote that the test host runs 7 by Buttons.Run on the plan before 5 and 6 are built (CHOSEN, steps/01_next.md). It does not block 5b or 5c.
-- Recommended: keep it. The test host runs 7 from the plan in the run after 5c, which measures light mode and the base boundary as 28 Oct asks, and the pane keeps the order, so a user cannot run 7 before 6.
-- Other: move Place villas and light mode to 5d, after 5 and 6, and the run after 5c places nothing.
 
 Q149. M14, the boundary wall of an irregular plot (Round FOLD, docs/design/15-manual-rules.md). The canvas text reads "boundary wall 200 mm inside the plot limit". The Rev 06 manual, 2.8.A, p. 20 (PDF 23), reads "the boundary wall external face will be identical to the plot limit, and the 200mm will be positioned fully inside the plot", the outer face on the limit and the 200 mm wall thickness inside it. The canvas text is kept until Bader answers. It does not block, M14 is checked by 8 Walls in 5d.
 - Recommended: the PDF reading, the outer face of the wall on the plot limit and its 200 mm inside the plot, and the canvas text written so.
@@ -43,10 +40,6 @@ Q154. The freeze guard limit for an image job (Lane B 5b). Bader asked the test 
 Q155. The parameter sheet of button 1 (Lane B 5b). Bader's change of 28 Oct 2026 has the parameters and their GUIDs come only from the parameter sheet, the Excel of the row Shared parameters. No ROSHN parameter sheet is on the laptop and none in C:\02-Site Adaptation (SEARCHED both, 2026-10-29), so its sheet and columns are UNKNOWN. It does not block, button 1 runs by the recommended reading.
 - Recommended: one sheet with one row per parameter, the columns Name, GUID, Data type and Categories. Until Bader gives the sheet, the row takes the 10 names and GUIDs of addin.sharedParameters of config, measured from the 7 keys by the read job and not made by the tool, and says "From the parameter sheet: not chosen, 10 parameters of the answer keys". A sheet chosen by Browse replaces them.
 - Other: button 1 stops until a parameter sheet is chosen.
-
-Q156. The GUID of Plot (Lane B 5b). Q085 and Q087 bind Plot, the floor parameter of floors.plotParameter, as a shared parameter with a GUID Bader fixes in a block of config no run writes. No GUID is given and config is Lane A's file. It does not block 5b, 5d places the floors that take it.
-- Recommended: faecae98-f82c-46b5-bd80-489380545236, made once by Code on 2026-10-29, written by Lane A into its own block of config and into the parameter sheet. Until then button 1 binds the other 10 and lists Plot as not bound, waiting on Q156.
-- Other: a GUID Bader gives.
 
 Q157. The type button 1 copies new types from (Lane B 5b, breaker pass 1). 03a lets button 1 make a floor type or a wall type the project lacks as a copy of a type it holds. RevitSiteDocument.cs copies the first basic wall type and the first floor type in element id order, whatever their structure, so BW and Generic Wall-150mm_ Garden take the layers and the width of that first type, and on a project from no template Generic 150mm takes those of Floor 1. Which type comes first in the default metric template and its width are UNKNOWN, the Revit run of 5b read type names only. A wall placed later with a wrong width stands off by the difference with no error. It does not block 5b, 8 Walls places walls in 5d.
 - Recommended: copy each new type from the type of the IMC answer key of the same name, its layers and widths read once into config by the read job, and stop when the key has none.
@@ -180,10 +173,6 @@ Q189. Check table modal or modeless (mock 7.4, Lane B 5c). The mock 7.4 asks a m
 - Recommended: modal for now, modeless in 6c.
 - Other: modeless in 5d.
 
-Q190. Where buttons 5 to 8 find the plan (R80, R377, Lane B 5c). Buttons 5 to 8 need plan_<NBH>.json.
-- Recommended: plan_<NBH>.json of the latest done check_<runId> folder, as the read is found.
-- Other: the pane names the plan file.
-
 Q191. The plan name of a plot list (R80, Lane B 5c). A plot list scope has no single NBH.
 - Recommended: the nbhId its plots share, else all.
 - Other: always plan_all.json.
@@ -277,37 +266,9 @@ Q213. The use of an override entry under Skip (second fix, CHOSEN UseOf). An ent
 - Recommended: accept.
 - Other: refuse any value but "rule" and "past".
 
-Q214. The build reads pastJob, not the pane Prototypes row (Revit run after 5c). 4 Check lists the pane folder (CheckRun.cs:141) but the worker build reads pastJob.upgradedPrototypeFolder of config (BuildSteps.cs:272-290). Window 6 ended refused on a folder the pane did not name.
-- Recommended: the build takes the pane folder, config is the default.
-- Other: both stay as they are and the pane row is only a list.
-
-Q215. Where the 2024 prototypes come from on a PC (Revit run after 5c). Prototypes_2024 is not on disk, only the 2021 Prototypes. The -Upgrade mode of the run script writes into inputRoot (Run-TestHost.ps1:481-487), against D19. Links mode was not run in the Revit run after 5c for this reason. The R405 fix and the base shape cache were measured in Revit.
-- Recommended: make the 2024 copies once under the work root and point config at them.
-- Other: the add-in upgrades each 2021 prototype on every link, about 100 s each.
-
-Q216. Rows of 4 Check with no past job (Revit run after 5c, window 10). NBH 012 shows 1237 rows, mostly Level 814 and Parameter 366, with Floor 37, Hand 13, Position 4 and Unit code 3.
-- Recommended: Bader looks at the table before 5d and says whether Level and Parameter rows show with no past job.
-- Other: with no past job only the rule rows show.
-
 Q217. Follow every rule count, table against build chip (Revit run after 5c, latent L4). The table says 9 plots follow every rule and the build chip says 6, the chip counts the moved set.
 - Recommended: the table takes the build's count.
 - Other: the chip takes the table's count.
-
-Q218. Config files beside a user's config (Revit run after 5c). The test host needed cad_layers.json and the other config files copied beside its config. It is not known that the installed add-in finds them beside a user's config.
-- Recommended: check it in the install of 5d.
-- Other: the add-in carries them in its own folder.
-
-Q219. First run of 7 against the step limit (Revit run after 5c, windows 7 to 9). On a PC the first run of 7 opens 13 prototypes at about 100 s each and passes the 20 minute step of the test host (3 timeouts, 1204.6 s, 1209.9 s and 1208.0 s).
-- Recommended: the 2024 folder of Q215 ends it, the loop cache keeps a second run short (window 10: 201.6 s).
-- Other: raise the step limit of the test host.
-
-Q220. The J10 judge rows test the old claim (Revit run after 5c). A detached document keeps PathName '<name>_detached.rvt' and Title '<name>_detached', measured in 5a run 3 and again in the run after 5c. The rows DetachedNoPath and DetachedTitleEmpty (AddinRun.cs) test an empty path and title.
-- Recommended: change the two rows to the measured values.
-- Other: leave the rows, J10 stays not held.
-
-Q221. Q146 and Q147 have no judge rows (Revit run after 5c). The tab title text, the first show of a hidden pane (not separable from a pane Revit restores, QL18) and the 16 px icons are not measured. The save stop on a detached document held.
-- Recommended: a picture check of the tab title and the icons in the next run of 5d, QL18 stays as it is.
-- Other: add judge rows for the title text and the icons.
 
 Q222. The NBH 03 image of Q063 was not run (Revit run after 5c). Its spec (area bounds, imageLevel) went with round_17.
 - Recommended: Bader names the area and the level.
@@ -316,6 +277,50 @@ Q222. The NBH 03 image of Q063 was not run (Revit run after 5c). Its spec (area 
 Q223. The test host gives up after one refused raise of its phase event (Revit run after 5c). One Denied in the first run, the second run held 18 of 21. Latent line in steps/latent.md.
 - Recommended: retry a refused raise on the next tick, a test host change in 5d.
 - Other: keep one raise and run again on a Denied.
+
+Q260. Outline change of a placed floor (Lane B 5d, R378). Button 5 lists a tagged floor whose outline the plan changed and leaves it. SketchEditScope opens its own transaction, so it cannot run inside the transaction of the flow.
+- Recommended: In 5, delete the tagged floor and place it again inside the transaction, listing the old UniqueId.
+- Other: A SketchEditScope step before the transaction, as Load is in 7.
+
+Q262. Level Excel and the read back values (Lane B 5d, R379, R364). 03b makes the level Excel from the plan and the values the add-in read back. The worker writes the plan values only, levels_<run id>.json is passed as an input it does not read.
+- Recommended: The Levels sheet reads levels_<run id>.json and shows the level read back beside the plan.
+- Other: The Excel keeps the plan values only.
+
+Q263. Levels count still at its level (Lane B 5d, R379, R381). 03b section 9 counts a plot whose floors still stand at the level the last run of 6 read back. 9 counts levelPlots of the run log of 6 today.
+- Recommended: RevitCountsReader takes levels_<run id>.json of the last committed run of 6 and counts a plot only while its tagged floors stand within 1 mm of it.
+- Other: Keep the count of the run log.
+
+Q265. Ends status of walls after Q115 (Lane B 5d, R362, keyRules.wallOpen). Every wall end is still UNKNOWN through the walls.ends statusFrom block of config/project.json, whose why text says the wall runs along the whole edge. Since Q115 a wall part on two units of one cluster leaves the measured span open.
+- Recommended: Set walls.ends to MEASURED weak by keyRules.wallOpen for the parted cluster walls and keep UNKNOWN for the rest, a change of config by Lane A.
+- Other: Leave every end UNKNOWN until Q071.
+
+Q266. Walls on edges other units meet (Lane B 5d, Q115). The keys leave a span open on 696 of 1,709 edges other units meet, the build walls them whole, the largest group of the 888 misses of keyRules.wallOpen (0.7409, weak).
+- Recommended: Measure in Phase 6 whether a villa stands on the edge, from the prototype base shapes of light mode, and leave the span open the same way.
+- Other: Accept the weak 0.7409.
+
+Q267. Base level of a boundary wall (Lane B 5d, R380). 03b puts the wall base at the yard level of the higher plot but names no Revit level. Button 8 takes the level of floorSettings.levels.yard of the plan with the base offset to the plan base (CHOSEN by Code).
+- Recommended: The level of floorSettings.levels.yard, the base offset to the plan base, as coded.
+- Other: A level of its own for the walls, made by button 1.
+
+Q268. Scope of a wall on two plots (Lane B 5d, R380). A wall on the edge two plots share is placed when any plot it stands on is in the scope (CHOSEN by Code).
+- Recommended: Any plot in the scope, as coded.
+- Other: Only when both plots are in the scope.
+
+Q269. Untagged BW wall on a plan wall (Lane B 5d, R380, R368). An untagged BW wall holds back the plan wall whose two ends it lies on within designValues.walls.readBackM, skipped and listed, never changed (CHOSEN by Code). SecondRun matches untagged elements by plot and kind alone, which would skip every wall of the plot.
+- Recommended: Match by both ends, skip and list it, never change it, as coded.
+- Other: Match by plot and kind as the other buttons do.
+
+Q270. Where a prototype set upgrades now (Lane B 5d, Q215, R313, D19). -Upgrade now refuses every target under an input root, so -Upgrade -PrototypeSet STR, whose target R313 puts under inputRoot, is refused.
+- Recommended: The set target goes under the work root as prototypes_2024\<discipline>, STR to prototypes_2024\STR.
+- Other: Keep the set target under inputRoot as an exception to D19.
+
+Q271. Python build takes the pane folder (Lane B 5d, Q214, R357). The C# build takes the Prototypes folder the request of 4 Check names. plan_from_book.py still takes the folder of pastJob, so a parity run with another pane folder lists other files.
+- Recommended: plan_from_book.py takes a --prototypes folder for parity runs, the config folder by default.
+- Other: Parity runs only with the pane folder equal to the config folder.
+
+Q273. 6 Levels on a floor moved by hand (Lane B 5d breaker, R379, R368). A tagged yard or Generic floor a person moved up or down by hand is set back to the plan by 6, shown as an ordinary move, as R379 reads. R368 and the second run of 03b say the tool never reverts a hand change on its own and lists it.
+- Recommended: 6 lists a floor whose level differs from both its tag and the plan as changed by hand and leaves it, as the other buttons do, unless the user sets it to the plan.
+- Other: 6 sets every tagged floor to the plan, as R379 reads now.
 
 Q280. Save setup writes the model at once (Lane C NEWPROJ-UI). R367 writes the Settings entity only inside the transaction of a real run, so Save setup puts the setup into the pane in memory and the next real run of a button writes it. The foot line of the board says the next person who opens the project sees the same setup, which holds only after that run.
 - Recommended: Save setup writes the Settings entity in a transaction of its own, a change of R367 by Bader, in a later round.
@@ -348,3 +353,7 @@ Q286. Approve the four drafts of NEWPROJ-UI (Lane C NEWPROJ-UI). steps/ui-shots/
 Q287. Button messages that name a work file (Lane C NEWPROJ-UI). The test NEWPROJ_no_text_of_any_window_names_a_json_file holds every text literal of the add-in, but a message that adds a file name from a constant still names one, as the stop of 3 Review data names read.json (ReviewLoad.Load).
 - Recommended: a later round rewords those messages by what the file holds.
 - Other: keep them, they name work files, not settings.
+
+Q274. Run id of the levelExcel worker (Lane B 5d, R379, R347, third stop of button 6 in Revit, window G at 12c8171). Button 6 stopped on "Could not find file ...levels_6_<run>.json.tmp-6_<run>". Cause, READ: LevelsRun.Excel (LevelsRun.cs l.160 to 170) gives the worker the run id of button 6 and the work folder, and WorkerRunner.Clear (WorkerRunner.cs l.168 to 186) deletes every temporary file of the request run id in that folder before the command runs, so the levels file of 6 is gone when 6 hashes it (l.144). Button 9 gives its worker the run id <run id>-<NBH> (ReportRun) for this reason. It is the third fix of button 6 in Revit after the worker path and the temporary input, so by CLAUDE.md it stops here. Buttons 1 to 5 committed in window G, peak 2379 MiB private, 42 of 42 inputs unchanged.
+- Recommended: Give the levelExcel request the run id <run id>-<NBH> as button 9 does, with a test where the fake worker clears its run id, then run window G again for 6, 7 and 8 and the second run.
+- Other: Write levels_<run id>.json after the worker answers.

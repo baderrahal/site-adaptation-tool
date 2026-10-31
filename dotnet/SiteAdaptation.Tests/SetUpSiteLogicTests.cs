@@ -77,6 +77,14 @@ namespace SiteAdaptation.Tests
             return SetUpTarget.From(config, Rules(), null, PositionFile(), slope, sheet ?? ParameterSheet.FromConfig(config));
         }
 
+        // The repo config before Q156 was answered, with no addin.fixedParameters
+        private JObject NoFixedBlock()
+        {
+            var copy = (JObject)config.DeepClone();
+            ((JObject)copy["addin"]).Remove("fixedParameters");
+            return copy;
+        }
+
         // A project from the default metric template as the probe of 5b read it: millimeters, two levels on the project base point at 0,
         // floor types and basic wall types of its own, the survey point and the project base point at the internal origin
         private static SiteState Template()
@@ -161,13 +169,42 @@ namespace SiteAdaptation.Tests
 
             Assert.Equal(new[] { "RRE_ZZ_SP_Prototype has no GUID in the parameter sheet" }, view.Stops);
             Assert.Equal(new[] { "Plot not bound, waiting on Q156" }, view.Waiting);
-            Assert.Equal(new[] { "Plot not bound, waiting on Q156" }, SetUpPlanner.View(Template(), Target(), null).Waiting);
+            Assert.Equal(new[] { "Plot not bound, waiting on Q156" }, SetUpPlanner.View(Template(), Target(sheet: ParameterSheet.FromConfig(NoFixedBlock())), null).Waiting);
+        }
+
+        [Fact]
+        public void R373_q156_plot_binds_on_floors_from_the_fixed_block_of_config_after_the_measured_ones_and_waits_no_more()
+        {
+            ParameterSheet sheet = ParameterSheet.FromConfig(config);
+
+            Assert.Equal(11, sheet.Parameters.Count);
+            ParameterSpec plot = sheet.Parameters.Last();
+            Assert.Equal("Plot", plot.Name);
+            Assert.Equal("faecae98-f82c-46b5-bd80-489380545236", plot.Guid);
+            Assert.Equal("TEXT", plot.DataType);
+            Assert.Equal(new[] { "Floors" }, plot.Categories);
+            Assert.Equal("RRE_ZZ_SP_Plot-Number", sheet.Parameters[0].Name);
+            SetUpSiteView view = SetUpPlanner.View(Template(), Target(), null);
+            Assert.Empty(view.Waiting);
+            Assert.Empty(view.Stops);
+            Assert.Contains(SetUpPlanner.Changes(Template(), Target()).Parameters, item => item.Name == "Plot" && item.Guid == plot.Guid);
+        }
+
+        [Fact]
+        public void R373_q156_a_name_in_both_the_measured_and_the_fixed_block_is_refused()
+        {
+            var both = (JObject)config.DeepClone();
+            ((JArray)both["addin"]["fixedParameters"]["parameters"]).Add(new JObject { ["name"] = "CASE", ["guid"] = "c0b2c4ee-e129-4a42-bcb6-225759b874eb", ["on"] = new JArray("Floors") });
+
+            string message = Assert.Throws<InvalidDataException>(() => ParameterSheet.FromConfig(both)).Message;
+
+            Assert.Equal("config names CASE in both addin.sharedParameters and addin.fixedParameters, one parameter per name (Q156)", message);
         }
 
         [Fact]
         public void R373_until_a_sheet_is_chosen_the_parameters_are_the_10_of_config_with_the_text_of_q155()
         {
-            ParameterSheet sheet = ParameterSheet.FromConfig(config);
+            ParameterSheet sheet = ParameterSheet.FromConfig(NoFixedBlock());
 
             Assert.False(sheet.Chosen);
             Assert.Equal(10, sheet.Parameters.Count);
@@ -299,7 +336,7 @@ namespace SiteAdaptation.Tests
             Assert.True(first.Units && first.Position && first.SurveyPoint && first.LevelBase);
             Assert.False(first.BasePoint);
             Assert.Equal(new[] { "yard", "Ramps 0.5%", "Ramps 2%", "Flat Ramps" }, first.FloorTypes);
-            Assert.Equal(10, first.Parameters.Count);
+            Assert.Equal(11, first.Parameters.Count);
 
             document.Hold(target);
             SetUpSiteView view = SetUpPlanner.View(document.State, target, null);

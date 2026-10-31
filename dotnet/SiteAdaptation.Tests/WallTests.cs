@@ -360,5 +360,66 @@ namespace SiteAdaptation.Tests
             Walls.Mark(even, table, liftedPlans);
             Assert.Equal("walls.base from override by heightM walls.top from override by heightM", even.Status["base"][2] + " " + even.Status["top"][2]);
         }
+
+        // Q115, test_plan_walls.KIN and OPEN: plots 1 and 2 one footprint cluster of two DT3, 5 a VD4 of no cluster
+        private static readonly Dictionary<string, string[]> Kin = new Dictionary<string, string[]>
+        {
+            ["1"] = new[] { "0", "DT3" }, ["2"] = new[] { "0", "DT3" }, ["5"] = new[] { null, "VD4" },
+        };
+
+        private static WallRules Open(Dictionary<string, double[]> spans = null)
+        {
+            return new WallRules
+            {
+                HigherBase = true, HigherTop = true, Depth = 0.1, Rise = 1.7, Near = 0.3,
+                Open = spans ?? new Dictionary<string, double[]> { ["DT3|DT3"] = new[] { 7.6, 17.56 }, ["DT3|VD4"] = new[] { 6.0, 21.0 } },
+            };
+        }
+
+        [Fact]
+        public void R362_Q115_an_edge_two_units_of_one_cluster_share_leaves_open_the_span_of_their_pair_from_the_front()
+        {
+            List<PlanWall> found = Walls.Of(new[] { "1", "2", "5" }, new HashSet<string>(Ffls.Keys), Rings, Frames, Ffls, Open(), Frames, Kin);
+            Assert.Equal(new[] { "1 1 1|2 10 0 10 7.6 2 2", "1 1 1|2 10 17.56 10 20 2 2" }, found.Where(wall => wall.Plots.SequenceEqual(new[] { "1", "2" })).Select(Text).ToArray());
+            Assert.Equal(Made().Where(wall => !wall.Plots.SequenceEqual(new[] { "1", "2" })).Select(Text).ToArray(), found.Where(wall => !wall.Plots.SequenceEqual(new[] { "1", "2" })).Select(Text).ToArray());
+        }
+
+        [Fact]
+        public void R362_Q115_the_span_is_measured_from_the_end_at_the_front_and_a_pair_the_table_lacks_walls_the_whole_edge()
+        {
+            var frames = new Dictionary<string, double[][]>(Frames) { ["1"] = Points(10, 20, 0, 20) };
+            List<PlanWall> found = Walls.Of(new[] { "1", "2", "5" }, new HashSet<string>(Ffls.Keys), Rings, frames, Ffls, Open(), frames, Kin);
+            Assert.Equal(new[] { "1 1 1|2 10 0 10 " + (20.0 - 17.56).ToString("R", CultureInfo.InvariantCulture) + " 2 2", "1 1 1|2 10 " + (20.0 - 7.6).ToString("R", CultureInfo.InvariantCulture) + " 10 20 2 2" },
+                found.Where(wall => wall.Plots.SequenceEqual(new[] { "1", "2" })).Select(Text).ToArray());
+            var other = new Dictionary<string, string[]>(Kin) { ["2"] = new[] { "0", "TH1" } };
+            Assert.Equal(new[] { "1 1 1|2 10 0 10 20 2 2" }, Walls.Of(new[] { "1", "2", "5" }, new HashSet<string>(Ffls.Keys), Rings, Frames, Ffls, Open(), Frames, other)
+                .Where(wall => wall.Plots.SequenceEqual(new[] { "1", "2" })).Select(Text).ToArray());
+            Assert.Equal(Made().Select(Text).ToArray(), Walls.Of(new[] { "1", "2", "5" }, new HashSet<string>(Ffls.Keys), Rings, Frames, Ffls, Higher, Frames, Kin).Select(Text).ToArray());
+        }
+
+        [Fact]
+        public void R362_Q115_keyrules_wallopen_is_read_and_a_table_that_is_no_span_table_is_refused()
+        {
+            JObject rules = JObject.Parse(File.ReadAllText(BuildStepTests.RepoRules()));
+            JObject level = (JObject)rules["levelProfiles"]["parsons2024Rev6"];
+            var key = (JObject)level["keyRules"];
+            WallRules found = Walls.Rules(key, level, "parsons2024Rev6", rules, "roshn-makkah.json", new JValue(0.3));
+            Assert.Equal(new[] { 7.6, 17.56 }, found.Open["DT3|DT3"]);
+            Assert.False((bool)key["wallOpen"]["strong"]);
+            foreach (JObject bad in new[]
+            {
+                new JObject { ["rule"] = "other", ["spans"] = new JObject() }, new JObject { ["rule"] = "clusterPairSpan", ["spans"] = new JObject { ["A|B"] = new JArray(3.0, 2.0) } },
+                new JObject { ["rule"] = "clusterPairSpan", ["spans"] = new JObject { ["A|B"] = new JArray(1.0) } },
+            })
+            {
+                var changed = (JObject)key.DeepClone();
+                changed["wallOpen"] = bad;
+                InvalidDataException error = Assert.Throws<InvalidDataException>(() => Walls.Rules(changed, level, "parsons2024Rev6", rules, "roshn-makkah.json", new JValue(0.3)));
+                Assert.Equal("keyRules.wallOpen of parsons2024Rev6 holds no span table a build leaves an edge open by, it takes clusterPairSpan with spans of two numbers, the first under the second (R362, Q115)", error.Message);
+            }
+            var bare = (JObject)key.DeepClone();
+            bare.Remove("wallOpen");
+            Assert.Null(Walls.Rules(bare, level, "parsons2024Rev6", rules, "roshn-makkah.json", new JValue(0.3)).Open);
+        }
     }
 }

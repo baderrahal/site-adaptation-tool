@@ -60,7 +60,7 @@ def test_r362_a_rule_the_build_does_not_place_walls_by_is_refused():
     profile = project_profile.load_profile(project_profile.profile_path(project_profile.load_settings()))
     level = profile.get("levelProfiles.parsons2024Rev6")
     rules = plan_walls.wall_rules(level["keyRules"], level, "parsons2024Rev6", profile, 0.3)
-    assert rules == {"higherBase": True, "higherTop": True, "depth": 0.1, "rise": 1.7, "near": 0.3}
+    assert {name: value for name, value in rules.items() if name != "open"} == {"higherBase": True, "higherTop": True, "depth": 0.1, "rise": 1.7, "near": 0.3}
     for entry, line in (("wallLine", "centreOnTheEdge"), ("frontOpen", "all"), ("wallBase", "yardLevelOfTheHigherPlot or yardLevelOfTheLowerPlot")):
         key = dict(level["keyRules"], **{entry: {"rule": "other"}})
         with pytest.raises(project_profile.ProfileError) as error:
@@ -277,3 +277,45 @@ def test_r362_r401_a_base_whose_pick_an_override_changed_names_the_override():
     item = plan_walls.entry(wall)
     plan_walls.mark(item, wall, table, {"1": ("heightM",)})
     assert (item["base"]["statusFrom"], item["top"]["statusFrom"]) == ("walls.base from override by heightM", "walls.top from override by heightM")
+
+
+# Q115. Plots 1 and 2 one footprint cluster of two DT3, 5 a VD4 of no cluster, the span of the pair from the front end of the edge
+KIN = {"1": (0, "DT3"), "2": (0, "DT3"), "5": (None, "VD4")}
+OPEN = dict(RULES, open={"DT3|DT3": (7.6, 17.56), "DT3|VD4": (6.0, 21.0)})
+
+
+def test_r362_q115_an_edge_two_units_of_one_cluster_share_leaves_open_the_span_of_their_pair_from_the_front():
+    found = plan_walls.walls(["1", "2", "5"], set(FFLS), RINGS, FRAMES, FFLS, OPEN, FRAMES, KIN)
+    shared = [(wall["plot"], wall["edge"], wall["plots"], wall["ends"]) for wall in found if wall["plots"] == ["1", "2"]]
+    assert shared == [("1", 1, ["1", "2"], [[10.0, 0.0], [10.0, 7.6]]), ("1", 1, ["1", "2"], [[10.0, 17.56], [10.0, 20.0]])]
+    # 2 and 5 are no cluster, so their edge is walled whole though the table holds their pair, and the rest is as before
+    assert [(wall["plot"], wall["edge"], wall["ends"]) for wall in found if wall["plots"] != ["1", "2"]] == [
+        (wall["plot"], wall["edge"], wall["ends"]) for wall in made() if wall["plots"] != ["1", "2"]]
+
+
+def test_r362_q115_the_span_is_measured_from_the_end_at_the_front_and_a_pair_the_table_lacks_walls_the_whole_edge():
+    # The front of 1 on the far side turns the span over
+    frames = dict(FRAMES, **{"1": ((10.0, 20.0), (0.0, 20.0))})
+    found = plan_walls.walls(["1", "2", "5"], set(FFLS), RINGS, frames, FFLS, OPEN, frames, KIN)
+    assert [wall["ends"] for wall in found if wall["plots"] == ["1", "2"]] == [[[10.0, 0.0], [10.0, 20.0 - 17.56]], [[10.0, 20.0 - 7.6], [10.0, 20.0]]]
+    other = dict(KIN, **{"2": (0, "TH1")})
+    assert [wall["ends"] for wall in plan_walls.walls(["1", "2", "5"], set(FFLS), RINGS, FRAMES, FFLS, OPEN, FRAMES, other) if wall["plots"] == ["1", "2"]] == [
+        [[10.0, 0.0], [10.0, 20.0]]]
+    # No wallOpen in the profile walls every edge whole
+    assert plan_walls.walls(["1", "2", "5"], set(FFLS), RINGS, FRAMES, FFLS, dict(RULES, open=None), FRAMES, KIN) == plan_walls.walls(
+        ["1", "2", "5"], set(FFLS), RINGS, FRAMES, FFLS, RULES, FRAMES)
+
+
+def test_r362_q115_keyrules_wallopen_is_read_and_a_table_that_is_no_span_table_is_refused():
+    profile = project_profile.load_profile(project_profile.profile_path(project_profile.load_settings()))
+    level = profile.get("levelProfiles.parsons2024Rev6")
+    rules = plan_walls.wall_rules(level["keyRules"], level, "parsons2024Rev6", profile, 0.3)
+    assert rules["open"]["DT3|DT3"] == (7.6, 17.56)
+    assert level["keyRules"]["wallOpen"]["strong"] is False
+    for bad in ({"rule": "other", "spans": {}}, {"rule": "clusterPairSpan", "spans": {"A|B": [3.0, 2.0]}}, {"rule": "clusterPairSpan", "spans": {"A|B": [1.0]}}):
+        with pytest.raises(project_profile.ProfileError) as error:
+            plan_walls.wall_rules(dict(level["keyRules"], wallOpen=bad), level, "parsons2024Rev6", profile, 0.3)
+        assert str(error.value) == ("keyRules.wallOpen of parsons2024Rev6 holds no span table a build leaves an edge open by, it takes clusterPairSpan with spans of two "
+                                    "numbers, the first under the second (R362, Q115)")
+    bare = {name: rule for name, rule in level["keyRules"].items() if name != "wallOpen"}
+    assert plan_walls.wall_rules(bare, level, "parsons2024Rev6", profile, 0.3)["open"] is None

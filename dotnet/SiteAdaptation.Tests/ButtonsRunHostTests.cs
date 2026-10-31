@@ -10,7 +10,7 @@ using Xunit;
 
 namespace SiteAdaptation.Tests
 {
-    // Lane B 5c, the Revit run after 5c. The buttons mode of the addinRun job runs buttons 1, 2, 3, 4 and 7 of the add-in on one NBH as
+    // Lane B 5c, the Revit run after 5c. The buttons mode of the addinRun job runs buttons 1 to 7 of the add-in on one NBH as
     // the ribbon runs them, with windows that answer by themselves, and measures each solid and link it placed by its own reads. What
     // runs outside Revit is tested here, the job, the steps, the corner and link compares, the dialog answers and the script by text
     public class ButtonsRunHostTests
@@ -50,7 +50,7 @@ namespace SiteAdaptation.Tests
 
         [Theory]
         [InlineData("[]", "masses", false, "names no button")]
-        [InlineData("[1, 5]", "masses", false, "only 1, 2, 3, 4 and 7")]
+        [InlineData("[1, 9]", "masses", false, "only 1, 2, 3, 4, 5, 6, 7 and 8")]
         [InlineData("[2, 2]", "masses", false, "twice")]
         [InlineData("[4, 2]", "masses", false, "order of the pane")]
         [InlineData("[7]", "solid", false, "villaMode")]
@@ -82,6 +82,24 @@ namespace SiteAdaptation.Tests
             Assert.Equal(new[] { "button1", "button2", "button3", "button4", "button7_masses", "button7_links" }, steps.Select(step => step.Name));
             Assert.Equal(new[] { null, null, null, null, VillaModes.Masses, VillaModes.Links }, steps.Select(step => step.VillaMode));
             Assert.Single(ButtonsRun.Steps(Read("{\"buttons\": [7], \"villaMode\": \"links\"}")));
+        }
+
+        // R378, R379. Buttons 5 and 6 of 5d run in a job by Buttons.Run as the ribbon runs them, in the order of the pane, and neither waits
+        // for a worker after it returns, as 6 waits for levelExcel inside its transaction
+        [Fact]
+        public void R378_R379_a_job_may_run_buttons_5_and_6_in_the_order_of_the_pane()
+        {
+            Assert.Equal(new[] { 1, 2, 3, 4, 5, 6, 7, 8 }, ButtonsRun.Known);
+            Assert.False(ButtonsRun.Waits(5));
+            Assert.False(ButtonsRun.Waits(6));
+        }
+
+        // R380. Button 8 of 5d runs in a job after 7 and waits for no worker
+        [Fact]
+        public void R380_a_job_may_run_button_8_after_7()
+        {
+            Assert.Equal(8, ButtonsRun.Known.Last());
+            Assert.False(ButtonsRun.Waits(8));
         }
 
         [Fact]

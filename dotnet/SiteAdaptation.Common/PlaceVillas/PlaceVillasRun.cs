@@ -11,8 +11,8 @@ using SiteAdaptation.Common.Tags;
 namespace SiteAdaptation.Common.PlaceVillas
 {
     // R377, R404. Button 7 Place villas as a body of the flow of R382. Every decision is made here and IVillaDocument only carries it out.
-    // In 5c a villa is placed by insert, rotationDeg and mirrored with its tag, its parameters and its name, origin to origin with no Z:
-    // the Z at the FFL and RRE_ZZ_SP_Prototype-FFL are 5d (W6), so the internal origin holds Z 0 and the placed values hold no Z
+    // A villa is placed by insert, rotationDeg and mirrored with its tag, its parameters and its name, origin to origin with its Z at the
+    // FFL of the plan, RRE_ZZ_SP_Prototype-FFL written with the other parameters (W6, Bader's changes of 28 Oct 2026)
     public sealed class PlaceVillasRun
     {
         // R404. The part of the tag of a villa solid, so a later button finds it by kind link as it finds the link
@@ -275,13 +275,21 @@ namespace SiteAdaptation.Common.PlaceVillas
                     }
                     continue;
                 }
-                double[] point = PlacementMath.InternalPoint(new[] { plot.Insert.Value[0], plot.Insert.Value[1], 0.0 }, new[] { offset[0], offset[1], 0.0 });
+                double ffl = plot.Levels.Ffl.Value.Value;
+                double zGap = plot.Insert.Value[2] - ffl;
+                if (Math.Abs(zGap) > Placer.ZTolerance)
+                {
+                    decision.Listed.Add("plot " + number + ": skipped, its insert Z and FFL differ by " + (zGap * 1000).ToString("0.###", CultureInfo.InvariantCulture) + " mm");
+                    continue;
+                }
+                // W6. The FFL is a shared elevation, so the survey offset moves it the way button 5 moves the top of a floor
+                double[] point = PlacementMath.InternalPoint(new[] { plot.Insert.Value[0], plot.Insert.Value[1], ffl }, offset);
                 bool mirrored = plot.Mirrored.Value.Value;
                 double rotation = plot.RotationDeg.Value.Value;
                 var villa = new Villa
                 {
                     Plot = plot, Number = number, File = file, Internal = point, Steps = PlacementMath.Steps(point, rotation, mirrored),
-                    Item = new PlanItem(new TagKey(number, PlacedKinds.Link, decision.Masses ? MassPart : ""), Values(point[0], point[1], rotation, mirrored),
+                    Item = new PlanItem(new TagKey(number, PlacedKinds.Link, decision.Masses ? MassPart : ""), Values(point[0], point[1], point[2], rotation, mirrored),
                         inputs.InScope == null || inputs.InScope(number), inputs.LastPlaced.Contains(number)),
                     Shape = cache?.Get(file, inputs.Config),
                 };
@@ -418,7 +426,9 @@ namespace SiteAdaptation.Common.PlaceVillas
             {
                 IReadOnlyList<double[]> read = document.ReadBackBase(id);
                 double gap = read == null || read.Count < 3 ? double.PositiveInfinity : OutlineDistance.HausdorffMm(read, ShapeMath.Place(villa.Shape.Points, villa.Internal, rotation, mirrored), decision.Inputs.Config.FootprintSampleStepMm);
-                mismatch = gap <= Placer.ReadBackOrigin * 1000 ? null : "its base lies " + (double.IsInfinity(gap) ? "nowhere" : gap.ToString("0.###", CultureInfo.InvariantCulture) + " mm") + " from the plan";
+                double zGap = ZGapMm(read, villa.Internal[2]);
+                mismatch = gap > Placer.ReadBackOrigin * 1000 ? "its base lies " + (double.IsInfinity(gap) ? "nowhere" : gap.ToString("0.###", CultureInfo.InvariantCulture) + " mm") + " from the plan"
+                    : zGap > Placer.ReadBackOrigin * 1000 ? "its base is " + (double.IsInfinity(zGap) ? "at no Z" : zGap.ToString("0.###", CultureInfo.InvariantCulture) + " mm") + " off the FFL" : null;
             }
             else
             {
@@ -430,18 +440,24 @@ namespace SiteAdaptation.Common.PlaceVillas
             }
         }
 
+        // The largest gap of the corners of a base read back to the Z the plan gives, infinite for a base that gives no Z
+        private static double ZGapMm(IReadOnlyList<double[]> read, double z)
+        {
+            if (read == null || read.Count == 0 || read.Any(point => point.Length < 3))
+            {
+                return double.PositiveInfinity;
+            }
+            return read.Max(point => Math.Abs(point[2] - z)) * 1000;
+        }
+
         // R85, R107. The plot number written or the run fails, except a solid whose category button 1 did not bind it on, whose tag holds
-        // the plot so no later run places it twice (CHOSEN, an open question of Lane B 5c). RRE_ZZ_SP_Prototype-FFL is 5d
+        // the plot so no later run places it twice (CHOSEN, an open question of Lane B 5c). RRE_ZZ_SP_Prototype-FFL, Number-of-Steps and
+        // RVT-Name are written here with the others, as Levels writes no link parameter (W6)
         private IEnumerable<string> WriteParameters(bool masses, Villa villa, string id, IReadOnlyDictionary<string, string> guids)
         {
             var issues = new List<string>();
             foreach (KeyValuePair<string, Sourced<string>> parameter in villa.Plot.Parameters ?? new Dictionary<string, Sourced<string>>())
             {
-                if (parameter.Key == Placer.FflParameter)
-                {
-                    issues.Add("plot " + villa.Number + ": " + Placer.FflParameter + " is written by Place villas in 5d, not yet");
-                    continue;
-                }
                 if (parameter.Value?.Value == null)
                 {
                     issues.Add("plot " + villa.Number + ": " + parameter.Key + " has no value in the plan");
@@ -475,13 +491,15 @@ namespace SiteAdaptation.Common.PlaceVillas
         }
 
         // R368. A link holds what its transform reads now. A solid holds its placed values while its base lies within 1 mm of the base
-        // they give, else the gap is a value of its own, so a solid moved by hand shows as changed by hand
+        // they give, else the gap is a value of its own, so a solid moved by hand shows as changed by hand. A tag of 5c holds no z, its
+        // villa stood at Z 0, so the Z is left out of what it holds now and the plan moves it to the FFL in place (W6)
         private static PlacedValues Current(Decision decision, VillaElement element, Dictionary<string, Villa> byPlot)
         {
             if (!element.IsSolid)
             {
                 LinkTransform found = LinkMath.Describe(element.Transform.Origin, element.Transform.AxisX, element.Transform.AxisY, element.Transform.AxisZ);
-                return Values(found.Origin[0], found.Origin[1], found.RotationDeg, found.Mirrored);
+                PlacedValues now = Values(found.Origin[0], found.Origin[1], found.Origin.Length > 2 ? found.Origin[2] : 0, found.RotationDeg, found.Mirrored);
+                return element.Tag.Placed.Values.ContainsKey(ZValue) ? now : Without(now, ZValue);
             }
             PlacedValues placed = element.Tag.Placed;
             if (!decision.Masses || !byPlot.TryGetValue(element.Tag.Key.Plot, out Villa villa) || villa.Shape == null || element.Base == null
@@ -490,21 +508,30 @@ namespace SiteAdaptation.Common.PlaceVillas
                 return placed;
             }
             double gap = element.Base.Count < 3 ? double.MaxValue : OutlineDistance.HausdorffMm(element.Base, ShapeMath.Place(villa.Shape.Points, origin.ToArray(), rotation[0], mirrored[0] != 0), decision.Inputs.Config.FootprintSampleStepMm);
-            if (gap <= Placer.ReadBackOrigin * 1000)
+            double zGap = placed.Values.TryGetValue(ZValue, out IReadOnlyList<double> z) ? ZGapMm(element.Base, z[0]) : 0;
+            if (gap <= Placer.ReadBackOrigin * 1000 && zGap <= Placer.ReadBackOrigin * 1000)
             {
                 return placed;
             }
             var values = placed.Values.ToDictionary(item => item.Key, item => item.Value.ToArray(), StringComparer.Ordinal);
-            values["baseOffMm"] = new[] { Math.Min(gap, 1e9) };
+            values["baseOffMm"] = new[] { Math.Min(Math.Max(gap, zGap), 1e9) };
             return new PlacedValues(values);
         }
 
-        private static PlacedValues Values(double x, double y, double rotationDeg, bool mirrored)
+        // W6. The Z of the internal origin, a value of its own so a tag of 5c, which holds origin [x, y] alone, still reads
+        private const string ZValue = "z";
+
+        private static PlacedValues Values(double x, double y, double z, double rotationDeg, bool mirrored)
         {
             return new PlacedValues(new Dictionary<string, double[]>
             {
-                ["origin"] = new[] { x, y }, ["rotationDeg"] = new[] { rotationDeg }, ["mirrored"] = new[] { mirrored ? 1.0 : 0.0 },
+                ["origin"] = new[] { x, y }, [ZValue] = new[] { z }, ["rotationDeg"] = new[] { rotationDeg }, ["mirrored"] = new[] { mirrored ? 1.0 : 0.0 },
             });
+        }
+
+        private static PlacedValues Without(PlacedValues values, string name)
+        {
+            return new PlacedValues(values.Values.Where(item => item.Key != name).ToDictionary(item => item.Key, item => item.Value.ToArray(), StringComparer.Ordinal));
         }
 
         private static string Lacking(PlanPlot plot, string number)
@@ -529,6 +556,10 @@ namespace SiteAdaptation.Common.PlaceVillas
             if (plot.Mirrored?.Value == null)
             {
                 lacking.Add("mirrored");
+            }
+            if (plot.Levels?.Ffl?.Value == null)
+            {
+                lacking.Add("levels.ffl");
             }
             if (lacking.Count > 0)
             {

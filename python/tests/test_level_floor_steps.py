@@ -45,10 +45,10 @@ def made_rules(split=None):
     return project_profile.ProjectProfile(real.path, values)
 
 
-def made_build(monkeypatch, overrides=None, split=None, units=None, zones=None, road=0.0):
+def made_build(monkeypatch, overrides=None, split=None, units=None, zones=None, road=0.0, back_dry=False):
     """A row of six 12 m faces along a road at y = -3, plot 1 a VD2 villa, 2 and 3 a DP2 pair of the footprint, 4 to 6 DP2 units in no
-    cluster, each in Zone 2, units and zones another code or zone of a plot, the road level 10 m plus road plus a hundredth of x, built with
-    a trace, and the steps linkFrame, levels and floors of it."""
+    cluster, each in Zone 2, units and zones another code or zone of a plot, the road level 10 m plus road plus a hundredth of x, none past
+    y = 20 with back_dry, built with a trace, and the steps linkFrame, levels and floors of it."""
     settings = project_profile.load_settings()
     profile = made_rules(split)
     numbers = [str(index) for index in range(1, 7)]
@@ -60,7 +60,7 @@ def made_build(monkeypatch, overrides=None, split=None, units=None, zones=None, 
     roads = [LineString([(-50.0, -3.0), (100.0, -3.0)]), LineString([(-3.0, -10.0), (-3.0, 40.0)])]
     sales = {"1": {"Orientation": "WS"}}
     clusters = [{"code": "Duplex_DP2", "plots": ["2", "3"], "source": "footprint"}]
-    monkeypatch.setattr(plan_from_book, "road_level", lambda surfaces, point, snap: (10.0 + road + point[0] / 100.0, "road"))
+    monkeypatch.setattr(plan_from_book, "road_level", lambda surfaces, point, snap: (None, None) if back_dry and point[1] > 20.0 else (10.0 + road + point[0] / 100.0, "road"))
     args = argparse.Namespace(level_profile=None, overrides=None, override_source=None, override_model=[], override_fields=None)
     rules = plan_from_book.rule_inputs(args, settings, profile, numbers, rows, faces, roads, sales, clusters)
     rules["overrides"] = {} if overrides is None else overrides

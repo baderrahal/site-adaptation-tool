@@ -124,13 +124,14 @@ One phase per session (Q096). Two lanes run the phases (D10, D17): tools/run-lan
 
 ## 5d, buttons 5 Floors and ramps, 6 Levels and 8 Walls, and 7 Place villas at the FFL
 
-- Status: open, Lane B
+- Status: open, Lane B, code and tests merged on 2026-10-31 in one PR (D20), Masses on NBH 012: 1 to 5 commit in Revit, 6 stops on Q274, 6 to 8 and the second run wait for its answer
 - Starts when: the Revit run after 5c
 - Rules: R378 button 5. R379 button 6 Levels. R380 button 8 Walls. RRE_ZZ_SP_Prototype-FFL is written by 7 Place villas, Levels writes no link parameter (W6 of steps/lane-b.md)
 - Q115 and Q116 (Bader, 2026-10-28): before button 8 places walls, measure the wall extent per kind of edge against the villa footprints and code the best rule, weak under majority.strongShare. The ramp of a plot a rotationDeg override turned goes on the open edge the walls take, as the keys do on 18 of 18
 - Join items: W6 of steps/lane-b.md
 - Design: docs/design/03b-buttons-2-to-8.md (5 Floors and ramps, 6 Levels, 8 Walls), docs/design/09-risks.md open items 10 and 11, docs/design/13-workflow-changes.md part Order
 - Done when (Bader, 2026-10-28): NBH 012 is placed in Masses with all 13 prototype shapes, then in Links, the peaks logged by R310, and open items 10 and 11 are measured
+- Change (Bader, 2026-10-31 16:00): 5d runs in Masses mode only, on NBH 012 with all 13 prototype shapes. Links mode is not run in 5d, it moves to 6a
 
 ## 5e, button 9 Report
 
@@ -158,6 +159,7 @@ One phase per session (Q096). Two lanes run the phases (D10, D17): tools/run-lan
 - What: one NBH from a new project through all 9 steps in the test host, and the fixes
 - Design: docs/design/08-install.md (Unattended runs for Phase 6), docs/design/07-mock.md 7.7, steps/history/round-addin/01-plan-0a.md (Phase 6)
 - Done when: the test host calls SiteAdaptation.AddIn.Buttons.Run for each button with no click, by a number for the 9 steps and by a name for Site Adaptation Rules and Update from report, and one NBH runs through all 9 from a new project
+- Joined from 5d (Bader, 2026-10-31 16:00): NBH 012 placed in Links mode with all 13 prototype files, its peak logged by R310
 
 ## 6b, Lane A share, IMA, IMB and IMC
 

@@ -9,8 +9,8 @@ Phase 5 and 6 on Bader's company laptop (D1 of steps/decisions-2026-10-28.md). T
 | L0 Laptop check, light mode design, UI spec | done, Lane B, laptop, 28 Oct 2026 |
 | 5a Install, ribbon, pane, one transaction per button | done, Lane B, laptop, 29 Oct 2026, on the unit tests and Revit run 3 (Q147) |
 | 5b Button 1 Set up site | done, Lane B, laptop, 29 Oct 2026, the PR of 5b and Revit runs 1 to 3 of button 1 |
-| 5c with the Revit run after 5c | done, Lane B, laptop, 2026-10-31, PR pending, Masses on NBH 012, Links to Q215 |
-| 5d | open |
+| 5c with the Revit run after 5c | done, Lane B, laptop, 2026-10-31, PR 111, Masses on NBH 012, Links to Q215 |
+| 5d | open, code merged 2026-10-31, Revit 1 to 5 on NBH 012 in Masses, 6 stops on Q274, Links to 6a |
 | 6a | open |
 | 6b, Lane B share, IMD, IME, IMF, IMG | open |
 | 6c | open |
@@ -72,7 +72,7 @@ Changes Lane B needs in files it may not edit while Phase 4 is open.
 - J20, fold in. R104 and R108 changed in 5b: the watcher starts before Revit and waits for its pid file, the add-ins of the tool are named by the installed manifests, a probe runs by -DryStart -ProbeManifest, and the freeze guard ends a window with no first log step in 5 minutes, no heartbeat for 10 or no answer for 5 (Q154 for an image job). Their text goes into docs/rules at the fold in with J9.
 ## Open Lane B questions
 
-Q148 Place villas before Floors and Levels after 5c. Q154 Freeze guard limit for an image job. Q155 The parameter sheet of button 1. Q156 The GUID of Plot. Q157 The type button 1 copies new types from. Q158 Step 1 Done on a model already set up. Full text in steps/questions-open.md. Q146 and Q147 were closed in the answer pass of 2026-10-29.
+Q154 Freeze guard limit for an image job. Q155 The parameter sheet of button 1. Q157 The type button 1 copies new types from. Q158 Step 1 Done on a model already set up. Full text in steps/questions-open.md. Q146 and Q147 were closed in the answer pass of 2026-10-29.
 
 ## Join items from Lane C NEWPROJ-UI
 

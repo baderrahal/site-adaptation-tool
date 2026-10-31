@@ -228,14 +228,16 @@ namespace SiteAdaptation.Common
                 {
                     throw new InvalidDataException("the prototype files of the request lie in " + folders.Count + " folders, " + string.Join(", ", folders) + ", a build takes the files of one folder (R357)");
                 }
-                string folder = PrototypeFolder(Settings);
+                string requested = run.Request.PrototypeFolder;
+                string source = string.IsNullOrEmpty(requested) ? "pastJob" : "the request";
+                string folder = PrototypeFolder(Settings, requested);
                 if (!Directory.Exists(folder))
                 {
-                    throw new InvalidDataException("the prototype folder " + folder + " of pastJob is not on disk (R357)");
+                    throw new InvalidDataException("the prototype folder " + folder + " of " + source + " is not on disk (R357)");
                 }
                 if (folders.Count == 1 && !string.Equals(folders[0].TrimEnd(Path.DirectorySeparatorChar), Path.GetFullPath(folder).TrimEnd(Path.DirectorySeparatorChar), StringComparison.OrdinalIgnoreCase))
                 {
-                    throw new InvalidDataException("the prototype files of the request lie in " + folders[0] + ", pastJob names the prototype folder " + folder + " (R357)");
+                    throw new InvalidDataException("the prototype files of the request lie in " + folders[0] + ", " + source + " names the prototype folder " + folder + " (R357)");
                 }
                 List<string> listed = Directory.GetFiles(folder).Select(Path.GetFileName).OrderBy(name => name, StringComparer.Ordinal).ToList();
                 List<string> named = inputs.Select(input => input.Role.Substring(PrototypeRole.Length)).ToList();
@@ -268,10 +270,19 @@ namespace SiteAdaptation.Common
             }
         }
 
-        // plan_from_past.prototype_folders of input_root: the folder of SITE_ADAPTATION_INPUT, else inputRoot of config, with
-        // pastJob.upgradedPrototypeFolder, else pastJob.prototypeFolder, the folder Python lists for a build
-        public static string PrototypeFolder(JObject settings)
+        // Q214. The Prototypes folder of the pane the request of 4 Check names, else as plan_from_past.prototype_folders of input_root:
+        // the folder of SITE_ADAPTATION_INPUT, else inputRoot of config, with pastJob.upgradedPrototypeFolder, else pastJob.prototypeFolder
+        public static string PrototypeFolder(JObject settings, string requested)
         {
+            if (!string.IsNullOrEmpty(requested))
+            {
+                // A relative folder would resolve against the folder the worker happens to start in
+                if (!Path.IsPathRooted(requested))
+                {
+                    throw new InvalidDataException("the request names the prototype folder " + requested + ", no full path (R357)");
+                }
+                return Path.GetFullPath(requested);
+            }
             string root = Environment.GetEnvironmentVariable("SITE_ADAPTATION_INPUT");
             if (string.IsNullOrEmpty(root))
             {
@@ -336,7 +347,7 @@ namespace SiteAdaptation.Common
                 if (BuildPlan.PlanAsked(asked, request.Inputs))
                 {
                     JObject siteFile = PyMath.ReadJson(run.Input(BuildPlan.SiteRole), BuildPlan.SiteRole) as JObject ?? throw new InvalidDataException("site.json of button 1 is no JSON object (R80)");
-                    planned = BuildPlan.InputsOf(site.Settings, site.Rules, request.LevelProfile, Path.GetFileName(run.Input("config")), siteFile, site.Rows, request.Scope, site.Numbers);
+                    planned = BuildPlan.InputsOf(site.Settings, site.Rules, request.LevelProfile, Path.GetFileName(run.Input("config")), siteFile, site.Rows, request.Scope, site.Numbers, request.PrototypeFolder);
                 }
                 JObject levelProfile = BuildRules.LevelProfile(site.Rules, request.LevelProfile);
                 BuildRules.KeyRules(site.Rules, request.LevelProfile, string.Join(", ", Names));
@@ -439,7 +450,8 @@ namespace SiteAdaptation.Common
                         {
                             // R360. The plots after the overrides of the list, on the fronts of the links and the levels of the build
                             Dictionary<string, PlotPlan> plans = PlanOverrides.Of(site.Numbers, site.Rows, build, fronts, context, hands, key, levelProfile, site.Rules, site.Settings, files, list,
-                                profileName, FloorOutlines.WidthStep(site.Settings, Path.GetFileName(run.Input("config"))), site.RulesName);
+                                profileName, FloorOutlines.WidthStep(site.Settings, Path.GetFileName(run.Input("config"))), site.RulesName,
+                                (x, y) => TinSurface.RoadLevel(surfaces, x, y, snap));
                             run.Counts["plots the plan writes"] = plans.Values.Count(plan => (bool)plan.Overrides["written"]);
                             run.Counts["overrides applied"] = plans.Values.Sum(plan => (plan.Overrides["applied"] as List<string>)?.Count ?? 0);
                             if (asked.Contains(PlanOverrides.StepName))
@@ -459,7 +471,7 @@ namespace SiteAdaptation.Common
                             {
                                 // R362. The boundary walls of the written plots on the faces of the whole site and the fronts of the build, after the overrides
                                 wallTable = ValueStatus.Table(site.Settings, site.Rules, profileName);
-                                walls = wallRules == null ? new List<PlanWall>() : Walls.OfPlans(site.Numbers, plans, site.Faces, fronts, wallRules);
+                                walls = wallRules == null ? new List<PlanWall>() : Walls.OfPlans(site.Numbers, plans, site.Faces, fronts, wallRules, Walls.Kin(site.Faces, site.Clusters, site.Rows));
                                 foreach (PlanWall wall in walls)
                                 {
                                     Walls.Mark(wall, wallTable, plans);
