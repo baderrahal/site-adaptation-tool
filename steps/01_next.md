@@ -164,11 +164,11 @@ One phase per session (Q096). Two lanes run the phases (D10, D17): tools/run-lan
 
 - Status: running from 2026-11-01 in Lane A, one PR with code, tests and records (D20), branch feat/addin-4j2-split-walls
 - Starts when: the merge of 4i (PR 116). Bader's queued round of 31 Oct 2026, option B for the split
-- Item 1, R413 Past splits on the keys: the clusters of the 7 keys whose units hold different FFLs, their count, the street slope along each and where each splits, after unit 2 or 3. A measurement, python/cad_rules.py main calls it
+- Item 1, R413 Past splits on the keys: the clusters of the 7 keys whose units hold different FFLs, their count, the street slope along each and where each splits, after unit 2 or 3. Changed on 1 Nov: a record of the measurement, its scripts in round_addin\logs\p4j2\split, no repo code, since majority.py already measures levelSplit (R339)
 - Item 2, R414 Split by slope and steps (2.2.B): a cluster keeps one FFL only when every unit holds its front yard slope inside slopes_percent.front_min to front_max and its steps inside steps.front_max, else a split after unit 3, then after unit 2, the first where both parts fit, marked for a double wall. The 4i door level. Behind designBasis.split.test, off, with a question when its match on the keys is under majority.strongShare
 - Item 3, R415 Irregular plot by tolerance (2.8): a plot whose baseplan face is not a rectangle within a tolerance of the rules profile
 - Item 4, R416 Boundary wall face on plot line (2.8.A): on an irregular plot the outer face of the boundary wall on the plot line, its 200 mm inside the plot, under rev6
-- Item 5, R417 Garden wall of irregular plot (2.8.B): the garden door where the typical plot holds it, the wall 2.0 m, a turn of 90 degrees to the front setback (ramp.front_setback, 5.52 m, C10 5.50 m), then to the boundary wall. Where no input gives the door, the item stops with a question
+- Item 5, R417 Garden wall of irregular plot (2.8.B): the garden door where the typical plot holds it, the wall 2.0 m, a turn of 90 degrees to the front setback (ramp.front_setback, 5.52 m, C10 5.50 m), then to the boundary wall. Where no input gives the door, the item stops with a question. Stopped on 1 Nov: no input holds the door (Q259)
 - Item 6: Python and C# agree, parity on the 13 steps, both runtimes, the 7 keys and the whole project, both modes, the past job equal to main
 - Item 7: tests for each rule and for the switch back, docs/rules part 10, docs/design/16-design-basis.md, the records, the HEADSUP sections
 - Values: every number in the rules profile, none in code. Folders: no new folder
