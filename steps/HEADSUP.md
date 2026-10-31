@@ -5,10 +5,10 @@
 ### Lane A
 
 - Lane: A, round 4i, branch feat/addin-4i-rev6
-- Time: 2026-10-31 20:36
-- Now: merging main after PR 113 of Lane B 5d into 4i, then the baseline of the new main and parity again on both modes
-- Done: R407 to R412 built, breaker F1 fixed with a test, the status block measured again, Q224 to Q244, review 1 and breaker 1, the gate before the merge (pytest 2,159, net48 1,569, net8.0 1,385)
-- Next: parity numbers, the log entry, the plan against the diff, the PR and its merge, a message to lane-d, then the queued round 4j-2
+- Time: 2026-10-31 21:50
+- Now: the final parity on the merged code, 13 steps, net48 and net8.0, the whole project and the 7 keys, in both modes, after the baseline of main at d2f252a
+- Done: R407 to R412, breaker F1 fixed with a test, review 1, the status block (main 639, branch 658 values), Q224 to Q244, main merged after PR 112 and PR 113, C# gate 1,647 and 1,460
+- Next: the log entry, PROGRESS to WAITING, the PR, its checks and merge about 23:15, a message to lane-d, then the queued round 4j-2
 - Blocked: none
 
 ### Lane B
