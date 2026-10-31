@@ -21,6 +21,14 @@ namespace SiteAdaptation.Common
         public const string WindowPng = "window.png";
         public const string RibbonPng = "ribbon.png";
 
+        // R405. The config of a plain addinRun, the copy the run script writes in config of the run folder, else that of the repo above
+        // start, the folder of the test host, since the folder of Revit has none above it. Null when neither is there
+        public static string Config(string runFolder, string start)
+        {
+            string copy = Path.Combine(runFolder, "config", "project.json");
+            return File.Exists(copy) ? copy : DesignValues.RepoConfig(start);
+        }
+
         private static string Tail
         {
             get { return TestHostGuard.NewSiteTag + ".rvt"; }

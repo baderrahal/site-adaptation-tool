@@ -94,6 +94,13 @@ namespace SiteAdaptation.TestHost
         public void Start(UIApplication start)
         {
             ui = start;
+            // R405. The folder of Revit has no config/project.json above it, so the job takes the config copy of its run folder, else
+            // that of the repo above the test host, before the first write of its result. A config it cannot read is a note of the result
+            string designValues = DesignValues.UseConfigFile(AddinRunFiles.Config(folder, Path.GetDirectoryName(typeof(AddinRunSession).Assembly.Location)));
+            if (designValues != null)
+            {
+                record.Notes.Add(designValues);
+            }
             probe = AddinProbe.Find(record.Notes);
             record.WorkRoot = probe.Root();
             record.SaveFirst = RunTexts.SaveFirst;
