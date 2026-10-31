@@ -92,6 +92,16 @@ namespace SiteAdaptation.AddIn.Revit
             }
         }
 
+        public void SetType(string uniqueId, string typeKey)
+        {
+            Floor floor = FloorOf(uniqueId);
+            ElementId type = Id(typeKey);
+            if (floor.GetTypeId() != type)
+            {
+                floor.ChangeTypeId(type);
+            }
+        }
+
         public void Regenerate()
         {
             document.Regenerate();

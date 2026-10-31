@@ -78,6 +78,12 @@ namespace SiteAdaptation.Tests
             Of(uniqueId).HeightOffset = metres;
         }
 
+        public void SetType(string uniqueId, string typeKey)
+        {
+            Calls.Add("type " + uniqueId);
+            Of(uniqueId).TypeKey = typeKey;
+        }
+
         public void Regenerate()
         {
             Calls.Add("regenerate");

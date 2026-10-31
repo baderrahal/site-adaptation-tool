@@ -96,18 +96,20 @@ namespace SiteAdaptation.Common.Floors
                 if (step.Act == Act.Move)
                 {
                     id = step.Outcome.Element;
+                    // The plan may type a ramp anew by its slope or give the plot another unit code, so a move takes both of the plan
+                    document.SetType(id, candidate.Type.Key);
                     document.SetHeightOffset(id, candidate.HeightOffset);
                 }
                 else
                 {
                     id = document.CreateFloor(candidate.Loops, candidate.Type.Key, candidate.Level.Key);
                     document.SetHeightOffset(id, candidate.HeightOffset);
-                    // R114. Without its plot value a later run could not tell the floor is placed and would place it twice
-                    ParameterWrite write = document.WriteText(id, decision.View.PlotParameter, candidate.Floor.PlotValue.Value.Trim());
-                    if (write != ParameterWrite.Written)
-                    {
-                        throw new InvalidOperationException(step.Floor.Label + ": " + decision.View.PlotParameter + " was not written, " + write);
-                    }
+                }
+                // R114. Without its plot value a later run could not tell the floor is placed and would place it twice
+                ParameterWrite write = document.WriteText(id, decision.View.PlotParameter, candidate.Floor.PlotValue.Value.Trim());
+                if (write != ParameterWrite.Written)
+                {
+                    throw new InvalidOperationException(step.Floor.Label + ": " + decision.View.PlotParameter + " was not written, " + write);
                 }
                 ids.Add(new KeyValuePair<Step, string>(step, id));
             }
@@ -154,7 +156,8 @@ namespace SiteAdaptation.Common.Floors
                 string kind = view.KindOf(element);
                 if (element.Tag != null && kind != null)
                 {
-                    found.Add(FoundElement.Tagged(element.UniqueId, element.Tag, FloorPlan.Current(element, kind)));
+                    PlacedValues current = FloorPlan.Current(element, kind);
+                    found.Add(FoundElement.Tagged(element.UniqueId, FloorPlan.Named(element.Tag, current), current));
                 }
                 else if (element.Tag == null && kind != null && view.PlotOf(element) is string plot)
                 {

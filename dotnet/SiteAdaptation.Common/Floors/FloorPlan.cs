@@ -53,6 +53,8 @@ namespace SiteAdaptation.Common.Floors
         public const string Outline = "outline";
         public const string Top = "top";
         public const string Corners = "corners";
+        public const string TypeValue = "type";
+        public const string PlotValue = "plot";
 
         public static string KeyOf(string plot, string kind)
         {
@@ -167,10 +169,19 @@ namespace SiteAdaptation.Common.Floors
         }
 
         // R368. The values of a floor: its outline as the corners of every loop, sorted so the order Revit lists them in does not count,
-        // and the top of a flat floor or the four corners of a ramp with their z, in internal metres
-        public static PlacedValues Values(IEnumerable<double[]> vertices, string kind, double? top, IEnumerable<double[]> corners)
+        // the top of a flat floor or the four corners of a ramp with their z, in internal metres, and its floor type and plot value as the
+        // code points of their text, since a placed value is a list of numbers and the plan types a ramp by its slope
+        public static PlacedValues Values(IEnumerable<double[]> vertices, string kind, double? top, IEnumerable<double[]> corners, string typeName, string plotValue)
         {
             var values = new Dictionary<string, double[]>(StringComparer.Ordinal) { [Outline] = Sorted(vertices, false) };
+            if (typeName != null)
+            {
+                values[TypeValue] = CodePoints(typeName);
+            }
+            if (!string.IsNullOrWhiteSpace(plotValue))
+            {
+                values[PlotValue] = CodePoints(plotValue.Trim());
+            }
             if (kind == FloorPlacer.Ramp)
             {
                 if (corners != null)
@@ -187,12 +198,43 @@ namespace SiteAdaptation.Common.Floors
 
         public static PlacedValues PlanValues(FloorPlacer.Candidate candidate)
         {
-            return Values(candidate.Loops.SelectMany(loop => loop.Segments.Select(segment => segment.Start)), candidate.Kind, candidate.TopInternal, candidate.CornersInternal);
+            return Values(candidate.Loops.SelectMany(loop => loop.Segments.Select(segment => segment.Start)), candidate.Kind, candidate.TopInternal, candidate.CornersInternal,
+                candidate.Type.Name, candidate.Floor.PlotValue?.Value);
         }
 
         public static PlacedValues Current(FloorElement element, string kind)
         {
-            return Values(element.Vertices ?? new List<double[]>(), kind, element.State?.TopMax, element.State?.Corners);
+            return Values(element.Vertices ?? new List<double[]>(), kind, element.State?.TopMax, element.State?.Corners, element.TypeName, element.PlotValue);
+        }
+
+        // R368. A tag of 5d written before the type and the plot value were placed values names neither, so it is read as holding what
+        // the floor holds now for them, and such a floor is not changed by hand for that alone
+        public static PlacedTag Named(PlacedTag tag, PlacedValues current)
+        {
+            var values = tag.Placed.Values.ToDictionary(value => value.Key, value => value.Value.ToArray(), StringComparer.Ordinal);
+            bool filled = false;
+            foreach (string name in new[] { TypeValue, PlotValue })
+            {
+                if (!values.ContainsKey(name) && current.Values.TryGetValue(name, out IReadOnlyList<double> now))
+                {
+                    values[name] = now.ToArray();
+                    filled = true;
+                }
+            }
+            return filled ? new PlacedTag(tag.Version, tag.Key, tag.Run, tag.Profile, tag.PlacedId, new PlacedValues(values)) : tag;
+        }
+
+        // R379. What of a floor besides its level is not the plan, its outline, floor type or plot value, which 5 changes or lists and 6
+        // never sets, by the values 5 compares
+        public static IReadOnlyList<string> OffPlan(FloorElement element, PlannedFloor floor)
+        {
+            var words = new Dictionary<string, string>(StringComparer.Ordinal) { [Outline] = "outline", [TypeValue] = "floor type", [PlotValue] = "Plot value" };
+            return Current(element, floor.Kind).Differences(floor.Item.Plan).Where(words.ContainsKey).Select(name => words[name]).ToList();
+        }
+
+        private static double[] CodePoints(string text)
+        {
+            return text.Select(character => (double)character).ToArray();
         }
 
         private static double[] Sorted(IEnumerable<double[]> points, bool withZ)
