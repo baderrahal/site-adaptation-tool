@@ -448,3 +448,13 @@ No real input reaches these, since the ROSHN config runs roshnPastJob (Q224) and
 - WindowShots.cs:113-117: a throw inside LayOut leaves the window it built unclosed until it is collected.
 - RevitShots.cs:301 and 339: the current process is not disposed, and the old bitmap is put back only on success.
 - TestHostPaths.ps1:142 Resolve-WorkRootPath is a third copy of the work root mark beside WorkRoot.Resolve and project_profile.py, held to the C# one by its test, and none of the three refuses a part of two dots. The input is the config of the repo.
+
+## Lane C SCAN-UI, 1 Nov 2026, breaker pass
+
+- ScanStep hash cache keyed by path, size and write time: another file copied in with the same size and write time is taken as unchanged (ScanStep.cs Marked).
+- Reusable parses each scan.json of the work folder that does not match, and scan_ folders are never cleaned, so the first press after many input changes reads more files.
+- A sheet named block, text or page n, or a column header holding a bar, is shown or split wrong in the scan window and New project, display only (ScanView.Show, ScanFacts.Excel).
+- Export of the scan tables escapes no control character, so a DWG text holding one would make an xlsx that does not open (ScanPicks with TemplateBook).
+- A worker that never answers leaves the scan of that work folder marked running until Revit restarts, the time limit of 600 s ends it first.
+- The column dropdown of New project holds one line per villa type source, so two shifts of one sheet and column show twice (Q249).
+
