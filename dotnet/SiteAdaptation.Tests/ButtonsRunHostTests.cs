@@ -225,6 +225,21 @@ namespace SiteAdaptation.Tests
             Assert.Contains("Copy-Item -LiteralPath (Join-Path $repo (Join-Path 'config' $layersName)) -Destination (Join-Path (Split-Path $settingsPath) $layersName)", script);
         }
 
+        // R375 and D19. The work folder of a buttons run lies in its run folder, so a data book folder of config with no full path
+        // would point under it. The copy names the data book of the work root in full and hashes its files as real inputs
+        [Fact]
+        public void R375_the_run_script_names_the_data_book_of_the_work_root_in_full_and_hashes_its_files()
+        {
+            string script = Text("dotnet", "SiteAdaptation.TestHost", "Run-TestHost.ps1");
+            int buttons = script.IndexOf("            if ($round.buttons) {", StringComparison.Ordinal);
+            int full = script.IndexOf("$settingsCopy.addin.readData.dataBookFolder = $bookFolder", buttons, StringComparison.Ordinal);
+            int sources = script.IndexOf("$buttonsSources += Join-Path $bookFolder ([string]$bookFile.Value)", buttons, StringComparison.Ordinal);
+            int hashed = script.IndexOf("$buttonsBefore = Get-InputHashes $buttonsInputs", buttons, StringComparison.Ordinal);
+            int written = script.IndexOf("$settingsCopy | ConvertTo-Json -Depth 50 | Set-Content -LiteralPath $settingsPath", buttons, StringComparison.Ordinal);
+            Assert.True(buttons > 0 && full > buttons && sources > full && hashed > sources && written > full);
+            Assert.Contains("$bookFolder = Join-Path $docs $bookFolder", script);
+        }
+
         private static double[] Round(double[] point)
         {
             return point.Select(value => Math.Round(value, 9)).ToArray();

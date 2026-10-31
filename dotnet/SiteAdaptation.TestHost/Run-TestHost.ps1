@@ -343,6 +343,15 @@ if ($round) {
                 if (-not (Test-Path -LiteralPath $buttonsPosition -PathType Leaf) -or -not $buttonsPosition.StartsWith($docs + '\')) {
                     throw "The position file of the buttons run is not a file under the work root $docs : $buttonsPosition"
                 }
+                $settingsCopy = Get-Content -Raw (Join-Path $repo 'config\project.json') | ConvertFrom-Json
+                $settingsCopy.addin.position.file = $buttonsPosition
+                # R375. A data book folder of config with no full path lies in the work root, not in the work folder of the run, so the
+                # copy names it in full and its files are real inputs read in place
+                $bookFolder = [string]$settingsCopy.addin.readData.dataBookFolder
+                if (-not [IO.Path]::IsPathRooted($bookFolder)) {
+                    $bookFolder = Join-Path $docs $bookFolder
+                    $settingsCopy.addin.readData.dataBookFolder = $bookFolder
+                }
                 $buttonsSources = @($build.template)
                 if ($round.keyCopy) {
                     $buttonsSources += [string]$round.keyCopy
@@ -350,13 +359,14 @@ if ($round) {
                 foreach ($entry in @($round.inputs.PSObject.Properties)) {
                     $buttonsSources += [string]$entry.Value
                 }
+                foreach ($bookFile in @($settingsCopy.addin.readData.dataBookFiles.PSObject.Properties)) {
+                    $buttonsSources += Join-Path $bookFolder ([string]$bookFile.Value)
+                }
                 $buttonsInputs = Get-ButtonsInputs $buttonsSources
                 $buttonsBefore = Get-InputHashes $buttonsInputs
                 if ($round.keyCopy) {
                     Copy-Item -LiteralPath ([string]$round.keyCopy) -Destination $copy
                 }
-                $settingsCopy = Get-Content -Raw (Join-Path $repo 'config\project.json') | ConvertFrom-Json
-                $settingsCopy.addin.position.file = $buttonsPosition
                 $settingsPath = Join-Path $runFolder 'config\project.json'
                 New-Item -ItemType Directory (Split-Path $settingsPath) | Out-Null
                 $settingsCopy | ConvertTo-Json -Depth 50 | Set-Content -LiteralPath $settingsPath -Encoding utf8
