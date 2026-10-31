@@ -15,7 +15,7 @@ Done:
 - Questions of 5d moved to Q260 up, Lane A holds Q224 to Q242
 
 Checked:
-- Gate at GATEHEAD, RAN: GATELINE
+- Gate at 6326583, clean build, RAN: net48 1603, net8.0 1416, pytest 2120 passed, 1 skipped. Records tests again at the PR head
 - Q115 parity, RAN: 18 made-up cases, Python and C# equal on every wall. Q116 on the 18 turned plots, RAN: front pair 18 of 18 within 1.0005 mm of the keys
 - Revit windows 8, 8e, 8f and G on NBH 012, RAN: 1 to 4 commit in all, 5 commits in 8e, 8f and G, 1003 floors. 6 stops in each
 - Window G: peak private 2379 MiB, least free 23.34 GiB, inputs 42 of 42 unchanged by SHA-256 in every window
