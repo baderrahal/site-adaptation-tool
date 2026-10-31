@@ -2,13 +2,13 @@
 
 ## Live status
 
-- Lane: D, round 4j-1, the scanner, branch feat/addin-4j1-scanner, worktree Site Adaptation Tool Lane D WT
-- Now: the full gate, the diff against the plan, then the PR of 4j-1
-- Done: items 1 to 8, review fixes, villa type by prototype names (Bader 31 Oct), parity 0 differ, renamed set equal, records
-- Next: PR 4j-1, then the queued round 4j-1b scan speed
-- Blocked: none. The Road Layout scan passed 40 minutes in the pair trace and was stopped (Q250, round 4j-1b)
-- Time: 2026-10-31 22:30
-- Lane B: 5d merged as PR 113 on 31 Oct (its status at 20:40 read full gate, then the PR of 5d). Lane C: NEWPROJ-UI merged as PR 112
+- Lane: C, round SCAN-UI, branch feat/lane-c-scan-ui, worktree Site Adaptation Tool Lane C WT
+- Time: 2026-10-31 22:55
+- Now: the plan is written, the shared settings fields, then task 4 Current files in 1 Set up site, helper A on task 1
+- Done: the board ScanResults copied into docs/design/boards
+- Next: task 1 the window What the tool read, task 7 Revit pictures, tasks 2 and 3, tasks 5 and 6 after 4i merges
+- Blocked: none. Tasks 5 and 6 wait for 4i on main
+- Lane D: 4j-1 merged as PR 114 (c145089). Lane B: 5d merged as PR 113, 6a and DEMO tonight
 
 Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane D 4j-1, Lane B 5d, 31 Oct 2026.
 
