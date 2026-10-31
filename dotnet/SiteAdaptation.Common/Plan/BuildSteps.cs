@@ -459,7 +459,7 @@ namespace SiteAdaptation.Common
                             {
                                 // R362. The boundary walls of the written plots on the faces of the whole site and the fronts of the build, after the overrides
                                 wallTable = ValueStatus.Table(site.Settings, site.Rules, profileName);
-                                walls = wallRules == null ? new List<PlanWall>() : Walls.OfPlans(site.Numbers, plans, site.Faces, fronts, wallRules);
+                                walls = wallRules == null ? new List<PlanWall>() : Walls.OfPlans(site.Numbers, plans, site.Faces, fronts, wallRules, Walls.Kin(site.Faces, site.Clusters, site.Rows));
                                 foreach (PlanWall wall in walls)
                                 {
                                     Walls.Mark(wall, wallTable, plans);

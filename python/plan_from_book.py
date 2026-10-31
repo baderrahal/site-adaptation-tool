@@ -1125,7 +1125,12 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
         opened = {plot: plan_walls.open_edge(rings[plot], faced[plot], written[plot]["rotationDeg"]["value"], written[plot]["mirrored"]["value"],
                                              "rotationDeg" in (applied_of.get(plot) or ())) for plot in faced}
         # Q120. The fronts before a turn, so a wall names the rotation of a plot only where the turn decides whether it stands
-        for wall in plan_walls.walls(numbers, set(ffls), rings, opened, ffls, wall_rules, faced):
+        # Q115. The footprint cluster and the unit of each plot, for the span keyRules.wallOpen leaves open between two units of one cluster
+        kin = {plot: (None, (rows.get(plot) or {}).get("typologyRev9") or None) for plot in rings}
+        for index, cluster in enumerate(clusters if numbered else numbered_clusters(clusters, number_of)):
+            for plot in cluster["plots"]:
+                kin[plot] = (index, (rows.get(plot) or {}).get("typologyRev9") or None)
+        for wall in plan_walls.walls(numbers, set(ffls), rings, opened, ffls, wall_rules, faced, kin):
             item = plan_walls.entry(wall)
             plan_walls.mark(item, wall, statuses, applied_of)
             walls.append(item)
