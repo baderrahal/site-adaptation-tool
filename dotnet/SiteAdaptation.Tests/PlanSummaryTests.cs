@@ -40,8 +40,11 @@ namespace SiteAdaptation.Tests
         {
             Tuple<Dictionary<string, Dictionary<string, object>>, JObject> made = Made(out Dictionary<string, Dictionary<string, object>> status, out ValueStatusTable table);
             var summary = (JObject)made.Item2["summary"];
-            Assert.Equal("frontRule roadSurfacesOfFrontCorners floorsFound floorTypes handRules overridesNotApplied steps statusByField assumedByField statusPlots conflicts",
-                string.Join(" ", summary.Properties().Select(item => item.Name)));
+            Assert.Equal("frontRule roadSurfacesOfFrontCorners floorsFound floorTypes handRules overridesNotApplied steps statusByField assumedByField statusPlots conflicts "
+                + "noDoorLevel slopeOutsideManual", string.Join(" ", summary.Properties().Select(item => item.Name)));
+            // R407. The lists of rev6 are null on a build of the past job
+            Assert.Equal(JTokenType.Null, summary["noDoorLevel"].Type);
+            Assert.Equal(JTokenType.Null, summary["slopeOutsideManual"].Type);
             Assert.Equal("{\"nearestCurb\":5,\"orientation\":1}", Text(summary["frontRule"]));
             Assert.Equal("{\"road\":12}", Text(summary["roadSurfacesOfFrontCorners"]));
             Assert.Equal("{\"generic\":6,\"yard\":3,\"ramp\":6}", Text(summary["floorsFound"]));
