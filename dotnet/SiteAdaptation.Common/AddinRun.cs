@@ -804,6 +804,12 @@ namespace SiteAdaptation.Common
             {
                 return "buttons needs the pane settings the run script writes";
             }
+            // A loop file named in part would land beside wherever Revit runs, not in the work root the run script checked
+            if (job.PrototypeLoops != null && (!Path.IsPathRooted(job.PrototypeLoops)
+                || !string.Equals(Path.GetExtension(job.PrototypeLoops), ".json", StringComparison.OrdinalIgnoreCase)))
+            {
+                return "prototypeLoops must name a JSON file by its full path, not " + job.PrototypeLoops;
+            }
             return null;
         }
 

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using SiteAdaptation.Common;
 using SiteAdaptation.Common.Settings;
 using Xunit;
@@ -281,6 +282,223 @@ namespace SiteAdaptation.Tests
             int job = script.IndexOf("$roundJob.paneSettings = $paneSettingsPath", buttons, StringComparison.Ordinal);
             Assert.True(buttons > 0 && shapes > buttons && copy > shapes && job > copy);
             Assert.Contains("$shapesFolder = Join-Path $runFolder 'work\\buttons\\base_shapes'", script);
+        }
+
+        // D3 and D19. The Revit run after 5c opened each original prototype under the input root for the corner compare after 7, and
+        // each 2021 prototype took about 100 s to upgrade, so 13 of them ran the step past its 20 minutes twice. The host opens a copy
+        [Fact]
+        public void D19_the_host_opens_a_copy_of_each_prototype_detached_and_never_the_path_it_is_given()
+        {
+            string host = Text("dotnet", "SiteAdaptation.TestHost", "ButtonsRunHost.cs");
+            Assert.DoesNotContain("OpenDocumentFile(path", host);
+            Assert.DoesNotContain("ui.Application.Documents", host);
+            string open = "ui.Application.OpenDocumentFile(ModelPathUtils.ConvertUserVisiblePathToModelPath(copy), new OpenOptions { DetachFromCentralOption = DetachFromCentralOption.DetachAndPreserveWorksets });";
+            Assert.Equal(1, Count(host, "OpenDocumentFile("));
+            Assert.Equal(1, Count(host, open));
+            int copies = host.IndexOf("string copies = Path.Combine(work, \"copies\");", StringComparison.Ordinal);
+            int copied = host.IndexOf("File.Copy(path, copy);", StringComparison.Ordinal);
+            int opened = host.IndexOf(open, StringComparison.Ordinal);
+            int final = host.IndexOf("finally", opened, StringComparison.Ordinal);
+            int closed = host.IndexOf("prototype?.Close(false);", opened, StringComparison.Ordinal);
+            int deleted = host.IndexOf("File.Delete(copy);", opened, StringComparison.Ordinal);
+            Assert.True(copies > 0 && copied > copies && opened > copied && final > opened && closed > final && deleted > closed);
+        }
+
+        // R404. The loops of the host stay its own read, the sketch of the lowest floor, apart from ShapeCache of the add-in, and come
+        // through the loop file of the job, loaded at the start of the corner compare
+        [Fact]
+        public void R404_the_corner_compare_loads_the_loop_file_at_its_start_and_reads_each_loop_through_it()
+        {
+            string host = Text("dotnet", "SiteAdaptation.TestHost", "ButtonsRunHost.cs");
+            int masses = host.IndexOf("if (step.VillaMode == VillaModes.Masses)", StringComparison.Ordinal);
+            int loaded = host.IndexOf("hostLoops = HostLoopCache.Load(LoopsFile, FileHash.Sha256);", masses, StringComparison.Ordinal);
+            int solids = host.IndexOf("foreach (string id in solids)", masses, StringComparison.Ordinal);
+            Assert.True(masses > 0 && loaded > masses && solids > loaded);
+            Assert.Contains("return hostLoops.Get(path, ReadCopy);", host);
+            Assert.Contains("get { return job.PrototypeLoops ?? Path.Combine(work, HostLoopCache.DefaultFile); }", host);
+            Assert.DoesNotContain("ShapeCache", host);
+        }
+
+        [Fact]
+        public void R404_the_host_reads_a_prototype_loop_once_per_file_hash_and_keeps_it_across_runs()
+        {
+            string folder = TempFolder();
+            try
+            {
+                string a = Put(folder, "A.rvt", "alpha");
+                string twin = Put(folder, "A twin.rvt", "alpha");
+                string b = Put(folder, "B.rvt", "beta");
+                string file = Path.Combine(folder, "loops", "prototype_loops.json");
+                var reads = new List<string>();
+                Func<string, List<double[]>> read = path =>
+                {
+                    reads.Add(Path.GetFileName(path));
+                    return Square(path == b ? 2 : 1);
+                };
+                HostLoopCache first = HostLoopCache.Load(file, FileHash.Sha256);
+                Assert.Equal(0, first.AtStart);
+                List<double[]> loop = first.Get(a, read);
+                first.Get(a, read);
+                first.Get(twin, read);
+                Assert.Equal(new[] { "A.rvt" }, reads);
+                Assert.Equal(1, first.Read);
+
+                HostLoopCache second = HostLoopCache.Load(file, FileHash.Sha256);
+                Assert.Equal(1, second.AtStart);
+                Assert.Equal(loop, second.Get(a, read));
+                Assert.Equal(Square(2), second.Get(b, read));
+                Assert.Equal(new[] { "A.rvt", "B.rvt" }, reads);
+
+                JObject json = JObject.Parse(File.ReadAllText(file));
+                Assert.Equal(HostLoopCache.Format, (string)json["format"]);
+                Assert.Equal(HostLoopCache.ReaderVersion, (int)json["readerVersion"]);
+                Assert.Equal(new[] { FileHash.Sha256(a), FileHash.Sha256(b) }, json["loops"].Select(entry => (string)entry["sha256"]));
+                Assert.Equal(4, json["loops"][1]["points"].Count());
+            }
+            finally
+            {
+                Directory.Delete(folder, true);
+            }
+        }
+
+        [Fact]
+        public void R404_the_host_writes_its_loop_file_after_each_new_loop_so_a_step_cut_short_keeps_what_it_read()
+        {
+            string folder = TempFolder();
+            try
+            {
+                string a = Put(folder, "A.rvt", "alpha");
+                string b = Put(folder, "B.rvt", "beta");
+                string c = Put(folder, "C.rvt", "gamma");
+                string file = Path.Combine(folder, "prototype_loops.json");
+                HostLoopCache cache = HostLoopCache.Load(file, FileHash.Sha256);
+                cache.Get(a, path => Square(1));
+                cache.Get(b, path =>
+                {
+                    Assert.Equal(1, HostLoopCache.Load(file, FileHash.Sha256).AtStart);
+                    return Square(2);
+                });
+                Assert.Equal(2, HostLoopCache.Load(file, FileHash.Sha256).AtStart);
+                // A read that fails writes nothing and keeps the loops before it
+                Assert.Throws<InvalidDataException>(() => cache.Get(c, path => throw new InvalidDataException("no floor")));
+                Assert.Equal(2, HostLoopCache.Load(file, FileHash.Sha256).AtStart);
+                Assert.Equal(new[] { "prototype_loops.json" }, Directory.GetFiles(folder, "prototype_loops*").Select(Path.GetFileName));
+            }
+            finally
+            {
+                Directory.Delete(folder, true);
+            }
+        }
+
+        [Theory]
+        [InlineData("{\"format\": \"another\", \"readerVersion\": 1, \"loops\": [{\"sha256\": \"SHA\", \"points\": [[0, 0], [1, 0], [1, 1]]}]}")]
+        [InlineData("{\"format\": \"site-adaptation-host-loops\", \"readerVersion\": 0, \"loops\": [{\"sha256\": \"SHA\", \"points\": [[0, 0], [1, 0], [1, 1]]}]}")]
+        [InlineData("{\"format\": \"site-adaptation-host-loops\", \"readerVersion\": 1, \"loops\": [{\"sha256\": \"SHA\", \"points\": [[0, 0], [1, 0]]}]}")]
+        [InlineData("{\"format\": \"site-adaptation-host-loops\", \"readerVersion\": 1, \"loops\": [{\"sha256\": \"SHA\", \"points\": \"none\"}]}")]
+        [InlineData("not json")]
+        public void R404_a_loop_file_of_another_format_or_reader_version_or_that_does_not_read_is_read_again(string text)
+        {
+            string folder = TempFolder();
+            try
+            {
+                string a = Put(folder, "A.rvt", "alpha");
+                string file = Path.Combine(folder, "prototype_loops.json");
+                File.WriteAllText(file, text.Replace("SHA", FileHash.Sha256(a)));
+                HostLoopCache cache = HostLoopCache.Load(file, FileHash.Sha256);
+                Assert.Equal(0, cache.AtStart);
+                int reads = 0;
+                cache.Get(a, path =>
+                {
+                    reads++;
+                    return Square(1);
+                });
+                Assert.Equal(1, reads);
+                Assert.Equal(1, HostLoopCache.Load(file, FileHash.Sha256).AtStart);
+            }
+            finally
+            {
+                Directory.Delete(folder, true);
+            }
+        }
+
+        [Fact]
+        public void D19_a_prototype_that_changes_while_its_loop_is_read_stops_the_read_and_is_not_kept()
+        {
+            string folder = TempFolder();
+            try
+            {
+                string a = Put(folder, "A.rvt", "alpha");
+                string file = Path.Combine(folder, "prototype_loops.json");
+                HostLoopCache cache = HostLoopCache.Load(file, FileHash.Sha256);
+                IOException changed = Assert.Throws<IOException>(() => cache.Get(a, path =>
+                {
+                    File.WriteAllText(path, "changed");
+                    return Square(1);
+                }));
+                Assert.Contains("D19", changed.Message);
+                Assert.False(File.Exists(file));
+            }
+            finally
+            {
+                Directory.Delete(folder, true);
+            }
+        }
+
+        // R384. The loop file is a spec field the run script checks under the work root and passes to the job like the other fields
+        // of buttons
+        [Fact]
+        public void R384_the_prototype_loops_field_of_the_spec_reaches_the_job_by_its_full_json_path()
+        {
+            string full = Path.Combine(Path.GetTempPath(), "prototype_loops.json");
+            Assert.Equal(full, Read(WithLoops(full)).PrototypeLoops);
+            Assert.Null(ButtonsRun.Refusal(Read(WithLoops(full))));
+            Assert.Null(Read(Job).PrototypeLoops);
+            Assert.Contains("prototypeLoops", ButtonsRun.Refusal(Read(WithLoops("prototype_loops.json"))));
+            Assert.Contains("prototypeLoops", ButtonsRun.Refusal(Read(WithLoops(Path.Combine(Path.GetTempPath(), "prototype_loops.txt")))));
+
+            string script = Text("dotnet", "SiteAdaptation.TestHost", "Run-TestHost.ps1");
+            int buttons = script.IndexOf("            if ($round.buttons) {", StringComparison.Ordinal);
+            int field = script.IndexOf("if ($round.prototypeLoops) {", buttons, StringComparison.Ordinal);
+            int under = script.IndexOf("-not $loopsPath.StartsWith($docs + '\\')", field, StringComparison.Ordinal);
+            int job = script.IndexOf("$roundJob.prototypeLoops = $loopsPath", field, StringComparison.Ordinal);
+            int window = script.IndexOf("$addinRunWindowMinutes = 31", buttons, StringComparison.Ordinal);
+            Assert.True(buttons > 0 && field > buttons && under > field && job > under && window > job);
+        }
+
+        private static string WithLoops(string path)
+        {
+            JObject job = JObject.Parse(Job);
+            job["prototypeLoops"] = path;
+            return job.ToString();
+        }
+
+        private static List<double[]> Square(double side)
+        {
+            return new List<double[]> { new[] { 0.0, 0.0 }, new[] { side, 0.0 }, new[] { side, side }, new[] { 0.0, side } };
+        }
+
+        private static string TempFolder()
+        {
+            string folder = Path.Combine(Path.GetTempPath(), "host-loops-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(folder);
+            return folder;
+        }
+
+        private static string Put(string folder, string name, string text)
+        {
+            string path = Path.Combine(folder, name);
+            File.WriteAllText(path, text);
+            return path;
+        }
+
+        private static int Count(string text, string part)
+        {
+            int count = 0;
+            for (int at = text.IndexOf(part, StringComparison.Ordinal); at >= 0; at = text.IndexOf(part, at + part.Length, StringComparison.Ordinal))
+            {
+                count++;
+            }
+            return count;
         }
 
         private static double[] Round(double[] point)
