@@ -1,10 +1,11 @@
-STATE WAITING
+STATE WAITING, 2026-11-01 00:00
 # Progress
 Live state of the tool, at most 60 lines and 6 KB with no line over 200 characters (R400). The state of 4e in full: steps/history/progress-addin-4e.md.
 
 ## State
 
 - Lane D 4j-1 done on 2026-10-31, one PR: the scanner of any CAD, Excel and PDF, R420 to R427, worker command scan, python/scan.py
+- Lane A 4i done on 2026-10-31, one PR (D20): designBasis rev6 or roshnPastJob, R407 to R412, parity 0 failures, past job 0 differ (Q224)
 - Lane B 6a done for Masses on 2026-10-31: NBH 012 through buttons 1 to 9 from a new project in 6.7 min with no click, Links waits on Q275
 - Lane B 5d done on 2026-10-31, PR 113: buttons 5, 6 and 8, 7 at the FFL, Q115, Q116, proven in Revit by the runs of 6a
 - Lane C NEWPROJ-UI done on 2026-10-31, PR 112: New project, How it works, pane text, R430 to R434, Q280 to Q287 (steps/HEADSUP.md)
@@ -18,9 +19,8 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 ## Done
 
 - Lane D 4j-1: one PR with code, tests and records (D20), parity 0 differ on set A and the renamed set, both runtimes
-- Lane B 6a: one PR with code, tests and records (D20). Lane B 5d: PR 113. Lane C NEWPROJ-UI: PR 112. Lane B 5c: PR 111. 5e and 5f: PR 110
-- 4h-2: PR 109. 4h-1: PR 107. FOLD: PR 101 to 105 and the end records
-- Lane B 5b: one PR (D20). 5a: PR 84, 86, 87, 89, 90, 92, 97, 99. L0: branch docs/laptop-l0
+- 4i, Lane B 6a: one PR each with code, tests and records (D20). Lane B 5d: PR 113. Lane C NEWPROJ-UI: PR 112. Lane B 5c: PR 111. 5e and 5f: PR 110
+- 4h-2: PR 109. 4h-1: PR 107. FOLD: PR 101 to 105. Lane B 5b: one PR (D20). 5a: PR 84, 86, 87, 89, 90, 92, 97, 99. L0: branch docs/laptop-l0
 - 4g3: PR 83, 85, 88, 91, 93, 95, 96 and the end records. 4g2: PR 74 to 81. 4g1: PR 69 to 73. AUDIT-RULES: PR 67, 68. 4f: PR 61 to 66
 - REC: PR 56 to 60. 4e PR 55 to 4a PR 50, 3b to 0a PR 41 to 49. Round 17: PR 39, 40. DATA-5: PR 38. DATA-4: PR 36. 16: PR 34. Earlier: PR 1 to 32
 
@@ -38,9 +38,11 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 - The reader angleToTrueNorthDeg has 3 decimals and is not brought into 0 to 360, the placer takes 0 only
 - 4 yards that stand only by a mirror override read a status stronger than their evidence (Q163)
 - The tab title of the ribbon sits behind the overflow mark at 1536 logical px (Q146). 4 Check dry run has no worker start (Q195)
+- Under rev6 the one road surface covers 630 of 2,704 plots (Q256), the past override list still applies (Q255)
 
 ## Bader's turn
 
+Opened in 4i, Lane A: Q224 to Q242, Q255, Q256, titles in steps/questions-open.md and the top entry of steps/log.md. Closed in 4i: none.
 Opened in 6a, Lane B: Q275 First log step limit of an upgrade job. Q276 What the footprint check of R404 measures. Q277 Footprint block names unlike
 the unit. Q278 Where Update from report finds the plan. Closed in 6a: Q274 Run id of the levelExcel worker, by the fix of the round.
 Opened in NEWPROJ-UI, Lane C: Q280 Save setup writes the model at once. Q281 Board rows against the nine pane inputs. Q282 Where the project name is kept. Q283 Picks of layers, sheets,
@@ -49,10 +51,10 @@ Opened in 4j-1, Lane D: Q243 Layer pairs for plot outlines in the scan. Q244 A t
 Q246 Button 2 starts the scan or the window. Q248 Villa blocks on one layer per type. Q249 A sheet whose numbers shift by area. Q250 The pair trace on the Road Layout.
 Q251 The centroid of today's plots.json. Q252 PDF tables and turned text in the scan. Q253 The header row of a scanned sheet. Q254 The order and share of villa type sources.
 Closed in 4j-1: Q247 Scan villa type takes the old CAD labels, by Bader's rule of 31 Oct 2026.
-100 questions open, full text and the recommended answers: steps/questions-open.md. Asks of others: steps/waiting-on-others.md.
+121 questions open, full text and the recommended answers: steps/questions-open.md. Asks of others: steps/waiting-on-others.md.
 
 ## Next three steps
 
-1. Lane B DEMO for 1 Nov 11:00, Lane C SCAN-UI, then Lane D 4j-1b, the scan speed of large drawings (Q250)
+1. Lane B DEMO for 1 Nov 11:00, Lane C SCAN-UI, then Lane A 4j-2 and Lane D 4j-1b, the scan speed of large drawings (Q250)
 2. Bader answers Q275 to Q278, then the Links run of 6a and Phase 6b
-3. Bader answers Q280 to Q287 of Lane C, then Part 2 after Bader's check of Part 1
+3. Bader answers Q224 and Q255 of 4i, Q280 to Q287 of Lane C, then Part 2 after Bader's check of Part 1

@@ -103,7 +103,7 @@ def code():
     return "python " + commit.stdout.strip() + (" with changes" if changed.stdout.strip() else "")
 
 
-def step_file(step, side, scope, plots, settings, inputs, run_id=None, tables=None):
+def step_file(step, side, scope, plots, settings, inputs, run_id=None, tables=None, run=None):
     """The step file of one side. plots holds per plot raw and written as the side writes them, they are kept as given. The run
     stamp names the run id, the code that wrote the file and the SHA-256 of the config it read, beside every input (R345, R347).
     tables holds per name a table of entries the plots point to by key, written once, such as statusFrom of the step status (R401)."""
@@ -116,6 +116,7 @@ def step_file(step, side, scope, plots, settings, inputs, run_id=None, tables=No
     found = {"format": FORMAT, "formatVersion": FORMAT_VERSION, "step": step, "side": side, "scope": scope,
              "run": {"runId": run_id or "python_" + uuid.uuid4().hex[:12], "code": code(), "configSha256": config, "inputs": inputs},
              "fields": fields, "plots": plots}
+    found["run"].update(run or {})
     if tables is not None:
         found["tables"] = tables
     return found
@@ -145,13 +146,14 @@ def fields_entry(raw, fields):
                                     for name, value in raw.items()}}
 
 
-def write_step(folder, step, side, scope, plots, settings, inputs, tables=None):
-    """step_<step>_<side>.json in folder, the raw numbers as Python writes a float, so no digit is lost (never through common.write_json)."""
+def write_step(folder, step, side, scope, plots, settings, inputs, tables=None, run=None):
+    """step_<step>_<side>.json in folder, the raw numbers as Python writes a float, so no digit is lost (never through common.write_json).
+    run holds keys the run block adds after its inputs, the design basis of a build step (R407)."""
     folder = Path(folder)
     plot_relations.refuse_inside_repo(folder)
     folder.mkdir(parents=True, exist_ok=True)
     path = folder / step_name(step, side)
-    path.write_text(json.dumps(step_file(step, side, scope, plots, settings, inputs, tables=tables), indent=1), encoding="utf-8")
+    path.write_text(json.dumps(step_file(step, side, scope, plots, settings, inputs, tables=tables, run=run), indent=1), encoding="utf-8")
     return path
 
 

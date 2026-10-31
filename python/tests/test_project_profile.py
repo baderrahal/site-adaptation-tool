@@ -84,7 +84,12 @@ def test_r62_the_rev_6_block_holds_the_new_values_and_no_code_reads_it_yet():
     python_files = [path for path in (ROOT / "python").glob("*.py")]
     # Since Round ADDIN 3a the wall top rule of R335 and its second method read rev6.boundary_wall_top_above_ffl, since 4g2 the walls of a build
     # of R362 as well, nothing else reads the block
-    readers = sorted(path.name for path in python_files if "rev6" in path.read_text(encoding="utf-8"))
+    # R407. Since round 4i rev6 is also the name of a mode of designBasis of config, which these files name and never read the block by
+    modes = ["design_basis.py", "plan_from_book.py", "plan_rules.py"]
+    for name in modes:
+        text = (ROOT / "python" / name).read_text(encoding="utf-8")
+        assert "rev6." not in text and '["rev6"]' not in text and 'get("rev6' not in text
+    readers = sorted(path.name for path in python_files if "rev6" in path.read_text(encoding="utf-8") and path.name not in modes)
     assert readers == ["key_rules.py", "key_rules_check.py", "plan_walls.py"]
     for name in readers:
         text = (ROOT / "python" / name).read_text(encoding="utf-8")

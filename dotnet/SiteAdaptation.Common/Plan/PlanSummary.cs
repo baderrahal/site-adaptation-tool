@@ -100,7 +100,8 @@ namespace SiteAdaptation.Common
         // those of the build with the road levels, status the step status of R401 and table the details its keys name
         public static Tuple<Dictionary<string, Dictionary<string, object>>, JObject> Step(IList<string> numbers, IReadOnlyDictionary<string, PlotPlan> plans,
             IReadOnlyDictionary<string, FrontItem> fronts, IReadOnlyDictionary<string, Dictionary<string, object>> hands, IReadOnlyDictionary<string, Dictionary<string, object>> status,
-            ValueStatusTable table, JObject config, JObject keyRules, string profileName, ICollection<string> later, IReadOnlyDictionary<string, BuildFace> faces)
+            ValueStatusTable table, JObject config, JObject keyRules, string profileName, ICollection<string> later, IReadOnlyDictionary<string, BuildFace> faces,
+            JArray noDoor = null, JArray outside = null)
         {
             var plots = new Dictionary<string, Dictionary<string, object>>();
             var frontRules = new Dictionary<string, int>();
@@ -183,6 +184,9 @@ namespace SiteAdaptation.Common
                 summary[item.Key] = item.Value;
             }
             summary["conflicts"] = new JArray(Conflicts(numbers, plans, fronts, faces));
+            // R408. The lists of a build under rev6, plan_from_book.SUMMARY_REV6, null on a build of the past job
+            summary["noDoorLevel"] = noDoor?.DeepClone();
+            summary["slopeOutsideManual"] = outside?.DeepClone();
             return Tuple.Create(plots, new JObject { ["summary"] = summary });
         }
 
