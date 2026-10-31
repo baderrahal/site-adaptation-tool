@@ -548,7 +548,7 @@
   <GridLength x:Key="SA.Grid.ReviewMirror">96</GridLength>
   <GridLength x:Key="SA.Grid.ReviewCluster">112</GridLength>
   <GridLength x:Key="SA.Grid.ReviewArea">88</GridLength>
-  <GridLength x:Key="SA.Grid.ReviewRoad">128</GridLength>
+  <GridLength x:Key="SA.Grid.ReviewRoad">112</GridLength>
   <GridLength x:Key="SA.Grid.ReviewCorner">64</GridLength>
   <GridLength x:Key="SA.Grid.ReviewSideLabel">120</GridLength>
   <Thickness x:Key="SA.Line.Mark">3,0,0,0</Thickness>
@@ -631,5 +631,9 @@
   <GridLength x:Key="SA.Grid.ScanKind">80</GridLength>
   <GridLength x:Key="SA.Grid.ScanPlot">64</GridLength>
   <GridLength x:Key="SA.Grid.ScanConflictValue">90</GridLength>
+
+  <!-- Lane C SCAN-UI task 5, R442. The column Confirmed of Review data, the width of its heading and a gap. Road at front went from 128 to 112
+       for it, so Team check keeps the chip Not checked whole -->
+  <GridLength x:Key="SA.Grid.ReviewConfirmed">76</GridLength>
 
 </ResourceDictionary>

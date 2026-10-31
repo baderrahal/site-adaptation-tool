@@ -10,7 +10,7 @@ Control 3 of docs/design/12-ui-spec.md, UI controls. Each PNG is a render of a w
 | pane.png | The pane in use, filled like the NBH 012 column of 7.2 of docs/design/07-mock.md, its steps in the order of docs/design/13-workflow-changes.md | Draft |
 | pane-first-open.png | The pane on first open, no settings file chosen, with the line of a past job | Draft |
 | setup-site.png | The Set up site window of button 1, an existing site file after the dry run, 7 of 7 check points pass, made up numbers, the content of the window at 1280 wide with no title bar of Windows | Draft |
-| review-data.png | The Review data window of button 3, NBH 012 with 5 made up plots, the first three with a plan of button 4 and corners, two checked OK and one Wrong, plot 31 selected, the content of the window at 1280 wide with no title bar of Windows | Draft |
+| review-data.png | The Review data window of button 3, NBH 012 with 5 made up plots, the first three with a plan of button 4 and corners, two checked OK and one Wrong, plot 31 selected, the cluster confirm of R442 with plots 32 and 33 proposed as one cluster, 32 confirmed, 34 with no proposal, the content of the window at 1280 wide with no title bar of Windows | Draft |
 | rules.png | The Site Adaptation Rules window of the ribbon button of that name, the 15 rules of the block manualRules of the rules profile, rule M06 selected, the content of the window at 1280 wide with no title bar of Windows | Draft |
 | check-table.png | The check table window of button 4, NBH 012 with 5 made up plots and 8 rows of every kind, the first row selected, Save overrides on, the content of the window at 1280 wide with no title bar of Windows | Draft |
 | update-from-report.png | The Update from report window of 5f, the level Excel and the report Excel of NBH 012 picked, 4 changes and 1 cell not editable, one change that breaks manual rule M08 unticked, made up numbers, the content of the window at 1280 wide with no title bar of Windows | Draft |
@@ -228,6 +228,7 @@ Made up plots of a made up NBH 012, no coordinate or level of a real model. The 
 1. Mirror is the mirror of the footprint block of the plot table until button 4 gives the one of its plan. Cluster, Front edge, Road at front and the corners come only from the plan of button 4 and read "not read yet" before it.
 2. Every row names the manual rule M01, as the tooltip of its Plot No and as "Manual rule M01" in the side box. No other rule of M01 to M15 reads what a row shows (CHOSEN).
 3. Export to Excel says it is not built yet, no xlsx writer is reachable from the add-in (R350). Zoom to plot says the same until the Revit side sets its delegate.
+4. Lane C SCAN-UI task 5, R442, a DRAFT with no board: the column Confirmed (76) after Cluster with the tick of SA.Pane.Check at the height of the row, the button Confirm all proposed in the band before Save review, grey with nothing to confirm, and a second help line under How to use while the plan proposes a cluster. Road at front went from 128 to 112 so Team check keeps Not checked whole. The sample proposals and reasons are made up, plot 32 shows "32+33 mirror no" ticked, 33 "32+33 mirror yes" not ticked, 34 "No proposal".
 
 ## Site Adaptation Rules, rules.png against 13-workflow-changes.md
 

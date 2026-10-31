@@ -280,6 +280,95 @@ namespace SiteAdaptation.Tests
             Assert.Contains("ReviewData.ReviewDataBody.For(application.MainWindowHandle)", File.ReadAllText(Path.Combine(addin, "Commands", "Buttons.cs")));
         }
 
+        [Fact]
+        public void R442_the_cluster_column_shows_the_proposal_with_its_reason_as_tooltip_and_the_tick_only_on_a_plot_with_a_proposal()
+        {
+            var model = new ReviewDataViewModel(Shots.SampleReviewView(true));
+            Dictionary<string, ReviewRowViewModel> rows = model.Rows.ToDictionary(row => row.PlotNo);
+
+            Assert.Equal(new[] { "C1", "32+33 mirror no", "32+33 mirror yes", "No proposal", "not read yet" }, model.Rows.Select(row => row.Cluster));
+            Assert.Null(rows["31"].ClusterTip);
+            Assert.Contains("plot 33", rows["32"].ClusterTip);
+            Assert.Contains("Q229", rows["34"].ClusterTip);
+            Assert.Equal(new[] { false, true, true, false, false }, model.Rows.Select(row => row.CanConfirm));
+            Assert.Equal(new[] { false, true, false, false, false }, model.Rows.Select(row => row.Confirmed));
+            Assert.True(model.CanConfirmAll);
+            Assert.True(model.ClusterHelpShown);
+            Assert.Equal(ReviewDataText.ClusterHowTo, model.ClusterHelp);
+            // A tick on a plot with no proposal does nothing
+            rows["34"].Confirmed = true;
+            Assert.False(rows["34"].Confirmed);
+            Assert.False(model.NotSavedShown);
+
+            var before = new ReviewDataViewModel(Shots.SampleReviewView(false));
+            Assert.False(before.CanConfirmAll);
+            Assert.False(before.ClusterHelpShown);
+            Assert.All(before.Rows, row => Assert.False(row.CanConfirm));
+        }
+
+        [Fact]
+        public void R442_a_tick_and_confirm_all_proposed_mark_the_review_not_saved_and_save_review_writes_them()
+        {
+            ReviewView view = Shots.SampleReviewView(true);
+            var session = new ReviewDataSession(view, new ReviewCallbacks { Save = checks => "review_012.json" });
+            ReviewRowViewModel plot33 = session.Model.Rows.Single(row => row.PlotNo == "33");
+
+            plot33.Confirmed = true;
+
+            Assert.True(session.Model.NotSavedShown);
+            Assert.False(session.Model.CanConfirmAll);
+            Assert.Equal(new[] { "32", "33" }, view.Clusters.Confirmed());
+            plot33.Confirmed = false;
+            Assert.True(session.Model.CanConfirmAll);
+            Assert.Equal(new[] { "33" }, view.Clusters.Unconfirmed());
+
+            session.ConfirmAll();
+
+            Assert.True(plot33.Confirmed);
+            Assert.False(session.Model.CanConfirmAll);
+            Assert.Empty(view.Clusters.Unconfirmed());
+            session.Save();
+            Assert.True(session.Saved);
+            Assert.False(session.Model.NotSavedShown);
+            Assert.False(view.Clusters.Changed);
+        }
+
+        [Fact]
+        public void R442_the_window_has_the_column_confirmed_ticks_in_the_pane_style_and_confirm_all_proposed_grey_with_nothing_to_confirm()
+        {
+            OnSta(() =>
+            {
+                ReviewDataWindow window = Shots.LaidOutReview(Shots.SampleReviewView(true));
+                List<FrameworkElement> all = Visuals(Shots.Body(window)).OfType<FrameworkElement>().ToList();
+
+                Assert.Contains(all.OfType<TextBlock>(), block => block.Text == "Confirmed" && block.Visibility == Visibility.Visible);
+                Assert.Contains(all.OfType<TextBlock>(), block => block.Text == ReviewDataText.ClusterHowTo && block.Visibility == Visibility.Visible);
+                Assert.Contains(all.OfType<TextBlock>(), block => block.Text == "32+33 mirror no" && (string)block.ToolTip == ReasonOf32());
+                List<CheckBox> ticks = all.OfType<CheckBox>().ToList();
+                Assert.Equal(5, ticks.Count);
+                Assert.All(ticks, tick => Assert.Equal(window.FindResource("SA.Pane.Check"), tick.Style));
+                Assert.Equal(new[] { false, true, true, false, false }, ticks.Select(tick => tick.IsEnabled));
+                Assert.Equal(new bool?[] { false, true, false, false, false }, ticks.Select(tick => tick.IsChecked));
+                Border band = all.OfType<Border>().First(border => border.Background == window.FindResource("SA.Band"));
+                List<Button> buttons = Visuals(band).OfType<Button>().ToList();
+                Assert.Equal(new[] { "Zoom to plot", "Export to Excel", "Confirm all proposed", "Save review" }, buttons.Select(button => (string)button.Content));
+                Button confirmAll = buttons.Single(button => (string)button.Content == "Confirm all proposed");
+                Assert.Equal(window.FindResource("SA.Button.Base"), confirmAll.Style);
+                Assert.True(confirmAll.IsEnabled);
+
+                ReviewDataWindow before = Shots.LaidOutReview(Shots.SampleReviewView(false));
+                List<FrameworkElement> shown = Visuals(Shots.Body(before)).OfType<FrameworkElement>().ToList();
+                Assert.False(shown.OfType<Button>().Single(button => (string)button.Content == "Confirm all proposed").IsEnabled);
+                Assert.DoesNotContain(shown.OfType<TextBlock>(), block => block.Text == ReviewDataText.ClusterHowTo && block.Visibility == Visibility.Visible);
+                Assert.All(shown.OfType<CheckBox>(), tick => Assert.False(tick.IsEnabled));
+            });
+        }
+
+        private static string ReasonOf32()
+        {
+            return Shots.SampleClusters().MarkOf("32").Reason;
+        }
+
         private static void AssertBody(SiteAdaptation.Common.Flow.ButtonBody body)
         {
             Assert.NotNull(body.Preview);

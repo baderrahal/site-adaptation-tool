@@ -11,7 +11,8 @@ namespace SiteAdaptation.Common.Review
 {
     // R406. The input of button 3 from the files of the work folder: the read of button 2, its plot table and the SHA-256 of that table,
     // the checks of review_<NBH>.json and site.json of button 1 for the model coordinates of the corners. The NBH is the one of the
-    // scope. What the build of button 4 knows of a plot is not read here, so cluster, front edge and corners stay empty until then
+    // scope. What the build of button 4 knows of a plot is not read here, so cluster, front edge and corners stay empty until then, apart
+    // from the cluster proposals of R442, which ClusterConfirm.Load takes from the plan of the last done 4 Check
     public static class ReviewLoad
     {
         // The drawings the band line "Read from" names, in the order of the read
@@ -64,14 +65,19 @@ namespace SiteAdaptation.Common.Review
             List<string> sources = SourceRoles.SelectMany(role => ((JArray)record["inputs"] ?? new JArray()).Where(input => (string)input["role"] == role))
                 .Select(input => Path.GetFileName((string)input["path"] ?? "")).ToList();
             string trimmed = nbh.Trim();
+            string reviewPath = ReviewFile.PathOf(workFolder, trimmed);
+            Tuple<List<ClusterMark>, string> proposals = ClusterConfirm.Load(workFolder, trimmed);
             return new ReviewInput
             {
                 Nbh = trimmed,
                 Rows = ReviewTable.Rows(byLabel, trimmed, null, null, site),
-                Checks = ReviewFile.Read(ReviewFile.PathOf(workFolder, trimmed)),
+                Checks = ReviewFile.Read(reviewPath),
                 PlotTableHash = FileHash.Sha256(tablePath),
                 ReadRunId = (string)record["runId"],
                 Sources = sources,
+                Proposals = proposals.Item1,
+                PlanSha256 = proposals.Item2,
+                ClusterSaved = ReviewFile.ReadClusters(reviewPath),
             };
         }
 
