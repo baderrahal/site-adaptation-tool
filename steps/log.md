@@ -19,7 +19,7 @@ Checked:
 - Parity, RAN: 13 steps, net48 and net8.0, whole project and the 7 keys, both modes, 32 runs, 0 failures, 0 refused (336,934 fields per mode on the whole project)
 - New project check on the real inputs, RAN: 14 lines, Python and C# equal on net48 and net8.0, 7 inputs unchanged
 - Status block, RAN: main c145089 655 values (Bader 55, MEASURED 51, DOCUMENT 287, RECOMMENDED 4, Code 3, UNKNOWN 255), branch 674: DOCUMENT +8, RECOMMENDED +6, UNKNOWN +5
-- Gate, RAN: pytest 2,159 passed 1 skipped before the merge, 170 after. C# net48 1,647, net8.0 1,460, 0 failed
+- Gate after the merge of PR 115, RAN: pytest 2,212 passed, 1 skipped. C# net48 1,691, net8.0 1,498, 0 failed
 
 Remains:
 - Value status of the rev6 values (Q230). The 121 IMC plots of the audit not reproduced, 116 by detached plus no proposal (Q240)

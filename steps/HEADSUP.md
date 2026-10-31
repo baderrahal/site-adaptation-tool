@@ -5,8 +5,8 @@
 ### Lane A
 
 - Lane: A, round 4i, branch feat/addin-4i-rev6
-- Time: 2026-11-01 00:05
-- Now: main merged after PR 115, the gate on the merged code, then the PR of 4i
+- Time: 2026-11-01 00:40
+- Now: the gate green after PR 115, the PR of 4i and its checks
 - Done: R407 to R412, review 1, breaker F1 fixed, parity 32 runs 0 failures, past job 0 of 636,012 values differ, the log entry, PROGRESS to WAITING
 - Next: the PR and its merge, a message to lane-d, then 4j-2 with no Revit until lane-b and lane-c are clear
 - Blocked: none
