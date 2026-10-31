@@ -30,6 +30,10 @@ namespace SiteAdaptation.Common.Settings
 
         // The inputs ticked Current in 1 Set up site, each "<input name>|<file name>", so a new file of the input is not ticked (R441)
         public List<string> CurrentFiles { get; set; }
+
+        // The pick of Door level from in the window of 4 Check, civilFile or roadPlusSlope, null until a pick (R443). The build of 4 Check
+        // still takes designBasis.doorLevel.source of config, so the pick is only kept here for the next build once Lane A reads it
+        public string DoorLevelSource { get; set; }
     }
 
     public sealed class SettingsInput
@@ -81,6 +85,14 @@ namespace SiteAdaptation.Common.Settings
         public const string Masses = "masses";
         public const string Links = "links";
         public static readonly string[] All = { Masses, Links };
+    }
+
+    // R443. The sources of El @ Entry the picker of 4 Check offers, the two of designBasis.doorLevel.sources of R408
+    public static class DoorLevelSources
+    {
+        public const string CivilFile = DesignBasis.CivilFile;
+        public const string RoadPlusSlope = DesignBasis.RoadPlusSlope;
+        public static readonly string[] All = { CivilFile, RoadPlusSlope };
     }
 
     // The inputs of section 6 by their names in the settings JSON, with parameterSheet, which the pane of Lane B 5a named

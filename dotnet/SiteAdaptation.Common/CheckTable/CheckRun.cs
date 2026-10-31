@@ -65,6 +65,12 @@ namespace SiteAdaptation.Common.CheckTable
             this.levelProfile = levelProfile;
         }
 
+        // R443. DoorLevelSource of the pane settings, read for the row Door level from of the window. Null where no pane gives one
+        public Func<string> DoorPick { get; set; }
+
+        // R443. Keeps a pick of Door level from in the pane settings. Null keeps it in the window only
+        public Action<string> DoorPicked { get; set; }
+
         public ButtonBody Body()
         {
             return new ButtonBody { Preview = Preview, Start = Start };
@@ -317,7 +323,7 @@ namespace SiteAdaptation.Common.CheckTable
             WorkerAnswer answer = runNow(request.Write(context.DryFolder), context.DryFolder, request);
             CheckTableView view = Answered(context, plan, request, answer, false);
             context.WriteText(ChecksName(plan.Nbh), ChecksText(view, context.RunId, plan));
-            dialog?.Show(view, new CheckTableCallbacks());
+            dialog?.Show(view, new CheckTableCallbacks { DoorLevel = DoorPicked });
             return new RunSummary(view.Title + ", " + view.Rows.Count + " rows, " + view.FollowLine, view.NoPastJobLine == null ? null : new[] { view.NoPastJobLine });
         }
 
@@ -353,6 +359,7 @@ namespace SiteAdaptation.Common.CheckTable
                                 session.Save(view.Rows, choices, JObject.Parse(WorkFiles.ReadText(plan.ConfigPath)), runId);
                                 return plan.OverridesPath;
                             },
+                            DoorLevel = DoorPicked,
                         };
                         dialog.Show(view, callbacks);
                     }
@@ -403,7 +410,15 @@ namespace SiteAdaptation.Common.CheckTable
             JObject list = JObject.Parse(WorkFiles.ReadText(plan.OverridesPath));
             CheckTableBuild.UnderSkip(view.Rows, list, (config["majority"]?["overrideDefaultSources"] as JArray ?? new JArray()).Select(item => (string)item).ToList());
             view.Info = Info(plan, step, list, levelProfile);
+            view.DoorLevel = DoorLevelPick.Of(config, plan.ConfigPath, LevelsStep(request.StepsFolder), DoorPick?.Invoke());
             return view;
+        }
+
+        // R443. The step levels the build of the run wrote, with doorSource per plot (R408), null when it wrote none
+        public static JObject LevelsStep(string stepsFolder)
+        {
+            string path = Path.Combine(stepsFolder, StepFile.FileName(KeyLevels.StepName, "csharp"));
+            return File.Exists(path) ? JObject.Parse(WorkFiles.ReadText(path)) : null;
         }
 
         // 7.4 of the mock, the line under the title: the level profile the build took, the override list and its entries

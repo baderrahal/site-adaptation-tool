@@ -346,6 +346,10 @@ Built in Lane B 5c. The title, band, buttons, chips, columns and side box are th
 - `Mirrored` CHOSEN, Past job column, side box and Choose line for a past value true, the list keeps the value as it is
 - `Not mirrored` CHOSEN, Past job column, side box and Choose line for a past value false, the list keeps the value as it is
 - `Under Skip the list holds <n>. Choosing <n> only takes the plot off the skip list.` CHOSEN in Lane B 5c, the line under Why of a row on Skip, Rule or Past the list holds under the skip (R330)
+- `Door level from` CHOSEN, DRAFT in Lane C SCAN-UI, the label of the dropdown above the chips, Bader's task 6 of 1 Nov 2026 (R443)
+- `Civil entry file (<n> plots)` CHOSEN, DRAFT, the dropdown item of designBasis.doorLevel.source civilFile with the plots of the step levels from it (R443)
+- `Road level plus slope (<n> plots)` CHOSEN, DRAFT, the dropdown item of roadPlusSlope with the plots of the step levels from it (R443)
+- `No civil entry file in the setup, so the door level comes from road level plus slope.` CHOSEN, DRAFT, the one help line under the dropdown while the civil item is grey (R443)
 
 ### Update from report
 

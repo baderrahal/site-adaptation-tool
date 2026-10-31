@@ -25,6 +25,7 @@ namespace SiteAdaptation.Tests
                 new Dictionary<string, string>
                 {
                     [Path.Combine(root, "dotnet", "SiteAdaptation.Common", "CheckTable", "CheckShownText.cs")] = "Check table",
+                    [Path.Combine(root, "dotnet", "SiteAdaptation.Common", "CheckTable", "DoorLevelText.cs")] = "Check table",
                     [Path.Combine(root, "dotnet", "SiteAdaptation.Common", "Update", "UpdateText.cs")] = "Update from report",
                     [Path.Combine(root, "dotnet", "SiteAdaptation.Common", "Scan", "ScanViewText.cs")] = "What the tool read",
                 });
@@ -170,8 +171,9 @@ namespace SiteAdaptation.Tests
             // gives the window and the two refusals of a second book of a kind. The UI review of 5c added 4: the heading Corner, the two lines of a
             // Rules command with no usable rules file and the chip Team check. The second logic review of 5c added 1, the line under Why of a
             // row on Skip. Lane C NEWPROJ-UI added 21: 3 of the pane, Settings among them, and 18 of New project. Lane C SCAN-UI added
-            // 15 of What the tool read, 8 of the section Current files of Set up site and 2 of New project
-            Assert.Equal(191, chosen);
+            // 15 of What the tool read, 8 of the section Current files of Set up site and 2 of New project, then 4 of Door level from of
+            // Check table (R443)
+            Assert.Equal(195, chosen);
             Assert.True(matched > 100, matched.ToString());
         }
 
