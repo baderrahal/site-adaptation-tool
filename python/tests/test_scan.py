@@ -337,13 +337,15 @@ def test_r421_a_face_of_two_labels_a_label_in_no_face_and_a_part_not_read_are_ch
     assert [item["what"] for item in found["checks"]] == sorted(item["what"] for item in found["checks"])
 
 
-def test_r429_layer_pairs_left_by_the_time_cap_are_a_check_row_and_their_list_is_not_read_as_a_candidate():
+def test_r429_a_file_the_time_cap_left_pairs_of_proposes_no_outline_and_holds_a_not_read_row():
     drawing = two_plots()
     drawing["notTraced"] = ["A + C", "B + C"]
     drawing["notRead"] = [{"source": "one.dwg|layer pairs", "value": "2 of 3 not traced, time cap 360 s, listed under notTraced"}]
     found = result([drawing])
     assert {"what": "notRead", "source": "one.dwg|layer pairs", "plot": "", "value": "2 of 3 not traced, time cap 360 s, listed under notTraced"} in found["checks"]
-    assert found == dict(result([dict(drawing, notTraced=[])]))
+    assert [item["proposedUse"] for item in kind_rows(found, "plotOutline")] == ["check"] * len(kind_rows(found, "plotOutline"))
+    assert found["plots"] == []
+    assert [item["proposedUse"] for item in kind_rows(result([dict(drawing, notTraced=[])]), "plotOutline")].count("plot outlines") == 1
 
 
 def test_r427_a_row_counts_only_the_conflicts_of_its_own_fields():

@@ -568,7 +568,8 @@ namespace SiteAdaptation.Common
                 rows.Add(Row("plotOutline", source, faces.Count.ToString(CultureInfo.InvariantCulture) + " faces", scores[source], false));
             }
             string proposed = Pick(scores, "plotOutline", checks);
-            if (proposed == null)
+            // R429. A file the time cap left pairs of proposes no outline, the best pair may be among those left and the notRead row says so
+            if (proposed == null || (cad.Read["notTraced"] as JArray)?.Count > 0)
             {
                 return null;
             }

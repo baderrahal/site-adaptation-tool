@@ -110,6 +110,13 @@ namespace CadReader
 
         public static List<PlotEntry> Build(IEnumerable<Seg> segs, string layer)
         {
+            return Build(segs, layer, false);
+        }
+
+        // R428. everyItem takes the loops over every piece and node the trace had before the cell index, the reference the tests hold
+        // the index to, byte for byte
+        public static List<PlotEntry> Build(IEnumerable<Seg> segs, string layer, bool everyItem)
+        {
             var graph = new Graph { Layer = layer };
             foreach (Seg seg in segs)
             {
@@ -122,7 +129,7 @@ namespace CadReader
                     AddLine(graph, seg.X1, seg.Y1, seg.X2, seg.Y2);
                 }
             }
-            SplitAtJunctions(graph);
+            SplitAtJunctions(graph, everyItem);
             RemoveDuplicates(graph);
 
             var result = new List<PlotEntry>();
@@ -297,7 +304,7 @@ namespace CadReader
         }
 
         // Two straight pieces that cross without sharing an end get a node at the crossing, the split below then cuts both
-        private static void AddCrossingNodes(Graph graph)
+        private static void AddCrossingNodes(Graph graph, bool everyItem)
         {
             var lines = graph.Pieces.Where(piece => !piece.IsArc).ToList();
             var index = new CellIndex(CellIndex.SizeFor(lines.Select(line => LineLength(graph, line))));
@@ -309,7 +316,7 @@ namespace CadReader
             {
                 double[] a = graph.Nodes[lines[first].A];
                 double[] b = graph.Nodes[lines[first].B];
-                IEnumerable<int> seconds = index.Near(index.LineKeys(a, b)).Where(second => second > first);
+                IEnumerable<int> seconds = everyItem ? Enumerable.Range(first + 1, lines.Count - first - 1) : index.Near(index.LineKeys(a, b)).Where(second => second > first);
                 foreach (int second in seconds)
                 {
                     double[] c = graph.Nodes[lines[second].A];
@@ -338,9 +345,9 @@ namespace CadReader
             }
         }
 
-        private static void SplitAtJunctions(Graph graph)
+        private static void SplitAtJunctions(Graph graph, bool everyItem)
         {
-            AddCrossingNodes(graph);
+            AddCrossingNodes(graph, everyItem);
             var nodes = new CellIndex(CellIndex.SizeFor(graph.Pieces.Where(piece => !piece.IsArc).Select(piece => LineLength(graph, piece))));
             for (int node = 0; node < graph.Nodes.Count; node++)
             {
@@ -351,7 +358,7 @@ namespace CadReader
             {
                 Edge piece = graph.Pieces[index];
                 var hits = new List<KeyValuePair<double, int>>();
-                HashSet<long> keys = PieceKeys(nodes, graph, piece);
+                HashSet<long> keys = everyItem ? null : PieceKeys(nodes, graph, piece);
                 foreach (int node in keys == null ? Enumerable.Range(0, graph.Nodes.Count).ToList() : nodes.Near(keys))
                 {
                     if (node == piece.A || node == piece.B)
