@@ -199,7 +199,7 @@ namespace SiteAdaptation.Common.Report
             return new WorkerFile { Role = role, Path = path, Sha256 = FileHash.Sha256(path) };
         }
 
-        // R381, CHOSEN until R383 writes the run logs. The run log of a button in the work folder, run_<run id>.json with the run id of RunIds,
+        // R381. The run log of a button in the work folder, run_<run id>.json with the run id of RunIds,
         // so the name sorts by time. The parts 9 Report reads: runId, committed, inputs and outputs as lists of role, path and sha256, an output
         // of 4 Check with the nbh it is of, and levelPlots of 6 Levels, the plots whose levels that run set and read back
         public sealed class RunLog
@@ -269,7 +269,7 @@ namespace SiteAdaptation.Common.Report
                 RunLog log = RunLog.Last(workFolder, Check, readText);
                 if (log == null)
                 {
-                    throw new InvalidOperationException(NeedsCheck("the work folder holds no run log of a real run of 4 Check that committed, run_4_<time>.json, and 4 Check is not built yet"));
+                    throw new InvalidOperationException(NeedsCheck("the work folder holds no run log of a real run of 4 Check that committed, run_4_<time>.json, run 4 Check first"));
                 }
                 var run = new CheckRun();
                 foreach (JObject output in (log.Json["outputs"] as JArray ?? new JArray()).OfType<JObject>().Where(item => PerNbh.Contains((string)item["role"])))

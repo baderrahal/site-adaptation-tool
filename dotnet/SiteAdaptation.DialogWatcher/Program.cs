@@ -150,6 +150,14 @@ namespace SiteAdaptation.DialogWatcher
                     WatchAction action = SecurityDialogs.Decide(entry, options.OurIds, options.OurMarks, options.OurPaths);
                     entry.Action = action.ToString();
                     handled.Add(handle);
+                    // A progress window is logged once and left, the freeze guard of R108 still ends a window that hangs
+                    if (action == WatchAction.WaitProgress)
+                    {
+                        entry.Text = null;
+                        report.Dialogs.Add(entry);
+                        JsonOut.Write(options.Out, report);
+                        continue;
+                    }
                     string label = SecurityDialogs.ButtonFor(action);
                     if (label != null && Click(window, entry, label))
                     {
