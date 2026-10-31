@@ -3,11 +3,11 @@
 ## Live status
 
 - Lane: B, round DEMO, branch feat/lane-b-demo, worktree Site Adaptation Tool Lane B WT
-- Time: 2026-11-01 01:20, demo freeze at 09:30
-- Now: the probe of the base boundary of the 13 prototypes and DT3, the timed demo run of 1 to 9 on the demo copies
-- Done: 6a PR 115. C:\SA-demo: inputs 43 copies hashed, the demo config on them, the footprint picture
+- Time: 2026-11-01 01:45, demo freeze at 09:30
+- Now: waiting for Lane C SCAN-UI and its villa type source, then install, the saved project ROSHN Makkah and a check run
+- Done: 6a PR 115. C:/SA-demo: inputs and config copies, start and done models (1 to 9 in 5.9 min), outputs, the base boundary probe, 3 slides, scan of the copies (178 s)
 - Next: the demo models, the saved project with the villa type pick after SCAN-UI, the install, the demo sheet, PR
-- Blocked: none
+- Blocked: none, waiting on Lane C SCAN-UI (by 06:00)
 - Lane C: NEWPROJ-UI merged as PR 112, round SCAN-UI next. Lane D: 4j-1 the scanner merged as PR 114, 4j-1b next (Q250)
 
 Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane B 6a, 1 Nov 2026.
