@@ -335,3 +335,27 @@ No board, so the row follows the style of the check table window and is a DRAFT.
 2. The dropdown is SA.Size.SideBox (340) wide, CHOSEN so the longest label fits with no new key in Theme.xaml.
 3. The help line is SA.Pane.Help, shown only while the civil item is grey. A gap SA.Gap.Bottom16 parts the row from the chips.
 4. A pick goes to DoorLevelSource of the pane settings at once, not with Save overrides, since it is a setting of the project and no override. The build of 4 Check still takes designBasis.doorLevel.source of config until Lane A reads the pick.
+
+## Lane C SCAN-UI, the Revit shots against the boards and drafts
+
+Lane B ran its DEMO run on main 691e1fc on 1 Nov 2026 at 04:02 (RAN by Lane B):
+- the NBH 012 demo copies, buttons 1 to 9 with no click
+- each window drawn in Revit 2024 by WindowShots
+
+The PNGs show real file names, coordinates and values, so they stay outside the repo in C:\Users\p003653k\Documents\SiteAdaptation\addin_run\SAD2_20261101-040247\shots. Lane C read them there. Every difference from the offscreen drafts here and from the boards:
+
+1. Set up site (button1-setup-site.png):
+   - The section Current files lists the seven files of the demo setup, none ticked, so Apply is grey as R441 sets.
+   - The site drawing mark shows on Baseplan.
+   - Long names end in an ellipsis, and Road surface shows its folder name.
+   - The Rules dropdown names the profile ROSHN Makkah Phase 1.
+   - There is no Parameter sheet row, since the demo setup names none.
+2. Review data (button3-review-data.png):
+   - Under roshnPastJob the plan has no proposals, as R442 sets. The Cluster column shows the plot table value, every Confirmed box is grey, Confirm all proposed is grey and the second help line is hidden.
+   - Team check reads "Not che..." in Revit. The scroll bar of the table takes the width the Confirmed column left, and the offscreen draft has no scroll bar.
+   - Whether to hide Confirmed under the past job is open for Bader (Q305).
+3. Check table (button4-check-table.png): there is no row Door level from, since ROSHN runs roshnPastJob and the row shows under rev6 only (R443, Q302). The rest is as the draft.
+4. New project (end-new-project.png):
+   - The survey point dropdown reads Comes with the drawing scan and is grey.
+   - Plots found and Villa types read Not read yet, since a test host run reads with no scan (Q295) and the WindowShots build gives no facts of a scan.
+5. What the tool read has no Revit shot, since a test host run skips the scan and its window (Q295). Its picture is the offscreen scan-results.png only.

@@ -29,7 +29,7 @@ Next:
 
 Your turn:
 - Opened Q279 Mass base, slab edge or outer wall face. Q296 A saved project holds no drawing path. Closed none
-- 134 questions open, full text: steps/questions-open.md
+- 135 questions open, full text: steps/questions-open.md
 
 ## Lane D 4j-1b, 2026-11-01, scan speed, Lane D on the laptop
 
@@ -92,7 +92,8 @@ Checked:
 - Second method: the review read the scan.json of the Lane D run (1218 conflicts, 332 keys shared), which led to the key with sourceB
 
 Remains:
-- Task 7 Revit pictures from the DEMO run of Lane B, which owns the install. The scan window shows only offscreen, a test host run skips the scan (Q295)
+- Task 7: the Revit shots of the DEMO run of Lane B (SAD2_20261101-040247) hold real values, so they stay outside git, the
+  differences are in steps/ui-shots/README.md. What the tool read has no Revit shot, a test host run skips the scan (Q295) The scan window shows only offscreen, a test host run skips the scan (Q295)
 
 Known bugs:
 - The read of button 2 does not take the picks yet (Q292). The first press hashes the prototypes, over 1 GB, on the Revit thread once
@@ -104,9 +105,9 @@ Your turn:
 - Opened: Q288 Scan picks in the settings at version 1. Q289 Board rows the scan does not read. Q290 Curbs and road surface left out
   of scan. Q291 Where the line Current files is shown. Q292 The read does not use the picks yet. Q293 Approve the three drafts of
   SCAN-UI. Q294 Rules chosen in Set up site, when used. Q295 Test host runs skip the scan. Q300 Plots with no cluster
-  proposal. Q301 The build takes the door level pick. Q302 Door level row under the past job
+  proposal. Q301 The build takes the door level pick. Q302 Door level row under the past job. Q305 Hide Confirmed under the past job
 - Closed: Q246 Button 2 starts the scan or the window, Q283 Picks of layers, sheets, columns and coordinates, by Bader's prompt
-- 130 questions open, full text: steps/questions-open.md
+- 133 questions open, full text: steps/questions-open.md
 
 ## 4i, 2026-10-31, the plan by Manual Rev 06 with the past job as a switch, Lane A on the laptop
 
