@@ -17,6 +17,8 @@ namespace SiteAdaptation.Common
         public Regex TokenSplit { get; private set; }
         public List<int> PlotNumberShifts { get; private set; }
         public int PairMinSegments { get; private set; }
+        public int PairThreads { get; private set; }
+        public double PairTimeCapS { get; private set; }
         public double PdfJoinGapPt { get; private set; }
         public double PdfLineTolerancePt { get; private set; }
         public double PdfPairDyLow { get; private set; }
@@ -43,6 +45,10 @@ namespace SiteAdaptation.Common
                 PlotNumberShifts = shifts.Select(item => (int)item).ToList(),
                 PairMinSegments = block["pairMinSegments"]?.Type == JTokenType.Integer && (int)block["pairMinSegments"] >= 1 ? (int)block["pairMinSegments"]
                     : throw new InvalidDataException("scan.pairMinSegments of the rules profile is no whole number of 1 or more (R421)"),
+                PairThreads = block["pairThreads"]?.Type == JTokenType.Integer && (int)block["pairThreads"] >= 1 ? (int)block["pairThreads"]
+                    : throw new InvalidDataException("scan.pairThreads of the rules profile is no whole number of 1 or more (R428)"),
+                PairTimeCapS = block["pairTimeCapS"] != null && (block["pairTimeCapS"].Type == JTokenType.Integer || block["pairTimeCapS"].Type == JTokenType.Float) && (double)block["pairTimeCapS"] > 0
+                    ? (double)block["pairTimeCapS"] : throw new InvalidDataException("scan.pairTimeCapS of the rules profile is no number above 0 (R429)"),
                 PdfJoinGapPt = Number(block, "pdfJoinGapPt"),
                 PdfLineTolerancePt = Number(block, "pdfLineTolerancePt"),
                 PdfPairDyLow = (double)dy[0],
@@ -562,7 +568,8 @@ namespace SiteAdaptation.Common
                 rows.Add(Row("plotOutline", source, faces.Count.ToString(CultureInfo.InvariantCulture) + " faces", scores[source], false));
             }
             string proposed = Pick(scores, "plotOutline", checks);
-            if (proposed == null)
+            // R429. A file the time cap left pairs of proposes no outline, the best pair may be among those left and the notRead row says so
+            if (proposed == null || (cad.Read["notTraced"] as JArray)?.Count > 0)
             {
                 return null;
             }

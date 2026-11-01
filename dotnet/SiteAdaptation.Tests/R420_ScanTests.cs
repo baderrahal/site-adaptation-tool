@@ -43,7 +43,7 @@ namespace SiteAdaptation.Tests
                 ["typology_codes"] = new JObject { ["rows"] = new JArray(new JObject { ["old"] = "X3", ["new"] = "X4" }, new JObject { ["old"] = "X1", ["new"] = "X1" }, new JObject { ["old"] = "X3-0 (Q)", ["new"] = "X5" }) },
                 ["scan"] = new JObject
                 {
-                    ["labelPattern"] = "^(?:(.*?)\\s+)?(\\d{1,6})$", ["tokenSplit"] = "[^A-Za-z0-9]+", ["plotNumberShifts"] = new JArray(0, 10), ["pairMinSegments"] = 2,
+                    ["labelPattern"] = "^(?:(.*?)\\s+)?(\\d{1,6})$", ["tokenSplit"] = "[^A-Za-z0-9]+", ["plotNumberShifts"] = new JArray(0, 10), ["pairMinSegments"] = 2, ["pairThreads"] = 2, ["pairTimeCapS"] = 600,
                     ["pdfJoinGapPt"] = 0.3, ["pdfLineTolerancePt"] = 0.05, ["pdfPairDyPt"] = new JArray(1.3, 1.8), ["pdfPairDxPt"] = 1.5,
                 },
             };
@@ -139,6 +139,117 @@ namespace SiteAdaptation.Tests
         private static List<string> Checks(JObject result, string what)
         {
             return ((JArray)result["checks"]).Where(check => (string)check["what"] == what).Select(check => (string)check["source"] + "|" + (string)check["plot"] + "|" + (string)check["value"]).ToList();
+        }
+
+        [Fact]
+        public void R429_layer_pairs_past_the_time_cap_are_not_traced_and_written_as_not_read()
+        {
+            var document = new CadDocument();
+            foreach (string layer in new[] { "A", "B", "C", "D" })
+            {
+                for (int line = 0; line <= 3; line++)
+                {
+                    document.Entities.Add(Line(document, layer, 3 * line, -1, 3 * line, 10));
+                    document.Entities.Add(Line(document, layer, -1, 3 * line, 10, 3 * line));
+                }
+            }
+            JObject cad = CadScan.Inventory(document, "grid.dxf", "grid.dxf", 1, "00", 2, 2, 1e-9, null);
+            Assert.Equal(4, ((JArray)cad["candidates"]).Count);
+            Assert.Equal(new[] { "A + B", "A + C", "A + D", "B + C", "B + D", "C + D" }, ((JArray)cad["notTraced"]).Select(item => (string)item).ToArray());
+            JObject entry = ((JArray)cad["notRead"]).Cast<JObject>().Single();
+            Assert.Equal("grid.dxf|layer pairs", (string)entry["source"]);
+            Assert.Equal("6 of 6 not traced, time cap 0 s, listed under notTraced", (string)entry["value"]);
+            JObject result = Result(new[] { cad });
+            Assert.Contains("grid.dxf|layer pairs||6 of 6 not traced, time cap 0 s, listed under notTraced", Checks(result, "notRead"));
+            // A file the cap left pairs of proposes no outline, the same file traced whole proposes one
+            JObject capped = Result(new[] { JObject.Parse(Scan(Plots("1", 0, 0, "2", 20, 0), "two.dxf").ToString()) });
+            JObject plots = JObject.Parse(Scan(Plots("1", 0, 0, "2", 20, 0), "two.dxf").ToString());
+            plots["notTraced"] = new JArray("A + T");
+            Assert.Contains(((JArray)capped["rows"]).Cast<JObject>(), row => (string)row["kind"] == "plotOutline" && (string)row["proposedUse"] == "plot outlines");
+            JObject left = Result(new[] { plots });
+            Assert.DoesNotContain(((JArray)left["rows"]).Cast<JObject>(), row => (string)row["kind"] == "plotOutline" && (string)row["proposedUse"] == "plot outlines");
+            Assert.Empty((JArray)left["plots"]);
+        }
+
+        [Fact]
+        public void R428_the_pair_trace_on_several_threads_writes_the_inventory_one_thread_writes()
+        {
+            var document = new CadDocument();
+            for (int index = 0; index < 4; index++)
+            {
+                string layer = new[] { "A", "B", "C", "D" }[index];
+                for (int line = 0; line <= 6; line++)
+                {
+                    document.Entities.Add(Line(document, layer, 3 * line + index, -1, 3 * line + index, 20));
+                    document.Entities.Add(Line(document, layer, -1, 3 * line + index, 20, 3 * line + index));
+                }
+            }
+            string one = CadScan.Inventory(document, "grid.dxf", "grid.dxf", 1, "00", 2, 1, 600, null).ToString();
+            string three = CadScan.Inventory(document, "grid.dxf", "grid.dxf", 1, "00", 2, 3, 600, null).ToString();
+            Assert.Equal(one, three);
+            Assert.Equal(4 + 6, ((JArray)JObject.Parse(three)["candidates"]).Count);
+        }
+
+        [Fact]
+        public void R428_the_cell_index_of_the_trace_gives_what_the_loops_over_every_item_give()
+        {
+            // Random drawings at site and at small coordinates: lines that cross, ends within the node tolerance of a line, arcs of small
+            // and of large radius, long and short pieces together, so the index is held to the old loops byte for byte
+            var random = new Random(4211);
+            int faces = 0;
+            foreach (double origin in new[] { 0.0, 2400000.0 })
+            {
+                for (int drawing = 0; drawing < 40; drawing++)
+                {
+                    var segs = new List<PlotShapes.Seg>();
+                    for (int line = 0; line < 60; line++)
+                    {
+                        double x = origin + random.NextDouble() * 100, y = origin + random.NextDouble() * 100;
+                        double length = line % 7 == 0 ? 400 : 1 + random.NextDouble() * 30;
+                        double angle = random.Next(8) * Math.PI / 4 + (line % 5 == 0 ? random.NextDouble() * 1e-3 : 0);
+                        segs.Add(new PlotShapes.Seg { X1 = x, Y1 = y, X2 = x + length * Math.Cos(angle), Y2 = y + length * Math.Sin(angle) });
+                        if (line % 3 == 0)
+                        {
+                            // An end that stops within the node tolerance of the line before it
+                            PlotShapes.Seg last = segs[segs.Count - 2 < 0 ? 0 : segs.Count - 2];
+                            double mx = (last.X1 + last.X2) / 2, my = (last.Y1 + last.Y2) / 2 + 0.004;
+                            segs.Add(new PlotShapes.Seg { X1 = mx, Y1 = my, X2 = mx + 5, Y2 = my + 9 });
+                        }
+                    }
+                    for (int arc = 0; arc < 6; arc++)
+                    {
+                        double radius = arc % 2 == 0 ? 2 + random.NextDouble() * 10 : 500;
+                        segs.Add(new PlotShapes.Seg
+                        {
+                            IsArc = true, Cx = origin + random.NextDouble() * 100, Cy = origin + random.NextDouble() * 100, Radius = radius,
+                            A0 = random.NextDouble() * Math.PI, A1 = Math.PI + random.NextDouble() * Math.PI,
+                        });
+                    }
+                    string indexed = Newtonsoft.Json.JsonConvert.SerializeObject(PlotShapes.Build(segs, "A", false));
+                    string every = Newtonsoft.Json.JsonConvert.SerializeObject(PlotShapes.Build(segs, "A", true));
+                    Assert.Equal(every, indexed);
+                    faces += PlotShapes.Build(segs, "A", false).Count(shape => shape.Kind == "plot_shape");
+                }
+            }
+            Assert.True(faces > 100, "the drawings trace " + faces + " faces, too few to test the trace");
+        }
+
+        [Fact]
+        public void R421_long_lines_crossed_and_met_by_many_short_ones_trace_every_face_of_the_comb()
+        {
+            // Round 4j-1b. Two lines of 1000 m and 101 short ones between them, the odd ones crossing both long lines and the even ones
+            // ending on them, the case where a box index of a long line left the trace as slow as a loop over every piece
+            var document = new CadDocument();
+            document.Entities.Add(Line(document, "A", 0, 0, 1000, 0));
+            document.Entities.Add(Line(document, "A", 0, 5, 1000, 5));
+            for (int index = 0; index <= 100; index++)
+            {
+                double x = 10 * index;
+                document.Entities.Add(index % 2 == 1 ? Line(document, "A", x, -1, x, 6) : Line(document, "A", x, 0, x, 5));
+            }
+            JObject cad = Scan(document, "comb.dxf");
+            JObject layer = ((JArray)cad["layers"]).Cast<JObject>().Single(row => (string)row["layer"] == "A");
+            Assert.Equal(100, (int)layer["closedOutlines"]);
         }
 
         [Fact]

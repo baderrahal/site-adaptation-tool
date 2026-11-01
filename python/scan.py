@@ -287,7 +287,8 @@ def outline_proposal(cad, pattern, rows, checks):
     proposed, tied = pick(scores)
     if tied:
         checks.append(tie_check("plotOutline", tied))
-    if proposed is None:
+    # R429. A file the time cap left pairs of proposes no outline, the best pair may be among those left and the notRead row says so
+    if proposed is None or cad.get("notTraced"):
         return None
     for found in rows:
         if found["kind"] == "plotOutline" and found["source"] == proposed:

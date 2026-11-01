@@ -4,7 +4,7 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 
 ## State
 
-- Lane D 4j-1 done on 2026-10-31, one PR: the scanner of any CAD, Excel and PDF, R420 to R427, worker command scan, python/scan.py
+- Lane D 4j-1 done on 2026-10-31 and 4j-1b on 2026-11-01: the scanner of any CAD, Excel and PDF, R420 to R429, the scan speed and its cap
 - Lane A 4i done on 2026-10-31, one PR (D20): designBasis rev6 or roshnPastJob, R407 to R412, parity 0 failures, past job 0 differ (Q224)
 - Lane B 6a done for Masses on 2026-10-31: NBH 012 through buttons 1 to 9 from a new project in 6.7 min with no click, Links waits on Q275
 - Lane B 5d done on 2026-10-31, PR 113: buttons 5, 6 and 8, 7 at the FFL, Q115, Q116, proven in Revit by 6a. 5c, PR 111: buttons 2, 3, 4 and 7
@@ -17,7 +17,7 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 
 ## Done
 
-- Lane D 4j-1: one PR with code, tests and records (D20), parity 0 differ on set A and the renamed set, both runtimes
+- Lane D 4j-1: PR 114. 4j-1b: one PR, set A and the renamed set equal to 4j-1 field by field, today's reader 21 of 21 files equal
 - Lane C SCAN-UI part 1: code, tests and records. 4i, Lane B 6a: one PR each (D20). Lane B 5d: PR 113. Lane C NEWPROJ-UI: PR 112. Lane B 5c: PR 111. 5e and 5f: PR 110
 - 4h-2: PR 109. 4h-1: PR 107. FOLD: PR 101 to 105. Lane B 5b: one PR (D20). 5a: PR 84, 86, 87, 89, 90, 92, 97, 99. L0: branch docs/laptop-l0
 - 4g3: PR 83, 85, 88, 91, 93, 95, 96 and the end records. 4g2: PR 74 to 81. 4g1: PR 69 to 73. AUDIT-RULES: PR 67, 68. 4f: PR 61 to 66
@@ -25,7 +25,7 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 
 ## Open bugs
 
-- Scan: the Road Layout passed 40 minutes in the pair trace (Q250). No villa type source reaches the strong share on ROSHN (Q254)
+- Scan: a large drawing past scan.pairTimeCapS is scanned in part, a notRead row lists it (Q258). No villa type source at the strong share (Q254)
 - Full text at 73b8c42: steps/history/progress-addin-4e.md. Bugs no real input reaches: steps/latent.md (Q095)
 - All 336 masses of NBH 012 are flagged by the footprint check, the drawing holds plot blocks not houses (Q276). Update from report stops (Q278)
 - The wall rule keyRules.wallOpen is weak, 2,539 of 3,427 walls hold on the keys, 0.7409 (Q115, Q266)
@@ -50,11 +50,11 @@ chosen in Set up site, when used. Q295 Test host runs skip the scan. Closed in S
 Opened in 4j-1, Lane D: Q243 Layer pairs for plot outlines in the scan. Q244 A tie in a scan proposal. Q245 Old and new code of one row agree.
 Q248 Villa blocks on one layer per type. Q249 A sheet whose numbers shift by area. Q250 The pair trace on the Road Layout.
 Q251 The centroid of today's plots.json. Q252 PDF tables and turned text in the scan. Q253 The header row of a scanned sheet. Q254 The order and share of villa type sources.
-Closed in 4j-1: Q247 Scan villa type takes the old CAD labels, by Bader's rule of 31 Oct 2026.
-127 questions open, full text and the recommended answers: steps/questions-open.md. Asks of others: steps/waiting-on-others.md.
+Closed in 4j-1: Q247 Scan villa type takes the old CAD labels, by Bader's rule of 31 Oct 2026. Opened in 4j-1b: Q257 Threads of the scan pair trace. Q258 The time cap of the scan pair trace.
+129 questions open, full text and the recommended answers: steps/questions-open.md. Asks of others: steps/waiting-on-others.md.
 
 ## Next three steps
 
-1. Lane B DEMO for 1 Nov 11:00, Lane C SCAN-UI tasks 5 and 6 on 4i and the Revit pictures, then Lane A 4j-2 and Lane D 4j-1b, the scan speed of large drawings (Q250)
+1. Lane B DEMO for 1 Nov 11:00, Lane C SCAN-UI tasks 5 and 6 on 4i and the Revit pictures, then Lane A 4j-2. Lane D waits for Bader's answers to Q243 to Q258
 2. Bader answers Q275 to Q278, then the Links run of 6a and Phase 6b
 3. Bader answers Q224 and Q255 of 4i, Q280 to Q287 of Lane C, then Part 2 after Bader's check of Part 1
