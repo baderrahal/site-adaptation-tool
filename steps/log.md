@@ -2,6 +2,40 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## 4j-2, 2026-11-01, the floor split and the walls of irregular plots, Lane A on the laptop
+
+Goal:
+- Bader's queued round of 31 Oct: measure the past splits, the split test of 2.2.B, the walls of irregular plots of 2.8, behind designBasis
+
+Done:
+- Past splits measured on the 5 TU keys: 42 of 84 clusters of 4 units split, middle 27, walls 1 7, walls 3 7, walls 1,2 1. Street slope does not part them
+- R414 Split by slope and steps, behind designBasis.split.test, off: it matches 8 of 82 key clusters (0.0976), a split never mends a slope (Q303, Q304)
+- R415 Irregular plot by tolerance, 2 degrees: 41 of 2,501 key plots. R416 Boundary wall face on plot line under rev6, mitre ends at corners
+- R417 garden wall not built: no input holds the garden door, no key garden wall turns or stands at 5.52 m (Q259). R413 not used, the split measure is a record
+- Review 1 APPROVE, breaker 1: 2 REAL fixed with tests (the status of a moved wall, the corners of moved walls), 12 LATENT. Review 2: a test gap closed
+- Main merged after PR 117 to 121. Q257 and Q258 renumbered Q303 and Q304, Q288 renumbered Q299, for Lane C and D
+
+Checked:
+- Past job against main 705ec33, RAN: PASTJOB
+- Parity, RAN: PARITY
+- Status block, RAN: main 705ec33 678 values (Bader 55, MEASURED 51, DOCUMENT 297, RECOMMENDED 14, Code 3, UNKNOWN 258), branch 682: DOCUMENT +1, RECOMMENDED +1, UNKNOWN +2
+- Moved walls on the rev6 all build, RAN: 37 of 1,415 walls on 42 irregular plots, 28 of 28 corners share one end, 0 gaps, 0 overlaps
+- Gate, RAN: GATE
+
+Remains:
+- The split test stays off until Q303 and Q304. The garden wall of 2.8.B waits on a read of the prototype doors (Q259)
+
+Known bugs:
+- On 6 of 10 notched plots the front of R355 is the 3 m notch edge (Q299). How Revit joins the moved walls is UNKNOWN (L4j2-2)
+
+Next:
+- Lane B adds L4j2-1 and L4j2-2 of steps/waiting-on-others.md. Bader answers Q303, Q304, Q259, Q299
+
+Your turn:
+- Opened Q259 Garden door place of each unit. Q299 The front of a notched irregular plot. Q303 The slope limit in the split test.
+  Q304 The side of an uneven split. Closed: none
+- 139 questions open, full text: steps/questions-open.md
+
 ## Lane B DEMO, 2026-11-01, the add-in ready to show at 11:00, Lane B on the laptop
 
 Goal:
