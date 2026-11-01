@@ -18,6 +18,9 @@ namespace SiteAdaptation.Common
         public string Target { get; set; }
         // R204. The work folder of siteBuild a site upgrade takes its source from, siteBuild.folder\work as the run script writes it
         public string WorkFolder { get; set; }
+        // R466. The config the design values of R405 come from in a job with no config of its run, the config of the repo as the run
+        // script writes it. Inside Revit no config lies above the test host, and with no design values no number of the log is written
+        public string DesignConfig { get; set; }
         public string Token { get; set; }
         public string Code { get; set; }
         public string Model { get; set; }

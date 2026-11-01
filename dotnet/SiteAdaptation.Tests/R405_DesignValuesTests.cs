@@ -148,6 +148,38 @@ namespace SiteAdaptation.Tests
             Assert.True(use > 0 && use < session.IndexOf("record.HomeEvent.Raise(", StringComparison.Ordinal));
         }
 
+        // R466. The read KC2 of D2 opened the key copy and its log kept no step: inside Revit no config lies above the test host, so
+        // JsonOut threw on the first number of a step. Every job names the config of the repo and the session takes it before any step
+        [Fact]
+        public void R466_every_test_host_job_names_the_config_of_the_repo_and_the_session_takes_it_before_the_first_step()
+        {
+            var job = Newtonsoft.Json.JsonConvert.DeserializeObject<TestHostJob>(new JObject { ["kind"] = "read", ["designConfig"] = RepoConfigPath() }.ToString());
+            Assert.Equal(RepoConfigPath(), job.DesignConfig);
+            try
+            {
+                Assert.Null(DesignValues.UseConfigFile(job.DesignConfig));
+                Assert.Equal(RepoConfigPath(), DesignValues.Current.Source);
+                string written = null;
+                var runner = new TestHostRunner(new TestHostLog { Code = "KC2" }, value => written = JsonOut.ToJson(value), () => new DateTime(2026, 11, 1, 17, 15, 0, DateTimeKind.Utc));
+                Assert.True(runner.Run(new[] { new JobStep { Name = "read", LimitMinutes = 15, Action = () => "read" } }));
+                Assert.Contains("\"name\": \"read\"", written);
+                Assert.Contains("\"seconds\": 0.0", written);
+                string missing = Path.Combine(Path.GetTempPath(), "r466-" + Guid.NewGuid().ToString("N"), "project.json");
+                Assert.StartsWith("the design values were not read from the config " + missing, DesignValues.UseConfigFile(missing));
+            }
+            finally
+            {
+                DesignValues.Use(DesignValues.Load(RepoConfigPath()));
+            }
+            string root = ThemeGateTests.RepoRoot();
+            string script = File.ReadAllText(Path.Combine(root, "dotnet", "SiteAdaptation.TestHost", "Run-TestHost.ps1"));
+            int named = script.IndexOf("$job.designConfig = Join-Path $repo 'config\\project.json'", StringComparison.Ordinal);
+            Assert.True(named > 0 && named < script.IndexOf("$job | ConvertTo-Json -Depth 5 | Set-Content -Path $jobPath", StringComparison.Ordinal));
+            string session = File.ReadAllText(Path.Combine(root, "dotnet", "SiteAdaptation.TestHost", "JobSession.cs"));
+            int use = session.IndexOf("DesignValues.UseConfigFile(job.DesignConfig)", StringComparison.Ordinal);
+            Assert.True(use > session.IndexOf("private void Subscribe()", StringComparison.Ordinal) && use < session.IndexOf("application.Idling += OnFirstIdling", StringComparison.Ordinal));
+        }
+
         [Fact]
         public void R405_a_config_of_a_test_with_no_block_leaves_the_values_of_the_run()
         {

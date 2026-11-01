@@ -143,6 +143,9 @@ namespace SiteAdaptation.TestHost
 
         private void Subscribe()
         {
+            // R466. Before the first step, since a log step holds a number and JsonOut rounds every number by these values
+            string designRefused = DesignValues.UseConfigFile(job.DesignConfig);
+            runner.Record(value => value.Notes.Add(designRefused ?? "the design values of R405 from " + (job.DesignConfig ?? "no config named by the job")));
             runner.Record(value => value.Notes.Add("Revit " + application.ControlledApplication.VersionBuild + ", the test host is waiting for the first Idling event"));
             watchdog = new TestHostWatchdog(runner, deadlineUtc, () => DateTime.UtcNow, Kill, TimeSpan.FromSeconds(10), Beat);
             application.DialogBoxShowing += OnDialog;
