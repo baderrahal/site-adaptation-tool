@@ -234,7 +234,7 @@ One phase per session (Q096). Two lanes run the phases (D10, D17): tools/run-lan
 
 ## FIX-1NOV-B, masses as linked files, footprint by house outline, site coordinates from CAD
 
-- Status: running, Lane B, laptop, 2026-11-01, one PR (D20), branch fix/1nov-b. Ids R450 to R459, Q320 to Q329
+- Status: done, Lane B, laptop, 2026-11-01, one PR (D20), branch fix/1nov-b. Ids R450 to R459, Q320 to Q329. Task 6 open
 - Measured before the plan (probe outside git, copies in C:\SA-demo\inputs, all hashes unchanged):
   - Footprint blocks hold the plot envelope on Defpoints (12 x 25 m VL4), the house on layer 0 as an open polyline whose ends close one side (VL4 140.6 m2, DP4 122.6 m2 per unit, C10 157.1 m2), a garage on layer 0 (31 to 40 m2) and the setback on MP_Setback Line. Q276 measured the envelope
   - Road Layout GeoData names UTM84-37N (EPSG 32637), its design point is an AutoCAD default. Baseplan and Footprint hold no GeoData. The 3 LandXML files read hold no CoordinateSystem

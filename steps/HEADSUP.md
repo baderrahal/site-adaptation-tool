@@ -11,8 +11,8 @@
 
 ### Lane B, C and D
 
-- Lane B FIX-1NOV-B, 17:40, branch fix/1nov-b dc46b18: tasks 2 and 3 coded, review 1 and breaker 1 fixed with tests, review 2 running.
-  Now: Revit run of the mass links on NBH 012 (runner, lock). Waits: PR 126 of Lane D on config and SetUpRun.cs. Blocked: none
+- Lane B FIX-1NOV-B, 20:58, fix/1nov-b: tasks 2 and 3 done, proven in Revit on NBH 012, gate green. Now: the PR. A Parsons shutdown
+  notice says 21:14 on this laptop. Next: Task 6 hand run after Lane A. Blocked: none
 - Lane C DEMO-FIX, 09:55, branch fix/lane-c-demo-fix: step rows of the pane run steps, a loader on every button, Confirm all in 3 Review
   data, idle buttons hidden (R444). Now: the gate and the PR, merge by 10:15, then lane-b reinstalls. Blocked: none
 - Lane D FIX-1NOV-D, 17:26, branch fix/1nov-d: config/shared_parameters.xlsx the one parameter source, R460 to R465, Q330 to Q335.

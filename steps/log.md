@@ -2,6 +2,40 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Lane B FIX-1NOV-B, 2026-11-01, masses as linked files, footprint by house, coordinates from CAD, Lane B on the laptop
+
+Goal:
+- Bader's tasks 2 and 3: one mass file per prototype linked per plot, the base from the outer walls, Q276 fixed, coordinates from CAD
+
+Done:
+- R450 mass file per prototype, named as its prototype, a config folder swaps in the KEO files. R451 wall ring or slab with the Q279 flag
+- R452 masses as links, rotation and mirror as before, a link of another file swapped, a hand moved one where it stands, a stale one unloaded and reloaded
+- R453 footprint by the house outline of layer 0 in the block (Q276 closed). R454 coordinate system of each input. R455 site position, named
+  position and site location from CAD. R456 three control points. Test host: {workRoot} of a round spec and config xlsx in the run folder (Lane D)
+
+Checked:
+- Revit NBH 012, RAN: 13 mass files, wall ring 7 (C10 DP1 DP4 VD2 VD4 VL4 VL6, 0.96 to 1.04 of the slab), slab 5 (DP2 DP3 DT1 DT3 TH3), 336 links in 141.9 s
+- Mirror, RAN: 167 of 336 mirrored in the plan, 167 with determinant -1 in Revit, 336 agree. Reload, RAN: DT3 1 m taller, 68 of 68 instances changed
+- Footprint, RAN: unit type equal to the block 45 plots median 650 mm (VL4 148), type different 291 plots median 3.1 m (Q277)
+- Button 1 cad, RAN LB1H: position E N of the plot box, 0, 0. Read back: position ROSHN Makkah, survey and base point internal 0, site location set,
+  3 control points 0.000 mm. Past job minus this: E 820.992 m, N 110.240 m, elevation the whole past level (Q327), angle 0. Shot of Location dialog outside git
+- Review 1 and breaker 1 of each task, review 2 and breaker 2: REAL fixed with tests, the rest in steps/latent.md. Inputs 41 of 41 unchanged each run
+- Gate, RAN: pytest 2,246 passed, 1 skipped. C# net48 1,877 and R347 timing failed under Revit load, passed 3 of 3 alone, net8.0 1,653
+
+Remains:
+- Task 6 hand run after this PR and Lane A. coordinates.source stays positionFile (Q328). Mass making about 2 min per prototype (Q322)
+
+Known bugs:
+- Wall ring corners exact only for centred walls of one width (Q321). A keyCopy test host run is refused (Q323)
+
+Next:
+- Task 6, the demo by hand through the real windows, Dry run on and off. Bader answers Q320 to Q329
+
+Your turn:
+- Opened Q320 Keep the solids path of light mode. Q321 Mass base from walls, third attempt stopped. Q322 Mass files made inside button 7.
+  Q323 A keyCopy run refused by its guard. Q325 to Q329 of the coordinates. Closed: Q276
+- 152 questions open, full text: steps/questions-open.md
+
 ## Lane D FIX-1NOV-D, 2026-11-01, the shared parameters from one Excel, Lane D on the laptop
 
 Goal:
