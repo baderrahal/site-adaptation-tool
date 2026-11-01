@@ -275,7 +275,7 @@ namespace SiteAdaptation.Tests
 
             Assert.Contains(SetUpPlanner.Changes(site, Target()).Parameters, item => item.Name == number.Name);
 
-            site.SharedParameters[site.SharedParameters.Count - 1].Group = "data";
+            site.SharedParameters[site.SharedParameters.Count - 1].Group = "text";
             Assert.DoesNotContain(SetUpPlanner.Changes(site, Target()).Parameters, item => item.Name == number.Name);
             site.SharedParameters[site.SharedParameters.Count - 1].Group = null;
             Assert.DoesNotContain(SetUpPlanner.Changes(site, Target()).Parameters, item => item.Name == number.Name);

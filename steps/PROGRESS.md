@@ -4,7 +4,7 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 
 ## State
 
-- Lane D FIX-1NOV-D 1 Nov: config/shared_parameters.xlsx the one source of the shared parameters, R460 to R465. 4j-1, 4j-1b: the scanner, R420 to R429
+- Lane D D2 1 Nov: R466, the KC2 read of the key groups, Text (Q336). FIX-1NOV-D: the parameter Excel, R460 to R465. 4j-1, 4j-1b: the scanner, R420 to R429
 - Lane A 4i, 4j-2 and FIX-1NOV-A, one PR each (D20): R407 to R412, R414 to R416, R470 ramp joints behind join false (Q340), R471 joint rows
 - Lane B FIX-1NOV-B on 2026-11-01: masses as linked files (R450 to R453), coordinates from CAD (R454 to R456), proven in Revit on NBH 012
 - Lane B 6a done for Masses on 2026-10-31: NBH 012 through buttons 1 to 9 from a new project in 6.7 min with no click, Links waits on Q275
@@ -17,7 +17,7 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 
 ## Done
 
-- Lane D FIX-1NOV-D: one PR. 4j-1: PR 114. 4j-1b: one PR, set A and the renamed set equal to 4j-1 field by field, today's reader 21 of 21 files equal
+- Lane D D2 and FIX-1NOV-D: one PR each. 4j-1: PR 114. 4j-1b: one PR, set A and the renamed set equal to 4j-1 field by field, today's reader 21 of 21 files equal
 - Lane C SCAN-UI: PR 117, PR 119 and the Revit shot records. 4i, 4j-2, Lane B 6a: one PR each (D20). Lane B 5d: PR 113. Lane C NEWPROJ-UI: PR 112. Lane B 5c: PR 111. 5e and 5f: PR 110
 - 4h-2: PR 109. 4h-1: PR 107. FOLD: PR 101 to 105. Lane B 5b: one PR (D20). 5a: PR 84, 86, 87, 89, 90, 92, 97, 99. L0: branch docs/laptop-l0
 - 4g3: PR 83, 85, 88, 91, 93, 95, 96 and the end records. 4g2: PR 74 to 81. 4g1: PR 69 to 73. AUDIT-RULES: PR 67, 68. 4f: PR 61 to 66
@@ -50,11 +50,11 @@ Opened in SCAN-UI, Lane C: Q288 Scan picks in the settings at version 1. Q289 Bo
 shown. Q292 The read does not use the picks yet. Q293 Approve the three drafts of SCAN-UI. Q294 Rules chosen in Set up site, when used. Q295 Test host runs skip the scan. Q300 Plots with no cluster
 proposal. Q301 The build takes the door level pick. Q302 Door level row under the past job. Q305 Hide Confirmed under the past job.
 Opened in FIX-1NOV-D, Lane D: Q330 Group of the key link parameters unread. Q331 Plot is no link parameter of the keys. Q332 FFL bound but never written.
-Q333 Categories beyond the link instances. Q334 An xlsx read inside Revit. Q335 A parameter sheet picked in the pane. Closed: Q155, by Bader's prompt.
+Q333 to Q335. Closed: Q155. Opened in D2: Q336 Link parameter group is Text not Data. Closed in D2: Q330, by Bader's prompt.
 Closed in SCAN-UI: Q246, Q283, by Bader's prompt. 156 questions open, full text and the recommended answers: steps/questions-open.md. Asks: steps/waiting-on-others.md.
 
 ## Next three steps
 
-1. Bader's answers. Lane D: Q243 to Q258, Q330 to Q335, and the read of the key groups after fix/1nov-b. Lane A: Q340, Q341, Q303, Q304, Q259
+1. Bader's answers. Lane D: Q243 to Q258, Q331 to Q336, then D3 Links mode. Lane A: Q340, Q341, Q303, Q304, Q259
 2. Bader answers Q275 to Q278, then the Links run of 6a and Phase 6b
 3. Bader answers Q224 and Q255 of 4i, Q280 to Q287 of Lane C, then Part 2 after Bader's check of Part 1
