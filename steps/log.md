@@ -2,6 +2,41 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Lane D D2, 2026-11-01, the Revit read of the key link parameter groups (Q330), Lane D on the laptop
+
+Goal:
+- Bader's round D2: find why the Revit read of FIX-1NOV-D stopped, fix the start, read group, data type and sample of the 11 sheet rows from the IMC key
+
+Done:
+- Cause of the 3 FIX-1NOV-D stops: Revit never started, no journal between 14:10 and 16:05 (READ, Revit journals 0189, 0190), a build mid edit, the
+  Common guard, {workRoot} of Run-TestHost.ps1 (fixed by Lane B, PR 127). The unsigned add-in box is no cause: the R108 watcher clicks Load Once on the
+  4 tool DLLs in every run (RAN, 2 windows, 4 boxes each), no machine setting changed, no step for Bader
+- A second cause found once Revit opened: since R405 JsonOut rounds every number by the design values, inside Revit no config lies above the test host,
+  so every save of a read job after its first note threw and TestHostRunner.Save swallowed it. The probe saw the log written twice, the heartbeat 4 times
+- R466: every job names the repo config as designConfig, JobSession.Subscribe loads it before the first step and notes the source
+- The read KC2 with R466: 7 steps ok, 338 links, 35 shared parameters, 22 bound (RAN, round_addin reads KC2 run4). The 10 link parameters: group Text,
+  spec String, 337 of 338 links with a value, CASE with none. Plot is a project binding with no GUID. The sheet takes Text, TEXT and the samples, FFL blank
+
+Checked:
+- Copy SHA-256 equal to key_copies.json, unchanged in both windows, deleted after, source unchanged (RAN, copy_KC2.json)
+- Held to the sheet by against_sheet of R463: 10 GUIDs, 0 faults, 0 conflicts, group equal 10 of 10. key_parameters.py main refuses the file, its model
+  stem lacks -zone2, the copy stem split of Q065
+- Gate: see the PR. Peak 2.6 GB, least free 25.6 GiB, floor 2 GiB never reached
+
+Remains:
+- Bader answers Q336. D3 Links mode after Lane B's Task 6 hand run ends
+
+Known bugs:
+- TestHostRunner.Save writes a failure to Trace only, a log that cannot be written leaves no mark on disk
+- Run-TestHost names a read copy by siteBuild.answerKey.model, R353 by the copy of answerKeys, key_parameters.py refuses the KC2 file (Q065)
+
+Next:
+- D3: the 13 KEO prototypes in Links mode on NBH 012 (Q275)
+
+Your turn:
+- Opened Q336 Link parameter group is Text not Data. Closed Q330 Group of the key link parameters unread, by Bader's prompt
+- 156 questions open, full text and the recommended answers: steps/questions-open.md
+
 ## FIX-1NOV-A, 2026-11-01, ramp joints and no curb build, Lane A on the laptop
 
 Goal:

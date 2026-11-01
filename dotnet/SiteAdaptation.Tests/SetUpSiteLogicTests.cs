@@ -183,7 +183,8 @@ namespace SiteAdaptation.Tests
                 "RRE_ZZ_SP_Prototype-Foundation-Type", "RRE_ZZ_SP_Prototype-HVAC-Schedule-Type", "RRE_ZZ_SP_RVT-Name", "CASE", "RRE_ZZ_SP_Prototype-FFL", "Plot" }, sheet.Parameters.Select(item => item.Name));
             Assert.All(sheet.Parameters, item => Assert.True(Guid.TryParseExact(item.Guid, "D", out _), item.Name));
             Assert.All(sheet.Parameters, item => Assert.Equal("TEXT", item.DataType));
-            Assert.All(sheet.Parameters, item => Assert.Equal("Data", item.Group));
+            // Round D2. The group the IMC key binds its 10 link parameters under, read by R460 in Revit (Q336). Plot is no shared parameter of the keys
+            Assert.Equal(Enumerable.Repeat("Text", 10).Concat(new[] { "Data" }), sheet.Parameters.Select(item => item.Group));
             ParameterSpec plot = sheet.Parameters.Last();
             Assert.Equal("faecae98-f82c-46b5-bd80-489380545236", plot.Guid);
             Assert.Equal(new[] { "Floors" }, plot.Categories);
@@ -274,7 +275,7 @@ namespace SiteAdaptation.Tests
 
             Assert.Contains(SetUpPlanner.Changes(site, Target()).Parameters, item => item.Name == number.Name);
 
-            site.SharedParameters[site.SharedParameters.Count - 1].Group = "data";
+            site.SharedParameters[site.SharedParameters.Count - 1].Group = "text";
             Assert.DoesNotContain(SetUpPlanner.Changes(site, Target()).Parameters, item => item.Name == number.Name);
             site.SharedParameters[site.SharedParameters.Count - 1].Group = null;
             Assert.DoesNotContain(SetUpPlanner.Changes(site, Target()).Parameters, item => item.Name == number.Name);

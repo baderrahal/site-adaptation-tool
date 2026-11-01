@@ -15,10 +15,10 @@
   notice says 21:14 on this laptop. Next: Task 6 hand run after Lane A. Blocked: none
 - Lane C DEMO-FIX, 09:55, branch fix/lane-c-demo-fix: step rows of the pane run steps, a loader on every button, Confirm all in 3 Review
   data, idle buttons hidden (R444). Now: the gate and the PR, merge by 10:15, then lane-b reinstalls. Blocked: none
-- Lane D FIX-1NOV-D, 17:26, branch fix/1nov-d: config/shared_parameters.xlsx the one parameter source, R460 to R465, Q330 to Q335.
-  Now: the PR. Gate green, review 1 and breaker 1 done. Blocked: none
+- Lane D D2, 21:50, branch fix/1nov-d2: R466, a test host job takes the design values of R405 from the repo config, the read KC2 ran
+  clean, the sheet takes group Text (Q336). Now: the gate and the PR. Then D3 after Lane B's Task 6 hand run. Blocked: none
 
-Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane D FIX-1NOV-D, Lane C DEMO-FIX, Lane B demo-fill, Lane A 4j-2, Lane D 4j-1b, Lane C SCAN-UI, Lane A 4i, Lane B 6a, 1 Nov 2026.
+Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane D D2, Lane D FIX-1NOV-D, Lane C DEMO-FIX, Lane B demo-fill, Lane A 4j-2, Lane D 4j-1b, Lane C SCAN-UI, Lane A 4i, Lane B 6a, 1 Nov 2026.
 
 ## Repo map
 
