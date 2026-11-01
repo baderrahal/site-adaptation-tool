@@ -132,6 +132,20 @@ namespace SiteAdaptation.Tests
 
         // R473. A villa type of blocks, texts or a PDF page is no shape the read takes, it keeps the column of config. A sheet pick of the
         // sales sheet sets the typology column to its header, when the header row holds it
+        // R473, review 1 of FIX-1NOV-A2. A proposal of the scan the read can not take, a villa type of blocks, falls back to the default
+        // with no line, so a read with no pick ends with no issue of it, while the same source picked says why
+        [Fact]
+        public void R473_a_proposal_the_read_can_not_take_falls_back_with_no_line_and_the_same_pick_says_why()
+        {
+            var scan = new JObject { ["rows"] = new JArray(Row("villaType", BlockTypes, "villa type")), ["conflicts"] = new JArray() };
+            JObject proposed = ReadPicks.Resolve(null, scan, Files);
+            Assert.Equal(ReadPicks.FromDefault, From(proposed, "villaType"));
+            Assert.Empty((JArray)proposed["lines"]);
+            JObject picked = ReadPicks.Resolve(Picked(new Dictionary<string, string> { ["villaType"] = BlockTypes }), scan, Files);
+            Assert.Equal(ReadPicks.FromDefault, From(picked, "villaType"));
+            Assert.Single((JArray)picked["lines"]);
+        }
+
         [Fact]
         public void R473_a_villa_type_pick_of_blocks_keeps_the_default_and_a_sheet_pick_sets_the_typology_column()
         {
@@ -189,6 +203,23 @@ namespace SiteAdaptation.Tests
             Assert.Equal(1, ReadPlots(config, baseplan, layers, ReadPicks.Resolve(null, null, Files), "p1"));
             Assert.Equal(1, ReadPlots(config, baseplan, layers, ReadPicks.Resolve(Picked(new Dictionary<string, string> { ["plotOutline"] = Outline }), Scan(), Files), "p2"));
             Assert.Equal(2, ReadPlots(config, baseplan, layers, ReadPicks.Resolve(Picked(new Dictionary<string, string> { ["plotOutline"] = BothOutlines }), Scan(), Files), "p3"));
+        }
+
+        // R473, review 1 of FIX-1NOV-A2. A read with picks.json of the defaults gives the plots, counts and issues of a read with no input
+        // picks, the read of before R473
+        [Fact]
+        public void R473_a_read_with_default_picks_is_the_read_with_no_picks()
+        {
+            Directory.CreateDirectory(folder);
+            string baseplan = Baseplan(Path.Combine(folder, "Base.dwg"));
+            string config = Path.Combine(folder, "project.json");
+            File.Copy(WorkerRunTests.RepoConfig(), config);
+            string layers = Path.Combine(Path.GetDirectoryName(WorkerRunTests.RepoConfig()), "cad_layers.json");
+            Tuple<JObject, WorkerAnswer> none = WorkerRead(config, baseplan, layers, null, "n1");
+            Tuple<JObject, WorkerAnswer> defaults = WorkerRead(config, baseplan, layers, ReadPicks.Resolve(null, null, Files), "n2");
+            Assert.Equal(none.Item1["plots"], defaults.Item1["plots"], JToken.EqualityComparer);
+            Assert.Equal(none.Item2.Counts, defaults.Item2.Counts);
+            Assert.Equal(none.Item2.Issues, defaults.Item2.Issues);
         }
 
         // R473, R474. Button 2 writes picks.json into the folder of the read as the input picks, so the hash of the read, and its folder,
@@ -335,19 +366,30 @@ namespace SiteAdaptation.Tests
         // The plot shapes of the baseplan the worker command read writes with these picks
         private int ReadPlots(string config, string baseplan, string layers, JObject picks, string runId)
         {
-            string picksPath = Path.Combine(folder, runId, "picks.json");
-            ReadPicks.Write(picksPath, runId, picks);
+            JObject read = WorkerRead(config, baseplan, layers, picks, runId).Item1;
+            return ((JArray)read["plots"]).Count(plot => (string)plot["kind"] == "plot_shape");
+        }
+
+        // The worker read of the baseplan with picks.json as its input picks, or with no input picks when picks is null, its read_baseplan.json and answer
+        private Tuple<JObject, WorkerAnswer> WorkerRead(string config, string baseplan, string layers, JObject picks, string runId)
+        {
+            var inputs = new List<WorkerFile> { Input("config", config), Input("baseplan", baseplan), Input("cadLayers", layers) };
+            if (picks != null)
+            {
+                string picksPath = Path.Combine(folder, runId, "picks.json");
+                ReadPicks.Write(picksPath, runId, picks);
+                inputs.Add(Input("picks", picksPath));
+            }
             var request = new WorkerRequest
             {
                 FormatVersion = 1, RunId = runId, Command = "read", Document = new WorkerDocument { Path = @"C:\Projects\a.rvt", SessionId = "s1" },
-                Inputs = new List<WorkerFile> { Input("config", config), Input("baseplan", baseplan), Input("cadLayers", layers), Input("picks", picksPath) },
-                Scope = new WorkerScope { Kind = "project" }, OutputFolder = Path.Combine(folder, runId, "out"), Steps = new List<string>(), StepsFolder = Path.Combine(folder, runId, "steps"), TimeLimitS = 600,
+                Inputs = inputs, Scope = new WorkerScope { Kind = "project" }, OutputFolder = Path.Combine(folder, runId, "out"), Steps = new List<string>(),
+                StepsFolder = Path.Combine(folder, runId, "steps"), TimeLimitS = 600,
             };
             int code = WorkerRunner.Run(request.Write(folder), WorkerReads.Commands(), () => 90000.0, () => 0.0);
             WorkerAnswer answer = WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, runId));
             Assert.True(code == 0, "exit " + code + ": " + answer.Message);
-            JObject read = JObject.Parse(File.ReadAllText(Path.Combine(request.OutputFolder, "read_baseplan.json")));
-            return ((JArray)read["plots"]).Count(plot => (string)plot["kind"] == "plot_shape");
+            return Tuple.Create(JObject.Parse(File.ReadAllText(Path.Combine(request.OutputFolder, "read_baseplan.json"))), answer);
         }
 
         private static WorkerFile Input(string role, string path)

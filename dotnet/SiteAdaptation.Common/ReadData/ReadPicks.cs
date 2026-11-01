@@ -93,7 +93,12 @@ namespace SiteAdaptation.Common.ReadData
                 string refused = source == null ? null : Refusal(kind, source, files);
                 if (refused != null)
                 {
-                    lines.Add(refused);
+                    // Review 1 of FIX-1NOV-A2: only a pick the user made earns a line, a proposal of the scan the read can not take falls back
+                    // quietly, else a scan whose villa type proposal is of blocks would end every read with an issue
+                    if (from == FromPick)
+                    {
+                        lines.Add(refused);
+                    }
                     source = null;
                     from = FromDefault;
                 }

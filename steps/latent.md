@@ -493,3 +493,12 @@ No real input reaches these: coordinates.source is positionFile (Q328), and the 
 - Review 1 F6 and breaker L8, SetUpPlanner.Stops: a Plot row with no GUID skips the check that Floors fills it. The sheet of the repo gives Plot its Q156 GUID and Filled by 5.
 - Review 1 F8: the data type is written as given with no check, every row of the sheet of the repo is TEXT.
 - R439, ScanStep hash cache: two writes of one size in one tick give a stale hash, no real input reaches it. R438_ScanStepTests gives each rewrite its own write time (Lane C, PR 126).
+
+## FIX-1NOV-A2, review 1
+
+- ReportRun.cs Find and PlanOf type the stop of no 4 Check run twice, one text, no input reaches a difference.
+- UpdateFromReportRun.Read gives PlanOf WorkFiles.ReadText and reads the plan again after the worker, a short window after its SHA-256 check.
+- ReadPicks.Resolve repeats the proposal rule of ScanView (Lane C) and falls back to the proposal on a stale pick where the window asks again. One helper in ScanView, a Lane C change.
+- ReadPicks.FilesOf reads addin.workbookRoles itself, ReadSettings.WorkbookRole is the rule of the worker, the same role on a valid config.
+- ReadPicks.LatestScan reads a broken scan.json as no scan with no line. The scan writes by a temporary name and a rename.
+- ReadPicks compares file names ordinally, both from one GetFileName. A plot outline source splits on ' + ', a layer named with it splits wrongly. picks.json is indented with the line end of the system.
