@@ -4,10 +4,10 @@
 
 ### Lane A
 
-- Lane: A, round FIX-1NOV-A, branch fix/1nov-a. Time: 2026-11-01 16:37. Blocked: none
-- Now: the R471 helper builds the joint check row, then the gate, parity, review and breaker
-- Done: R470 merged, Python after: 0 of 555 NBH 012 joints, 0 of 529 IMC, 0 of 4,113 whole project over 1 mm (before 335, 322, 1,533). No curb is built
-- Next: R471, parity on 13 steps both runtimes, the PR. Ids R470 to R479, Q340 to Q349
+- Lane: A, round FIX-1NOV-A, branch fix/1nov-a. Time: 2026-11-01 18:02. Blocked: none
+- Now: gate and parity on d10f5c7, review 2 and breaker 2 on the R470 fix
+- Done: R470 front joints at the road once (NBH 012 0 of 285 front joints over 1 mm, before 88), R471 rows, breaker 1 REAL fixed, main PR 126 merged in. No curb is built
+- Next: the records and the PR. Ids R470 to R479, Q340 to Q349
 
 ### Lane B, C and D
 
