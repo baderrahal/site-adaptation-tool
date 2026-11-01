@@ -664,6 +664,8 @@ try {
             }
             $job.prototypeNames = $names
         }
+        # R466. Every job names the config of the repo for the design values of R405, an addinRun takes the copy of its run folder over it
+        $job.designConfig = Join-Path $repo 'config\project.json'
         $job | ConvertTo-Json -Depth 5 | Set-Content -Path $jobPath -Encoding utf8
         # The token goes to the Revit process alone, this console never holds it
         $info.Environment['SITEADAPTATION_TESTHOST_TOKEN'] = $token

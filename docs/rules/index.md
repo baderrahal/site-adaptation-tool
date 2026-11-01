@@ -428,6 +428,7 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R463 Key GUIDs held to the sheet.
 - R464 Bind by sheet group.
 - R465 Each button fills its own.
+- R466 Test host jobs load design values.
 
 ## 13-site-coords-r454-up.md
 
