@@ -8,6 +8,8 @@ using ACadSharp.IO;
 using ACadSharp.Tables;
 using CadReader;
 using CSMath;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
 using Newtonsoft.Json.Linq;
 using SiteAdaptation.Common;
 using SiteAdaptation.Common.Flow;
@@ -92,7 +94,6 @@ namespace SiteAdaptation.Tests
             ReadPicks.PicksTaken taken = ReadPicks.Take(picks, Files);
             Assert.Null(taken.PlotLineLayers);
             Assert.Null(taken.PlotLabelLayers);
-            Assert.Null(taken.VillaBlockLayer);
             Assert.Null(taken.TypologyHeader);
             Assert.Empty(taken.Conflicts);
         }
@@ -112,7 +113,6 @@ namespace SiteAdaptation.Tests
             ReadPicks.PicksTaken taken = ReadPicks.Take(picks, Files);
             Assert.Equal(new[] { "MP_PLOT_ALT", "MP_PLOT_LINE" }, taken.PlotLineLayers);
             Assert.Equal(new[] { "MP_PLOT_TEXT" }, taken.PlotLabelLayers);
-            Assert.Null(taken.VillaBlockLayer);
             Assert.Equal("Typology_Rev9", taken.TypologyHeader);
             Assert.Empty(taken.Lines);
         }
@@ -192,6 +192,156 @@ namespace SiteAdaptation.Tests
             Assert.Empty(lines);
         }
 
+        // A scan of three villa type conflicts of plots 12, 14 and 15 between the sales sheet and the blocks, and a label conflict of plot 13
+        private static JObject ConflictScan()
+        {
+            Func<string, string, string, JObject> villa = (plot, first, second) =>
+                new JObject { ["plot"] = plot, ["field"] = "villa type", ["valueA"] = first, ["sourceA"] = SalesColumn, ["valueB"] = second, ["sourceB"] = BlockTypes };
+            JObject scan = Scan();
+            scan["conflicts"] = new JArray(villa("12", "DP1", "VL2"), new JObject { ["plot"] = "13", ["field"] = "label", ["valueA"] = "13", ["sourceA"] = Outline, ["valueB"] = "13a", ["sourceB"] = "Other.dwg|X" },
+                villa("14", "DP1", "VL3"), villa("15", "DP1", "VL4"));
+            return scan;
+        }
+
+        // R473, breaker 2 of FIX-1NOV-A2. Use these picks saves every conflict with the choice it shows, the first source where the person
+        // changed nothing, so a saved first source is no choice of a person and sets nothing and says nothing
+        [Fact]
+        public void R473_a_saved_first_source_of_every_conflict_gives_no_conflict_and_no_line()
+        {
+            var saved = new Dictionary<string, string>
+            {
+                ["12|villa type|" + BlockTypes] = SalesColumn, ["13|label|Other.dwg|X"] = Outline, ["14|villa type|" + BlockTypes] = SalesColumn, ["15|villa type|" + BlockTypes] = SalesColumn,
+            };
+            JObject picks = ReadPicks.Resolve(Picked(null, saved), ConflictScan(), Files);
+            Assert.Empty((JArray)picks["conflicts"]);
+            Assert.Empty((JArray)picks["lines"]);
+            Assert.Empty((JArray)ReadPicks.Sources(picks)["conflicts"]);
+        }
+
+        // R473, breaker 2 of FIX-1NOV-A2. The one conflict a person changed to the second source sets that plot to the value of that source,
+        // the conflicts left on the first source keep the value of the read
+        [Fact]
+        public void R473_a_second_source_picked_sets_that_one_plot_and_the_first_sources_beside_it_keep_the_read()
+        {
+            var saved = new Dictionary<string, string>
+            {
+                ["12|villa type|" + BlockTypes] = SalesColumn, ["13|label|Other.dwg|X"] = Outline, ["14|villa type|" + BlockTypes] = BlockTypes, ["15|villa type|" + BlockTypes] = SalesColumn,
+            };
+            JObject picks = ReadPicks.Resolve(Picked(null, saved), ConflictScan(), Files);
+            Assert.Equal(new JObject { ["plot"] = "14", ["field"] = "villa type", ["source"] = BlockTypes, ["value"] = "VL3" }, Assert.Single((JArray)picks["conflicts"]), JToken.EqualityComparer);
+            Assert.Empty((JArray)picks["lines"]);
+            var table = new[] { "12", "14", "15" }.ToDictionary(plot => plot, plot => new Dictionary<string, object> { ["baseplanLabel"] = plot, ["typologyRev9"] = "READ" });
+            var lines = new List<string>();
+            Assert.Equal(1, ReadPicks.ApplyConflicts(table, ReadPicks.Take(picks, Files).Conflicts, lines));
+            Assert.Equal(new object[] { "READ", "VL3", "READ" }, new[] { "12", "14", "15" }.Select(plot => table[plot]["typologyRev9"]));
+            Assert.Empty(lines);
+        }
+
+        // R473, breaker 2 of FIX-1NOV-A2. A read of the location plan that fails after a plot outline or plot number source was taken keeps its
+        // text and names the source and where to change it. With no such source the text stays byte for byte, a read of no input picks or of the defaults
+        [Fact]
+        public void R473_a_failed_location_plan_read_names_the_plot_outline_and_number_taken_and_with_none_stays_as_it_was()
+        {
+            Directory.CreateDirectory(folder);
+            string none = LocationFailure(null, "f1");
+            Assert.Equal("page.pdf: an affine fit of the page needs three points, it has 0 (R181)", none);
+            Assert.Equal(none, LocationFailure(ReadPicks.Resolve(null, null, Files), "f2"));
+            string picked = LocationFailure(ReadPicks.Resolve(Picked(new Dictionary<string, string> { ["plotOutline"] = BothOutlines }), Scan(), Files), "f3");
+            Assert.StartsWith(none, picked);
+            Assert.Contains(BothOutlines, picked);
+            Assert.Contains("Base.dwg|MP_PLOT_TEXT", picked);
+            Assert.Contains("What the tool read", picked);
+        }
+
+        // The worker read of a page of no label against the baseplan, one schedule and the sales workbook, each made up, gives the refusal of the fit
+        private string LocationFailure(JObject picks, string runId)
+        {
+            JObject settings = JObject.Parse(File.ReadAllText(WorkerRunTests.RepoConfig()));
+            string fit = (string)settings["dataBook"]["locationPlan"]["fitNeighbourhood"];
+            string scheduleSheet = (string)settings["connect"]["scheduleSheet"];
+            settings["connect"]["neighbourhoods"] = new JObject { [fit] = settings["connect"]["neighbourhoods"][fit] };
+            string config = Write(Path.Combine(folder, "location.json"), settings.ToString());
+            string layers = Path.Combine(Path.GetDirectoryName(WorkerRunTests.RepoConfig()), "cad_layers.json");
+            string baseplan = Path.Combine(folder, "Base.dwg");
+            if (!File.Exists(baseplan))
+            {
+                Baseplan(baseplan);
+            }
+            var pdf = new UglyToad.PdfPig.Writer.PdfDocumentBuilder();
+            UglyToad.PdfPig.Writer.PdfDocumentBuilder.AddedFont font = pdf.AddStandard14Font(UglyToad.PdfPig.Fonts.Standard14Fonts.Standard14Font.Helvetica);
+            pdf.AddPage(400, 300).AddText("no label", 10, new UglyToad.PdfPig.Core.PdfPoint(50, 200), font);
+            string page = Path.Combine(folder, "page.pdf");
+            File.WriteAllBytes(page, pdf.Build());
+            var inputs = new List<WorkerFile>
+            {
+                Input("config", config), Input("baseplan", baseplan), Input("cadLayers", layers), Input(LocationPlan.PlotNumbersRole, page),
+                Input(LocationPlan.ScheduleRole + fit, MadeBook("schedule.xlsx", new Dictionary<string, System.Tuple<int, string[]>>
+                {
+                    [scheduleSheet] = System.Tuple.Create(1, new[] { "Plot No.", "Unit", "FFL *", "SSL", "El @ Entry", "Steps Needed" }),
+                })),
+                Input("sales", MadeBook("sales.xlsx", SalesSheets(settings))),
+            };
+            if (picks != null)
+            {
+                string picksPath = Path.Combine(folder, runId, "picks.json");
+                ReadPicks.Write(picksPath, runId, picks);
+                inputs.Add(Input("picks", picksPath));
+            }
+            var request = new WorkerRequest
+            {
+                FormatVersion = 1, RunId = runId, Command = "read", Document = new WorkerDocument { Path = @"C:\Projects\a.rvt", SessionId = "s1" },
+                Inputs = inputs, Scope = new WorkerScope { Kind = "project" }, OutputFolder = Path.Combine(folder, runId, "out"), Steps = new List<string>(),
+                StepsFolder = Path.Combine(folder, runId, "steps"), TimeLimitS = 600,
+            };
+            int code = WorkerRunner.Run(request.Write(folder), WorkerReads.Commands(), () => 90000.0, () => 0.0);
+            WorkerAnswer answer = WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, runId));
+            Assert.True(code == 2, "exit " + code + ": " + answer.Message);
+            return answer.Message;
+        }
+
+        // The sheets of the sales workbook config names by their header rows, a sheet two settings name under the columns of both
+        private static Dictionary<string, System.Tuple<int, string[]>> SalesSheets(JObject settings)
+        {
+            var sheets = new Dictionary<string, System.Tuple<int, string[]>>();
+            foreach (string path in new[] { "rev9.dlus", "rev9.sales", "locationPlan.sales", "locationPlan.codeTable" })
+            {
+                JToken entry = settings["dataBook"].SelectToken(path);
+                string[] columns = ((JObject)entry["columns"]).Properties().Select(column => (string)column.Value).ToArray();
+                string sheet = (string)entry["sheet"];
+                sheets[sheet] = System.Tuple.Create((int)entry["headerRow"], sheets.TryGetValue(sheet, out System.Tuple<int, string[]> held) ? held.Item2.Union(columns).ToArray() : columns);
+            }
+            return sheets;
+        }
+
+        // A made up workbook, per sheet the header row given and one row of plot 101 under it, a number in every cell
+        private string MadeBook(string name, Dictionary<string, System.Tuple<int, string[]>> sheets)
+        {
+            string path = Path.Combine(folder, name);
+            File.Delete(path);
+            using (SpreadsheetDocument document = SpreadsheetDocument.Create(path, DocumentFormat.OpenXml.SpreadsheetDocumentType.Workbook))
+            {
+                WorkbookPart book = document.AddWorkbookPart();
+                book.Workbook = new Workbook();
+                Sheets list = book.Workbook.AppendChild(new Sheets());
+                uint id = 1;
+                foreach (KeyValuePair<string, System.Tuple<int, string[]>> sheet in sheets)
+                {
+                    uint row = (uint)sheet.Value.Item1;
+                    Cell[] header = sheet.Value.Item2.Select((text, column) => new Cell { CellReference = Letter(column) + row, DataType = CellValues.InlineString, InlineString = new InlineString(new Text(text)) }).ToArray();
+                    Cell[] values = sheet.Value.Item2.Select((text, column) => new Cell { CellReference = Letter(column) + (row + 1), CellValue = new CellValue("101") }).ToArray();
+                    var part = book.AddNewPart<WorksheetPart>();
+                    part.Worksheet = new Worksheet(new SheetData(new Row(header) { RowIndex = row }, new Row(values) { RowIndex = row + 1 }));
+                    list.Append(new Sheet { Id = book.GetIdOfPart(part), SheetId = id++, Name = sheet.Key });
+                }
+            }
+            return path;
+        }
+
+        private static string Letter(int column)
+        {
+            return ((char)('A' + column)).ToString();
+        }
+
         // R473. The worker read takes the plot outline layers of the pick over plotLineLayers of the layer list, so one changed pick gives
         // another plot count. picks.json of the defaults reads as before
         [Fact]
@@ -217,8 +367,8 @@ namespace SiteAdaptation.Tests
             string config = Path.Combine(folder, "project.json");
             File.Copy(WorkerRunTests.RepoConfig(), config);
             string layers = Path.Combine(Path.GetDirectoryName(WorkerRunTests.RepoConfig()), "cad_layers.json");
-            Tuple<JObject, WorkerAnswer> none = WorkerRead(config, baseplan, layers, null, "n1");
-            Tuple<JObject, WorkerAnswer> defaults = WorkerRead(config, baseplan, layers, ReadPicks.Resolve(null, null, Files), "n2");
+            System.Tuple<JObject, WorkerAnswer> none = WorkerRead(config, baseplan, layers, null, "n1");
+            System.Tuple<JObject, WorkerAnswer> defaults = WorkerRead(config, baseplan, layers, ReadPicks.Resolve(null, null, Files), "n2");
             Assert.Equal(none.Item1["plots"], defaults.Item1["plots"], JToken.EqualityComparer);
             Assert.Equal(none.Item2.Counts, defaults.Item2.Counts);
             Assert.Equal(none.Item2.Issues, defaults.Item2.Issues);
@@ -373,7 +523,7 @@ namespace SiteAdaptation.Tests
         }
 
         // The worker read of the baseplan with picks.json as its input picks, or with no input picks when picks is null, its read_baseplan.json and answer
-        private Tuple<JObject, WorkerAnswer> WorkerRead(string config, string baseplan, string layers, JObject picks, string runId)
+        private System.Tuple<JObject, WorkerAnswer> WorkerRead(string config, string baseplan, string layers, JObject picks, string runId)
         {
             var inputs = new List<WorkerFile> { Input("config", config), Input("baseplan", baseplan), Input("cadLayers", layers) };
             if (picks != null)
@@ -391,7 +541,7 @@ namespace SiteAdaptation.Tests
             int code = WorkerRunner.Run(request.Write(folder), WorkerReads.Commands(), () => 90000.0, () => 0.0);
             WorkerAnswer answer = WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, runId));
             Assert.True(code == 0, "exit " + code + ": " + answer.Message);
-            return Tuple.Create(JObject.Parse(File.ReadAllText(Path.Combine(request.OutputFolder, "read_baseplan.json"))), answer);
+            return System.Tuple.Create(JObject.Parse(File.ReadAllText(Path.Combine(request.OutputFolder, "read_baseplan.json"))), answer);
         }
 
         private static WorkerFile Input(string role, string path)

@@ -22,10 +22,10 @@ replaces give, per item of the data book, written to step_<step>_python.json for
 - plotTable (R352): per baseplan face inside the Phase 1 border the plot table of python/plot_table.py on the reads and the location plan
   of the same run, the faces of the baseplan read, the footprint blocks of the footprint read and the area key sheets
 
-With --picks, picks.json of button 2 (R473) as ReadPicks of the C# takes it: a villa block pick limits the blocks of the footprint read to
-its insert layer, a villa type pick of the sales sheet sets the typology column of the location plan to its header, and each villa type
-conflict pick sets typologyRev9 of its plot in the plot table, each pick held to the file its input names, else the default with a line
-why. The plot outline and plot number picks are taken by the CAD read that gives plots.json, so with such a pick --baseplan names the
+With --picks, picks.json of button 2 (R473) as ReadPicks of the C# takes it: a villa type pick of the sales sheet sets the typology column of
+the location plan to its header, and each villa type conflict pick of picks.json sets typologyRev9 of its plot in the plot table, each pick
+held to the file its input names, else the default with a line why. A villa block pick is never taken, the read keeps every insert and
+says why (Q346). The plot outline and plot number picks are taken by the CAD read that gives plots.json, so with such a pick --baseplan names the
 read_baseplan.json of the worker read.
 
 Every CadReader output is read through the units check of R388, a LandXML in meter only. A value of no geometry is written as read, a
@@ -152,14 +152,7 @@ def pick_of(picks, kind, files):
         return rest.split(LAYER_JOIN), None
     if kind == "plotNumber":
         return [rest], None
-    if kind == "villaBlock":
-        return rest, None
     return sheet_of(rest)[1], None
-
-
-def blocks_on_layer(blocks, layer):
-    """R473. The blocks of the footprint read on the insert layer of a villa block pick, every block when there is none."""
-    return blocks if layer is None else [block for block in blocks if block.get("layer") == layer]
 
 
 def sales_header(path, sheet, header_row):
@@ -505,13 +498,13 @@ def run_steps(args):
         if "blocks" in steps or "setbacks" in steps:
             args.footprint_blocks = str(cad_units.read_input(settings, "footprintBlocks", args.footprint_blocks))
             inputs.append(parity.input_entry("footprintBlocks", args.footprint_blocks))
-        block_layer = None
         if picks and ("blocks" in steps or "plotTable" in steps):
+            # A villa block pick is never taken, its line says why (Q346)
             args.footprint_blocks = str(cad_units.read_input(settings, "footprintBlocks", args.footprint_blocks))
-            block_layer, line = pick_of(picks, "villaBlock", {"villaBlocks": link_summary.load(args.footprint_blocks).get("source")})
+            _, line = pick_of(picks, "villaBlock", {"villaBlocks": link_summary.load(args.footprint_blocks).get("source")})
             lines.extend([line] if line else [])
         if "blocks" in steps:
-            made["blocks"] = block_step(blocks_on_layer(footprint_check.footprint_blocks(args.footprint_blocks, settings), block_layer))
+            made["blocks"] = block_step(footprint_check.footprint_blocks(args.footprint_blocks, settings))
         if "setbacks" in steps:
             pieces = Path(args.footprint_blocks).parent / "pieces.json"
             cad_units.check(pieces)
@@ -590,7 +583,7 @@ def run_steps(args):
                 dlus, _ = area_key.by_plot(sheet(args, settings, book["data5"]["areaKey"]["dlus"]))
                 sales_key, _ = area_key.by_plot(sheet(args, settings, book["data5"]["areaKey"]["sales"]))
                 table = plot_table.table(plots, plot_table.border_points(args.border), data_book.schedule_rows(settings, settings.get("connect"), paths),
-                                         numbering["shifts"], numbering["labels"], blocks_on_layer(link_summary.load(args.footprint_blocks)["blocks"], block_layer),
+                                         numbering["shifts"], numbering["labels"], link_summary.load(args.footprint_blocks)["blocks"],
                                          settings.get("dataBook.wiring.minShare"), dlus, sales_key, plot_table.overlap_decimals(values))
                 made["plotTable"] = {row["baseplanLabel"]: row for row in table}
                 apply_conflicts(made["plotTable"], (picks or {}).get("conflicts"), lines)
