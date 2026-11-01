@@ -267,3 +267,10 @@ One phase per session (Q096). Two lanes run the phases (D10, D17): tools/run-lan
 - Status: done, Lane D, laptop, 2026-11-01, one PR with code, tests and records, in the worktree Site Adaptation Tool Lane D WT
 - What: config/shared_parameters.xlsx the one source of the shared parameters, the 10 of the past links and Plot, button 1 binds the rows of Keep Yes under their group, each button fills its own (R460 to R465)
 - Left: the read of the key groups once fix/1nov-b is on main (Q330), Q331 to Q334 for Bader
+
+## FIX-1NOV-A2, the picks in button 2 and the plan of Update from report
+
+- Status: running, Lane A, laptop, 2026-11-01, branch fix/1nov-a2, one PR with code, tests and records (D20)
+- Task 1 (Q292): R473 button 2 reads the saved pick, else the scan proposal, else config, ReadPicks.Resolve, picks.json, WorkerReads.Read and read_steps.py. R474 the sources in read.json
+- Task 2 (Q278): R472 Update from report takes the plan of the last 4 Check by its run log, UpdateWorkerRequest.PlanOf, proved on a copy of the NBH 012 work folder
+- Questions: Q345
