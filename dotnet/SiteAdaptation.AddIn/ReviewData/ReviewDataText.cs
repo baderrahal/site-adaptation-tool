@@ -51,6 +51,10 @@ namespace SiteAdaptation.AddIn.ReviewData
         // R442, Bader's prompt of 1 Nov 2026, a DRAFT with no board
         public const string Confirmed = "Confirmed";
         public const string ConfirmAllProposed = "Confirm all proposed";
+
+        // R444, Bader's demo check of 1 Nov 2026, a DRAFT with no board
+        public const string ConfirmAll = "Confirm all";
+        public const string ConfirmAllShown = "Confirm all shown";
         public const string ClusterHowTo = "Tick Confirmed for each cluster and mirror that 4 Check proposed, or click Confirm all proposed, then Save review. A plot whose proposed cluster is not confirmed is marked for buttons 5 to 8.";
     }
 }

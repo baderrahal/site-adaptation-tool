@@ -68,8 +68,31 @@ namespace SiteAdaptation.AddIn
             Document document = application.ActiveUIDocument == null ? null : application.ActiveUIDocument.Document;
             var flow = new ButtonFlow(State, new RevitModel(document), new TaskDialogConfirm(), InputHash.Of, () => RunIds.New(button.Number, DateTime.Now));
             string configFile = document == null ? null : PaneHost.Current?.Sessions.Seen(document, document.PathName, document.Title)?.Settings?.ConfigFile;
-            ButtonBody body = Bodies.WithDesignValues(configFile, button.Number, () => Body(button, application, document));
-            RunOutcome outcome = flow.Run(button.Number, button.Label, body, document == null ? null : document.PathName, later => Ended(application, document, button.Number, later));
+            // R444. One loader for every button, the ribbon and the pane both come here. A run outside Revit keeps it until its end
+            Loader.RunLoader loader = Loader.RunLoader.Start(button.Label, application.MainWindowHandle);
+            RunOutcome outcome;
+            try
+            {
+                ButtonBody body = Bodies.WithDesignValues(configFile, button.Number, () => Body(button, application, document));
+                outcome = flow.Run(button.Number, button.Label, body, document == null ? null : document.PathName, later =>
+                {
+                    loader.Dispose();
+                    Ended(application, document, button.Number, later);
+                });
+            }
+            catch
+            {
+                loader.Dispose();
+                throw;
+            }
+            if (outcome.End == RunEnd.Started)
+            {
+                loader.Outside();
+            }
+            else
+            {
+                loader.Dispose();
+            }
             // R367. The pane takes the settings again from the entity button 1 wrote, only after its commit
             if (button.Number == 1 && outcome.End == RunEnd.Committed && document != null)
             {

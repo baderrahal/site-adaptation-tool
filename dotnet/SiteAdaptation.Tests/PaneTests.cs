@@ -273,6 +273,32 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
+        public void R444_a_click_on_a_step_row_runs_a_step_that_is_ready_or_done_through_the_box_path_and_a_step_that_waits_does_nothing()
+        {
+            PaneViewModel model = Model(new FakeProbe());
+            model.Load(new DocumentSession("s", Folder + "Site.rvt", "Site"));
+            model.LoadSettings(new PaneSettings { ConfigFile = Folder + "project.json" });
+            var runs = new List<int>();
+            model.RunRequested += runs.Add;
+
+            Assert.True(model.Steps[0].Runnable);
+            Assert.Equal("Run 1 Set up site", model.Steps[0].RowTip);
+            model.Steps[0].RunCommand.Execute(null);
+            Assert.False(model.Steps[1].Runnable);
+            Assert.Equal("Needs step 1", model.Steps[1].RowTip);
+            model.Steps[1].RunCommand.Execute(null);
+            model.Steps[8].RunCommand.Execute(null);
+            Assert.Equal(new[] { 1 }, runs);
+
+            PaneViewModel none = Model(new FakeProbe());
+            var noRuns = new List<int>();
+            none.RunRequested += noRuns.Add;
+            Assert.All(none.Steps, step => Assert.False(step.Runnable));
+            none.Steps[0].RunCommand.Execute(null);
+            Assert.Empty(noRuns);
+        }
+
+        [Fact]
         public void R372_the_step_lines_of_5a_follow_the_order_of_the_workflow_changes_each_needs_the_one_before_and_9_needs_4()
         {
             Assert.Equal(new[] { 0, 1, 2, 3, 4, 5, 6, 7, 4 }, Enumerable.Range(1, 9).Select(StepPlan.Needs));

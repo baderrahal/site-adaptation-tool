@@ -197,11 +197,16 @@
           <TextBlock Style="{StaticResource SA.Type.Small}" Foreground="{StaticResource SA.BandAccent}" Margin="{StaticResource SA.Gap.Top4}" Text="{Binding CheckedLine}" />
         </StackPanel>
         <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="{StaticResource SA.Gap.Left16}">
-          <Button Style="{StaticResource SA.Button.Base}" Content="{x:Static rev:ReviewDataText.ZoomToPlot}" Click="OnZoom" />
-          <Button Style="{StaticResource SA.Button.Base}" Margin="{StaticResource SA.Gap.Left8}" Content="{x:Static rev:ReviewDataText.ExportToExcel}" Click="OnExport" />
-          <Button Style="{StaticResource SA.Button.Base}" Margin="{StaticResource SA.Gap.Left8}" Content="{x:Static rev:ReviewDataText.ConfirmAllProposed}" Click="OnConfirmAll"
-                  IsEnabled="{Binding CanConfirmAll}" />
-          <Button Style="{StaticResource SA.Button.Primary}" Margin="{StaticResource SA.Gap.Left8}" Content="{x:Static rev:ReviewDataText.SaveReview}" Click="OnSave" />
+          <!-- R444. A button with nothing to do is hidden, never shown with a not built message -->
+          <Button Style="{StaticResource SA.Button.Base}" Margin="{StaticResource SA.Gap.Right8}" Content="{x:Static rev:ReviewDataText.ZoomToPlot}" Click="OnZoom"
+                  Visibility="{Binding ZoomShown, Converter={StaticResource Shown}}" />
+          <Button Style="{StaticResource SA.Button.Base}" Margin="{StaticResource SA.Gap.Right8}" Content="{x:Static rev:ReviewDataText.ExportToExcel}" Click="OnExport"
+                  Visibility="{Binding ExportShown, Converter={StaticResource Shown}}" />
+          <Button Style="{StaticResource SA.Button.Base}" Margin="{StaticResource SA.Gap.Right8}" Content="{Binding ConfirmRowsLabel}" Click="OnConfirmRows"
+                  IsEnabled="{Binding CanConfirmRows}" />
+          <Button Style="{StaticResource SA.Button.Base}" Margin="{StaticResource SA.Gap.Right8}" Content="{x:Static rev:ReviewDataText.ConfirmAllProposed}" Click="OnConfirmAll"
+                  IsEnabled="{Binding CanConfirmAll}" Visibility="{Binding ClusterHelpShown, Converter={StaticResource Shown}}" />
+          <Button Style="{StaticResource SA.Button.Primary}" Content="{x:Static rev:ReviewDataText.SaveReview}" Click="OnSave" />
         </StackPanel>
       </Grid>
     </Border>

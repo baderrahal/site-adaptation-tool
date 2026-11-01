@@ -414,3 +414,4 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R441 Current files gate.
 - R442 Cluster confirm marks.
 - R443 Door level source counts.
+- R444 Pane drives steps, loader, no idle button.

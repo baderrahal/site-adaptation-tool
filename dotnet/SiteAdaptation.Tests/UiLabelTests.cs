@@ -31,8 +31,8 @@ namespace SiteAdaptation.Tests
                     [Path.Combine(root, "dotnet", "SiteAdaptation.Common", "Review", "ClusterConfirmText.cs")] = "Review data",
                 });
 
-            Assert.Equal(new[] { "Ribbon", "Pane", "Button messages", "Set up site", "Review data", "Site Adaptation Rules", "Check table", "Update from report", "New project", "How it works", "What the tool read" }, list.Keys.ToArray());
-            Assert.Equal(new[] { "Ribbon", "Pane", "Button messages", "Set up site", "Review data", "Site Adaptation Rules", "Check table", "Update from report", "New project", "How it works", "What the tool read" }, list.Values.Where(window => window.Built).Select(window => window.Name).ToArray());
+            Assert.Equal(new[] { "Ribbon", "Pane", "Button messages", "Set up site", "Review data", "Site Adaptation Rules", "Check table", "Update from report", "New project", "How it works", "What the tool read", "Loader" }, list.Keys.ToArray());
+            Assert.Equal(new[] { "Ribbon", "Pane", "Button messages", "Set up site", "Review data", "Site Adaptation Rules", "Check table", "Update from report", "New project", "How it works", "What the tool read", "Loader" }, list.Values.Where(window => window.Built).Select(window => window.Name).ToArray());
             Assert.Equal(16, list["Ribbon"].Entries.Count);
             Assert.Contains(shown["Ribbon"], found => found.Text == "Update from report");
             Assert.Contains(shown["Pane"], found => found.Text == "Browse" && found.Where.EndsWith(".xaml", StringComparison.Ordinal));
@@ -173,8 +173,9 @@ namespace SiteAdaptation.Tests
             // Rules command with no usable rules file and the chip Team check. The second logic review of 5c added 1, the line under Why of a
             // row on Skip. Lane C NEWPROJ-UI added 21: 3 of the pane, Settings among them, and 18 of New project. Lane C SCAN-UI added
             // 15 of What the tool read, 8 of the section Current files of Set up site and 2 of New project. Lane C SCAN-UI task 5 added
-            // 8 of the cluster confirm of Review data (R442), task 6 4 of Door level from of Check table (R443)
-            Assert.Equal(203, chosen);
+            // 8 of the cluster confirm of Review data (R442), task 6 4 of Door level from of Check table (R443). Lane C DEMO-FIX added 7,
+            // Confirm all and Confirm all shown of Review data and 5 of the Loader (R444)
+            Assert.Equal(210, chosen);
             Assert.True(matched > 100, matched.ToString());
         }
 
@@ -237,6 +238,7 @@ namespace SiteAdaptation.Tests
             { "New project", "NewProject" },
             { "How it works", "HowItWorks" },
             { "What the tool read", "ScanResults" },
+            { "Loader", "Loader" },
         };
 
         private const string RibbonFile = "RibbonLayout.cs";

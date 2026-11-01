@@ -9,7 +9,7 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 - Lane B DEMO done on 2026-11-01: main 691e1fc installed, C:\SA-demo and steps/demo.md for 11:00, 1 to 9 in 5.2 min on the copies
 - Lane B 6a done for Masses on 2026-10-31: NBH 012 through buttons 1 to 9 from a new project in 6.7 min with no click, Links waits on Q275
 - Lane B 5d done on 2026-10-31, PR 113: buttons 5, 6 and 8, 7 at the FFL, Q115, Q116, proven in Revit by 6a. 5c, PR 111: buttons 2, 3, 4 and 7
-- Lane C SCAN-UI done on 2026-11-01: PR 117 What the tool read, button 2 scan, New project picks, Current files, PR 119 cluster confirm, door level
+- Lane C SCAN-UI done 2026-11-01, PR 117, 119. DEMO-FIX 1 Nov: step rows run, a loader on every button, Confirm all, idle buttons hidden (R444)
 - Lane A: 5e and 5f on 2026-10-30, one PR (D20), R381 button 9 Report, R402 Update from report. Phase 4 and 5: 4h-1 PR 107, 4h-2 PR 109, 4g3
 - Round FOLD done on 2026-10-29: the fold in of steps/lane-b.md, D9 to D19, the answer pass, M01 to M15. D20 on 29 Oct for Phase 4 and 5
 - ADDIN Part 1 (R300 to R399): the add-in inside Revit 2024 in C#, net48, option B, parsons2024Rev6 for every build (Q050)

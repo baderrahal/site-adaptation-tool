@@ -159,6 +159,35 @@ namespace SiteAdaptation.AddIn.ReviewData
 
         public string NotSavedText => ReviewDataText.NotSavedYet;
 
+        // R444. Zoom to plot and Export to Excel show only while the Revit side gives them something to do
+        public bool ZoomShown { get; internal set; }
+
+        public bool ExportShown { get; internal set; }
+
+        // R444, Bader's demo check of 1 Nov 2026. Confirm all marks OK every row the table shows, Confirm all shown while the chip or
+        // the find box narrows the table. A plot the team marked Wrong keeps its mark, and any plot can still be marked one by one
+        public string ConfirmRowsLabel => chip == ReviewChip.All && find.Trim().Length == 0 ? ReviewDataText.ConfirmAll : ReviewDataText.ConfirmAllShown;
+
+        public bool CanConfirmRows => Rows.Any(row => view.State.StatusOf(row.PlotNo) == ReviewStatus.NotChecked);
+
+        public void ConfirmRows()
+        {
+            foreach (ReviewRowViewModel row in Rows)
+            {
+                if (view.State.StatusOf(row.PlotNo) == ReviewStatus.NotChecked)
+                {
+                    view.State.Mark(row.PlotNo, ReviewCheckValue.Ok, view.State.NoteOf(row.PlotNo));
+                    row.Update(view.State);
+                }
+            }
+            Changed(nameof(CheckedLine));
+            Changed(nameof(IsOk));
+            Changed(nameof(IsWrong));
+            Changed(nameof(NotSavedShown));
+            Changed(nameof(CanConfirmRows));
+            RefreshChips();
+        }
+
         public void SetChip(ReviewChip next)
         {
             chip = next;
@@ -180,6 +209,7 @@ namespace SiteAdaptation.AddIn.ReviewData
             Changed(nameof(EarlierNoteLine));
             Changed(nameof(EarlierNoteShown));
             Changed(nameof(NotSavedShown));
+            Changed(nameof(CanConfirmRows));
             RefreshChips();
         }
 
@@ -198,6 +228,8 @@ namespace SiteAdaptation.AddIn.ReviewData
             selected = null;
             Selected = keep;
             Changed(nameof(Rows));
+            Changed(nameof(ConfirmRowsLabel));
+            Changed(nameof(CanConfirmRows));
         }
 
         private void ClustersChanged()

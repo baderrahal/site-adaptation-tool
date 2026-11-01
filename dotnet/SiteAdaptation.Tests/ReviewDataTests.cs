@@ -351,7 +351,7 @@ namespace SiteAdaptation.Tests
                 Assert.Equal(new bool?[] { false, true, false, false, false }, ticks.Select(tick => tick.IsChecked));
                 Border band = all.OfType<Border>().First(border => border.Background == window.FindResource("SA.Band"));
                 List<Button> buttons = Visuals(band).OfType<Button>().ToList();
-                Assert.Equal(new[] { "Zoom to plot", "Export to Excel", "Confirm all proposed", "Save review" }, buttons.Select(button => (string)button.Content));
+                Assert.Equal(new[] { "Zoom to plot", "Export to Excel", "Confirm all", "Confirm all proposed", "Save review" }, buttons.Select(button => (string)button.Content));
                 Button confirmAll = buttons.Single(button => (string)button.Content == "Confirm all proposed");
                 Assert.Equal(window.FindResource("SA.Button.Base"), confirmAll.Style);
                 Assert.True(confirmAll.IsEnabled);

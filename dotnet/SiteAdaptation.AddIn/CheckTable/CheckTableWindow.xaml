@@ -146,10 +146,12 @@
                      Text="{Binding ProfileLine}" Visibility="{Binding ProfileShown, Converter={StaticResource Shown}}" />
         </StackPanel>
         <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="{StaticResource SA.Gap.Left16}">
-          <Button Style="{StaticResource SA.Button.Base}" Content="{x:Static chk:CheckTableText.ZoomToPlot}" Click="OnZoom" IsEnabled="{Binding ZoomAllowed}" />
-          <Button Style="{StaticResource SA.Button.Base}" Margin="{StaticResource SA.Gap.Left8}" Content="{x:Static chk:CheckTableText.ExportToExcel}" Click="OnExport"
-                  IsEnabled="{Binding ExportAllowed}" />
-          <Button Style="{StaticResource SA.Button.Primary}" Margin="{StaticResource SA.Gap.Left8}" Content="{x:Static chk:CheckTableText.SaveOverrides}" Click="OnSave"
+          <!-- R444. A button with nothing to do is hidden, never shown grey -->
+          <Button Style="{StaticResource SA.Button.Base}" Margin="{StaticResource SA.Gap.Right8}" Content="{x:Static chk:CheckTableText.ZoomToPlot}" Click="OnZoom"
+                  Visibility="{Binding ZoomAllowed, Converter={StaticResource Shown}}" />
+          <Button Style="{StaticResource SA.Button.Base}" Margin="{StaticResource SA.Gap.Right8}" Content="{x:Static chk:CheckTableText.ExportToExcel}" Click="OnExport"
+                  Visibility="{Binding ExportAllowed, Converter={StaticResource Shown}}" />
+          <Button Style="{StaticResource SA.Button.Primary}" Content="{x:Static chk:CheckTableText.SaveOverrides}" Click="OnSave"
                   IsEnabled="{Binding SaveAllowed}" />
         </StackPanel>
       </Grid>

@@ -61,7 +61,7 @@
                 <TextBlock Style="{StaticResource SA.Type.Body}" Foreground="{StaticResource SA.TextMuted}" VerticalAlignment="Center" Margin="{StaticResource SA.Gap.Right8}"
                            TextTrimming="CharacterEllipsis" Text="{Binding FileName}" ToolTip="{Binding ToolTip}" />
                 <Button Grid.Column="1" Style="{StaticResource SA.Button.Base}" Margin="{StaticResource SA.Gap.Right8}" Content="{x:Static np:NewProjectText.Browse}"
-                        IsEnabled="{Binding CanBrowse}" Click="OnBrowse" />
+                        Visibility="{Binding CanBrowse, Converter={StaticResource Shown}}" Click="OnBrowse" />
                 <Button Grid.Column="2" Style="{StaticResource SA.Button.Base}" Content="{x:Static np:NewProjectText.GetTemplate}" Click="OnTemplate"
                         Visibility="{Binding HasTemplate, Converter={StaticResource Shown}}" />
               </Grid>
