@@ -23,7 +23,7 @@ def test_r461_the_sheet_of_the_repo_gives_the_10_link_parameters_and_plot_with_t
                                                                          "RRE_ZZ_SP_Prototype-Foundation-Type", "RRE_ZZ_SP_Prototype-HVAC-Schedule-Type",
                                                                          "RRE_ZZ_SP_RVT-Name", "CASE"]
     assert [item["name"] for item in kept if item["filledBy"] is None] == [parameter_sheet.FFL]
-    assert {item["dataType"] for item in kept} == {"TEXT"} and {item["group"] for item in kept} == {"Data"}
+    assert {item["dataType"] for item in kept} == {"TEXT"} and [item["group"] for item in kept] == ["Text"] * 10 + ["Data"]
     assert next(item for item in kept if item["name"] == "CASE")["categories"] == ["Detail Items", "RVT Links"]
 
 
