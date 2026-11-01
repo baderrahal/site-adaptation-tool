@@ -21,7 +21,8 @@ Done:
 - Reviewer with the UI checklist and breaker, one pass each on PR 117: 12 REAL faults fixed with tests, 6 LATENT to steps/latent.md
 
 Checked:
-- Gate, RAN: net48 1745 passed, net8.0 1534 passed, pytest 2212 passed and 1 skipped, 0 failed
+- Gate, RAN: PR 117 net48 1745, net8.0 1534, PR 2 net48 1769, net8.0 1551, pytest 2212 and 1 skipped each, 0 failed
+- PR 2 reviewer and breaker: the skip list from the plan of 4 Check, a tick for the whole cluster, door level row under rev6 only
 - Pictures: steps/ui-shots/scan-results.png, setup-site.png, new-project.png, differences in steps/ui-shots/README.md
 - Second method: the review read the scan.json of the Lane D run (1218 conflicts, 332 keys shared), which led to the key with sourceB
 
