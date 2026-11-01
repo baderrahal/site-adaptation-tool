@@ -4,10 +4,10 @@
 
 ### Lane A
 
-- Lane: A, round 4j-2, branch feat/addin-4j2-split-walls. Time: 2026-11-01 06:40. Blocked: none
-- Now: the PR of 4j-2. Parity 48 runs 0 failures, past job 0 differ, gate green
-- Done: R414 off (Q303, Q304), R415, R416 with mitre corners, R417 stopped (Q259), review 1 APPROVE, breaker 1 REAL fixed, past job 0 differ
-- Next: the PR and its merge before 09:30, a message to lane-b with R414 to R416, else PAUSED
+- Lane: A, round FIX-1NOV-A, branch fix/1nov-a. Time: 2026-11-01 20:55. Blocked: a shutdown notice for 21:14
+- Now: parity on df09841 running. Gate green: pytest 2,261 passed, C# net48 1,832, net8.0 1,607, 0 failed
+- Done: R470 behind floors.rampJoint.join false (Bader, Q340), R471 rows, review 1 and 2 APPROVE, breaker 1 and 2, NBH 012 plan byte-equal to main
+- Next: if the PC stops, rerun the parity (p1nov scripts/all_parity.sh), fill the log entry, the PR. Then queued FIX-1NOV-A2 (Q292, Q278)
 
 ### Lane B, C and D
 
@@ -33,18 +33,18 @@ Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane
 - Lane B 6a: the test host runs every button with no click (R384) and draws each window, fixes found in Revit (Q274, R108). 5d: buttons 5, 6, 8
 - Lane D 4j-1: a scanner of any CAD, Excel and PDF, worker command scan, python/scan.py, design part 17. 4j-1b: speed and a time cap
 - Lane A 4i: the design basis switch, the Rev 6 back yard slopes, the new project check (R407 to R412)
-- Lane A 4j-2: the split test of 2.2.B behind designBasis.split.test, off (R414), irregular plots (R415), the wall face on the plot line under rev6 (R416)
+- Lane A 4j-2: split test off (R414), irregular plots (R415), wall face on the plot line (R416). FIX-1NOV-A: ramp joints behind join false (R470), joint rows (R471)
 - Lane C SCAN-UI: What the tool read after the scan of button 2, New project dropdowns, Current files, cluster confirm, door level from
 
 ## New rules
 
 - R384 Test host runs every button (Lane B 6a). R378 to R380 buttons 5, 6 and 8 (Lane B 5d)
-- R420 to R429 of the scanner (Lane D 4j-1, 4j-1b). R407 to R412 (Lane A 4i). R414 to R416 (Lane A 4j-2). R430 to R443 of Lane C
+- R420 to R429 of the scanner (Lane D 4j-1, 4j-1b). R407 to R412 (Lane A 4i). R414 to R416 (Lane A 4j-2). R470, R471 (Lane A FIX-1NOV-A). R430 to R443 of Lane C
 
 ## Wiring
 
 - Lane B: ButtonsRunHost runs Buttons.Run(number) and Buttons.Run(name), answers each Dialog seam with no click, WindowShots draws each window. 4 Check writes run_4_<run id>.json, ReportRun.CheckRun.Find of 9 reads it. Buttons 5, 6, 8 by FloorsBody, LevelsBody, WallsBody
-- Lane A 4j-2: key_levels calls plan_rules.split_test, KeyLevels.Of calls SplitTest. build calls plan_walls.irregular_of and inside, Walls.OfPlans calls Inside and Mitre
+- Lane A: key_levels calls plan_rules.split_test, build plan_walls.inside. override_step and build call joint_levels, PlanOverrides.Of JointLevels, checks joint_rows, CheckRows.Step JointRows
 - Lane D: worker command scan, WorkerReads.Commands to CadScan.Command. Button 2 does not start it (Q246)
 - Lane C: the pane opens NewProjectDialog and HowItWorksDialog. Buttons calls ReadDataBody.For, ScanStep.Wrap runs the scan, ScanGate.Ask opens ScanResultsDialog, NewProjectDialog.Facts is LatestScanFacts
 
@@ -52,7 +52,7 @@ Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane
 
 - All 336 masses are flagged by the footprint check, the masses stand right, the drawing holds plot blocks (Q276). Update from report stops on the plan of 4 Check (Q278, Lane A). Links waits on the upgrade first step limit (Q275)
 - New project shows Plots found and Villa types as not read until the scanner hook C1 is built. Lane D: no villa type source reaches the strong share on ROSHN (Q254), a large drawing scanned in part past the cap (Q258). Lane C: the read of button 2 does not take the picks yet (Q292)
-- Lane A 4j-2: the split test matches 8 of 82 key clusters (Q303, Q304), no input gives the garden door (Q259), the Revit join of moved walls UNKNOWN (L4j2-2)
+- Lane A: R414 8 of 82 (Q303, Q304), no garden door (Q259). Joints wait on Q340, Q341, configs saved with no floors.rampJoint stop the build (C:\SA-demo\config)
 
 ## Next
 

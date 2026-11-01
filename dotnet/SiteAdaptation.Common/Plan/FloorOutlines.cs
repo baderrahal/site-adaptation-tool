@@ -32,6 +32,117 @@ namespace SiteAdaptation.Common
             return new[] { front[0], front[1], entry + front[1] - middle, entry + front[0] - middle };
         }
 
+        // R470. plan_from_book.joint_near: floors.rampJoint.nearM of config, a length above 0, null while floors.rampJoint.join is false (Q340)
+        public static double? JointNear(JObject config, string configName)
+        {
+            JToken join = config["floors"]?["rampJoint"]?["join"];
+            if (join == null || join.Type != JTokenType.Boolean)
+            {
+                throw new InvalidDataException(configName + " floors.rampJoint.join must be true or false (R470)");
+            }
+            JToken near = config["floors"]?["rampJoint"]?["nearM"];
+            if (near == null || (near.Type != JTokenType.Integer && near.Type != JTokenType.Float) || BuildFace.Number(near) <= 0)
+            {
+                throw new InvalidDataException(configName + " floors.rampJoint.nearM must be a length above 0 (R470)");
+            }
+            return (bool)join ? BuildFace.Number(near) : (double?)null;
+        }
+
+        // R470. plan_from_book.joint_levels: ramps by plot, the plan corners, their raw levels and the road levels of the front pair before any
+        // rampFrontM gap. Front corners of two or more plots within near in plan, chained, are one joint and each takes the road level of the
+        // first corner of the joint in the order of the plots and corners given. The back pair keeps El @ Entry (R358) and joins nothing. The
+        // new levels of each plot a joint changed
+        public static Dictionary<string, double[]> JointLevels(IEnumerable<Tuple<string, double[][], double[], double[]>> ramps, double near)
+        {
+            var heightsOf = new Dictionary<string, double[]>();
+            var corners = new List<Tuple<string, int, double, double, double>>();
+            foreach (Tuple<string, double[][], double[], double[]> ramp in ramps)
+            {
+                heightsOf[ramp.Item1] = ramp.Item3;
+                for (int index = 0; index < Math.Min(2, Math.Min(ramp.Item2.Length, ramp.Item4.Length)); index++)
+                {
+                    corners.Add(Tuple.Create(ramp.Item1, index, ramp.Item2[index][0], ramp.Item2[index][1], ramp.Item4[index]));
+                }
+            }
+            int[] parent = Enumerable.Range(0, corners.Count).ToArray();
+            int Root(int at)
+            {
+                while (parent[at] != at)
+                {
+                    parent[at] = parent[parent[at]];
+                    at = parent[at];
+                }
+                return at;
+            }
+            // A grid of cells near wide finds the corners within near among the 3 by 3 cells around each, the joints the same as every pair gives
+            var cells = new Dictionary<Tuple<long, long>, List<int>>();
+            for (int at = 0; at < corners.Count; at++)
+            {
+                var cell = Tuple.Create((long)Math.Floor(corners[at].Item3 / near), (long)Math.Floor(corners[at].Item4 / near));
+                if (!cells.TryGetValue(cell, out List<int> inCell))
+                {
+                    cells[cell] = inCell = new List<int>();
+                }
+                inCell.Add(at);
+            }
+            for (int at = 0; at < corners.Count; at++)
+            {
+                long column = (long)Math.Floor(corners[at].Item3 / near), row = (long)Math.Floor(corners[at].Item4 / near);
+                for (long dx = -1; dx <= 1; dx++)
+                {
+                    for (long dy = -1; dy <= 1; dy++)
+                    {
+                        if (!cells.TryGetValue(Tuple.Create(column + dx, row + dy), out List<int> inCell))
+                        {
+                            continue;
+                        }
+                        foreach (int other in inCell)
+                        {
+                            double x = corners[other].Item3 - corners[at].Item3, y = corners[other].Item4 - corners[at].Item4;
+                            if (other > at && corners[other].Item1 != corners[at].Item1 && x * x + y * y <= near * near)
+                            {
+                                int a = Root(at), b = Root(other);
+                                parent[Math.Max(a, b)] = Math.Min(a, b);
+                            }
+                        }
+                    }
+                }
+            }
+            var groups = new Dictionary<int, List<int>>();
+            for (int at = 0; at < corners.Count; at++)
+            {
+                int root = Root(at);
+                if (!groups.TryGetValue(root, out List<int> members))
+                {
+                    groups[root] = members = new List<int>();
+                }
+                members.Add(at);
+            }
+            var found = new Dictionary<string, double[]>();
+            foreach (List<int> members in groups.Values)
+            {
+                if (members.Select(at => corners[at].Item1).Distinct().Count() < 2)
+                {
+                    continue;
+                }
+                double level = corners[members[0]].Item5;
+                foreach (int at in members)
+                {
+                    string plot = corners[at].Item1;
+                    if (heightsOf[plot][corners[at].Item2] == level)
+                    {
+                        continue;
+                    }
+                    if (!found.TryGetValue(plot, out double[] heights))
+                    {
+                        found[plot] = heights = (double[])heightsOf[plot].Clone();
+                    }
+                    heights[corners[at].Item2] = level;
+                }
+            }
+            return found;
+        }
+
         // floor_fit.width_key: the plot width in whole steps by round() of Python, half to even, then to 3 decimals by round() again, a lookup
         // that is never written as a level or a length (Phase 4b)
         public static double WidthKey(double width, double step)

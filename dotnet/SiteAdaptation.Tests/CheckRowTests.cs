@@ -112,7 +112,7 @@ namespace SiteAdaptation.Tests
             JObject block = Block();
             Assert.Equal("entryM Level gapToRuleM|heightM Level gapToRuleM|rampFrontM Level gapToRuleM|steps Level wholeNumber|rampFrontFallM Level |insert Position gapToRuleM|"
                 + "rotationDeg Position gapToRuleDeg|mirrored Hand trueOrFalse|rampType Floor slopeClass|genericFloor Floor |yardOutline Floor |rampOutline Floor |"
-                + "parameter RRE_ZZ_SP_Prototype-FFL Parameter gapToRuleM|parameter * Parameter text|prototypeFile Unit code ",
+                + "rampJoint Floor |parameter RRE_ZZ_SP_Prototype-FFL Parameter gapToRuleM|parameter * Parameter text|prototypeFile Unit code ",
                 string.Join("|", ((JObject)block["fields"]).Properties().Select(item => item.Name + " " + (string)item.Value["check"] + " " + (string)item.Value["past"])));
             Assert.Equal("Plot cut|Floor|Hand|Unit code|Position|Level", string.Join("|", block["types"].Select(item => (string)item)));
             Assert.Equal("text", (string)CheckRows.EntryOf(block, "fields", "parameter RRE_ZZ_SP_RVT-Name")["past"]);
@@ -337,10 +337,13 @@ namespace SiteAdaptation.Tests
                 Assert.True(code == 0, code + " " + WorkerAnswer.Read(WorkerFiles.AnswerPath(request.OutputFolder, "c1")).Message);
                 JObject step = RunStamp.Read(Path.Combine(request.OutputFolder, "steps", "step_checkRows_csharp.json"));
                 JToken three = step["plots"]["3"]["written"];
-                // Plot 3 lacks a yard outline as in the made up build of test_level_floor_steps.py
-                Assert.Equal("Floor floors.yard missing Rule , Level heightM override Past parsons ffl", string.Join(", ", three["rows"].Select(item => (string)item["check"] + " " + (string)item["field"] + " "
+                // Plot 3 lacks a yard outline as in the made up build of test_level_floor_steps.py, and its four ramp corners each join a corner of
+                // plot 2 or 4 (R471)
+                string joint = string.Concat(Enumerable.Repeat("Floor rampJoint joint Rule R471, ", 4));
+                Assert.Equal("Floor floors.yard missing Rule , " + joint + "Level heightM override Past parsons ffl", string.Join(", ", three["rows"].Select(item => (string)item["check"] + " " + (string)item["field"] + " "
                     + (string)item["from"] + " " + (string)item["use"] + " " + (string)item["rule"])));
-                Assert.Equal(0.1, (double)three["rows"][1]["past"]["value"]["gapToRuleM"]);
+                Assert.Equal(new[] { 0.0, 0.0, 0.0, 0.0 }, three["rows"].Skip(1).Take(4).Select(item => (double)item["toolValue"]).ToArray());
+                Assert.Equal(0.1, (double)three["rows"][5]["past"]["value"]["gapToRuleM"]);
                 Assert.Equal(6, ((JObject)step["plots"]).Count);
                 Assert.Equal((int)step["tables"]["chips"]["All"], ((JObject)step["plots"]).Properties().Sum(plot => ((JArray)plot.Value["written"]["rows"]).Count));
                 Assert.True(((JObject)step["tables"]["assumed"]).Count > 0);

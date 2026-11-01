@@ -64,7 +64,7 @@ namespace SiteAdaptation.Tests
         // test_level_floor_steps.made_build and test_override_param_steps.row_build: the row of six 12 m faces, the plots of faceless DP2 units with no
         // face, the plots of dry with no road level past their left corner, the step scope the plots and 7, a number with no row
         internal static Built Build(OverrideList list, Action<JObject> change = null, string[] faceless = null, string[] dry = null, Action<JObject> changeRules = null,
-            bool backDry = false, DesignBasis basis = null, JArray bands = null)
+            bool backDry = false, DesignBasis basis = null, JArray bands = null, Action<JObject> changeConfig = null)
         {
             faceless = faceless ?? new string[0];
             dry = dry ?? new string[0];
@@ -72,6 +72,7 @@ namespace SiteAdaptation.Tests
             changeRules?.Invoke(rules);
             change?.Invoke((JObject)rules["levelProfiles"]["parsons2024Rev6"]["keyRules"]);
             JObject config = JObject.Parse(File.ReadAllText(WorkerRunTests.RepoConfig()));
+            changeConfig?.Invoke(config);
             List<string> numbers = new[] { "1", "2", "3", "4", "5", "6" }.Concat(faceless).ToList();
             var faces = numbers.Where(number => !faceless.Contains(number)).ToDictionary(number => number,
                 number => BuildFace.Of(number, LevelFloorStepTests.Ring((int.Parse(number) - 1) * 12.0, 0.0, int.Parse(number) * 12.0, 25.0)));
