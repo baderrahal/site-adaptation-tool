@@ -46,7 +46,7 @@ namespace SiteAdaptation.AddIn
         {
             Func<SettingsScope> scope = () => new SettingsScope { Kind = session.Settings.Scope.Kind, Nbh = session.Settings.Scope.Nbh, Plots = session.Settings.Scope.Plots };
             var document = new WorkerDocument { Path = session.Path, SessionId = session.SessionId };
-            ButtonBody read = new ReadDataRun(Roles, Worker, document, scope).Body();
+            ButtonBody read = new ReadDataRun(Roles, Worker, document, scope, () => session.Settings.Project).Body();
             // A run of the test host has no one to pick in the window and runs its read as before, so the runs of Lane B keep their
             // time and never wait on a window (CHOSEN, SCAN-UI)
             if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable(TestHostGuard.JobVariable)))

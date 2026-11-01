@@ -174,8 +174,9 @@ namespace SiteAdaptation.Tests
             // row on Skip. Lane C NEWPROJ-UI added 21: 3 of the pane, Settings among them, and 18 of New project. Lane C SCAN-UI added
             // 15 of What the tool read, 8 of the section Current files of Set up site and 2 of New project. Lane C SCAN-UI task 5 added
             // 8 of the cluster confirm of Review data (R442), task 6 4 of Door level from of Check table (R443). Lane C DEMO-FIX added 7,
-            // Confirm all and Confirm all shown of Review data and 5 of the Loader (R444)
-            Assert.Equal(210, chosen);
+            // Confirm all and Confirm all shown of Review data and 5 of the Loader (R444). FIX-1NOV-A2 took out 1, the 5f line of a plan not
+            // in the work folder, as Update from report finds the plan of 4 Check by its run log (R472)
+            Assert.Equal(209, chosen);
             Assert.True(matched > 100, matched.ToString());
         }
 
