@@ -15,7 +15,7 @@
   notice says 21:14 on this laptop. Next: Task 6 hand run after Lane A. Blocked: none
 - Lane C DEMO-FIX, 09:55, branch fix/lane-c-demo-fix: step rows of the pane run steps, a loader on every button, Confirm all in 3 Review
   data, idle buttons hidden (R444). Now: the gate and the PR, merge by 10:15, then lane-b reinstalls. Blocked: none
-- Lane D D3, 00:15, branch fix/1nov-d3: pushed R467 and R468, the copy saved after each button. All 13 sources Revit 2021, hashed, only C10 and DT3 have 2024
+- Lane D D3, 01:27, branch fix/1nov-d3: pushed R467 and R468, the copy saved after each button, the R405 tests alone (Lane A saw R466 fail once). All 13 sources Revit 2021, hashed, only C10 and DT3 have 2024
   copies, both unchecked. Specs, upgrade driver and link compare ready under the work root, reads D3. Next: Lane B's "Revit free, start D3", then install,
   move C10 and DT3 aside, 13 upgrade windows, run D3L buttons 1 to 9, run D3S the swap back, reads, compare. Blocked: Revit, Lane B Task 6
 
