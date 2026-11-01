@@ -68,11 +68,13 @@ namespace SiteAdaptation.Common.SetUp
             {
                 return null;
             }
-            CoordinateSettings settings = CoordinateSettings.From(config);
-            if (!settings.FromCad)
+            // Under positionFile no key of the block is read, so a slip in a key of the CAD source never stops button 1
+            JToken source = config["coordinates"]["source"];
+            if (source != null && source.Type == JTokenType.String && (string)source == CoordinateSettings.FromPositionFile)
             {
                 return null;
             }
+            CoordinateSettings settings = CoordinateSettings.From(config);
             if (read == null)
             {
                 throw new InvalidOperationException("coordinates.source is cad and this run of button 1 reads no CAD (R455)");
@@ -80,6 +82,11 @@ namespace SiteAdaptation.Common.SetUp
             CoordinateRead cad = read(context);
             SystemsCheck systems = CoordinateSystems.Agree(cad.Files, settings);
             CadSite site = FromCad(cad.Plots, settings, systems.EpsgForMath);
+            string outside = CoordinateSystems.OutsideZone(cad.Plots, settings, systems.EpsgForMath);
+            if (outside != null)
+            {
+                systems.Stops.Add(outside);
+            }
             site.Systems = systems;
             site.ControlPoints = ControlPoints.Pick(cad.Plots, settings.ControlPointCount);
             site.ControlPointLimitMm = settings.ControlPointLimitMm;
@@ -105,7 +112,11 @@ namespace SiteAdaptation.Common.SetUp
             var read = new CoordinateRead();
             foreach (JObject file in (answer["files"] as JArray ?? throw new InvalidDataException("crs.json holds no files (R454)")).OfType<JObject>())
             {
-                read.Files.Add(new StatedSystem { File = (string)file["file"], Name = file["name"]?.Type == JTokenType.String ? (string)file["name"] : null });
+                read.Files.Add(new StatedSystem
+                {
+                    File = (string)file["file"], Name = file["name"]?.Type == JTokenType.String ? (string)file["name"] : null,
+                    Problems = file["problems"]?.Type == JTokenType.Integer ? file["problems"].Value<int>() : 0,
+                });
             }
             foreach (JObject plot in (answer["plots"] as JArray ?? new JArray()).OfType<JObject>())
             {

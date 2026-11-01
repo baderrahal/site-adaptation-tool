@@ -21,12 +21,14 @@ namespace SiteAdaptation.Common.SetUp
     {
         public static List<ControlPoint> Pick(IReadOnlyList<CadPlot> plots, int count)
         {
+            // A corner two plots share is one point, kept under the first plot of the order, so no point is picked twice
             List<KeyValuePair<string, double[]>> corners = plots.Where(plot => plot.Vertices != null)
                 .SelectMany(plot => plot.Vertices.Select(vertex => new KeyValuePair<string, double[]>(plot.Plot, new[] { vertex[0], vertex[1], vertex.Length > 2 ? vertex[2] : 0.0 })))
-                .OrderBy(corner => corner.Value[1]).ThenBy(corner => corner.Value[0]).ThenBy(corner => corner.Key, StringComparer.Ordinal).ToList();
+                .OrderBy(corner => corner.Value[1]).ThenBy(corner => corner.Value[0]).ThenBy(corner => corner.Key, StringComparer.Ordinal)
+                .GroupBy(corner => new KeyValuePair<double, double>(corner.Value[0], corner.Value[1])).Select(same => same.First()).ToList();
             if (corners.Count < count)
             {
-                throw new InvalidDataException("the baseplan read holds " + corners.Count.ToString(CultureInfo.InvariantCulture) + " plot corners, fewer than the " + count.ToString(CultureInfo.InvariantCulture) + " control points of coordinates.controlPointCount (R456)");
+                throw new InvalidDataException("The baseplan holds " + corners.Count.ToString(CultureInfo.InvariantCulture) + " distinct plot corners, fewer than the " + count.ToString(CultureInfo.InvariantCulture) + " control points of coordinates.controlPointCount, so button 1 cannot check the site position (R456)");
             }
             var chosen = new List<KeyValuePair<string, double[]>> { corners.OrderBy(corner => corner.Value[0] + corner.Value[1]).First() };
             while (chosen.Count < count)
@@ -56,8 +58,10 @@ namespace SiteAdaptation.Common.SetUp
             {
                 double[] revit = revitShared(SiteCoordinates.ToInternal(position, point.SharedM));
                 row.Revit = SetUpTexts.Coordinate(revit);
-                row.DiffMm = Rounding.Fixed(SiteCoordinates.Gap(point.SharedM, revit) * 1000.0, decimals);
-                row.Pass = row.DiffMm.Value <= limitMm;
+                double gapMm = SiteCoordinates.Gap(point.SharedM, revit) * 1000.0;
+                row.DiffMm = Rounding.Fixed(gapMm, decimals);
+                // The gap as measured is held to the limit, the shown 0.1 of a gap of 0.104 mm must not pass a limit of 0.1 mm
+                row.Pass = gapMm <= limitMm;
             }
             return row;
         }

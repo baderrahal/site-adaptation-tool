@@ -593,7 +593,7 @@ Q327. Elevation of the shared origin from CAD (Lane B FIX-1NOV-B, R455). The pas
 - Recommended: Bader names a CAD source for the height, such as the lowest road level of the LandXML under the origin, until then 0 from config.
 - Other: put 179.51 of the past job in coordinates.originElevationM.
 
-Q328. Default source of the site position (Lane B FIX-1NOV-B, R455). coordinates.source is positionFile in the PR, so button 1 sets the position of the past job as before and the demo is not changed. The CAD source still takes the levels and units of the position file, and on a new project it renames the active position Internal to coordinates.positionName. Neither is run in Revit yet.
+Q328. Default source of the site position (Lane B FIX-1NOV-B, R455). coordinates.source is positionFile in the PR, so button 1 sets the position of the past job as before and the demo is not changed. The CAD source still takes the levels and units of the position file, and on a new project it renames the active position Internal to coordinates.positionName. Neither is run in Revit yet. coordinates.angleToTrueNorthDeg 0, the grid of the drawing, and coordinates.placeName Makkah are recommended with it, no source document gives them. Under positionFile no other key of the block is read.
 - Recommended: switch coordinates.source to cad after the runner's Revit run reads back the named position, the site location and the three control points, the levels and units to move into config in a later round.
 - Other: switch it now.
 

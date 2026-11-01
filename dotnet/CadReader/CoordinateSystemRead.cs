@@ -31,17 +31,18 @@ namespace CadReader
             var files = new JArray();
             var plots = new JArray();
             int stated = 0;
+            int problemCount = 0;
             foreach (WorkerFile input in request.Inputs.Where(input => input.Role != CoordinateRequest.ConfigRole && input.Role != CoordinateRequest.LayersRole).OrderBy(input => input.Role, StringComparer.Ordinal))
             {
                 string path = run.Input(input.Role);
                 string name;
+                var problems = new List<string>();
                 if (CoordinateRequest.IsLandXml(path))
                 {
                     name = OfLandXml(path);
                 }
                 else if (CoordinateRequest.IsDrawing(path))
                 {
-                    var problems = new List<string>();
                     CadDocument document = CadExtractor.Open(path, problems);
                     name = OfDrawing(document);
                     if (input.Role == CoordinateRequest.BaseplanRole)
@@ -55,10 +56,12 @@ namespace CadReader
                     throw run.Refusal("the input " + input.Role + " is " + Path.GetFileName(path) + ", neither a drawing nor a LandXML (R454)");
                 }
                 stated += name == null ? 0 : 1;
-                files.Add(new JObject { ["role"] = input.Role, ["file"] = Path.GetFileName(path), ["name"] = name });
+                problemCount += problems.Count;
+                files.Add(new JObject { ["role"] = input.Role, ["file"] = Path.GetFileName(path), ["name"] = name, ["problems"] = problems.Count });
             }
             run.Counts["inputs read"] = files.Count;
             run.Counts["inputs stating a coordinate system"] = stated;
+            run.Counts["read problems"] = problemCount;
             run.Counts["plot outlines"] = plots.Count;
             run.WriteJson(request.OutputFolder, CoordinateRequest.OutputFile, new JObject { ["format"] = CoordinateRead.Format, ["files"] = files, ["plots"] = plots });
         }

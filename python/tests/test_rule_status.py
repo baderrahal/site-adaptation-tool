@@ -2,6 +2,7 @@
 statuses and the fields it needs, written twice to the same bytes, never read as a value, and kept by every reader of the profile."""
 import json
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -414,6 +415,29 @@ def test_r375_r401_the_block_addin_read_data_is_a_setting_with_no_entry_of_the_s
     profile = json.loads((ROOT / settings["profile"]).read_text(encoding="utf-8"))
     assert "readData" in settings["addin"]
     assert [path for path in profile["status"]["config/project.json"] if path.startswith("addin.readData")] == []
+
+
+def test_r401_r455_each_coordinates_key_has_the_question_of_its_own_sentence():
+    """Lane B FIX-1NOV-B fix pass: each key of the block coordinates is named by its path in one sentence of its note, and its entry of
+    the status block holds the one question that sentence names, or CHOSEN by Code when it names CHOSEN and no question. A note that
+    named two questions in one sentence gave originElevationM the question of originRoundM."""
+    settings = json.loads((ROOT / "config" / "project.json").read_text(encoding="utf-8"))
+    block = json.loads((ROOT / settings["profile"]).read_text(encoding="utf-8"))["status"]["config/project.json"]
+    coordinates = settings["coordinates"]
+    said = rule_status.sentences(coordinates["note"])
+    for key in [k for k in coordinates if k not in ("note", "source")]:
+        own = [s for s in said if rule_status.named_in("coordinates." + key, s)]
+        assert len(own) == 1, (key, own)
+        asked = sorted(set(re.findall(r"Q\d{3}", own[0])))
+        entries = {path: entry for path, entry in block.items() if path == "coordinates." + key or path.startswith("coordinates." + key + ".")}
+        assert entries, key
+        for path, entry in entries.items():
+            if asked:
+                assert len(asked) == 1, (key, asked)
+                assert (entry["status"], entry.get("question")) == (rule_status.RECOMMENDED, asked[0]), (path, entry)
+            else:
+                assert "CHOSEN" in own[0], key
+                assert entry["status"] == rule_status.CODE, (path, entry)
 
 
 def test_d13_the_open_questions_are_read_from_questions_open_not_from_baders_turn(tmp_path):

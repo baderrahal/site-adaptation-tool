@@ -458,3 +458,13 @@ No real input reaches these on the ROSHN config, whose linkFolder is masses, mas
 - OutlineDistance.cs:138, houseMinAreaM2 is held against the ring area in drawing units, right while the drawing is in metres.
 - PlaceVillasRun.cs:242, linkFolder prototypes or a folder writes footprint_<NBH>.json with no rows, those links give no base to measure, the counts say so.
 - UNKNOWN, the mass file takes the name of its prototype (R450). After a Links run of part of the plots, a type of massFolder\VD4.rvt and one of the prototype folder VD4.rvt stand in one model. Whether Revit 2024 holds two link types of one file name from two folders is UNKNOWN, the runner probes it. Naming unchanged until then, with the mass base question of Q279.
+
+## Lane B FIX-1NOV-B fix pass on task 3, R454 to R456
+
+No real input reaches these: coordinates.source is positionFile (Q328), and the demo copies state UTM84-37N or no system, with no named position on the documents.
+
+- AddIn/Revit/RevitSiteDocument.cs:153 SetNamedPosition with SetUpPlanner.cs:128 Changes: a document that already holds an inactive position of coordinates.positionName gets it made active, while Changes and the dry run were computed against the position active before. The read back after Apply shows the gap, the dry run does not.
+- Common/SetUp/SitePosition.cs:52 and CoordinateSystems.cs:186: a stated geographic code such as EPSG 4326 that coordinates.systems maps, or a coordinates.expectedEpsg of no UTM zone, throws in UtmMath.ZoneOf before the expected code stop of R454 is listed.
+- CadReader/CoordinateSystemRead.cs:141 OfLandXml: a LandXML that names its system only by horizontalCoordinateSystemName, with no epsgCode, is read as stating none.
+- CoordinateSystemRead.cs NameOfDefinition: a well known text whose name coordinates.systems does not hold stops button 1 as a name of no known code, even when it is the same system as UTM84-37N.
+- RevitSiteDocument.cs:153 SetNamedPosition: the position name is matched with case, so a position of the name in another case is not found and the active position is renamed beside it. Whether Revit refuses two names that differ by case is UNKNOWN.
