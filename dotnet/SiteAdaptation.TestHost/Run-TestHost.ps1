@@ -216,7 +216,8 @@ function Get-SiteNewFile($build) {
 if ($round) {
     # R204 to R214. Every file sits in the work folder of siteBuild, and the file named in $original must not change
     $build = $config.siteBuild
-    $work = Join-Path $build.folder 'work'
+    $buildFolder = Resolve-WorkRootPath -Path $build.folder -Docs $docs
+    $work = Join-Path $buildFolder 'work'
     $roundJob = [ordered]@{
         kind  = $round.kind
         token = $null
@@ -260,7 +261,7 @@ if ($round) {
             }
             $original = $copy
             $roundJob.model = $copy
-            $roundJob.imageFolder = Join-Path $build.folder 'images'
+            $roundJob.imageFolder = Join-Path $buildFolder 'images'
             $roundJob.imageLevel = [string]$round.imageLevel
             $roundJob.area = [double[]]@($round.area)
             # R302. The image step runs at most testHost.imageStepMinutes of config/project.json. The job may run that plus
@@ -289,8 +290,8 @@ if ($round) {
         }
         'newSite' {
             $copy = Join-Path $work (Get-SiteNewFile $build)
-            if (-not ([string]$round.site).StartsWith($build.folder + [IO.Path]::DirectorySeparatorChar)) {
-                throw "The site file is not in $($build.folder)"
+            if (-not ([string]$round.site).StartsWith($buildFolder + [IO.Path]::DirectorySeparatorChar)) {
+                throw "The site file is not in $buildFolder"
             }
             $original = $build.template
             $roundJob.model = $copy

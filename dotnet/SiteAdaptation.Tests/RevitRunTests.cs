@@ -293,6 +293,18 @@ namespace SiteAdaptation.Tests
             Assert.Contains("Resolve-WorkRootPath -Path $config.pastJob.output -Docs $docs", script);
         }
 
+        // FIX-1NOV-B, found by Lane D: a -RoundSpec job joined siteBuild.folder "{workRoot}\round_addin" with the mark not taken, so its
+        // work folder was a relative path and no Revit window opened
+        [WindowsFact]
+        public void R109_a_round_spec_takes_the_work_root_mark_of_the_site_build_folder()
+        {
+            string script = File.ReadAllText(Path.Combine(ThemeGateTests.RepoRoot(), "dotnet", "SiteAdaptation.TestHost", "Run-TestHost.ps1"));
+            Assert.Contains("$buildFolder = Resolve-WorkRootPath -Path $build.folder -Docs $docs", script);
+            Assert.DoesNotContain("Join-Path $build.folder", script);
+            Assert.DoesNotContain("$build.folder +", script);
+            Assert.DoesNotContain("in $($build.folder)", script);
+        }
+
         [WindowsFact]
         public void R109_Q215_the_upgrade_folder_lies_under_the_work_root_and_never_under_an_input_root()
         {
