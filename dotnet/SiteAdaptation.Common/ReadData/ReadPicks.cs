@@ -59,15 +59,17 @@ namespace SiteAdaptation.Common.ReadData
         {
             public List<string> PlotLineLayers { get; set; }
             public List<string> PlotLabelLayers { get; set; }
-            public string VillaBlockLayer { get; set; }
             public string TypologyHeader { get; set; }
+
+            // The plot outline and plot number sources taken, each with its label, which a failed read of the location plan names
+            public List<string> LayerSources { get; } = new List<string>();
             public List<PickedConflict> Conflicts { get; } = new List<PickedConflict>();
             public List<string> Lines { get; } = new List<string>();
         }
 
         // Per value kind the saved pick when it names a source of the scan, else the proposal of the scan, else the default, and the
-        // conflict picks whose key matches a conflict of the scan with the value of the chosen source. scan is null when the work
-        // folder holds none
+        // conflict picks whose key matches a conflict of the scan and that chose its second source, with the value of that source. scan is
+        // null when the work folder holds none
         public static JObject Resolve(ProjectSettings settings, JObject scan, PickFiles files)
         {
             var lines = new List<string>();
@@ -124,7 +126,14 @@ namespace SiteAdaptation.Common.ReadData
                     }
                     continue;
                 }
-                string value = Text(chosen == a ? item["valueA"] : item["valueB"]);
+                // Breaker 2 of FIX-1NOV-A2: Use these picks saves every conflict with the choice it shows, the first source where the person
+                // changed nothing, so a saved first source says nothing of a person. Taken, it wrote the value of the lead source on 250 real
+                // plots. Only the second source is a choice a person made, the read keeps its own value for the rest
+                if (chosen == a)
+                {
+                    continue;
+                }
+                string value = Text(item["valueB"]);
                 if (value == "")
                 {
                     lines.Add("the conflict pick of plot " + plot + " takes " + chosen + ", which gives no villa type, the read keeps its own (R473)");
@@ -265,12 +274,11 @@ namespace SiteAdaptation.Common.ReadData
                 {
                     case PlotOutline:
                         taken.PlotLineLayers = rest.Split(new[] { LayerJoin }, StringSplitOptions.None).ToList();
+                        taken.LayerSources.Add(Label(kind) + " " + source);
                         break;
                     case PlotNumber:
                         taken.PlotLabelLayers = new List<string> { rest };
-                        break;
-                    case VillaBlock:
-                        taken.VillaBlockLayer = rest;
+                        taken.LayerSources.Add(Label(kind) + " " + source);
                         break;
                     case VillaType:
                         taken.TypologyHeader = SheetOf(rest)[1];
@@ -282,6 +290,17 @@ namespace SiteAdaptation.Common.ReadData
                 taken.Conflicts.Add(new PickedConflict { Plot = Text(item["plot"]), Field = Text(item["field"]), Source = Text(item["source"]), Value = Text(item["value"]) });
             }
             return taken;
+        }
+
+        // Breaker 2 of FIX-1NOV-A2: a plot outline or plot number source can leave too few labels for the location plan, whose refusal names no
+        // layer. The text of a refusal with the sources taken added, as it was when none was taken
+        public static string Named(string message, PicksTaken taken)
+        {
+            if (taken == null || taken.LayerSources.Count == 0)
+            {
+                return message;
+            }
+            return message + ". The read took the " + string.Join(" and the ", taken.LayerSources) + ", if that is wrong change it in What the tool read (R473)";
         }
 
         // The columns of the sales rows with the typology column set to the header of the pick, when the header row of the sheet holds it as

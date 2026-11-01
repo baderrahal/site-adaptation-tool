@@ -68,6 +68,18 @@ def test_r473_a_conflict_pick_changes_one_plots_villa_type():
     assert len(lines) == 2 and "VL3" in lines[0] and "99" in lines[1]
 
 
+def test_r473_picks_json_of_first_sources_sets_nothing_and_a_second_source_sets_that_one_plot():
+    # Breaker 2 of FIX-1NOV-A2: Python takes the picks ReadPicks.Resolve wrote, and that writes no conflict for a saved first source. The
+    # rule itself lies in Resolve, R473_a_saved_first_source_of_every_conflict_gives_no_conflict_and_no_line of the C# proves it
+    table = {"12": {"baseplanLabel": "12", "typologyRev9": "DP1"}, "13": {"baseplanLabel": "13", "typologyRev9": "DP1"}}
+    lines = []
+    assert read_steps.apply_conflicts(table, picks()["conflicts"], lines) == 0
+    assert lines == [] and table["12"]["typologyRev9"] == "DP1" and table["13"]["typologyRev9"] == "DP1"
+    second = dict(picks(), conflicts=[{"plot": "12", "field": "villa type", "source": "Blocks.dwg|block|MP_VL", "value": "VL2"}])
+    assert read_steps.apply_conflicts(table, second["conflicts"], lines) == 1
+    assert lines == [] and table["12"]["typologyRev9"] == "VL2" and table["13"]["typologyRev9"] == "DP1"
+
+
 def test_r473_a_villa_type_sheet_pick_sets_the_typology_column_when_the_header_row_holds_it(tmp_path):
     book = openpyxl.Workbook()
     book.active.title = "Sales"

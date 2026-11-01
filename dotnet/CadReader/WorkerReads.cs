@@ -117,7 +117,7 @@ namespace CadReader
             List<string> order = WorkerMemory.ReadOrder(request.Inputs, Drawings, AddinConfig.Load(run.Input("config")));
             foreach (string role in order)
             {
-                reads[role] = Drawing(run, role, layers, settings, false, picks?.VillaBlockLayer);
+                reads[role] = Drawing(run, role, layers, settings);
                 run.WriteJson(request.OutputFolder, "read_" + role + ".json", reads[role]);
                 run.Counts["drawing " + role + " read as"] = order.IndexOf(role) + 1;
                 WorkerMemory.Release();
@@ -128,7 +128,7 @@ namespace CadReader
             var sheets = new Dictionary<string, XlsxSheet.Sheet>();
             SheetRows.AreaKey[] areaKeys = Workbooks(run, settings, steps, made, sheets);
             JObject baseplan = reads.TryGetValue("baseplan", out JObject read) ? read : null;
-            Located located = Location(run, settings, baseplan, steps, made, sheets, picks?.TypologyHeader);
+            Located located = Location(run, settings, baseplan, steps, made, sheets, picks);
             if (located != null)
             {
                 WorkerMemory.Release();
@@ -362,8 +362,7 @@ namespace CadReader
         // layer list, the plots of the baseplan, the blocks and the setback pieces of the footprint, the curb and ROW pieces of the road
         // layout, as CadReader writes them in plots.json, blocks.json and pieces.json, or with exact the plots with every digit of their
         // vertices as plots_exact.json of --exact gives them, for the check points of R353
-        // blockLayer is the insert layer of a villa block pick (R473), which limits the blocks of the villa blocks drawing to it
-        private static JObject Drawing(WorkerContext run, string role, LayerConfig layers, ReadSettings settings, bool exact = false, string blockLayer = null)
+        private static JObject Drawing(WorkerContext run, string role, LayerConfig layers, ReadSettings settings, bool exact = false)
         {
             string path = run.Input(role);
             string name = Path.GetFileName(path);
@@ -396,12 +395,7 @@ namespace CadReader
             }
             if (role == "villaBlocks")
             {
-                List<BlockEntry> blocks = blockLayer == null ? extract.Blocks.Blocks : extract.Blocks.Blocks.Where(block => block.Layer == blockLayer).ToList();
-                if (blockLayer != null)
-                {
-                    run.Counts["villaBlocks inserts left out by the villa block pick"] = extract.Blocks.Blocks.Count - blocks.Count;
-                }
-                output["blocks"] = AsWritten(blocks);
+                output["blocks"] = AsWritten(extract.Blocks.Blocks);
             }
             if (wanted.Count > 0)
             {
@@ -577,9 +571,10 @@ namespace CadReader
         // faces of the baseplan read of the same request, the schedule of each neighbourhood of connect.neighbourhoods the input
         // schedule:<NBH>, the sales rows and the code table from the workbook of their setting, then checked by the control point fit of
         // R387, which numbers nothing. Written to read_locationPlan.json and to the steps of the location plan the request names
-        // typology is the header of a villa type pick of the sales sheet (R473), which the typology column of the sales rows takes
+        // picks gives the header of a villa type pick of the sales sheet, which the typology column of the sales rows takes, and the plot
+        // outline and plot number sources a refusal of the faces or the numbering names (R473)
         private static Located Location(WorkerContext run, ReadSettings settings, JObject baseplan, HashSet<string> steps, Dictionary<string, Dictionary<string, Dictionary<string, object>>> made,
-            Dictionary<string, XlsxSheet.Sheet> sheets, string typology)
+            Dictionary<string, XlsxSheet.Sheet> sheets, ReadPicks.PicksTaken picks)
         {
             WorkerRequest request = run.Request;
             if (request.Inputs.All(input => input.Role != LocationPlan.PlotNumbersRole))
@@ -629,7 +624,7 @@ namespace CadReader
             try
             {
                 List<object[]> salesRows = SheetOf(run, sheets, salesRole, plan.Sales.Sheet);
-                sales = LocationPlan.Table(salesRows, plan.Sales.HeaderRow, ReadPicks.TypologyColumns(plan.Sales.Columns, salesRows, plan.Sales.HeaderRow, typology, run.Issues), "the sheet " + plan.Sales.Sheet);
+                sales = LocationPlan.Table(salesRows, plan.Sales.HeaderRow, ReadPicks.TypologyColumns(plan.Sales.Columns, salesRows, plan.Sales.HeaderRow, picks?.TypologyHeader, run.Issues), "the sheet " + plan.Sales.Sheet);
                 table = LocationPlan.Table(SheetOf(run, sheets, salesRole, plan.CodeTable.Sheet), plan.CodeTable.HeaderRow, plan.CodeTable.Columns, "the sheet " + plan.CodeTable.Sheet);
             }
             catch (InvalidDataException refused)
@@ -637,14 +632,23 @@ namespace CadReader
                 throw run.Refusal(refused.Message);
             }
             AddinConfig config = AddinConfig.Load(run.Input("config"));
-            Dictionary<string, PlanFace> faces;
+            double areas;
             try
             {
-                faces = LocationPlan.Faces((JArray)baseplan["plots"], config.ParityTolerance("areas") ?? throw new InvalidDataException("addin.parity.kinds.areas is null, the tolerance of the baseplan faces (R345)"));
+                areas = config.ParityTolerance("areas") ?? throw new InvalidDataException("addin.parity.kinds.areas is null, the tolerance of the baseplan faces (R345)");
             }
             catch (InvalidDataException refused)
             {
                 throw run.Refusal(refused.Message);
+            }
+            Dictionary<string, PlanFace> faces;
+            try
+            {
+                faces = LocationPlan.Faces((JArray)baseplan["plots"], areas);
+            }
+            catch (InvalidDataException refused)
+            {
+                throw run.Refusal(ReadPicks.Named(refused.Message, picks));
             }
             string pdf = run.Input(LocationPlan.PlotNumbersRole);
             PdfPage.Content page;
@@ -652,11 +656,18 @@ namespace CadReader
             try
             {
                 page = PdfPage.Read(pdf);
-                result = LocationPlan.Number(page.Chars, page.Curves, faces, officials, sales, table, plan);
             }
             catch (InvalidDataException refused)
             {
                 throw run.Refusal(Path.GetFileName(pdf) + ": " + refused.Message);
+            }
+            try
+            {
+                result = LocationPlan.Number(page.Chars, page.Curves, faces, officials, sales, table, plan);
+            }
+            catch (InvalidDataException refused)
+            {
+                throw run.Refusal(Path.GetFileName(pdf) + ": " + ReadPicks.Named(refused.Message, picks));
             }
             run.Counts["location plan characters"] = page.Chars.Count;
             run.Counts["location plan curves"] = page.Curves.Count;
