@@ -5,7 +5,7 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 ## State
 
 - Lane D FIX-1NOV-D 1 Nov: config/shared_parameters.xlsx the one source of the shared parameters, R460 to R465. 4j-1, 4j-1b: the scanner, R420 to R429
-- Lane A 4i on 2026-10-31 and 4j-2 on 2026-11-01, one PR each (D20): designBasis rev6 or roshnPastJob, R407 to R412, R414 to R416, past job 0 differ
+- Lane A 4i, 4j-2 and FIX-1NOV-A, one PR each (D20): R407 to R412, R414 to R416, R470 ramp joints behind join false (Q340), R471 joint rows
 - Lane B DEMO done on 2026-11-01: main 691e1fc installed, C:\SA-demo and steps/demo.md for 11:00, 1 to 9 in 5.2 min on the copies
 - Lane B 6a done for Masses on 2026-10-31: NBH 012 through buttons 1 to 9 from a new project in 6.7 min with no click, Links waits on Q275
 - Lane B 5d done on 2026-10-31, PR 113: buttons 5, 6 and 8, 7 at the FFL, Q115, Q116, proven in Revit by 6a. 5c, PR 111: buttons 2, 3, 4 and 7
@@ -43,16 +43,18 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 
 Opened in 4i, Lane A: Q224 to Q242, Q255, Q256, titles in steps/questions-open.md and the top entry of steps/log.md. Closed in 4i: none.
 Opened in 4j-2, Lane A: Q259, Q299, Q303, Q304, titles in steps/questions-open.md and the top entry of steps/log.md. Closed in 4j-2: none.
+Opened in FIX-1NOV-A, Lane A: Q340 The level of a joint an override moves. Q341 Back corners two ramps share. Q343 Passing joint rows in the check chips.
+Q344 Joints at the edge of a build. Closed in FIX-1NOV-A: Q342 Ramp joint distance and pass limit, by Bader's prompt.
 Opened in DEMO, Lane B: Q279 Mass base, slab edge or outer wall face. Q296 A saved project holds no drawing path.
 Opened in SCAN-UI, Lane C: Q288 Scan picks in the settings at version 1. Q289 Board rows the scan does not read. Q290 Curbs and road surface left out of scan. Q291 Where the line Current files is
 shown. Q292 The read does not use the picks yet. Q293 Approve the three drafts of SCAN-UI. Q294 Rules chosen in Set up site, when used. Q295 Test host runs skip the scan. Q300 Plots with no cluster
 proposal. Q301 The build takes the door level pick. Q302 Door level row under the past job. Q305 Hide Confirmed under the past job.
 Opened in FIX-1NOV-D, Lane D: Q330 Group of the key link parameters unread. Q331 Plot is no link parameter of the keys. Q332 FFL bound but never written.
 Q333 Categories beyond the link instances. Q334 An xlsx read inside Revit. Q335 A parameter sheet picked in the pane. Closed: Q155, by Bader's prompt.
-Closed in SCAN-UI: Q246, Q283, by Bader's prompt. 144 questions open, full text and the recommended answers: steps/questions-open.md. Asks: steps/waiting-on-others.md.
+Closed in SCAN-UI: Q246, Q283, by Bader's prompt. 148 questions open, full text and the recommended answers: steps/questions-open.md. Asks: steps/waiting-on-others.md.
 
 ## Next three steps
 
-1. Bader's answers. Lane D: Q243 to Q258, Q330 to Q335, and the read of the key groups after fix/1nov-b. Lane A: Q303, Q304, Q259
+1. Bader's answers. Lane D: Q243 to Q258, Q330 to Q335, and the read of the key groups after fix/1nov-b. Lane A: Q340, Q341, Q303, Q304, Q259
 2. Bader answers Q275 to Q278, then the Links run of 6a and Phase 6b
 3. Bader answers Q224 and Q255 of 4i, Q280 to Q287 of Lane C, then Part 2 after Bader's check of Part 1

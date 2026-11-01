@@ -234,11 +234,11 @@ One phase per session (Q096). Two lanes run the phases (D10, D17): tools/run-lan
 
 ## FIX-1NOV-A, ramp joints and no curb build
 
-- Status: running, Lane A, laptop, 2026-11-01, branch fix/1nov-a, one PR with code, tests and records (D20)
-- Task 1: R470 a shared ramp corner within floors.rampJoint.nearM holds one level, front joints at the road level once, plan_from_book.joint_levels and FloorOutlines.JointLevels.
+- Status: done, Lane A, laptop, 2026-11-01, branch fix/1nov-a, one PR with code, tests and records (D20)
+- Task 1: R470 a shared ramp corner within floors.rampJoint.nearM holds one level, front joints at the road level once, behind floors.rampJoint.join false (Q340), plan_from_book.joint_levels and FloorOutlines.JointLevels.
   R471 a check row per joint corner, Pass at passGapM 1 mm, check_rows.joint_rows and CheckRows.JointRows. Before and after on NBH 012 and the IMC key
 - Task 5: no code builds a curb. The curbs read stays for the front of R355 and the curb point of a ramp front, the pane row Curbs stays, no message to hide it
-- Questions: Q340, Q341 open, Q342 closed by Bader's prompt
+- Questions: Q340, Q341, Q343, Q344 open, Q342 closed by Bader's prompt
 
 ## Lane D FIX-1NOV-D, the shared parameters from one Excel
 

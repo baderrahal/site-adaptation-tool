@@ -2,6 +2,42 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## FIX-1NOV-A, 2026-11-01, ramp joints and no curb build, Lane A on the laptop
+
+Goal:
+- Bader's FIX-1NOV-A: one level at a corner two side by side ramps share, a check row per shared corner, no curb as a built element
+
+Done:
+- Cause on NBH 012 (SAD2 run of 04:06, and the Python build of main the same): 555 joints within 10 mm, 335 over 1 mm, max 224 mm. Front joints with no
+  override 0 mm, so no road sample, rounding or fallback cause. 88 of 110 front joints differ by a rampFrontM gap, 150 of 170 back joints by each El @ Entry
+- R470 Shared ramp corner, one level, behind floors.rampJoint.join, false by Bader's answer of 1 Nov (Q340). R471 Ramp joint check row, Pass at passGapM 1 mm
+- Task 5: no code builds a curb. The curbs read stays: the front of R355 (BuildSteps.Run, plan_from_book.run_build to corner_front.road_edges), the curb
+  point of a CAD ramp front (plan_from_cad.ramp_floor to floor_fit.curb_level), the reads of WorkerReads.Run. The pane row Curbs stays, Lane C told
+- Breaker 1: the mean at joints twisted ramps and took 1,025 off El @ Entry, fixed to front joints at the road. Breaker 2: the road drops a rampFrontM override at
+  a joint, 324 ramps twist (worst 360 mm), so Bader chose join false. Review 1 and 2 APPROVE. Q342 closed by Bader's prompt
+
+Checked:
+- With join true, RAN on head: front joints over 1 mm NBH 012 88 to 0 of 285, IMC 82 to 0 of 272, whole project 352 to 0 of 2,142, back joints left apart (Q341)
+- With join false, RAN: R471 lists every shared corner, NBH 012 1,110 rows, 670 Fail (the 335 joints over 1 mm the script counts) and 440 Pass
+- Past job against main 7d78fbe, RAN: whole project, the 7 keys and NBH 012, every plan byte-equal, the only values that differ the joint rows of checkRows (5,014 on the whole project)
+- Parity, RAN: PARITY
+- Status block, RAN: main 679 values, branch 682, Bader +2 (nearM, passGapM), RECOMMENDED +1 (join)
+- Gate, RAN: pytest 2,261 passed, 1 skipped. C# net48 1,832, net8.0 1,607, 0 failed, on df09841
+
+Remains:
+- Joining waits on Q340 and Q341. A joint at the edge of a build scope (Q344). Pass rows count in the chips (Q343)
+
+Known bugs:
+- Configs saved before this round hold no floors.rampJoint, so a build on them stops with the R470 line, C:\SA-demo\config among them
+
+Next:
+- Bader answers Q340, Q341, Q343, Q344, then join true or a new rule for joints an override moves
+
+Your turn:
+- Opened Q340 The level of a joint an override moves. Q341 Back corners two ramps share. Q343 Passing joint rows in the check chips.
+  Q344 Joints at the edge of a build. Closed Q342 Ramp joint distance and pass limit
+- 148 questions open, full text: steps/questions-open.md
+
 ## Lane D FIX-1NOV-D, 2026-11-01, the shared parameters from one Excel, Lane D on the laptop
 
 Goal:
