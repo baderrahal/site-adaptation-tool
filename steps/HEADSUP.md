@@ -4,10 +4,10 @@
 
 ### Lane A
 
-- Lane: A, round FIX-1NOV-A2, branch fix/1nov-a2. Time: 2026-11-01 22:44. Blocked: none. Resume point below
-- Done and pushed: contract 917e4a1 (R472 to R474, Q345), R472 Q278 fix dc2809e with tests, proof on copies in round_addin\logs\p1nov2 (proof console, 2 changes applied, 12,657 matches)
-- Running: Q292 helper on branch fix/1nov-a2-picks (ReadPicks.Resolve, picks.json, WorkerReads, read_steps.py, R473 tests), pushes every 15 min
-- Next: merge fix/1nov-a2-picks, Q292 proof on NBH 012 copies, gate, parity, review and breaker, records, merge main, PR
+- Lane: A, round FIX-1NOV-A2, branch fix/1nov-a2. Time: 2026-11-01 22:56. Blocked: none. Resume point below
+- Done and pushed: R472 Q278 fix dc2809e and its proof on copies (round_addin/logs/p1nov2), R473 and R474 Q292 merged from fix/1nov-a2-picks at 2690867
+- Next: full gate on 2690867, Q292 proof on NBH 012 copies (one pick changed, the read differs), parity, review and breaker, records, merge main, PR
+- Nothing of Lane A runs: no worker, no Revit, no helper
 
 ### Lane B, C and D
 
