@@ -292,7 +292,8 @@ def level_step(numbers, rows, trace, rules, profile):
     for number in numbers:
         item, entry, row = front.get(number) or {}, entries.get(number), level_rows.get(number)
         made = {"unit": (rows.get(number) or {}).get("typologyRev9") or None, "partner": rules["partners"].get(number), "piece": None, "roadAtFront": None,
-                "entry": None, "ffl": None, "ssl": None, "height": None, "steps": None, "parameters": None, "doorSource": None, "slopePercent": None}
+                "entry": None, "ffl": None, "ssl": None, "height": None, "steps": None, "parameters": None, "doorSource": None, "slopePercent": None,
+                "splitTest": None}
         if item.get("front") is not None:
             made["roadAtFront"] = plan_rules.road_at_front(item["front"])
         if rev6 and made["unit"] is not None:
@@ -310,6 +311,8 @@ def level_step(numbers, rows, trace, rules, profile):
             made.update(piece=list(row["piece"]), ffl=top, ssl=ffl + ground, height=ffl - rule,
                         steps=plan_rules.steps_by_rule(key["steps"]["rule"], common.fixed(ffl - rule, plan_rules.ENTRY_DECIMALS), entry["unit"], profile, lp, base_rule),
                         parameters=plan_rules.level_parameters(key, ffl, rules["laterParameters"]))
+            # R414. The result of the split test of its cluster, the mark of a double wall, null where no test ran
+            made["splitTest"] = row.get("splitTest")
         found[number] = made
     return found
 
@@ -802,12 +805,21 @@ def not_applied_why(records):
             for field, whys in sorted(found.items())}
 
 
-def key_levels(entries, key, roles, partners, rows, overrides, outcomes, numbers, front, profile, lp):
+def key_levels(entries, key, roles, partners, rows, overrides, outcomes, numbers, front, profile, lp, basis=None, slopes=None):
     """R340. FFL, SSL, height and steps by the level rules of keyRules, as R339 measured them: one FFL per piece at its highest El @ Entry
     plus the base of that unit to the mm, then the heightM gap moves the FFL onto the key with its SSL, height and steps, and a steps
-    override sets the steps. An override of a plot with no FFL is left with why."""
+    override sets the steps. An override of a plot with no FFL is left with why. R414: under rev6 with designBasis.split.test the pieces
+    of the split test replace those of its clusters, each row of them marked with splitTest."""
     units = {number: (rows.get(number) or {}).get("typologyRev9") for number in front}
-    level_rows = plan_rules.key_level_rows(entries, plan_rules.key_pieces(key, list(entries), roles, partners, units), profile, lp, key)
+    pieces = plan_rules.key_pieces(key, list(entries), roles, partners, units)
+    marks = {}
+    if design_basis.splits(basis):
+        found, marks = plan_rules.split_test(entries, slopes, roles, basis["split"], key, profile, lp)
+        pieces.update(found)
+    level_rows = plan_rules.key_level_rows(entries, pieces, profile, lp, key)
+    for number, mark in marks.items():
+        if number in level_rows:
+            level_rows[number]["splitTest"] = mark
     ground = profile.metres("levels.ground_ssl")
     for number, row in level_rows.items():
         # R340. An override moves the levels of its own plot only, so those of a plot outside the build move nothing written
@@ -990,7 +1002,7 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
     if rules is None:
         level_rows = plan_from_cad.plot_levels(profile, mine, entries)
     elif by_levels:
-        level_rows = key_levels(entries, key, roles, partners, rows, overrides, outcomes, numbers, front, profile, rules["levelProfile"])
+        level_rows = key_levels(entries, key, roles, partners, rows, overrides, outcomes, numbers, front, profile, rules["levelProfile"], basis, slopes)
         if trace is not None:
             # R359. The El @ Entry and the levels of each plot with the FFL by the rule kept apart, for the step levels
             trace.update(entries=entries, levelRows=level_rows)
@@ -1215,6 +1227,11 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
             missing.append({"plot": number, "written": complete, "missing": builder.missing, **({"overrides": records[number]} if records[number] and not complete else {})})
             lacking.update(entry["key"] for entry in builder.missing)
     walls = []
+    # R415, R416. Under rev6 each plot of the scope with a face regular or irregular, and the move of each wall inside an irregular plot
+    lines = plan_walls.line_rules(profile) if rev6 else None
+    irregulars = None if lines is None else plan_walls.irregular_of(numbers, {plot: list(shape.exterior.coords)[:-1] for plot, shape in faces.items()
+                                                                           if shape is not None and shape.geom_type == "Polygon"}, lines["tolerance"])
+    wall_lines = None if lines is None else []
     if wall_rules is not None:
         # R362. The boundary walls of the written plots on the faces of the whole site, on the FFL after the overrides at the decimals of the plan
         written = {entry["plot"]: entry for entry in plots}
@@ -1231,12 +1248,17 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
         for index, cluster in enumerate(clusters if numbered else numbered_clusters(clusters, number_of)):
             for plot in cluster["plots"]:
                 kin[plot] = (index, (rows.get(plot) or {}).get("typologyRev9") or None)
-        for wall in plan_walls.walls(numbers, set(ffls), rings, opened, ffls, wall_rules, faced, kin):
+        placed = plan_walls.walls(numbers, set(ffls), rings, opened, ffls, wall_rules, faced, kin)
+        if lines is not None:
+            plan_walls.inside(placed, rings, set(ffls), irregulars, lines["half"], lines["tolerance"], wall_rules["near"])
+        for wall in placed:
             item = plan_walls.entry(wall)
             plan_walls.mark(item, wall, statuses, applied_of)
             walls.append(item)
+            if wall_lines is not None:
+                wall_lines.append(wall["lineInsideM"])
     if trace is not None:
-        trace["walls"] = walls
+        trace.update(walls=walls, irregular=irregulars, wallLines=wall_lines)
     conflicts = [] if key is None else turned_ramps(plots, frames, faces, applied_of, opened_ramps)
     if trace is not None:
         trace["conflicts"] = conflicts

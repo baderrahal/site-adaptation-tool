@@ -13,6 +13,7 @@ designBasis.mode of config/project.json, rev6 or roshnPastJob. The ROSHN Makkah 
 | Road level | designBasis.roadLevel.surface alone (R409) | siteBuild.roadSurfaces in their order |
 | Back yard | the grade of 2.3.B and 2.3.C, no floor (R410, Q225) | the flat floor of keyRules.yard |
 | Clusters and mirror | proposed with reasons, confirmed in 3 Review data (R411) | footprint clusters and the hand rules of keyRules |
+| Floor split | with designBasis.split.test, a cluster of split.units split at the first of split.walls where both parts hold slope and steps, the mark splitTest (R414), off until Q303 and Q304 | the pieces of keyRules.levelSplit |
 
 ### Door level (R408)
 
@@ -34,6 +35,10 @@ Bader's decision B. The step hands gives per plot proposedCluster, proposedMirro
 
 A read only check of the inputs of a new project, the report in plain words. It covers the position file, the parameter sheet, the villa offsets and hands, and the sheet names and headers of the Excel and PDF inputs, and marks each input that fits only the ROSHN Makkah job today.
 
+### Walls of irregular plots (R415, R416)
+
+Round 4j-2, Manual Rev 06 2.8.A. R415: under rev6 a plot is irregular when its face, with the edges that run on within rev6.irregular_tolerance_deg (2.0) merged, is not 4 corners each within that tolerance of 90 degrees, 41 of the 2,501 key plots. R416: under rev6 each boundary wall on an irregular written plot moves half of plot.boundary_wall_thickness inside it, its outer face on the plot line, a shared edge inside the irregular plot or, both irregular, inside the plot it is filed under. Under roshnPastJob nothing moves, as the keys keep the centre on the edge on 154 of 160 rows of irregular plots.
+
 ### Parity
 
-The new fields join the steps they belong to, so the parity harness keeps 13 steps: doorSource exact, El @ Entry and slopePercent by the levels tolerance in levels, yardGrade exact in floors, proposedCluster, proposedMirror and proposalReason exact in hands.
+The new fields join the steps they belong to, so the parity harness keeps 13 steps: doorSource exact, El @ Entry and slopePercent by the levels tolerance in levels, yardGrade exact in floors, proposedCluster, proposedMirror and proposalReason exact in hands. Round 4j-2 adds splitTest exact in levels (R414), irregular exact and lineInsideM by the levels tolerance in walls (R415, R416).

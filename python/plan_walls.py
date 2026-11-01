@@ -9,6 +9,11 @@ no measured rule, so a build places none (conflict 8 of docs/design/10-rule-ids.
 measures, so the ends of a wall carry UNKNOWN through valueStatus. Since Q115 keyRules.wallOpen clusterPairSpan leaves open the part of an edge
 two written units of one footprint cluster share that the keys leave open for their pair of units, the party wall of the two villas, measured
 from the end of the edge at the front of R355 of the plot, a weak rule on the keys.
+
+R415, R416 since round 4j-2, Manual Rev 06 2.8.A. A plot is irregular when its face, its edges that run on within the tolerance of the rules
+profile merged, is not 4 corners each within that tolerance of 90 degrees. Under the Rev 6 mode of designBasis each wall of an irregular
+written plot runs with its outer face on the plot line, so its ends move half of plot.boundary_wall_thickness inside that plot. Under the past
+job no plot is told irregular and every wall keeps its centre on the edge as the keys hold it on irregular plots as on regular ones.
 """
 import math
 from collections import Counter
@@ -22,9 +27,11 @@ import project_profile
 import value_status
 
 FIELDS = ("plots", "ends", "base", "top")
-STEP_FIELDS = ("unit", "written", "edges", "plots", "ends", "base", "top", "levelPlots", "status")
+STEP_FIELDS = ("unit", "written", "edges", "plots", "ends", "base", "top", "levelPlots", "status", "irregular", "lineInsideM")
 SOURCE = "keyRules"
 PLOTS_SOURCE = "locationPlan"
+# R416. The source of the ends of a wall moved inside an irregular plot, its line by Manual Rev 06 2.8.A and no longer keyRules.wallLine
+INSIDE_SOURCE = "manualInside"
 # The override of the list that turns a link, plan_from_book.moved_link
 ROTATION = "rotationDeg"
 # The candidates of key_rules.wall_base_candidates and wall_top_candidates, True for the higher plot of the wall
@@ -37,6 +44,13 @@ SPAN_RULES = ("clusterPairSpan",)
 SPAN_LINE = "keyRules.wallOpen of %s holds no span table a build leaves an edge open by, it takes %s with spans of two numbers, the first under the second (R362, Q115)"
 RULE_LINE = "keyRules.%s of %s holds no rule a build places boundary walls by, it takes %s (R362)"
 NUMBER_LINE = "%s is no number of 0 or more, a build places no boundary wall without it (R362)"
+# R415. A corner of 45 degrees or more off 90 is no rectangle corner at any tolerance, so the tolerance lies above 0 and under 45
+TOLERANCE_LIMIT = 45.0
+TOLERANCE_LINE = "rev6.irregular_tolerance_deg is no number over 0 and under 45, a build under the Rev 6 mode tells no irregular plot without it (R415)"
+THICKNESS = "plot.boundary_wall_thickness"
+RIGHT_ANGLE = 90.0
+STRAIGHT_ANGLE = 180.0
+RECTANGLE_CORNERS = 4
 
 
 def is_number(value):
@@ -244,9 +258,159 @@ def pieces(start, end, gap, near):
     return found
 
 
+def line_rules(profile):
+    """R415, R416. What a build under the Rev 6 mode reads for the walls of irregular plots: tolerance the degrees of
+    rev6.irregular_tolerance_deg, refused when it is no number over 0 and under 45, and half of plot.boundary_wall_thickness in metres."""
+    tolerance = held(profile.values, "rev6.irregular_tolerance_deg")
+    if not is_number(tolerance) or not 0 < tolerance < TOLERANCE_LIMIT:
+        raise project_profile.ProfileError(TOLERANCE_LINE)
+    return {"tolerance": float(tolerance), "half": profile.metres(THICKNESS) / 2.0}
+
+
+def turn_of(before, at, after):
+    """The turn in degrees from the edge before to at onto the edge at to after, positive to the left, 0 for an edge that runs on."""
+    ax, ay, bx, by = at[0] - before[0], at[1] - before[1], after[0] - at[0], after[1] - at[1]
+    return math.degrees(math.atan2(ax * by - ay * bx, ax * bx + ay * by))
+
+
+def corners(ring, tolerance):
+    """R415. The turns of the corners of a ring after its repeated vertices are dropped and each vertex where the edges run on within
+    tolerance degrees is merged, the first such vertex in ring order each time until none is left, so a collinear vertex parts no edge."""
+    points = [point for index, point in enumerate(ring) if index == 0 or point != ring[index - 1]]
+    while len(points) > 1 and points[-1] == points[0]:
+        points.pop()
+    while len(points) >= 3:
+        turns = [turn_of(points[index - 1], points[index], points[(index + 1) % len(points)]) for index in range(len(points))]
+        straight = next((index for index, turn in enumerate(turns) if abs(turn) <= tolerance), None)
+        if straight is None:
+            return turns
+        del points[straight]
+    return []
+
+
+def irregular(ring, tolerance):
+    """R415, Manual Rev 06 2.8. A face is irregular when its corners after the merge of corners are not 4, each within tolerance of 90."""
+    turns = corners(ring, tolerance)
+    return len(turns) != RECTANGLE_CORNERS or any(abs(abs(turn) - RIGHT_ANGLE) > tolerance for turn in turns)
+
+
+def irregular_of(numbers, rings, tolerance):
+    """R415. Each plot of numbers with a face, irregular or not."""
+    return {number: irregular(rings[number], tolerance) for number in numbers if number in rings}
+
+
+def inside(found, rings, written, irregulars, half, tolerance, near):
+    """R416, Manual Rev 06 2.8.A. Under the Rev 6 mode a wall that stands on an irregular written plot runs with its outer face on the plot
+    line, so its ends move half the thickness inside that plot: the plot it is filed under when that one is irregular, also when the other
+    plot is irregular too, as the wall is written once, else the first irregular written plot of its plots. A wall on no irregular written
+    plot keeps its centre on the edge. Each wall gets lineInsideM, the move, 0.0 or half. Then the moved walls that met at a face vertex
+    meet again (mitre)."""
+    before = {}
+    for index, wall in enumerate(found):
+        plot = wall["plot"]
+        targets = [other for other in wall["plots"] if other in written and irregulars.get(other)]
+        target = plot if plot in targets else (targets[0] if targets else None)
+        if target is None:
+            wall["lineInsideM"] = 0.0
+            continue
+        ring = rings[plot]
+        a, b = ring[wall["edge"]], ring[(wall["edge"] + 1) % len(ring)]
+        dx, dy = b[0] - a[0], b[1] - a[1]
+        length = math.sqrt(dx * dx + dy * dy)
+        ux, uy = dx / length, dy / length
+        twice = 0.0
+        for p, q in edges_of(ring):
+            twice += p[0] * q[1] - q[0] * p[1]
+        # The inside of the plot lies left of the edge on an anticlockwise ring and right of it on a clockwise one, the other plot of the edge
+        # on the far side
+        nx, ny = (-uy, ux) if twice > 0 else (uy, -ux)
+        if target != plot:
+            nx, ny = -nx, -ny
+        before[index] = [[end[0], end[1]] for end in wall["ends"]]
+        wall["ends"] = [[end[0] + nx * half, end[1] + ny * half] for end in wall["ends"]]
+        wall["lineInsideM"] = half
+    mitre(found, before, rings, tolerance, near)
+
+
+def on_vertex(ring, edge, side, point):
+    """R416. The index of the vertex of ring the end side, 0 the first and 1 the last, of a wall on edge sat on, None for an end mid edge."""
+    index = (edge + side) % len(ring)
+    return index if point[0] == ring[index][0] and point[1] == ring[index][1] else None
+
+
+def next_point(ring, index, step):
+    """R416. The first vertex of ring from index in the direction step, 1 on or -1 back, that is not that vertex, None where all are."""
+    for count in range(1, len(ring)):
+        found = ring[(index + step * count) % len(ring)]
+        if found[0] != ring[index][0] or found[1] != ring[index][1]:
+            return found
+    return None
+
+
+def partner(found, before, index, side, rings, tolerance, near, done):
+    """R416. The moved wall and its end that meet the end side of the moved wall index at the face vertex that end sat on, before the move,
+    as (other, end), else None. The other runs along the next edge of the face from that vertex, within near of it, and its end sat on a face
+    vertex of its own plot within near of the first. An end mid edge, a corner whose edges run on within tolerance, as R415 merges them, or fold
+    back, and an end whose next edge holds no moved wall have none."""
+    wall = found[index]
+    ring = rings[wall["plot"]]
+    at = on_vertex(ring, wall["edge"], side, before[index][side])
+    if at is None:
+        return None
+    vertex, far = ring[at], before[index][1 - side]
+    following = next_point(ring, at, 1 if side == 1 else -1)
+    if following is None:
+        return None
+    turn = abs(turn_of(far, vertex, following))
+    if turn <= tolerance or turn >= STRAIGHT_ANGLE - tolerance:
+        return None
+    dx, dy = following[0] - vertex[0], following[1] - vertex[1]
+    length = math.sqrt(dx * dx + dy * dy)
+    ux, uy = dx / length, dy / length
+    for other in before:
+        if other == index:
+            continue
+        for end in (0, 1):
+            point, tip = before[other][end], before[other][1 - end]
+            px, py = point[0] - vertex[0], point[1] - vertex[1]
+            if (other, end) in done or math.sqrt(px * px + py * py) > near:
+                continue
+            if on_vertex(rings[found[other]["plot"]], found[other]["edge"], end, point) is None:
+                continue
+            if abs((tip[0] - vertex[0]) * uy - (tip[1] - vertex[1]) * ux) <= near and (tip[0] - vertex[0]) * ux + (tip[1] - vertex[1]) * uy > 0:
+                return other, end
+    return None
+
+
+def mitre(found, before, rings, tolerance, near):
+    """R416, Manual Rev 06 2.8.A. The wall follows the exact plot shape with its outer face on the plot limit, so two moved walls whose ends
+    met at a face vertex before the move meet again: both ends move to the crossing of their moved centre lines, the mitre point of the
+    offset edges, which closes the square a notch corner left unbuilt and parts the overlap of a convex one. before holds the ends of each
+    moved wall by its index before the move. In the order of the walls and their ends, each end once. Any other end stays square."""
+    done = set()
+    for index in before:
+        for side in (0, 1):
+            if (index, side) in done:
+                continue
+            pair = partner(found, before, index, side, rings, tolerance, near, done)
+            if pair is None:
+                continue
+            other, end = pair
+            first, second = found[index]["ends"][side], found[other]["ends"][end]
+            ax, ay = before[index][1][0] - before[index][0][0], before[index][1][1] - before[index][0][1]
+            bx, by = before[other][1][0] - before[other][0][0], before[other][1][1] - before[other][0][1]
+            cross = ax * by - ay * bx
+            if cross == 0:
+                continue
+            t = ((second[0] - first[0]) * by - (second[1] - first[1]) * bx) / cross
+            found[index]["ends"][side] = [first[0] + t * ax, first[1] + t * ay]
+            found[other]["ends"][end] = [first[0] + t * ax, first[1] + t * ay]
+            done.update(((index, side), (other, end)))
+
+
 def entry(wall):
     """The wall as the plan writes it, each value with its source, the plot and edge it runs along and the plots of its base and top."""
-    sources = {"plots": PLOTS_SOURCE, "ends": SOURCE, "base": SOURCE, "top": SOURCE}
+    sources = {"plots": PLOTS_SOURCE, "ends": INSIDE_SOURCE if wall.get("lineInsideM") else SOURCE, "base": SOURCE, "top": SOURCE}
     return {"plot": wall["plot"], "edge": wall["edge"], **{field: {"value": wall[field], "source": sources[field]} for field in FIELDS},
             "basePlot": wall["basePlot"], "topPlot": wall["topPlot"]}
 
@@ -284,11 +448,15 @@ def summary(items, details):
 
 def step(numbers, rows, trace):
     """R362. The step walls of the parity harness: per plot of the scope the walls the plan places from it, their edges, plots, ends, base and
-    top, the plots of the base and top and the status of each value, and the table statusFrom of their details."""
+    top, the plots of the base and top and the status of each value, and the table statusFrom of their details. R415, R416: under the Rev 6
+    mode irregular for a plot with a face and lineInsideM the move of each wall inside a plot, both null under the past job."""
     built, items, details = trace.get("built") or {}, trace.get("walls") or [], trace.get("statusFrom") or {}
-    by_plot, used, found = {}, set(), {}
-    for item in items:
+    irregulars, lines = trace.get("irregular"), trace.get("wallLines")
+    by_plot, line_of, used, found = {}, {}, set(), {}
+    for index, item in enumerate(items):
         by_plot.setdefault(item["plot"], []).append(item)
+        if lines is not None:
+            line_of.setdefault(item["plot"], []).append(lines[index])
     for number in numbers:
         mine = by_plot.get(number, [])
         used.update(item[field]["statusFrom"] for item in mine for field in FIELDS)
@@ -296,5 +464,7 @@ def step(numbers, rows, trace):
                          "edges": [item["edge"] for item in mine], "plots": [item["plots"]["value"] for item in mine], "ends": [item["ends"]["value"] for item in mine],
                          "base": [item["base"]["value"] for item in mine], "top": [item["top"]["value"] for item in mine],
                          "levelPlots": [[item["basePlot"], item["topPlot"]] for item in mine],
-                         "status": [{field: {"status": item[field]["status"], "statusFrom": item[field]["statusFrom"]} for field in FIELDS} for item in mine]}
+                         "status": [{field: {"status": item[field]["status"], "statusFrom": item[field]["statusFrom"]} for field in FIELDS} for item in mine],
+                         "irregular": None if irregulars is None else irregulars.get(number),
+                         "lineInsideM": None if lines is None else line_of.get(number, [])}
     return found, {"statusFrom": {key: details[key] for key in sorted(used)}}

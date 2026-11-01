@@ -35,6 +35,15 @@ What Lane B must add so the add-in shows and uses the work of round 4i (R407 to 
 | L4i-6 | R411 | 3 Review data shows proposedCluster, proposedMirror and proposalReason of each plot with Confirm, and a confirmed proposal goes into the override list as a hand edit | The proposals stand in the step hands and in plan.json under proposal |
 | L4i-7 | R412 | A command for the new project check that starts the worker command newProjectCheck and shows its text report | python/new_project_check.py and the worker command run it by hand |
 
+## Lane B asks of round 4j-2
+
+What Lane B adds so the add-in uses the work of round 4j-2 (R414 to R416, docs/design/16-design-basis.md).
+
+| Item | Rule | What Lane B adds | What the tool does until then |
+|---|---|---|---|
+| L4j2-1 | R414 | When designBasis.split.test is on, 8 Walls places a double wall and construction joint at the wall splitTest names, 6 Levels each part at its own FFL | The test is off (Q303, Q304), splitTest stands in the step levels only |
+| L4j2-2 | R416 | A Revit run of 8 Walls on a rev6 build checks how the moved walls of an irregular plot join at its corners | The plan carries the moved ends, the add-in places them as any wall |
+
 ## The scanner window, asked of Lane B by Lane D 4j-1
 
 The scanner (R420 to R427) writes scan.json in the run folder, its shape in docs/design/17-scanner.md. Lane D builds no window. What the window needs, CHOSEN by Code until Lane B designs it (Q246):

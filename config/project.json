@@ -707,7 +707,8 @@
             "steps": {"kind": "noGeometry"},
             "parameters": {"kind": "noGeometry"},
             "doorSource": {"kind": "noGeometry"},
-            "slopePercent": {"kind": "levels", "decimals": 3}
+            "slopePercent": {"kind": "levels", "decimals": 3},
+            "splitTest": {"kind": "noGeometry"}
         },
         "floors": {
             "unit": {"kind": "noGeometry"},
@@ -733,7 +734,9 @@
             "base": {"kind": "levels", "decimals": 3},
             "top": {"kind": "levels", "decimals": 3},
             "levelPlots": {"kind": "noGeometry"},
-            "status": {"kind": "noGeometry"}
+            "status": {"kind": "noGeometry"},
+            "irregular": {"kind": "noGeometry"},
+            "lineInsideM": {"kind": "levels", "decimals": 3}
         },
         "overrides": {
             "unit": {"kind": "noGeometry"},
@@ -807,6 +810,12 @@
     "clusters": {
       "note": "R411, Bader's decision B of round 4i. Under rev6 the build proposes a cluster and a mirror flag for each unit plot by the manual, 2.1.A to 2.1.E, each with its reason, and the team confirms them in 3 Review data. A proposal sets no value of the plan until confirmed",
       "propose": true
+    },
+    "split": {
+      "note": "R414, manual Rev 06 2.2.B with 2.3.A and 2.4.A, Bader's option B of 31 Oct 2026. Under rev6 with test true a cluster of units units keeps one FFL only when every unit holds its front yard slope inside slopes_percent front_min to front_max and its steps inside steps.front_max of the rules profile, else it splits at the first wall of walls, each a wall after that unit, where both parts fit, marked for a double wall and construction joint, else it stays whole as noFit. test is off until Q303 and Q304 are answered, the test matches 8 of 82 key clusters (0.0976)",
+      "test": false,
+      "units": 4,
+      "walls": [3, 2]
     }
   },
   "designValues": {
@@ -947,7 +956,8 @@
       "floors.ramp.heightOffset": {"estimate": [{"profile": "levelProfiles.{levelProfile}.keyRules.rampFront.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.entry.rule"}, {"status": "UNKNOWN", "why": "the elevation of the level of the floor in the new site file, which heightOffset is computed from and no block entry maps (R401, Q107)"}]},
       "floors.ramp.slopePercent": {"estimate": [{"profile": "levelProfiles.{levelProfile}.keyRules.rampSlope.rule"}]},
       "walls.plots": {"locationPlan": [{"status": "DOCUMENT", "document": "the location plan, labels.csv of the data book"}, {"config": "keyPlans.wallEdgeM"}]},
-      "walls.ends": {"keyRules": [{"profile": "levelProfiles.{levelProfile}.keyRules.wallLine.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.frontOpen.rule"}, {"config": "keyPlans.wallEdgeM"}, {"status": "UNKNOWN", "why": "no key rule measures where a boundary wall starts and ends along its edge, a build runs it along the whole edge or part of it another face meets (R362)"}]},
+      "walls.ends": {"keyRules": [{"profile": "levelProfiles.{levelProfile}.keyRules.wallLine.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.frontOpen.rule"}, {"config": "keyPlans.wallEdgeM"}, {"status": "UNKNOWN", "why": "no key rule measures where a boundary wall starts and ends along its edge, a build runs it along the whole edge or part of it another face meets (R362)"}],
+        "manualInside": [{"status": "DOCUMENT", "document": "01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 2024, 2.8.A irregular plots, the boundary wall on the exact plot shape with its outer face on the plot limit, so under rev6 a wall of an irregular plot moves half its thickness inside it and two moved walls that met at a face vertex meet at the mitre point (R416)", "pageOrSheet": "2.8.A"}, {"profile": "rev6.irregular_tolerance_deg"}, {"profile": "plot.boundary_wall_thickness"}, {"profile": "levelProfiles.{levelProfile}.keyRules.frontOpen.rule"}, {"config": "keyPlans.wallEdgeM"}, {"status": "UNKNOWN", "why": "no key rule measures where a boundary wall starts and ends along its edge, a build runs it along the whole edge or part of it another face meets (R362)"}]},
       "walls.base": {"keyRules": [{"profile": "levelProfiles.{levelProfile}.keyRules.wallBase.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.ffl.rule"}, {"profile": "levelProfiles.{levelProfile}.yardBelowFflM"}]},
       "walls.top": {"keyRules": [{"profile": "levelProfiles.{levelProfile}.keyRules.wallTop.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.ffl.rule"}, {"profile": "rev6.boundary_wall_top_above_ffl"}]}
     },

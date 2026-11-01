@@ -483,14 +483,17 @@ namespace SiteAdaptation.Common
                             {
                                 // R362. The boundary walls of the written plots on the faces of the whole site and the fronts of the build, after the overrides
                                 wallTable = ValueStatus.Table(site.Settings, site.Rules, profileName);
-                                walls = wallRules == null ? new List<PlanWall>() : Walls.OfPlans(site.Numbers, plans, site.Faces, fronts, wallRules, Walls.Kin(site.Faces, site.Clusters, site.Rows));
+                                // R415, R416. Under rev6 each plot of the scope with a face regular or irregular, the walls of an irregular plot inside it
+                                WallLine line = basis.IsRev6 ? Walls.LineRules(site.Rules, site.RulesName) : null;
+                                Dictionary<string, bool> irregular = line == null ? null : Walls.IrregularOf(site.Numbers, Walls.RingsOf(site.Faces), line.Tolerance);
+                                walls = wallRules == null ? new List<PlanWall>() : Walls.OfPlans(site.Numbers, plans, site.Faces, fronts, wallRules, Walls.Kin(site.Faces, site.Clusters, site.Rows), line, irregular);
                                 foreach (PlanWall wall in walls)
                                 {
                                     Walls.Mark(wall, wallTable, plans);
                                 }
                                 if (asked.Contains(Walls.StepName))
                                 {
-                                    made[Walls.StepName] = Walls.Step(site.Numbers, plans, walls);
+                                    made[Walls.StepName] = Walls.Step(site.Numbers, plans, walls, irregular);
                                     tables[Walls.StepName] = Walls.Tables(walls, wallTable);
                                     run.Counts["walls of the scope"] = walls.Count;
                                 }

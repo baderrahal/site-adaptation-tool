@@ -11,7 +11,8 @@ namespace SiteAdaptation.Common
     // R407 to R410, round 4i. The design basis of a build, designBasis of the config read once per run, python/design_basis.py: rev6 the Site
     // Adaptation Manual Rev 06 of the client, the other mode of designBasis.modes the past job. Under the past job nothing but the mode is read,
     // so a build is the build of before round 4i. Under rev6 El @ Entry is the input and the ramp slope the result (R408), the road level comes
-    // from the one surface designBasis.roadLevel names (R409) and the back yard is a grade with no floor (R410)
+    // from the one surface designBasis.roadLevel names (R409), the back yard is a grade with no floor (R410) and designBasis.split.test turns on
+    // the split of a cluster by slope and steps (R414)
     public sealed class DesignBasis
     {
         public const string Rev6 = "rev6";
@@ -51,6 +52,17 @@ namespace SiteAdaptation.Common
         public bool Propose { get; private set; }
 
         public bool Proposes => IsRev6 && Propose;
+
+        // R414. designBasis.split under rev6: test, the size of a cluster it tests and the walls it tries in order
+        public bool SplitTest { get; private set; }
+
+        public int SplitUnits { get; private set; }
+
+        public List<int> SplitWalls { get; private set; }
+
+        public bool Splits => IsRev6 && SplitTest;
+
+        public const string SplitWallsLine = "designBasis.split.units must be a whole number of 2 or more and designBasis.split.walls a list of the walls it tries in order, each a wall after a unit inside the cluster (R414)";
 
         private static InvalidDataException Refuse(string text)
         {
@@ -199,7 +211,28 @@ namespace SiteAdaptation.Common
                 throw Refuse("designBasis.clusters.propose must be true or false, it holds " + PyRepr(propose) + " (R411)");
             }
             basis.Propose = (bool)propose;
+            ReadSplit(block["split"] as JObject ?? new JObject(), basis);
             return basis;
+        }
+
+        // design_basis.split_of: test true or false, units a whole number of 2 or more and walls a list of walls after a unit inside the cluster
+        private static void ReadSplit(JObject split, DesignBasis basis)
+        {
+            JToken test = split["test"];
+            if (test == null || test.Type != JTokenType.Boolean)
+            {
+                throw Refuse("designBasis.split.test must be true or false, it holds " + PyRepr(test) + " (R414)");
+            }
+            JToken units = split["units"];
+            JArray walls = split["walls"] as JArray;
+            if (units == null || units.Type != JTokenType.Integer || (long)units < 2 || walls == null || walls.Count == 0
+                || walls.Any(wall => wall.Type != JTokenType.Integer || (long)wall <= 0 || (long)wall >= (long)units))
+            {
+                throw Refuse(SplitWallsLine);
+            }
+            basis.SplitTest = (bool)test;
+            basis.SplitUnits = (int)units;
+            basis.SplitWalls = walls.Select(wall => (int)wall).ToList();
         }
 
         // repr() of Python of a value of the config, for the line of a refusal

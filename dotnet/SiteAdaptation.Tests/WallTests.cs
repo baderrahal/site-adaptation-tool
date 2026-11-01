@@ -188,7 +188,7 @@ namespace SiteAdaptation.Tests
                 string.Join(", ", ((JObject)tables["statusFrom"]).Properties().Select(item => item.Name)));
             Assert.Equal("heightM", string.Join(" ", tables["statusFrom"]["walls.base from override by heightM"]["overrides"]));
             AddinConfig config = AddinConfig.Load(WorkerRunTests.RepoConfig());
-            Assert.Equal("unit:noGeometry written:noGeometry edges:noGeometry plots:noGeometry ends:points3 base:levels3 top:levels3 levelPlots:noGeometry status:noGeometry",
+            Assert.Equal("unit:noGeometry written:noGeometry edges:noGeometry plots:noGeometry ends:points3 base:levels3 top:levels3 levelPlots:noGeometry status:noGeometry irregular:noGeometry lineInsideM:levels3",
                 string.Join(" ", config.StepFields(Walls.StepName).Select(field => field.Name + ":" + field.Kind + field.Decimals)));
             Assert.True(step.Values.All(plot => string.Join(" ", plot.Keys) == string.Join(" ", Walls.StepFields)));
         }
