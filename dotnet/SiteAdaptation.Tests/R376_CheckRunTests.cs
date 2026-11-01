@@ -39,6 +39,7 @@ namespace SiteAdaptation.Tests
                 ["majority"] = JObject.Parse("{ 'groups': { 'native': ['n1'], 'parsons': ['kx'] }, 'overrideDefaultSources': ['parsons'], 'linkPlotParameter': 'Plot' }"),
                 ["addin"] = JObject.Parse("{ 'workerTimeLimitS': { 'build': 60 } }"),
                 ["checkRows"] = R376_CheckTableTests.Block(),
+                ["designBasis"] = JObject.Parse("{ 'mode': 'rev6', 'doorLevel': { 'source': 'roadPlusSlope', 'sources': ['civilFile', 'roadPlusSlope'], 'civilFile': { 'path': null } } }"),
             };
             File.WriteAllText(configPath, settings.ToString());
             File.WriteAllText(Path.Combine(config, "floor_outlines.json"), "{}");
@@ -88,12 +89,22 @@ namespace SiteAdaptation.Tests
             // When set the stand-in writes plan_<NBH>.json in the output folder and names it with its SHA-256, as the worker does
             public bool WritesPlan { get; set; }
 
+            // When set the stand-in writes the step levels with these doorSource values, one plot each (R443)
+            public string[] DoorSources { get; set; }
+
             public WorkerAnswer Run(WorkerRequest request)
             {
                 Requests.Add(request);
                 Directory.CreateDirectory(request.StepsFolder);
                 File.WriteAllText(Path.Combine(request.StepsFolder, StepFile.FileName(CheckRows.StepName, "csharp")), R376_CheckTableTests.Step().ToString());
                 File.WriteAllText(Path.Combine(request.StepsFolder, StepFile.FileName(PlanSummary.StepName, "csharp")), "{ 'made': 'up' }");
+                if (DoorSources != null)
+                {
+                    var levels = DoorSources.Select((source, at) => new { source, at }).ToDictionary(item => (item.at + 1).ToString(System.Globalization.CultureInfo.InvariantCulture),
+                        item => new Dictionary<string, object> { ["doorSource"] = item.source });
+                    File.WriteAllText(Path.Combine(request.StepsFolder, StepFile.FileName(KeyLevels.StepName, "csharp")),
+                        StepFile.Build(KeyLevels.StepName, "csharp", "nbh=012", levels, new ParityField[0]).ToString());
+                }
                 var outputs = new List<WorkerFile>();
                 if (WritesPlan)
                 {
@@ -170,6 +181,37 @@ namespace SiteAdaptation.Tests
             string checks = end.Outputs.Keys.Single(path => Path.GetFileName(path) == "checks_012.json");
             Assert.Equal(FileHash.Sha256(checks), end.Outputs[checks]);
             Assert.Equal("4 Check, NBH 012, 4 plots", (string)JObject.Parse(File.ReadAllText(checks))["title"]);
+        }
+
+        [Fact]
+        public void R443_the_table_of_a_real_run_shows_door_level_from_with_the_counts_of_the_step_levels_and_a_pick_reaches_the_settings()
+        {
+            var builder = new Builder { DoorSources = new[] { "roadPlusSlope", "roadPlusSlope", null } };
+            string kept = DoorLevelSources.CivilFile;
+            var table = new Table
+            {
+                Answer = (view, callbacks) =>
+                {
+                    callbacks.DoorLevel(DoorLevelSources.RoadPlusSlope);
+                    return new CheckTableAnswer();
+                },
+            };
+            RunLater end = null;
+            var run = new CheckRun(Roles, builder, null, new WorkerDocument(), Nbh, table, null, null) { DoorPick = () => kept, DoorPicked = source => kept = source };
+
+            run.Body().Start(Context("R4-443", null), later => end = later);
+
+            Assert.Null(end.Failure);
+            DoorLevelPick door = table.Shown.Single().DoorLevel;
+            Assert.Equal(new[] { "Civil entry file (0 plots)", "Road level plus slope (2 plots)" }, door.Choices.Select(choice => choice.Label));
+            // The config of the fixture names no civil file, so the pick civilFile the settings held cannot stand
+            Assert.True(door.CivilGrey);
+            Assert.Equal(DoorLevelSources.RoadPlusSlope, door.Selected);
+            Assert.Equal(DoorLevelSources.RoadPlusSlope, kept);
+
+            var none = new Table();
+            new CheckRun(Roles, new Builder(), null, new WorkerDocument(), Nbh, none, null, null).Body().Start(Context("R4-444", null), later => end = later);
+            Assert.Equal(new[] { 0, 0 }, none.Shown.Single().DoorLevel.Choices.Select(choice => choice.Plots));
         }
 
         // R381. 9 Report finds the last real run of 4 Check by its run log, so a real run that ends done writes one that names the files

@@ -466,3 +466,9 @@ No real input reaches these, since the ROSHN config runs roshnPastJob (Q224) and
 - A worker that never answers leaves the scan of that work folder marked running until Revit restarts, the time limit of 600 s ends it first.
 - The column dropdown of New project holds one line per villa type source, so two shifts of one sheet and column show twice (Q249).
 
+## Lane C SCAN-UI PR 2, 1 Nov 2026, breaker pass
+
+- Door level from counts every unit plot of doorSource civilFile, also those the civil file gives no level, so its count can pass the rows of the file (DoorLevelPick.Count, with the civil path null today).
+- The plot key of Review data is the location plan number, else the official number, and the plan of 4 Check its build number. Not proven equal on real data, the confirm of a plot no row shows would be lost.
+- A cluster of 4i can name a plot of another NBH, which the window of that NBH cannot tick, so that plot stays unconfirmed. Whether two NBH rows touch on ROSHN is UNKNOWN.
+

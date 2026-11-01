@@ -293,7 +293,8 @@ namespace SiteAdaptation.UiShots
 
         // Made up numbers only, no coordinate and no level of a real model. Five plots of a made up NBH 012, the first three with a
         // plan fact of button 4 and corners, two checked OK and one Wrong. withPlan false is the view before button 4 has built, every
-        // value of the plan not read yet
+        // value of the plan not read yet. With the plan, R442: plots 32 and 33 proposed as one cluster of two opposite hands, 32 confirmed,
+        // plot 34 with a reason and no cluster
         public static ReviewView SampleReviewView(bool withPlan)
         {
             var table = new JObject();
@@ -334,7 +335,20 @@ namespace SiteAdaptation.UiShots
                 Nbh = "012",
                 Sources = new[] { "ROSHN Makkah Baseplan.dwg", "Makkah Building Footprint.dwg" },
                 State = new ReviewState(rows, checks, "sample", "sample"),
+                Clusters = withPlan ? SampleClusters() : null,
             };
+        }
+
+        // Made up proposals and reasons in the words of R411, no real plot
+        public static ClusterConfirm SampleClusters()
+        {
+            var marks = new[]
+            {
+                new ClusterMark { Plot = "32", Cluster = new[] { "32", "33" }, Mirrored = false, Reason = "semi-attached pair with plot 33 on the shared edge, the left half as drawn" },
+                new ClusterMark { Plot = "33", Cluster = new[] { "32", "33" }, Mirrored = true, Reason = "semi-attached pair with plot 32 on the shared edge, the right half mirrored" },
+                new ClusterMark { Plot = "34", Reason = "no single partner among the side neighbours (Q229)" },
+            };
+            return new ClusterConfirm(marks, "sample", new ClusterSaved { Confirmed = new[] { "32" }, PlanSha256 = "sample" });
         }
 
         // Made up numbers only. Four changes of NBH 012: one that follows the rules, one that breaks a profile rule, one that breaks a manual

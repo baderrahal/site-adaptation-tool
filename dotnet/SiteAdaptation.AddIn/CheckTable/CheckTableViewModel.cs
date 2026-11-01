@@ -21,6 +21,7 @@ namespace SiteAdaptation.AddIn.CheckTable
         private string find = "";
         private CheckRowViewModel selected;
         private string message = "";
+        private string doorSource;
 
         public CheckTableViewModel(CheckTableView view, CheckTableState state, Func<string, string> ruleLine, CheckTableCallbacks callbacks)
         {
@@ -30,6 +31,9 @@ namespace SiteAdaptation.AddIn.CheckTable
             this.callbacks = callbacks;
             Rows = new List<CheckRowViewModel>();
             Chips = new List<CheckChipViewModel>();
+            DoorOptions = view.DoorLevel == null ? new DoorOptionViewModel[0]
+                : view.DoorLevel.Choices.Select(choice => new DoorOptionViewModel(choice, view.DoorLevel.Help)).ToList();
+            doorSource = view.DoorLevel?.Selected;
             Refresh();
         }
 
@@ -129,6 +133,33 @@ namespace SiteAdaptation.AddIn.CheckTable
 
         public string NotSavedText => CheckTableText.NotSavedYet;
 
+        // R443. The row Door level from, shown where the run gave it
+        public bool DoorShown => view.DoorLevel != null;
+
+        public string DoorLabel => DoorLevelText.From;
+
+        public IReadOnlyList<DoorOptionViewModel> DoorOptions { get; }
+
+        public bool DoorHelpShown => view.DoorLevel != null && view.DoorLevel.CivilGrey;
+
+        public string DoorHelp => view.DoorLevel?.Help ?? "";
+
+        // A pick goes to the pane settings at once, as it is a setting of the project and no override, so Save overrides does not hold it
+        public string DoorSource
+        {
+            get { return doorSource; }
+            set
+            {
+                if (value == null || value == doorSource || view.DoorLevel == null || !view.DoorLevel.Choices.Any(choice => choice.Source == value && choice.Enabled))
+                {
+                    return;
+                }
+                doorSource = value;
+                Changed(nameof(DoorSource));
+                callbacks.DoorLevel?.Invoke(value);
+            }
+        }
+
         public void SetChip(string next)
         {
             chip = next;
@@ -209,6 +240,26 @@ namespace SiteAdaptation.AddIn.CheckTable
         }
 
         public string Name { get; }
+
+        public bool Enabled { get; }
+
+        public string Tip { get; }
+    }
+
+    // R443. One entry of Door level from, the civil file grey with the help line as its tooltip when the setup holds none
+    public sealed class DoorOptionViewModel
+    {
+        public DoorOptionViewModel(DoorLevelChoice choice, string help)
+        {
+            Source = choice.Source;
+            Text = choice.Label;
+            Enabled = choice.Enabled;
+            Tip = choice.Enabled ? null : help;
+        }
+
+        public string Source { get; }
+
+        public string Text { get; }
 
         public bool Enabled { get; }
 

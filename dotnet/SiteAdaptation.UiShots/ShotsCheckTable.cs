@@ -95,7 +95,18 @@ namespace SiteAdaptation.UiShots
             var wrong = new[] { new ReviewCheck { Plot = "35", Check = ReviewCheckValue.Wrong, Note = "front edge on the other side" } };
             CheckTableView view = CheckTableBuild.Compose("012", step, block, wrong, past, rules.IdOfCheck, !dryRun);
             view.Info = new CheckTableInfo { LevelProfile = "parsons2024Rev6", OverrideFile = "roshn-makkah.json", Overrides = 12, OnNbh = 5 };
+            view.DoorLevel = SampleDoorLevel();
             return view;
+        }
+
+        // R443. A made up config with no civil file and a step levels of the five plots by road level plus slope, so the civil choice is
+        // grey with its help line
+        public static DoorLevelPick SampleDoorLevel()
+        {
+            JObject config = JObject.Parse("{ 'designBasis': { 'mode': 'rev6', 'doorLevel': { 'source': 'roadPlusSlope', 'sources': ['civilFile', 'roadPlusSlope'], 'civilFile': { 'path': null } } } }");
+            var plots = new[] { "31", "32", "33", "34", "35" }.ToDictionary(plot => plot, plot => new Dictionary<string, object> { ["doorSource"] = "roadPlusSlope" });
+            JObject levels = StepFile.Build(KeyLevels.StepName, "csharp", "nbh=012", plots, new ParityField[0]);
+            return DoorLevelPick.Of(config, Path.Combine("made-up", "config", "project.json"), levels, null);
         }
 
         // The step file the worker writes, each plot as its raw and its written side (R345)

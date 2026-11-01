@@ -113,6 +113,9 @@ namespace SiteAdaptation.Common.CheckTable
 
         // The line under the title, null where the run did not give it
         public CheckTableInfo Info { get; set; }
+
+        // R443. The row Door level from, null where config holds no designBasis.doorLevel or the run did not give it
+        public DoorLevelPick DoorLevel { get; set; }
     }
 
     // R376. What the window reaches outside it. Save writes the override list with the choices that differ from the opening value
@@ -129,6 +132,9 @@ namespace SiteAdaptation.Common.CheckTable
         public Func<CheckRow, string> Zoom { get; set; }
 
         public Func<string> Export { get; set; }
+
+        // R443. Keeps the source picked in Door level from, DoorLevelSource of the pane settings. Null keeps the pick in the window only
+        public Action<string> DoorLevel { get; set; }
     }
 
     // R376. The Use of each row when the window closed and whether Save overrides ran
