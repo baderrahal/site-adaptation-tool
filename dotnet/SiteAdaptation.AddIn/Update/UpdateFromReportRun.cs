@@ -7,6 +7,7 @@ using Newtonsoft.Json.Linq;
 using SiteAdaptation.AddIn.Pane;
 using SiteAdaptation.Common;
 using SiteAdaptation.Common.Flow;
+using SiteAdaptation.Common.Report;
 using SiteAdaptation.Common.Update;
 
 namespace SiteAdaptation.AddIn.Update
@@ -99,11 +100,8 @@ namespace SiteAdaptation.AddIn.Update
             {
                 throw new InvalidOperationException(refusal);
             }
-            string planPath = UpdateWorkerRequest.PlanPath(context.WorkFolder, nbh);
-            if (!File.Exists(planPath))
-            {
-                throw new InvalidOperationException(TextTemplate.Fill(UpdateFromReportText.NoPlan, Path.GetFileName(planPath), nbh));
-            }
+            // R472. The plan 4 Check wrote into its own folder, found by its run log as 9 Report finds it (Q278)
+            string planPath = ReportRun.CheckRun.PlanOf(context.WorkFolder, nbh, WorkFiles.ReadText).Path;
             string runId = context.RunId + "-r" + (++reads).ToString(System.Globalization.CultureInfo.InvariantCulture);
             string output = Path.Combine(context.WorkFolder, "update_" + runId);
             WorkerRequest request = UpdateWorkerRequest.Make(runId, document, configPath, rulesPath, planPath, overridesPath, profile, nbh, files, output);

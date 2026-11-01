@@ -683,7 +683,6 @@ namespace SiteAdaptation.Tests
             string nbh = UpdateWorkerRequest.Nbh(LastPaths, out refusal);
             Assert.Equal("012", nbh);
             Assert.Null(refusal);
-            Assert.Equal(planPath, UpdateWorkerRequest.PlanPath(folder, nbh));
             string overrides = WriteText("overrides.json", WorkerOverrides().ToString());
             WorkerRequest request = UpdateWorkerRequest.Make("uw6", new WorkerDocument { Path = @"C:\Projects\a.rvt", SessionId = "s1" }, config, rules, planPath, overrides, Profile, nbh, LastPaths, Path.Combine(folder, "out"));
             Assert.Equal("updateFromReport", request.Command);

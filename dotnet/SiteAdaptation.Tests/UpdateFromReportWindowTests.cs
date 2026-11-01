@@ -218,6 +218,7 @@ namespace SiteAdaptation.Tests
             public string Overrides;
             public string Work;
             public string Excel;
+            public string Plan;
         }
 
         private Repo MadeRepo()
@@ -233,7 +234,7 @@ namespace SiteAdaptation.Tests
             rules["levelProfiles"]["default"] = Profile;
             File.WriteAllText(Path.Combine(root, "rules", "roshn-makkah.json"), rules.ToString());
             File.WriteAllText(repo.Overrides, UpdateFromReport.ListText(R402_UpdateFromReportTests.MadeOverrides()));
-            File.WriteAllText(UpdateWorkerRequest.PlanPath(repo.Work, "012"), R402_UpdateFromReportTests.MadePlan().ToString());
+            repo.Plan = R472_UpdatePlanTests.WriteCheckRun(repo.Work, "4_20261101-090000-000", "012", R402_UpdateFromReportTests.MadePlan().ToString());
             repo.Excel = Path.Combine(repo.Work, "012_Levels_" + Profile + ".xlsx");
             File.WriteAllBytes(repo.Excel, new byte[] { 1 });
             return repo;
@@ -404,7 +405,7 @@ namespace SiteAdaptation.Tests
         public void R402_a_plan_that_is_not_in_the_work_folder_stops_the_read_with_its_name_and_changes_nothing()
         {
             Repo repo = MadeRepo();
-            File.Delete(UpdateWorkerRequest.PlanPath(repo.Work, "012"));
+            File.Delete(repo.Plan);
             string before = File.ReadAllText(repo.Overrides);
             Model model;
             State state;
