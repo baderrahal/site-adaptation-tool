@@ -3,18 +3,21 @@ same. One row per plot and check of the sources a build holds: an override of th
 and field an open question of majority.decidedByQuestion decides, an entry of the cannot list of R272 and a key the plan lists as missing for
 the plot. Each row holds its check type, its field, the Use it opens on, Past when the build applies the override, Skip on a plot of the skip
 list, else Rule, and what Past writes in the form of the list by check and field (docs/design/03b-buttons-2-to-8.md 3 Check), all from the
-block checkRows of the settings. The chip Assumed of Q108 groups the assumed values of the plan by rule, one row per rule and status with its
-plots, only a DOCUMENT or strong MEASURED value left out (Q108, 7.7 item 8). The step checkRows of the parity harness, step 14,
-holds per plot its rows and the tables assumed and chips.
+block checkRows of the settings. R471 adds a row per joint corner of a ramp of the plan, the corners of ramps of two or more plots R470
+gives one level, with the gap of the joint and Pass or Fail by floors.rampJoint. The chip Assumed of Q108 groups the assumed values of the
+plan by rule, one row per rule and status with its plots, only a DOCUMENT or strong MEASURED value left out (Q108, 7.7 item 8). The step
+checkRows of the parity harness, step 14, holds per plot its rows and the tables assumed and chips.
 
 python python/check_rows.py <plan.json> --plots-csv <plots.csv> [--overrides <list>] --out <folder outside the repo>
 """
 import argparse
 import csv
 import json
+import math
 import sys
 from pathlib import Path
 
+import common
 import link_summary
 import plan_walls
 import plot_relations
@@ -24,7 +27,7 @@ import value_status
 STEP = "checkRows"
 STEP_FIELDS = ("unit", "nbh", "rows")
 # The sources of a row in the order a plot lists them within one check and field
-FROM_ORDER = ("override", "question", "cannot", "missing")
+FROM_ORDER = ("override", "question", "cannot", "missing", "joint")
 # The labels of the mock (docs/addin-mock.md item 4): the Use dropdown, the first chip and the chip of 7.7 item 8
 RULE, PAST, SKIP = "Rule", "Past", "Skip"
 ALL, ASSUMED, FOLLOW = "All", "Assumed", "followEveryRule"
@@ -32,6 +35,8 @@ NO_CHECK = "checkRows.%s names no check for %s (R363)"
 # Q108. The rule of every field and source valueStatus maps to no entry, one cause, and the head of a decidedByQuestion entry, grouped by question
 NO_STATUS_RULE = "valueStatus holds no status for the field and its source (R401)"
 DECIDED = "majority.decidedByQuestion."
+JOINT_FIELD, JOINT_FROM, JOINT_RULE = "rampJoint", "joint", "R471"
+NO_JOINT = "floors.rampJoint of the settings holds no length nearM above 0 and passGapM of 0 or more (R471)"
 
 
 def list_entries(data, sources, models=None):
@@ -72,8 +77,86 @@ def past_of(item, value=None):
     return {"writes": item.get("past"), "value": value, "why": None if item.get("past") is not None else item.get("why")}
 
 
-def plot_rows(numbers, infos, overrides, cannot, decided, block):
-    """R363. The rows of each plot of the scope, ordered by the check types of the mock, then any other type by name, then field and source."""
+def ramp_corners(plan):
+    """R471. The four ramp corners of each plot of the plan as [x, y, z], at the 3 decimals the plan writes them."""
+    found = {}
+    for entry in plan.get("plots") or ():
+        ramp = (entry.get("floors") or {}).get("ramp")
+        corners = ((ramp or {}).get("corners") or {}).get("value")
+        if corners:
+            found[entry["plot"]] = [list(corner) for corner in corners]
+    return found
+
+
+def joint_limits(settings):
+    """R471. nearM and passGapM of floors.rampJoint, refused unless nearM is a length above 0 and passGapM one of 0 or more."""
+    block = (settings.get("floors") or {}).get("rampJoint") or {}
+    limits = tuple(block.get(name) for name in ("nearM", "passGapM"))
+    if any(isinstance(value, bool) or not isinstance(value, (int, float)) for value in limits) or limits[0] <= 0 or limits[1] < 0:
+        raise project_profile.ProfileError(NO_JOINT)
+    return limits
+
+
+def ramp_joints(corners, near):
+    """R470, R471. The joints of the ramp corners, each a list of (plot, index): corners of two plots within near in plan of one another,
+    chained. A grid of cells near wide finds the pairs, so a whole site is not compared corner by corner."""
+    points = [(plot, index, corner) for plot in sorted(corners) for index, corner in enumerate(corners[plot])]
+    parent = list(range(len(points)))
+
+    def root(at):
+        while parent[at] != at:
+            parent[at] = parent[parent[at]]
+            at = parent[at]
+        return at
+
+    cells = {}
+    for at, (_, _, corner) in enumerate(points):
+        cells.setdefault((math.floor(corner[0] / near), math.floor(corner[1] / near)), []).append(at)
+    for (cx, cy), members in cells.items():
+        around = [other for dx in (-1, 0, 1) for dy in (-1, 0, 1) for other in cells.get((cx + dx, cy + dy), ())]
+        for at in members:
+            for other in around:
+                if other <= at or points[other][0] == points[at][0]:
+                    continue
+                dx, dy = points[other][2][0] - points[at][2][0], points[other][2][1] - points[at][2][1]
+                if dx * dx + dy * dy <= near * near:
+                    parent[root(other)] = root(at)
+    groups = {}
+    for at in range(len(points)):
+        groups.setdefault(root(at), []).append(at)
+    return [[(points[at][0], points[at][1]) for at in members] for members in groups.values() if len({points[at][0] for at in members}) > 1]
+
+
+def joint_rows(numbers, corners, skip, block, limits):
+    """R471. Per plot of the scope a row for each corner of its ramp in a joint of ramp_joints: check and past of checkRows.fields.rampJoint,
+    from joint, Skip on a plot of the skip list, else Rule, rule R471, the gap of the joint in m, the highest less the lowest level of its
+    corners at 3 decimals, and why naming the corner, the other plots and Pass when the gap is at most passGapM, else Fail."""
+    near, pass_gap = limits
+    item = entry_of(block, "fields", JOINT_FIELD)
+    by_corner = {}
+    for joint in ramp_joints(corners, near):
+        levels = [corners[plot][index][2] for plot, index in joint]
+        # float, as fixed gives 0 as an int and the C# a double, which the parity compares by type
+        gap = float(common.fixed(max(levels) - min(levels), 3))
+        for plot, index in joint:
+            others = sorted({other for other, _ in joint if other != plot})
+            by_corner[(plot, index)] = (gap, others)
+    found = {}
+    for number in numbers:
+        made = []
+        for index in [index for index in range(len(corners.get(number) or ())) if (number, index) in by_corner]:
+            gap, others = by_corner[(number, index)]
+            why = "corner %d shared with plots %s, gap %.3f m, %s, passes at most %.3f m" % (index + 1, ", ".join(others), gap, "Pass" if gap <= pass_gap else "Fail",
+                                                                                          pass_gap)
+            made.append({"check": item["check"], "field": JOINT_FIELD, "from": JOINT_FROM, "use": SKIP if skip.get(number) is not None else RULE, "rule": JOINT_RULE,
+                         "toolValue": gap, "past": past_of(item), "why": why})
+        found[number] = made
+    return found
+
+
+def plot_rows(numbers, infos, overrides, cannot, decided, block, joints=None):
+    """R363. The rows of each plot of the scope, ordered by the check types of the mock, then any other type by name, then field and source.
+    joints holds the rows of R471 by plot, sorted with the others."""
     by_pair = {(str(item["plot"]), item["field"]): item for item in overrides}
     questions = {}
     for question, rule in (decided or {}).items():
@@ -110,6 +193,7 @@ def plot_rows(numbers, infos, overrides, cannot, decided, block):
             item = entry_of(block, "missing", key)
             made.append({"check": item["check"], "field": key, "from": "missing", "use": SKIP if skip else RULE, "rule": None, "toolValue": None,
                          "past": past_of(item), "why": None})
+        made += (joints or {}).get(number) or []
         made.sort(key=lambda found_row: (types.index(found_row["check"]) if found_row["check"] in types else len(types), found_row["check"], found_row["field"],
                                          FROM_ORDER.index(found_row["from"])))
         found[number] = made
@@ -197,13 +281,14 @@ def plan_values(plan, numbers):
 
 
 def checks(numbers, rows, plan, data, sources, models, settings):
-    """R363, Q108. The rows of each plot of the scope, the rows of the chip Assumed and the chips, from the plan a build wrote, plots.csv by
-    plot and the override list data as the build took it."""
+    """R363, Q108, R471. The rows of each plot of the scope with the joint rows of its ramp, the rows of the chip Assumed and the chips, from
+    the plan a build wrote, plots.csv by plot and the override list data as the build took it."""
     block = settings.get("checkRows")
     overrides, cannot = list_entries(data or {}, sources, models)
     skip = {str(item["plot"]): item.get("reason") for item in (data or {}).get("skip") or ()}
     infos = plot_infos(numbers, plan, rows, skip)
-    rows_by_plot = plot_rows(numbers, infos, overrides, cannot, (settings.get("majority") or {}).get("decidedByQuestion"), block)
+    joints = joint_rows(numbers, ramp_corners(plan), skip, block, joint_limits(settings))
+    rows_by_plot = plot_rows(numbers, infos, overrides, cannot, (settings.get("majority") or {}).get("decidedByQuestion"), block, joints)
     status = settings.get("valueStatus") or {}
     values, details = plan_values(plan, numbers), plan.get("statusFrom") or {}
     assumed = assumed_rows(values, details, status.get("assumed") or [], status.get("worstFirst") or [])

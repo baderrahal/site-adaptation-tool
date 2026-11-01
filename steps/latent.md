@@ -447,6 +447,17 @@ No real input reaches these, since the ROSHN config runs roshnPastJob (Q224) and
 - Breaker 2, plan_walls.mitre: no limit on how far a mitre point lies from its vertex, a 3 degree notch grows its walls by 1.9 m. 0 shifts over 0.3 m on every baseplan face.
 - Breaker 2, plan_walls.mitre: a wall shorter than its two mitre retreats reverses, under 0.35 m between two 60 degree corners. 0 such walls on every baseplan face.
 
+## FIX-1NOV-A, review 1 and breaker pass 1
+
+- Review 1, check_rows.ramp_joints and CheckRows.RampJoints: R471 groups the plan corners at 3 decimals, R470 the raw corners, so a pair 8.6 to 10 mm apart could join in one and not the other, a missing row. 0 of 4,113 joints over 1 mm after R470.
+- Review 1, test gap: no test puts two corners exactly floors.rampJoint.nearM apart, both languages use the same float test.
+- Review 1, JointLimits and joint_limits take an inf or NaN nearM, joint_near refuses it and JointNear does not test finite. config holds 0.01.
+- Breaker 1, grouping: R470 groups raw corners, R471 plan corners at 3 decimals, a pair at 0.0099 m raw could flip. 0 real pairs between 0.0015 and 0.0197 m.
+- Breaker 1, joint_levels and JointLevels: no limit on the length of a chain, and two corners of one plot can meet through a third. Every real joint holds 2 corners of 2 plots, the widest 1.4 mm.
+- Breaker 1, NoSiteLevel: C# joins and CheckRows.RampCorners lists ramps BuildPlan does not write, Python writes none. Every real site holds the ramp level.
+- Breaker 1, grid cell index at exactly nearM in all four joint finders. No real pair near 0.01 m.
+- Breaker 1, S5: 169 back pairs of a shared side sit 19.7 to 20 mm apart, outside nearM, with steps of up to 229 mm that were in the base too. R470 does not join back corners, R471 lists none of them.- Review 2, check_rows.ramp_joints and CheckRows.RampJoints group all four corners and R470 joins only the front pair, so a back corner within nearM of another ramp's front corner would list as a joint row. No real pair seen.
+
 ## Lane B FIX-1NOV-B, review and breaker pass of Task 2
 
 No real input reaches these on the ROSHN config, whose linkFolder is masses, massFolder {workRoot}\masses and drawings in metres.
