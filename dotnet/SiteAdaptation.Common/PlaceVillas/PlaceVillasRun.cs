@@ -80,8 +80,21 @@ namespace SiteAdaptation.Common.PlaceVillas
             public string Solid;
             public bool SolidIsLink;
 
-            // R452. The file of a link swapped since it is not the file the run links, else null
+            // R452. The file of a link swapped since it is not the file the run links, else null, and the other links of the plot
+            // with such a file, deleted with it so none is kept as placed
             public string OldFile;
+            public List<string> AlsoDeleted = new List<string>();
+
+            // R368, R452. Where a link moved by hand stands, so its swap keeps the hand change, else null and the swap goes to the plan
+            public Spot Hand;
+        }
+
+        private sealed class Spot
+        {
+            public double[] Internal;
+            public double RotationDeg;
+            public bool Mirrored;
+            public PlacementSteps Steps;
         }
 
         private sealed class TypeUse
@@ -222,10 +235,12 @@ namespace SiteAdaptation.Common.PlaceVillas
                     if (step.Act == Act.Swap)
                     {
                         document.Delete(step.Solid);
+                        step.AlsoDeleted.ForEach(document.Delete);
                     }
-                    id = decision.Solids ? document.PlaceSolid(villa.Shape.Points, inputs.Config.SolidHeightM, villa.Steps) : document.PlaceLink(TypeKey(decision, villa, created), villa.Steps);
+                    id = decision.Solids ? document.PlaceSolid(villa.Shape.Points, inputs.Config.SolidHeightM, villa.Steps)
+                        : document.PlaceLink(TypeKey(decision, villa, created), step.Hand?.Steps ?? villa.Steps);
                 }
-                ReadBack(decision, villa, id);
+                ReadBack(decision, villa, id, step.Hand);
                 issues.AddRange(WriteParameters(decision.Solids, villa, id, inputs.ParameterGuids, inputs.FilledByOthers));
                 document.Tag(id, step.Act == Act.Move ? step.Outcome.NextTag(context.RunId, inputs.Profile) : PlacedTag.ForPlacement(villa.Item, context.RunId, inputs.Profile, id));
                 standing.Add(villa.Number);
@@ -399,7 +414,7 @@ namespace SiteAdaptation.Common.PlaceVillas
 
             Dictionary<string, Villa> byPlot = decision.Villas.ToDictionary(villa => villa.Number, StringComparer.Ordinal);
             var found = new List<FoundElement>();
-            var otherFile = new Dictionary<string, KeyValuePair<VillaElement, string>>(StringComparer.Ordinal);
+            var otherFile = new Dictionary<string, List<KeyValuePair<VillaElement, string>>>(StringComparer.Ordinal);
             foreach (VillaElement element in elements)
             {
                 if (decision.Masses && IsMass(element) && element.IsSolid != decision.Solids)
@@ -409,10 +424,14 @@ namespace SiteAdaptation.Common.PlaceVillas
                     continue;
                 }
                 string file = OtherFile(element, byPlot);
-                if (file != null && !otherFile.ContainsKey(element.Tag.Key.Plot))
+                if (file != null)
                 {
-                    // R452. A link of this run's part whose file is not the one the run links is swapped below, never kept as placed
-                    otherFile[element.Tag.Key.Plot] = new KeyValuePair<VillaElement, string>(element, file);
+                    // R452. Every link of this run's part whose file is not the one the run links is swapped below, never kept as placed
+                    if (!otherFile.TryGetValue(element.Tag.Key.Plot, out List<KeyValuePair<VillaElement, string>> others))
+                    {
+                        otherFile[element.Tag.Key.Plot] = others = new List<KeyValuePair<VillaElement, string>>();
+                    }
+                    others.Add(new KeyValuePair<VillaElement, string>(element, file));
                     continue;
                 }
                 if (element.Tag != null && element.Tag.Key.Kind == PlacedKinds.Link)
@@ -442,13 +461,16 @@ namespace SiteAdaptation.Common.PlaceVillas
                         step.SolidIsLink = !solid.IsSolid;
                         swapped.Add(solid.UniqueId);
                     }
-                    else if (otherFile.TryGetValue(villa.Number, out KeyValuePair<VillaElement, string> other))
+                    else if (otherFile.TryGetValue(villa.Number, out List<KeyValuePair<VillaElement, string>> others))
                     {
+                        List<VillaElement> links = others.Select(other => other.Key).OrderBy(link => link.UniqueId, StringComparer.Ordinal).ToList();
                         step.Act = Act.Swap;
-                        step.Solid = other.Key.UniqueId;
+                        step.Solid = links[0].UniqueId;
+                        step.AlsoDeleted.AddRange(links.Skip(1).Select(link => link.UniqueId));
                         step.SolidIsLink = true;
-                        step.OldFile = other.Value;
-                        swapped.Add(other.Key.UniqueId);
+                        step.OldFile = string.Join(", ", others.Select(other => other.Value).Distinct(StringComparer.OrdinalIgnoreCase));
+                        swapped.UnionWith(links.Select(link => link.UniqueId));
+                        step.Hand = Hand(decision, villa, links, byPlot);
                     }
                     else
                     {
@@ -471,8 +493,8 @@ namespace SiteAdaptation.Common.PlaceVillas
                 decision.Steps.Add(step);
             }
             decision.Listed.AddRange(match.Unplanned.Where(id => !swapped.Contains(id)).Select(id => "element " + id + " is tagged for no villa of this run, left as it is"));
-            decision.Listed.AddRange(otherFile.Where(item => !swapped.Contains(item.Value.Key.UniqueId))
-                .Select(item => "plot " + item.Key + ": the link " + item.Value.Key.UniqueId + " shows " + item.Value.Value + ", not the file of this run, left as it is"));
+            decision.Listed.AddRange(otherFile.SelectMany(item => item.Value.Where(other => !swapped.Contains(other.Key.UniqueId))
+                .Select(other => "plot " + item.Key + ": the link " + other.Key.UniqueId + " shows " + other.Value + ", not the file of this run, left as it is")));
             if (!decision.Solids)
             {
                 Types(decision);
@@ -560,11 +582,20 @@ namespace SiteAdaptation.Common.PlaceVillas
         }
 
         // R84, R404. Each element read back after its steps: a link by its transform within 1 mm, 0.01 degree and its mirror flag, a solid
-        // by the outline of its base within 1 mm of the shape the plan gives, both ways
-        private void ReadBack(Decision decision, Villa villa, string id)
+        // by the outline of its base within 1 mm of the shape the plan gives, both ways. A link swapped where a hand moved it, against that spot
+        private void ReadBack(Decision decision, Villa villa, string id, Spot hand)
         {
             bool mirrored = villa.Plot.Mirrored.Value.Value;
             double rotation = villa.Plot.RotationDeg.Value.Value;
+            if (hand != null)
+            {
+                string off = PlacementMath.Mismatch(document.ReadBackLink(id), hand.Internal, hand.RotationDeg, hand.Mirrored);
+                if (off != null)
+                {
+                    throw new InvalidOperationException("plot " + villa.Number + ": the swapped villa does not stand where it was moved by hand, " + off);
+                }
+                return;
+            }
             string mismatch;
             if (decision.Solids)
             {
@@ -668,6 +699,26 @@ namespace SiteAdaptation.Common.PlaceVillas
             return new PlacedValues(values);
         }
 
+        // R368, R452. A link of the old file that the second run reads as changed by hand, and the user did not set to the plan, gives
+        // the spot its swap keeps, the first by UniqueId when several do. The link of the right file stands there and the line says so
+        private static Spot Hand(Decision decision, Villa villa, IEnumerable<VillaElement> links, Dictionary<string, Villa> byPlot)
+        {
+            foreach (VillaElement link in links)
+            {
+                FoundElement found = FoundElement.Tagged(link.UniqueId, link.Tag, Current(decision, link, byPlot));
+                MatchOutcome outcome = SecondRun.Match(new[] { villa.Item }, new[] { found }, decision.Inputs.SetToPlan).Outcomes[0];
+                if (outcome.Case != MatchCase.ChangedByHand || outcome.Action != MatchAction.None || link.Transform == null)
+                {
+                    continue;
+                }
+                LinkTransform stands = LinkMath.Describe(link.Transform.Origin, link.Transform.AxisX, link.Transform.AxisY, link.Transform.AxisZ);
+                double[] point = stands.Origin.Length > 2 ? stands.Origin : new[] { stands.Origin[0], stands.Origin[1], villa.Internal[2] };
+                decision.Listed.Add("plot " + villa.Number + ": changed by hand in " + string.Join(", ", outcome.Differences) + ", the link of " + villa.File + " takes the place of " + link.UniqueId + " where it stands");
+                return new Spot { Internal = point, RotationDeg = stands.RotationDeg, Mirrored = stands.Mirrored, Steps = PlacementMath.Steps(point, stands.RotationDeg, stands.Mirrored) };
+            }
+            return null;
+        }
+
         // W6. The Z of the internal origin, a value of its own so a tag of 5c, which holds origin [x, y] alone, still reads
         private const string ZValue = "z";
 
@@ -729,7 +780,8 @@ namespace SiteAdaptation.Common.PlaceVillas
                 case Act.Place:
                     return "place";
                 case Act.Swap:
-                    return step.OldFile != null ? "swap the link " + step.Solid + " of " + step.OldFile + " for " + step.Villa.File
+                    return step.OldFile != null ? "swap the link " + string.Join(", ", new[] { step.Solid }.Concat(step.AlsoDeleted)) + " of " + step.OldFile + " for " + step.Villa.File
+                        + (step.Hand != null ? " where it stands" : "")
                         : step.SolidIsLink ? "swap the mass link " + step.Solid : "swap the solid " + step.Solid + " for its link";
                 case Act.Move:
                     return "move in place, " + string.Join(", ", step.Outcome.Differences);

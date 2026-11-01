@@ -455,6 +455,56 @@ namespace SiteAdaptation.Tests
             }
         }
 
+        // Breaker 2 of FIX-1NOV-B. A mass link moved by hand keeps where it stands when its plot changes prototype, as R368 leaves a hand
+        // change, and the run says it was changed by hand
+        [Fact]
+        public void R452_R368_a_hand_moved_mass_link_whose_plot_changes_prototype_is_swapped_where_it_stands()
+        {
+            File.WriteAllText(Path.Combine(prototypes, "VL4.rvt"), "other prototype");
+            var document = new FakeVillas();
+            Apply(Make(Plan(Plot("101", 1100, 0, false)), VillaModes.Masses, Config(LinkFolders.Masses), document), Context("r1"));
+            FakeElement old = document.Elements.Single();
+            double[] hand = { old.Steps.Move[0] + 3.0, old.Steps.Move[1] - 2.0, old.Steps.Move[2] };
+            old.Steps = PlacementMath.Steps(hand, 15, false);
+            PlanPlot changed = Plot("101", 1100, 0, false);
+            changed.PrototypeFile.Value = "VL4.rvt";
+            Run second = Make(Plan(changed), VillaModes.Masses, Config(LinkFolders.Masses), document);
+            Assert.Contains("swap 1", second.Body.Body().Preview(Context("p")).Counts);
+            IReadOnlyList<string> lines = Apply(second, Context("r2"));
+            FakeElement link = document.Elements.Single();
+            Assert.NotEqual(old.UniqueId, link.UniqueId);
+            Assert.Equal("VL4.rvt", Path.GetFileName(document.Types.Single(type => type.Key == link.TypeKey).FullPath));
+            Assert.Equal(hand, link.Steps.Move);
+            Assert.Equal(15, link.Steps.RotationRad * 180 / Math.PI, 9);
+            Assert.Contains(lines, line => line.StartsWith("plot 101: changed by hand in ", StringComparison.Ordinal));
+            // The run after reads the new link as changed by hand and leaves it, it swaps nothing
+            RunSummary third = Make(Plan(changed), VillaModes.Masses, Config(LinkFolders.Masses), document).Body.Body().Preview(Context("p3"));
+            Assert.Contains("swap 0, move 0, already placed 0, skip 1", third.Counts);
+            Assert.Contains(third.PerPlot, line => line.StartsWith("plot 101: changed by hand in ", StringComparison.Ordinal) && line.EndsWith("left as it is", StringComparison.Ordinal));
+        }
+
+        // Breaker 2 of FIX-1NOV-B. Every tagged link of the plot that shows the old file is swapped, none is kept as placed
+        [Fact]
+        public void R452_two_tagged_links_of_one_plot_with_the_old_file_are_both_swapped()
+        {
+            File.WriteAllText(Path.Combine(prototypes, "VL4.rvt"), "other prototype");
+            var document = new FakeVillas();
+            Apply(Make(Plan(Plot("101", 1100, 0, false)), VillaModes.Masses, Config(LinkFolders.Masses), document), Context("r1"));
+            FakeElement first = document.Elements.Single();
+            document.Elements.Add(new FakeElement
+            {
+                UniqueId = "x1", TypeKey = first.TypeKey, PlotNumber = "101", Steps = first.Steps,
+                Tag = new PlacedTag(first.Tag.Version, first.Tag.Key, first.Tag.Run, first.Tag.Profile, "x1", first.Tag.Placed),
+            });
+            PlanPlot changed = Plot("101", 1100, 0, false);
+            changed.PrototypeFile.Value = "VL4.rvt";
+            Run second = Make(Plan(changed), VillaModes.Masses, Config(LinkFolders.Masses), document);
+            Assert.Contains("swap 1", second.Body.Body().Preview(Context("p")).Counts);
+            Apply(second, Context("r2"));
+            FakeElement link = document.Elements.Single();
+            Assert.Equal("VL4.rvt", Path.GetFileName(document.Types.Single(type => type.Key == link.TypeKey).FullPath));
+        }
+
         // Fix pass finding 2. The record of a Links run keeps the hash of the mass file it did not link, so the next Masses run reloads it
         [Fact]
         public void R452_a_mass_made_again_after_a_links_run_is_still_reloaded()
@@ -567,6 +617,31 @@ namespace SiteAdaptation.Tests
             IReadOnlyList<string> issues = Apply(run, Context("r1"));
             Assert.Single(issues, line => line.Contains("the footprint read has no house outlines, run 2 Read data again"));
             Assert.DoesNotContain(issues, line => line.Contains("flagged (R404)"));
+        }
+
+        // Review of FIX-1NOV-B, one copy of each ring rule. Bit for bit on rings at site coordinates, where the order of the sums shows
+        [Fact]
+        public void R451_R453_ring_math_is_the_one_ring_area_point_test_and_centroid_of_floors_scan_and_plot_labels()
+        {
+            var random = new Random(451);
+            for (int round = 0; round < 200; round++)
+            {
+                double east = 40000 + random.NextDouble() * 1000, north = 2.4e6 + random.NextDouble() * 1000;
+                int corners = 3 + random.Next(10);
+                List<double[]> ring = Enumerable.Range(0, corners).Select(index => index * 2 * Math.PI / corners)
+                    .Select(turn => new[] { east + Math.Cos(turn) * (5 + random.NextDouble() * 20), north + Math.Sin(turn) * (5 + random.NextDouble() * 20) }).ToList();
+                Assert.Equal(BitConverter.DoubleToInt64Bits(FloorMath.SignedArea(ring)), BitConverter.DoubleToInt64Bits(RingMath.Area(ring)));
+                double[] centre = RingMath.Centroid(ring), labelled = PlotLabels.Centroid(ring);
+                Assert.Equal(BitConverter.DoubleToInt64Bits(labelled[0]), BitConverter.DoubleToInt64Bits(centre[0]));
+                Assert.Equal(BitConverter.DoubleToInt64Bits(labelled[1]), BitConverter.DoubleToInt64Bits(centre[1]));
+                IEnumerable<double[]> points = ring.Concat(Enumerable.Range(0, 20).Select(index => new[] { east - 25 + random.NextDouble() * 50, north - 25 + random.NextDouble() * 50 }));
+                foreach (double[] point in points)
+                {
+                    bool holds = RingMath.Holds(ring, point);
+                    Assert.Equal(ScanLogic.Contains(ring, point[0], point[1]), holds);
+                    Assert.Equal(PlotLabels.Contains(ring, point[0], point[1]), holds);
+                }
+            }
         }
 
         [Fact]

@@ -1,55 +1,45 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace SiteAdaptation.Common.PlaceVillas
 {
-    // R451, R453. The one ring area and point test of the mass base, the footprint check and the house rings of the CAD read, so the
-    // three never part on a ring
+    // R451, R453. The ring area and point test of the mass base, the footprint check and the house rings of the CAD read, so the three
+    // never part on a ring. The area is FloorMath.SignedArea and the point test ScanLogic.Contains, one copy each in Common, and the
+    // centroid here is the one PlotLabels.Centroid of the CAD reader calls
     public static class RingMath
     {
         // Signed by the shoelace, counter clockwise above 0
         public static double Area(IReadOnlyList<double[]> ring)
         {
-            double area = 0;
-            for (int i = 0; i < ring.Count; i++)
-            {
-                double[] a = ring[i], b = ring[(i + 1) % ring.Count];
-                area += a[0] * b[1] - b[0] * a[1];
-            }
-            return area / 2;
+            return FloorMath.SignedArea(ring);
         }
 
         // By the crossings of a ray to the east, a point on an edge may count in or out
         public static bool Holds(IReadOnlyList<double[]> ring, double[] point)
         {
-            bool inside = false;
-            for (int i = 0, j = ring.Count - 1; i < ring.Count; j = i++)
-            {
-                if ((ring[i][1] > point[1]) != (ring[j][1] > point[1])
-                    && point[0] < (ring[j][0] - ring[i][0]) * (point[1] - ring[i][1]) / (ring[j][1] - ring[i][1]) + ring[i][0])
-                {
-                    inside = !inside;
-                }
-            }
-            return inside;
+            return ScanLogic.Contains(ring, point[0], point[1]);
         }
 
-        // The area centroid, so a ring with many corners on one side is not pulled toward them as the mean of the corners would be
+        // The area centroid, so a ring with many corners on one side is not pulled toward them as the mean of the corners would be. The
+        // sums run from the closing edge as the label join of the CAD reader has always run them, so its centres keep every bit
         public static double[] Centroid(IReadOnlyList<double[]> ring)
         {
-            double area = Area(ring), x = 0, y = 0;
-            if (area == 0)
+            double twice = 0;
+            double cx = 0;
+            double cy = 0;
+            for (int i = 0, j = ring.Count - 1; i < ring.Count; j = i++)
             {
-                return new[] { ring.Average(point => point[0]), ring.Average(point => point[1]) };
+                double cross = ring[j][0] * ring[i][1] - ring[i][0] * ring[j][1];
+                twice += cross;
+                cx += (ring[j][0] + ring[i][0]) * cross;
+                cy += (ring[j][1] + ring[i][1]) * cross;
             }
-            for (int i = 0; i < ring.Count; i++)
+            if (Math.Abs(twice) < 1e-12)
             {
-                double[] a = ring[i], b = ring[(i + 1) % ring.Count];
-                double cross = a[0] * b[1] - b[0] * a[1];
-                x += (a[0] + b[0]) * cross;
-                y += (a[1] + b[1]) * cross;
+                return new[] { ring.Average(p => p[0]), ring.Average(p => p[1]) };
             }
-            return new[] { x / (6 * area), y / (6 * area) };
+            return new[] { cx / (3 * twice), cy / (3 * twice) };
         }
     }
 }
