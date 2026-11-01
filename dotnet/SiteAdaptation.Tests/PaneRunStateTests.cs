@@ -329,6 +329,31 @@ namespace SiteAdaptation.Tests
             }
         }
 
+        // Review of R457: a combo given a new ItemsSource may write a null SelectedItem back, which would wipe the scope saved with the model
+        [Fact]
+        public void R457_a_new_list_keeps_the_saved_neighbourhood_when_the_combo_clears_its_selection()
+        {
+            PaneViewModel model = Loaded(new PaneSettings { ConfigFile = Folder + "project.json" });
+            model.Nbh = "012";
+            int swaps = 0;
+            model.PropertyChanged += (sender, args) =>
+            {
+                if (args.PropertyName == nameof(PaneViewModel.NbhCodes))
+                {
+                    swaps++;
+                    model.Nbh = null;
+                }
+            };
+
+            model.SetNbhCodes(new[] { "003", "012" });
+            Assert.Equal("012", model.Nbh);
+            Assert.Equal(1, swaps);
+
+            model.SetNbhCodes(new[] { "003", "012" });
+            Assert.Equal(1, swaps);
+            Assert.Equal("012", model.Nbh);
+        }
+
         // A row with no official number is no unit plot, so its neighbourhood offers no choice (R366)
         private static void WriteRead(string work, string name, string runId, params string[] nbhs)
         {

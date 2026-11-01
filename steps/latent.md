@@ -493,3 +493,10 @@ No real input reaches these: coordinates.source is positionFile (Q328), and the 
 - Review 1 F6 and breaker L8, SetUpPlanner.Stops: a Plot row with no GUID skips the check that Floors fills it. The sheet of the repo gives Plot its Q156 GUID and Filled by 5.
 - Review 1 F8: the data type is written as given with no check, every row of the sheet of the repo is TEXT.
 - R439, ScanStep hash cache: two writes of one size in one tick give a stale hash, no real input reaches it. R438_ScanStepTests gives each rewrite its own write time (Lane C, PR 126).
+
+## Lane B Task 6, review of R457
+
+No real input reaches these: the plot table of the demo holds whole numbers and clean area keys.
+
+- ButtonScope.NbhCodes keeps any plot with a number and an area key, Resolve skips a number that is not all digits and trims the key. An NBH whose only units are numbered 12A is offered, then stops with holds no unit plot.
+- PaneRunState.RefreshNbhCodes catches no InvalidDataException or ArgumentException. A work folder path with illegal characters would escape into the view activated handler.

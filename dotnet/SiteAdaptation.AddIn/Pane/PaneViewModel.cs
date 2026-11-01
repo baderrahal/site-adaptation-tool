@@ -289,7 +289,18 @@ namespace SiteAdaptation.AddIn.Pane
         public void SetNbhCodes(IReadOnlyList<string> codes)
         {
             string saved = document?.Settings.Scope.Nbh;
-            NbhCodes = string.IsNullOrEmpty(saved) || codes.Contains(saved) ? codes : codes.Concat(new[] { saved }).ToList();
+            IReadOnlyList<string> next = string.IsNullOrEmpty(saved) || codes.Contains(saved) ? codes : codes.Concat(new[] { saved }).ToList();
+            if (next.SequenceEqual(NbhCodes))
+            {
+                return;
+            }
+            NbhCodes = next;
+
+            // A combo given a new ItemsSource may write a null SelectedItem back, so the code saved with the model is put back
+            if (!string.IsNullOrEmpty(saved) && Nbh != saved)
+            {
+                Nbh = saved;
+            }
         }
 
         public static string StepName(int number)
