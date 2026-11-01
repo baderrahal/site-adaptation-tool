@@ -428,7 +428,7 @@ namespace SiteAdaptation.Tests
             site.Systems = systems;
             site.ControlPoints = ControlPoints.Pick(Plots(), settings.ControlPointCount);
             site.ControlPointLimitMm = settings.ControlPointLimitMm;
-            return SetUpTarget.From(config, rules, null, position, RampSlopes.Default(rules, null), ParameterSheet.FromConfig(config), site);
+            return SetUpTarget.From(config, rules, null, position, RampSlopes.Default(rules, null), ParameterSheet.FromConfig(Path.Combine(ThemeGateTests.RepoRoot(), "config", "project.json"), config), site);
         }
 
         [Fact]
