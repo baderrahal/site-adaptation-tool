@@ -28,6 +28,12 @@ namespace SiteAdaptation.Common.SetUp
         public List<string> ProjectParameters { get; set; } = new List<string>();
 
         public bool SettingsEntity { get; set; }
+
+        // R455. The name of the active named position and the site location, latitude and longitude in degrees, null where not read
+        public string PositionName { get; set; }
+        public double? LatitudeDeg { get; set; }
+        public double? LongitudeDeg { get; set; }
+        public string PlaceName { get; set; }
     }
 
     // The unit names as SiteFacts.UnitName gives them from the type id, such as meters, squareMeters, degrees

@@ -11,8 +11,8 @@
 
 ### Lane B, C and D
 
-- Lane B demo-check, 10:34: main 5115325 installed, hand run not done, NO-GO live, show SA-demo-done.rvt (steps/demo-check.md).
-  Revit closed, lock released. Blocked: none
+- Lane B FIX-1NOV-B, 20:58, fix/1nov-b: tasks 2 and 3 done, proven in Revit on NBH 012, gate green. Now: the PR. A Parsons shutdown
+  notice says 21:14 on this laptop. Next: Task 6 hand run after Lane A. Blocked: none
 - Lane C DEMO-FIX, 09:55, branch fix/lane-c-demo-fix: step rows of the pane run steps, a loader on every button, Confirm all in 3 Review
   data, idle buttons hidden (R444). Now: the gate and the PR, merge by 10:15, then lane-b reinstalls. Blocked: none
 - Lane D FIX-1NOV-D, 17:26, branch fix/1nov-d: config/shared_parameters.xlsx the one parameter source, R460 to R465, Q330 to Q335.

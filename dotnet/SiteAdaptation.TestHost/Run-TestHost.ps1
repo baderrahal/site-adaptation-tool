@@ -216,7 +216,8 @@ function Get-SiteNewFile($build) {
 if ($round) {
     # R204 to R214. Every file sits in the work folder of siteBuild, and the file named in $original must not change
     $build = $config.siteBuild
-    $work = Join-Path $build.folder 'work'
+    $buildFolder = Resolve-WorkRootPath -Path $build.folder -Docs $docs
+    $work = Join-Path $buildFolder 'work'
     $roundJob = [ordered]@{
         kind  = $round.kind
         token = $null
@@ -260,7 +261,7 @@ if ($round) {
             }
             $original = $copy
             $roundJob.model = $copy
-            $roundJob.imageFolder = Join-Path $build.folder 'images'
+            $roundJob.imageFolder = Join-Path $buildFolder 'images'
             $roundJob.imageLevel = [string]$round.imageLevel
             $roundJob.area = [double[]]@($round.area)
             # R302. The image step runs at most testHost.imageStepMinutes of config/project.json. The job may run that plus
@@ -289,8 +290,8 @@ if ($round) {
         }
         'newSite' {
             $copy = Join-Path $work (Get-SiteNewFile $build)
-            if (-not ([string]$round.site).StartsWith($build.folder + [IO.Path]::DirectorySeparatorChar)) {
-                throw "The site file is not in $($build.folder)"
+            if (-not ([string]$round.site).StartsWith($buildFolder + [IO.Path]::DirectorySeparatorChar)) {
+                throw "The site file is not in $buildFolder"
             }
             $original = $build.template
             $roundJob.model = $copy
@@ -328,6 +329,8 @@ if ($round) {
                 $profileCopy = Join-Path $runFolder ([string]$config.profile)
                 New-Item -ItemType Directory -Force (Split-Path $profileCopy) | Out-Null
                 Copy-Item -LiteralPath (Join-Path $repo ([string]$config.profile)) -Destination $profileCopy
+                # Lane D R462. Button 1 reads the parameter sheet named by addin.parameterSheet beside the config it is given
+                Get-ChildItem -LiteralPath (Join-Path $repo 'config') -File -Filter '*.xlsx' | Copy-Item -Destination (Join-Path $runFolder 'config')
                 $roundJob.setUp = $true
             }
             # R405. A plain addinRun, with neither setUp nor buttons, takes a copy of the config of the repo in config of the run folder,
@@ -389,6 +392,8 @@ if ($round) {
                 # overrides beside it, which Save overrides writes. The run takes copies, so a Save writes the run folder and never the repo
                 Get-ChildItem -LiteralPath (Join-Path $repo 'config') -File -Filter '*.json' | Where-Object { $_.Name -ne 'project.json' -and $_.Name -ne $layersName } | Copy-Item -Destination (Split-Path $settingsPath)
                 Copy-Item -LiteralPath (Join-Path $repo 'config\overrides') -Destination (Split-Path $settingsPath) -Recurse
+                # Lane D R462. Buttons 1 and 7 read the parameter sheet named by addin.parameterSheet beside the config
+                Get-ChildItem -LiteralPath (Join-Path $repo 'config') -File -Filter '*.xlsx' | Copy-Item -Destination (Split-Path $settingsPath)
                 $profileCopy = Join-Path $runFolder ([string]$config.profile)
                 New-Item -ItemType Directory -Force (Split-Path $profileCopy) | Out-Null
                 Copy-Item -LiteralPath (Join-Path $repo ([string]$config.profile)) -Destination $profileCopy

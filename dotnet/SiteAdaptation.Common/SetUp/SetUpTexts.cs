@@ -33,6 +33,12 @@ namespace SiteAdaptation.Common.SetUp
         public const string AtOrigin = "at the internal origin";
         public const string SettingsNotWritten = "The Settings entity is not written yet, it joins at 5c with R367";
 
+        // R456. A control point by its order and the plot whose corner it is
+        public static string ControlPoint(int number, string plot)
+        {
+            return "Control point " + number.ToString(CultureInfo.InvariantCulture) + ", plot " + (plot ?? "no number");
+        }
+
         public static string NotOnDisk(string what, string path)
         {
             return "1 Set up site needs " + what + ", the file is not on disk: " + (path ?? "not named");
@@ -140,6 +146,14 @@ namespace SiteAdaptation.Common.SetUp
 
         public static string CoordinateSystemText(SetUpTarget target)
         {
+            if (target.Cad != null)
+            {
+                CadSite cad = target.Cad;
+                string system = cad.Systems.Outcome == SystemAgreement.NoneStated ? "no input states a system, EPSG " + cad.Epsg.ToString(CultureInfo.InvariantCulture) + " of config"
+                    : "EPSG " + cad.Epsg.ToString(CultureInfo.InvariantCulture);
+                return system + ", named position " + cad.PositionName + ", origin " + Coordinate(new[] { target.Position.EastM.Value, target.Position.NorthM.Value, target.Position.ElevationM.Value })
+                    + ", latitude " + Number(cad.LatitudeDeg, 7) + ", longitude " + Number(cad.LongitudeDeg, 7) + ", survey point and project base point " + Coordinate(target.BaseShared);
+            }
             return "shared coordinates of CAD, site " + (target.ActiveSite ?? "Internal") + ", project position " + Coordinate(new[] { target.Position.EastM.Value, target.Position.NorthM.Value, target.Position.ElevationM.Value })
                 + ", project base point " + Coordinate(target.BaseShared);
         }

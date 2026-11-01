@@ -32,6 +32,14 @@ namespace SiteAdaptation.Common.PlaceVillas
         // The step at which the distance of R404 samples each edge, so its result is exact to half of it
         public double FootprintSampleStepMm { get; private set; }
 
+        // R450. Null for a Settings file saved before R450, which keeps the solids of R404
+        public MassFileConfig MassFiles { get; private set; }
+
+        // R453. The layer of the house outline inside a footprint block and the least area of one, both null for a Settings file saved
+        // before R453, which keeps the block outline of R404
+        public string HouseLayer { get; private set; }
+        public double? HouseMinAreaM2 { get; private set; }
+
         public static LightModeConfig Load(string path)
         {
             return From(JObject.Parse(File.ReadAllText(path)));
@@ -48,7 +56,15 @@ namespace SiteAdaptation.Common.PlaceVillas
                 BaseBoundaryFloorType = block["baseBoundaryFloorType"] == null || block["baseBoundaryFloorType"].Type == JTokenType.Null ? null : (string)block["baseBoundaryFloorType"],
                 FootprintLimitMm = Positive(block, "footprintLimitMm"),
                 FootprintSampleStepMm = Positive(block, "footprintSampleStepMm"),
+                MassFiles = MassFileConfig.From(block),
             };
+            if (block["houseLayer"] != null || block["houseMinAreaM2"] != null)
+            {
+                JToken layer = block["houseLayer"];
+                config.HouseLayer = layer?.Type == JTokenType.String && ((string)layer).Length > 0 ? (string)layer
+                    : throw new InvalidDataException("addin." + Block + ".houseLayer is " + (layer?.ToString() ?? "missing") + ", houseMinAreaM2 needs the layer of the house outline (R453)");
+                config.HouseMinAreaM2 = Positive(block, "houseMinAreaM2");
+            }
             if (config.BaseBoundary == BaseBoundarySources.FloorType && string.IsNullOrWhiteSpace(config.BaseBoundaryFloorType))
             {
                 throw new InvalidDataException("addin." + Block + ".baseBoundaryFloorType names no floor type, which baseBoundary floorType needs (R404)");
