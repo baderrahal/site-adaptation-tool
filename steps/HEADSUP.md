@@ -15,9 +15,8 @@
   notice says 21:14 on this laptop. Next: Task 6 hand run after Lane A. Blocked: none
 - Lane C DEMO-FIX, 09:55, branch fix/lane-c-demo-fix: step rows of the pane run steps, a loader on every button, Confirm all in 3 Review
   data, idle buttons hidden (R444). Now: the gate and the PR, merge by 10:15, then lane-b reinstalls. Blocked: none
-- Lane D D3, 22:50, branch fix/1nov-d3: Links mode on the real prototypes (Q275). Pushed: R467, a buttons spec field villaLinkFolder. Q275 reads as
-  the R466 fault. Next: when Lane B ends Task 6, install main plus this branch, move the unchecked C10 and DT3 of prototypes_2024 aside, then
-  Run-TestHost -Upgrade -Code <code> for the 13 prototypes one window each, then buttons 1 to 9 on NBH 012. Blocked: the window lock (Lane B)
+- Lane D D3, restarted, 23:58 by the laptop clock, branch fix/1nov-d3 at 0784ad6: Links mode on the real prototypes (Q275). No Revit or worker left, lock free.
+  Now: the 2024 copies by hash and version, the run specs. Next: lane-b's word, install, the upgrades one window each, buttons 1 to 9 on NBH 012. Blocked: none
 
 Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane D D2, Lane D FIX-1NOV-D, Lane C DEMO-FIX, Lane B demo-fill, Lane A 4j-2, Lane D 4j-1b, Lane C SCAN-UI, Lane A 4i, Lane B 6a, 1 Nov 2026.
 
