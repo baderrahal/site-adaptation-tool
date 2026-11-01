@@ -136,13 +136,17 @@ namespace SiteAdaptation.Common.SetUp
 
         public static SetUpChanges Changes(SiteState now, SetUpTarget target)
         {
+            bool position = !SamePosition(now.Position, target.Position);
+            // R455, LB1F and LB1G. SetProjectPosition moves the survey point internal to (-E,-N) on a new project (survey probe of
+            // FIX-1NOV-B), so a point read at its target before the writes is off after them. A position change moves both points,
+            // each by the gap Revit reads at that time
             var changes = new SetUpChanges
             {
                 Units = !SameUnits(now.Units, target.Units),
                 Location = target.Cad != null && !SameLocation(now, target.Cad),
-                Position = !SamePosition(now.Position, target.Position),
-                SurveyPoint = Gap(now.Survey.InternalM, target.SurveyInternal) > SameMm,
-                BasePoint = Gap(now.ProjectBase.InternalM, target.BaseInternal) > SameMm,
+                Position = position,
+                SurveyPoint = position || Gap(now.Survey.InternalM, target.SurveyInternal) > SameMm,
+                BasePoint = position || Gap(now.ProjectBase.InternalM, target.BaseInternal) > SameMm,
                 // A level made takes the default level type, whose base is not known before, so its type is set too
                 LevelBase = target.Levels.Any(level => now.Levels.FirstOrDefault(have => have.Name == level.Name)?.Base != target.LevelBase),
             };

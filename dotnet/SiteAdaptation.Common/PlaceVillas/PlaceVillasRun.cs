@@ -152,22 +152,21 @@ namespace SiteAdaptation.Common.PlaceVillas
         private IDisposable Outside(RunContext context)
         {
             Decision decision = Decide(context);
+            var reloaded = new HashSet<string>(StringComparer.Ordinal);
             if (decision.Makes.Count > 0)
             {
                 // R450. The mass files are new documents of their own, made before any transaction of the site and before the link
-                // types load, so a mass made again is reloaded by the step below
+                // types load
                 MassFileSet set = massFiles(context);
-                foreach (string prototype in decision.Makes)
-                {
-                    set.Make(prototype, decision.Inputs.Config);
-                }
+                reloaded = MakeUnloaded(set, decision);
                 decision = Decide(context);
                 if (decision.Makes.Count > 0)
                 {
                     throw new InvalidOperationException("the mass file of " + Path.GetFileName(decision.Makes[0]) + " is still stale after it was made, nothing was placed (R450)");
                 }
             }
-            List<KeyValuePair<string, TypeUse>> loads = decision.Types.Where(use => use.Value.Load || use.Value.Reload).OrderBy(use => use.Key, StringComparer.Ordinal).ToList();
+            List<KeyValuePair<string, TypeUse>> loads = decision.Types.Where(use => use.Value.Load || (use.Value.Reload && !reloaded.Contains(use.Value.Existing.Key)))
+                .OrderBy(use => use.Key, StringComparer.Ordinal).ToList();
             if (loads.Count == 0)
             {
                 return null;
@@ -187,6 +186,44 @@ namespace SiteAdaptation.Common.PlaceVillas
                 }
             }
             return null;
+        }
+
+        // R450, probe of FIX-1NOV-B. A mass file the site links and has loaded opens as the link document, which takes no transaction
+        // and cannot be closed, so its type is unloaded before the make and reloaded after, also when a make fails, which leaves the
+        // site as it found it. Gives the keys reloaded, which need no second reload
+        private HashSet<string> MakeUnloaded(MassFileSet set, Decision decision)
+        {
+            string folder = set.LinkFolder(decision.Inputs.Config.MassFiles, null);
+            var stale = new HashSet<string>(decision.Makes.Select(prototype => Path.GetFullPath(MassFiles.PathFor(folder, prototype))), StringComparer.OrdinalIgnoreCase);
+            List<string> unloaded = new List<string>();
+            bool made = false;
+            try
+            {
+                foreach (VillaLinkType type in document.LinkTypes().Where(type => type.Loaded && type.FullPath != null && stale.Contains(Path.GetFullPath(type.FullPath))))
+                {
+                    string result = document.UnloadType(type.Key);
+                    if (result != null)
+                    {
+                        throw new InvalidOperationException("the link " + type.FullPath + " did not unload, " + result + ", its mass file was not made and nothing was placed (R450)");
+                    }
+                    unloaded.Add(type.Key);
+                }
+                foreach (string prototype in decision.Makes)
+                {
+                    set.Make(prototype, decision.Inputs.Config);
+                }
+                made = true;
+            }
+            finally
+            {
+                List<string> failed = unloaded.Select(key => new { key, result = document.ReloadType(key) }).Where(item => item.result != null).Select(item => item.key + " " + item.result).ToList();
+                // A failure of the make is the one to report, a reload failure after it would hide it
+                if (made && failed.Count > 0)
+                {
+                    throw new InvalidOperationException("the mass link types did not reload after the make, " + string.Join(", ", failed) + ", nothing was placed (R450)");
+                }
+            }
+            return new HashSet<string>(unloaded, StringComparer.Ordinal);
         }
 
         private IReadOnlyList<string> Apply(RunContext context)

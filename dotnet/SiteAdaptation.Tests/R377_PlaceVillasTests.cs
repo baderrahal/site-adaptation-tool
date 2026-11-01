@@ -558,6 +558,14 @@ namespace SiteAdaptation.Tests
         public string ReloadType(string key)
         {
             Loaded.Add("reload " + key);
+            Types.Single(type => type.Key == key).Loaded = true;
+            return null;
+        }
+
+        public string UnloadType(string key)
+        {
+            Loaded.Add("unload " + key);
+            Types.Single(type => type.Key == key).Loaded = false;
             return null;
         }
 

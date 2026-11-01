@@ -118,6 +118,20 @@ namespace SiteAdaptation.AddIn.Revit
             return result != null && LinkLoadResult.IsCodeSuccess(result.LoadResult) ? null : result == null ? "no result" : result.LoadResult.ToString();
         }
 
+        // Unload(null) as the probe of FIX-1NOV-B ran it, which then wrote the mass file and reloaded the type
+        public string UnloadType(string key)
+        {
+            try
+            {
+                ((RevitLinkType)document.GetElement(Id(key))).Unload(null);
+                return null;
+            }
+            catch (Autodesk.Revit.Exceptions.ApplicationException failure)
+            {
+                return failure.Message;
+            }
+        }
+
         public string CreateType(string fullPath)
         {
             LinkLoadResult result = RevitLinkType.Create(document, ModelPathUtils.ConvertUserVisiblePathToModelPath(fullPath), new RevitLinkOptions(false));

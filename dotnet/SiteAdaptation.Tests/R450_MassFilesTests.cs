@@ -55,6 +55,10 @@ namespace SiteAdaptation.Tests
             public int Reads;
             public readonly List<string> Written = new List<string>();
 
+            // The probe of FIX-1NOV-B: a file the open site links and has loaded opens as the link document, which takes no
+            // transaction and cannot be closed, so Write over it fails
+            public Func<string, bool> LoadedInSite = path => false;
+
             public MassBaseRead ReadBase(string prototypePath, LightModeConfig config)
             {
                 Reads++;
@@ -63,6 +67,10 @@ namespace SiteAdaptation.Tests
 
             public void Write(string massPath, IReadOnlyList<double[]> ring, double heightM)
             {
+                if (LoadedInSite(massPath))
+                {
+                    throw new InvalidOperationException("Cannot close a linked file");
+                }
                 Written.Add(massPath);
                 File.WriteAllText(massPath, "mass " + ring.Count + " " + Guid.NewGuid().ToString("N"));
             }
@@ -130,6 +138,7 @@ namespace SiteAdaptation.Tests
         private Run Make(PlanFile plan, string mode, LightModeConfig config, FakeVillas document = null, Dictionary<string, string> lastHashes = null, List<double[][]> footprint = null)
         {
             var run = new Run { Document = document ?? new FakeVillas() };
+            run.Maker.LoadedInSite = path => run.Document.Types.Any(type => type.Loaded && string.Equals(Path.GetFullPath(type.FullPath), Path.GetFullPath(path), StringComparison.OrdinalIgnoreCase));
             Func<RunContext, VillaInputs> load = context => new VillaInputs
             {
                 Plan = plan, PlanPath = Path.Combine(work, "plan_012.json"), Config = config, Mode = mode, Profile = "parsons2024Rev6",
@@ -323,8 +332,36 @@ namespace SiteAdaptation.Tests
             Run second = Make(Plan(Plot("101", 1100, 0, false), Plot("102", 1200, 0, false)), VillaModes.Masses, Config(LinkFolders.Masses), first.Document, last);
             Apply(second, Context("r2"));
             Assert.Single(second.Maker.Written);
-            Assert.Equal(new[] { "reload type1" }, first.Document.Loaded);
+            Assert.Equal(new[] { "unload type1", "reload type1" }, first.Document.Loaded);
             Assert.Equal(2, first.Document.Elements.Count);
+        }
+
+        // R450, FIX-1NOV-B. A stale mass file the site links and has loaded cannot be written over, so its link type is unloaded
+        // before the make and reloaded after, once, and a make that fails still reloads it
+        [Fact]
+        public void R450_a_stale_mass_file_loaded_in_the_site_is_unloaded_before_the_make_and_reloaded_after()
+        {
+            Run first = Make(Plan(Plot("101", 1100, 0, false)), VillaModes.Masses, Config(LinkFolders.Masses));
+            Apply(first, Context("r1"));
+            string mass = Path.Combine(masses, "VD4.rvt");
+            Assert.Throws<InvalidOperationException>(() => first.Maker.Write(mass, Slab, 3.0));
+
+            File.WriteAllText(Path.Combine(prototypes, "VD4.rvt"), "prototype changed");
+            Run second = Make(Plan(Plot("101", 1100, 0, false)), VillaModes.Masses, Config(LinkFolders.Masses), first.Document);
+            Apply(second, Context("r2"));
+            Assert.Equal(new[] { mass }, second.Maker.Written);
+            Assert.Equal(new[] { "unload type1", "reload type1" }, first.Document.Loaded);
+            Assert.True(first.Document.Types.Single().Loaded);
+
+            first.Document.Loaded.Clear();
+            File.WriteAllText(Path.Combine(prototypes, "VD4.rvt"), "prototype changed again");
+            Run failing = Make(Plan(Plot("101", 1100, 0, false)), VillaModes.Masses, Config(LinkFolders.Masses), first.Document);
+            failing.Maker.LoadedInSite = path => { throw new IOException("the disk is full"); };
+            ButtonBody body = failing.Body.Body();
+            body.Preview(Context("p3"));
+            Assert.Throws<IOException>(() => body.Outside(Context("r3")));
+            Assert.Equal(new[] { "unload type1", "reload type1" }, first.Document.Loaded);
+            Assert.True(first.Document.Types.Single().Loaded);
         }
 
         [Fact]

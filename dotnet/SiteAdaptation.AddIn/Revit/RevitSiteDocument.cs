@@ -109,7 +109,8 @@ namespace SiteAdaptation.AddIn.Revit
             document.SetUnits(copy);
         }
 
-        // SetProjectPosition keeps the internal positions of both points and moves their shared points (probe of 5b). The survey point
+        // SetProjectPosition keeps the internal point of the project base point and the shared point of the survey point, whose internal
+        // point goes to (-E,-N) on a new project (survey probe of FIX-1NOV-B), so each move is by the gap read after it. The survey point
         // unclipped moves on its own, not the shared coordinates, and its clip state is set back whatever happens
         public void SetPosition(SetUpTarget target, SetUpChanges changes)
         {
