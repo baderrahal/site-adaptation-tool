@@ -29,10 +29,12 @@ namespace SiteAdaptation.AddIn.Revit
 
         public IReadOnlyList<double[]> Read(string prototypePath, LightModeConfig config)
         {
-            if (config.BaseBoundary == BaseBoundarySources.AreaBoundary)
-            {
-                throw new NotSupportedException("the base boundary source areaBoundary is not read yet, Q164 holds lowestFloor or floorType");
-            }
+            return Opened(application, copyFolder, prototypePath, opened => Outer(opened, config));
+        }
+
+        // R404, R451. The prototype read from a copy opened detached and closed with no save, the source held by its SHA-256
+        internal static T Opened<T>(UIApplication application, string copyFolder, string prototypePath, Func<Document, T> read)
+        {
             string before = FileHash.Sha256(prototypePath);
             Directory.CreateDirectory(copyFolder);
             string copy = Path.Combine(copyFolder, Guid.NewGuid().ToString("N") + Path.GetExtension(prototypePath));
@@ -43,7 +45,7 @@ namespace SiteAdaptation.AddIn.Revit
             try
             {
                 opened = application.Application.OpenDocumentFile(ModelPathUtils.ConvertUserVisiblePathToModelPath(copy), new OpenOptions { DetachFromCentralOption = DetachFromCentralOption.DetachAndPreserveWorksets });
-                return Outer(opened, config);
+                return read(opened);
             }
             finally
             {
@@ -59,8 +61,12 @@ namespace SiteAdaptation.AddIn.Revit
         }
 
         // The floor of the lowest level, or every floor of the named type, the outer loop of the sketch of the largest of them
-        private static IReadOnlyList<double[]> Outer(Document prototype, LightModeConfig config)
+        internal static IReadOnlyList<double[]> Outer(Document prototype, LightModeConfig config)
         {
+            if (config.BaseBoundary == BaseBoundarySources.AreaBoundary)
+            {
+                throw new NotSupportedException("the base boundary source areaBoundary is not read yet, Q164 holds lowestFloor or floorType");
+            }
             List<Floor> floors = new FilteredElementCollector(prototype).OfClass(typeof(Floor)).Cast<Floor>().ToList();
             if (config.BaseBoundary == BaseBoundarySources.LowestFloor)
             {
@@ -79,6 +85,76 @@ namespace SiteAdaptation.AddIn.Revit
                 throw new InvalidDataException(prototype.Title + " holds no floor for the base boundary source " + config.BaseBoundary);
             }
             return loops.OrderByDescending(loop => Math.Abs(Area(loop))).First();
+        }
+
+        // R451. The exterior walls, WallType.Function Exterior, that cross the cut height above the top of the largest floor, the ground
+        // level, each solid cut there and kept below, then joined. The loops of every upward face at the cut are the plan of the walls.
+        // Where a union fails the solids stay apart and their loops are given as they are, so WallRing.Choose finds no ring and takes the slab
+        internal static IReadOnlyList<IReadOnlyList<double[]>> WallLoops(Document prototype, double cutHeightM)
+        {
+            Floor ground = new FilteredElementCollector(prototype).OfClass(typeof(Floor)).Cast<Floor>()
+                .OrderByDescending(floor => floor.get_Parameter(BuiltInParameter.HOST_AREA_COMPUTED)?.AsDouble() ?? 0).FirstOrDefault();
+            BoundingBoxXYZ groundBox = ground?.get_BoundingBox(null);
+            if (groundBox == null)
+            {
+                return new List<IReadOnlyList<double[]>>();
+            }
+            double cut = groundBox.Max.Z + UnitMath.MetresToFeet(cutHeightM);
+            Plane below = Plane.CreateByNormalAndOrigin(-XYZ.BasisZ, new XYZ(0, 0, cut));
+            var solids = new List<Solid>();
+            foreach (Wall wall in new FilteredElementCollector(prototype).OfClass(typeof(Wall)).Cast<Wall>())
+            {
+                BoundingBoxXYZ box = wall.get_BoundingBox(null);
+                if (wall.WallType?.Function != WallFunction.Exterior || box == null || box.Min.Z > cut || box.Max.Z < cut)
+                {
+                    continue;
+                }
+                foreach (Solid solid in (wall.get_Geometry(new Options()) ?? Enumerable.Empty<GeometryObject>()).OfType<Solid>().Where(solid => solid.Volume > 0))
+                {
+                    Solid kept = BooleanOperationsUtils.CutWithHalfSpace(solid, below);
+                    if (kept != null && kept.Volume > 0)
+                    {
+                        solids.Add(kept);
+                    }
+                }
+            }
+            Solid union = null;
+            var joined = new List<Solid>();
+            foreach (Solid solid in solids)
+            {
+                if (union == null)
+                {
+                    union = solid;
+                    continue;
+                }
+                try
+                {
+                    union = BooleanOperationsUtils.ExecuteBooleanOperation(union, solid, BooleanOperationsType.Union);
+                }
+                catch (Autodesk.Revit.Exceptions.InvalidOperationException)
+                {
+                    joined.Add(solid);
+                }
+            }
+            if (union != null)
+            {
+                joined.Insert(0, union);
+            }
+            double tolerance = UnitMath.MetresToFeet(0.001);
+            return joined.SelectMany(solid => solid.Faces.OfType<PlanarFace>())
+                .Where(face => face.FaceNormal.Z > 0.999 && Math.Abs(face.Origin.Z - cut) < tolerance)
+                .SelectMany(face => face.GetEdgesAsCurveLoops()).Select(loop => (IReadOnlyList<double[]>)Points(loop)).ToList();
+        }
+
+        private static List<double[]> Points(IEnumerable<Curve> curves)
+        {
+            var points = new List<double[]>();
+            foreach (Curve curve in curves)
+            {
+                IList<XYZ> along = curve is Line ? new List<XYZ> { curve.GetEndPoint(0), curve.GetEndPoint(1) } : curve.Tessellate();
+                points.AddRange(along.Take(along.Count - 1).Select(point => new[] { UnitMath.FeetToMetres(point.X), UnitMath.FeetToMetres(point.Y) }));
+            }
+            return points;
         }
 
         // Every corner: the start of each line, the tessellated points of an arc, in the order of the sketch
@@ -103,7 +179,7 @@ namespace SiteAdaptation.AddIn.Revit
             return area / 2;
         }
 
-        private static void OnFailures(object sender, FailuresProcessingEventArgs args)
+        internal static void OnFailures(object sender, FailuresProcessingEventArgs args)
         {
             args.GetFailuresAccessor().DeleteAllWarnings();
             args.SetProcessingResult(FailureProcessingResult.Continue);

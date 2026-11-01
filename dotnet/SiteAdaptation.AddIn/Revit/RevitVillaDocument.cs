@@ -16,8 +16,8 @@ namespace SiteAdaptation.AddIn.Revit
     {
         // R404, open point 6. CHOSEN: Generic Models, since a DirectShape of it shows in every plan and 3D view with no setting, where a
         // Mass shows only with Show Mass on, and it takes instance parameters bound by category like any model element
-        private static readonly BuiltInCategory SolidCategory = BuiltInCategory.OST_GenericModel;
-        private const string ApplicationId = "SiteAdaptation";
+        internal static readonly BuiltInCategory SolidCategory = BuiltInCategory.OST_GenericModel;
+        internal const string ApplicationId = "SiteAdaptation";
 
         private readonly Document document;
         private readonly PlacedTagStore tags;
@@ -228,7 +228,7 @@ namespace SiteAdaptation.AddIn.Revit
         }
 
         // The shape carried by the same transform as the link, its loop turned counter clockwise since a mirror reverses it
-        private static Solid Extrusion(IReadOnlyList<double[]> shape, double heightM, PlacementSteps steps)
+        internal static Solid Extrusion(IReadOnlyList<double[]> shape, double heightM, PlacementSteps steps)
         {
             List<double[]> placed = ShapeMath.Place(shape, steps.Move, UnitMath.RadiansToDegrees(steps.RotationRad), steps.MirrorNormal != null);
             double area = 0;

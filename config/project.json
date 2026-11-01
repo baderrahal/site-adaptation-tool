@@ -380,7 +380,14 @@
       "baseBoundary": "lowestFloor",
       "baseBoundaryFloorType": null,
       "footprintLimitMm": 100.0,
-      "footprintSampleStepMm": 10.0
+      "footprintSampleStepMm": 10.0,
+      "massNote": "R450 to R453, FIX-1NOV-B. linkFolder is what Masses links: masses the mass file of each prototype in massFolder, prototypes the prototype files of the plan, a full folder path the files of that folder named as the prototypes, solids the DirectShape in the site of R404. massFolder holds one Revit 2024 file per prototype, named as it, with a sidecar JSON. wallCutHeightM is the height above the top of the largest floor the exterior walls are cut at, 1.0 CHOSEN. wallRingMinShare is the least share of the slab area the outer wall loop covers to be the base, 0.9 CHOSEN, else the slab is the base and the prototype is flagged (Q279). houseLayer and houseMinAreaM2 pick the house outline inside a footprint block for the footprint check, layer 0 and 60 m2 measured on VL4, DP4 and C10 (Q276)",
+      "linkFolder": "masses",
+      "massFolder": "{workRoot}\\masses",
+      "wallCutHeightM": 1.0,
+      "wallRingMinShare": 0.9,
+      "houseLayer": "0",
+      "houseMinAreaM2": 60.0
     },
     "plotTable": {
       "note": "R352. The order of the footprint blocks of a face in the plot table of button 2: overlapDecimals, the decimals R385 writes the overlap of each block with its face at before the order, the largest written overlap first and the blocks of one written overlap in the order of the read. Its own setting, never a tolerance of addin.parity, which tells only how far the two sides of the parity may lie apart. CHOSEN in the review of PR 54 at 4, the decimals the table writes faceAreaM2 at: on the 36 faces of the data book with two blocks or more the 1,882 overlaps lie at least 4.99E-07 m2 from a rounding boundary of 4 decimals, 210 times the 2.37E-09 m2 of binary noise between two sides measured in Round ADDIN 4d, where at 7 decimals 27 lie within 1E-08 m2 of one, the nearest 3.5E-10 m2, and at 6 decimals 515 (round_addin logs p4dfix_r352_decimals.txt). Blocks whose overlaps differ by less than the fourth decimal are one group, which puts 15 of the 36 faces in another order than the groups within 1E-06 m2 of 4d.",
