@@ -334,6 +334,83 @@ namespace SiteAdaptation.Tests
             Assert.Equal(point.Name, exact.Point);
         }
 
+        [Fact]
+        public void R456_check_compares_the_gap_unrounded_and_shows_it_rounded()
+        {
+            var position = new SitePosition { EastM = 400123.0, NorthM = 2500232.0, ElevationM = 0.0, AngleDeg = 0.0 };
+            ControlPoint point = ControlPoints.Pick(Plots(), 3)[1];
+
+            CheckPointRow row = ControlPoints.Check(point, position, internalM => SiteCoordinates.ToShared(position, internalM).Select((value, i) => i == 0 ? value + 0.000104 : value).ToArray(), 0.1, 2);
+
+            Assert.Equal(0.1, row.DiffMm);
+            Assert.False(row.Pass);
+        }
+
+        [Fact]
+        public void R456_pick_takes_distinct_corners_only_and_stops_when_too_few()
+        {
+            var twice = new List<CadPlot>
+            {
+                new CadPlot { Plot = "1", Vertices = new List<double[]> { new[] { 400100.0, 2500200.0 }, new[] { 400110.0, 2500200.0 } } },
+                new CadPlot { Plot = "2", Vertices = new List<double[]> { new[] { 400110.0, 2500200.0 }, new[] { 400100.0, 2500200.0 } } },
+            };
+            var shared = new List<CadPlot>
+            {
+                twice[0],
+                new CadPlot { Plot = "2", Vertices = new List<double[]> { new[] { 400110.0, 2500200.0 }, new[] { 400100.0, 2500200.0 }, new[] { 400100.0, 2500210.0 } } },
+            };
+
+            Assert.Contains("2 distinct plot corners", Assert.Throws<InvalidDataException>(() => ControlPoints.Pick(twice, 3)).Message);
+            List<ControlPoint> points = ControlPoints.Pick(shared, 3);
+            Assert.Equal(3, points.Select(point => point.SharedM[0] + "," + point.SharedM[1]).Distinct().Count());
+        }
+
+        private static CoordinateRead Read(List<CadPlot> plots)
+        {
+            return new CoordinateRead { Files = new List<StatedSystem> { File("Road Layout.dwg", "UTM84-37N") }, Plots = plots };
+        }
+
+        [Fact]
+        public void R455_a_plot_box_outside_the_utm_zone_stops_button_1()
+        {
+            JObject cad = (JObject)config.DeepClone();
+            cad["coordinates"]["source"] = CoordinateSettings.FromCadSource;
+            var local = new List<CadPlot> { new CadPlot { Plot = "1", Vertices = new List<double[]> { new[] { 1000.0, 2000.0 }, new[] { 1010.0, 2000.0 }, new[] { 1010.0, 2020.0 } } } };
+
+            CadSite outside = SiteFromCad.Load(cad, null, context => Read(local));
+            CadSite inside = SiteFromCad.Load(cad, null, context => Read(Plots()));
+
+            Assert.Contains(outside.Systems.Stops, stop => stop.Contains("outside the range of UTM zone 37 north"));
+            Assert.Empty(inside.Systems.Stops);
+        }
+
+        [Fact]
+        public void R455_under_source_position_file_the_coordinates_block_is_not_read()
+        {
+            JObject kept = (JObject)config.DeepClone();
+            kept["coordinates"]["source"] = CoordinateSettings.FromPositionFile;
+            kept["coordinates"]["controlPointCount"] = 0;
+            kept["coordinates"]["expectedEpsg"] = "none";
+
+            Assert.Null(SiteFromCad.Load(kept, null, context => throw new InvalidOperationException("no CAD read under positionFile")));
+            kept["coordinates"]["source"] = "survey";
+            Assert.Throws<InvalidDataException>(() => SiteFromCad.Load(kept, null, null));
+        }
+
+        [Fact]
+        public void R454_the_read_problems_of_a_drawing_show_in_its_line()
+        {
+            CoordinateRead read = CoordinateRead.Parse(new JObject
+            {
+                ["files"] = new JArray(new JObject { ["file"] = "Baseplan.dwg", ["name"] = null, ["problems"] = 2 }, new JObject { ["file"] = "r1.xml", ["name"] = "32637" }),
+            });
+
+            SystemsCheck check = CoordinateSystems.Agree(read.Files, Settings());
+
+            Assert.Contains("Baseplan.dwg states no coordinate system, 2 read problems", check.Lines);
+            Assert.Contains("r1.xml states 32637, EPSG 32637", check.Lines);
+        }
+
         private SetUpTarget CadTarget(SystemsCheck systems)
         {
             JObject rules = JObject.Parse(System.IO.File.ReadAllText(Path.Combine(ThemeGateTests.RepoRoot(), "rules", "roshn-makkah.json")));

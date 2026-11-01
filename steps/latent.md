@@ -446,3 +446,13 @@ No real input reaches these, since the ROSHN config runs roshnPastJob (Q224) and
 - Review 2, breaker 2, plan_walls.partner and Walls.Partner: the mitre pairs two walls moved to opposite sides of a shared edge of two irregular written plots, and the result follows the walk order. 0 adjacent irregular written plots in the all scope.
 - Breaker 2, plan_walls.mitre: no limit on how far a mitre point lies from its vertex, a 3 degree notch grows its walls by 1.9 m. 0 shifts over 0.3 m on every baseplan face.
 - Breaker 2, plan_walls.mitre: a wall shorter than its two mitre retreats reverses, under 0.35 m between two 60 degree corners. 0 such walls on every baseplan face.
+
+## Lane B FIX-1NOV-B fix pass on task 3, R454 to R456
+
+No real input reaches these: coordinates.source is positionFile (Q328), and the demo copies state UTM84-37N or no system, with no named position on the documents.
+
+- AddIn/Revit/RevitSiteDocument.cs:153 SetNamedPosition with SetUpPlanner.cs:128 Changes: a document that already holds an inactive position of coordinates.positionName gets it made active, while Changes and the dry run were computed against the position active before. The read back after Apply shows the gap, the dry run does not.
+- Common/SetUp/SitePosition.cs:52 and CoordinateSystems.cs:186: a stated geographic code such as EPSG 4326 that coordinates.systems maps, or a coordinates.expectedEpsg of no UTM zone, throws in UtmMath.ZoneOf before the expected code stop of R454 is listed.
+- CadReader/CoordinateSystemRead.cs:141 OfLandXml: a LandXML that names its system only by horizontalCoordinateSystemName, with no epsgCode, is read as stating none.
+- CoordinateSystemRead.cs NameOfDefinition: a well known text whose name coordinates.systems does not hold stops button 1 as a name of no known code, even when it is the same system as UTM84-37N.
+- RevitSiteDocument.cs:153 SetNamedPosition: the position name is matched with case, so a position of the name in another case is not found and the active position is renamed beside it. Whether Revit refuses two names that differ by case is UNKNOWN.

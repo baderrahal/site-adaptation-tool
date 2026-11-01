@@ -1038,7 +1038,7 @@
     "worstFirst": ["UNKNOWN", "CHOSEN by Code", "RECOMMENDED", "MEASURED weak"]
   },
   "coordinates": {
-    "note": "R454 to R456, Lane B FIX-1NOV-B. The coordinate system and site position button 1 takes from CAD. source cad reads them with the worker command crs (addin.workerTimeLimitS.crs, 600 s until a run measures it), positionFile keeps the position file of addin.position, CHOSEN until the Revit run proves cad (Q328). systems maps each system name a drawing or LandXML states to its EPSG code, expectedEpsg the code every stated system must be, also the code of the math when no input states one (Q325). The shared origin is the centre of the box of the plot outlines of the baseplan rounded to originRoundM (Q326), its elevation originElevationM, 0 until Bader picks a CAD source (Q327), true north angleToTrueNorthDeg, the grid of the drawing. positionName names the named position, placeName the place of the site location, null keeps the one of the document. controlPointCount plot corners far apart are checked at controlPointLimitMm (R456, Q329).",
+    "note": "R454 to R456, Lane B FIX-1NOV-B. The coordinate system and site position button 1 takes from CAD. source cad reads them with the worker command crs (addin.workerTimeLimitS.crs, 600 s until a run measures it), positionFile keeps the position file of addin.position, CHOSEN until the Revit run proves cad (Q328). Each key below has a sentence of its own, so its status takes the question of that sentence. coordinates.systems maps a system name an input states to its EPSG code (Q325). coordinates.expectedEpsg is the code every stated system must be (Q325), also the code of the math when no input states one. coordinates.originRoundM rounds the shared origin (Q326), the centre of the box of the plot outlines of the baseplan. coordinates.originElevationM is the survey point height (Q327), 0 until Bader picks a CAD source of it. coordinates.angleToTrueNorthDeg is true north (Q328), 0 for the grid of the drawing. coordinates.positionName names the named position (Q328). coordinates.placeName is the place of the site location (Q328), null keeps the one of the document. coordinates.controlPointCount plot corners far apart are checked (R456, Q329). coordinates.controlPointLimitMm is the gap a control point passes at (R456, Q329). coordinates.utmEastM is the easting a UTM zone is valid in (CHOSEN), by the UTM definition on WGS 84. coordinates.utmNorthM is the northing of a zone north of the equator (CHOSEN), up to 84 degrees north. coordinates.utmSouthNorthM is the northing of a zone south of it (CHOSEN), from 80 degrees south. Under source cad a box of the plot outlines outside them stops button 1 (R455).",
     "source": "positionFile",
     "systems": {"UTM84-37N": 32637},
     "expectedEpsg": 32637,
@@ -1048,6 +1048,9 @@
     "positionName": "ROSHN Makkah",
     "placeName": "Makkah",
     "controlPointCount": 3,
-    "controlPointLimitMm": 0.1
+    "controlPointLimitMm": 0.1,
+    "utmEastM": [166000, 834000],
+    "utmNorthM": [0, 9330000],
+    "utmSouthNorthM": [1116915, 10000000]
   }
 }
