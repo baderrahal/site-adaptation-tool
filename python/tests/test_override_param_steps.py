@@ -75,8 +75,8 @@ def test_r360_r364_the_values_after_the_overrides_are_those_the_plan_writes_by_t
     assert made["5"]["insert"] == [rule[0] + 0.3, rule[1] - 0.2] and entries["5"]["written"]["steps"] == 4
     # A gap that turns the link past 0 is written by plan_rotation of the rule plus the gap, the raw value left as it is
     assert made["2"]["rotationDeg"] == 0.0 - 179.999 and entries["2"]["written"]["rotationDeg"] == 180.001
-    # R470. The front corner of 6 at x 60, moved down 5 cm, is shared with 5, so both hold the mean of 10.6 and 10.55
-    assert made["6"]["rotationDeg"] == 180.0 + 1.5 and entries["6"]["written"]["rampZ"][:2] == [common.r3((10.6 + (10.6 - 0.05)) / 2.0), common.r3(10.72 - 0.05)]
+    # R470. The front corner of 6 at x 60 is shared with 5, so it stays at the road 10.6 and its 5 cm gap moves the other alone
+    assert made["6"]["rotationDeg"] == 180.0 + 1.5 and entries["6"]["written"]["rampZ"][:2] == [10.6, common.r3(10.72 - 0.05)]
     # The step levels of R359 stay those of the rule, the step overrides holds the moved ones
     assert built["levels"]["3"]["ffl"] != made["3"]["ffl"] and common.fixed(built["levels"]["3"]["ffl"], 3) == 10.528
 

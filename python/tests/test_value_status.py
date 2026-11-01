@@ -484,9 +484,7 @@ def test_r401_every_value_an_override_moves_carries_the_status_of_the_override_l
                 differ.append((number, field))
                 if carries:
                     carry.append((number, field))
-    # R470. A ramp corner another plot's override moved through a joint keeps the status of its own ramp, that of 5 by the front of 6
-    assert [pair for pair in differ if pair not in carry] == [("5", "floors.ramp.corners")]
-    assert len(carry) == len(differ) - 1 and len(differ) > 20
+    assert differ == carry and len(differ) > 20
     assert only == [("4", "floors.yard." + name, name in ("type", "outline")) for name in ("type", "level", "levelElevation", "outline", "plotValue", "z", "heightOffset")]
 
 

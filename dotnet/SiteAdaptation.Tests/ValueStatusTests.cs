@@ -542,14 +542,6 @@ namespace SiteAdaptation.Tests
             Assert.Equal("None False None", (step["7"]["unit"] ?? "None") + " " + (bool)step["7"]["written"] + " " + (step["7"]["fields"] ?? "None"));
         }
 
-        // R470. Ramp corners the plan writes the same to the mm, as a joint moves a raw level of a corner whose levels agree but in the last place,
-        // which Python compares on the plan and never sees
-        private static bool SameAtMm(PlotPlan mine, PlotPlan other)
-        {
-            return mine.Overrides["rampZ"] is double[] heights && other.Overrides["rampZ"] is double[] before
-                && heights.Select(z => Rounding.Fixed(z, 3)).SequenceEqual(before.Select(z => Rounding.Fixed(z, 3)));
-        }
-
         // The values of the steps overrides and parameters of a plot by the field of the plan each one is
         private static Dictionary<string, string> Values(PlotPlan plan)
         {
@@ -588,7 +580,7 @@ namespace SiteAdaptation.Tests
                         // and whose z keeps its own status (Q120, where R4 of the review of PR 85 gave every field of the yard)
                         only.Add(number + " " + value.Key + " " + carries);
                     }
-                    else if (before != value.Value && !(value.Key == "floors.ramp.corners" && SameAtMm(built.Plans[number], plain.Plans[number])))
+                    else if (before != value.Value)
                     {
                         differ.Add(number + " " + value.Key);
                         if (carries)
@@ -598,9 +590,7 @@ namespace SiteAdaptation.Tests
                     }
                 }
             }
-            // R470. A ramp corner another plot's override moved through a joint keeps the status of its own ramp, that of 5 by the front of 6
-            Assert.Equal("5 floors.ramp.corners", string.Join(", ", differ.Except(carry)));
-            Assert.Equal(differ.Count - 1, carry.Count);
+            Assert.Equal(string.Join(", ", differ), string.Join(", ", carry));
             Assert.Equal("4 floors.yard.z False, 4 floors.yard.outline True", string.Join(", ", only));
             Assert.True(differ.Count > 15, differ.Count.ToString());
         }

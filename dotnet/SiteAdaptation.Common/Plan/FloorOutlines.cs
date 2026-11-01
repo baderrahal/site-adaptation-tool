@@ -43,19 +43,20 @@ namespace SiteAdaptation.Common
             return BuildFace.Number(near);
         }
 
-        // R470. plan_from_book.joint_levels: corners of ramps of two or more plots within near in plan, chained, are one joint and each takes the
-        // mean of its levels summed one by one in the order of the plots and corners given. A joint whose levels agree is left. The new levels
-        // of each plot a joint changed
-        public static Dictionary<string, double[]> JointLevels(IEnumerable<Tuple<string, double[][], double[]>> ramps, double near)
+        // R470. plan_from_book.joint_levels: ramps by plot, the plan corners, their raw levels and the road levels of the front pair before any
+        // rampFrontM gap. Front corners of two or more plots within near in plan, chained, are one joint and each takes the road level of the
+        // first corner of the joint in the order of the plots and corners given. The back pair keeps El @ Entry (R358) and joins nothing. The
+        // new levels of each plot a joint changed
+        public static Dictionary<string, double[]> JointLevels(IEnumerable<Tuple<string, double[][], double[], double[]>> ramps, double near)
         {
             var heightsOf = new Dictionary<string, double[]>();
             var corners = new List<Tuple<string, int, double, double, double>>();
-            foreach (Tuple<string, double[][], double[]> ramp in ramps)
+            foreach (Tuple<string, double[][], double[], double[]> ramp in ramps)
             {
                 heightsOf[ramp.Item1] = ramp.Item3;
-                for (int index = 0; index < Math.Min(ramp.Item2.Length, ramp.Item3.Length); index++)
+                for (int index = 0; index < Math.Min(2, Math.Min(ramp.Item2.Length, ramp.Item4.Length)); index++)
                 {
-                    corners.Add(Tuple.Create(ramp.Item1, index, ramp.Item2[index][0], ramp.Item2[index][1], ramp.Item3[index]));
+                    corners.Add(Tuple.Create(ramp.Item1, index, ramp.Item2[index][0], ramp.Item2[index][1], ramp.Item4[index]));
                 }
             }
             int[] parent = Enumerable.Range(0, corners.Count).ToArray();
@@ -115,25 +116,23 @@ namespace SiteAdaptation.Common
             var found = new Dictionary<string, double[]>();
             foreach (List<int> members in groups.Values)
             {
-                double first = corners[members[0]].Item5;
-                if (members.Select(at => corners[at].Item1).Distinct().Count() < 2 || members.All(at => corners[at].Item5 == first))
+                if (members.Select(at => corners[at].Item1).Distinct().Count() < 2)
                 {
                     continue;
                 }
-                double total = 0.0;
-                foreach (int at in members)
-                {
-                    total += corners[at].Item5;
-                }
-                double mean = total / members.Count;
+                double level = corners[members[0]].Item5;
                 foreach (int at in members)
                 {
                     string plot = corners[at].Item1;
+                    if (heightsOf[plot][corners[at].Item2] == level)
+                    {
+                        continue;
+                    }
                     if (!found.TryGetValue(plot, out double[] heights))
                     {
                         found[plot] = heights = (double[])heightsOf[plot].Clone();
                     }
-                    heights[corners[at].Item2] = mean;
+                    heights[corners[at].Item2] = level;
                 }
             }
             return found;
