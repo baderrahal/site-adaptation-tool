@@ -22,6 +22,12 @@ replaces give, per item of the data book, written to step_<step>_python.json for
 - plotTable (R352): per baseplan face inside the Phase 1 border the plot table of python/plot_table.py on the reads and the location plan
   of the same run, the faces of the baseplan read, the footprint blocks of the footprint read and the area key sheets
 
+With --picks, picks.json of button 2 (R473) as ReadPicks of the C# takes it: a villa block pick limits the blocks of the footprint read to
+its insert layer, a villa type pick of the sales sheet sets the typology column of the location plan to its header, and each villa type
+conflict pick sets typologyRev9 of its plot in the plot table, each pick held to the file its input names, else the default with a line
+why. The plot outline and plot number picks are taken by the CAD read that gives plots.json, so with such a pick --baseplan names the
+read_baseplan.json of the worker read.
+
 Every CadReader output is read through the units check of R388, a LandXML in meter only. A value of no geometry is written as read, a
 value of geometry as common.round_tree writes it. Step files go outside any git work tree, real values stay out of git.
 """
@@ -36,6 +42,7 @@ import statistics
 from collections import defaultdict
 
 import numpy
+import openpyxl
 
 import area_key
 import cad_analysis
@@ -69,6 +76,130 @@ TABLE_STEPS = ("plotTable",)
 STEPS = ("labels", "blocks", "curbs", "rows", "setbacks", "surfaces", "roadLevels", "areaKey", "dlusSetbacks", "sales")
 SCOPE = "project"
 NO_GEOMETRY = "noGeometry"
+PICKS_FORMAT = "site-adaptation-picks"
+PICK_KINDS = ("plotOutline", "plotNumber", "villaBlock", "villaType")
+PICK_LABELS = {"plotOutline": "plot outline", "plotNumber": "plot number", "villaBlock": "villa block", "villaType": "villa type"}
+LAYER_JOIN = " + "
+SHIFT_MARK = "|shift "
+
+
+def load_picks(path):
+    """R473. picks.json of button 2, refused when it is no file of the format of ReadPicks."""
+    picks = json.loads(Path(path).read_text(encoding="utf-8"))
+    if not isinstance(picks, dict) or picks.get("format") != PICKS_FORMAT:
+        raise ValueError("the input picks is no picks.json of the format %s (R473)" % PICKS_FORMAT)
+    return picks
+
+
+def sheet_of(rest):
+    """R473. The sheet and the header of a villa type source "<sheet>|<header>|shift <n>" after its file, taken from the end since a sheet
+    may hold a bar, None for a page of a PDF or any other shape."""
+    shift = rest.rfind(SHIFT_MARK)
+    if shift < 0:
+        return None
+    place = rest[:shift]
+    column = place.rfind("|")
+    if place.startswith("page ") or column < 0:
+        return None
+    return place[:column], place[column + 1:]
+
+
+def other_file(what, file, given, name):
+    if given is not None and file == given:
+        return None
+    return "the %s is of the file %s, the %s of the read is %s, the read keeps the default of config (R473)" % (what, file, name, given or "not given")
+
+
+def pick_refusal(kind, source, files):
+    """R473. ReadPicks.Refusal: why the read can not take this source of the kind with these files, None when it can."""
+    what = PICK_LABELS.get(kind, kind) + " pick " + source
+    if "|" not in source:
+        return "the %s names no file, the read keeps the default of config (R473)" % what
+    file, rest = source.split("|", 1)
+    if kind in ("plotOutline", "plotNumber"):
+        return other_file(what, file, files.get("baseplan"), "baseplan")
+    if kind == "villaBlock":
+        return other_file(what, file, files.get("villaBlocks"), "villa blocks")
+    if kind != "villaType":
+        return "the pick %s is of no kind the read takes (R473)" % source
+    if rest.startswith("block|") or rest.startswith("text|"):
+        return "the %s is of blocks or texts of a drawing, the read takes the villa type from the sales sheet only and keeps the column of config (R473)" % what
+    sheet = sheet_of(rest)
+    if sheet is None:
+        return "the %s is of a PDF page, the read takes the villa type from the sales sheet only and keeps the column of config (R473)" % what
+    other = other_file(what, file, files.get("sales"), "sales workbook")
+    if other:
+        return other
+    if sheet[0] != files.get("salesSheet"):
+        return "the %s is of the sheet %s, the read takes the sales rows of the sheet %s of config and keeps its column (R473)" % (what, sheet[0], files.get("salesSheet"))
+    return None
+
+
+def pick_of(picks, kind, files):
+    """R473. ReadPicks.Take of one kind: the part of its source the read takes, None for the default of config, and the line why a pick or
+    proposal is not taken, None when it is."""
+    found = ((picks or {}).get("kinds") or {}).get(kind) or {}
+    source, origin = found.get("source"), found.get("from")
+    if not source or origin not in ("pick", "proposal"):
+        return None, None
+    refused = pick_refusal(kind, source, files)
+    if refused:
+        return None, refused
+    rest = source.split("|", 1)[1]
+    if kind == "plotOutline":
+        return rest.split(LAYER_JOIN), None
+    if kind == "plotNumber":
+        return [rest], None
+    if kind == "villaBlock":
+        return rest, None
+    return sheet_of(rest)[1], None
+
+
+def blocks_on_layer(blocks, layer):
+    """R473. The blocks of the footprint read on the insert layer of a villa block pick, every block when there is none."""
+    return blocks if layer is None else [block for block in blocks if block.get("layer") == layer]
+
+
+def sales_header(path, sheet, header_row):
+    """R473. The cells of the header row of the sales sheet as openpyxl reads them."""
+    workbook = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    try:
+        rows = list(workbook[sheet].iter_rows(min_row=header_row, max_row=header_row, values_only=True))
+    finally:
+        workbook.close()
+    return list(rows[0]) if rows else []
+
+
+def typology_columns(columns, header_cells, header_row, header, lines):
+    """R473. ReadPicks.TypologyColumns: the columns of the sales rows with the typology column set to the header of the pick when the
+    header row holds it as location_plan.read_table reads a header, else the columns of config and a line why."""
+    if header is None:
+        return dict(columns)
+    if not any(cell is not None and str(cell).strip() == header for cell in header_cells):
+        lines.append("the villa type pick names the column %s, which the header row %d of the sales sheet does not hold, the read keeps the column of config (R473)"
+                     % (header, header_row))
+        return dict(columns)
+    return dict(columns, typology=header)
+
+
+def apply_conflicts(table, conflicts, lines):
+    """R473. ReadPicks.ApplyConflicts: each villa type conflict pick sets typologyRev9 of its plot in the plot table by baseplan label, a plot
+    of no row or a second pick of one plot with another value sets nothing and says why. Gives the count set."""
+    done = {}
+    for conflict in conflicts or []:
+        if conflict.get("field") != "villa type":
+            continue
+        plot, value = conflict.get("plot"), conflict.get("value")
+        if plot not in table:
+            lines.append("the conflict pick of plot %s names no plot of the plot table, nothing is set (R473)" % plot)
+            continue
+        if plot in done:
+            if done[plot] != value:
+                lines.append("two conflict picks give plot %s the villa types %s and %s, the first is kept (R473)" % (plot, done[plot], value))
+            continue
+        table[plot]["typologyRev9"] = value
+        done[plot] = value
+    return len(done)
 
 
 def jsonable(value):
@@ -236,10 +367,11 @@ def stat_values(values):
     return [float(statistics.median(values)), values[int(0.95 * (len(values) - 1))], values[-1]]
 
 
-def location_steps(settings, pdf, plots, schedule_paths, sales):
+def location_steps(settings, pdf, plots, schedule_paths, sales, typology=None, lines=None):
     """R351. The steps of the location plan as location_plan.py numbers it: the page read by pdfplumber, the labels paired, the page fitted
     to the site on the schedule of fitNeighbourhood (R181), every label on its face and its codes joined (R182), and the control point fit
-    of R387 as its check, numbering nothing. The faces of the baseplan are refused as the build refuses them (R345)."""
+    of R387 as its check, numbering nothing. The faces of the baseplan are refused as the build refuses them (R345). typology is the header
+    of a villa type pick of the sales sheet (R473), lines takes the line why it is not taken."""
     plan = settings.get("dataBook.locationPlan")
     connect = settings.get("connect")
     refused = ring_rules.refusals(plots, parity.area_tolerance(settings.values))
@@ -254,7 +386,11 @@ def location_steps(settings, pdf, plots, schedule_paths, sales):
     faces = face_index.plan_faces(plots)
     matrix, _, fit = location_plan.schedule_fit(plan, labels, faces, official_of, shifts)
     rows, site, _ = location_plan.number_rows(labels, matrix, faces, official_of, shifts)
-    location_plan.join_codes(rows, location_plan.read_table(sales, plan["sales"]["sheet"], plan["sales"]["headerRow"], plan["sales"]["columns"]),
+    columns = plan["sales"]["columns"]
+    if typology is not None:
+        columns = typology_columns(columns, sales_header(sales, plan["sales"]["sheet"], plan["sales"]["headerRow"]), plan["sales"]["headerRow"], typology,
+                                   lines if lines is not None else [])
+    location_plan.join_codes(rows, location_plan.read_table(sales, plan["sales"]["sheet"], plan["sales"]["headerRow"], columns),
                              location_plan.read_table(sales, plan["codeTable"]["sheet"], plan["codeTable"]["headerRow"], plan["codeTable"]["columns"]), plan)
     parts = location_plan.control_fit_parts(labels, rows, page["words"], page["curves"], faces, plan, site)
     made = {"locationLabels": by_handle((row["number"], {
@@ -325,6 +461,7 @@ def main(argv=None):
     parser.add_argument("--border", help="R352. the Phase 1 border of the data book, phase1_border.csv, the input border")
     parser.add_argument("--schedule", action="append", default=[], metavar="NBH=PATH",
                         help="R351. the schedule workbook of a neighbourhood of connect.neighbourhoods, the input schedule:<NBH>, its file in the References folder of inputRoot when left out")
+    parser.add_argument("--picks", help="R473. picks.json of button 2, the input picks, the read takes config alone when left out")
     args = parser.parse_args(argv)
     # D19. Every file the read steps open under an input root is held from its first open to the end, recorded in the steps folder
     with input_guard.Guard(input_guard.roots(args.settings), record=Path(args.steps) / "inputs_guard.json"):
@@ -345,19 +482,34 @@ def run_steps(args):
             plot_table.overlap_decimals(values)
         rules = parity.tolerances(values)
         inputs = [parity.input_entry("config", args.settings)]
+        picks = load_picks(args.picks) if args.picks else None
+        lines = list((picks or {}).get("lines") or [])
+        if picks:
+            inputs.append(parity.input_entry("picks", args.picks))
         made = {}
         plots = None
         if {"labels", "roadLevels"} & set(steps) or set(LOCATION_STEPS) & set(steps):
             args.baseplan = str(cad_units.read_input(settings, "baseplan", args.baseplan))
             inputs.append(parity.input_entry("baseplanPlots", args.baseplan))
-            plots = link_summary.load(args.baseplan)["plots"]
+            baseplan_read = link_summary.load(args.baseplan)
+            plots = baseplan_read["plots"]
+            for kind in ("plotOutline", "plotNumber"):
+                taken, line = pick_of(picks, kind, {"baseplan": baseplan_read.get("source")})
+                lines.extend([line] if line else [])
+                if taken:
+                    print("the %s pick %s is taken by the read that gave %s (R473)" % (PICK_LABELS[kind], LAYER_JOIN.join(taken), Path(args.baseplan).name))
         if "labels" in steps:
             made["labels"] = label_step(plots)
         if "blocks" in steps or "setbacks" in steps:
             args.footprint_blocks = str(cad_units.read_input(settings, "footprintBlocks", args.footprint_blocks))
             inputs.append(parity.input_entry("footprintBlocks", args.footprint_blocks))
+        block_layer = None
+        if picks and ("blocks" in steps or "plotTable" in steps):
+            args.footprint_blocks = str(cad_units.read_input(settings, "footprintBlocks", args.footprint_blocks))
+            block_layer, line = pick_of(picks, "villaBlock", {"villaBlocks": link_summary.load(args.footprint_blocks).get("source")})
+            lines.extend([line] if line else [])
         if "blocks" in steps:
-            made["blocks"] = block_step(footprint_check.footprint_blocks(args.footprint_blocks, settings))
+            made["blocks"] = block_step(blocks_on_layer(footprint_check.footprint_blocks(args.footprint_blocks, settings), block_layer))
         if "setbacks" in steps:
             pieces = Path(args.footprint_blocks).parent / "pieces.json"
             cad_units.check(pieces)
@@ -420,7 +572,10 @@ def run_steps(args):
             inputs.extend(parity.input_entry("schedule:" + name, path) for name, path in sorted(paths.items()))
             if not any(item["role"] == "sales" for item in inputs):
                 inputs.append(parity.input_entry("sales", args.sales))
-            found, numbering = location_steps(settings, args.plot_numbers, plots, paths, workbook(args, values, settings.get("dataBook.locationPlan.sales.workbook")))
+            sales_path = workbook(args, values, settings.get("dataBook.locationPlan.sales.workbook"))
+            typology, line = pick_of(picks, "villaType", {"sales": Path(sales_path).name, "salesSheet": settings.get("dataBook.locationPlan.sales.sheet")})
+            lines.extend([line] if line else [])
+            found, numbering = location_steps(settings, args.plot_numbers, plots, paths, sales_path, typology, lines)
             made.update(found)
             if "plotTable" in steps:
                 inputs.append(parity.input_entry("border", args.border))
@@ -433,9 +588,12 @@ def run_steps(args):
                 dlus, _ = area_key.by_plot(sheet(args, settings, book["data5"]["areaKey"]["dlus"]))
                 sales_key, _ = area_key.by_plot(sheet(args, settings, book["data5"]["areaKey"]["sales"]))
                 table = plot_table.table(plots, plot_table.border_points(args.border), data_book.schedule_rows(settings, settings.get("connect"), paths),
-                                         numbering["shifts"], numbering["labels"], link_summary.load(args.footprint_blocks)["blocks"],
+                                         numbering["shifts"], numbering["labels"], blocks_on_layer(link_summary.load(args.footprint_blocks)["blocks"], block_layer),
                                          settings.get("dataBook.wiring.minShare"), dlus, sales_key, plot_table.overlap_decimals(values))
                 made["plotTable"] = {row["baseplanLabel"]: row for row in table}
+                apply_conflicts(made["plotTable"], (picks or {}).get("conflicts"), lines)
+        for line in lines:
+            print(line)
         for step in steps:
             fields = (values["addin"]["parity"]["steps"]).get(step) or {}
             if step not in rules:
