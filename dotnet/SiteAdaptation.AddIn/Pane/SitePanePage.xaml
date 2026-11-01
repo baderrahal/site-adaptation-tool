@@ -52,7 +52,20 @@
       </DataTemplate>
 
       <DataTemplate x:Key="StepRow" DataType="{x:Type pane:StepRowViewModel}">
-        <Grid Margin="{StaticResource SA.Gap.Row}" Height="{StaticResource SA.Size.StepRow}">
+        <!-- R444. A click on a row runs its step through the box path, a step that waits does nothing -->
+        <Grid Margin="{StaticResource SA.Gap.Row}" Height="{StaticResource SA.Size.StepRow}" Background="Transparent" ToolTip="{Binding RowTip}">
+          <Grid.InputBindings>
+            <MouseBinding Gesture="LeftClick" Command="{Binding RunCommand}" />
+          </Grid.InputBindings>
+          <Grid.Style>
+            <Style TargetType="Grid">
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding Runnable}" Value="True">
+                  <Setter Property="Cursor" Value="Hand" />
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </Grid.Style>
           <Grid.ColumnDefinitions>
             <ColumnDefinition Width="{StaticResource SA.Grid.StepMark}" />
             <ColumnDefinition Width="*" />

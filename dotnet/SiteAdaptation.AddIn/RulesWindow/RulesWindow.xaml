@@ -132,7 +132,9 @@
         </StackPanel>
         <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="{StaticResource SA.Gap.Left16}">
           <Button Style="{StaticResource SA.Button.Base}" Content="{x:Static rw:RulesWindowText.OpenManual}" Click="OnOpenManual" />
-          <Button Style="{StaticResource SA.Button.Base}" Margin="{StaticResource SA.Gap.Left8}" Content="{x:Static rw:RulesWindowText.ExportToExcel}" Click="OnExport" />
+          <!-- R444. No xlsx is written inside Revit (R350), so Export to Excel is hidden until the worker writes it -->
+          <Button Style="{StaticResource SA.Button.Base}" Margin="{StaticResource SA.Gap.Left8}" Content="{x:Static rw:RulesWindowText.ExportToExcel}" Click="OnExport"
+                  Visibility="Collapsed" />
         </StackPanel>
       </Grid>
     </Border>

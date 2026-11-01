@@ -244,7 +244,8 @@ namespace SiteAdaptation.Tests
                 Button save = Visuals(band).OfType<Button>().Single(button => (string)button.Content == "Save overrides");
                 Assert.Equal(window.FindResource("SA.Button.Primary"), save.Style);
                 Assert.True(save.IsEnabled);
-                Assert.False(Visuals(band).OfType<Button>().Single(button => (string)button.Content == "Zoom to plot").IsEnabled);
+                // R444. A button with nothing to do is hidden, not grey
+                Assert.Equal(Visibility.Collapsed, Visuals(band).OfType<Button>().Single(button => (string)button.Content == "Zoom to plot").Visibility);
 
                 Border side = all.OfType<Border>().First(border => border.Background == window.FindResource("SA.Panel"));
                 Assert.Equal(340.0, side.ActualWidth);

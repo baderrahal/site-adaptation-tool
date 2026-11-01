@@ -240,7 +240,9 @@ Built in Lane B 5c. The labels, columns, chips and side box are those of Review 
 - `Not saved yet` CHOSEN, beside Save review after a mark
 - `Review saved.` CHOSEN, after Save review
 - `Confirmed` CHOSEN, DRAFT, the column of the tick of the cluster confirm (R442), Bader's prompt of 1 Nov 2026 with no board
-- `Confirm all proposed` CHOSEN, DRAFT, the button in the band that ticks every plot with a cluster proposal (R442)
+- `Confirm all proposed` CHOSEN, DRAFT, the button in the band that ticks every plot with a cluster proposal (R442), shown only while 4 Check proposes a cluster (R444)
+- `Confirm all` CHOSEN, DRAFT, the button in the band that marks OK every plot not checked yet (R444), Bader's demo check of 1 Nov 2026
+- `Confirm all shown` CHOSEN, DRAFT, the same button while a chip or the find box narrows the table, it marks only the rows shown (R444)
 - `Tick Confirmed for each cluster and mirror that 4 Check proposed, or click Confirm all proposed, then Save review. A plot whose proposed cluster is not confirmed is marked for buttons 5 to 8.` CHOSEN, DRAFT, the second help line, shown while the plan of 4 Check proposes a cluster
 - `<n> mirror <n>` CHOSEN, DRAFT, the Cluster value of a plot with a proposal of R411, the plots of the cluster joined by + then yes, no or none
 - `yes` CHOSEN, DRAFT, the mirror of a proposal, the half mirrored
@@ -632,3 +634,13 @@ The window What the tool read of Lane C SCAN-UI, word for word from docs/design/
 - `What to do: pick the source in the row Villa type, or ask the master planner which file is current.`
 - `What to do: pick the source in the row <name>.` CHOSEN, the line for a value other than the villa type
 - `Your picks are saved with the setup.` CHOSEN, the pane line of button 2 after Use these picks (R438)
+
+### Loader
+
+The loader of every button of Lane C DEMO-FIX (R444), a DRAFT with no board. It stands over Revit after 2 seconds while a step works, with the step name, a moving bar and the clock.
+
+- `Site Adaptation` CHOSEN, the title of the window, not drawn since it has no frame
+- `Working. Revit is busy until the step ends.` CHOSEN, the line while the step runs inside Revit
+- `Running outside Revit. The pane shows the step when it ends.` CHOSEN, the line while 2 Read data or 4 Check runs in the worker (R375)
+- `Elapsed <n>` CHOSEN, the clock in minutes and seconds
+- `Hide` CHOSEN, shown only while the step runs outside Revit, it closes the loader and changes nothing in the run

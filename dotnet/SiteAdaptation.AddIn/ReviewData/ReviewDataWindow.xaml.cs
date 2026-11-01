@@ -31,6 +31,11 @@ namespace SiteAdaptation.AddIn.ReviewData
             session.ConfirmAll();
         }
 
+        private void OnConfirmRows(object sender, RoutedEventArgs e)
+        {
+            session.ConfirmRows();
+        }
+
         private void OnSave(object sender, RoutedEventArgs e)
         {
             session.Save();

@@ -1,0 +1,28 @@
+<Window x:Class="SiteAdaptation.AddIn.Loader.LoaderWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ld="clr-namespace:SiteAdaptation.AddIn.Loader"
+        Title="{x:Static ld:LoaderText.Title}" Width="{DynamicResource SA.Size.LoaderWidth}" SizeToContent="Height"
+        WindowStyle="None" ResizeMode="NoResize" ShowInTaskbar="False" ShowActivated="False" Topmost="True"
+        Background="{DynamicResource SA.Surface}" BorderBrush="{DynamicResource SA.BorderStrong}" BorderThickness="{DynamicResource SA.Line.All}">
+  <!-- R444, Lane C DEMO-FIX. The loader of every button, a DRAFT with no board. Every colour, size and font by Theme.xaml -->
+  <Window.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="/SiteAdaptation.AddIn;component/Theme/Theme.xaml" />
+      </ResourceDictionary.MergedDictionaries>
+    </ResourceDictionary>
+  </Window.Resources>
+  <StackPanel Margin="{StaticResource SA.Pad.Box}">
+    <TextBlock x:Name="StepName" Style="{StaticResource SA.Type.Section}" Foreground="{StaticResource SA.Heading}" TextWrapping="Wrap" />
+    <TextBlock x:Name="Line" Style="{StaticResource SA.Type.Small}" Foreground="{StaticResource SA.TextMuted}" Margin="{StaticResource SA.Gap.Top4}"
+               TextWrapping="Wrap" Text="{x:Static ld:LoaderText.Working}" />
+    <ProgressBar Margin="{StaticResource SA.Gap.Top12}" Height="{StaticResource SA.Size.LoaderBar}" IsIndeterminate="True"
+                 Foreground="{StaticResource SA.Accent}" Background="{StaticResource SA.Panel}" BorderThickness="0" />
+    <DockPanel Margin="{StaticResource SA.Gap.Top8}">
+      <Button x:Name="HideButton" DockPanel.Dock="Right" Style="{StaticResource SA.Button.Base}" Content="{x:Static ld:LoaderText.Hide}"
+              Visibility="Collapsed" Click="OnHide" />
+      <TextBlock x:Name="Clock" Style="{StaticResource SA.Type.Small}" Foreground="{StaticResource SA.TextMuted}" VerticalAlignment="Center" />
+    </DockPanel>
+  </StackPanel>
+</Window>

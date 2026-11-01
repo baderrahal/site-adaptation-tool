@@ -14,7 +14,7 @@ namespace SiteAdaptation.AddIn.ReviewData
         {
             this.view = view;
             this.callbacks = callbacks ?? new ReviewCallbacks();
-            Model = new ReviewDataViewModel(view);
+            Model = new ReviewDataViewModel(view) { ZoomShown = this.callbacks.Zoom != null, ExportShown = this.callbacks.Export != null };
         }
 
         public ReviewDataViewModel Model { get; }
@@ -59,6 +59,11 @@ namespace SiteAdaptation.AddIn.ReviewData
         public void ConfirmAll()
         {
             Model.ConfirmAll();
+        }
+
+        public void ConfirmRows()
+        {
+            Model.ConfirmRows();
         }
 
         public void Mark(string check)

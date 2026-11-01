@@ -13,11 +13,11 @@
 
 - Lane B demo-fill, 08:50: steps/demo-fill.md, which file goes in which field, read only, C:/SA-demo unchanged. Now: its PR, merged
   before 09:15. Next: the demo at 11:00. Blocked: none
-- Lane C SCAN-UI, 04:35, done: PR 117 tasks 1 to 4 (R435 to R441), PR 119 tasks 5 and 6 (R442, R443), task 7 the Revit shots of the DEMO
-  run in steps/ui-shots/README.md, the shots outside git. Waits for Bader: Q288 to Q295, Q300 to Q302, Q305. Blocked: none
+- Lane C DEMO-FIX, 09:55, branch fix/lane-c-demo-fix: step rows of the pane run steps, a loader on every button, Confirm all in 3 Review
+  data, idle buttons hidden (R444). Now: the gate and the PR, merge by 10:15, then lane-b reinstalls. Blocked: none
 - Lane D 4j-1b merged as PR 118 (b7d0ec4): PlotShapes by a cell index, threads (R428), the time cap (R429), waits for Q243 to Q258
 
-Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane B demo-fill, Lane A 4j-2, Lane D 4j-1b, Lane C SCAN-UI, Lane A 4i, Lane B 6a, 1 Nov 2026.
+Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane C DEMO-FIX, Lane B demo-fill, Lane A 4j-2, Lane D 4j-1b, Lane C SCAN-UI, Lane A 4i, Lane B 6a, 1 Nov 2026.
 
 ## Repo map
 

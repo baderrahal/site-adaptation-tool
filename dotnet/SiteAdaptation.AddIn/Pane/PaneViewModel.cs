@@ -55,7 +55,7 @@ namespace SiteAdaptation.AddIn.Pane
                 new FileRowViewModel(PaneText.Prototypes, true, InputKeys.Prototypes),
                 new FileRowViewModel(PaneText.SharedParameters, false, InputKeys.ParameterSheet),
             });
-            Steps = new ReadOnlyCollection<StepRowViewModel>(RibbonLayout.Buttons.Select(button => new StepRowViewModel(button.Number, StepName(button.Number), PaneText.StepLines[button.Number - 1])).ToList());
+            Steps = new ReadOnlyCollection<StepRowViewModel>(RibbonLayout.Buttons.Select(button => new StepRowViewModel(button.Number, StepName(button.Number), PaneText.StepLines[button.Number - 1], number => RunRequested?.Invoke(number))).ToList());
             // PaneFirst board: on first open steps 1 to 4, then one row for the steps after 4 up to the last
             FoldedStep = new StepRowViewModel(FoldFrom, TextTemplate.Fill(PaneText.FoldedSteps, StepName(FoldFrom), StepPlan.Count, StepName(StepPlan.Count)), string.Empty);
             FirstSteps = new ReadOnlyCollection<StepRowViewModel>(Steps.Take(FoldFrom - 1).Concat(new[] { FoldedStep }).ToList());
@@ -69,7 +69,8 @@ namespace SiteAdaptation.AddIn.Pane
 
         private const int FoldFrom = 5;
 
-        // The box button opens New project on first open, else asks for a run of the ribbon button it names
+        // The box button opens New project on first open, else asks for a run of the ribbon button it names. A click on a step row
+        // that can run asks the same (R444)
         public event Action<int> RunRequested;
 
         // NEWPROJ-UI. The Revit side opens the window of each, the pane holds no window
@@ -720,13 +721,30 @@ namespace SiteAdaptation.AddIn.Pane
         private string chipText = string.Empty;
         private string chipTip;
         private MarkKind mark;
+        private bool runnable;
+        private string rowTip;
 
-        public StepRowViewModel(int number, string name, string line)
+        public StepRowViewModel(int number, string name, string line, Action<int> run = null)
         {
             Number = number;
             Name = name;
             Line = line;
+            // R444. A done step runs again, the next step runs, a step that waits does nothing and its chip says what it needs
+            RunCommand = new PaneCommand(() =>
+            {
+                if (Runnable)
+                {
+                    run?.Invoke(Number);
+                }
+            }, () => true);
+            this.run = run;
         }
+
+        private readonly Action<int> run;
+
+        public PaneCommand RunCommand { get; }
+        public bool Runnable { get { return runnable; } private set { Set(ref runnable, value); } }
+        public string RowTip { get { return rowTip; } private set { Set(ref rowTip, value); } }
 
         public int Number { get; }
         public string Name { get; }
@@ -750,6 +768,8 @@ namespace SiteAdaptation.AddIn.Pane
                 default: ChipText = string.Empty; break;
             }
             Mark = status.Kind == StepKind.Done ? MarkKind.Done : status.Kind == StepKind.Issues ? MarkKind.Issues : next ? MarkKind.Next : MarkKind.Waiting;
+            Runnable = run != null && (status.Kind == StepKind.Done || status.Kind == StepKind.Issues || status.Kind == StepKind.Ready);
+            RowTip = Runnable ? TextTemplate.Fill(PaneText.RunButton, Number, Name) : ChipText.Length == 0 ? null : ChipText;
         }
     }
 

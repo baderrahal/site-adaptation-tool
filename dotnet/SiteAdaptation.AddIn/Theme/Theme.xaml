@@ -635,4 +635,8 @@
   <!-- Lane C SCAN-UI task 5, R442. The column Confirmed of Review data, narrow so Team check, the column that takes the rest, keeps Not checked whole -->
   <GridLength x:Key="SA.Grid.ReviewConfirmed">68</GridLength>
 
+  <!-- R444, Lane C DEMO-FIX. The loader of every button, a small box with a thin moving bar -->
+  <sys:Double x:Key="SA.Size.LoaderWidth">340</sys:Double>
+  <sys:Double x:Key="SA.Size.LoaderBar">6</sys:Double>
+
 </ResourceDictionary>
