@@ -30,6 +30,8 @@ FIELDS = ("plots", "ends", "base", "top")
 STEP_FIELDS = ("unit", "written", "edges", "plots", "ends", "base", "top", "levelPlots", "status", "irregular", "lineInsideM")
 SOURCE = "keyRules"
 PLOTS_SOURCE = "locationPlan"
+# R416. The source of the ends of a wall moved inside an irregular plot, its line by Manual Rev 06 2.8.A and no longer keyRules.wallLine
+INSIDE_SOURCE = "manualInside"
 # The override of the list that turns a link, plan_from_book.moved_link
 ROTATION = "rotationDeg"
 # The candidates of key_rules.wall_base_candidates and wall_top_candidates, True for the higher plot of the wall
@@ -47,6 +49,7 @@ TOLERANCE_LIMIT = 45.0
 TOLERANCE_LINE = "rev6.irregular_tolerance_deg is no number over 0 and under 45, a build under the Rev 6 mode tells no irregular plot without it (R415)"
 THICKNESS = "plot.boundary_wall_thickness"
 RIGHT_ANGLE = 90.0
+STRAIGHT_ANGLE = 180.0
 RECTANGLE_CORNERS = 4
 
 
@@ -296,12 +299,14 @@ def irregular_of(numbers, rings, tolerance):
     return {number: irregular(rings[number], tolerance) for number in numbers if number in rings}
 
 
-def inside(found, rings, written, irregulars, half):
+def inside(found, rings, written, irregulars, half, tolerance, near):
     """R416, Manual Rev 06 2.8.A. Under the Rev 6 mode a wall that stands on an irregular written plot runs with its outer face on the plot
     line, so its ends move half the thickness inside that plot: the plot it is filed under when that one is irregular, also when the other
     plot is irregular too, as the wall is written once, else the first irregular written plot of its plots. A wall on no irregular written
-    plot keeps its centre on the edge. Each wall gets lineInsideM, the move, 0.0 or half."""
-    for wall in found:
+    plot keeps its centre on the edge. Each wall gets lineInsideM, the move, 0.0 or half. Then the moved walls that met at a face vertex
+    meet again (mitre)."""
+    before = {}
+    for index, wall in enumerate(found):
         plot = wall["plot"]
         targets = [other for other in wall["plots"] if other in written and irregulars.get(other)]
         target = plot if plot in targets else (targets[0] if targets else None)
@@ -321,13 +326,91 @@ def inside(found, rings, written, irregulars, half):
         nx, ny = (-uy, ux) if twice > 0 else (uy, -ux)
         if target != plot:
             nx, ny = -nx, -ny
+        before[index] = [[end[0], end[1]] for end in wall["ends"]]
         wall["ends"] = [[end[0] + nx * half, end[1] + ny * half] for end in wall["ends"]]
         wall["lineInsideM"] = half
+    mitre(found, before, rings, tolerance, near)
+
+
+def on_vertex(ring, edge, side, point):
+    """R416. The index of the vertex of ring the end side, 0 the first and 1 the last, of a wall on edge sat on, None for an end mid edge."""
+    index = (edge + side) % len(ring)
+    return index if point[0] == ring[index][0] and point[1] == ring[index][1] else None
+
+
+def next_point(ring, index, step):
+    """R416. The first vertex of ring from index in the direction step, 1 on or -1 back, that is not that vertex, None where all are."""
+    for count in range(1, len(ring)):
+        found = ring[(index + step * count) % len(ring)]
+        if found[0] != ring[index][0] or found[1] != ring[index][1]:
+            return found
+    return None
+
+
+def partner(found, before, index, side, rings, tolerance, near, done):
+    """R416. The moved wall and its end that meet the end side of the moved wall index at the face vertex that end sat on, before the move,
+    as (other, end), else None. The other runs along the next edge of the face from that vertex, within near of it, and its end sat on a face
+    vertex of its own plot within near of the first. An end mid edge, a corner whose edges run on within tolerance, as R415 merges them, or fold
+    back, and an end whose next edge holds no moved wall have none."""
+    wall = found[index]
+    ring = rings[wall["plot"]]
+    at = on_vertex(ring, wall["edge"], side, before[index][side])
+    if at is None:
+        return None
+    vertex, far = ring[at], before[index][1 - side]
+    following = next_point(ring, at, 1 if side == 1 else -1)
+    if following is None:
+        return None
+    turn = abs(turn_of(far, vertex, following))
+    if turn <= tolerance or turn >= STRAIGHT_ANGLE - tolerance:
+        return None
+    dx, dy = following[0] - vertex[0], following[1] - vertex[1]
+    length = math.sqrt(dx * dx + dy * dy)
+    ux, uy = dx / length, dy / length
+    for other in before:
+        if other == index:
+            continue
+        for end in (0, 1):
+            point, tip = before[other][end], before[other][1 - end]
+            px, py = point[0] - vertex[0], point[1] - vertex[1]
+            if (other, end) in done or math.sqrt(px * px + py * py) > near:
+                continue
+            if on_vertex(rings[found[other]["plot"]], found[other]["edge"], end, point) is None:
+                continue
+            if abs((tip[0] - vertex[0]) * uy - (tip[1] - vertex[1]) * ux) <= near and (tip[0] - vertex[0]) * ux + (tip[1] - vertex[1]) * uy > 0:
+                return other, end
+    return None
+
+
+def mitre(found, before, rings, tolerance, near):
+    """R416, Manual Rev 06 2.8.A. The wall follows the exact plot shape with its outer face on the plot limit, so two moved walls whose ends
+    met at a face vertex before the move meet again: both ends move to the crossing of their moved centre lines, the mitre point of the
+    offset edges, which closes the square a notch corner left unbuilt and parts the overlap of a convex one. before holds the ends of each
+    moved wall by its index before the move. In the order of the walls and their ends, each end once. Any other end stays square."""
+    done = set()
+    for index in before:
+        for side in (0, 1):
+            if (index, side) in done:
+                continue
+            pair = partner(found, before, index, side, rings, tolerance, near, done)
+            if pair is None:
+                continue
+            other, end = pair
+            first, second = found[index]["ends"][side], found[other]["ends"][end]
+            ax, ay = before[index][1][0] - before[index][0][0], before[index][1][1] - before[index][0][1]
+            bx, by = before[other][1][0] - before[other][0][0], before[other][1][1] - before[other][0][1]
+            cross = ax * by - ay * bx
+            if cross == 0:
+                continue
+            t = ((second[0] - first[0]) * by - (second[1] - first[1]) * bx) / cross
+            found[index]["ends"][side] = [first[0] + t * ax, first[1] + t * ay]
+            found[other]["ends"][end] = [first[0] + t * ax, first[1] + t * ay]
+            done.update(((index, side), (other, end)))
 
 
 def entry(wall):
     """The wall as the plan writes it, each value with its source, the plot and edge it runs along and the plots of its base and top."""
-    sources = {"plots": PLOTS_SOURCE, "ends": SOURCE, "base": SOURCE, "top": SOURCE}
+    sources = {"plots": PLOTS_SOURCE, "ends": INSIDE_SOURCE if wall.get("lineInsideM") else SOURCE, "base": SOURCE, "top": SOURCE}
     return {"plot": wall["plot"], "edge": wall["edge"], **{field: {"value": wall[field], "source": sources[field]} for field in FIELDS},
             "basePlot": wall["basePlot"], "topPlot": wall["topPlot"]}
 
