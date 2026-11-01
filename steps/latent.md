@@ -329,7 +329,7 @@ All paths under dotnet/. A line number the reviewer did not note is left out.
 - FloorLoad.cs:32 and WallLoad.cs:26-30: no load fills SetToPlan, so the set to plan path of 03b for an element changed by hand is reached only by tests.
 - plan_walls.py:74 against Walls.cs:125-135: a wallOpen of null is no table in Python and a refusal in C#. No rules file holds a null wallOpen.
 - LevelsRun.cs:190-243: a plot whose floor the plan view skipped with a reason is not named in the Levels preview.
-- rules/roshn-makkah.json, R401 block: the three values of addin.fixedParameters read UNKNOWN though Q156 is closed by Bader's answer, rule_status.py does not read the closed row.
+- rules/roshn-makkah.json, R401 block: the three values of addin.fixedParameters read UNKNOWN though Q156 is closed by Bader's answer, rule_status.py does not read the closed row. Gone in FIX-1NOV-D, the block left config with R461 and Plot is a row of config/shared_parameters.xlsx.
 - FloorPlan.cs:206-225 and FloorsRun.Apply repeat FloorPlacer.SetCorners and its place loop, still called by PlaceFromPlan.cs:42 of the old placer, two copies of R114 that can drift.
 
 ## Lane B 5d, breaker pass 1

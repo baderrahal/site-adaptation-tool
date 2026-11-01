@@ -43,11 +43,6 @@ namespace SiteAdaptation.Common.SetUp
         // The names of the rows of Keep No
         public List<string> LeftOut { get; private set; } = new List<string>();
 
-        public bool Chosen
-        {
-            get { return Sheet != null; }
-        }
-
         // The text after "From the parameter sheet: "
         public string Source
         {

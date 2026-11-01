@@ -231,3 +231,9 @@ One phase per session (Q096). Two lanes run the phases (D10, D17): tools/run-lan
 - Status: done, Lane D, laptop, 2026-11-01, one PR with code, tests and records, in the worktree Site Adaptation Tool Lane D WT
 - What: a scan of a large drawing under 10 minutes, measured per stage first, the result of set A and the renamed set the same field by field, a time cap of the profile written into the scan result where a stage cannot get under it
 - Left: Q257 and Q258 for Bader, Q250 still open, the window shows the notRead row of a drawing scanned in part (steps/waiting-on-others.md)
+
+## Lane D FIX-1NOV-D, the shared parameters from one Excel
+
+- Status: done, Lane D, laptop, 2026-11-01, one PR with code, tests and records, in the worktree Site Adaptation Tool Lane D WT
+- What: config/shared_parameters.xlsx the one source of the shared parameters, the 10 of the past links and Plot, button 1 binds the rows of Keep Yes under their group, each button fills its own (R460 to R465)
+- Left: the read of the key groups once fix/1nov-b is on main (Q330), Q331 to Q334 for Bader

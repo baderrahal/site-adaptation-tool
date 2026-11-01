@@ -86,8 +86,8 @@ def block(found, names, keys):
 
 
 def against_sheet(payload, kept):
-    """R461. The measure of the keys held to the parameter sheet, one line per fault: a name the keys give a GUID that the sheet lacks or
-    gives another GUID, a name of the sheet the keys give no GUID with the sheet GUID, and a name the keys bind and the sheet leaves out."""
+    """R461. The measure of the keys held to the parameter sheet, one line per name the keys give a GUID that the sheet lacks, leaves out
+    or gives another GUID."""
     sheet = {item["name"]: item["guid"] for item in kept}
     faults = []
     for item in payload["parameters"]:

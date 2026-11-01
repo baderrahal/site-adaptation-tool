@@ -451,8 +451,9 @@ namespace SiteAdaptation.Common.PlaceVillas
         }
 
         // R85, R107. The plot number written or the run fails, except a solid whose category button 1 did not bind it on, whose tag holds
-        // the plot so no later run places it twice (CHOSEN, an open question of Lane B 5c). RRE_ZZ_SP_Prototype-FFL, Number-of-Steps and
-        // RVT-Name are written here with the others, as Levels writes no link parameter (W6)
+        // the plot so no later run places it twice (CHOSEN, an open question of Lane B 5c). Number-of-Steps and RVT-Name are written here
+        // with the others, as Levels writes no link parameter (W6), each only when the parameter sheet gives it to button 7, so
+        // RRE_ZZ_SP_Prototype-FFL of Filled by none is never written (R465)
         private IEnumerable<string> WriteParameters(bool masses, Villa villa, string id, IReadOnlyDictionary<string, string> guids, ICollection<string> filledByOthers)
         {
             var issues = new List<string>();

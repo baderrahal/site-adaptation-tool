@@ -176,7 +176,6 @@ namespace SiteAdaptation.Tests
         {
             ParameterSheet sheet = ParameterSheet.FromConfig(configPath, config);
 
-            Assert.True(sheet.Chosen);
             Assert.Equal("shared_parameters.xlsx", sheet.Sheet);
             Assert.Equal(11, sheet.Parameters.Count);
             Assert.Empty(sheet.LeftOut);
@@ -233,14 +232,35 @@ namespace SiteAdaptation.Tests
             Assert.Equal(new[] { "RRE_ZZ_SP_RVT-Name" }, sheet.LeftOut);
             Assert.Equal("ROSHN parameters.xlsx, 1 parameters, 1 left out", sheet.Source);
             rows.Add(new object[] { null, "RRE_ZZ_SP_RVT-Name", "Floors", "Text", "Data", "none", null, "Yes", null });
-            Assert.Contains("twice", Assert.Throws<InvalidDataException>(() => ParameterSheet.FromRows("a.xlsx", rows)).Message);
+            Assert.Equal("the parameter sheet a.xlsx names RRE_ZZ_SP_RVT-Name twice, one parameter per name (Q155)", Assert.Throws<InvalidDataException>(() => ParameterSheet.FromRows("a.xlsx", rows)).Message);
             Assert.Equal("the parameter sheet a.xlsx has no column Group, Category, Filled by, Sample value, Keep in its first row (R461)",
                 Assert.Throws<InvalidDataException>(() => ParameterSheet.FromRows("a.xlsx", new List<object[]> { new object[] { "Parameter", "GUID", "Data type" } })).Message);
-            Assert.Contains("no GUID", Assert.Throws<InvalidDataException>(() => ParameterSheet.FromRows("a.xlsx", Sheet(new[] { "A", "not a guid", "Data", "Floors", "7", "Yes" }))).Message);
+            Assert.Equal("the parameter sheet a.xlsx gives A the GUID not a guid, which is no GUID (Q155)",
+                Assert.Throws<InvalidDataException>(() => ParameterSheet.FromRows("a.xlsx", Sheet(new[] { "A", "not a guid", "Data", "Floors", "7", "Yes" }))).Message);
             Assert.Equal("the parameter sheet a.xlsx gives A the Keep blank, Yes or No (R461)",
                 Assert.Throws<InvalidDataException>(() => ParameterSheet.FromRows("a.xlsx", Sheet(new[] { "A", null, "Data", "Floors", "7", null }))).Message);
             Assert.Equal("the parameter sheet a.xlsx gives A the Filled by Floors, a button from 1 to 9 or none (R465)",
                 Assert.Throws<InvalidDataException>(() => ParameterSheet.FromRows("a.xlsx", Sheet(new[] { "A", null, "Data", "Floors", "Floors", "Yes" }))).Message);
+        }
+
+        // R461. A sheet picked by Browse that is not the one of config stops button 1 with the reason, since button 7 writes by the sheet of
+        // config, and the sheet of config picked again binds as before
+        [Fact]
+        public void R461_a_picked_sheet_other_than_that_of_config_stops_button_1_and_the_same_sheet_runs()
+        {
+            var calls = new List<string>();
+            var other = new FakeDialog { Browse = Path.Combine(work, "other.xlsx") };
+
+            RunOutcome stopped = Run(new FakeDocument(Template()) { Calls = calls }, other, new FakeTags(calls), calls);
+
+            string stop = "other.xlsx is not the parameter sheet of config, shared_parameters.xlsx, the one every button reads. Edit shared_parameters.xlsx instead (R461)";
+            Assert.Contains(stop, other.Shown.Last().Stops);
+            Assert.NotEqual(RunEnd.Committed, stopped.End);
+            Assert.DoesNotContain("commit", calls);
+            calls.Clear();
+            var same = new FakeDialog { Browse = (string)config["addin"]["parameterSheet"] };
+            Assert.Equal(RunEnd.Committed, Run(new FakeDocument(Template()) { Calls = calls }, same, new FakeTags(calls), calls).End);
+            Assert.DoesNotContain(stop, same.Shown.Last().Stops);
         }
 
         // R465. RRE_ZZ_SP_Prototype-FFL is never written, the floor parameter is Floors' alone, a kept parameter needs a group
@@ -737,6 +757,9 @@ namespace SiteAdaptation.Tests
             public double? DryRunSlope { get; set; }
             public bool Answer { get; set; } = true;
 
+            // A sheet picked by Browse, given to the run as the window does
+            public string Browse { get; set; }
+
             public SetUpSiteAnswer Show(SetUpSiteView view, SetUpSiteCallbacks callbacks)
             {
                 Shown.Add(view);
@@ -747,7 +770,11 @@ namespace SiteAdaptation.Tests
                     slope = DryRunSlope.Value;
                     DryViews.Add(callbacks.DryRun(slope));
                 }
-                return new SetUpSiteAnswer { Apply = Answer, RampSlope = slope };
+                if (Browse != null)
+                {
+                    Shown.Add(callbacks.SheetChosen(Browse));
+                }
+                return new SetUpSiteAnswer { Apply = Answer, RampSlope = slope, ParameterSheet = Browse };
             }
         }
 

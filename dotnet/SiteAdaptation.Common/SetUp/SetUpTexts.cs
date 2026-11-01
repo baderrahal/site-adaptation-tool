@@ -58,6 +58,11 @@ namespace SiteAdaptation.Common.SetUp
             return name + " has no GUID in the parameter sheet";
         }
 
+        public static string OtherSheet(string chosen, string config)
+        {
+            return chosen + " is not the parameter sheet of config, " + config + ", the one every button reads. Edit " + config + " instead (R461)";
+        }
+
         public static string NoGroup(string name)
         {
             return name + " has no Group in the parameter sheet";

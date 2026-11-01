@@ -135,6 +135,13 @@ namespace SiteAdaptation.Tests
             FakeElement solid = other.Document.Elements.Single(element => element.IsSolid);
             Assert.False(solid.Parameters.ContainsKey("CASE"));
             Assert.Equal("101", solid.Parameters[LinkFields.PlotNumber]);
+            // The FFL of the plan, given to none by the sheet of the repo, is never written, the steps and the name still are
+            Run level = LevelRun(Plan(LevelPlot("101", 612.345)), VillaModes.Links, null, new HashSet<string> { Placer.FflParameter });
+            IReadOnlyList<string> issues = Apply(level, Context());
+            FakeElement link = level.Document.Elements.Single();
+            Assert.False(link.Parameters.ContainsKey(Placer.FflParameter));
+            Assert.Equal("3", link.Parameters[StepsName]);
+            Assert.DoesNotContain(issues, line => line.Contains(Placer.FflParameter));
         }
 
         [Fact]
@@ -403,10 +410,10 @@ namespace SiteAdaptation.Tests
         private const string StepsName = "RRE_ZZ_SP_Number-of-Steps";
         private const string RvtName = "RRE_ZZ_SP_RVT-Name";
 
-        private Run LevelRun(PlanFile plan, string mode, FakeVillas document = null)
+        private Run LevelRun(PlanFile plan, string mode, FakeVillas document = null, ICollection<string> others = null)
         {
             var guids = new Dictionary<string, string> { [Placer.FflParameter] = FflGuid, [StepsName] = StepsGuid, [RvtName] = NameGuid };
-            Run run = Make(plan, mode, document, guids: guids);
+            Run run = Make(plan, mode, document, guids: guids, others: others);
             run.Document.Names[FflGuid] = Placer.FflParameter;
             run.Document.Names[StepsGuid] = StepsName;
             run.Document.Names[NameGuid] = RvtName;
