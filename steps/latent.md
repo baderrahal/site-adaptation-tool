@@ -449,6 +449,14 @@ No real input reaches these, since the ROSHN config runs roshnPastJob (Q224) and
 - RevitShots.cs:301 and 339: the current process is not disposed, and the old bitmap is put back only on success.
 - TestHostPaths.ps1:142 Resolve-WorkRootPath is a third copy of the work root mark beside WorkRoot.Resolve and project_profile.py, held to the C# one by its test, and none of the three refuses a part of two dots. The input is the config of the repo.
 
+## Lane D 4j-1b, the gate
+
+- WorkerRunTests R347_a_time_limit_that_fires_after_the_worker_answered_and_exited failed once on net48 while the pytest gate ran beside it, then passed 3 of 3 alone and in the whole net48 leg, 1694 of 1694 (RAN). A timing test under load, as the R347 timing tests of 5e.
+- PlotShapes.cs LineKeys: a line over about 1e8 m at the 0.1 m cell floor overflows the step count and gets no cell, its crossings and T junctions skipped. The longest of 340,897 real lines is 2453.2 m (breaker, reviewer).
+- PlotShapes.cs LineKeys: time and memory grow with line length over the cell, a stray line from near 0 to the site among 0.1 m pieces may run out of memory. No real line ends near 0 (breaker).
+- PlotShapes.cs PieceKeys: near 2.4e6 the box of an arc rounds by up to 2.3e-10 m, a node exactly on the box edge at a cell edge could be left out. Not reproduced (breaker).
+- CadScan.cs Inventory: a pair that throws in Parallel.For reaches the caller as an AggregateException, no caller catches a type there (reviewer).
+
 ## Lane C SCAN-UI, 1 Nov 2026, breaker pass
 
 - ScanStep hash cache keyed by path, size and write time: another file copied in with the same size and write time is taken as unchanged (ScanStep.cs Marked).

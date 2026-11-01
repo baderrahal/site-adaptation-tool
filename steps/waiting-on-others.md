@@ -56,6 +56,7 @@ The scanner (R420 to R427) writes scan.json in the run folder, its shape in docs
 | Show the villa type source proposed and the others | rows villaType | the plot table of button 2 reads the sales sheet of config |
 | List the conflicts and checks by plot, with both values and both sources | conflicts and checks | nothing shows them |
 | Keep what the user took for the next read | none, a new file of the window | none |
+| Say when a drawing was scanned in part, the pairs left by the time cap (R429, 4j-1b) | the check row notRead "<file>\|layer pairs" and notTraced of scan_cad | the row is in scan.json, nothing shows it |
 
 Built by Lane C SCAN-UI on 1 Nov 2026 (R435 to R440, docs/rules/12-lane-c-r430-up.md): button 2 runs the scan and opens the window What the tool read when a value is unclear or a conflict open, and the picks are kept in the settings as scanPicks and conflictPicks. Left of this list: the read takes the picks (Q292), asked below.
 

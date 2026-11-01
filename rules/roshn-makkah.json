@@ -241,16 +241,18 @@
     }
   },
   "scan": {
-    "note": "R420 to R427, round 4j-1. The values of the scanner of any CAD, Excel and PDF the user gives, read by python/scan.py and Common/Scan/ScanLogic.cs. ruleOf names the rule of each value. labelPattern is the label form of CadReader/PlotLabels.cs, group 1 the type and group 2 the number. plotNumberShifts are the shifts of config/plot_numbers.json and 0, a sheet number minus the shift is the CAD label. pdfJoinGapPt, pdfLineTolerancePt, pdfPairDyPt and pdfPairDxPt are joinGapPt, lineTolerancePt, pairDyPt and pairDxPt of dataBook.locationPlan, the label pairs of R180. pairMinSegments CHOSEN by Code (Q243)",
+    "note": "R420 to R427, round 4j-1. The values of the scanner of any CAD, Excel and PDF the user gives, read by python/scan.py and Common/Scan/ScanLogic.cs. ruleOf names the rule of each value. labelPattern is the label form of CadReader/PlotLabels.cs, group 1 the type and group 2 the number. plotNumberShifts are the shifts of config/plot_numbers.json and 0, a sheet number minus the shift is the CAD label. pdfJoinGapPt, pdfLineTolerancePt, pdfPairDyPt and pdfPairDxPt are joinGapPt, lineTolerancePt, pairDyPt and pairDxPt of dataBook.locationPlan, the label pairs of R180. pairMinSegments CHOSEN by Code (Q243). pairThreads, the threads of the pair trace, CHOSEN by Code in 4j-1b, 4 of the 28 of the laptop so the other sessions keep theirs (Q257). pairTimeCapS, the seconds after which no layer pair is begun, CHOSEN by Code in 4j-1b so a scan ends near 10 minutes (Q258)",
     "labelPattern": "^(?:(.*?)\\s+)?(\\d{1,6})$",
     "tokenSplit": "[^A-Za-z0-9]+",
     "plotNumberShifts": [0, 10, 11],
     "pairMinSegments": 100,
+    "pairThreads": 4,
+    "pairTimeCapS": 360,
     "pdfJoinGapPt": 0.3,
     "pdfLineTolerancePt": 0.05,
     "pdfPairDyPt": [1.3, 1.8],
     "pdfPairDxPt": 1.5,
-    "ruleOf": {"labelPattern": "R421", "tokenSplit": "R425", "plotNumberShifts": "R426", "pairMinSegments": "R421", "pdfJoinGapPt": "R426", "pdfLineTolerancePt": "R426", "pdfPairDyPt": "R426", "pdfPairDxPt": "R426"}
+    "ruleOf": {"labelPattern": "R421", "tokenSplit": "R425", "plotNumberShifts": "R426", "pairMinSegments": "R421", "pairThreads": "R428", "pairTimeCapS": "R429", "pdfJoinGapPt": "R426", "pdfLineTolerancePt": "R426", "pdfPairDyPt": "R426", "pdfPairDxPt": "R426"}
   },
   "manualRules": {
     "note": "R403, join item W3. M01 to M15 of docs/design/15-manual-rules.md, the canvas texts approved by Bader on 28 Oct 2026, held here per project and never in code. The window Site Adaptation Rules and the lookup of Common read this block. sectionPage carries the section and the printed page with the page of the PDF file in brackets, as the Round FOLD read of the manual took them (READ, 29 Oct 2026). pastJob is the column of the design table, the window shows a measured one from the override list or the build when it is given. Questions Q149 and Q150 keep the canvas text of M14 and M15.",
@@ -654,6 +656,8 @@
       "scan.tokenSplit": {"status": "DOCUMENT", "document": "01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 2024, with Rev 01 Dec 2022 for foundations", "pageOrSheet": "UNKNOWN", "source": "source"},
       "scan.plotNumberShifts": {"status": "RECOMMENDED", "question": "Q249", "where": "Q249"},
       "scan.pairMinSegments": {"status": "RECOMMENDED", "question": "Q243", "where": "Q243"},
+      "scan.pairThreads": {"status": "RECOMMENDED", "question": "Q257", "where": "Q257"},
+      "scan.pairTimeCapS": {"status": "RECOMMENDED", "question": "Q258", "where": "Q258"},
       "scan.pdfJoinGapPt": {"status": "DOCUMENT", "document": "01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 2024, with Rev 01 Dec 2022 for foundations", "pageOrSheet": "UNKNOWN", "source": "source"},
       "scan.pdfLineTolerancePt": {"status": "DOCUMENT", "document": "01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 2024, with Rev 01 Dec 2022 for foundations", "pageOrSheet": "UNKNOWN", "source": "source"},
       "scan.pdfPairDyPt": {"status": "DOCUMENT", "document": "01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 2024, with Rev 01 Dec 2022 for foundations", "pageOrSheet": "UNKNOWN", "source": "source"},
@@ -662,6 +666,8 @@
       "scan.ruleOf.tokenSplit": {"status": "DOCUMENT", "document": "01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 2024, with Rev 01 Dec 2022 for foundations", "pageOrSheet": "UNKNOWN", "source": "source"},
       "scan.ruleOf.plotNumberShifts": {"status": "DOCUMENT", "document": "01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 2024, with Rev 01 Dec 2022 for foundations", "pageOrSheet": "UNKNOWN", "source": "source"},
       "scan.ruleOf.pairMinSegments": {"status": "DOCUMENT", "document": "01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 2024, with Rev 01 Dec 2022 for foundations", "pageOrSheet": "UNKNOWN", "source": "source"},
+      "scan.ruleOf.pairThreads": {"status": "DOCUMENT", "document": "01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 2024, with Rev 01 Dec 2022 for foundations", "pageOrSheet": "UNKNOWN", "source": "source"},
+      "scan.ruleOf.pairTimeCapS": {"status": "DOCUMENT", "document": "01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 2024, with Rev 01 Dec 2022 for foundations", "pageOrSheet": "UNKNOWN", "source": "source"},
       "scan.ruleOf.pdfJoinGapPt": {"status": "DOCUMENT", "document": "01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 2024, with Rev 01 Dec 2022 for foundations", "pageOrSheet": "UNKNOWN", "source": "source"},
       "scan.ruleOf.pdfLineTolerancePt": {"status": "DOCUMENT", "document": "01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 2024, with Rev 01 Dec 2022 for foundations", "pageOrSheet": "UNKNOWN", "source": "source"},
       "scan.ruleOf.pdfPairDyPt": {"status": "DOCUMENT", "document": "01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 2024, with Rev 01 Dec 2022 for foundations", "pageOrSheet": "UNKNOWN", "source": "source"},

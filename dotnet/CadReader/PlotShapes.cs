@@ -110,6 +110,13 @@ namespace CadReader
 
         public static List<PlotEntry> Build(IEnumerable<Seg> segs, string layer)
         {
+            return Build(segs, layer, false);
+        }
+
+        // R428. everyItem takes the loops over every piece and node the trace had before the cell index, the reference the tests hold
+        // the index to, byte for byte
+        public static List<PlotEntry> Build(IEnumerable<Seg> segs, string layer, bool everyItem)
+        {
             var graph = new Graph { Layer = layer };
             foreach (Seg seg in segs)
             {
@@ -122,7 +129,7 @@ namespace CadReader
                     AddLine(graph, seg.X1, seg.Y1, seg.X2, seg.Y2);
                 }
             }
-            SplitAtJunctions(graph);
+            SplitAtJunctions(graph, everyItem);
             RemoveDuplicates(graph);
 
             var result = new List<PlotEntry>();
@@ -168,15 +175,149 @@ namespace CadReader
             return sweep;
         }
 
+        // Round 4j-1b. The items near a line or a point by the cells of a grid, in ascending order, so a loop over them makes the same tests
+        // in the same order as a loop over every item and only skips items that cannot meet. A line is kept in the cells of points along
+        // it at half a cell apart and the cells around them, so two lines that cross, or a node within Tolerance of a line, always share
+        // a cell, Tolerance being under a tenth of a cell. On the Road Layout of ROSHN a box index left 193 s and 137 s on one layer pair
+        private sealed class CellIndex
+        {
+            private readonly double size;
+            private readonly Dictionary<long, List<int>> cells = new Dictionary<long, List<int>>();
+
+            public CellIndex(double size)
+            {
+                this.size = size;
+            }
+
+            // The median length of the lines, never under ten times the node tolerance, so a short piece lies in few cells
+            public static double SizeFor(IEnumerable<double> lengths)
+            {
+                List<double> sorted = lengths.Where(length => length > 0).OrderBy(length => length).ToList();
+                double median = sorted.Count == 0 ? 0 : sorted[sorted.Count / 2];
+                return Math.Max(median, 10 * Tolerance);
+            }
+
+            private static long Key(long x, long y)
+            {
+                return (x << 32) ^ (y & 0xFFFFFFFFL);
+            }
+
+            private long Cell(double value)
+            {
+                return (long)Math.Floor(value / size);
+            }
+
+            public HashSet<long> PointKeys(double[] p, bool around)
+            {
+                var keys = new HashSet<long>();
+                long cx = Cell(p[0]);
+                long cy = Cell(p[1]);
+                int reach = around ? 1 : 0;
+                for (long dx = -reach; dx <= reach; dx++)
+                {
+                    for (long dy = -reach; dy <= reach; dy++)
+                    {
+                        keys.Add(Key(cx + dx, cy + dy));
+                    }
+                }
+                return keys;
+            }
+
+            public HashSet<long> LineKeys(double[] a, double[] b)
+            {
+                double length = Math.Sqrt((b[0] - a[0]) * (b[0] - a[0]) + (b[1] - a[1]) * (b[1] - a[1]));
+                int steps = (int)Math.Ceiling(length / (size / 2));
+                var keys = new HashSet<long>();
+                for (int step = 0; step <= steps; step++)
+                {
+                    double along = steps == 0 ? 0 : (double)step / steps;
+                    keys.UnionWith(PointKeys(new[] { a[0] + along * (b[0] - a[0]), a[1] + along * (b[1] - a[1]) }, true));
+                }
+                return keys;
+            }
+
+            // The cells of a box, null when it holds more than limit cells, the caller then takes every item as before
+            public HashSet<long> BoxKeys(double[] box, int limit)
+            {
+                if ((double)(Cell(box[2]) - Cell(box[0]) + 1) * (Cell(box[3]) - Cell(box[1]) + 1) > limit)
+                {
+                    return null;
+                }
+                var keys = new HashSet<long>();
+                for (long x = Cell(box[0]); x <= Cell(box[2]); x++)
+                {
+                    for (long y = Cell(box[1]); y <= Cell(box[3]); y++)
+                    {
+                        keys.Add(Key(x, y));
+                    }
+                }
+                return keys;
+            }
+
+            public void Add(int item, IEnumerable<long> keys)
+            {
+                foreach (long key in keys)
+                {
+                    if (!cells.TryGetValue(key, out List<int> list))
+                    {
+                        cells[key] = list = new List<int>();
+                    }
+                    list.Add(item);
+                }
+            }
+
+            public List<int> Near(IEnumerable<long> keys)
+            {
+                var found = new HashSet<int>();
+                foreach (long key in keys)
+                {
+                    if (cells.TryGetValue(key, out List<int> list))
+                    {
+                        found.UnionWith(list);
+                    }
+                }
+                List<int> near = found.ToList();
+                near.Sort();
+                return near;
+            }
+        }
+
+        private const int ArcCells = 4096;
+
+        private static double LineLength(Graph graph, Edge piece)
+        {
+            double[] a = graph.Nodes[piece.A];
+            double[] b = graph.Nodes[piece.B];
+            return Math.Sqrt((b[0] - a[0]) * (b[0] - a[0]) + (b[1] - a[1]) * (b[1] - a[1]));
+        }
+
+        // The cells a piece may meet a node in: along a line, or the box of the whole circle of an arc, null for an arc of more than
+        // ArcCells cells, which then takes every node as before
+        private static HashSet<long> PieceKeys(CellIndex index, Graph graph, Edge piece)
+        {
+            if (piece.IsArc)
+            {
+                double reach = piece.Radius + Tolerance;
+                return index.BoxKeys(new[] { piece.Cx - reach, piece.Cy - reach, piece.Cx + reach, piece.Cy + reach }, ArcCells);
+            }
+            return index.LineKeys(graph.Nodes[piece.A], graph.Nodes[piece.B]);
+        }
+
         // Two straight pieces that cross without sharing an end get a node at the crossing, the split below then cuts both
-        private static void AddCrossingNodes(Graph graph)
+        private static void AddCrossingNodes(Graph graph, bool everyItem)
         {
             var lines = graph.Pieces.Where(piece => !piece.IsArc).ToList();
+            var index = new CellIndex(CellIndex.SizeFor(lines.Select(line => LineLength(graph, line))));
+            for (int line = 0; line < lines.Count; line++)
+            {
+                index.Add(line, index.LineKeys(graph.Nodes[lines[line].A], graph.Nodes[lines[line].B]));
+            }
             for (int first = 0; first < lines.Count; first++)
             {
                 double[] a = graph.Nodes[lines[first].A];
                 double[] b = graph.Nodes[lines[first].B];
-                for (int second = first + 1; second < lines.Count; second++)
+                IEnumerable<int> seconds = everyItem ? Enumerable.Range(first + 1, lines.Count - first - 1) : index.Near(index.LineKeys(a, b)).Where(second => second > first);
+                foreach (int second in seconds)
                 {
                     double[] c = graph.Nodes[lines[second].A];
                     double[] d = graph.Nodes[lines[second].B];
@@ -204,15 +345,21 @@ namespace CadReader
             }
         }
 
-        private static void SplitAtJunctions(Graph graph)
+        private static void SplitAtJunctions(Graph graph, bool everyItem)
         {
-            AddCrossingNodes(graph);
+            AddCrossingNodes(graph, everyItem);
+            var nodes = new CellIndex(CellIndex.SizeFor(graph.Pieces.Where(piece => !piece.IsArc).Select(piece => LineLength(graph, piece))));
+            for (int node = 0; node < graph.Nodes.Count; node++)
+            {
+                nodes.Add(node, nodes.PointKeys(graph.Nodes[node], false));
+            }
             int count = graph.Pieces.Count;
             for (int index = 0; index < count; index++)
             {
                 Edge piece = graph.Pieces[index];
                 var hits = new List<KeyValuePair<double, int>>();
-                for (int node = 0; node < graph.Nodes.Count; node++)
+                HashSet<long> keys = everyItem ? null : PieceKeys(nodes, graph, piece);
+                foreach (int node in keys == null ? Enumerable.Range(0, graph.Nodes.Count).ToList() : nodes.Near(keys))
                 {
                     if (node == piece.A || node == piece.B)
                     {
