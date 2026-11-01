@@ -73,14 +73,14 @@ def test_r471_corner_eleven_mm_away_has_no_row():
 def test_r471_chain_of_three_plots_is_one_joint():
     # 1 and 3 lie 12 mm apart, each 6 mm from 2, so the chain through 2 joins all three
     plots = {
-        "1": [(0.0, 0.0, 5.0), (10.0, 0.0, 5.001), (10.0, 6.0, 5.3), (0.0, 6.0, 5.3)],
-        "2": [(10.006, 0.0, 5.0), (20.0, 0.0, 5.1), (20.0, 6.0, 5.4), (10.05, 6.0, 5.4)],
-        "3": [(10.012, 0.0, 5.0005), (10.012, -6.0, 5.2), (30.0, -6.0, 5.2), (30.0, 0.0, 5.0)],
+        "1": [(0.0, 0.0, 20.0), (10.0, 0.0, 20.01), (10.0, 6.0, 20.3), (0.0, 6.0, 20.3)],
+        "2": [(10.006, 0.0, 20.0), (20.0, 0.0, 20.1), (20.0, 6.0, 20.4), (10.05, 6.0, 20.4)],
+        "3": [(10.012, 0.0, 20.0), (10.012, -6.0, 20.2), (30.0, -6.0, 20.2), (30.0, 0.0, 20.0)],
     }
     found = rows_of(plots)
-    assert found["1"] == [row(2, "2, 3", 0.001, "Pass")]
-    assert found["2"] == [row(1, "1, 3", 0.001, "Pass")]
-    assert found["3"] == [row(1, "1, 2", 0.001, "Pass")]
+    assert found["1"] == [row(2, "2, 3", 0.01, "Fail")]
+    assert found["2"] == [row(1, "1, 3", 0.01, "Fail")]
+    assert found["3"] == [row(1, "1, 2", 0.01, "Fail")]
 
 
 def test_r471_skip_plot_reads_skip_and_scope_holds_only_its_plots():

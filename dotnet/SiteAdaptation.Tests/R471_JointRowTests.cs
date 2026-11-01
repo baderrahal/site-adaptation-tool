@@ -104,14 +104,14 @@ namespace SiteAdaptation.Tests
             // 1 and 3 lie 12 mm apart, each 6 mm from 2, so the chain through 2 joins all three
             var corners = new Dictionary<string, double[][]>
             {
-                ["1"] = new[] { new[] { 0.0, 0.0, 5.0 }, new[] { 10.0, 0.0, 5.001 }, new[] { 10.0, 6.0, 5.3 }, new[] { 0.0, 6.0, 5.3 } },
-                ["2"] = new[] { new[] { 10.006, 0.0, 5.0 }, new[] { 20.0, 0.0, 5.1 }, new[] { 20.0, 6.0, 5.4 }, new[] { 10.05, 6.0, 5.4 } },
-                ["3"] = new[] { new[] { 10.012, 0.0, 5.0005 }, new[] { 10.012, -6.0, 5.2 }, new[] { 30.0, -6.0, 5.2 }, new[] { 30.0, 0.0, 5.0 } },
+                ["1"] = new[] { new[] { 0.0, 0.0, 20.0 }, new[] { 10.0, 0.0, 20.01 }, new[] { 10.0, 6.0, 20.3 }, new[] { 0.0, 6.0, 20.3 } },
+                ["2"] = new[] { new[] { 10.006, 0.0, 20.0 }, new[] { 20.0, 0.0, 20.1 }, new[] { 20.0, 6.0, 20.4 }, new[] { 10.05, 6.0, 20.4 } },
+                ["3"] = new[] { new[] { 10.012, 0.0, 20.0 }, new[] { 10.012, -6.0, 20.2 }, new[] { 30.0, -6.0, 20.2 }, new[] { 30.0, 0.0, 20.0 } },
             };
             Dictionary<string, List<JObject>> found = RowsOf(corners);
-            Same(new[] { Row(2, "2, 3", 0.001, "Pass") }, found["1"]);
-            Same(new[] { Row(1, "1, 3", 0.001, "Pass") }, found["2"]);
-            Same(new[] { Row(1, "1, 2", 0.001, "Pass") }, found["3"]);
+            Same(new[] { Row(2, "2, 3", 0.01, "Fail") }, found["1"]);
+            Same(new[] { Row(1, "1, 3", 0.01, "Fail") }, found["2"]);
+            Same(new[] { Row(1, "1, 2", 0.01, "Fail") }, found["3"]);
         }
 
         [Fact]
