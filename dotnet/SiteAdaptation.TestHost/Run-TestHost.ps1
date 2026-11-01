@@ -329,6 +329,8 @@ if ($round) {
                 $profileCopy = Join-Path $runFolder ([string]$config.profile)
                 New-Item -ItemType Directory -Force (Split-Path $profileCopy) | Out-Null
                 Copy-Item -LiteralPath (Join-Path $repo ([string]$config.profile)) -Destination $profileCopy
+                # Lane D R462. Button 1 reads the parameter sheet named by addin.parameterSheet beside the config it is given
+                Get-ChildItem -LiteralPath (Join-Path $repo 'config') -File -Filter '*.xlsx' | Copy-Item -Destination (Join-Path $runFolder 'config')
                 $roundJob.setUp = $true
             }
             # R405. A plain addinRun, with neither setUp nor buttons, takes a copy of the config of the repo in config of the run folder,
@@ -390,6 +392,8 @@ if ($round) {
                 # overrides beside it, which Save overrides writes. The run takes copies, so a Save writes the run folder and never the repo
                 Get-ChildItem -LiteralPath (Join-Path $repo 'config') -File -Filter '*.json' | Where-Object { $_.Name -ne 'project.json' -and $_.Name -ne $layersName } | Copy-Item -Destination (Split-Path $settingsPath)
                 Copy-Item -LiteralPath (Join-Path $repo 'config\overrides') -Destination (Split-Path $settingsPath) -Recurse
+                # Lane D R462. Buttons 1 and 7 read the parameter sheet named by addin.parameterSheet beside the config
+                Get-ChildItem -LiteralPath (Join-Path $repo 'config') -File -Filter '*.xlsx' | Copy-Item -Destination (Split-Path $settingsPath)
                 $profileCopy = Join-Path $runFolder ([string]$config.profile)
                 New-Item -ItemType Directory -Force (Split-Path $profileCopy) | Out-Null
                 Copy-Item -LiteralPath (Join-Path $repo ([string]$config.profile)) -Destination $profileCopy

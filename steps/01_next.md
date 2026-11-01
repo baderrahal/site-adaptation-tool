@@ -250,4 +250,6 @@ One phase per session (Q096). Two lanes run the phases (D10, D17): tools/run-lan
   - SetUpRun.cs, SetUpTarget wiring waits for the merge of fix/1nov-d (Lane D owns SetUpRun.cs). config/project.json: addin.lightMode and a new block coordinates, after fix/1nov-a and fix/1nov-d merge
 - Revit runs on copies under the lock: the 13 mass files, reload of one changed mass file with every instance read back, a mirrored instance read back, the coordinate read back of Manage Coordinates with a shot
 - Extra, found by Lane D: a -RoundSpec job joined siteBuild.folder with {workRoot} not taken (Run-TestHost.ps1). Fixed with Resolve-WorkRootPath and a test (R109)
+- Extra, found by Lane D: setUp and buttons jobs take config\*.xlsx into the run folder, for the parameter sheet of Lane D R462. Test (R109)
+- Not in this PR: C:\SA-demo\config needs Lane D's parameter sheet after fix/1nov-d merges, at the next reinstall of the demo
 - Task 6 after this PR and Lane A's: the hand run of demo-check through the real windows, Dry run on and off

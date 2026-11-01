@@ -305,6 +305,15 @@ namespace SiteAdaptation.Tests
             Assert.DoesNotContain("in $($build.folder)", script);
         }
 
+        // FIX-1NOV-B, found by Lane D: from its R462 buttons 1 and 7 read a parameter workbook beside the config, and the run folder
+        // took only the json files of config, so every setUp and buttons job would stop at button 1
+        [WindowsFact]
+        public void R109_setUp_and_buttons_jobs_take_the_workbooks_of_config_into_the_run_folder()
+        {
+            string script = File.ReadAllText(Path.Combine(ThemeGateTests.RepoRoot(), "dotnet", "SiteAdaptation.TestHost", "Run-TestHost.ps1"));
+            Assert.Equal(2, System.Text.RegularExpressions.Regex.Matches(script, @"Join-Path \$repo 'config'\) -File -Filter '\*\.xlsx'").Count);
+        }
+
         [WindowsFact]
         public void R109_Q215_the_upgrade_folder_lies_under_the_work_root_and_never_under_an_input_root()
         {
