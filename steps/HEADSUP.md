@@ -4,10 +4,10 @@
 
 ### Lane A
 
-- Lane: A, round FIX-1NOV-A2, branch fix/1nov-a2 at 4ee3213. Time: 2026-11-01 23:34. Blocked: a shutdown at 00:00, no merge tonight. Resume point below
-- Done and pushed: R472 (Q278) and R473, R474 (Q292) built, tested, proved on NBH 012 copies (p1nov2), review 1 fixed
-- Breaker 1 F1 REAL, open: the real scans propose villaBlock MP_VL4, the read then keeps 491 of 3,780 footprint inserts with no line. Fix: no layer filter for villa blocks (Q248), test with several type layers
-- Next: the F1 fix in ReadPicks.Refusal and read_steps.pick_refusal, gate, parity, records, merge main, PR, tell lane-c
+- Lane: A, round FIX-1NOV-A2, branch fix/1nov-a2 at 4475f75. Time: 2026-11-01 23:40. Blocked: a shutdown at 00:00, no merge tonight. Resume point below
+- Done and pushed: R472 (Q278), R473, R474 (Q292), proofs on NBH 012 copies (p1nov2), review 1 fixed, breaker 1 F1 fixed (no villa block source taken, Q346), Q345 to Q347
+- Gate on 8608337: pytest 2,267 passed. C# green after the label fix. Parity on 8608337 running at shutdown (p1nov/all_parity_a2.txt)
+- Next: full gate on 4475f75, parity, breaker 2 on the F1 fix, records (log, PROGRESS, 01_next), merge main, PR, tell lane-c
 
 ### Lane B, C and D
 
