@@ -11,8 +11,8 @@
 
 ### Lane B, C and D
 
-- Lane B demo-fill, 08:50: steps/demo-fill.md, which file goes in which field, read only, C:/SA-demo unchanged. Now: its PR, merged
-  before 09:15. Next: the demo at 11:00. Blocked: none
+- Lane B demo-check, 10:34: main 5115325 installed, hand run not done, NO-GO live, show SA-demo-done.rvt (steps/demo-check.md).
+  Revit closed, lock released. Blocked: none
 - Lane C DEMO-FIX, 09:55, branch fix/lane-c-demo-fix: step rows of the pane run steps, a loader on every button, Confirm all in 3 Review
   data, idle buttons hidden (R444). Now: the gate and the PR, merge by 10:15, then lane-b reinstalls. Blocked: none
 - Lane D 4j-1b merged as PR 118 (b7d0ec4): PlotShapes by a cell index, threads (R428), the time cap (R429), waits for Q243 to Q258
