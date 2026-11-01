@@ -12,7 +12,7 @@ namespace SiteAdaptation.AddIn.Revit
 {
     // R377, R404. The open document seen through IVillaDocument. It carries out what PlaceVillasRun decides and decides nothing. The
     // transaction is the one of the flow (R382), so nothing here starts one
-    internal sealed class RevitVillaDocument : IVillaDocument
+    internal sealed class RevitVillaDocument : IVillaDocument, ILinkFileReader
     {
         // R404, open point 6. CHOSEN: Generic Models, since a DirectShape of it shows in every plan and 3D view with no setting, where a
         // Mass shows only with Show Mass on, and it takes instance parameters bound by category like any model element
@@ -63,6 +63,24 @@ namespace SiteAdaptation.AddIn.Revit
                 });
             }
             return types;
+        }
+
+        // R452. The absolute path of the file of the type of a link instance, the path LinkTypes gives, so PlaceVillasRun compares the two
+        public string LinkFileOf(string uniqueId)
+        {
+            if (!(document.GetElement(uniqueId) is RevitLinkInstance instance) || !(document.GetElement(instance.GetTypeId()) is RevitLinkType type))
+            {
+                return null;
+            }
+            try
+            {
+                ExternalFileReference reference = type.GetExternalFileReference();
+                return reference == null ? null : ModelPathUtils.ConvertModelPathToUserVisiblePath(reference.GetAbsolutePath());
+            }
+            catch (Autodesk.Revit.Exceptions.ApplicationException)
+            {
+                return null;
+            }
         }
 
         public IReadOnlyList<VillaElement> Villas(string plotNumberGuid)

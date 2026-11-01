@@ -446,3 +446,15 @@ No real input reaches these, since the ROSHN config runs roshnPastJob (Q224) and
 - Review 2, breaker 2, plan_walls.partner and Walls.Partner: the mitre pairs two walls moved to opposite sides of a shared edge of two irregular written plots, and the result follows the walk order. 0 adjacent irregular written plots in the all scope.
 - Breaker 2, plan_walls.mitre: no limit on how far a mitre point lies from its vertex, a 3 degree notch grows its walls by 1.9 m. 0 shifts over 0.3 m on every baseplan face.
 - Breaker 2, plan_walls.mitre: a wall shorter than its two mitre retreats reverses, under 0.35 m between two 60 degree corners. 0 such walls on every baseplan face.
+
+## Lane B FIX-1NOV-B, review and breaker pass of Task 2
+
+No real input reaches these on the ROSHN config, whose linkFolder is masses, massFolder {workRoot}\masses and drawings in metres.
+
+- PlaceVillasRun.cs:30, the constructor of 5 arguments is used by the tests alone, the add-in passes the mass files. A caller of it with linkFolder masses stops with no mass files wired (R450).
+- MassFiles.cs:56 and Make (:205), massFolder is held only to be a text and not the prototype folder. A massFolder inside an input root is not refused as D19 asks, the guard WorkFolder.Inside sits in the add-in and Common holds none.
+- MassFiles.cs:137, Stale casts readerVersion by (int?), a sidecar edited by hand to a text or a decimal there throws in place of making the mass again.
+- CadExtractor.cs:46 JoinedRing drops the bulges of a polyline, so an arc side of a house outline is taken as its chord.
+- OutlineDistance.cs:138, houseMinAreaM2 is held against the ring area in drawing units, right while the drawing is in metres.
+- PlaceVillasRun.cs:242, linkFolder prototypes or a folder writes footprint_<NBH>.json with no rows, those links give no base to measure, the counts say so.
+- UNKNOWN, the mass file takes the name of its prototype (R450). After a Links run of part of the plots, a type of massFolder\VD4.rvt and one of the prototype folder VD4.rvt stand in one model. Whether Revit 2024 holds two link types of one file name from two folders is UNKNOWN, the runner probes it. Naming unchanged until then, with the mass base question of Q279.

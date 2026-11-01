@@ -6,8 +6,8 @@ namespace SiteAdaptation.Common.PlaceVillas
     // choosing the base itself
     public interface IMassFileMaker
     {
-        // The prototype opened detached from a copy, never written: the loops of the union of its exterior walls cut at the height of
-        // config above the ground level, and the outer loop of its largest ground slab, both in internal plan metres
+        // The prototype opened detached from a copy, never written: the loops of the union of the WallStrips outlines of its exterior
+        // walls at the ground level, and the outer loop of its largest ground slab, both in internal plan metres
         MassBaseRead ReadBase(string prototypePath, LightModeConfig config);
 
         // A new Revit project holding one DirectShape of Generic Models, the ring extruded up by heightM from Z 0, saved as massPath

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using Autodesk.Revit.ApplicationServices;
@@ -25,7 +26,7 @@ namespace SiteAdaptation.AddIn.Revit
         {
             return RevitBaseShapeReader.Opened(application, copyFolder, prototypePath, opened => new MassBaseRead
             {
-                WallLoops = RevitBaseShapeReader.WallLoops(opened, config.MassFiles.WallCutHeightM),
+                WallLoops = RevitBaseShapeReader.WallLoops(opened, config),
                 Slab = RevitBaseShapeReader.Outer(opened, config),
             });
         }
@@ -46,7 +47,12 @@ namespace SiteAdaptation.AddIn.Revit
                     DirectShape shape = DirectShape.CreateElement(mass, new ElementId(RevitVillaDocument.SolidCategory));
                     shape.ApplicationId = RevitVillaDocument.ApplicationId;
                     shape.SetShape(new GeometryObject[] { RevitVillaDocument.Extrusion(ring, heightM, new PlacementSteps { Move = new[] { 0.0, 0.0, 0.0 } }) });
-                    transaction.Commit();
+                    // A transaction rolled back by a failure would save an empty mass that its sidecar then marks fresh
+                    TransactionStatus status = transaction.Commit();
+                    if (status != TransactionStatus.Committed)
+                    {
+                        throw new InvalidOperationException("the mass of " + Path.GetFileName(massPath) + " did not commit, " + status + ", no mass file was saved (R450)");
+                    }
                 }
                 mass.SaveAs(massPath, new SaveAsOptions { OverwriteExistingFile = true });
             }
