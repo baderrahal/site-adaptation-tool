@@ -81,10 +81,14 @@ namespace SiteAdaptation.Tests
             string scan = Scanned("scan_2_20261031-100000-000", inputs);
             Assert.Equal(scan, ScanStep.Reusable(work, Inputs()));
 
-            // Same name and size, other content: only the hash parts them
-            File.WriteAllText(Path.Combine(input, "dlus.xlsx"), "a made up DLUX");
+            // Same name and size, other content: only the hash parts them. The hash cache keys by write time and two writes can share a
+            // tick, so each rewrite gets a write time of its own
+            string dlus = Path.Combine(input, "dlus.xlsx");
+            File.WriteAllText(dlus, "a made up DLUX");
+            File.SetLastWriteTimeUtc(dlus, File.GetLastWriteTimeUtc(dlus).AddSeconds(1));
             Assert.Null(ScanStep.Reusable(work, Inputs()));
-            File.WriteAllText(Path.Combine(input, "dlus.xlsx"), "a made up DLUS");
+            File.WriteAllText(dlus, "a made up DLUS");
+            File.SetLastWriteTimeUtc(dlus, File.GetLastWriteTimeUtc(dlus).AddSeconds(2));
             Assert.Equal(scan, ScanStep.Reusable(work, Inputs()));
 
             // Same content under another name
