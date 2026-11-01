@@ -15,9 +15,8 @@
   Now: the gate on the merged tree, then merge PR 131. Then Lane D D3 on my word
 - Lane C DEMO-FIX, 09:55, branch fix/lane-c-demo-fix: step rows of the pane run steps, a loader on every button, Confirm all in 3 Review
   data, idle buttons hidden (R444). Now: the gate and the PR, merge by 10:15, then lane-b reinstalls. Blocked: none
-- Lane D D3, 01:27, branch fix/1nov-d3: pushed R467 and R468, the copy saved after each button, the R405 tests alone (Lane A saw R466 fail once). All 13 sources Revit 2021, hashed, only C10 and DT3 have 2024
-  copies, both unchecked. Specs, upgrade driver and link compare ready under the work root, reads D3. Next: Lane B's "Revit free, start D3", then install,
-  move C10 and DT3 aside, 13 upgrade windows, run D3L buttons 1 to 9, run D3S the swap back, reads, compare. Blocked: Revit, Lane B Task 6
+- Lane D D3, 02:46, branch fix/1nov-d3: main merged in, installed from the branch, C10 and DT3 moved to prototypes_2024_unchecked. Holding the window lock in turn:
+  13 upgrade windows running, one at a time, times in reads D3 upgrades.txt. Next: run D3L buttons 1 to 9, run D3S the swap back, reads, compare. Blocked: none
 
 Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane D D2, Lane D FIX-1NOV-D, Lane C DEMO-FIX, Lane B demo-fill, Lane A 4j-2, Lane D 4j-1b, Lane C SCAN-UI, Lane A 4i, Lane B 6a, 1 Nov 2026.
 
