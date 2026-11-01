@@ -1,6 +1,6 @@
 # Demo, 1 Nov 2026, 11:00
 
-Everything sits in C:\SA-demo. The add-in is installed per user from main 326422a, version 1.0.0+326422a. Masses only, no Links.
+Everything sits in C:\SA-demo. The add-in is installed per user from main 691e1fc (Lane C SCAN-UI, Lane A 4i, Lane D 4j-1b in), version 1.0.0+691e1fc. The saved project ROSHN Makkah points at the copies. Masses only, no Links.
 
 ## Open
 
@@ -14,16 +14,16 @@ Everything sits in C:\SA-demo. The add-in is installed per user from main 326422
 |---|---|---|---|
 | New project | Start from: ROSHN Makkah, then Browse each file in C:\SA-demo\inputs, Check files, Save setup | config, rules, Masses and the scan picks from the saved project, every file Found. A saved project holds no drawing path (R434, Q296) | 1 to 2 min |
 | 1 Set up site | Run, tick the Baseplan Current, then Apply | coordinates, levels, types and parameters from CAD. Apply stays grey until the Baseplan is ticked | 2 s |
-| 2 Read data | Run. If What the tool read opens, press Use the proposed for all, then Use these picks | reads the drawings and schedules, every row Clear from the saved picks. The first time it scans the drawings, about 3 min, then reused | 50 s plus the scan |
+| 2 Read data | Run. If What the tool read opens, press Use the proposed for all, then Use these picks | reads the drawings and schedules, every row Clear from the saved picks. The first time it scans the drawings, about 3 min, then reused | 40 s plus the scan |
 | 3 Review data | Run, look, Close | what was read, row by row | at once |
-| 4 Check | Run | the check table, 337 plots, 1237 rows, rules against the past job | 30 s |
-| 5 Floors and ramps | Run, Apply | Generic, yard and ramp floors, 1003 floors | 30 s |
-| 6 Levels | Run, Apply | FFL and entry levels, writes the level Excel | 5 s |
-| 7 Place villas | Run, Apply | 336 masses, one per plot at its FFL | 9 s |
-| 8 Walls | Run, Apply | boundary walls along the plot edges | 4 s |
-| 9 Report | Run, Apply | the report Excel of the run | 4 s |
+| 4 Check | Run | the check table, 337 plots, 1237 rows, rules against the past job | 21 s |
+| 5 Floors and ramps | Run, Apply | Generic, yard and ramp floors, 1003 floors | 25 s |
+| 6 Levels | Run, Apply | FFL and entry levels, writes the level Excel | 4 s |
+| 7 Place villas | Run, Apply | 336 masses, one per plot at its FFL | 7 s |
+| 8 Walls | Run, Apply | boundary walls along the plot edges | 3 s |
+| 9 Report | Run, Apply | the report Excel of the run | 3 s |
 
-The whole run 1 to 9 took 5.9 min in the test, peak memory 2.4 GB. The two Excel files of that run are in C:\SA-demo\outputs.
+The whole run 1 to 9 took 5.2 min in the last test at 04:08 on 1 Nov, peak memory 2.5 GB. The two Excel files of that run are in C:\SA-demo\outputs.
 
 ## If a step is slow
 

@@ -2,6 +2,35 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Lane B DEMO, 2026-11-01, the add-in ready to show at 11:00, Lane B on the laptop
+
+Goal:
+- The add-in installed from main, C:\SA-demo with copies, models, a saved project and the demo sheet steps/demo.md, by 09:30
+
+Done:
+- Installed per user from main 691e1fc, version 1.0.0+691e1fc, with Lane C SCAN-UI, Lane A 4i and Lane D 4j-1b
+- C:\SA-demo: 43 input copies of NBH 012 hashed (originals unchanged 43 of 43), config and rules of main pointed at them, SA-demo-start.rvt, SA-demo-done.rvt, the two Excel files
+- Saved project ROSHN Makkah: the demo config, Masses and the scan picks of a scan of the copies (villa type Makkah Building Footprint.dwg|block|MP_VL4), read back by SavedStarts and PreSetting.Import
+- Base boundary in Revit on the 13 prototypes (Q206): the mass base is the outer loop of the largest floor on the lowest level, 0.0 mm. Floor ids C10 872099, DP1 878667, DP2 849902, DP3 857818, DP4 886879, DT1 860942, DT3 825808, TH1 860942, TH3 825808, VD2 849902, VD4 886879, VL4 2220408, VL6 872099
+- DT3 against its walls: outer wall face 21 corners 82.3 m2, base 8 corners 78.6 m2, 649.1 mm both ways (304.4 without the entrance recess). A DT3 link placed on plot 2294 gives the same 649.1 mm. Slides footprint-vs-mass.png, dt3-outline-vs-mass.png, dt3-link-vs-mass.png
+
+Checked:
+- Revit SAD2 at 691e1fc on the demo copies, RAN: 1, 2 and 4 to 9 commit, 3 closes by design, Rules closes, 5.2 min, peak 2479 MiB, least free 29.0 GiB, 41 of 41 inputs unchanged, 10 shots none blank
+- Originals opened by the probe, RAN: 13 of 13 prototypes unchanged by SHA-256, Revit opened copies only. No code changed in DEMO
+
+Remains:
+- The walls of 9 prototypes do not close into a ring, their wall outline is UNKNOWN (Q279). A saved project holds no drawing path, the demo browses the files (Q296)
+
+Known bugs:
+- All 336 masses flagged by the footprint check (Q276). Update from report stops (Q278). Links waits on Q275
+
+Next:
+- The demo at 11:00 by steps/demo.md, then Bader answers Q275 to Q279 and Q296
+
+Your turn:
+- Opened Q279 Mass base, slab edge or outer wall face. Q296 A saved project holds no drawing path. Closed none
+- 134 questions open, full text: steps/questions-open.md
+
 ## Lane D 4j-1b, 2026-11-01, scan speed, Lane D on the laptop
 
 Goal:

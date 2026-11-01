@@ -15,8 +15,8 @@
 
 ### Lane B and C
 
-- Lane B DEMO, 04:05, freeze 09:30, branch feat/lane-b-demo. Now: main 691e1fc installed, check run 1 to 9 with shots on C:/SA-demo copies.
-  Done: 6a PR 115, C:/SA-demo inputs, config, models, outputs, base probe, 3 slides, saved project. Next: shots to lane-c, records, PR. Blocked: none
+- Lane B DEMO, 04:25, done: main 691e1fc installed, C:/SA-demo ready, steps/demo.md, 1 to 9 in 5.2 min on the copies. Now: the PR of DEMO.
+  Next: the demo at 11:00. Blocked: none
 - Lane C SCAN-UI, 03:50, freeze 09:30, branch feat/lane-c-scan-ui-2: PR 117 tasks 1 to 4 (R435 to R441) merged, PR 119 tasks 5 and 6
   (R442, R443) merging, task 7 from the shots of the DEMO run of Lane B. Blocked: none
 
