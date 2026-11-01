@@ -4,7 +4,7 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 
 ## State
 
-- Lane D 4j-1 done on 2026-10-31 and 4j-1b on 2026-11-01: the scanner of any CAD, Excel and PDF, R420 to R429, the scan speed and its cap
+- Lane D FIX-1NOV-D 1 Nov: config/shared_parameters.xlsx the one source of the shared parameters, R460 to R465. 4j-1, 4j-1b: the scanner, R420 to R429
 - Lane A 4i on 2026-10-31 and 4j-2 on 2026-11-01, one PR each (D20): designBasis rev6 or roshnPastJob, R407 to R412, R414 to R416, past job 0 differ
 - Lane B DEMO done on 2026-11-01: main 691e1fc installed, C:\SA-demo and steps/demo.md for 11:00, 1 to 9 in 5.2 min on the copies
 - Lane B 6a done for Masses on 2026-10-31: NBH 012 through buttons 1 to 9 from a new project in 6.7 min with no click, Links waits on Q275
@@ -17,7 +17,7 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 
 ## Done
 
-- Lane D 4j-1: PR 114. 4j-1b: one PR, set A and the renamed set equal to 4j-1 field by field, today's reader 21 of 21 files equal
+- Lane D FIX-1NOV-D: one PR. 4j-1: PR 114. 4j-1b: one PR, set A and the renamed set equal to 4j-1 field by field, today's reader 21 of 21 files equal
 - Lane C SCAN-UI: PR 117, PR 119 and the Revit shot records. 4i, 4j-2, Lane B 6a: one PR each (D20). Lane B 5d: PR 113. Lane C NEWPROJ-UI: PR 112. Lane B 5c: PR 111. 5e and 5f: PR 110
 - 4h-2: PR 109. 4h-1: PR 107. FOLD: PR 101 to 105. Lane B 5b: one PR (D20). 5a: PR 84, 86, 87, 89, 90, 92, 97, 99. L0: branch docs/laptop-l0
 - 4g3: PR 83, 85, 88, 91, 93, 95, 96 and the end records. 4g2: PR 74 to 81. 4g1: PR 69 to 73. AUDIT-RULES: PR 67, 68. 4f: PR 61 to 66
@@ -47,14 +47,12 @@ Opened in DEMO, Lane B: Q279 Mass base, slab edge or outer wall face. Q296 A sav
 Opened in SCAN-UI, Lane C: Q288 Scan picks in the settings at version 1. Q289 Board rows the scan does not read. Q290 Curbs and road surface left out of scan. Q291 Where the line Current files is
 shown. Q292 The read does not use the picks yet. Q293 Approve the three drafts of SCAN-UI. Q294 Rules chosen in Set up site, when used. Q295 Test host runs skip the scan. Q300 Plots with no cluster
 proposal. Q301 The build takes the door level pick. Q302 Door level row under the past job. Q305 Hide Confirmed under the past job.
-Opened in 4j-1, Lane D: Q243 Layer pairs for plot outlines in the scan. Q244 A tie in a scan proposal. Q245 Old and new code of one row agree.
-Q248 Villa blocks on one layer per type. Q249 A sheet whose numbers shift by area. Q250 The pair trace on the Road Layout.
-Q251 The centroid of today's plots.json. Q252 PDF tables and turned text in the scan. Q253 The header row of a scanned sheet. Q254 The order and share of villa type sources.
-Closed in 4j-1: Q247, by Bader's rule of 31 Oct 2026. Opened in 4j-1b: Q257 Threads of the scan pair trace. Q258 The time cap of the scan pair trace.
-Closed in SCAN-UI: Q246, Q283, by Bader's prompt. 139 questions open, full text and the recommended answers: steps/questions-open.md. Asks: steps/waiting-on-others.md.
+Opened in FIX-1NOV-D, Lane D: Q330 Group of the key link parameters unread. Q331 Plot is no link parameter of the keys. Q332 FFL bound but never written.
+Q333 Categories beyond the link instances. Q334 An xlsx read inside Revit. Q335 A parameter sheet picked in the pane. Closed: Q155, by Bader's prompt.
+Closed in SCAN-UI: Q246, Q283, by Bader's prompt. 144 questions open, full text and the recommended answers: steps/questions-open.md. Asks: steps/waiting-on-others.md.
 
 ## Next three steps
 
-1. The demo of 1 Nov 11:00, then Bader's answers. Lane D waits for Q243 to Q258, Lane A for Q303, Q304 and Q259
+1. Bader's answers. Lane D: Q243 to Q258, Q330 to Q335, and the read of the key groups after fix/1nov-b. Lane A: Q303, Q304, Q259
 2. Bader answers Q275 to Q278, then the Links run of 6a and Phase 6b
 3. Bader answers Q224 and Q255 of 4i, Q280 to Q287 of Lane C, then Part 2 after Bader's check of Part 1

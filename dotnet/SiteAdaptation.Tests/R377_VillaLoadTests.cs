@@ -26,7 +26,7 @@ namespace SiteAdaptation.Tests
             Directory.CreateDirectory(work);
             config = Path.Combine(work, "project.json");
             JToken addin = JObject.Parse(File.ReadAllText(Path.Combine(ThemeGateTests.RepoRoot(), "config", "project.json")))["addin"];
-            File.WriteAllText(config, new JObject { ["addin"] = new JObject { ["lightMode"] = addin["lightMode"], ["sharedParameters"] = addin["sharedParameters"] } }.ToString());
+            File.WriteAllText(config, new JObject { ["addin"] = new JObject { ["lightMode"] = addin["lightMode"], ["parameterSheet"] = Path.Combine(ThemeGateTests.RepoRoot(), "config", "shared_parameters.xlsx") } }.ToString());
         }
 
         public void Dispose()

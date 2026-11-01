@@ -7,88 +7,85 @@ using Newtonsoft.Json.Linq;
 
 namespace SiteAdaptation.Common.SetUp
 {
-    // One shared parameter button 1 binds. Guid is null when the source gives none
+    // One shared parameter of the parameter sheet. Guid is null when the sheet gives none. FilledBy is the number of the button that
+    // writes it, null when none does
     public sealed class ParameterSpec
     {
         public string Name { get; set; }
         public string Guid { get; set; }
         public string DataType { get; set; }
+        public string Group { get; set; }
         public List<string> Categories { get; set; } = new List<string>();
+        public int? FilledBy { get; set; }
     }
 
-    // R373, Q155 by its recommended reading. The parameters and their GUIDs come only from the parameter sheet, one sheet with one row
-    // per parameter and the columns Name, GUID, Data type and Categories, never made by the tool. Until a sheet is chosen they are the
-    // ones config measured on the answer keys, addin.sharedParameters, which the read job of the test host took from the 7 keys, then
-    // those of addin.fixedParameters (Q156)
+    // R461, R373, Q155. The shared parameters of button 1 come from one source, the parameter sheet: config/shared_parameters.xlsx
+    // that addin.parameterSheet of config names, or the sheet chosen in Set up site, sheet Parameters, one row per parameter with the
+    // columns Parameter, GUID, Data type, Group, Category, Filled by, Sample value and Keep. A row of Keep No is left out, so a new
+    // project edits only this sheet. The names and GUIDs are those the past links of the 7 keys hold (R460)
     public sealed class ParameterSheet
     {
-        public static readonly string[] Columns = { "Name", "GUID", "Data type", "Categories" };
+        public static readonly string[] Columns = { "Parameter", "GUID", "Data type", "Group", "Category", "Filled by", "Sample value", "Keep" };
+        public const string SheetName = "Parameters";
         public const string TextType = "TEXT";
+        public const string FilledByNone = "none";
 
-        // The sheet file name, null for the parameters of config
+        // R465. The buttons that write a parameter of the sheet, Floors the floor parameter of floors.plotParameter and Place villas
+        // every link parameter it owns
+        public const int FloorsButton = 5;
+        public const int PlaceVillasButton = 7;
+
+        // The sheet file name
         public string Sheet { get; private set; }
 
         public List<ParameterSpec> Parameters { get; private set; } = new List<ParameterSpec>();
 
-        public bool Chosen
-        {
-            get { return Sheet != null; }
-        }
+        // The names of the rows of Keep No
+        public List<string> LeftOut { get; private set; } = new List<string>();
 
         // The text after "From the parameter sheet: "
         public string Source
         {
             get
             {
-                string count = Parameters.Count.ToString(CultureInfo.InvariantCulture);
-                return Chosen ? Sheet + ", " + count + " parameters" : "not chosen, " + count + " parameters of the answer keys";
+                string text = Sheet + ", " + Parameters.Count.ToString(CultureInfo.InvariantCulture) + " parameters";
+                return LeftOut.Count == 0 ? text : text + ", " + LeftOut.Count.ToString(CultureInfo.InvariantCulture) + " left out";
             }
         }
 
-        // addin.sharedParameters.parameters of config: name, guid and the categories the keys bind it on, all text parameters as the
-        // keys hold them (03a 3.1 Outputs)
-        public static ParameterSheet FromConfig(JObject config)
+        // R465. The GUID of each parameter a button fills, by name
+        public Dictionary<string, string> GuidsFilledBy(int button)
         {
-            JArray items = ((config["addin"] as JObject)?["sharedParameters"] as JObject)?["parameters"] as JArray;
-            if (items == null || items.Count == 0)
-            {
-                throw new InvalidDataException("config holds no addin.sharedParameters.parameters, the parameters of button 1 until a parameter sheet is chosen (R353, Q155)");
-            }
-            var sheet = new ParameterSheet();
-            sheet.Parameters.AddRange(items.OfType<JObject>().Select(FromItem));
-            Refuse(sheet.Parameters, "addin.sharedParameters");
-            // Q156. addin.fixedParameters holds the GUIDs Bader fixed, such as Plot, which no key binds as a shared parameter and no run writes
-            JArray fixedItems = ((config["addin"] as JObject)?["fixedParameters"] as JObject)?["parameters"] as JArray;
-            if (fixedItems == null)
-            {
-                return sheet;
-            }
-            List<ParameterSpec> fixedParameters = fixedItems.OfType<JObject>().Select(FromItem).ToList();
-            Refuse(fixedParameters, "addin.fixedParameters");
-            foreach (ParameterSpec item in fixedParameters)
-            {
-                if (sheet.Parameters.Any(measured => string.Equals(measured.Name, item.Name, StringComparison.Ordinal)))
-                {
-                    throw new InvalidDataException("config names " + item.Name + " in both addin.sharedParameters and addin.fixedParameters, one parameter per name (Q156)");
-                }
-                sheet.Parameters.Add(item);
-            }
-            return sheet;
+            return Parameters.Where(item => item.Guid != null && item.FilledBy == button).ToDictionary(item => item.Name, item => item.Guid, StringComparer.Ordinal);
         }
 
-        private static ParameterSpec FromItem(JObject item)
+        // R461. The path of the parameter sheet of config, addin.parameterSheet, relative to the repo root, the folder above the one
+        // config is in, as every path of config
+        public static string PathOf(string configPath, JObject config)
         {
-            return new ParameterSpec
+            JToken named = (config?["addin"] as JObject)?["parameterSheet"];
+            if (named == null || named.Type != JTokenType.String || string.IsNullOrWhiteSpace((string)named))
             {
-                Name = Text(item["name"]),
-                Guid = Text(item["guid"]),
-                DataType = TextType,
-                Categories = (item["on"] as JArray ?? new JArray()).Select(Text).Where(name => name != null).ToList(),
-            };
+                throw new InvalidDataException("config names no addin.parameterSheet, the parameter sheet of button 1 (R461)");
+            }
+            string path = (string)named;
+            return Path.IsPathRooted(path) ? path : Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(Path.GetFullPath(configPath))), path);
         }
 
-        // The rows of the sheet as a sheet reader gives them, the first holding the four column names in any order and case. A row of
-        // no values is left out. Categories are one cell, the names parted by commas
+        // R461. The parameter sheet of config, read by ParameterBook (R462)
+        public static ParameterSheet FromConfig(string configPath, JObject config)
+        {
+            return FromFile(PathOf(configPath, config));
+        }
+
+        public static ParameterSheet FromFile(string path)
+        {
+            return FromRows(Path.GetFileName(path), ParameterBook.Read(path, SheetName));
+        }
+
+        // The rows of the sheet as a sheet reader gives them, the first holding the column names in any order and case. A row of no
+        // values is left out. Category is one cell, the names parted by commas. Sample value is for the reader of the sheet and is
+        // never read
         public static ParameterSheet FromRows(string sheetName, IReadOnlyList<object[]> rows)
         {
             if (rows == null || rows.Count == 0)
@@ -100,7 +97,7 @@ namespace SiteAdaptation.Common.SetUp
             List<string> missing = Columns.Where((column, index) => at[index] < 0).ToList();
             if (missing.Count > 0)
             {
-                throw new InvalidDataException("the parameter sheet " + sheetName + " has no column " + string.Join(", ", missing) + " in its first row (Q155)");
+                throw new InvalidDataException("the parameter sheet " + sheetName + " has no column " + string.Join(", ", missing) + " in its first row (R461)");
             }
             var sheet = new ParameterSheet { Sheet = sheetName };
             foreach (object[] row in rows.Skip(1))
@@ -110,26 +107,69 @@ namespace SiteAdaptation.Common.SetUp
                 {
                     continue;
                 }
+                if (cells[0] == null)
+                {
+                    throw new InvalidDataException("the parameter sheet " + sheetName + " holds a parameter with no name (Q155)");
+                }
+                if (!Keep(cells[7], cells[0], sheetName))
+                {
+                    sheet.LeftOut.Add(cells[0]);
+                    continue;
+                }
                 sheet.Parameters.Add(new ParameterSpec
                 {
                     Name = cells[0],
                     Guid = cells[1],
                     DataType = cells[2] == null ? null : cells[2].ToUpperInvariant(),
-                    Categories = (cells[3] ?? "").Split(',').Select(name => name.Trim()).Where(name => name.Length > 0).ToList(),
+                    Group = cells[3],
+                    Categories = (cells[4] ?? "").Split(',').Select(name => name.Trim()).Where(name => name.Length > 0).ToList(),
+                    FilledBy = FilledBy(cells[5], cells[0], sheetName),
                 });
             }
-            Refuse(sheet.Parameters, "the parameter sheet " + sheetName);
+            Refuse(sheet.Parameters, sheet.LeftOut, "the parameter sheet " + sheetName);
+            // R465. RRE_ZZ_SP_Prototype-FFL is never written, a sheet that gives it a button is refused
+            ParameterSpec ffl = sheet.Parameters.FirstOrDefault(item => item.Name == Placer.FflParameter);
+            if (ffl != null && ffl.FilledBy != null)
+            {
+                throw new InvalidDataException("the parameter sheet " + sheetName + " gives " + Placer.FflParameter + " to button " + ffl.FilledBy.Value.ToString(CultureInfo.InvariantCulture)
+                    + ", it is never written, Filled by " + FilledByNone + " (R465)");
+            }
             return sheet;
         }
 
-        // A GUID of no GUID shape is refused here, a missing one is a stop of the planner, which names it
-        private static void Refuse(List<ParameterSpec> parameters, string source)
+        // Yes or No in any case, a blank or another text refused so a row is never left out by a slip
+        private static bool Keep(string cell, string name, string sheetName)
         {
-            if (parameters.Any(item => string.IsNullOrWhiteSpace(item.Name)))
+            if (string.Equals(cell, "Yes", StringComparison.OrdinalIgnoreCase))
             {
-                throw new InvalidDataException(source + " holds a parameter with no name (Q155)");
+                return true;
             }
-            List<string> twice = parameters.GroupBy(item => item.Name, StringComparer.Ordinal).Where(group => group.Count() > 1).Select(group => group.Key).ToList();
+            if (string.Equals(cell, "No", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+            throw new InvalidDataException("the parameter sheet " + sheetName + " gives " + name + " the Keep " + (cell ?? "blank") + ", Yes or No (R461)");
+        }
+
+        // The number of a button from 1 to 9 at the start of the cell, as 7 or 7 Place villas, or none
+        private static int? FilledBy(string cell, string name, string sheetName)
+        {
+            if (string.Equals(cell, FilledByNone, StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+            if (cell != null && cell[0] >= '1' && cell[0] <= '9' && (cell.Length == 1 || cell[1] == ' '))
+            {
+                return cell[0] - '0';
+            }
+            throw new InvalidDataException("the parameter sheet " + sheetName + " gives " + name + " the Filled by " + (cell ?? "blank") + ", a button from 1 to 9 or " + FilledByNone + " (R465)");
+        }
+
+        // A name twice, kept or left out, is refused. A GUID of no GUID shape is refused here, a missing one is a stop of the planner,
+        // which names it
+        private static void Refuse(List<ParameterSpec> parameters, List<string> leftOut, string source)
+        {
+            List<string> twice = parameters.Select(item => item.Name).Concat(leftOut).GroupBy(name => name, StringComparer.Ordinal).Where(group => group.Count() > 1).Select(group => group.Key).ToList();
             if (twice.Count > 0)
             {
                 throw new InvalidDataException(source + " names " + string.Join(", ", twice) + " twice, one parameter per name (Q155)");
@@ -143,11 +183,6 @@ namespace SiteAdaptation.Common.SetUp
                 }
                 item.Guid = parsed.ToString("D");
             }
-        }
-
-        private static string Text(JToken value)
-        {
-            return value != null && value.Type == JTokenType.String && ((string)value).Trim().Length > 0 ? ((string)value).Trim() : null;
         }
 
         private static string Cell(object value)

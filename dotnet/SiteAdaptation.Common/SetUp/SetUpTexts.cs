@@ -32,7 +32,6 @@ namespace SiteAdaptation.Common.SetUp
         public const string NothingDiffers = "Nothing differs, Apply changes nothing.";
         public const string AtOrigin = "at the internal origin";
         public const string SettingsNotWritten = "The Settings entity is not written yet, it joins at 5c with R367";
-        public const string SheetNotRead = "The parameter sheet is not read yet, the worker reads it from 5c (Q155)";
 
         // R456. A control point by its order and the plot whose corner it is
         public static string ControlPoint(int number, string plot)
@@ -63,6 +62,21 @@ namespace SiteAdaptation.Common.SetUp
         public static string NoGuid(string name)
         {
             return name + " has no GUID in the parameter sheet";
+        }
+
+        public static string OtherSheet(string chosen, string config)
+        {
+            return chosen + " is not the parameter sheet of config, " + config + ", the one every button reads. Edit " + config + " instead (R461)";
+        }
+
+        public static string NoGroup(string name)
+        {
+            return name + " has no Group in the parameter sheet";
+        }
+
+        public static string FloorsOwn(string name, int button)
+        {
+            return name + " is filled by Floors, give it Filled by " + button.ToString(CultureInfo.InvariantCulture) + " in the parameter sheet";
         }
 
         public static string PlotWaits(string name)

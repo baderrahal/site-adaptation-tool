@@ -35,10 +35,14 @@ namespace SiteAdaptation.TestHost
                 {
                     continue;
                 }
+                ForgeTypeId spec = definition.GetDataType();
+                ForgeTypeId group = definition.GetGroupTypeId();
                 bindings.Add(new SharedParameterBindingItem
                 {
                     Name = definition.Name, ElementId = definition.Id.Value, Binding = binding is InstanceBinding ? "instance" : binding is TypeBinding ? "type" : null,
                     Categories = binding.Categories.Cast<Category>().Select(category => category.Name).ToList(),
+                    // R460. The spec and the group of the definition, as the parameter sheet of button 1 names them
+                    DataType = Id(spec), DataTypeLabel = Label(spec, LabelUtils.GetLabelForSpec), Group = Id(group), GroupLabel = Label(group, LabelUtils.GetLabelForGroup),
                 });
             }
             var seen = new List<SharedParameterSeenItem>();
@@ -50,14 +54,40 @@ namespace SiteAdaptation.TestHost
                     {
                         if (parameter.IsShared)
                         {
-                            seen.Add(new SharedParameterSeenItem { Category = element.Category == null ? category.ToString() : element.Category.Name, Name = parameter.Definition.Name, Guid = parameter.GUID });
+                            seen.Add(new SharedParameterSeenItem
+                            {
+                                Category = element.Category == null ? category.ToString() : element.Category.Name, Name = parameter.Definition.Name, Guid = parameter.GUID,
+                                Value = parameter.HasValue ? parameter.AsValueString() ?? parameter.AsString() : null,
+                            });
                         }
                     }
                 }
             }
             SharedParameterFile file = SharedParameterFile.Build(System.IO.Path.GetFileName(job.Model), elements, bindings, seen);
             JsonOut.Write(TestHostGuard.OutputPath(documents, job.Code, "parameters"), file);
-            return "shared parameters " + file.Parameters.Count + ", bound " + file.Parameters.Count(row => row.Bound) + ", other bindings " + file.OtherBindings.Count + ", seen on elements " + seen.Count;
+            return "shared parameters " + file.Parameters.Count + ", with a group " + file.Parameters.Count(row => row.Group != null) + ", bound " + file.Parameters.Count(row => row.Bound) + ", other bindings " + file.OtherBindings.Count + ", seen on elements " + seen.Count;
+        }
+
+        private static string Id(ForgeTypeId id)
+        {
+            return id == null || string.IsNullOrEmpty(id.TypeId) ? null : id.TypeId;
+        }
+
+        // A spec or group of no label, such as the empty group, gives null and never stops the read
+        private static string Label(ForgeTypeId id, System.Func<ForgeTypeId, string> label)
+        {
+            if (Id(id) == null)
+            {
+                return null;
+            }
+            try
+            {
+                return label(id);
+            }
+            catch (Autodesk.Revit.Exceptions.ArgumentException)
+            {
+                return null;
+            }
         }
     }
 }

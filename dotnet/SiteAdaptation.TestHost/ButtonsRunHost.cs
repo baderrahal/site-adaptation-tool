@@ -540,7 +540,7 @@ namespace SiteAdaptation.TestHost
                 && plot.PrototypeFile?.Value != null).GroupBy(plot => plot.Plot).Select(group => group.First()).ToList();
             double holdMm = Common.Placer.ReadBackOrigin * 1000;
             double holdDeg = Common.Placer.ReadBackAngle;
-            string plotGuid = ParameterSheet.FromConfig(config).Parameters.FirstOrDefault(item => item.Name == Common.Placer.PlotParameter)?.Guid;
+            string plotGuid = ParameterSheet.FromConfig(Settings, config).Parameters.FirstOrDefault(item => item.Name == Common.Placer.PlotParameter)?.Guid;
             Transform toInternal = document.ActiveProjectLocation.GetTotalTransform();
             BasePoint survey = BasePoint.GetSurveyPoint(document);
             XYZ offset = survey.SharedPosition - survey.Position;

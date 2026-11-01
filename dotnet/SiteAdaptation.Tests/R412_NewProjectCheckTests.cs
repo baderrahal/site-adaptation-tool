@@ -26,7 +26,7 @@ namespace SiteAdaptation.Tests
             new[]
             {
                 "parameter sheet", "does not fit",
-                "3 of 4 parameter names have no GUID in addin.sharedParameters: AA_Two (no GUID), AA_Three (not in the sheet), AA_Four (not in the sheet)",
+                "3 of 4 parameter names have no GUID in parameters.xlsx: AA_Two (no GUID), AA_Three (not in the sheet), AA_Four (not in the sheet)",
                 "the names are held to the prefix AA_ of the ROSHN Makkah parameters",
             },
             new[] { "villa offsets", "does not fit", "plotFrame.units of prototype_offsets.json holds no offset for the unit codes: VL3, TH1", "measured on the ROSHN Makkah past job N1" },
@@ -141,6 +141,11 @@ namespace SiteAdaptation.Tests
             schedule.Add(new[] { "Plot No.", "Size" });
             SheetBook(Path.Combine(root, "refs", "s1.xlsx"), "Sched", schedule);
             File.WriteAllBytes(Path.Combine(root, "protos", Prototype), new byte[] { 120 });
+            SheetBook(Path.Combine(config, "parameters.xlsx"), "Parameters", new List<string[]>
+            {
+                new[] { "Parameter", "GUID", "Data type", "Group", "Category", "Filled by", "Sample value", "Keep" },
+                new[] { "AA_One", Guid, "Text", "Data", "Floors", "5", null, "Yes" }, new[] { "AA_Two", null, "Text", "Data", "RVT Links", "7", null, "Yes" },
+            });
             File.WriteAllText(Path.Combine(config, "prototype_offsets.json"), "{ \"plotFrame\": { \"units\": { \"C10\": {} } } }");
             File.WriteAllText(Path.Combine(config, "rules.json"), JObject.Parse(@"{ 'typologies': { 'C10': {}, 'VL3': { 'keo_file': 'C10' }, 'TH1': {} },
                 'levelProfiles': { 'default': 'p', 'p': { 'keyRules': { 'parameter AA_Four': {}, 'hand villa': { 'byFile': { '" + Prototype + @"': {} } } } } } }").ToString());
@@ -149,7 +154,7 @@ namespace SiteAdaptation.Tests
                 'pastJob': { 'neighbourhood': 'N1', 'prototypeFolder': 'protos', 'parameters': [ 'AA_Two', 'AA_Three' ] }, 'majority': { 'parameterLevels': [] },
                 'connect': { 'neighbourhoods': { 'N1': { 'schedule': 's1.xlsx' }, 'N2': null }, 'scheduleSheet': 'Sched' },
                 'addin': { 'workbookRoles': { 'bk': 'dlus' }, 'position': { 'file': '{workRoot}/pos.json' }, 'readData': { 'dataBookFolder': 'data_book', 'scheduleFolder': 'refs' },
-                    'sharedParameters': { 'parameters': [ { 'name': 'AA_One', 'guid': '" + Guid + @"' }, { 'name': 'AA_Two', 'guid': null } ] } },
+                    'parameterSheet': " + Newtonsoft.Json.JsonConvert.ToString(Path.Combine(config, "parameters.xlsx")) + @" },
                 'dataBook': { 'rev9': { 'workbooks': { 'bk': 'Book/a.xlsx' },
                         'dlus': { 'workbook': 'bk', 'sheet': 'S1', 'headerRow': 2, 'columns': { 'plot': 'Plot', 'nbh': 'NBH' } },
                         'sales': { 'workbook': 'bk', 'sheet': 'Nope', 'headerRow': 1, 'columns': { 'plot': 'Plot' } } },
@@ -180,13 +185,13 @@ namespace SiteAdaptation.Tests
             }
             JObject json = report.ToJson();
             Assert.Equal(JObject.Parse("{ 'ok': 4, 'missing': 0, 'doesNotFit': 9, 'roshnOnly': 9 }").ToString(), json["counts"].ToString());
-            Assert.Equal(7, report.Inputs.Count);
+            Assert.Equal(8, report.Inputs.Count);
             Assert.All(report.Inputs, input => Assert.True((bool)input["unchanged"]));
             Assert.Equal(report.Inputs.Select(input => (string)input["name"]).OrderBy(name => name, StringComparer.Ordinal), report.Inputs.Select(input => (string)input["name"]));
             string[] text = report.Text().Split('\n');
             Assert.Equal("New project check, 13 lines: 4 ok, 0 missing, 9 do not fit, 9 ROSHN only", text[0]);
             Assert.Equal("position file: ok. pos.json holds the project position, the survey point, the project base point and 2 levels", text[1]);
-            Assert.Equal("Inputs opened: 7, none changed", text[text.Length - 2]);
+            Assert.Equal("Inputs opened: 8, none changed", text[text.Length - 2]);
         }
 
         [Fact]

@@ -70,6 +70,9 @@ namespace SiteAdaptation.Common.SetUp
         public string Guid { get; set; }
         public List<string> Categories { get; set; } = new List<string>();
 
+        // R464. The label of the parameter group the binding sits under, null when unbound or not read
+        public string Group { get; set; }
+
         public bool Bound
         {
             get { return Categories.Count > 0; }

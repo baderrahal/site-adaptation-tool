@@ -2,7 +2,7 @@
 
 Given a config file (and the rules profile, the offsets file, the work root and the input root as the config resolves them) it reads the
 inputs the config names and says in one plain line each what is missing or does not fit: the position file, the parameter sheet of
-addin.sharedParameters, the villa offsets, the hand tables and the prototype files of every unit code of typologies, each Excel
+addin.parameterSheet (R461), the villa offsets, the hand tables and the prototype files of every unit code of typologies, each Excel
 sheet and its header columns, the schedules, and the PDF location plan. Each line holds input, status (ok, missing, does not fit), a
 plain sentence and the job only flag, true where the name, sheet, header, prefix or file name the input is held to is one only the
 first job has today, with a short note why. The report is a JSON file and a text file in the output folder given, the only place
@@ -17,6 +17,7 @@ import sys
 from pathlib import Path
 
 import input_guard
+import parameter_sheet
 import plan_from_cad
 import project_profile
 
@@ -200,27 +201,33 @@ def parameter_names(settings, rules):
     return list(dict.fromkeys(found))
 
 
-def parameter_line(settings, rules):
+def parameter_line(config_path, settings, rules, run):
+    """R461. The parameter sheet addin.parameterSheet names, its rows of Keep Yes, holds a GUID for every parameter name the tool uses."""
     name = "parameter sheet"
-    items = get(settings, "addin.sharedParameters.parameters")
-    if not isinstance(items, list) or not items:
-        return line(name, MISSING, "config holds no addin.sharedParameters.parameters")
-    guids = {}
-    for item in items:
-        if isinstance(item, dict) and isinstance(item.get("name"), str):
-            guids[item["name"]] = item.get("guid")
+    named = get(settings, "addin.parameterSheet")
+    if not isinstance(named, str) or not named.strip():
+        return line(name, MISSING, "config names no addin.parameterSheet")
+    path = parameter_sheet.path_of(config_path, settings)
+    if not path.is_file():
+        return line(name, MISSING, "the parameter sheet %s is not there" % path.name)
+    run.opened(path)
+    try:
+        kept, _ = parameter_sheet.from_file(path)
+    except parameter_sheet.SheetError as error:
+        return line(name, DOES_NOT_FIT, str(error))
+    guids = {item["name"]: item["guid"] for item in kept}
     names = parameter_names(settings, rules)
     faults = []
     for each in names:
         if each not in guids:
             faults.append("%s (not in the sheet)" % each)
-        elif not isinstance(guids[each], str) or not GUID.fullmatch(guids[each]):
+        elif guids[each] is None or not GUID.fullmatch(guids[each]):
             faults.append("%s (no GUID)" % each)
     prefixes = [found.group(0) for found in (PARAMETER_PREFIX.match(each) for each in names) if found]
     note = "the names are held to the prefix %s of the @N@ parameters" % prefixes[0] if prefixes else None
     if faults:
-        return line(name, DOES_NOT_FIT, "%d of %d parameter names have no GUID in addin.sharedParameters: %s" % (len(faults), len(names), ", ".join(faults)), note)
-    return line(name, OK, "all %d parameter names have a GUID in addin.sharedParameters" % len(names), note)
+        return line(name, DOES_NOT_FIT, "%d of %d parameter names have no GUID in %s: %s" % (len(faults), len(names), path.name, ", ".join(faults)), note)
+    return line(name, OK, "all %d parameter names have a GUID in %s" % (len(names), path.name), note)
 
 
 def past_job_note(settings, what):
@@ -441,7 +448,7 @@ def check(config_path, rules_path, offsets_path, work_root, input_root=None):
     run.opened(rules_path)
     folder = prototype_folder(settings, root)
     work = data_book_work(settings, work_root)
-    lines = [position_line(settings, run), parameter_line(settings, rules), offsets_line(settings, rules, offsets_path, run),
+    lines = [position_line(settings, run), parameter_line(config_path, settings, rules, run), offsets_line(settings, rules, offsets_path, run),
              hands_line(rules, folder), prototype_line(rules, folder)]
     lines += [excel_line(settings, block, run, work) for block in EXCEL_BLOCKS]
     lines += schedule_lines(settings, run, root)

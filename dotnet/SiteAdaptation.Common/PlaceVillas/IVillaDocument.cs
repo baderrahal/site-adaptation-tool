@@ -120,8 +120,11 @@ namespace SiteAdaptation.Common.PlaceVillas
         // The UniqueIds the user set to the plan
         public ICollection<string> SetToPlan { get; set; } = new HashSet<string>();
 
-        // The GUID of each shared parameter by its name, from the parameters of button 1
+        // R465. The GUID of each shared parameter button 7 fills by the Filled by of the parameter sheet, by its name
         public IReadOnlyDictionary<string, string> ParameterGuids { get; set; } = new Dictionary<string, string>();
+
+        // R465. The names of the parameter sheet button 7 does not fill, another button's, none's or left out, never written by it
+        public ICollection<string> FilledByOthers { get; set; } = new HashSet<string>();
 
         // R377. The inputs from the files of the work folder: the plan held by the SHA-256 the record of the last real run of 4 names,
         // addin.lightMode of the Settings file, the Villa mode of the pane row, the footprint read of button 2 and the record of the last
@@ -132,13 +135,15 @@ namespace SiteAdaptation.Common.PlaceVillas
             LightModeConfig config = LightModeConfig.Load(configPath);
             Newtonsoft.Json.Linq.JObject settings = Newtonsoft.Json.Linq.JObject.Parse(WorkFiles.ReadText(configPath));
             DesignValues.UseConfigOf(settings);
-            Dictionary<string, string> guids = SetUp.ParameterSheet.FromConfig(settings).Parameters
-                .Where(item => item.Guid != null).ToDictionary(item => item.Name, item => item.Guid, StringComparer.Ordinal);
+            SetUp.ParameterSheet sheet = SetUp.ParameterSheet.FromConfig(configPath, settings);
+            Dictionary<string, string> guids = sheet.GuidsFilledBy(SetUp.ParameterSheet.PlaceVillasButton);
+            var others = new HashSet<string>(sheet.Parameters.Where(item => item.FilledBy != SetUp.ParameterSheet.PlaceVillasButton).Select(item => item.Name).Concat(sheet.LeftOut),
+                StringComparer.Ordinal);
             return new VillaInputs
             {
                 Plan = PlanSource.Open(planPath, planSha256), PlanPath = planPath, Config = config, Mode = VillaModeChoice.Resolve(pickedMode, config), Profile = profile,
                 InScope = inScope, Footprint = FootprintCheck.FromRead(villaBlocksRead), LastHashes = PlaceVillasRun.Hashes(lastRecord), LastPlaced = PlaceVillasRun.Placed(lastRecord),
-                ParameterGuids = guids,
+                ParameterGuids = guids, FilledByOthers = others,
             };
         }
     }

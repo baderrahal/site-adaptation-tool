@@ -253,3 +253,9 @@ One phase per session (Q096). Two lanes run the phases (D10, D17): tools/run-lan
 - Extra, found by Lane D: setUp and buttons jobs take config\*.xlsx into the run folder, for the parameter sheet of Lane D R462. Test (R109)
 - Not in this PR: C:\SA-demo\config needs Lane D's parameter sheet after fix/1nov-d merges, at the next reinstall of the demo
 - Task 6 after this PR and Lane A's: the hand run of demo-check through the real windows, Dry run on and off
+
+## Lane D FIX-1NOV-D, the shared parameters from one Excel
+
+- Status: done, Lane D, laptop, 2026-11-01, one PR with code, tests and records, in the worktree Site Adaptation Tool Lane D WT
+- What: config/shared_parameters.xlsx the one source of the shared parameters, the 10 of the past links and Plot, button 1 binds the rows of Keep Yes under their group, each button fills its own (R460 to R465)
+- Left: the read of the key groups once fix/1nov-b is on main (Q330), Q331 to Q334 for Bader

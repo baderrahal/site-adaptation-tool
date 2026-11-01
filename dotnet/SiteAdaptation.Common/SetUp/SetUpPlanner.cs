@@ -75,8 +75,9 @@ namespace SiteAdaptation.Common.SetUp
         }
 
         // 03a Shared parameters and Stop. A parameter of a name of the sheet with another GUID, listed with the GUID found and the GUID of
-        // the sheet, so a second parameter of one name is never added, a parameter of the sheet with no GUID, and a type with nothing to
-        // copy it from. Plot with no GUID waits on Q156 and is no stop
+        // the sheet, so a second parameter of one name is never added, a parameter of the sheet with no GUID or no group (R464), the floor
+        // parameter given to another button than Floors (R465), and a type with nothing to copy it from. Plot with no GUID waits on Q156
+        // and is no stop
         public static List<string> Stops(SiteState now, SetUpTarget target)
         {
             var stops = new List<string>();
@@ -93,6 +94,14 @@ namespace SiteAdaptation.Common.SetUp
                 foreach (ParameterState other in now.SharedParameters.Where(other => other.Name == item.Name && !string.Equals(other.Guid, item.Guid, StringComparison.OrdinalIgnoreCase)))
                 {
                     stops.Add(SetUpTexts.OtherGuid(item.Name, other.Guid, item.Guid));
+                }
+                if (item.Group == null)
+                {
+                    stops.Add(SetUpTexts.NoGroup(item.Name));
+                }
+                if (item.Name == target.PlotParameter && item.FilledBy != ParameterSheet.FloorsButton)
+                {
+                    stops.Add(SetUpTexts.FloorsOwn(item.Name, ParameterSheet.FloorsButton));
                 }
             }
             SetUpChanges changes = Changes(now, target);
@@ -154,7 +163,9 @@ namespace SiteAdaptation.Common.SetUp
             foreach (ParameterSpec item in target.Parameters.Parameters.Where(item => item.Guid != null))
             {
                 ParameterState have = now.SharedParameters.FirstOrDefault(other => string.Equals(other.Guid, item.Guid, StringComparison.OrdinalIgnoreCase));
-                if (have == null || item.Categories.Any(category => !have.Categories.Contains(category)))
+                // R464. A binding under another group than the sheet names is put again under that of the sheet
+                bool otherGroup = have?.Group != null && item.Group != null && !string.Equals(have.Group, item.Group, StringComparison.OrdinalIgnoreCase);
+                if (have == null || otherGroup || item.Categories.Any(category => !have.Categories.Contains(category)))
                 {
                     changes.Parameters.Add(item);
                 }

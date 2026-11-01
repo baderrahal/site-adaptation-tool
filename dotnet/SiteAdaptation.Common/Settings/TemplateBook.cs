@@ -32,14 +32,14 @@ namespace SiteAdaptation.Common.Settings
     }
 
     // R433, Get template of the New project window. An empty workbook with the sheet names and the header row the readers of that
-    // input take, so the team that gives the file fills it in. The parameter sheet takes the four columns of ParameterSheet (Q155),
+    // input take, so the team that gives the file fills it in. The parameter sheet takes the columns of ParameterSheet (R461),
     // the sheet name CHOSEN by Code. A workbook of the sales or the DLUS role takes each sheet of dataBook.rev9 of config whose
     // workbook addin.workbookRoles gives that role, its header row and its column names in the order config lists them. Every other
     // input has no template. Written as a plain zip of the xlsx parts with inline strings, since the add-in holds no xlsx library
-    // and an xlsx is read only by the worker (R350). A test reads it back with the reader of the worker
+    // and an xlsx is read by the worker (R350), the parameter sheet alone also by ParameterBook (R462). A test reads it back with the reader of the worker
     public static class TemplateBook
     {
-        public const string ParameterSheetName = "Parameters";
+        public const string ParameterSheetName = ParameterSheet.SheetName;
         public const string Extension = ".xlsx";
 
         public static IReadOnlyList<TemplateSheet> SheetsFor(string input, JObject config)
