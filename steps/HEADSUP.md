@@ -4,10 +4,10 @@
 
 ### Lane A
 
-- Lane: A, round FIX-1NOV-A2, branch fix/1nov-a2. Time: 23:57 after the restart. Blocked: none. No Revit, Civil 3D or worker left
-- Done and pushed: R472 (Q278), R473, R474 (Q292), proofs on NBH 012 copies (p1nov2), review 1 fixed, breaker 1 F1 fixed (no villa block source taken, Q346), Q345 to Q347
-- Now: update from main, then the full gate and parity on that head. The parity of 8608337 stopped at the restart
-- Next: breaker 2 on the F1 fix, records (log, PROGRESS, 01_next), the PR, merge when green, tell lane-c
+- Lane: A, round FIX-1NOV-A2, branch fix/1nov-a2. Time: 2026-11-02 00:23. Blocked: none
+- Done and pushed: R472, R473, R474, proofs, review 1, breaker 1 F1 fixed, main merged. Gate on 30d9233: pytest 2,267 passed, C# net48 1,907, net8.0 1,682, 0 failed
+- Now: parity on 30d9233 (p1nov/all_parity_a2.txt), breaker 2 on the F1 fix
+- Next: the log entry, update from main, the PR, merge when green, tell lane-c
 
 ### Lane B, C and D
 
