@@ -567,6 +567,7 @@ namespace SiteAdaptation.Common
             List<string> later = LaterFields(config, levelProfile);
             HashSet<string> laterParameters = KeyLevels.LaterParameters(config, levelProfile);
             List<string> facade = ((config["majority"]?["linkNameFacade"] as JArray) ?? new JArray()).Select(Text).ToList();
+            double near = FloorOutlines.JointNear(config, "config");
             var outcomes = new Outcomes();
             // The hand of each plot after a mirror flag override, the link of R356 on it
             var turned = new Dictionary<string, Dictionary<string, object>>();
@@ -891,6 +892,13 @@ namespace SiteAdaptation.Common
                 parameters["sources"] = sources;
                 parameters["lacks"] = values.Item2;
                 parameters["linkName"] = LinkParameters.LinkName(texts);
+            }
+            // R470. A corner ramps of two or more written plots share takes the mean of their levels, which BuildPlan writes through rampZ
+            var ramps = numbers.Where(number => found[number].Overrides["rampZ"] != null)
+                .Select(number => Tuple.Create(number, (double[][])found[number].Overrides["rampOutline"], (double[])found[number].Overrides["rampZ"])).ToList();
+            foreach (KeyValuePair<string, double[]> joined in FloorOutlines.JointLevels(ramps, near))
+            {
+                found[joined.Key].Overrides["rampZ"] = joined.Value;
             }
             return found;
         }
