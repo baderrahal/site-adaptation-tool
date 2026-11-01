@@ -6,7 +6,7 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 
 - Lane D FIX-1NOV-D 1 Nov: config/shared_parameters.xlsx the one source of the shared parameters, R460 to R465. 4j-1, 4j-1b: the scanner, R420 to R429
 - Lane A 4i, 4j-2 and FIX-1NOV-A, one PR each (D20): R407 to R412, R414 to R416, R470 ramp joints behind join false (Q340), R471 joint rows
-- Lane B DEMO done on 2026-11-01: main 691e1fc installed, C:\SA-demo and steps/demo.md for 11:00, 1 to 9 in 5.2 min on the copies
+- Lane B FIX-1NOV-B on 2026-11-01: masses as linked files (R450 to R453), coordinates from CAD (R454 to R456), proven in Revit on NBH 012
 - Lane B 6a done for Masses on 2026-10-31: NBH 012 through buttons 1 to 9 from a new project in 6.7 min with no click, Links waits on Q275
 - Lane B 5d done on 2026-10-31, PR 113: buttons 5, 6 and 8, 7 at the FFL, Q115, Q116, proven in Revit by 6a. 5c, PR 111: buttons 2, 3, 4 and 7
 - Lane C SCAN-UI done 2026-11-01, PR 117, 119. DEMO-FIX 1 Nov: step rows run, a loader on every button, Confirm all, idle buttons hidden (R444)
@@ -27,7 +27,7 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 
 - Scan: a large drawing past scan.pairTimeCapS is scanned in part, a notRead row lists it (Q258). No villa type source at the strong share (Q254)
 - Full text at 73b8c42: steps/history/progress-addin-4e.md. Bugs no real input reaches: steps/latent.md (Q095)
-- All 336 masses of NBH 012 are flagged by the footprint check, the drawing holds plot blocks not houses (Q276). Update from report stops (Q278)
+- Footprint by house outline: 291 of 336 plots of NBH 012 sit in a block of another unit type (Q277). Update from report stops (Q278)
 - The wall rule keyRules.wallOpen is weak, 2,539 of 3,427 walls hold on the keys, 0.7409 (Q115, Q266)
 - Q063: the whole NBH 03 image runs past the 30 minute step, I25 did not respond at 10,732 MiB private memory
 - R310 logs free memory in every window with no stop at the floor. In 2a it fell to 0.53 to 1.42 GiB per read window, cause UNKNOWN
@@ -45,13 +45,13 @@ Opened in 4i, Lane A: Q224 to Q242, Q255, Q256, titles in steps/questions-open.m
 Opened in 4j-2, Lane A: Q259, Q299, Q303, Q304, titles in steps/questions-open.md and the top entry of steps/log.md. Closed in 4j-2: none.
 Opened in FIX-1NOV-A, Lane A: Q340 The level of a joint an override moves. Q341 Back corners two ramps share. Q343 Passing joint rows in the check chips.
 Q344 Joints at the edge of a build. Closed in FIX-1NOV-A: Q342 Ramp joint distance and pass limit, by Bader's prompt.
-Opened in DEMO, Lane B: Q279 Mass base, slab edge or outer wall face. Q296 A saved project holds no drawing path.
+Opened in FIX-1NOV-B, Lane B: Q320 to Q323, Q325 to Q329, titles in steps/questions-open.md and the top entry of steps/log.md. Closed: Q276.
 Opened in SCAN-UI, Lane C: Q288 Scan picks in the settings at version 1. Q289 Board rows the scan does not read. Q290 Curbs and road surface left out of scan. Q291 Where the line Current files is
 shown. Q292 The read does not use the picks yet. Q293 Approve the three drafts of SCAN-UI. Q294 Rules chosen in Set up site, when used. Q295 Test host runs skip the scan. Q300 Plots with no cluster
 proposal. Q301 The build takes the door level pick. Q302 Door level row under the past job. Q305 Hide Confirmed under the past job.
 Opened in FIX-1NOV-D, Lane D: Q330 Group of the key link parameters unread. Q331 Plot is no link parameter of the keys. Q332 FFL bound but never written.
 Q333 Categories beyond the link instances. Q334 An xlsx read inside Revit. Q335 A parameter sheet picked in the pane. Closed: Q155, by Bader's prompt.
-Closed in SCAN-UI: Q246, Q283, by Bader's prompt. 148 questions open, full text and the recommended answers: steps/questions-open.md. Asks: steps/waiting-on-others.md.
+Closed in SCAN-UI: Q246, Q283, by Bader's prompt. 156 questions open, full text and the recommended answers: steps/questions-open.md. Asks: steps/waiting-on-others.md.
 
 ## Next three steps
 

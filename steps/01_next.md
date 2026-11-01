@@ -240,6 +240,28 @@ One phase per session (Q096). Two lanes run the phases (D10, D17): tools/run-lan
 - Task 5: no code builds a curb. The curbs read stays for the front of R355 and the curb point of a ramp front, the pane row Curbs stays, no message to hide it
 - Questions: Q340, Q341, Q343, Q344 open, Q342 closed by Bader's prompt
 
+## FIX-1NOV-B, masses as linked files, footprint by house outline, site coordinates from CAD
+
+- Status: done, Lane B, laptop, 2026-11-01, one PR (D20), branch fix/1nov-b. Ids R450 to R459, Q320 to Q329. Task 6 open
+- Measured before the plan (probe outside git, copies in C:\SA-demo\inputs, all hashes unchanged):
+  - Footprint blocks hold the plot envelope on Defpoints (12 x 25 m VL4), the house on layer 0 as an open polyline whose ends close one side (VL4 140.6 m2, DP4 122.6 m2 per unit, C10 157.1 m2), a garage on layer 0 (31 to 40 m2) and the setback on MP_Setback Line. Q276 measured the envelope
+  - Road Layout GeoData names UTM84-37N (EPSG 32637), its design point is an AutoCAD default. Baseplan and Footprint hold no GeoData. The 3 LandXML files read hold no CoordinateSystem
+- Task 2, rules R450 to R453:
+  - R450 Mass file per prototype. Common/PlaceVillas/MassFiles.cs (new): MassFileConfig.From (addin.lightMode.linkFolder, massFolder), MassFiles.PathFor, MassFiles.Sidecar, MassFiles.Stale. AddIn/Revit/RevitMassFileMaker.cs (new): Make, opens the prototype detached, writes one DirectShape extrusion into a new Revit 2024 project saved as <massFolder>/<prototype file name>
+  - R451 Wall ring or largest slab. Common/PlaceVillas/WallRing.cs (new): WallRing.Choose(loops, slab, minShare) gives the ring and its source wallRing or slab with the reason. AddIn/Revit/RevitBaseShapeReader.cs: WallLoops, the union of exterior wall solids cut at the ground level
+  - R452 Masses placed as linked files. PlaceVillasRun.Decide and Apply: in Masses the link file is MassFiles.PathFor, PlaceLink replaces PlaceSolid, a solid of an earlier run is swapped. A file path in config swaps masses for the KEO files with no code change
+  - R453 Footprint check by house outline. CadReader/CadExtractor.cs: houses of each block, the largest polyline on footprint.houseLayer with ends joined over footprint.houseMinAreaM2. OutlineDistance.cs FootprintCheck.FromRead and Row take the houses
+- Task 3, rules R454 to R456:
+  - R454 Coordinate system of the inputs. CadReader/CoordinateSystemRead.cs (new), worker command crs, registered in WorkerReads.cs. Common/SetUp/CoordinateSystems.cs (new): Agree(per file, config) gives agree, conflict or none stated, stops on a conflict or a code unlike coordinates.expectedEpsg
+  - R455 Site position from CAD. Common/SetUp/SitePosition.cs (new): FromCad(plots, config) gives the shared origin, elevation, true north 0, latitude and longitude by UtmMath.ToLatLon (new, Common/UtmMath.cs). RevitSiteDocument: SetSiteLocation, SetNamedPosition
+  - R456 Three CAD control points. Common/SetUp/ControlPoints.cs (new): Pick(plots, 3) and Check(cad, revit, 0.1 mm). Rows in the Set up site view of Common, window text by Lane C if a control is new
+  - SetUpRun.cs, SetUpTarget wiring waits for the merge of fix/1nov-d (Lane D owns SetUpRun.cs). config/project.json: addin.lightMode and a new block coordinates, after fix/1nov-a and fix/1nov-d merge
+- Revit runs on copies under the lock: the 13 mass files, reload of one changed mass file with every instance read back, a mirrored instance read back, the coordinate read back of Manage Coordinates with a shot
+- Extra, found by Lane D: a -RoundSpec job joined siteBuild.folder with {workRoot} not taken (Run-TestHost.ps1). Fixed with Resolve-WorkRootPath and a test (R109)
+- Extra, found by Lane D: setUp and buttons jobs take config\*.xlsx into the run folder, for the parameter sheet of Lane D R462. Test (R109)
+- Not in this PR: C:\SA-demo\config needs Lane D's parameter sheet after fix/1nov-d merges, at the next reinstall of the demo
+- Task 6 after this PR and Lane A's: the hand run of demo-check through the real windows, Dry run on and off
+
 ## Lane D FIX-1NOV-D, the shared parameters from one Excel
 
 - Status: done, Lane D, laptop, 2026-11-01, one PR with code, tests and records, in the worktree Site Adaptation Tool Lane D WT

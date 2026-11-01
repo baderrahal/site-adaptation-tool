@@ -201,8 +201,28 @@ namespace CadReader
                     }
                     entry.Outline = ring;
                 }
+                entry.Rings = Rings(block, new List<Transform>(chain) { insert.GetTransform() });
             }
             return entry;
+        }
+
+        // R453. The polylines drawn directly in the block, each joined into a ring by CadExtractor.JoinedRing
+        private List<BlockRing> Rings(BlockRecord block, List<Transform> full)
+        {
+            var rings = new List<BlockRing>();
+            foreach (Entity child in block.Entities)
+            {
+                if (!(child is LwPolyline) && !(child is Polyline2D))
+                {
+                    continue;
+                }
+                List<double[]> ring = CadExtractor.JoinedRing(Geometry(child, full)?.Pts);
+                if (ring != null)
+                {
+                    rings.Add(new BlockRing { Layer = child.Layer == null ? "0" : child.Layer.Name, Area = Math.Round(Math.Abs(SiteAdaptation.Common.PlaceVillas.RingMath.Area(ring)), 3), Points = ring });
+                }
+            }
+            return rings.Count == 0 ? null : rings;
         }
 
         // The outline of a block is the convex hull of its drawn content in the block's own coordinates.

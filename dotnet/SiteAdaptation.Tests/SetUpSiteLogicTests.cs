@@ -387,8 +387,8 @@ namespace SiteAdaptation.Tests
             SetUpTarget target = Target();
             var document = new FakeDocument(Template());
             SetUpChanges first = SetUpPlanner.Changes(document.State, target);
-            Assert.True(first.Units && first.Position && first.SurveyPoint && first.LevelBase);
-            Assert.False(first.BasePoint);
+            // R455. The base point at its target is moved too, by the gap read after SetProjectPosition
+            Assert.True(first.Units && first.Position && first.SurveyPoint && first.BasePoint && first.LevelBase);
             Assert.Equal(new[] { "yard", "Ramps 0.5%", "Ramps 2%", "Flat Ramps" }, first.FloorTypes);
             Assert.Equal(11, first.Parameters.Count);
 
@@ -527,6 +527,62 @@ namespace SiteAdaptation.Tests
             Assert.Equal("rollBack", calls[calls.Count - 2]);
             Assert.Equal("restoreParameterFile", calls.Last());
             Assert.Empty(Directory.GetFiles(work, "*", SearchOption.AllDirectories));
+        }
+
+        // R454 to R456. With coordinates.source cad button 1 sets the named position and the site location before the position, takes
+        // the shared origin of the CAD plots and passes the read back with its control points. A conflict of systems stops before any set
+        [Fact]
+        public void R455_button_1_with_the_cad_source_sets_the_location_then_the_position_of_the_plots()
+        {
+            config["coordinates"]["source"] = "cad";
+            File.WriteAllText(configPath, config.ToString());
+            var plots = new List<CadPlot> { new CadPlot { Plot = "1", Vertices = new List<double[]> { new[] { 300010.0, 2400020.0 }, new[] { 300090.0, 2400020.0 }, new[] { 300090.0, 2400060.0 } } } };
+            var calls = new List<string>();
+            var document = new FakeDocument(Template()) { Calls = calls };
+            var run = new SetUpRun(document, new FakeDialog(), new FakeTags(calls), File.ReadAllText, Settings, null)
+                .ReadingCad(context => new CoordinateRead { Files = new List<StatedSystem> { new StatedSystem { File = "Road Layout.dwg", Name = "UTM84-37N" } }, Plots = plots });
+            var flow = new ButtonFlow(new FakeState(work, configPath), new FakeModel(calls), null, input => "h", () => RunId);
+
+            RunOutcome outcome = flow.Run(1, "1 Set up site", run.Body(), Document);
+
+            Assert.Equal(RunEnd.Committed, outcome.End);
+            Assert.True(calls.IndexOf("location") >= 0 && calls.IndexOf("location") < calls.IndexOf("position"));
+            Assert.Equal(300050.0, document.State.Position.EastM);
+            Assert.Equal(2400040.0, document.State.Position.NorthM);
+            Assert.Equal((string)config["coordinates"]["positionName"], document.State.PositionName);
+            Assert.Equal(5, run.View.CheckPoints.Count(row => row.Pass));
+
+            var conflict = new SetUpRun(new FakeDocument(Template()) { Calls = new List<string>() }, new FakeDialog(), new FakeTags(new List<string>()), File.ReadAllText, Settings, null)
+                .ReadingCad(context => new CoordinateRead { Files = new List<StatedSystem> { new StatedSystem { File = "a.dwg", Name = "UTM84-37N" }, new StatedSystem { File = "b.xml", Name = "32638" } }, Plots = plots });
+            RunOutcome stopped = flow.Run(1, "1 Set up site", conflict.Body(), Document);
+            Assert.NotEqual(RunEnd.Committed, stopped.End);
+            Assert.Contains("b.xml EPSG 32638", stopped.Message);
+
+            var none = new SetUpRun(new FakeDocument(Template()) { Calls = new List<string>() }, new FakeDialog(), new FakeTags(new List<string>()), File.ReadAllText, Settings, null);
+            Assert.Contains("reads no CAD", flow.Run(1, "1 Set up site", none.Body(), Document).Message);
+        }
+
+        // R455, LB1F and LB1G. On a new project the survey point already sits at the target internal (0,0,0) before Apply, but
+        // SetProjectPosition takes it to (-E,-N), so a position change moves both points back and the read back is clean
+        [Fact]
+        public void R455_a_new_project_with_the_cad_source_moves_the_survey_point_back_after_the_position_and_reads_back_clean()
+        {
+            config["coordinates"]["source"] = "cad";
+            File.WriteAllText(configPath, config.ToString());
+            var plots = new List<CadPlot> { new CadPlot { Plot = "1", Vertices = new List<double[]> { new[] { 300010.0, 2400020.0 }, new[] { 300090.0, 2400020.0 }, new[] { 300090.0, 2400060.0 } } } };
+            var calls = new List<string>();
+            var document = new FakeDocument(Template()) { Calls = calls };
+            var run = new SetUpRun(document, new FakeDialog(), new FakeTags(calls), File.ReadAllText, Settings, null)
+                .ReadingCad(context => new CoordinateRead { Files = new List<StatedSystem> { new StatedSystem { File = "Road Layout.dwg", Name = "UTM84-37N" } }, Plots = plots });
+            var flow = new ButtonFlow(new FakeState(work, configPath), new FakeModel(calls), null, input => "h", () => RunId);
+
+            RunOutcome outcome = flow.Run(1, "1 Set up site", run.Body(), Document);
+
+            Assert.True(outcome.End == RunEnd.Committed, outcome.Message);
+            Assert.True(SiteCoordinates.Gap(new[] { 0.0, 0.0, document.State.Survey.InternalM[2] }, document.State.Survey.InternalM) * 1000.0 <= SetUpPlanner.SameMm);
+            Assert.Equal(300050.0, document.State.Survey.SharedM[0], 6);
+            Assert.Equal(2400040.0, document.State.Survey.SharedM[1], 6);
+            Assert.Equal(5, run.View.CheckPoints.Count(row => row.Pass));
         }
 
         [Fact]
@@ -686,12 +742,34 @@ namespace SiteAdaptation.Tests
                 State.Units = new UnitState { System = State.Units.System, Length = units.Length, LengthAccuracy = units.LengthAccuracy, Area = units.Area, Angle = units.Angle, Slope = units.Slope };
             }
 
+            public void SetLocation(SetUpTarget target)
+            {
+                Calls.Add("location");
+                State.PositionName = target.Cad.PositionName;
+                State.LatitudeDeg = target.Cad.LatitudeDeg;
+                State.LongitudeDeg = target.Cad.LongitudeDeg;
+                State.PlaceName = target.Cad.PlaceName;
+            }
+
+            // As the survey probe of FIX-1NOV-B read Revit 2024: SetProjectPosition keeps the shared point of the survey point, so its
+            // internal point goes to (-E,-N) on a new project, and the internal point of the project base point. Each point moves only
+            // when its flag is set, a null changes (Hold) sets all
             public void SetPosition(SetUpTarget target, SetUpChanges changes)
             {
                 Calls.Add("position");
-                State.Position = target.Position;
-                State.Survey.InternalM = (double[])target.SurveyInternal.Clone();
-                State.ProjectBase.InternalM = (double[])target.BaseInternal.Clone();
+                if (changes == null || changes.Position)
+                {
+                    State.Position = target.Position;
+                    State.Survey.InternalM = SiteCoordinates.ToInternal(State.Position, State.Survey.SharedM);
+                }
+                if (changes == null || changes.SurveyPoint)
+                {
+                    State.Survey.InternalM = (double[])target.SurveyInternal.Clone();
+                }
+                if (changes == null || changes.BasePoint)
+                {
+                    State.ProjectBase.InternalM = (double[])target.BaseInternal.Clone();
+                }
                 State.Survey.SharedM = SiteCoordinates.ToShared(State.Position, State.Survey.InternalM);
                 State.ProjectBase.SharedM = SiteCoordinates.ToShared(State.Position, State.ProjectBase.InternalM);
             }

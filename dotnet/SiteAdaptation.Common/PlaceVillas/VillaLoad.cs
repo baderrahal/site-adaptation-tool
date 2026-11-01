@@ -30,7 +30,10 @@ namespace SiteAdaptation.Common.PlaceVillas
             JObject blocks = blocksPath != null && File.Exists(blocksPath) ? JObject.Parse(WorkFiles.ReadText(blocksPath)) : null;
             string lastPath = Path.Combine(context.WorkFolder, "place_" + nbh + ".json");
             JObject last = File.Exists(lastPath) ? JObject.Parse(WorkFiles.ReadText(lastPath)) : null;
-            return VillaInputs.Of(plan, named.Item2, configPath, pickedMode, profile, inScope, blocks, last);
+            VillaInputs inputs = VillaInputs.Of(plan, named.Item2, configPath, pickedMode, profile, inScope, blocks, last);
+            // R453, Q276. The house outlines of the blocks in place of the plot envelope Of takes
+            inputs.Footprint = FootprintCheck.FromRead(blocks, inputs.Config);
+            return inputs;
         }
 
         // R366. The scope of the pane held against the plot table of the latest read: an NBH takes every plot of its plan, a plot list takes

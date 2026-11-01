@@ -41,6 +41,14 @@ namespace CadReader
             throw new ArgumentException("Only .dwg and .dxf files are supported, got " + extension);
         }
 
+        // R453. A polyline as a ring of x and y with its ends joined: the house of a footprint block is an open polyline whose missing
+        // side runs from its last point back to its first. A last point equal to the first is dropped. Null under 3 distinct points
+        public static List<double[]> JoinedRing(IReadOnlyList<double[]> points)
+        {
+            List<double[]> ring = FaceRings.Clean((points ?? new List<double[]>()).Where(point => point != null && point.Length >= 2));
+            return ring.Count >= 3 ? ring : null;
+        }
+
         public static CadExtract Extract(CadDocument document, string sourceName)
         {
             return Extract(document, sourceName, null, null, null, null);

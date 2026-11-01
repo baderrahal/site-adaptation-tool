@@ -170,6 +170,7 @@ Round 17 gave the IDs. Each open question of the DATA-4 list kept its number as 
 | Q272 | Front levels of a ramp on the open edge | As recommended, measured: the keys take the road level of the open edge with no gap, 18 of 18 within 1 mm, so on a plot whose ramp moved the rampFrontM gap measured on the R355 front is left with its why (breaker of Q116 in 5d) | 2026-10-31, Lane B 5d |
 | Q274 | Run id of the levelExcel worker | As recommended, by Bader's round 6a (a failure of buttons 5 to 9 is fixed in the round with a test): the levelExcel request takes the run id <run id>-<NBH> as button 9 does | 2026-10-31, Lane B 6a |
 | Q247 | Scan villa type takes the old CAD labels | Bader's rule: a villa type source scores by its match with the prototype names given, the villa blocks inside plots are checked before text labels, the losing sources stay checks, and with no source at the strong share the user chooses in the scanner window (R426, Q254 for the order and share Code chose) | 2026-10-31, Bader, Lane D 4j-1 |
+| Q276 | What the footprint check of R404 measures | Bader's task 2 of FIX-1NOV-B: each placed base against the house outline inside its footprint block, not the plot block (R453). NBH 012: 45 plots of the same unit type median 650 mm, 291 of another type median 3.1 m (Q277) | Bader, 2026-11-01, FIX-1NOV-B prompt |
 
 ## Q089
 

@@ -156,38 +156,15 @@ namespace CadReader
             return new[] { ring.Min(p => p[0]), ring.Min(p => p[1]), ring.Max(p => p[0]), ring.Max(p => p[1]) };
         }
 
+        // One copy of each ring rule in Common, R451 and R453
         public static bool Contains(List<double[]> ring, double x, double y)
         {
-            bool inside = false;
-            for (int i = 0, j = ring.Count - 1; i < ring.Count; j = i++)
-            {
-                double[] a = ring[i];
-                double[] b = ring[j];
-                if ((a[1] > y) != (b[1] > y) && x < (b[0] - a[0]) * (y - a[1]) / (b[1] - a[1]) + a[0])
-                {
-                    inside = !inside;
-                }
-            }
-            return inside;
+            return SiteAdaptation.Common.ScanLogic.Contains(ring, x, y);
         }
 
         public static double[] Centroid(List<double[]> ring)
         {
-            double twice = 0;
-            double cx = 0;
-            double cy = 0;
-            for (int i = 0, j = ring.Count - 1; i < ring.Count; j = i++)
-            {
-                double cross = ring[j][0] * ring[i][1] - ring[i][0] * ring[j][1];
-                twice += cross;
-                cx += (ring[j][0] + ring[i][0]) * cross;
-                cy += (ring[j][1] + ring[i][1]) * cross;
-            }
-            if (Math.Abs(twice) < 1e-12)
-            {
-                return new[] { ring.Average(p => p[0]), ring.Average(p => p[1]) };
-            }
-            return new[] { cx / (3 * twice), cy / (3 * twice) };
+            return SiteAdaptation.Common.PlaceVillas.RingMath.Centroid(ring);
         }
     }
 }
