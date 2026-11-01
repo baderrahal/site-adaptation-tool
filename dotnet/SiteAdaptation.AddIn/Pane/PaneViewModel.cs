@@ -285,9 +285,11 @@ namespace SiteAdaptation.AddIn.Pane
             RefreshAll();
         }
 
+        // The code the settings hold stays on the list, so a scope saved with the model is never shown empty
         public void SetNbhCodes(IReadOnlyList<string> codes)
         {
-            NbhCodes = codes;
+            string saved = document?.Settings.Scope.Nbh;
+            NbhCodes = string.IsNullOrEmpty(saved) || codes.Contains(saved) ? codes : codes.Concat(new[] { saved }).ToList();
         }
 
         public static string StepName(int number)

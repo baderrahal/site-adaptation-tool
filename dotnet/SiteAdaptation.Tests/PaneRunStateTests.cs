@@ -292,6 +292,54 @@ namespace SiteAdaptation.Tests
             }
         }
 
+        // R457, found by hand in Task 6: SetNbhCodes had no caller in the add-in, so the Neighbourhood list stayed empty and 3 Review data,
+        // which shows one NBH, could not run
+        [Fact]
+        public void R457_the_neighbourhood_list_fills_from_the_latest_read_and_keeps_the_code_of_the_settings()
+        {
+            string root = Path.Combine(Path.GetTempPath(), "sa-nbh-" + Guid.NewGuid().ToString("N"));
+            try
+            {
+                PaneViewModel model = Loaded(new PaneSettings { ConfigFile = Folder + "project.json" });
+                var state = new PaneRunState(model, () => root, path => null);
+                string work = state.WorkFolder(model.Document.Path);
+
+                state.RefreshNbhCodes();
+                Assert.Empty(model.NbhCodes);
+
+                WriteRead(work, "read_old", "2_20260101", "007");
+                WriteRead(work, "read_new", "2_20260102", "012", "003", "012", null);
+                state.Committed(2, new RunRecord("run2", new Dictionary<string, string>(), new string[0], new Dictionary<string, string>(), new string[0]));
+                Assert.Equal(new[] { "003", "012" }, model.NbhCodes);
+
+                model.Settings.Project.Scope.Nbh = "099";
+                state.RefreshNbhCodes();
+                Assert.Equal(new[] { "003", "012", "099" }, model.NbhCodes);
+
+                File.WriteAllText(Path.Combine(work, "read_new", Common.ReadData.ReadDataRun.PlotTableFile), "{ not json");
+                state.RefreshNbhCodes();
+                Assert.Equal(new[] { "099" }, model.NbhCodes);
+            }
+            finally
+            {
+                if (Directory.Exists(root))
+                {
+                    Directory.Delete(root, true);
+                }
+            }
+        }
+
+        // A row with no official number is no unit plot, so its neighbourhood offers no choice (R366)
+        private static void WriteRead(string work, string name, string runId, params string[] nbhs)
+        {
+            string folder = Path.Combine(work, name);
+            Directory.CreateDirectory(folder);
+            File.WriteAllText(Path.Combine(folder, Common.ReadData.ReadDataRun.RecordFile), new Newtonsoft.Json.Linq.JObject { ["format"] = Common.ReadData.ReadDataRun.RecordFormat, ["runId"] = runId }.ToString());
+            var rows = new Newtonsoft.Json.Linq.JArray(nbhs.Select((nbh, index) => new Newtonsoft.Json.Linq.JObject { ["officialNumber"] = (index + 1).ToString(), ["nbhId"] = nbh }));
+            rows.Add(new Newtonsoft.Json.Linq.JObject { ["officialNumber"] = null, ["nbhId"] = "055" });
+            File.WriteAllText(Path.Combine(folder, Common.ReadData.ReadDataRun.PlotTableFile), new Newtonsoft.Json.Linq.JObject { ["plots"] = rows }.ToString());
+        }
+
         private static PaneViewModel Loaded(PaneSettings settings, IInputProbe probe = null)
         {
             var model = new PaneViewModel(probe ?? new NoDisk());

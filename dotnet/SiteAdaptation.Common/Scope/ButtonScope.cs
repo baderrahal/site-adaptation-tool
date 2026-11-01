@@ -50,6 +50,12 @@ namespace SiteAdaptation.Common.Scope
         // A tab parts tokens too, since a row pasted from Excel arrives with tabs
         private static readonly char[] Parts = { ',', ' ', '\t', '\r', '\n' };
 
+        // R457. The neighbourhoods Scope of the pane offers: those of the unit plots, each once, in code order
+        public static IReadOnlyList<string> NbhCodes(IEnumerable<ScopePlot> table)
+        {
+            return table.Where(plot => plot.IsUnit && !string.IsNullOrWhiteSpace(plot.Nbh)).Select(plot => plot.Nbh).Distinct(StringComparer.Ordinal).OrderBy(code => code, StringComparer.Ordinal).ToList();
+        }
+
         public static ScopeResult Resolve(int button, SettingsScope scope, IEnumerable<ScopePlot> table)
         {
             var units = new SortedSet<string>(NumberOrder.Instance);

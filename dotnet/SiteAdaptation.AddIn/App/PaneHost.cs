@@ -255,6 +255,7 @@ namespace SiteAdaptation.AddIn
                 return;
             }
             model.Load(sessions.Seen(document, document.PathName, document.Title));
+            (Buttons.State as PaneRunState)?.RefreshNbhCodes();
         }
 
         internal List<Common.OpenDocument> OpenDocuments(UIApplication application)
