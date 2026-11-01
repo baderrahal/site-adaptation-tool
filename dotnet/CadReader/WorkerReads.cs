@@ -6,6 +6,7 @@ using ACadSharp;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using SiteAdaptation.Common;
+using SiteAdaptation.Common.ReadData;
 
 namespace CadReader
 {
@@ -99,6 +100,7 @@ namespace CadReader
             }
             var made = new Dictionary<string, Dictionary<string, Dictionary<string, object>>>();
             var reads = new Dictionary<string, JObject>();
+            ReadPicks.PicksTaken picks = Picks(run);
             bool anyDrawing = Drawings.Any(role => request.Inputs.Any(input => input.Role == role));
             LayerConfig layers = null;
             if (anyDrawing)
@@ -108,12 +110,14 @@ namespace CadReader
                     throw run.Refusal("a read of a drawing needs the input cadLayers, the keep and drop list of the layers (config/cad_layers.json)");
                 }
                 layers = LayerConfig.Load(run.Input("cadLayers"));
+                layers.PlotLineLayers = picks?.PlotLineLayers ?? layers.PlotLineLayers;
+                layers.PlotLabelLayers = picks?.PlotLabelLayers ?? layers.PlotLabelLayers;
             }
             // Q084. The drawings one at a time, the largest measured peak first, each let go with its document before the next read
             List<string> order = WorkerMemory.ReadOrder(request.Inputs, Drawings, AddinConfig.Load(run.Input("config")));
             foreach (string role in order)
             {
-                reads[role] = Drawing(run, role, layers, settings);
+                reads[role] = Drawing(run, role, layers, settings, false, picks?.VillaBlockLayer);
                 run.WriteJson(request.OutputFolder, "read_" + role + ".json", reads[role]);
                 run.Counts["drawing " + role + " read as"] = order.IndexOf(role) + 1;
                 WorkerMemory.Release();
@@ -124,12 +128,12 @@ namespace CadReader
             var sheets = new Dictionary<string, XlsxSheet.Sheet>();
             SheetRows.AreaKey[] areaKeys = Workbooks(run, settings, steps, made, sheets);
             JObject baseplan = reads.TryGetValue("baseplan", out JObject read) ? read : null;
-            Located located = Location(run, settings, baseplan, steps, made, sheets);
+            Located located = Location(run, settings, baseplan, steps, made, sheets, picks?.TypologyHeader);
             if (located != null)
             {
                 WorkerMemory.Release();
             }
-            Table(run, located, baseplan, reads.TryGetValue("villaBlocks", out JObject footprint) ? footprint : null, areaKeys, overlapDecimals, steps, made);
+            Table(run, located, baseplan, reads.TryGetValue("villaBlocks", out JObject footprint) ? footprint : null, areaKeys, overlapDecimals, steps, made, picks);
             if (steps.Contains(ReadSteps.Labels))
             {
                 made[ReadSteps.Labels] = ReadSteps.LabelStep((JArray)reads["baseplan"]["plots"]);
@@ -163,6 +167,29 @@ namespace CadReader
             {
                 run.Counts[step + " items"] = made[step].Count;
                 run.WriteJson(request.StepsFolder, StepFile.FileName(step, "csharp"), StepFile.Build(step, "csharp", StepFile.ScopeText(request.Scope), made[step], config.StepFields(step)));
+            }
+        }
+
+        // R473. picks.json of the request held to the files of its inputs, the line of each pick the read does not take an issue, null
+        // when the request names no picks and the read takes config alone as before
+        private static ReadPicks.PicksTaken Picks(WorkerContext run)
+        {
+            WorkerRequest request = run.Request;
+            if (request.Inputs.All(input => input.Role != ReadPicks.Role))
+            {
+                return null;
+            }
+            try
+            {
+                JObject config = (JObject)Parse(WorkFiles.ReadText(run.Input("config")));
+                ReadPicks.PicksTaken taken = ReadPicks.Take(Parse(WorkFiles.ReadText(run.Input(ReadPicks.Role))) as JObject,
+                    ReadPicks.FilesOf(config, request.Inputs.Select(input => new KeyValuePair<string, string>(input.Role, input.Path))));
+                run.Issues.AddRange(taken.Lines);
+                return taken;
+            }
+            catch (InvalidDataException refused)
+            {
+                throw run.Refusal(refused.Message);
             }
         }
 
@@ -335,7 +362,8 @@ namespace CadReader
         // layer list, the plots of the baseplan, the blocks and the setback pieces of the footprint, the curb and ROW pieces of the road
         // layout, as CadReader writes them in plots.json, blocks.json and pieces.json, or with exact the plots with every digit of their
         // vertices as plots_exact.json of --exact gives them, for the check points of R353
-        private static JObject Drawing(WorkerContext run, string role, LayerConfig layers, ReadSettings settings, bool exact = false)
+        // blockLayer is the insert layer of a villa block pick (R473), which limits the blocks of the villa blocks drawing to it
+        private static JObject Drawing(WorkerContext run, string role, LayerConfig layers, ReadSettings settings, bool exact = false, string blockLayer = null)
         {
             string path = run.Input(role);
             string name = Path.GetFileName(path);
@@ -368,7 +396,12 @@ namespace CadReader
             }
             if (role == "villaBlocks")
             {
-                output["blocks"] = AsWritten(extract.Blocks.Blocks);
+                List<BlockEntry> blocks = blockLayer == null ? extract.Blocks.Blocks : extract.Blocks.Blocks.Where(block => block.Layer == blockLayer).ToList();
+                if (blockLayer != null)
+                {
+                    run.Counts["villaBlocks inserts left out by the villa block pick"] = extract.Blocks.Blocks.Count - blocks.Count;
+                }
+                output["blocks"] = AsWritten(blocks);
             }
             if (wanted.Count > 0)
             {
@@ -544,8 +577,9 @@ namespace CadReader
         // faces of the baseplan read of the same request, the schedule of each neighbourhood of connect.neighbourhoods the input
         // schedule:<NBH>, the sales rows and the code table from the workbook of their setting, then checked by the control point fit of
         // R387, which numbers nothing. Written to read_locationPlan.json and to the steps of the location plan the request names
+        // typology is the header of a villa type pick of the sales sheet (R473), which the typology column of the sales rows takes
         private static Located Location(WorkerContext run, ReadSettings settings, JObject baseplan, HashSet<string> steps, Dictionary<string, Dictionary<string, Dictionary<string, object>>> made,
-            Dictionary<string, XlsxSheet.Sheet> sheets)
+            Dictionary<string, XlsxSheet.Sheet> sheets, string typology)
         {
             WorkerRequest request = run.Request;
             if (request.Inputs.All(input => input.Role != LocationPlan.PlotNumbersRole))
@@ -594,7 +628,8 @@ namespace CadReader
             List<Dictionary<string, string>> sales, table;
             try
             {
-                sales = LocationPlan.Table(SheetOf(run, sheets, salesRole, plan.Sales.Sheet), plan.Sales.HeaderRow, plan.Sales.Columns, "the sheet " + plan.Sales.Sheet);
+                List<object[]> salesRows = SheetOf(run, sheets, salesRole, plan.Sales.Sheet);
+                sales = LocationPlan.Table(salesRows, plan.Sales.HeaderRow, ReadPicks.TypologyColumns(plan.Sales.Columns, salesRows, plan.Sales.HeaderRow, typology, run.Issues), "the sheet " + plan.Sales.Sheet);
                 table = LocationPlan.Table(SheetOf(run, sheets, salesRole, plan.CodeTable.Sheet), plan.CodeTable.HeaderRow, plan.CodeTable.Columns, "the sheet " + plan.CodeTable.Sheet);
             }
             catch (InvalidDataException refused)
@@ -679,8 +714,9 @@ namespace CadReader
 
         // R352. The plot table of the request, the input border, per baseplan face inside the Phase 1 border, from the location plan, the
         // footprint blocks and the area key of the same request, written to read_plotTable.json and to the step plotTable
+        // picks gives the villa type conflict picks (R473), each set on its plot of the table before it is written
         private static void Table(WorkerContext run, Located located, JObject baseplan, JObject footprint, SheetRows.AreaKey[] areaKeys, int overlapDecimals, HashSet<string> steps,
-            Dictionary<string, Dictionary<string, Dictionary<string, object>>> made)
+            Dictionary<string, Dictionary<string, Dictionary<string, object>>> made, ReadPicks.PicksTaken picks)
         {
             WorkerRequest request = run.Request;
             if (request.Inputs.All(input => input.Role != PlotTable.BorderRole))
@@ -715,6 +751,10 @@ namespace CadReader
                 throw run.Refusal(refused.Message);
             }
             run.Counts["plot table faces"] = table.Count;
+            if (picks != null && picks.Conflicts.Count > 0)
+            {
+                run.Counts["plot table villa types set by a conflict pick"] = ReadPicks.ApplyConflicts(table, picks.Conflicts, run.Issues);
+            }
             var rows = new JArray();
             foreach (Dictionary<string, object> row in table.Values)
             {
