@@ -15,10 +15,10 @@
   Revit closed, lock released. Blocked: none
 - Lane C DEMO-FIX, 09:55, branch fix/lane-c-demo-fix: step rows of the pane run steps, a loader on every button, Confirm all in 3 Review
   data, idle buttons hidden (R444). Now: the gate and the PR, merge by 10:15, then lane-b reinstalls. Blocked: none
-- Lane D FIX-1NOV-D, 17:26, branch fix/1nov-d: config/shared_parameters.xlsx the one parameter source, R460 to R465, Q330 to Q335.
-  Now: the PR. Gate green, review 1 and breaker 1 done. Blocked: none
+- Lane D D2, 19:55, branch fix/1nov-d2: Q330, the read KC2 of the IMC key copy from a detached worktree of the installed fix/1nov-b a8c5056,
+  no reinstall. Cause of Q330: Revit never started in the 3 attempts, no journal between 14:10 and 16:05. Now: the read. Blocked: none
 
-Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane D FIX-1NOV-D, Lane C DEMO-FIX, Lane B demo-fill, Lane A 4j-2, Lane D 4j-1b, Lane C SCAN-UI, Lane A 4i, Lane B 6a, 1 Nov 2026.
+Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane D D2, Lane D FIX-1NOV-D, Lane C DEMO-FIX, Lane B demo-fill, Lane A 4j-2, Lane D 4j-1b, Lane C SCAN-UI, Lane A 4i, Lane B 6a, 1 Nov 2026.
 
 ## Repo map
 
