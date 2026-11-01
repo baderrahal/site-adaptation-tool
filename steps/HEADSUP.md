@@ -4,10 +4,10 @@
 
 ### Lane A
 
-- Lane: A, round FIX-1NOV-A2, branch fix/1nov-a2. Time: 2026-11-01 23:17. Blocked: none. Resume point below
-- Done and pushed: R472 (Q278) proved, R473 and R474 (Q292) merged, a pick proved on NBH 012 copies: plot outlines 3,134 to 912 with MP_PLOT_LINE picked, inputs unchanged
-- Running: Python gate, parity on 8608337 (p1nov/all_parity_a2.txt), review and breaker. C# gate green: net48 1,904, net8.0 1,679 after the label fix
-- Next: tally parity, fix what review and breaker find, records (log, PROGRESS, 01_next), merge main, PR, tell lane-c
+- Lane: A, round FIX-1NOV-A2, branch fix/1nov-a2 at 4ee3213. Time: 2026-11-01 23:31. Blocked: a shutdown at 00:00, no merge tonight. Resume point below
+- Done and pushed: R472 (Q278) and R473, R474 (Q292) built, tested, proved on NBH 012 copies (p1nov2), review 1 fixed (default picks read as no picks, refused proposal quiet)
+- Running at shutdown: Python gate, parity on 8608337 (p1nov/all_parity_a2.txt), breaker 1. Rerun what did not finish
+- Next: C# and Python gate on 4ee3213, parity (p1nov scripts/all_parity.sh in worktree p1nov-head), breaker, records (log, PROGRESS, 01_next), merge main, PR, tell lane-c
 
 ### Lane B, C and D
 
