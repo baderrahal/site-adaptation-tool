@@ -11,7 +11,7 @@
 
 ### Lane B, C and D
 
-- Lane B Task 6 (FIX-1NOV-B), 00:10, branch fix/1nov-b-task6 283ec9f: R457 fills the Neighbourhood list, installed. Now: pass A from step 3 on NBH 012,
+- Lane B Task 6 (FIX-1NOV-B), 00:22, branch fix/1nov-b-task6 283ec9f: R457 fills the Neighbourhood list, installed. Now: pass A from step 3 on NBH 012,
   then pass B, demo-check, the PR. Resume: drive.ps1 -Pass A -From s3 on lane_b_task6/start-dryrun-on.rvt, log there. Lane D D3 waits for my word
 - Lane C DEMO-FIX, 09:55, branch fix/lane-c-demo-fix: step rows of the pane run steps, a loader on every button, Confirm all in 3 Review
   data, idle buttons hidden (R444). Now: the gate and the PR, merge by 10:15, then lane-b reinstalls. Blocked: none
