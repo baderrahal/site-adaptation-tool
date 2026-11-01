@@ -446,3 +446,9 @@ No real input reaches these, since the ROSHN config runs roshnPastJob (Q224) and
 - Review 2, breaker 2, plan_walls.partner and Walls.Partner: the mitre pairs two walls moved to opposite sides of a shared edge of two irregular written plots, and the result follows the walk order. 0 adjacent irregular written plots in the all scope.
 - Breaker 2, plan_walls.mitre: no limit on how far a mitre point lies from its vertex, a 3 degree notch grows its walls by 1.9 m. 0 shifts over 0.3 m on every baseplan face.
 - Breaker 2, plan_walls.mitre: a wall shorter than its two mitre retreats reverses, under 0.35 m between two 60 degree corners. 0 such walls on every baseplan face.
+
+## FIX-1NOV-A, review 1 and breaker pass 1
+
+- Review 1, check_rows.ramp_joints and CheckRows.RampJoints: R471 groups the plan corners at 3 decimals, R470 the raw corners, so a pair 8.6 to 10 mm apart could join in one and not the other, a missing row. 0 of 4,113 joints over 1 mm after R470.
+- Review 1, test gap: no test puts two corners exactly floors.rampJoint.nearM apart, both languages use the same float test.
+- Review 1, JointLimits and joint_limits take an inf or NaN nearM, joint_near refuses it and JointNear does not test finite. config holds 0.01.
