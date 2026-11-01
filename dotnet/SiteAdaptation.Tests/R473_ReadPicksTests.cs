@@ -106,11 +106,13 @@ namespace SiteAdaptation.Tests
             Assert.Equal(BothOutlines, Source(picks, "plotOutline"));
             Assert.Equal("proposal", From(picks, "plotNumber"));
             Assert.Equal("Base.dwg|MP_PLOT_TEXT", Source(picks, "plotNumber"));
-            Assert.Equal("proposal", From(picks, "villaBlock"));
+            // Breaker 1 of FIX-1NOV-A2: a villa block source names one insert layer of a drawing that holds one villa type per layer, so the
+            // proposal is not taken and falls back quietly
+            Assert.Equal("default", From(picks, "villaBlock"));
             ReadPicks.PicksTaken taken = ReadPicks.Take(picks, Files);
             Assert.Equal(new[] { "MP_PLOT_ALT", "MP_PLOT_LINE" }, taken.PlotLineLayers);
             Assert.Equal(new[] { "MP_PLOT_TEXT" }, taken.PlotLabelLayers);
-            Assert.Equal("MP_VL", taken.VillaBlockLayer);
+            Assert.Null(taken.VillaBlockLayer);
             Assert.Equal("Typology_Rev9", taken.TypologyHeader);
             Assert.Empty(taken.Lines);
         }

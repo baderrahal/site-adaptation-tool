@@ -171,7 +171,10 @@ namespace SiteAdaptation.Common.ReadData
                 case PlotNumber:
                     return OtherFile(what, file, files.Baseplan, "baseplan");
                 case VillaBlock:
-                    return OtherFile(what, file, files.VillaBlocks, "villa blocks");
+                    // Breaker 1 of FIX-1NOV-A2: the footprint drawing holds each villa type on its own insert layer, so a source of one layer would
+                    // keep the inserts of one type and drop the rest (491 of 3,780 on the real drawing), the read keeps every insert (Q248, Q346)
+                    return OtherFile(what, file, files.VillaBlocks, "villa blocks")
+                        ?? "the " + what + " names one insert layer, the villa blocks of the drawing lie on one layer per villa type, so the read keeps every insert (R473)";
                 case VillaType:
                     if (rest.StartsWith("block|", StringComparison.Ordinal) || rest.StartsWith("text|", StringComparison.Ordinal))
                     {

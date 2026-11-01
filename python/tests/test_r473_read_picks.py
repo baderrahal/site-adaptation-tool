@@ -21,7 +21,9 @@ def test_r473_a_pick_or_proposal_is_taken_and_the_default_keeps_config():
     made = picks(plotOutline=("Base.dwg|MP_PLOT_ALT + MP_PLOT_LINE", "pick"), villaBlock=("f.dwg|MP_DP2", "proposal"),
                  villaType=("sales.xlsx|Sales|Type B|shift 0", "pick"))
     assert read_steps.pick_of(made, "plotOutline", FILES) == (["MP_PLOT_ALT", "MP_PLOT_LINE"], None)
-    assert read_steps.pick_of(made, "villaBlock", FILES) == ("MP_DP2", None)
+    # Breaker 1 of FIX-1NOV-A2: one villa type per insert layer, so a villa block source of one layer is never taken (Q346)
+    layer, line = read_steps.pick_of(made, "villaBlock", FILES)
+    assert layer is None and "one layer per villa type" in line
     assert read_steps.pick_of(made, "villaType", FILES) == ("Type B", None)
     assert read_steps.pick_of(made, "plotNumber", FILES) == (None, None)
 
@@ -36,7 +38,7 @@ def test_r473_a_pick_of_another_file_keeps_the_default_with_the_line():
     assert header is None and "the sheet Other" in line
 
 
-def test_r473_a_villa_block_pick_limits_the_blocks_of_the_read_to_its_layer(tmp_path, capsys):
+def test_r473_a_villa_block_pick_of_one_layer_keeps_every_block_of_the_read(tmp_path, capsys):
     settings, _ = made_settings(tmp_path)
     steps = tmp_path / "steps"
     assert read_steps.main(["--settings", str(settings), "--steps", str(steps), "--only", "blocks"]) == 0, capsys.readouterr().err
@@ -45,7 +47,8 @@ def test_r473_a_villa_block_pick_limits_the_blocks_of_the_read_to_its_layer(tmp_
     path.write_text(json.dumps(picks(villaBlock=("f.dwg|MP_DP2", "pick"))), encoding="utf-8")
     assert read_steps.main(["--settings", str(settings), "--steps", str(steps), "--only", "blocks", "--picks", str(path)]) == 0, capsys.readouterr().err
     payload = parity.load_step(steps / parity.step_name("blocks", "python"), "python")
-    assert list(payload["plots"]) == ["B7"]
+    # Breaker 1 of FIX-1NOV-A2: the drawing holds one villa type per insert layer, a pick of one layer would drop the other types
+    assert len(payload["plots"]) == 3 and "one layer per villa type" in capsys.readouterr().out
     assert "picks" in {item["role"] for item in payload["run"]["inputs"]}
     # A pick of another drawing than the blocks.json read keeps every block and says why
     path.write_text(json.dumps(picks(villaBlock=("g.dwg|MP_DP2", "pick"))), encoding="utf-8")

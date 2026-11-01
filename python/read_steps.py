@@ -119,7 +119,9 @@ def pick_refusal(kind, source, files):
     if kind in ("plotOutline", "plotNumber"):
         return other_file(what, file, files.get("baseplan"), "baseplan")
     if kind == "villaBlock":
-        return other_file(what, file, files.get("villaBlocks"), "villa blocks")
+        # Breaker 1 of FIX-1NOV-A2: one villa type per insert layer, a source of one layer would drop the other types (Q248, Q346)
+        return other_file(what, file, files.get("villaBlocks"), "villa blocks") or (
+            "the %s names one insert layer, the villa blocks of the drawing lie on one layer per villa type, so the read keeps every insert (R473)" % what)
     if kind != "villaType":
         return "the pick %s is of no kind the read takes (R473)" % source
     if rest.startswith("block|") or rest.startswith("text|"):
