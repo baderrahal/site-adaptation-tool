@@ -11,8 +11,9 @@
 
 ### Lane B, C and D
 
-- Lane B FIX-1NOV-B, 20:58, fix/1nov-b: tasks 2 and 3 done, proven in Revit on NBH 012, gate green. Now: the PR. A Parsons shutdown
-  notice says 21:14 on this laptop. Next: Task 6 hand run after Lane A. Blocked: none
+- Lane B Task 6 (FIX-1NOV-B), 22:45, branch fix/1nov-b-task6: tasks 2 and 3 merged as PR 127. Now: the hand run of the demo on main 8f5412e,
+  pass A (Dry run on) at step 2 Read data, Revit on Documents/SiteAdaptation/lane_b_task6/start-dryrun-on.rvt, log lane_b_task6/log.md, driver drive.ps1.
+  Next: steps 3 to 9 of pass A, then pass B (Dry run off) on start-dryrun-off.rvt, then steps/demo-check.md from log.md. Resume: rerun drive.ps1 by stage
 - Lane C DEMO-FIX, 09:55, branch fix/lane-c-demo-fix: step rows of the pane run steps, a loader on every button, Confirm all in 3 Review
   data, idle buttons hidden (R444). Now: the gate and the PR, merge by 10:15, then lane-b reinstalls. Blocked: none
 - Lane D D2, 21:50, branch fix/1nov-d2: R466, a test host job takes the design values of R405 from the repo config, the read KC2 ran
