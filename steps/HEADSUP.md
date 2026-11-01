@@ -4,8 +4,8 @@
 
 ### Lane A
 
-- Lane: A, round 4j-2, branch feat/addin-4j2-split-walls. Time: 2026-11-01 05:40. Blocked: none
-- Now: parity on the fixed code 592c0f4, the past job, rev6 and rev6 with the split test, review 2 and breaker 2 on the R416 fix, the end records
+- Lane: A, round 4j-2, branch feat/addin-4j2-split-walls. Time: 2026-11-01 06:40. Blocked: none
+- Now: the PR of 4j-2. Parity 48 runs 0 failures, past job 0 differ, gate green
 - Done: R414 off (Q303, Q304), R415, R416 with mitre corners, R417 stopped (Q259), review 1 APPROVE, breaker 1 REAL fixed, past job 0 differ
 - Next: the PR and its merge before 09:30, a message to lane-b with R414 to R416, else PAUSED
 

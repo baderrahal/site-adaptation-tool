@@ -16,11 +16,11 @@ Done:
 - Main merged after PR 117 to 121. Q257 and Q258 renumbered Q303 and Q304, Q288 renumbered Q299, for Lane C and D
 
 Checked:
-- Past job against main 705ec33, RAN: PASTJOB
-- Parity, RAN: PARITY
+- Past job against main 705ec33, RAN: whole project and the 7 keys on 592c0f4, 0 of 673,868 values differ on the whole project, 0 on each key, every plan byte-equal, the new fields null
+- Parity, RAN: 13 steps, net48 and net8.0, whole project and the 7 keys, past job, rev6 and rev6 with the split test, 48 runs, 624 step lines, 0 failures, 0 refused
 - Status block, RAN: main 705ec33 678 values (Bader 55, MEASURED 51, DOCUMENT 297, RECOMMENDED 14, Code 3, UNKNOWN 258), branch 682: DOCUMENT +1, RECOMMENDED +1, UNKNOWN +2
 - Moved walls on the rev6 all build, RAN: 37 of 1,415 walls on 42 irregular plots, 28 of 28 corners share one end, 0 gaps, 0 overlaps
-- Gate, RAN: GATE
+- Gate, RAN: pytest 2,236 passed, 1 skipped. C# net48 1,796, net8.0 1,578, 0 failed, on 592c0f4
 
 Remains:
 - The split test stays off until Q303 and Q304. The garden wall of 2.8.B waits on a read of the prototype doors (Q259)
