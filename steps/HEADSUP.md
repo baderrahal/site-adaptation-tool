@@ -15,8 +15,9 @@
   notice says 21:14 on this laptop. Next: Task 6 hand run after Lane A. Blocked: none
 - Lane C DEMO-FIX, 09:55, branch fix/lane-c-demo-fix: step rows of the pane run steps, a loader on every button, Confirm all in 3 Review
   data, idle buttons hidden (R444). Now: the gate and the PR, merge by 10:15, then lane-b reinstalls. Blocked: none
-- Lane D D2, 21:50, branch fix/1nov-d2: R466, a test host job takes the design values of R405 from the repo config, the read KC2 ran
-  clean, the sheet takes group Text (Q336). Now: the gate and the PR. Then D3 after Lane B's Task 6 hand run. Blocked: none
+- Lane D D3, 22:45, branch fix/1nov-d3: Links mode on the real prototypes (Q275). D2 merged as PR 129 (R466). Only C10 and DT3 are Revit 2024
+  copies, 11 of 13 need an upgrade window. Q275 reads as the R466 fault: no step could reach a log, so the 5 minute first step guard fired.
+  Next: the upgrades after Lane B's Task 6 hand run, a spec field for linkFolder of a buttons run, then buttons 1 to 9. Blocked: the window lock
 
 Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane D D2, Lane D FIX-1NOV-D, Lane C DEMO-FIX, Lane B demo-fill, Lane A 4j-2, Lane D 4j-1b, Lane C SCAN-UI, Lane A 4i, Lane B 6a, 1 Nov 2026.
 
