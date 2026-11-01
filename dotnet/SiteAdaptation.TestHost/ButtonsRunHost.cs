@@ -271,6 +271,19 @@ namespace SiteAdaptation.TestHost
                     entry["villasNotRead"] = failure.GetType().Name + " " + failure.Message;
                 }
             }
+            // R468. Bader's checkpoint of 1 Nov: a restart loses nothing a button committed. A save that fails is noted and the run goes on
+            if (committed && document != null && document.IsValidObject && document.IsModified)
+            {
+                try
+                {
+                    document.Save();
+                    entry["savedAfter"] = true;
+                }
+                catch (Exception failure)
+                {
+                    entry["savedAfter"] = failure.GetType().Name + " " + failure.Message;
+                }
+            }
             Save();
             if (!ButtonsRun.GoesOn(step, outcome))
             {

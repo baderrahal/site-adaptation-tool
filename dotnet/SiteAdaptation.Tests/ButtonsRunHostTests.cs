@@ -395,6 +395,18 @@ namespace SiteAdaptation.Tests
             Assert.Contains("if ($round.inputs.prototypes) {", script);
         }
 
+        // R468. The copy is saved after each button that committed, before the result is written and before the run may stop on an outcome
+        [Fact]
+        public void R468_the_copy_is_saved_after_each_button_that_committed()
+        {
+            string host = Text("dotnet", "SiteAdaptation.TestHost", "ButtonsRunHost.cs");
+            int finish = host.IndexOf("private string Finish(", StringComparison.Ordinal);
+            int guarded = host.IndexOf("if (committed && document != null && document.IsValidObject && document.IsModified)", finish, StringComparison.Ordinal);
+            int saved = host.IndexOf("document.Save();", guarded, StringComparison.Ordinal);
+            int goesOn = host.IndexOf("ButtonsRun.GoesOn(step, outcome)", finish, StringComparison.Ordinal);
+            Assert.True(finish > 0 && guarded > finish && saved > guarded && goesOn > saved);
+        }
+
         // R467. Round D3. A buttons run names linkFolder of R450 for its config copy, so a Links run on the real prototypes and the swap back
         // to the mass files need no edit of the config of the repo. prototypes takes the folder of the plan, the prototypes input of the spec
         [Fact]
