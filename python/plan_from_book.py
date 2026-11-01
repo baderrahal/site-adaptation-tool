@@ -1250,7 +1250,7 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
                 kin[plot] = (index, (rows.get(plot) or {}).get("typologyRev9") or None)
         placed = plan_walls.walls(numbers, set(ffls), rings, opened, ffls, wall_rules, faced, kin)
         if lines is not None:
-            plan_walls.inside(placed, rings, set(ffls), irregulars, lines["half"])
+            plan_walls.inside(placed, rings, set(ffls), irregulars, lines["half"], lines["tolerance"], wall_rules["near"])
         for wall in placed:
             item = plan_walls.entry(wall)
             plan_walls.mark(item, wall, statuses, applied_of)

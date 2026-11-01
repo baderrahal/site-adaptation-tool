@@ -79,6 +79,10 @@ namespace SiteAdaptation.Common
         internal const string Source = "keyRules";
         internal const string PlotsSource = "locationPlan";
 
+        // R416, plan_walls.INSIDE_SOURCE. The source of the ends of a wall moved inside an irregular plot, its line by Manual Rev 06 2.8.A and no
+        // longer keyRules.wallLine
+        internal const string InsideSource = "manualInside";
+
         // The override of the list that turns a link, plan_walls.ROTATION
         private const string Rotation = "rotationDeg";
         private static readonly string[][] Known =
@@ -507,11 +511,16 @@ namespace SiteAdaptation.Common
 
         // plan_walls.inside, R416 and Manual Rev 06 2.8.A: under rev6 a wall on an irregular written plot moves half the thickness inside the
         // plot it is filed under when that one is irregular, also when the other is too as the wall is written once, else inside the first
-        // irregular written plot of its plots. A wall on no irregular written plot keeps its centre on the edge
-        public static void Inside(IList<PlanWall> walls, IReadOnlyDictionary<string, double[][]> rings, ISet<string> written, IReadOnlyDictionary<string, bool> irregular, double half)
+        // irregular written plot of its plots. A wall on no irregular written plot keeps its centre on the edge. Then the moved walls that met at
+        // a face vertex meet again (Mitre)
+        public static void Inside(IList<PlanWall> walls, IReadOnlyDictionary<string, double[][]> rings, ISet<string> written, IReadOnlyDictionary<string, bool> irregular, double half,
+            double tolerance, double near)
         {
-            foreach (PlanWall wall in walls)
+            var before = new Dictionary<int, double[][]>();
+            var order = new List<int>();
+            for (int index = 0; index < walls.Count; index++)
             {
+                PlanWall wall = walls[index];
                 List<string> targets = wall.Plots.Where(other => written.Contains(other) && irregular.TryGetValue(other, out bool yes) && yes).ToList();
                 string target = targets.Contains(wall.Plot) ? wall.Plot : targets.FirstOrDefault();
                 if (target == null)
@@ -525,9 +534,9 @@ namespace SiteAdaptation.Common
                 double length = Math.Sqrt(dx * dx + dy * dy);
                 double ux = dx / length, uy = dy / length;
                 double twice = 0.0;
-                for (int index = 0; index < ring.Length; index++)
+                for (int vertex = 0; vertex < ring.Length; vertex++)
                 {
-                    double[] p = ring[index], q = ring[(index + 1) % ring.Length];
+                    double[] p = ring[vertex], q = ring[(vertex + 1) % ring.Length];
                     twice += p[0] * q[1] - q[0] * p[1];
                 }
                 // The inside of the plot lies left of the edge on an anticlockwise ring and right of it on a clockwise one, the other plot of the
@@ -538,8 +547,127 @@ namespace SiteAdaptation.Common
                     nx = -nx;
                     ny = -ny;
                 }
+                before[index] = wall.Ends.Select(end => new[] { end[0], end[1] }).ToArray();
+                order.Add(index);
                 wall.Ends = wall.Ends.Select(end => new[] { end[0] + nx * half, end[1] + ny * half }).ToArray();
                 wall.LineInsideM = half;
+            }
+            Mitre(walls, before, order, rings, tolerance, near);
+        }
+
+        // plan_walls.on_vertex, R416: the index of the vertex of ring the end side, 0 the first and 1 the last, of a wall on edge sat on, -1 for
+        // an end mid edge
+        private static int OnVertex(double[][] ring, int edge, int side, double[] point)
+        {
+            int index = (edge + side) % ring.Length;
+            return point[0] == ring[index][0] && point[1] == ring[index][1] ? index : -1;
+        }
+
+        // plan_walls.next_point, R416: the first vertex of ring from index in the direction step, 1 on or -1 back, that is not that vertex, null
+        // where all are
+        private static double[] NextPoint(double[][] ring, int index, int step)
+        {
+            for (int count = 1; count < ring.Length; count++)
+            {
+                double[] found = ring[(((index + step * count) % ring.Length) + ring.Length) % ring.Length];
+                if (found[0] != ring[index][0] || found[1] != ring[index][1])
+                {
+                    return found;
+                }
+            }
+            return null;
+        }
+
+        // plan_walls.partner, R416: the moved wall and its end that meet the end side of the moved wall index at the face vertex that end sat on
+        // before the move, else null. The other runs along the next edge of the face from that vertex, within near of it, and its end sat on a
+        // face vertex of its own plot within near of the first. An end mid edge, a corner whose edges run on within tolerance, as R415 merges
+        // them, or fold back, and an end whose next edge holds no moved wall have none
+        private static Tuple<int, int> Partner(IList<PlanWall> walls, Dictionary<int, double[][]> before, List<int> order, int index, int side,
+            IReadOnlyDictionary<string, double[][]> rings, double tolerance, double near, HashSet<Tuple<int, int>> done)
+        {
+            PlanWall wall = walls[index];
+            double[][] ring = rings[wall.Plot];
+            int at = OnVertex(ring, wall.Edge, side, before[index][side]);
+            if (at < 0)
+            {
+                return null;
+            }
+            double[] vertex = ring[at], far = before[index][1 - side];
+            double[] following = NextPoint(ring, at, side == 1 ? 1 : -1);
+            if (following == null)
+            {
+                return null;
+            }
+            double turn = Math.Abs(TurnOf(far, vertex, following));
+            if (turn <= tolerance || turn >= 180.0 - tolerance)
+            {
+                return null;
+            }
+            double dx = following[0] - vertex[0], dy = following[1] - vertex[1];
+            double length = Math.Sqrt(dx * dx + dy * dy);
+            double ux = dx / length, uy = dy / length;
+            foreach (int other in order)
+            {
+                if (other == index)
+                {
+                    continue;
+                }
+                for (int end = 0; end < 2; end++)
+                {
+                    double[] point = before[other][end], tip = before[other][1 - end];
+                    double px = point[0] - vertex[0], py = point[1] - vertex[1];
+                    if (done.Contains(Tuple.Create(other, end)) || Math.Sqrt(px * px + py * py) > near)
+                    {
+                        continue;
+                    }
+                    if (OnVertex(rings[walls[other].Plot], walls[other].Edge, end, point) < 0)
+                    {
+                        continue;
+                    }
+                    if (Math.Abs((tip[0] - vertex[0]) * uy - (tip[1] - vertex[1]) * ux) <= near && (tip[0] - vertex[0]) * ux + (tip[1] - vertex[1]) * uy > 0)
+                    {
+                        return Tuple.Create(other, end);
+                    }
+                }
+            }
+            return null;
+        }
+
+        // plan_walls.mitre, R416 and Manual Rev 06 2.8.A: the wall follows the exact plot shape with its outer face on the plot limit, so two moved
+        // walls whose ends met at a face vertex before the move meet again at the crossing of their moved centre lines, the mitre point of the
+        // offset edges, which closes the square a notch corner left unbuilt and parts the overlap of a convex one. In the order of the walls and
+        // their ends, each end once. Any other end stays square
+        private static void Mitre(IList<PlanWall> walls, Dictionary<int, double[][]> before, List<int> order, IReadOnlyDictionary<string, double[][]> rings, double tolerance, double near)
+        {
+            var done = new HashSet<Tuple<int, int>>();
+            foreach (int index in order)
+            {
+                for (int side = 0; side < 2; side++)
+                {
+                    if (done.Contains(Tuple.Create(index, side)))
+                    {
+                        continue;
+                    }
+                    Tuple<int, int> pair = Partner(walls, before, order, index, side, rings, tolerance, near, done);
+                    if (pair == null)
+                    {
+                        continue;
+                    }
+                    int other = pair.Item1, end = pair.Item2;
+                    double[] first = walls[index].Ends[side], second = walls[other].Ends[end];
+                    double ax = before[index][1][0] - before[index][0][0], ay = before[index][1][1] - before[index][0][1];
+                    double bx = before[other][1][0] - before[other][0][0], by = before[other][1][1] - before[other][0][1];
+                    double cross = ax * by - ay * bx;
+                    if (cross == 0)
+                    {
+                        continue;
+                    }
+                    double t = ((second[0] - first[0]) * by - (second[1] - first[1]) * bx) / cross;
+                    walls[index].Ends[side] = new[] { first[0] + t * ax, first[1] + t * ay };
+                    walls[other].Ends[end] = new[] { first[0] + t * ax, first[1] + t * ay };
+                    done.Add(Tuple.Create(index, side));
+                    done.Add(Tuple.Create(other, end));
+                }
             }
         }
 
@@ -592,7 +720,7 @@ namespace SiteAdaptation.Common
             if (line != null && irregular != null)
             {
                 // R416. Under rev6 the walls of an irregular plot move inside it, plan_from_book.build after plan_walls.walls
-                Inside(walls, rings, written, irregular, line.Half);
+                Inside(walls, rings, written, irregular, line.Half, line.Tolerance, rules.Near);
             }
             return walls;
         }
@@ -608,6 +736,12 @@ namespace SiteAdaptation.Common
             return plan?.AppliedOrder ?? plan?.Overrides["applied"] as List<string> ?? new List<string>();
         }
 
+        // plan_walls.entry, R416: the ends of a wall moved inside an irregular plot take the source of the move, every other wall keyRules
+        internal static string EndsSource(double? lineInsideM)
+        {
+            return lineInsideM.HasValue && lineInsideM.Value != 0.0 ? InsideSource : Source;
+        }
+
         // plan_walls.mark: the status of each value of a wall. The base and the top take the FFL of the highest or lowest of the written plots of
         // the wall, so every override of the plots of the wall, in their order, whose set holds the field touched it and is named, heightM the
         // base and the top (Q112, Q113, breaker F3 of PR 79, R2 of the review of PR 85). A turn decides only whether a wall stands, so a rotation
@@ -621,7 +755,7 @@ namespace SiteAdaptation.Common
             var reading = new Dictionary<string, List<string>> { ["base"] = kept(wall.BasePlot), ["top"] = kept(wall.TopPlot) };
             foreach (string field in Fields)
             {
-                string source = field == "plots" ? PlotsSource : Source;
+                string source = field == "plots" ? PlotsSource : field == "ends" ? EndsSource(wall.LineInsideM) : Source;
                 Tuple<string, JObject, string> status = table.Of("walls." + field, source, null, done, null, null, reading.TryGetValue(field, out List<string> setters) ? setters : null);
                 // Q107. The source stays that of the value, an override that moved it named in the key alone
                 wall.Status[field] = new[] { source, status.Item1, status.Item3 };

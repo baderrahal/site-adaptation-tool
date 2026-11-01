@@ -149,7 +149,7 @@
     "garden_wall_top_above_ffl": 1700,
     "utility_cabinet_raise": 100,
     "irregular_tolerance_deg": 2.0,
-    "irregular_tolerance_source": "Rev 06, 2.8.A irregular plots at corners or next to sikkas, the boundary wall on the exact plot shape, its outer face on the plot limit and the wall of plot.boundary_wall_thickness fully inside. The degrees a corner may stand off 90 and an edge off straight, round 4j-2 measurement on the 7 keys (2,501 plots): the largest deviation of a 4 corner face 1.003, the smallest of a real irregular corner 44.5, 41 plots irregular at any tolerance from 1.1 to 44 (R415, R416)"
+    "irregular_tolerance_source": "Rev 06, 2.8.A irregular plots at corners or next to sikkas, the boundary wall on the exact plot shape, its outer face on the plot limit and the wall of plot.boundary_wall_thickness fully inside. The degrees a corner may stand off 90 and an edge off straight, round 4j-2 measurement on the 7 keys (2,501 plots): the largest deviation of a 4 corner face 1.003, the smallest of a real irregular corner 44.5, 41 plots irregular at any tolerance from 1.1 to 44 on the 7 key covers, on the whole baseplan the count moves from 179 to 175 at 2.72 degrees (R415, R416)"
   },
   "hands": {
     "source": "Round 17, the majority rule on the Parsons IMC key with the Prototypes_2024 files (R274). mirrored by the mirror flag of the Building Footprint block of the plot and its open end, the side of the row with no unit plot beside it, seen from the road. A pair the key never showed falls back to the block mirror flag alone",

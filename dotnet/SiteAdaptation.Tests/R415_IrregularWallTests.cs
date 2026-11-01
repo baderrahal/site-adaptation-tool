@@ -47,7 +47,21 @@ namespace SiteAdaptation.Tests
 
         private static string Ends(PlanWall wall)
         {
-            return string.Join(" ", wall.Ends.SelectMany(point => point).Select(value => Math.Round(value, 6).ToString("R", CultureInfo.InvariantCulture)));
+            return Text(wall.Ends.SelectMany(point => point).ToArray());
+        }
+
+        private static string Text(params double[] values)
+        {
+            return string.Join(" ", values.Select(value => Math.Round(value, 6).ToString("R", CultureInfo.InvariantCulture)));
+        }
+
+        // keyPlans.wallEdgeM of a made up build, within which two ends of walls of two faces are one point
+        private const double Near = 0.05;
+
+        private static List<PlanWall> RingWalls(string plot, double[][] ring, int from)
+        {
+            return Enumerable.Range(from, ring.Length - from).Select(index => new PlanWall { Plot = plot, Edge = index, Plots = new List<string> { plot },
+                Ends = new[] { (double[])ring[index].Clone(), (double[])ring[(index + 1) % ring.Length].Clone() } }).ToList();
         }
 
         [Fact]
@@ -90,11 +104,13 @@ namespace SiteAdaptation.Tests
         {
             var rings = new Dictionary<string, double[][]> { ["1"] = Chamfer, ["2"] = Points(12, 0, 12, 25, 24, 25, 24, 0) };
             var walls = new List<PlanWall> { Wall("1", 1, "1|2", 12, 0, 12, 22), Wall("1", 2, "1", 12, 22, 9, 25), Wall("2", 2, "2", 24, 25, 24, 0) };
-            Walls.Inside(walls, rings, new HashSet<string> { "1", "2" }, new Dictionary<string, bool> { ["1"] = true, ["2"] = false }, 0.1);
+            Walls.Inside(walls, rings, new HashSet<string> { "1", "2" }, new Dictionary<string, bool> { ["1"] = true, ["2"] = false }, 0.1, 2.0, Near);
             Assert.Equal(new double?[] { 0.1, 0.1, 0.0 }, walls.Select(wall => wall.LineInsideM).ToArray());
-            Assert.Equal("11.9 0 11.9 22", Ends(walls[0]));
+            // The two moved walls meet at the vertex 12, 22 again, at the mitre of their lines. The end at 9, 25 has no wall on the next edge, it stays square
             double step = 0.1 / Math.Sqrt(2.0);
-            Assert.Equal(string.Join(" ", new[] { 12.0 - step, 22.0 - step, 9.0 - step, 25.0 - step }.Select(value => Math.Round(value, 6).ToString("R", CultureInfo.InvariantCulture))), Ends(walls[1]));
+            double mitre = 34.0 - 2.0 * step - 11.9;
+            Assert.Equal(Text(11.9, 0, 11.9, mitre), Ends(walls[0]));
+            Assert.Equal(Text(11.9, mitre, 9.0 - step, 25.0 - step), Ends(walls[1]));
             Assert.Equal("24 25 24 0", Ends(walls[2]));
         }
 
@@ -106,7 +122,7 @@ namespace SiteAdaptation.Tests
             Func<HashSet<string>, bool, bool, string> moved = (written, one, two) =>
             {
                 var walls = new List<PlanWall> { Wall("1", 1, "1|2", 12, 0, 12, 25) };
-                Walls.Inside(walls, rings, written, new Dictionary<string, bool> { ["1"] = one, ["2"] = two }, 0.1);
+                Walls.Inside(walls, rings, written, new Dictionary<string, bool> { ["1"] = one, ["2"] = two }, 0.1, 2.0, Near);
                 return Ends(walls[0]) + " " + walls[0].LineInsideM.Value.ToString(CultureInfo.InvariantCulture);
             };
             // 1 regular, 2 irregular: the wall filed under 1 moves into 2. Both irregular: written once as today, inside 1 it is filed under
@@ -178,10 +194,14 @@ namespace SiteAdaptation.Tests
         {
             using (var steps = new LevelFloorStepTests())
             {
-                WorkerRequest past = steps.Request("i1", Walls.StepName);
+                WorkerRequest past = steps.Request("i1", Walls.StepName, KeyLevels.StepName);
                 Ran(past, "i1");
                 JObject made = RunStamp.Read(Path.Combine(past.StepsFolder, "step_walls_csharp.json"));
                 Assert.True(((JObject)made["plots"]).Properties().All(plot => plot.Value["raw"]["irregular"].Type == JTokenType.Null && plot.Value["raw"]["lineInsideM"].Type == JTokenType.Null));
+                // Under the past job no plot of the build holds a split test of R414 either
+                JObject levels = RunStamp.Read(Path.Combine(past.StepsFolder, "step_levels_csharp.json"));
+                Assert.Equal(((JObject)made["plots"]).Count, ((JObject)levels["plots"]).Count);
+                Assert.True(((JObject)levels["plots"]).Properties().All(plot => plot.Value["raw"]["splitTest"].Type == JTokenType.Null));
                 WorkerRequest request = Rev6Request(steps, "i2", Walls.StepName);
                 Ran(request, "i2");
                 JObject rev6 = RunStamp.Read(Path.Combine(request.StepsFolder, "step_walls_csharp.json"));
@@ -209,12 +229,95 @@ namespace SiteAdaptation.Tests
             List<PlanWall> rev6 = Walls.OfPlans(scope, built.Plans, built.Faces, built.Fronts, rules, null, line, irregular);
             Assert.Null(past[0].LineInsideM);
             Assert.Equal(past.Select(wall => wall.Plot + " " + wall.Edge), rev6.Select(wall => wall.Plot + " " + wall.Edge));
-            Func<PlanWall, PlanWall, string> moved = (before, after) => before.Plot + " " + before.Edge + " "
-                + string.Join(" ", before.Ends.Zip(after.Ends, (one, two) => Math.Round(two[0] - one[0], 6).ToString(CultureInfo.InvariantCulture) + "," + Math.Round(two[1] - one[1], 6).ToString(CultureInfo.InvariantCulture)));
-            // The wall 3 files on the edge it shares with 4 moves into 4, the walls of 4 into 4, the rest stays on the edge
-            Assert.Equal(new[] { "3 2 0.1,0 0.1,0", "4 1 0,-0.1 0,-0.1", "4 2 -0.1,0 -0.1,0" },
-                past.Zip(rev6, moved).Where(text => text.Contains("0.1")).ToArray());
-            Assert.Equal("0 0 0 0 0 0 0.1 0.1 0.1 0 0 0 0",string.Join(" ", rev6.Select(wall => wall.LineInsideM.Value.ToString(CultureInfo.InvariantCulture))));
+            // The wall 3 files on the edge it shares with 4 moves into 4, the walls of 4 into 4, the rest stays on the edge. The back corners of 4
+            // close at the mitre of the moved lines, the front ends next to the open front stay square
+            Func<PlanWall, string> points = wall => wall.Plot + " " + wall.Edge + " " + string.Join(" ", wall.Ends.Select(end => Text(end[0], end[1]).Replace(' ', ','))
+                .OrderBy(text => text, StringComparer.Ordinal));
+            Assert.Equal(new[] { "3 2 36.1,0 36.1,24.9", "4 1 36.1,24.9 47.9,24.9", "4 2 47.9,0 47.9,24.9" },
+                past.Zip(rev6, (before, after) => Ends(before) == Ends(after) ? null : points(after)).Where(text => text != null).ToArray());
+            Assert.Equal("0 0 0 0 0 0 0.1 0.1 0.1 0 0 0 0", string.Join(" ", rev6.Select(wall => wall.LineInsideM.Value.ToString(CultureInfo.InvariantCulture))));
+            // The ends of a moved wall take the status of R416, every other value that of the past job byte for byte
+            ValueStatusTable table = ValueStatus.Table(built.Config, built.Rules, "parsons2024Rev6");
+            foreach (PlanWall wall in past.Concat(rev6))
+            {
+                Walls.Mark(wall, table, built.Plans);
+            }
+            Assert.Equal(new[] { "3 2", "4 1", "4 2" }, rev6.Where(wall => wall.Status["ends"][0] == "manualInside").Select(wall => wall.Plot + " " + wall.Edge).ToArray());
+            Assert.True(past.Zip(rev6, (before, after) => after.Status["ends"][0] == "manualInside"
+                || Walls.Fields.All(field => string.Join("|", before.Status[field]) == string.Join("|", after.Status[field]) && Ends(before) == Ends(after))).All(same => same));
+            Assert.Equal("walls.ends from manualInside", rev6.First(wall => wall.LineInsideM > 0).Status["ends"][2]);
+        }
+
+        [Fact]
+        public void R416_an_l_shaped_clockwise_plot_with_a_wall_on_each_edge_closes_at_every_corner_reflex_and_convex()
+        {
+            // The L of 10 by 10 less its 4 by 6 back right part, drawn clockwise, its reflex corner at 6, 4
+            double[][] ring = Points(0, 0, 0, 10, 6, 10, 6, 4, 10, 4, 10, 0);
+            List<PlanWall> walls = RingWalls("1", ring, 0);
+            Walls.Inside(walls, new Dictionary<string, double[][]> { ["1"] = ring }, new HashSet<string> { "1" }, new Dictionary<string, bool> { ["1"] = true }, 0.1, 2.0, Near);
+            double[][] inner = Points(0.1, 0.1, 0.1, 9.9, 5.9, 9.9, 5.9, 3.9, 9.9, 3.9, 9.9, 0.1);
+            Assert.Equal(Enumerable.Range(0, inner.Length).Select(index => Text(inner[index][0], inner[index][1], inner[(index + 1) % inner.Length][0], inner[(index + 1) % inner.Length][1])),
+                walls.Select(Ends));
+            // Each corner, the reflex one too, holds one end of two walls, so no square is left unbuilt and none built twice
+            Assert.True(Enumerable.Range(0, walls.Count).All(index => walls[index].Ends[1].SequenceEqual(walls[(index + 1) % walls.Count].Ends[0])));
+        }
+
+        [Fact]
+        public void R416_a_chamfered_plot_closes_at_its_chamfer_and_keeps_square_ends_next_to_its_open_front()
+        {
+            // Chamfer anticlockwise, its front edge 0 open, a wall on each other edge
+            List<PlanWall> walls = RingWalls("1", Chamfer, 1);
+            Walls.Inside(walls, new Dictionary<string, double[][]> { ["1"] = Chamfer }, new HashSet<string> { "1" }, new Dictionary<string, bool> { ["1"] = true }, 0.1, 2.0, Near);
+            // The chamfer line x + y = 34 moved 0.1 inside is x + y = 34 less 0.1 times the root of 2
+            double line = 34.0 - 0.1 * Math.Sqrt(2.0);
+            Assert.Equal(new[] { Text(11.9, 0, 11.9, line - 11.9), Text(11.9, line - 11.9, line - 24.9, 24.9), Text(line - 24.9, 24.9, 0.1, 24.9), Text(0.1, 24.9, 0.1, 0) },
+                walls.Select(Ends));
+        }
+
+        [Fact]
+        public void R416_an_end_mid_edge_a_collinear_vertex_and_a_wall_that_meets_mid_edge_keep_square_ends()
+        {
+            // 1 a 12 by 25 plot with a vertex on its back edge that runs on, its side x 12 parted at y 10 where 2 and 3 beside it meet. All three taken
+            // irregular, the wall of 2 and 3 filed under 2 meets the side of 1 mid edge
+            var rings = new Dictionary<string, double[][]> { ["1"] = Points(0, 0, 12, 0, 12, 25, 6, 25, 0, 25), ["2"] = Points(12, 0, 24, 0, 24, 10, 12, 10),
+                ["3"] = Points(12, 10, 24, 10, 24, 25, 12, 25) };
+            var walls = new List<PlanWall> { Wall("1", 1, "1|2", 12, 0, 12, 10), Wall("1", 1, "1|3", 12, 10, 12, 25), Wall("1", 2, "1", 12, 25, 6, 25), Wall("1", 3, "1", 6, 25, 0, 25),
+                Wall("1", 4, "1", 0, 25, 0, 0), Wall("2", 2, "2|3", 24, 10, 12, 10) };
+            Walls.Inside(walls, rings, new HashSet<string> { "1", "2", "3" }, new Dictionary<string, bool> { ["1"] = true, ["2"] = true, ["3"] = true }, 0.1, 2.0, Near);
+            Assert.Equal(new[] { "11.9 0 11.9 10", "11.9 10 11.9 24.9", "11.9 24.9 6 24.9", "6 24.9 0.1 24.9", "0.1 24.9 0.1 0", "24 9.9 12 9.9" }, walls.Select(Ends));
+        }
+
+        [Fact]
+        public void R416_a_moved_wall_names_r416_and_the_manual_in_its_status_an_unmoved_wall_keeps_the_status_of_today()
+        {
+            JObject config = JObject.Parse(File.ReadAllText(WorkerRunTests.RepoConfig()));
+            ValueStatusTable table = ValueStatus.Table(config, Rules(), "parsons2024Rev6");
+            var marked = new Dictionary<string, PlanWall>();
+            foreach (KeyValuePair<string, double?> line in new[] { new KeyValuePair<string, double?>("past", null), new KeyValuePair<string, double?>("regular", 0.0), new KeyValuePair<string, double?>("moved", 0.1) })
+            {
+                PlanWall wall = Wall("1", 1, "1", 11.9, 0, 11.9, 25);
+                wall.Base = 9.5;
+                wall.Top = 12.4;
+                wall.BasePlot = "1";
+                wall.TopPlot = "1";
+                wall.LineInsideM = line.Value;
+                Walls.Mark(wall, table, new Dictionary<string, PlotPlan>());
+                marked[line.Key] = wall;
+            }
+            Func<PlanWall, string, string> status = (wall, field) => string.Join("|", wall.Status[field]);
+            Assert.True(Walls.Fields.All(field => status(marked["past"], field) == status(marked["regular"], field)));
+            Assert.Equal("keyRules|UNKNOWN|walls.ends from keyRules", status(marked["regular"], "ends"));
+            Assert.Equal("manualInside|UNKNOWN|walls.ends from manualInside", status(marked["moved"], "ends"));
+            Assert.True(new[] { "plots", "base", "top" }.All(field => status(marked["moved"], field) == status(marked["regular"], field)));
+            JArray entries = (JArray)table.Used["walls.ends from manualInside"]["entries"];
+            Assert.Contains("R416", (string)entries[0]["document"]);
+            Assert.Contains("Rev 06", (string)entries[0]["document"]);
+            Assert.Equal("2.8.A", (string)entries[0]["pageOrSheet"]);
+            List<string> named = entries.Select(entry => ((string)entry["entry"] ?? "").Split(new[] { ' ' }, 2).Last()).ToList();
+            Assert.Contains("rev6.irregular_tolerance_deg", named);
+            Assert.Contains("plot.boundary_wall_thickness", named);
+            Assert.DoesNotContain(named, name => name.Contains("wallLine"));
+            Assert.Contains(((JArray)table.Used["walls.ends from keyRules"]["entries"]).Select(entry => (string)entry["entry"] ?? ""), name => name.Contains("wallLine"));
         }
 
         [Fact]
