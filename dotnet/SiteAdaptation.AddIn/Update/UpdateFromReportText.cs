@@ -37,7 +37,6 @@ namespace SiteAdaptation.AddIn.Update
         public const string ChipCount = "<name> <n>";
 
         // Why the picked files are not read, in the problem line
-        public const string NoPlan = "the work folder holds no <n>, the plan of NBH <n> that 4 Check writes, so the Excel can not be compared (R402)";
         public const string WorkerMissing = "the worker CadReader.exe is not beside the add-in: <n>";
         public const string WorkerFailed = "the worker did not read the Excel: <n>";
         public const string WorkerNoAnswer = "no answer";

@@ -285,9 +285,22 @@ namespace SiteAdaptation.AddIn.Pane
             RefreshAll();
         }
 
+        // The code the settings hold stays on the list, so a scope saved with the model is never shown empty
         public void SetNbhCodes(IReadOnlyList<string> codes)
         {
-            NbhCodes = codes;
+            string saved = document?.Settings.Scope.Nbh;
+            IReadOnlyList<string> next = string.IsNullOrEmpty(saved) || codes.Contains(saved) ? codes : codes.Concat(new[] { saved }).ToList();
+            if (next.SequenceEqual(NbhCodes))
+            {
+                return;
+            }
+            NbhCodes = next;
+
+            // A combo given a new ItemsSource may write a null SelectedItem back, so the code saved with the model is put back
+            if (!string.IsNullOrEmpty(saved) && Nbh != saved)
+            {
+                Nbh = saved;
+            }
         }
 
         public static string StepName(int number)

@@ -5,8 +5,8 @@ using System.Linq;
 
 namespace SiteAdaptation.Common.Update
 {
-    // R402, R347. The request the add-in writes for the worker command updateFromReport: the config, the rules profile, the plan_<NBH>.json
-    // of the NBH the Excel files are of, the override list Apply writes to, and the Excel files as excel1, excel2. The NBH is the part of the file name before its first
+    // R402, R347. The request the add-in writes for the worker command updateFromReport: the config, the rules profile, the plan of the last
+    // 4 Check of the NBH the Excel files are of (R472), the override list Apply writes to, and the Excel files as excel1, excel2. The NBH is the part of the file name before its first
     // underscore, as the writers of R364 and R365 name them. The time limit is addin.workerTimeLimitS.updateFromReport of the config
     public static class UpdateWorkerRequest
     {
@@ -38,11 +38,6 @@ namespace SiteAdaptation.Common.Update
                 return null;
             }
             return found[0];
-        }
-
-        public static string PlanPath(string workFolder, string nbh)
-        {
-            return Path.Combine(workFolder, "plan_" + nbh + ".json");
         }
 
         public static WorkerRequest Make(string runId, WorkerDocument document, string configPath, string rulesPath, string planPath, string overridesPath, string profile, string nbh, IReadOnlyList<string> excelPaths, string outputFolder)
