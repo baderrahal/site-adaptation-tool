@@ -108,7 +108,10 @@
           <ColumnDefinition Width="*" />
           <ColumnDefinition Width="Auto" />
         </Grid.ColumnDefinitions>
-        <TextBlock Style="{StaticResource HelpText}" VerticalAlignment="Center" Margin="{StaticResource SA.Gap.Right24}" Text="{x:Static np:NewProjectText.Foot}" />
+        <StackPanel VerticalAlignment="Center" Margin="{StaticResource SA.Gap.Right24}">
+          <TextBlock Style="{StaticResource HelpText}" Text="{x:Static np:NewProjectText.Foot}" />
+          <TextBlock Style="{StaticResource HelpText}" Text="{x:Static np:NewProjectText.NoModel}" Visibility="{Binding NoModelShown, Converter={StaticResource Shown}}" />
+        </StackPanel>
         <StackPanel Grid.Column="1" Orientation="Horizontal">
           <Button Style="{StaticResource SA.Button.Base}" Height="{StaticResource SA.Size.MainButton}" Content="{x:Static np:NewProjectText.Cancel}" Click="OnCancel" />
           <Button Style="{StaticResource SA.Button.DryRun}" Height="{StaticResource SA.Size.MainButton}" Margin="{StaticResource SA.Gap.Left8}" Content="{x:Static np:NewProjectText.CheckFiles}" Click="OnCheck" />

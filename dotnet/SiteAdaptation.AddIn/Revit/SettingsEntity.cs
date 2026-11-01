@@ -5,7 +5,8 @@ using SiteAdaptation.Common.Settings;
 
 namespace SiteAdaptation.AddIn.Revit
 {
-    // R367. The Settings entity on ProjectInformation, saved with the .rvt. SettingsStore of Common decides when it is written
+    // R367. The Settings entity on ProjectInformation, saved with the .rvt. SettingsStore of Common decides when it is written, with a
+    // real run or Save setup (R445)
     internal sealed class SettingsEntity : ISettingsEntity
     {
         private readonly Document document;
@@ -31,7 +32,7 @@ namespace SiteAdaptation.AddIn.Revit
             // Outside a transaction Revit would throw its own message, this one names the rule
             if (!document.IsModifiable)
             {
-                throw new InvalidOperationException("the settings are written only inside the transaction of a real run (R367)");
+                throw new InvalidOperationException("the settings are written only inside the transaction of a real run or of Save setup (R367, R445)");
             }
             var entity = new Entity(Schema.Lookup(SettingsSchema.Guid) ?? Build());
             entity.Set(SettingsSchema.Field, json);

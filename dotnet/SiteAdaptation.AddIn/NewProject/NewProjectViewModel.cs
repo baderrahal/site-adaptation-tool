@@ -99,8 +99,8 @@ namespace SiteAdaptation.AddIn.NewProject
     }
 
     // Lane C NEWPROJ-UI, the New project window with no Revit type. Every pick stays in the window until Save setup, which lays them over the
-    // settings of the pane by SetupSave (R432) and hands the result back: the pane takes them in memory and the next real run writes them
-    // into the model (R367). Check files is SetupCheck (R431), read only. Get template writes TemplateBook (R433) where the user names,
+    // settings of the pane by SetupSave (R432) and hands the result back: the pane host writes them into the model at once (R445), or with
+    // no model to write to the pane keeps them and the next real run writes them (R367). Check files is SetupCheck (R431), read only. Get template writes TemplateBook (R433) where the user names,
     // never inside the input folder of config. Nothing here writes the model or a settings file
     public sealed class NewProjectViewModel : Bindable
     {
@@ -127,8 +127,9 @@ namespace SiteAdaptation.AddIn.NewProject
         private int columnIndex;
 
         public NewProjectViewModel(ProjectSettings current, string projectName, IReadOnlyList<SavedStart> starts, DrawingFactsResult facts, Func<string, bool, bool> there,
-            IPathPicker picker, Func<string, string> readText, Func<string, ProjectSettings, ProjectSettings> viewScan = null)
+            IPathPicker picker, Func<string, string> readText, Func<string, ProjectSettings, ProjectSettings> viewScan = null, bool modelOpen = true)
         {
+            NoModelShown = !modelOpen;
             this.viewScan = viewScan;
             this.current = current ?? new ProjectSettings();
             this.there = there;
@@ -255,6 +256,9 @@ namespace SiteAdaptation.AddIn.NewProject
         public string TodoLine { get { return todoLine; } private set { Set(ref todoLine, value); } }
         public bool CheckedOk { get { return checkedOk; } private set { Set(ref checkedOk, value); } }
         public string TemplateLine { get { return templateLine; } private set { Set(ref templateLine, value); } }
+
+        // R445. True when Save setup has no model to write to, so the foot says the next button run writes the setup
+        public bool NoModelShown { get; }
 
         // The settings Save setup gave, null after Cancel
         public ProjectSettings Result { get; private set; }

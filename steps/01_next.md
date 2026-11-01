@@ -212,7 +212,7 @@ One phase per session (Q096). Two lanes run the phases (D10, D17): tools/run-lan
 
 - Status: done, Lane C, laptop, 2026-10-31, one PR with code, tests and records, in the worktree Site Adaptation Tool Lane C WT
 - What: the window New project, the page How it works and the pane changes from Bader's boards of 31 Oct 2026 (docs/design/boards, docs/design/18-new-project.md), rules R430 to R434
-- Left: Q280 to Q287 for Bader, the scanner hook for a later Lane B round, the villa levels row for Lane A (steps/waiting-on-others.md), a Revit run that shows both windows
+- Left: Q281 to Q287 for Bader (Q280 closed in FIX-1NOV-C), the scanner hook for a later Lane B round, the villa levels row for Lane A (steps/waiting-on-others.md), a Revit run that shows both windows
 
 ## Lane C SCAN-UI, What the tool read and the step gates
 

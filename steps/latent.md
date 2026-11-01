@@ -512,3 +512,12 @@ No real input reaches these: the plot table of the demo holds whole numbers and 
 - Breaker 1, R474: read.json sources record the resolved picks, a sheet pick whose header the worker does not find or a conflict pick ApplyConflicts skips still reads pick. No real scan offers a sheet villa type, 104 of 104 conflict plots are plots of the read.
 - Breaker 1, a saved pick no longer a row of the newest scan falls back to the proposal with no line, and ScanStep.Latest may be a newer scan than the window showed. No real changed drawing reaches it.
 - Breaker 2: Take gives a line and Resolve none for a refused proposal, only with picks.json resolved on other files than the request. The folder hash holds picks.json.
+
+## FIX-1NOV-C, R445 Save setup
+
+- Breaker 3: a workshared model synced by another user keeps the old settings in the pane, Save setup and button 1 then write them over. The test host runs one user.
+- Breaker 5: a session made without LoadFrom (OnCreated, Seen) holds the defaults, so a template that carries the entity would be written over. No template carries it.
+- Breaker 7: Save setup writes and adds an undo entry even with no change.
+- Breaker 6: New project now waits for Revit to be idle, a second click while it waits is dropped. Loud, no wrong value.
+- Breaker 8: a commit that returns Pending would roll back in the finally, failure handling is never delayed.
+- Review F7: SettingsStore.Save repeats the read back of Record. Review F8: Schema and Entity of SettingsEntity are not disposed. Review F9: the result of ExternalEvent.Raise is not read.

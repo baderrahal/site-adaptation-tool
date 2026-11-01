@@ -517,6 +517,8 @@ The window New project of Lane C NEWPROJ-UI, word for word from docs/design/boar
 - `Cancel`
 - `Check files`
 - `Save setup`
+- `No model is open to write to, so the setup is saved with the next button run.` CHOSEN, the foot line while Save setup has no model to write to, a document not found or read only (R445, Q280)
+- `Save setup did not reach the model: <name>. The pane keeps the setup and the next button run writes it.` CHOSEN, the TaskDialog when the transaction of Save setup rolls back, with the reason Revit gave, else `Revit did not commit the change` (R445)
 - `The scan reads no survey point yet` CHOSEN, the one line of the Survey point dropdown once a scan is there (R440, Q283)
 - `Villa type sheet and column` CHOSEN, the row of the sheet and column dropdowns of the plot list (R440, Q283)
 
