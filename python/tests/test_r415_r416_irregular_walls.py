@@ -216,3 +216,45 @@ def test_r416_the_rev6_build_gives_the_moved_ends_the_status_of_r416_and_the_oth
                if (after["plot"], after["edge"]) not in moved)
     _, tables = plan_walls.step(built["scope"], built["rows"], built["trace"])
     assert "walls.ends from manualInside" in tables["statusFrom"] and "walls.ends from keyRules" in tables["statusFrom"]
+
+
+def bent_ring(degrees):
+    # The front of a 12 by 25 plot bent at x 6 so its two edges turn by degrees there, the vertex y is 6 times the tangent of half that
+    return [(0.0, 0.0), (6.0, 6.0 * math.tan(math.radians(degrees / 2.0))), (12.0, 0.0), (12.0, 25.0), (0.0, 25.0)]
+
+
+def front_walls(ring, count):
+    return [wall("1", index, ["1"], [list(ring[index]), list(ring[(index + 1) % len(ring)])]) for index in range(count)]
+
+
+def only_shifted(walls, ring):
+    for index, item in enumerate(walls):
+        (ax, ay), (bx, by) = ring[index], ring[(index + 1) % len(ring)]
+        length = math.hypot(bx - ax, by - ay)
+        nx, ny = -(by - ay) / length, (bx - ax) / length
+        assert rounded(item) == [[common.r3(ax + nx * 0.1, 6), common.r3(ay + ny * 0.1, 6)], [common.r3(bx + nx * 0.1, 6), common.r3(by + ny * 0.1, 6)]]
+
+
+def test_r416_a_vertex_bent_1_degree_within_the_tolerance_keeps_square_ends_shifted_only_by_the_half_thickness_normal():
+    ring = bent_ring(1.0)
+    walls = front_walls(ring, 2)
+    plan_walls.inside(walls, {"1": ring}, {"1"}, {"1": True}, 0.1, 2.0, NEAR)
+    only_shifted(walls, ring)
+    assert walls[0]["ends"][1] != walls[1]["ends"][0]
+
+
+def test_r416_a_spike_of_178_degrees_at_a_vertex_keeps_square_ends_on_both_walls():
+    # A triangle 12 long whose far vertex holds an inner angle of 2 degrees, so its two edges fold back by 178 degrees there
+    ring = [(0.0, 0.0), (12.0, 0.0), (0.0, 12.0 * math.tan(math.radians(2.0)))]
+    walls = front_walls(ring, 2)
+    plan_walls.inside(walls, {"1": ring}, {"1"}, {"1": True}, 0.1, 2.0, NEAR)
+    only_shifted(walls, ring)
+
+
+def test_r416_a_vertex_bent_3_degrees_beyond_the_tolerance_meets_the_two_ends_at_the_crossing_of_the_moved_centre_lines():
+    ring = bent_ring(3.0)
+    walls = front_walls(ring, 2)
+    plan_walls.inside(walls, {"1": ring}, {"1"}, {"1": True}, 0.1, 2.0, NEAR)
+    # By the symmetry about x 6 the crossing sits at x 6, above the vertex by the half thickness over the cosine of half the turn
+    crossing = [6.0, common.r3(6.0 * math.tan(math.radians(1.5)) + 0.1 / math.cos(math.radians(1.5)), 6)]
+    assert rounded(walls[0])[1] == crossing and rounded(walls[1])[0] == crossing
