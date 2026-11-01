@@ -8,7 +8,7 @@ using SiteAdaptation.Common.SetUp;
 
 namespace SiteAdaptation.AddIn
 {
-    // R373, R374, R383, R367, R441. The body of button 1 on the active document of Revit, SetUpRun of Common with the Revit side, the window,
+    // R373, R374, R383, R367, R441, R454. The body of button 1 on the active document of Revit, SetUpRun of Common with the Revit side, the window,
     // the tag step and the Settings entity, written with the settings the pane holds for the document (J1, J19)
     public static class SetUpSiteBody
     {
@@ -28,7 +28,9 @@ namespace SiteAdaptation.AddIn
             }, folder => System.IO.Directory.GetFiles(folder, "*.json"), WorkFiles.ReadText);
             var run = new SetUpRun(new RevitSiteDocument(document, application.Application), dialog, new NoTags(),
                 WorkFiles.ReadText, PaneText.Settings, null)
-                .Recording(() => session.Settings.Project, new SettingsEntity(document), () => DateTime.UtcNow);
+                .Recording(() => session.Settings.Project, new SettingsEntity(document), () => DateTime.UtcNow)
+                .ReadingCad(context => CoordinateRequest.Run(context, ReadDataBody.Inputs(session.Settings), ReadDataBody.Roles, PaneText.Settings,
+                    new WorkerDocument { Path = session.Path, SessionId = session.SessionId }, Report.ReportWorkerClient.Run));
             return run.Body();
         }
     }

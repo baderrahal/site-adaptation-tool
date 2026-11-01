@@ -18,6 +18,7 @@ Q224 The mode the ROSHN config runs. Q225 The level of a yard floor under Rev 6.
 Q260 Outline change of a placed floor. Q262 Level Excel and the read back values. Q263 Levels count still at its level. Q265 Ends status of walls after Q115. Q266 Walls on edges other units meet. Q267 Base level of a boundary wall. Q268 Scope of a wall on two plots. Q269 Untagged BW wall on a plan wall. Q270 Where a prototype set upgrades now. Q271 Python build takes the pane folder. Q273 6 Levels on a floor moved by hand. Q275 First log step limit of an upgrade job. Q276 What the footprint check of R404 measures. Q277 Footprint block names unlike the unit. Q278 Where Update from report finds the plan. Q279 Mass base, slab edge or outer wall face. Q296 A saved project holds no drawing path.
 Q280 Save setup writes the model at once. Q281 Board rows against the nine pane inputs. Q282 Where the project name is kept. Q284 Villa mode row the boards drop. Q285 Name the Rules row shows. Q286 Approve the four drafts of NEWPROJ-UI. Q287 Button messages that name a work file.
 Q288 Scan picks in the settings at version 1. Q289 Board rows the scan does not read. Q290 Curbs and road surface left out of scan. Q291 Where the line Current files is shown. Q292 The read does not use the picks yet. Q293 Approve the three drafts of SCAN-UI. Q294 Rules chosen in Set up site, when used. Q295 Test host runs skip the scan. Q300 Plots with no cluster proposal. Q301 The build takes the door level pick. Q302 Door level row under the past job. Q305 Hide Confirmed under the past job.
+Q325 A file that states no coordinate system. Q326 Shared origin at the plot box centre. Q327 Elevation of the shared origin from CAD. Q328 Default source of the site position. Q329 The rule that picks the control points.
 
 Q149. M14, the boundary wall of an irregular plot (Round FOLD, docs/design/15-manual-rules.md). The canvas text reads "boundary wall 200 mm inside the plot limit". The Rev 06 manual, 2.8.A, p. 20 (PDF 23), reads "the boundary wall external face will be identical to the plot limit, and the 200mm will be positioned fully inside the plot", the outer face on the limit and the 200 mm wall thickness inside it. The canvas text is kept until Bader answers. It does not block, M14 is checked by 8 Walls in 5d.
 - Recommended: the PDF reading, the outer face of the wall on the plot limit and its 200 mm inside the plot, and the canvas text written so.
@@ -576,3 +577,22 @@ Q305. Hide Confirmed under the past job (Lane C SCAN-UI, R442). Under roshnPastJ
 - Recommended: show the column Confirmed and the button Confirm all proposed only when the plan holds a proposal, as the second help line already does.
 - Other: keep them, so the team sees the step before rev6 is switched on.
 
+Q325. A file that states no coordinate system (Lane B FIX-1NOV-B, R454). Of the copies in C:\SA-demo\inputs only the Road Layout drawing states one, UTM84-37N in its GeoData. The baseplan, the footprint and the 18 LandXML files state none. Button 1 lists such a file as "states no coordinate system" and goes on, a conflict between two stated systems or a system unlike coordinates.expectedEpsg stops it.
+- Recommended: keep it so, a file that states nothing is listed and does not stop.
+- Other: stop button 1 until every drawing states the system.
+
+Q326. Shared origin at the plot box centre (Lane B FIX-1NOV-B, R455). With coordinates.source cad the shared origin is the centre of the box of every plot outline of the baseplan, rounded to coordinates.originRoundM, 1 m now, so the internal origin sits in the middle of the site. On the demo baseplan it lies 820.992 m west and 110.240 m south of the origin of the past job.
+- Recommended: keep the centre of the plot box rounded to 1 m.
+- Other: a point Bader names, such as the origin of the past job, as a config value.
+
+Q327. Elevation of the shared origin from CAD (Lane B FIX-1NOV-B, R455). The past job holds the survey point and the project base point at 179.51 m with the internal origin at shared height 0. No CAD input gives a height for the origin yet, so coordinates.originElevationM is 0.
+- Recommended: Bader names a CAD source for the height, such as the lowest road level of the LandXML under the origin, until then 0 from config.
+- Other: put 179.51 of the past job in coordinates.originElevationM.
+
+Q328. Default source of the site position (Lane B FIX-1NOV-B, R455). coordinates.source is positionFile in the PR, so button 1 sets the position of the past job as before and the demo is not changed. The CAD source still takes the levels and units of the position file, and on a new project it renames the active position Internal to coordinates.positionName. Neither is run in Revit yet.
+- Recommended: switch coordinates.source to cad after the runner's Revit run reads back the named position, the site location and the three control points, the levels and units to move into config in a later round.
+- Other: switch it now.
+
+Q329. The rule that picks the control points (Lane B FIX-1NOV-B, R456). Button 1 checks coordinates.controlPointCount plot corners, 3: the south west corner, then each next corner the one whose nearest chosen corner is the farthest, a tie to the least north, the least east, then the plot name. They spread over the whole site and do not hang on the order of the read.
+- Recommended: keep this rule.
+- Other: the three control points of the location plan, once a read gives them.
