@@ -15,8 +15,8 @@
 
 ### Lane B and C
 
-- Lane B 6a, 00:10, demo freeze at 09:30: NBH 012 through buttons 1 to 9 from a new project with no click, 6.7 min, 2444 MiB peak,
-  10 window shots. Merged as PR 115. Next DEMO, the add-in installed, C:\SA-demo, the demo sheet. Links waits on Q275
+- Lane B DEMO, 04:25, done: main 691e1fc installed, C:/SA-demo ready, steps/demo.md, 1 to 9 in 5.2 min on the copies. Now: the PR of DEMO.
+  Next: the demo at 11:00. Blocked: none
 - Lane C SCAN-UI, 04:35, done: PR 117 tasks 1 to 4 (R435 to R441), PR 119 tasks 5 and 6 (R442, R443), task 7 the Revit shots of the DEMO
   run in steps/ui-shots/README.md, the shots outside git. Waits for Bader: Q288 to Q295, Q300 to Q302, Q305. Blocked: none
 

@@ -53,3 +53,4 @@ One row per phase session since Round ADDIN 4f, added by step 7 of steps/START.m
 | db6b36f5 | Round FOLD on the laptop, PR 101 to 105 and the end records, the row taken before the merge of the end records, npx ccusage@latest session --since 20261028. The helpers may not be in the row, so it is a lower bound | 75,109,998 | 27.81 |
 | 2370cef0 | Lane B 5d on the laptop, 31 Oct 2026, npx ccusage@latest session --since 20261030, taken before the PR, the turns after it are not in it | 176,301,087 | 68.66 |
 | 2370cef0 | Lane B 6a on the laptop, 31 Oct 2026, the session row less the 5d row, npx ccusage@latest session --since 20261030, taken before the PR | 88,853,105 | 27.90 |
+| 2370cef0 | Lane B DEMO on the laptop, 1 Nov 2026, the session row less the 6a reading, npx ccusage@latest session --since 20261030, taken before the PR | 86,422,366 | 20.08 |
