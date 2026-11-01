@@ -4,10 +4,10 @@
 
 ### Lane A
 
-- Lane: A, round FIX-1NOV-A, branch fix/1nov-a. Time: 2026-11-01 15:10. Blocked: none
-- Now: two helpers build R470 (one level at a shared ramp corner) and R471 (the joint check row) in Python and C#
-- Done: cause on NBH 012, 555 joints, 335 over 1 mm, from rampFrontM and the back pair on each El @ Entry. No curb is built, Task 5 needs no code
-- Next: merge the helpers, gate, parity, before and after counts, review and breaker, the PR. Ids R470 to R479, Q340 to Q349
+- Lane: A, round FIX-1NOV-A, branch fix/1nov-a. Time: 2026-11-01 16:37. Blocked: none
+- Now: the R471 helper builds the joint check row, then the gate, parity, review and breaker
+- Done: R470 merged, Python after: 0 of 555 NBH 012 joints, 0 of 529 IMC, 0 of 4,113 whole project over 1 mm (before 335, 322, 1,533). No curb is built
+- Next: R471, parity on 13 steps both runtimes, the PR. Ids R470 to R479, Q340 to Q349
 
 ### Lane B, C and D
 
