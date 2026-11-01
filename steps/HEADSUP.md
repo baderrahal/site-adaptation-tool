@@ -4,10 +4,10 @@
 
 ### Lane A
 
-- Lane: A, round FIX-1NOV-A2, branch fix/1nov-a2. Time: 2026-11-01 22:22. Blocked: none
-- Now: a helper builds R473 and R474 (Q292, button 2 takes the saved picks)
-- Done: R472 (Q278) Update takes the plan of the last 4 Check, proved on a copy of NBH 012: 2 changes listed, checked and applied, Python route 12,657 matches 0 mismatches, another build refused
-- Next: Q292 proof, parity, review and breaker, the PR. Ids R472 to R479, Q345 to Q349
+- Lane: A, round FIX-1NOV-A2, branch fix/1nov-a2. Time: 2026-11-01 22:44. Blocked: none. Resume point below
+- Done and pushed: contract 917e4a1 (R472 to R474, Q345), R472 Q278 fix dc2809e with tests, proof on copies in round_addin\logs\p1nov2 (proof console, 2 changes applied, 12,657 matches)
+- Running: Q292 helper on branch fix/1nov-a2-picks (ReadPicks.Resolve, picks.json, WorkerReads, read_steps.py, R473 tests), pushes every 15 min
+- Next: merge fix/1nov-a2-picks, Q292 proof on NBH 012 copies, gate, parity, review and breaker, records, merge main, PR
 
 ### Lane B, C and D
 
