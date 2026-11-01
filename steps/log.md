@@ -20,7 +20,7 @@ Checked:
 - With join true, RAN on head: front joints over 1 mm NBH 012 88 to 0 of 285, IMC 82 to 0 of 272, whole project 352 to 0 of 2,142, back joints left apart (Q341)
 - With join false, RAN: R471 lists every shared corner, NBH 012 1,110 rows, 670 Fail (the 335 joints over 1 mm the script counts) and 440 Pass
 - Past job against main 7d78fbe, RAN: whole project, the 7 keys and NBH 012, every plan byte-equal, the only values that differ the joint rows of checkRows (5,014 on the whole project)
-- Parity, RAN: PARITY
+- Parity, RAN: 13 steps, net48 and net8.0, whole project and the 7 keys, past job and rev6, 32 runs, 416 step lines, 0 failures, on df09841
 - Status block, RAN: main 679 values, branch 682, Bader +2 (nearM, passGapM), RECOMMENDED +1 (join)
 - Gate, RAN: pytest 2,261 passed, 1 skipped. C# net48 1,832, net8.0 1,607, 0 failed, on df09841
 
