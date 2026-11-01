@@ -8,7 +8,7 @@ NO-GO with Dry run on: step 4 refuses and 5 to 9 cannot be reached (Q195).
 Do these before a live run:
 
 1. Untick Dry run first before step 1.
-2. Reinstall main and refresh C:\SA-demo\config (Q309). This run used a config copy of main 8f5412e and the add-in of 283ec9f, not C:\SA-demo\config, so C:\SA-demo\config as it stands was not run.
+2. Reinstall main and refresh C:\SA-demo\config (Q309). This run used a config copy of main 8f5412e and the add-in of 283ec9f, not C:\SA-demo\config, so C:\SA-demo\config as it stands was not run. Main has moved past this run: PR 130 of Lane A (R472, R473) changes how button 2 takes the picks, and that code was not run by hand here.
 3. Decide on the stray export in C:\SA-demo\inputs (Q308).
 4. Say the points in "What Bader should do or say" of pass B, above all press OK on the Revit box at step 5 (Q324). Cancel undoes the step.
 

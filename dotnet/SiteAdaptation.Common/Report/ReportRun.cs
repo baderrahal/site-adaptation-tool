@@ -308,6 +308,24 @@ namespace SiteAdaptation.Common.Report
                 return run;
             }
 
+            // R472. The plan of the NBH the last real run of 4 Check lists, held to the SHA-256 its run log gives, for Update from report (Q278).
+            // The plan alone is held, since Apply of Update writes the override list that run read and a second read of the Excel must not stop
+            public static WorkerFile PlanOf(string workFolder, string nbh, Func<string, string> readText)
+            {
+                RunLog log = RunLog.Last(workFolder, Check, readText);
+                if (log == null)
+                {
+                    throw new InvalidOperationException(NeedsCheck("the work folder holds no run log of a real run of 4 Check that committed, run_4_<time>.json, run 4 Check first"));
+                }
+                List<JObject> plans = (log.Json["outputs"] as JArray ?? new JArray()).OfType<JObject>()
+                    .Where(item => (string)item["role"] == PlanRole && (string)item["nbh"] == nbh).ToList();
+                if (plans.Count != 1)
+                {
+                    throw new InvalidOperationException(NeedsCheck(System.IO.Path.GetFileName(log.Path) + " lists no single plan of NBH " + nbh + ", run 4 Check for it"));
+                }
+                return Held(workFolder, log, plans[0]);
+            }
+
             private static WorkerFile Held(string workFolder, RunLog log, JObject item)
             {
                 string role = (string)item["role"];

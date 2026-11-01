@@ -39,15 +39,18 @@ namespace SiteAdaptation.Common.ReadData
         private readonly IWorkerStart worker;
         private readonly WorkerDocument document;
         private readonly Func<SettingsScope> scope;
+        private readonly Func<ProjectSettings> settings;
         private ReadPlan previewed;
 
-        // roles names the role of each input of the pane by its name there, scope gives the scope of the settings when the read ends
-        public ReadDataRun(IReadOnlyDictionary<string, string> roles, IWorkerStart worker, WorkerDocument document, Func<SettingsScope> scope)
+        // roles names the role of each input of the pane by its name there, scope gives the scope of the settings when the read ends.
+        // settings gives the settings of the project with their picks when the read starts, after the window of the scan saved them (R473)
+        public ReadDataRun(IReadOnlyDictionary<string, string> roles, IWorkerStart worker, WorkerDocument document, Func<SettingsScope> scope, Func<ProjectSettings> settings = null)
         {
             this.roles = roles;
             this.worker = worker;
             this.document = document;
             this.scope = scope;
+            this.settings = settings;
         }
 
         public ButtonBody Body()
@@ -74,28 +77,33 @@ namespace SiteAdaptation.Common.ReadData
             {
                 throw new InvalidOperationException(RunTexts.ReadRunning(context.Label));
             }
-            ReadPlan plan = Plan(context);
-            previewed = plan;
+            ReadPlan files = Plan(context);
+            previewed = files;
+            // The dry run lists the files the user gave, picks.json is made at the start once the scan of the start has run (R473)
+            ReadPlan plan = Picked(context, files, out _);
             JObject reusable = Reusable(FolderOf(context.WorkFolder, plan), plan);
             if (reusable != null)
             {
-                return new RunSummary(RunTexts.ReadReuses(plan.Inputs.Count, (string)reusable["runId"]), Lines(plan, plan.Inputs.Select(input => input.Role)));
+                return new RunSummary(RunTexts.ReadReuses(files.Inputs.Count, (string)reusable["runId"]), Lines(files, files.Inputs.Select(input => input.Role)));
             }
             JObject last = Last(context.WorkFolder);
             var held = new HashSet<string>(last == null ? Enumerable.Empty<string>() : ((JArray)last["inputs"]).Select(input => (string)input["role"] + "|" + (string)input["sha256"]), StringComparer.Ordinal);
-            IEnumerable<string> unchanged = plan.Inputs.Where(input => held.Contains(input.Role + "|" + input.Sha256)).Select(input => input.Role);
-            return new RunSummary(RunTexts.ReadCounts(plan.Inputs.Count, plan.Inputs.Sum(input => input.Bytes) / 1048576.0), Lines(plan, unchanged));
+            IEnumerable<string> unchanged = files.Inputs.Where(input => held.Contains(input.Role + "|" + input.Sha256)).Select(input => input.Role);
+            return new RunSummary(RunTexts.ReadCounts(files.Inputs.Count, files.Inputs.Sum(input => input.Bytes) / 1048576.0), Lines(files, unchanged));
         }
 
         private void Start(RunContext context, Action<RunLater> done)
         {
-            ReadPlan plan = Plan(context);
-            if (previewed != null && previewed.Hash != plan.Hash)
+            ReadPlan files = Plan(context);
+            // R473. The dry run is held to the files only: the scan runs between the dry run and the start and its window may save a pick,
+            // which changes picks.json and so the hash, and is the read the user asked for
+            if (previewed != null && previewed.Hash != files.Hash)
             {
-                List<string> changed = plan.Inputs.Where(input => !previewed.Inputs.Any(before => before.Role == input.Role && before.Sha256 == input.Sha256)).Select(input => Path.GetFileName(input.Path)).ToList();
+                List<string> changed = files.Inputs.Where(input => !previewed.Inputs.Any(before => before.Role == input.Role && before.Sha256 == input.Sha256)).Select(input => Path.GetFileName(input.Path)).ToList();
                 done(RunLater.Failed(RunTexts.ChangedSinceDryRun(context.Label, changed.Count > 0 ? changed : new List<string> { "an input" })));
                 return;
             }
+            ReadPlan plan = Picked(context, files, out JObject picks);
             string folder = FolderOf(context.WorkFolder, plan);
             JObject reusable = Reusable(folder, plan);
             if (reusable != null)
@@ -103,7 +111,7 @@ namespace SiteAdaptation.Common.ReadData
                 // R375, R366. The read reused is the read of this run, so its record takes the run id and the inputs of the run: the latest
                 // read every later button takes is this folder, and a file moved with the same content is named at its new path
                 string before = (string)reusable["runId"];
-                JObject record = Recorded(context.RunId, plan, Outputs(reusable), reusable["counts"] as JObject ?? new JObject(), Strings(reusable["issues"]));
+                JObject record = Recorded(context.RunId, plan, Outputs(reusable), reusable["counts"] as JObject ?? new JObject(), Strings(reusable["issues"]), picks);
                 record["reusedFrom"] = (string)reusable["reusedFrom"] ?? before;
                 WorkFiles.WriteText(Path.Combine(folder, RecordFile), context.RunId, record.ToString(Newtonsoft.Json.Formatting.Indented));
                 done(Ended(context, folder, RunTexts.ReadReused(context.Label, before), Strings(reusable["issues"]), Outputs(reusable)));
@@ -119,6 +127,7 @@ namespace SiteAdaptation.Common.ReadData
             }
             try
             {
+                ReadPicks.Write(plan.Inputs.First(input => input.Role == ReadPicks.Role).Path, context.RunId, picks);
                 var request = new WorkerRequest
                 {
                     FormatVersion = WorkerRequest.CurrentFormatVersion, RunId = context.RunId, Document = document, Command = Command,
@@ -136,7 +145,7 @@ namespace SiteAdaptation.Common.ReadData
                     {
                         Running.Remove(work);
                     }
-                    done(Answered(context, folder, plan, answer));
+                    done(Answered(context, folder, plan, picks, answer));
                 });
             }
             catch
@@ -149,7 +158,7 @@ namespace SiteAdaptation.Common.ReadData
             }
         }
 
-        private RunLater Answered(RunContext context, string folder, ReadPlan plan, WorkerAnswer answer)
+        private RunLater Answered(RunContext context, string folder, ReadPlan plan, JObject picks, WorkerAnswer answer)
         {
             if (answer == null || answer.Status != WorkerExit.Status(WorkerExit.Done))
             {
@@ -157,13 +166,14 @@ namespace SiteAdaptation.Common.ReadData
             }
             var outputs = (answer.Outputs ?? new List<WorkerFile>()).ToDictionary(output => output.Path, output => output.Sha256, StringComparer.OrdinalIgnoreCase);
             var issues = answer.Issues ?? new List<string>();
-            JObject record = Recorded(context.RunId, plan, outputs, JObject.FromObject(answer.Counts ?? new Dictionary<string, int>()), issues);
+            JObject record = Recorded(context.RunId, plan, outputs, JObject.FromObject(answer.Counts ?? new Dictionary<string, int>()), issues, picks);
             // The record goes last, by a temporary name and a rename, so a folder is reused only once every output of it is there
             WorkFiles.WriteText(Path.Combine(folder, RecordFile), context.RunId, record.ToString(Newtonsoft.Json.Formatting.Indented));
             return Ended(context, folder, RunTexts.ReadDone(context.Label, outputs.Count, issues.Count), issues, outputs);
         }
 
-        private static JObject Recorded(string runId, ReadPlan plan, IReadOnlyDictionary<string, string> outputs, JObject counts, IReadOnlyList<string> issues)
+        // R474. sources names per value kind the source read and from where, and each conflict pick applied
+        private static JObject Recorded(string runId, ReadPlan plan, IReadOnlyDictionary<string, string> outputs, JObject counts, IReadOnlyList<string> issues, JObject picks)
         {
             return new JObject
             {
@@ -173,6 +183,7 @@ namespace SiteAdaptation.Common.ReadData
                 ["outputs"] = new JArray(outputs.Select(output => new JObject { ["path"] = output.Key, ["sha256"] = output.Value })),
                 ["counts"] = counts.DeepClone(),
                 ["issues"] = new JArray(issues),
+                ["sources"] = ReadPicks.Sources(picks),
             };
         }
 
@@ -212,6 +223,15 @@ namespace SiteAdaptation.Common.ReadData
                 throw new InvalidDataException(string.Join(". ", plan.Stops));
             }
             return plan;
+        }
+
+        // R473. The plan of the files with picks.json, the picks of the settings resolved on the newest scan of the work folder
+        private ReadPlan Picked(RunContext context, ReadPlan files, out JObject picks)
+        {
+            JObject config = JObject.Parse(WorkFiles.ReadText(files.ConfigPath));
+            picks = ReadPicks.Resolve(settings?.Invoke(), ReadPicks.LatestScan(context.WorkFolder),
+                ReadPicks.FilesOf(config, files.Inputs.Select(input => new KeyValuePair<string, string>(input.Role, input.Path))));
+            return ReadPicks.WithPicks(files, context.WorkFolder, picks);
         }
 
         // The record of a read in its folder when it lists the same inputs and every output is on disk with its SHA-256, else null

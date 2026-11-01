@@ -31,7 +31,39 @@ Next:
 
 Your turn:
 - Q306 A neighbourhood picked after the first read. Q307 What the report Summary shows after a run. Q308 The stray export in the demo inputs.
-- Q309 Refresh the demo config and add-in. Q324 The Revit warning box at step 5. 161 open, steps/questions-open.md
+- Q309 Refresh the demo config and add-in. Q324 The Revit warning box at step 5. 164 open, steps/questions-open.md
+## FIX-1NOV-A2, 2026-11-02, the picks in button 2 and the plan of Update from report, Lane A on the laptop
+
+Goal:
+- Bader's FIX-1NOV-A2: button 2 takes the saved picks (Q292), Update from report finds the plan of 4 Check (Q278)
+
+Done:
+- R472 Update finds the plan of 4 Check: it looked for plan_<NBH>.json in the work folder root, 4 Check writes into check_4_<run id>. ReportRun.CheckRun.PlanOf reads the last committed run log, the plan alone held
+- R473 Read takes the saved picks, else the scan proposal, else config, picks.json an input of the read so a pick changes its hash. R474 sources in read.json. ReadPicks, ReadDataRun, WorkerReads, read_steps.py
+- Breaker 1: the proposal MP_VL4 kept 491 of 3,780 footprint inserts with no line, so no villa block source is taken (Q346). Breaker 2: the window saves the first source of every conflict, which set VL4 on 250 plots with no line,
+  so only a second source is taken (Q348). A failed location plan read names a taken source. Review 1: default picks read as no picks, a test. Q278, Q292 closed by Bader's prompt
+
+Checked:
+- Q278 on a copy of the NBH 012 run, RAN: plan found, FFL of 2289 and villa type of 2294 listed, checked (fflOverEntry, stepsAtMost, stepHeights, riser, villaType), 2 entries applied. update_check.py 12,657 matches, 0 mismatches. An Excel of the SADM build refused in one line
+- Q292 on the NBH 012 inputs, RAN with the steps labels and blocks: default 3,134 plot outlines, 2,962 plots, a pick of MP_PLOT_LINE 912 and 390, 16 inputs unchanged. The full read with that pick stops at the location plan fit and names the pick
+- Real scans, RAN: on the 4 no proposal narrows the read, 3,780 of 3,780 inserts, Use these picks with nothing changed sets 0 plots
+- Past job against main 84e17fd, RAN: whole project and the 7 keys, every plan byte-equal, 0 values differ
+- Parity, RAN: 13 steps, net48 and net8.0, whole project and the 7 keys, past job and rev6, 32 runs, 416 step lines, 0 failures, on 25c84c7
+- Gate, RAN on 25c84c7: pytest 2,268 passed, 1 skipped. C# net48 1,910, net8.0 1,685, 0 failed. R466 of Lane D failed once on net48 in a full run, passed alone 3 of 3 and in a full rerun, likely a race on DesignValues.Current, Lane D's fix is on fix/1nov-d3
+
+Remains:
+- A conflict pick changes the plot table, the build reads plots.csv (Q349). The first source can not be forced (Q348). Update lists saved changes again until 4 Check runs (Q347)
+
+Known bugs:
+- Saved projects ROSHN Makkah and task6 hold villa block and villa type picks the read refuses, 2 issue lines on every read (Q346). The first read after install reads each NBH again, its hash takes picks.json. Not run in Revit, Lane B held the lock
+
+Next:
+- Bader answers Q345 to Q349. Lane C: the window saves only conflicts a person changed
+
+Your turn:
+- Opened Q345 The key of a conflict pick. Q346 A villa block pick of one layer. Q347 A second Update before 4 Check runs again. Q348 A conflict pick of the first source. Q349 A conflict pick and the build.
+  Closed Q278 Where Update from report finds the plan. Q292 The read does not use the picks yet
+- 159 questions open, full text: steps/questions-open.md
 
 ## Lane D D2, 2026-11-01, the Revit read of the key link parameter groups (Q330), Lane D on the laptop
 
