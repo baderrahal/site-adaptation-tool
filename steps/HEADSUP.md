@@ -5,10 +5,10 @@
 ### Lane A
 
 - Lane: A, round 4j-2, branch feat/addin-4j2-split-walls
-- Time: 2026-11-01 02:25
-- Now: R415 and R416, the walls of irregular plots, coded by a helper, then parity of both modes
-- Done: 4i merged as PR 116, the plan, past splits and walls measured, R414 merged in off (8 of 82, Q257, Q258), R417 stopped (Q259), main merged after PR 117
-- Next: the split test and the walls by the measurements, parity, the PR before 09:30 or a PAUSED status
+- Time: 2026-11-01 03:30
+- Now: parity of the past job, rev6 and rev6 with the split test from a worktree pinned at 5300efe, the breaker pass, no Revit or Civil 3D window
+- Done: R414 off (8 of 82, Q257, Q258), R415 and R416 merged, R417 stopped (Q259), review APPROVE, gate green, Q288 renumbered Q299
+- Next: parity numbers, the records, the PR and its merge before 09:30, a message to lane-b with the wall rule ids
 - Blocked: none
 
 ### Lane B
