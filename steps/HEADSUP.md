@@ -11,9 +11,9 @@
 
 ### Lane B, C and D
 
-- Lane B Task 6 (FIX-1NOV-B), 22:59, branch fix/1nov-b-task6: tasks 2 and 3 merged as PR 127. Hand run on main 8f5412e, pass A (Dry run on):
-  New project and step 1 done, Revit ended during step 2 Read data (started 22:42, cause UNKNOWN), copy saved 22:53, lock released.
-  Next on resume: read lane_b_task6/log.md, find why Revit ended in step 2, rerun drive.ps1 from stage s2 on start-dryrun-on.rvt, then pass B
+- Lane B Task 6 (FIX-1NOV-B), 23:10, branch fix/1nov-b-task6: hand run pass A steps 1 and 2 done, copy saved, Revit closed, lock released.
+  steps/demo-check.md partial. Next on resume: drive.ps1 -Pass A -From s3 on lane_b_task6/start-dryrun-on.rvt under the lock, then pass B,
+  then fix the empty Neighbourhood list (PaneViewModel.SetNbhCodes has no add-in caller) with a test
 - Lane C DEMO-FIX, 09:55, branch fix/lane-c-demo-fix: step rows of the pane run steps, a loader on every button, Confirm all in 3 Review
   data, idle buttons hidden (R444). Now: the gate and the PR, merge by 10:15, then lane-b reinstalls. Blocked: none
 - Lane D D2, 21:50, branch fix/1nov-d2: R466, a test host job takes the design values of R405 from the repo config, the read KC2 ran
