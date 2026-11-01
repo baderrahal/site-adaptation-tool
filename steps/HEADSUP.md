@@ -11,8 +11,8 @@
 
 ### Lane B, C and D
 
-- Lane B demo-check, 10:34: main 5115325 installed, hand run not done, NO-GO live, show SA-demo-done.rvt (steps/demo-check.md).
-  Revit closed, lock released. Blocked: none
+- Lane B FIX-1NOV-B, 15:10, branch fix/1nov-b: masses as linked files (R450 to R453, Q276), site coordinates from CAD (R454 to R456).
+  Now: plan written, two helpers start. Ids R450 to R459, Q320 to Q329. Blocked: SetUpRun.cs and config wait for fix/1nov-d and fix/1nov-a
 - Lane C DEMO-FIX, 09:55, branch fix/lane-c-demo-fix: step rows of the pane run steps, a loader on every button, Confirm all in 3 Review
   data, idle buttons hidden (R444). Now: the gate and the PR, merge by 10:15, then lane-b reinstalls. Blocked: none
 - Lane D 4j-1b merged as PR 118 (b7d0ec4): PlotShapes by a cell index, threads (R428), the time cap (R429), waits for Q243 to Q258
