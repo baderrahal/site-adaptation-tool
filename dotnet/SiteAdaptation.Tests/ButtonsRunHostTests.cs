@@ -5,6 +5,7 @@ using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using SiteAdaptation.Common;
+using SiteAdaptation.Common.PlaceVillas;
 using SiteAdaptation.Common.Settings;
 using Xunit;
 
@@ -392,6 +393,22 @@ namespace SiteAdaptation.Tests
             int written = script.IndexOf("$settingsCopy | ConvertTo-Json -Depth 50 | Set-Content -LiteralPath $settingsPath", buttons, StringComparison.Ordinal);
             Assert.True(buttons > 0 && named > buttons && written > named);
             Assert.Contains("if ($round.inputs.prototypes) {", script);
+        }
+
+        // R467. Round D3. A buttons run names linkFolder of R450 for its config copy, so a Links run on the real prototypes and the swap back
+        // to the mass files need no edit of the config of the repo. prototypes takes the folder of the plan, the prototypes input of the spec
+        [Fact]
+        public void R467_a_buttons_run_names_the_link_folder_of_its_config_copy()
+        {
+            string script = Text("dotnet", "SiteAdaptation.TestHost", "Run-TestHost.ps1");
+            int buttons = script.IndexOf("            if ($round.buttons) {", StringComparison.Ordinal);
+            int named = script.IndexOf("$settingsCopy.addin.lightMode.linkFolder = [string]$round.villaLinkFolder", buttons, StringComparison.Ordinal);
+            int written = script.IndexOf("$settingsCopy | ConvertTo-Json -Depth 50 | Set-Content -LiteralPath $settingsPath", buttons, StringComparison.Ordinal);
+            Assert.True(buttons > 0 && named > buttons && written > named);
+            Assert.Contains("if ($round.villaLinkFolder) {", script);
+            MassFileConfig links = MassFileConfig.From(new JObject { ["linkFolder"] = LinkFolders.Prototypes });
+            Assert.Equal(@"C:\work\prototypes_2024", links.FolderFor(@"C:\work\prototypes_2024", () => @"C:\work"));
+            Assert.True(links.AsLinks);
         }
 
         // R377. Light mode reads the base of each prototype once into base_shapes of the work folder, keyed by the SHA-256 of the

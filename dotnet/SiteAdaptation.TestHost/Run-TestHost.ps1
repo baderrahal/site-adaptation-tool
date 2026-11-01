@@ -377,6 +377,11 @@ if ($round) {
                 if ($round.inputs.prototypes) {
                     $settingsCopy.pastJob.upgradedPrototypeFolder = [string]$round.inputs.prototypes
                 }
+                # R467. A buttons run may name linkFolder of R450 for its config copy, prototypes links the real prototype files where
+                # the masses stood and masses links the mass files again, so Links mode is tried with no edit of the config of the repo
+                if ($round.villaLinkFolder) {
+                    $settingsCopy.addin.lightMode.linkFolder = [string]$round.villaLinkFolder
+                }
                 $buttonsInputs = Get-ButtonsInputs $buttonsSources
                 $buttonsBefore = Get-InputHashes $buttonsInputs
                 if ($round.keyCopy) {
