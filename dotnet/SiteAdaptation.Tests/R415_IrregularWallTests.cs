@@ -287,6 +287,58 @@ namespace SiteAdaptation.Tests
             Assert.Equal(new[] { "11.9 0 11.9 10", "11.9 10 11.9 24.9", "11.9 24.9 6 24.9", "6 24.9 0.1 24.9", "0.1 24.9 0.1 0", "24 9.9 12 9.9" }, walls.Select(Ends));
         }
 
+        // The front of a 12 by 25 plot bent at x 6 so its two edges turn by degrees there, the vertex y is 6 times the tangent of half that
+        private static double[][] BentRing(double degrees)
+        {
+            return Points(0, 0, 6, 6.0 * Math.Tan(degrees / 2.0 * (Math.PI / 180.0)), 12, 0, 12, 25, 0, 25);
+        }
+
+        private static void OnlyShifted(List<PlanWall> walls, double[][] ring)
+        {
+            for (int index = 0; index < walls.Count; index++)
+            {
+                double[] a = ring[index], b = ring[(index + 1) % ring.Length];
+                double length = Math.Sqrt((b[0] - a[0]) * (b[0] - a[0]) + (b[1] - a[1]) * (b[1] - a[1]));
+                double nx = -(b[1] - a[1]) / length, ny = (b[0] - a[0]) / length;
+                Assert.Equal(Text(a[0] + nx * 0.1, a[1] + ny * 0.1, b[0] + nx * 0.1, b[1] + ny * 0.1), Ends(walls[index]));
+            }
+        }
+
+        private static List<PlanWall> Front(double[][] ring)
+        {
+            List<PlanWall> walls = RingWalls("1", ring, 0).Take(2).ToList();
+            Walls.Inside(walls, new Dictionary<string, double[][]> { ["1"] = ring }, new HashSet<string> { "1" }, new Dictionary<string, bool> { ["1"] = true }, 0.1, 2.0, Near);
+            return walls;
+        }
+
+        [Fact]
+        public void R416_a_vertex_bent_1_degree_within_the_tolerance_keeps_square_ends_shifted_only_by_the_half_thickness_normal()
+        {
+            double[][] ring = BentRing(1.0);
+            List<PlanWall> walls = Front(ring);
+            OnlyShifted(walls, ring);
+            Assert.NotEqual(Text(walls[0].Ends[1]), Text(walls[1].Ends[0]));
+        }
+
+        [Fact]
+        public void R416_a_spike_of_178_degrees_at_a_vertex_keeps_square_ends_on_both_walls()
+        {
+            // A triangle 12 long whose far vertex holds an inner angle of 2 degrees, so its two edges fold back by 178 degrees there
+            double[][] ring = Points(0, 0, 12, 0, 0, 12 * Math.Tan(2.0 * (Math.PI / 180.0)));
+            OnlyShifted(Front(ring), ring);
+        }
+
+        [Fact]
+        public void R416_a_vertex_bent_3_degrees_beyond_the_tolerance_meets_the_two_ends_at_the_crossing_of_the_moved_centre_lines()
+        {
+            List<PlanWall> walls = Front(BentRing(3.0));
+            // By the symmetry about x 6 the crossing sits at x 6, above the vertex by the half thickness over the cosine of half the turn
+            double half = 1.5 * (Math.PI / 180.0);
+            string crossing = Text(6, 6.0 * Math.Tan(half) + 0.1 / Math.Cos(half));
+            Assert.Equal(crossing, Text(walls[0].Ends[1]));
+            Assert.Equal(crossing, Text(walls[1].Ends[0]));
+        }
+
         [Fact]
         public void R416_a_moved_wall_names_r416_and_the_manual_in_its_status_an_unmoved_wall_keeps_the_status_of_today()
         {
