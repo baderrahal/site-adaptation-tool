@@ -12,22 +12,24 @@ Done:
 - PlotShapes finds crossings and T junctions among the pieces and nodes in the cells along each line, in the old order
 - R428 the pairs on scan.pairThreads threads (4, Q257). R429 scan.pairTimeCapS (360 s, Q258) and a notRead row for the pairs left
 - Three attempts at the speed (a box index, a line index, threads), then the cap by the rule of three
+- Reviewer and breaker, one pass each: a capped file now proposes no outline (REAL, the proposal changed with the clock), the
+  full loop reference test (80 random drawings, indexed against every item, equal), 4 LATENT lines in steps/latent.md
 
 Checked:
 - Today's reader, RAN on the 3 drawing copies: 21 of 21 output files equal by SHA-256 before and after the PlotShapes change
 - Set A and the renamed set against 4j-1, RAN, both runtimes: rows 1548, conflicts 2808, checks 268, plots 11856 fields equal, 0 differ.
   The 2 input fields that differ are the size and SHA-256 of config/project.json after PR 116. Python parity 0 differ, 20 inputs unchanged
-- Times, RAN, whole scan before and after: set A net48 299 to 63 s, net8.0 184 to 44 s, renamed set 240 to 74 s and 207 to 51 s
+- Times, RAN, whole scan before and after: set A net48 299 to 50 s, net8.0 184 to 34 s, renamed set 240 to 47 s and 207 to 38 s
 - Stages: single layer faces of the Road Layout 87.5 to 7.5 s, the footprint pair stage 157.1 to 35.3 s, the baseplan pairs 10.1 to 6.4 s
-- Road Layout, RAN: before over 40 minutes and stopped, after 484 s on net48 (1418 of 3003 pairs) and 462 s on net8.0 (2462 of 3003),
-  each with the notRead row. Python against net8.0 on that run 0 differ, 17352 row fields. With no cap 967.8 s on net8.0, one thread
+- Road Layout, RAN: before over 40 minutes and stopped, after 489 s on net48 and 465 s on net8.0, the cap left 1851 and 746 of 3003
+  pairs, each with the notRead row and no outline proposed. Python against net8.0 on a capped run 0 differ. With no cap 967.8 s, one thread
 - An input changed while read: a merge of main during a run changed config, the net48 read refused its result (R1, D19), run again
 
 Remains:
 - On 4 threads net48 traced fewer pairs than net8.0 on one, the threads help net8.0 only (Q257). Q250 stays open
 
 Known bugs:
-- A capped scan is not the same twice, the pairs traced depend on the clock and the runtime (R429, Q258)
+- A capped scan traces other pairs each time, its outline is not proposed so the result does not change with them (R429, Q258)
 
 Next:
 - Lane D waits for Bader's answers to Q243 to Q258
