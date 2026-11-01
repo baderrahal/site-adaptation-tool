@@ -443,3 +443,6 @@ No real input reaches these, since the ROSHN config runs roshnPastJob (Q224) and
 - Breaker 8, plan_walls.inside: a zero length edge divides by zero, edge_walls builds no wall on one. corners() on 5,000 vertices takes 5.1 s, the largest real ring holds 18.
 - Fix pass, plan_walls.mitre and Walls.Mitre: with every baseplan face written and a wall on every edge, 106 of 1,002 corners whose ends both sit on vertices stay apart, likely three or more moved walls at one point, in the all scope 28 of 28 corners share one end.
 - Fix pass, a rotationDeg override on a moved wall reads walls.ends from override by rotationDeg, whose entries still name keyRules.wallLine.
+- Review 2, breaker 2, plan_walls.partner and Walls.Partner: the mitre pairs two walls moved to opposite sides of a shared edge of two irregular written plots, and the result follows the walk order. 0 adjacent irregular written plots in the all scope.
+- Breaker 2, plan_walls.mitre: no limit on how far a mitre point lies from its vertex, a 3 degree notch grows its walls by 1.9 m. 0 shifts over 0.3 m on every baseplan face.
+- Breaker 2, plan_walls.mitre: a wall shorter than its two mitre retreats reverses, under 0.35 m between two 60 degree corners. 0 such walls on every baseplan face.
