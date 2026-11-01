@@ -11,8 +11,8 @@
 
 ### Lane B, C and D
 
-- Lane B FIX-1NOV-B, 15:10, branch fix/1nov-b: masses as linked files (R450 to R453, Q276), site coordinates from CAD (R454 to R456).
-  Now: plan written, two helpers start. Ids R450 to R459, Q320 to Q329. Blocked: SetUpRun.cs and config wait for fix/1nov-d and fix/1nov-a
+- Lane B FIX-1NOV-B, 17:40, branch fix/1nov-b dc46b18: tasks 2 and 3 coded, review 1 and breaker 1 fixed with tests, review 2 running.
+  Now: Revit run of the mass links on NBH 012 (runner, lock). Waits: PR 126 of Lane D on config and SetUpRun.cs. Blocked: none
 - Lane C DEMO-FIX, 09:55, branch fix/lane-c-demo-fix: step rows of the pane run steps, a loader on every button, Confirm all in 3 Review
   data, idle buttons hidden (R444). Now: the gate and the PR, merge by 10:15, then lane-b reinstalls. Blocked: none
 - Lane D 4j-1b merged as PR 118 (b7d0ec4): PlotShapes by a cell index, threads (R428), the time cap (R429), waits for Q243 to Q258
