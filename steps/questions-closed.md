@@ -331,3 +331,4 @@ Lane B numbered its questions QL1 upward from 28 Oct 2026. At the fold in of Rou
 | QL22 | Q147 |
 | Q246 | Button 2 starts the scan or the window | Button 2 runs the scan first, reused while its files are unchanged, and opens the window What the tool read when a value is unclear or a conflict open (Other, by Bader's prompt of round SCAN-UI, R438, R439) | Bader, 2026-11-01, SCAN-UI prompt |
 | Q283 | Picks of layers, sheets, columns and coordinates | The layer, sheet, column and survey point rows of New project are dropdowns of what the scan found, the picks saved with the setup as scanPicks (R440). The read taking them is Q292, the survey point Q289 | Bader, 2026-11-01, SCAN-UI prompt |
+| Q342 | Ramp joint distance and pass limit | Two ramp corners within 10 mm in plan are one joint and hold one level, the check row passes at a gap of at most 1 mm, floors.rampJoint nearM 0.01 and passGapM 0.001 (R470, R471) | Bader, 2026-11-01, FIX-1NOV-A prompt |
