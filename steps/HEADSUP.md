@@ -4,10 +4,10 @@
 
 ### Lane A
 
-- Lane: A, round FIX-1NOV-A2, branch fix/1nov-a2. Time: 2026-11-02 00:30. Blocked: none
-- Done and pushed: R472, R473, R474, proofs, review 1, breaker 1 F1, gate green on 30d9233, breaker 2: F1 gone, no proposal narrows the read
-- Now: helper on fix/1nov-a2-picks2: B1 (a window default conflict pick set VL4 on 250 plots), B3 message, dead code out. Parity on 30d9233 running
-- Next: gate, the log entry, update from main, the PR, merge when green, tell lane-c. Questions Q345 to Q349
+- Lane: A, round FIX-1NOV-A2, branch fix/1nov-a2 at 25c84c7. Time: 2026-11-02 01:00. Blocked: none
+- Done and pushed: R472, R473, R474, proofs, review 1, breaker 1 and 2 fixed: no villa block source, a window default conflict sets nothing (0 plots on the 4 real scans), the refusal names a taken source
+- Now: full gate and parity on 25c84c7
+- Next: the log entry, the PR, merge when green, tell lane-c with the steps of parts 8 and 9. Questions Q345 to Q349
 
 ### Lane B, C and D
 
