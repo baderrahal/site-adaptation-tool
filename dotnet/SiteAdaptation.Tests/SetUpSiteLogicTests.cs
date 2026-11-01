@@ -263,6 +263,23 @@ namespace SiteAdaptation.Tests
             Assert.DoesNotContain(stop, same.Shown.Last().Stops);
         }
 
+        // R464, breaker 1. A parameter bound by its GUID on its categories under another group is bound again under the group of the sheet,
+        // and one under that group already is not
+        [Fact]
+        public void R464_a_parameter_bound_under_another_group_than_the_sheet_is_bound_again()
+        {
+            SiteState site = Template();
+            ParameterSpec number = ParameterSheet.FromConfig(configPath, config).Parameters[0];
+            site.SharedParameters.Add(new ParameterState { Name = number.Name, Guid = number.Guid, Categories = number.Categories.ToList(), Group = "Identity Data" });
+
+            Assert.Contains(SetUpPlanner.Changes(site, Target()).Parameters, item => item.Name == number.Name);
+
+            site.SharedParameters[site.SharedParameters.Count - 1].Group = "data";
+            Assert.DoesNotContain(SetUpPlanner.Changes(site, Target()).Parameters, item => item.Name == number.Name);
+            site.SharedParameters[site.SharedParameters.Count - 1].Group = null;
+            Assert.DoesNotContain(SetUpPlanner.Changes(site, Target()).Parameters, item => item.Name == number.Name);
+        }
+
         // R465. RRE_ZZ_SP_Prototype-FFL is never written, the floor parameter is Floors' alone, a kept parameter needs a group
         [Fact]
         public void R465_a_sheet_that_gives_the_ffl_a_button_is_refused_and_the_plot_parameter_of_another_button_or_no_group_stops()
@@ -710,7 +727,7 @@ namespace SiteAdaptation.Tests
                 Assert.NotNull(ParameterFile);
                 foreach (ParameterSpec item in parameters)
                 {
-                    State.SharedParameters.Add(new ParameterState { Name = item.Name, Guid = item.Guid, Categories = item.Categories.ToList() });
+                    State.SharedParameters.Add(new ParameterState { Name = item.Name, Guid = item.Guid, Categories = item.Categories.ToList(), Group = item.Group });
                 }
             }
 
@@ -739,7 +756,7 @@ namespace SiteAdaptation.Tests
             {
                 foreach (ParameterSpec item in target.Parameters.Parameters)
                 {
-                    State.SharedParameters.Add(new ParameterState { Name = item.Name, Guid = item.Guid, Categories = item.Categories.ToList() });
+                    State.SharedParameters.Add(new ParameterState { Name = item.Name, Guid = item.Guid, Categories = item.Categories.ToList(), Group = item.Group });
                 }
             }
 

@@ -153,7 +153,7 @@ def test_r461_the_parameter_sheet_of_config_gives_a_guid_to_every_name_of_the_to
     assert "sharedParameters" not in settings.get("addin") and "fixedParameters" not in settings.get("addin")
 
 
-def test_r461_a_name_the_keys_give_another_guid_than_the_sheet_is_printed_and_the_run_ends_1(tmp_path, capsys):
+def test_r463_a_name_the_keys_give_another_guid_than_the_sheet_is_printed_and_the_run_ends_1(tmp_path, capsys):
     # Input: the keys give CASE a GUID the sheet does not hold, and Plot two GUIDs, a conflict of the keys
     out = run_main(two_keys(CASE, OTHER), tmp_path, capsys, code=1)
     assert "CASE: the keys give the GUID %s, the parameter sheet c0b2c4ee-e129-4a42-bcb6-225759b874eb" % CASE in out.out
@@ -162,7 +162,7 @@ def test_r461_a_name_the_keys_give_another_guid_than_the_sheet_is_printed_and_th
     assert key_parameters.against_sheet({"parameters": [{"name": "X", "guid": G1}]}, [{"name": "X", "guid": G1}]) == []
 
 
-def test_r461_a_config_whose_sheet_is_not_there_ends_2_with_the_reason(tmp_path, capsys):
+def test_r463_a_config_whose_sheet_is_not_there_ends_2_with_the_reason(tmp_path, capsys):
     settings = json.loads(project_profile.SETTINGS_PATH.read_text(encoding="utf-8"))
     settings["addin"]["parameterSheet"] = str(tmp_path / "none.xlsx")
     path = tmp_path / "project.json"

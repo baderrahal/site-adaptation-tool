@@ -32,7 +32,7 @@ def test_r461_the_columns_read_in_any_order_and_case_and_keep_no_leaves_a_row_ou
             ["C0B2C4EE-E129-4A42-BCB6-225759B874EB", " CASE ", "Detail Items, RVT Links", "text", "Data", "7 Place villas", "A", "yes", "x"],
             ["6e8e827b-cc9a-4da2-9ddb-c8e3f09ffa36", "RRE_ZZ_SP_RVT-Name", "RVT Links", "Text", "Data", 7, None, "No", None],
             [None] * 9]
-    kept, left_out = parameter_sheet.from_rows("ROSHN parameters.xlsx", made)
+    kept, left_out = parameter_sheet.from_rows("job parameters.xlsx", made)
     assert kept == [{"name": "CASE", "guid": "c0b2c4ee-e129-4a42-bcb6-225759b874eb", "dataType": "TEXT", "group": "Data", "categories": ["Detail Items", "RVT Links"],
                      "filledBy": 7}]
     assert left_out == ["RRE_ZZ_SP_RVT-Name"]

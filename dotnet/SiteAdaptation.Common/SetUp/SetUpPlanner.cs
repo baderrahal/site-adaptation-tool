@@ -148,7 +148,9 @@ namespace SiteAdaptation.Common.SetUp
             foreach (ParameterSpec item in target.Parameters.Parameters.Where(item => item.Guid != null))
             {
                 ParameterState have = now.SharedParameters.FirstOrDefault(other => string.Equals(other.Guid, item.Guid, StringComparison.OrdinalIgnoreCase));
-                if (have == null || item.Categories.Any(category => !have.Categories.Contains(category)))
+                // R464. A binding under another group than the sheet names is put again under that of the sheet
+                bool otherGroup = have?.Group != null && item.Group != null && !string.Equals(have.Group, item.Group, StringComparison.OrdinalIgnoreCase);
+                if (have == null || otherGroup || item.Categories.Any(category => !have.Categories.Contains(category)))
                 {
                     changes.Parameters.Add(item);
                 }

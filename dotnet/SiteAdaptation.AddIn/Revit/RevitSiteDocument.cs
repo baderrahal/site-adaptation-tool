@@ -60,6 +60,7 @@ namespace SiteAdaptation.AddIn.Revit
                 if (binding != null)
                 {
                     item.Categories = binding.Categories.Cast<Category>().Select(category => category.Name).OrderBy(name => name, StringComparer.Ordinal).ToList();
+                    item.Group = GroupLabel(element.GetDefinition().GetGroupTypeId());
                 }
                 state.SharedParameters.Add(item);
             }
@@ -229,6 +230,23 @@ namespace SiteAdaptation.AddIn.Revit
                 {
                     throw new InvalidOperationException("Revit did not bind the parameter " + item.Name);
                 }
+            }
+        }
+
+        // A group of no label, such as the empty group, gives null, so it is never taken for a group the sheet names
+        private static string GroupLabel(ForgeTypeId group)
+        {
+            if (group == null || string.IsNullOrEmpty(group.TypeId))
+            {
+                return null;
+            }
+            try
+            {
+                return LabelUtils.GetLabelForGroup(group);
+            }
+            catch (Autodesk.Revit.Exceptions.ArgumentException)
+            {
+                return null;
             }
         }
 

@@ -2,6 +2,42 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Lane D FIX-1NOV-D, 2026-11-01, the shared parameters from one Excel, Lane D on the laptop
+
+Goal:
+- Bader's task 4: only the shared parameters of the past links, by name and GUID, in config/shared_parameters.xlsx, bound by button 1, each button its own
+
+Done:
+- The 10 shared parameters on the 338 links of the IMC key are the 10 config held, none added, dropped or renamed. Plot of Q156 kept as row 11
+- config/shared_parameters.xlsx: Parameter, GUID, Data type, Group, Category, Filled by, Sample value, Keep. addin.sharedParameters and fixedParameters gone
+- R460 the read job gives the spec, group and a value. R461 one sheet source. R462 ParameterBook reads it inside Revit. R463 key_parameters.py holds the keys
+  to it and writes nothing. R464 bind by its group, a group change bound again. R465 button 7 writes only its own, FFL never, Plot Floors' alone
+- Button 1 stops on a picked sheet other than config's (Q335). Get template writes the eight columns. Q155 closed by Bader's prompt
+- The Revit read of the key groups stopped at 3 attempts before Revit (a build mid edit, the install guard, {workRoot} of Run-TestHost.ps1), Q330
+
+Checked:
+- Data type, RAN: String storage on every link of the 7 key reads RA to RG, 2,591 links for 6 names, 1,858 for 4
+- Unique name, RAN on past_all.csv: RVT-Name = Plot-Number | Prototype | Number-of-Steps | Facade-Color | Facade-Design-Option on 321 of 324 IMC plots,
+  3 with another fifth part. The rule plotCodeStepsAndFacade holds 0.9916 on 1,791 key plots (READ)
+- ParameterBook against XlsxSheet, RAN: the sheet of the repo and inline strings read alike. C# and Python on the sheet of the repo and 22 variants, RAN by breaker 1
+- Source copy of IMC hashed before and after each attempt, equal. Add-in and test host back on main 2cf5315 after the attempts
+- Review 1: CHANGES NEEDED, 1 REAL fixed with a test (a picked sheet), 4 minor fixed. Breaker 1: S3 REAL fixed with a test (the group), L1 and L2 to Lane B
+- Gate, RAN: pytest 2,245 passed, 1 skipped. C# net48 1,816, net8.0 1,591, 0 failed, 0 warnings
+
+Remains:
+- The read KC2 of the key groups once fix/1nov-b is on main (Q330). C:\SA-demo\config refreshed by Lane B at its next reinstall
+
+Known bugs:
+- 10 LATENT findings of review 1 and breaker 1 in steps/latent.md, the Plot-Number row given to another button first
+
+Next:
+- Bader answers Q330 to Q335. Lane B merges the xlsx copy of Run-TestHost.ps1
+
+Your turn:
+- Opened Q330 Group of the key link parameters unread. Q331 Plot is no link parameter of the keys. Q332 FFL bound but never written.
+  Q333 Categories beyond the link instances. Q334 An xlsx read inside Revit. Q335 A parameter sheet picked in the pane. Closed: Q155
+- 144 questions open, full text: steps/questions-open.md
+
 ## 4j-2, 2026-11-01, the floor split and the walls of irregular plots, Lane A on the laptop
 
 Goal:

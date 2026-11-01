@@ -446,3 +446,16 @@ No real input reaches these, since the ROSHN config runs roshnPastJob (Q224) and
 - Review 2, breaker 2, plan_walls.partner and Walls.Partner: the mitre pairs two walls moved to opposite sides of a shared edge of two irregular written plots, and the result follows the walk order. 0 adjacent irregular written plots in the all scope.
 - Breaker 2, plan_walls.mitre: no limit on how far a mitre point lies from its vertex, a 3 degree notch grows its walls by 1.9 m. 0 shifts over 0.3 m on every baseplan face.
 - Breaker 2, plan_walls.mitre: a wall shorter than its two mitre retreats reverses, under 0.35 m between two 60 degree corners. 0 such walls on every baseplan face.
+
+## Lane D FIX-1NOV-D, review 1 and breaker 1
+
+- Breaker S1, VillaInputs.Of and PlaceVillasRun.WriteParameters: a sheet that gives RRE_ZZ_SP_Plot-Number another button, none or Keep No turns off the R85 guard, button 7 places a link with no plot number and an untagged link is no longer known as placed. The sheet of the repo gives it 7.
+- Breaker S4 and L4, python/parameter_sheet.py: openpyxl read only stops at the stated dimension and takes row 1 as the header, ParameterBook reads every row and skips an empty first row. A dimension smaller than the data or a header below row 1 parts the two. The sheet of the repo states A1:H12 with the header on row 1.
+- Breaker S5, python/parameter_sheet.py: a GUID of 36 characters with its hyphens moved or in braces passes Python and is refused by C#. The sheet of the repo holds 11 GUIDs of the D shape.
+- Breaker S6, key_parameters.against_sheet: a name the keys give two GUIDs or none gets no fault line. Plot is the only noGuid name of the keys, by Q156, and no conflict is in the 7 keys.
+- Breaker L3, new_project_check.parameter_line: a file of no xlsx raises BadZipFile, not caught, where the C# side gives a does not fit line.
+- Breaker L5, ParameterBook: a shared string index of no number and a relationship with no Target throw outside the R462 message. openpyxl and Excel write neither.
+- Breaker L6, ParameterSheet.PathOf: a config in a drive root throws, C:foo.xlsx counts as rooted in C# and not in Python. The config is under config of the repo.
+- Breaker L7 and Q330, RevitSiteDocument.BindParameters: the group labels follow the Revit language and one built in group with no label would stop every bind. Not run in Revit.
+- Review 1 F6 and breaker L8, SetUpPlanner.Stops: a Plot row with no GUID skips the check that Floors fills it. The sheet of the repo gives Plot its Q156 GUID and Filled by 5.
+- Review 1 F8: the data type is written as given with no check, every row of the sheet of the repo is TEXT.
