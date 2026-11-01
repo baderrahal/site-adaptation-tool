@@ -44,17 +44,17 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 Opened in 4i, Lane A: Q224 to Q242, Q255, Q256, titles in steps/questions-open.md and the top entry of steps/log.md. Closed in 4i: none.
 Opened in 4j-2, Lane A: Q259, Q299, Q303, Q304, titles in steps/questions-open.md and the top entry of steps/log.md. Closed in 4j-2: none.
 Opened in FIX-1NOV-A, Lane A: Q340 The level of a joint an override moves. Q341 Back corners two ramps share. Q343 Passing joint rows in the check chips.
-Q344 Joints at the edge of a build. Closed: Q342 by Bader's prompt. A2: opened Q345 to Q347, titles in the log, closed Q278, Q292.
+Q344 Joints at the edge of a build. Closed: Q342 by Bader's prompt. A2: opened Q345 to Q349, titles in the log, closed Q278, Q292.
 Opened in FIX-1NOV-B, Lane B: Q320 to Q323, Q325 to Q329, titles in steps/questions-open.md and the top entry of steps/log.md. Closed: Q276.
 Opened in SCAN-UI, Lane C: Q288 Scan picks in the settings at version 1. Q289 Board rows the scan does not read. Q290 Curbs and road surface left out of scan. Q291 Where the line Current files is
 shown. Q293 Approve the three drafts of SCAN-UI. Q294 Rules chosen in Set up site, when used. Q295 Test host runs skip the scan. Q300 Plots with no cluster
 proposal. Q301 The build takes the door level pick. Q302 Door level row under the past job. Q305 Hide Confirmed under the past job.
 Opened in FIX-1NOV-D, Lane D: Q330 Group of the key link parameters unread. Q331 Plot is no link parameter of the keys. Q332 FFL bound but never written.
 Q333 to Q335. Closed: Q155. Opened in D2: Q336 Link parameter group is Text not Data. Closed in D2: Q330, by Bader's prompt.
-Closed in SCAN-UI: Q246, Q283, by Bader's prompt. 157 questions open, full text and the recommended answers: steps/questions-open.md. Asks: steps/waiting-on-others.md.
+Closed in SCAN-UI: Q246, Q283, by Bader's prompt. 159 questions open, full text and the recommended answers: steps/questions-open.md. Asks: steps/waiting-on-others.md.
 
 ## Next three steps
 
-1. Bader's answers. Lane D: Q243 to Q258, Q331 to Q336, then D3 Links mode. Lane A: Q340, Q341, Q345 to Q347, Q303, Q304, Q259
+1. Bader's answers. Lane D: Q243 to Q258, Q331 to Q336, then D3 Links mode. Lane A: Q340, Q341, Q345 to Q349, Q303, Q304, Q259
 2. Bader answers Q275 to Q277, then the Links run of 6a and Phase 6b
 3. Bader answers Q224 and Q255 of 4i, Q280 to Q287 of Lane C, then Part 2 after Bader's check of Part 1

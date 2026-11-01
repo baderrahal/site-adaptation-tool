@@ -4,10 +4,10 @@
 
 ### Lane A
 
-- Lane: A, round FIX-1NOV-A2, branch fix/1nov-a2. Time: 2026-11-02 00:23. Blocked: none
-- Done and pushed: R472, R473, R474, proofs, review 1, breaker 1 F1 fixed, main merged. Gate on 30d9233: pytest 2,267 passed, C# net48 1,907, net8.0 1,682, 0 failed
-- Now: parity on 30d9233 (p1nov/all_parity_a2.txt), breaker 2 on the F1 fix
-- Next: the log entry, update from main, the PR, merge when green, tell lane-c
+- Lane: A, round FIX-1NOV-A2, branch fix/1nov-a2. Time: 2026-11-02 00:30. Blocked: none
+- Done and pushed: R472, R473, R474, proofs, review 1, breaker 1 F1, gate green on 30d9233, breaker 2: F1 gone, no proposal narrows the read
+- Now: helper on fix/1nov-a2-picks2: B1 (a window default conflict pick set VL4 on 250 plots), B3 message, dead code out. Parity on 30d9233 running
+- Next: gate, the log entry, update from main, the PR, merge when green, tell lane-c. Questions Q345 to Q349
 
 ### Lane B, C and D
 

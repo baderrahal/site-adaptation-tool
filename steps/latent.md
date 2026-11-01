@@ -504,3 +504,4 @@ No real input reaches these: coordinates.source is positionFile (Q328), and the 
 - ReadPicks compares file names ordinally, both from one GetFileName. A plot outline source splits on ' + ', a layer named with it splits wrongly. picks.json is indented with the line end of the system.
 - Breaker 1, R474: read.json sources record the resolved picks, a sheet pick whose header the worker does not find or a conflict pick ApplyConflicts skips still reads pick. No real scan offers a sheet villa type, 104 of 104 conflict plots are plots of the read.
 - Breaker 1, a saved pick no longer a row of the newest scan falls back to the proposal with no line, and ScanStep.Latest may be a newer scan than the window showed. No real changed drawing reaches it.
+- Breaker 2: Take gives a line and Resolve none for a refused proposal, only with picks.json resolved on other files than the request. The folder hash holds picks.json.

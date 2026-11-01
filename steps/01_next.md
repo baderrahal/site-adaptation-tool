@@ -273,4 +273,4 @@ One phase per session (Q096). Two lanes run the phases (D10, D17): tools/run-lan
 - Status: done, Lane A, laptop, 2026-11-02, branch fix/1nov-a2, one PR with code, tests and records (D20)
 - Task 1 (Q292): R473 button 2 reads the saved pick, else the scan proposal, else config, ReadPicks.Resolve, picks.json, WorkerReads.Read and read_steps.py. R474 the sources in read.json
 - Task 2 (Q278): R472 Update from report takes the plan of the last 4 Check by its run log, ReportRun.CheckRun.PlanOf, proved on a copy of the NBH 012 work folder
-- Questions: Q345, Q346, Q347 open, Q278, Q292 closed by Bader's prompt
+- Questions: Q345 to Q349 open, Q278, Q292 closed by Bader's prompt
