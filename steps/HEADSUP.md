@@ -11,9 +11,8 @@
 
 ### Lane B, C and D
 
-- Lane B Task 6 (FIX-1NOV-B), 23:10, branch fix/1nov-b-task6: hand run pass A steps 1 and 2 done, copy saved, Revit closed, lock released.
-  steps/demo-check.md partial. Next on resume: drive.ps1 -Pass A -From s3 on lane_b_task6/start-dryrun-on.rvt under the lock, then pass B,
-  then fix the empty Neighbourhood list (PaneViewModel.SetNbhCodes has no add-in caller) with a test
+- Lane B Task 6 (FIX-1NOV-B), 23:57, branch fix/1nov-b-task6: restarted after the laptop restart. No Revit, no worker, no lock held. Pass A steps 1 and 2
+  saved on lane_b_task6/start-dryrun-on.rvt. Now: the empty Neighbourhood list (SetNbhCodes), then pass A from step 3, pass B, demo-check, the PR. Blocked: none
 - Lane C DEMO-FIX, 09:55, branch fix/lane-c-demo-fix: step rows of the pane run steps, a loader on every button, Confirm all in 3 Review
   data, idle buttons hidden (R444). Now: the gate and the PR, merge by 10:15, then lane-b reinstalls. Blocked: none
 - Lane D D2, 21:50, branch fix/1nov-d2: R466, a test host job takes the design values of R405 from the repo config, the read KC2 ran
