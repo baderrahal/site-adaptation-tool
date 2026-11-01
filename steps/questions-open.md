@@ -18,6 +18,7 @@ Q224 The mode the ROSHN config runs. Q225 The level of a yard floor under Rev 6.
 Q260 Outline change of a placed floor. Q262 Level Excel and the read back values. Q263 Levels count still at its level. Q265 Ends status of walls after Q115. Q266 Walls on edges other units meet. Q267 Base level of a boundary wall. Q268 Scope of a wall on two plots. Q269 Untagged BW wall on a plan wall. Q270 Where a prototype set upgrades now. Q271 Python build takes the pane folder. Q273 6 Levels on a floor moved by hand. Q275 First log step limit of an upgrade job. Q277 Footprint block names unlike the unit. Q279 Mass base, slab edge or outer wall face. Q296 A saved project holds no drawing path. Q320 Keep the solids path of light mode. Q321 Mass base from walls, third attempt stopped. Q322 Mass files made inside button 7. Q323 A keyCopy run refused by its guard. Q340 The level of a joint an override moves. Q341 Back corners two ramps share. Q343 Passing joint rows in the check chips. Q344 Joints at the edge of a build.
 Q280 Save setup writes the model at once. Q281 Board rows against the nine pane inputs. Q282 Where the project name is kept. Q284 Villa mode row the boards drop. Q285 Name the Rules row shows. Q286 Approve the four drafts of NEWPROJ-UI. Q287 Button messages that name a work file.
 Q288 Scan picks in the settings at version 1. Q289 Board rows the scan does not read. Q290 Curbs and road surface left out of scan. Q291 Where the line Current files is shown. Q293 Approve the three drafts of SCAN-UI. Q294 Rules chosen in Set up site, when used. Q295 Test host runs skip the scan. Q300 Plots with no cluster proposal. Q301 The build takes the door level pick. Q302 Door level row under the past job. Q305 Hide Confirmed under the past job.
+Q306 A neighbourhood picked after the first read. Q307 What the report Summary shows after a run. Q308 The stray export in the demo inputs. Q309 Refresh the demo config and add-in. Q324 The Revit warning box at step 5.
 Q325 A file that states no coordinate system. Q326 Shared origin at the plot box centre. Q327 Elevation of the shared origin from CAD. Q328 Default source of the site position. Q329 The rule that picks the control points.
 Q331 Plot is no link parameter of the keys. Q332 FFL bound but never written. Q333 Categories beyond the link instances. Q334 An xlsx read inside Revit. Q335 A parameter sheet picked in the pane. Q336 Link parameter group is Text not Data.
 
@@ -635,6 +636,27 @@ Q328. Default source of the site position (Lane B FIX-1NOV-B, R455). coordinates
 Q329. The rule that picks the control points (Lane B FIX-1NOV-B, R456). Button 1 checks coordinates.controlPointCount plot corners, 3: the south west corner, then each next corner the one whose nearest chosen corner is the farthest, a tie to the least north, the least east, then the plot name. They spread over the whole site and do not hang on the order of the read.
 - Recommended: keep this rule.
 - Other: the three control points of the location plan, once a read gives them.
+
+Q306. A neighbourhood picked after the first read (Lane B Task 6, R457, R366). The list fills from the read, so on a new model 012 is picked after step 2. ButtonScope.Key of button 2 holds the scope kind, so step 2 no longer holds (READ StepStates.cs, ButtonScope.cs). The rows do not change at the pick: step 3 runs, then the box goes back to Run 2, then 2 (2.3 s, read reused) and 3 again (RAN, pass B). In pass A step 2 read Ready at open before any pick, cause UNKNOWN.
+- Recommended: button 2 takes the project key as button 1 does, since the pick does not change what is read.
+- Other: keep the key and refresh the rows at the pick, so the box asks for step 2 before step 3.
+
+Q307. What the report Summary shows after a run (Lane B Task 6, R365, R381, Lane A). In 012_Report.xlsx after 1 to 9 (RAN): the top line holds the literal [file name].rvt and run time [n] min, Levels says no run of button 6 yet though 6 ran, steps 1 and 3 say not run yet, Placed holds no wall rows. The pane says 1,407, 355 and 753 issues on 5, 7 and 8 where Summary says 112, 0 and 1.
+- Recommended: Lane A fills the top line and the Levels row, adds walls to Placed, and takes one issue count for pane and report.
+- Other: leave it until Part 2, the output sheets.
+
+Q308. The stray export in the demo inputs (Lane B Task 6). At 01:06:47 on 2 Nov the driver script pressed Save on Export to Excel of What the tool read and wrote C:\SA-demo\inputs\What the tool read.xlsx, 11771 bytes, SHA-256 CB772FD4129CCADA895D400C3ED260D49FFE6FCAE11028A203E8B0FB06C52A84. The rule was no change in C:\SA-demo. No other file there changed by write time (RAN). Left in place for this answer. The window offers that folder and does not refuse it.
+- Recommended: delete the file, and Lane C makes the export offer the work folder.
+- Other: keep the file.
+
+Q309. Refresh the demo config and add-in (Lane B Task 6). C:\SA-demo\config is from 691e1fc and lacks addin.parameterSheet and the new lightMode and coordinates keys. Task 6 ran on a config copy of main 8f5412e and the add-in of 283ec9f, so C:\SA-demo\config was not run.
+- Recommended: refresh C:\SA-demo\config from main and reinstall main before a live run, then run it once more on a copy.
+- Other: show C:\SA-demo\SA-demo-done.rvt and make no live run.
+
+Q324. The Revit warning box at step 5 (Lane B Task 6). Step 5 stops on the Revit box "Highlighted floors overlap.", 0 errors, 1402 warnings, buttons OK and Cancel. OK goes on (RAN, pass B, place 1003). Cancel undoing the step is what the box offers, not pressed. steps/demo.md does not mention it.
+- Recommended: the step takes these overlap warnings itself and lists them as issues, so no box stops a run.
+- Other: keep the box and say press OK in the sheet.
+
 Q336. Link parameter group is Text not Data (Lane D D2, R460, R464). The read KC2 of the IMC key copy in Revit gives all 10 shared link parameters the group Text (autodesk.parameter.group:text-1.0.0) and the spec String, 338 links, 337 holding a value (RAN, round_addin\reads\KC2\run4\testhost_KC2_parameters.json). The sheet held Data, CHOSEN in FIX-1NOV-D. D2 wrote Text into config/shared_parameters.xlsx for the 10 rows, so button 1 binds them under Text as the past job does, and R464 moves a parameter a model holds under Data to Text. Plot is a project parameter of the key with no GUID, the read gives it no group, it stays Data.
 - Recommended: Text, as the past links hold it.
 - Other: Data, the group of FIX-1NOV-D, by editing the Group column back.

@@ -32,6 +32,18 @@ namespace SiteAdaptation.Common.Review
                 .Select(item => item.folder).FirstOrDefault();
         }
 
+        // R457. The neighbourhoods of the plot table of the latest read, none before the first read of step 2
+        public static IReadOnlyList<string> LatestNbhCodes(string workFolder)
+        {
+            string folder = LatestReadFolder(workFolder);
+            string tablePath = folder == null ? null : Path.Combine(folder, ReadDataRun.PlotTableFile);
+            if (tablePath == null || !File.Exists(tablePath))
+            {
+                return new string[0];
+            }
+            return Scope.ButtonScope.NbhCodes(ReadDataRun.ScopePlots(JObject.Parse(WorkFiles.ReadText(tablePath))));
+        }
+
         // named is an output the record of step 2 names, such as its plot table, and its folder is the read taken. Null takes the latest
         public static ReviewInput Load(string workFolder, string nbh, string named)
         {

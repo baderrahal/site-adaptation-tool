@@ -69,9 +69,33 @@ namespace SiteAdaptation.AddIn.Pane
             return inputs;
         }
 
+        // R457. The Neighbourhood list of Scope from the latest read of the active document. A work folder refused or a table that does
+        // not read leaves the list empty, step 2 names the fault, so the pane still opens
+        public void RefreshNbhCodes()
+        {
+            IReadOnlyList<string> codes = new string[0];
+            DocumentSession document = model.Document;
+            if (document != null && document.HasPath)
+            {
+                try
+                {
+                    codes = Common.Review.ReviewLoad.LatestNbhCodes(WorkFolder(document.Path));
+                }
+                catch (Exception failure) when (failure is InvalidOperationException || failure is System.IO.IOException || failure is UnauthorizedAccessException || failure is Newtonsoft.Json.JsonException)
+                {
+                    codes = new string[0];
+                }
+            }
+            model.SetNbhCodes(codes);
+        }
+
         // A run whose output move failed leaves its step not Done (03a Steps)
         public void Committed(int button, RunRecord record)
         {
+            if (button == 2)
+            {
+                RefreshNbhCodes();
+            }
             StepRun run = model.Document == null ? null : RunOf(model.Document, record);
             if (run != null)
             {
