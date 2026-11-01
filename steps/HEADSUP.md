@@ -11,8 +11,8 @@
 
 ### Lane B, C and D
 
-- Lane B Task 6 (FIX-1NOV-B), 01:50, branch fix/1nov-b-task6: both passes done, Revit closed, lock free, steps/demo-check.md written, GO with Dry run off.
-  Now: the gate and the PR. Then Lane D D3 on my word
+- Lane B Task 6 (FIX-1NOV-B), 02:30, branch fix/1nov-b-task6: both passes done, Revit closed, lock free, main with PR 130 merged in, keeping both sides.
+  Now: the gate on the merged tree, then merge PR 131. Then Lane D D3 on my word
 - Lane C DEMO-FIX, 09:55, branch fix/lane-c-demo-fix: step rows of the pane run steps, a loader on every button, Confirm all in 3 Review
   data, idle buttons hidden (R444). Now: the gate and the PR, merge by 10:15, then lane-b reinstalls. Blocked: none
 - Lane D D2, 21:50, branch fix/1nov-d2: R466, a test host job takes the design values of R405 from the repo config, the read KC2 ran
