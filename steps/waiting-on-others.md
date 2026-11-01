@@ -41,7 +41,7 @@ What Lane B adds so the add-in uses the work of round 4j-2 (R414 to R416, docs/d
 
 | Item | Rule | What Lane B adds | What the tool does until then |
 |---|---|---|---|
-| L4j2-1 | R414 | When designBasis.split.test is on, 8 Walls places a double wall and construction joint at the wall splitTest names, 6 Levels each part at its own FFL | The test is off (Q257, Q258), splitTest stands in the step levels only |
+| L4j2-1 | R414 | When designBasis.split.test is on, 8 Walls places a double wall and construction joint at the wall splitTest names, 6 Levels each part at its own FFL | The test is off (Q303, Q304), splitTest stands in the step levels only |
 | L4j2-2 | R416 | A Revit run of 8 Walls on a rev6 build checks how the moved walls of an irregular plot join at its corners | The plan carries the moved ends, the add-in places them as any wall |
 
 ## The scanner window, asked of Lane B by Lane D 4j-1

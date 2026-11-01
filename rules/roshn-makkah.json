@@ -924,7 +924,7 @@
       "designBasis.roadLevel.oldJobOffsetM": {"status": "UNKNOWN", "why": "no Q, no share, no Bader line and no CHOSEN mark"},
       "designBasis.backYard.floor": {"status": "RECOMMENDED", "question": "Q225", "where": "designBasis.backYard.note"},
       "designBasis.clusters.propose": {"status": "UNKNOWN", "why": "no Q, no share, no Bader line and no CHOSEN mark"},
-      "designBasis.split.test": {"status": "RECOMMENDED", "question": "Q257", "where": "designBasis.split.note"},
+      "designBasis.split.test": {"status": "RECOMMENDED", "question": "Q303", "where": "designBasis.split.note"},
       "designBasis.split.units": {"status": "UNKNOWN", "why": "no Q, no share, no Bader line and no CHOSEN mark"},
       "designBasis.split.walls": {"status": "UNKNOWN", "why": "no Q, no share, no Bader line and no CHOSEN mark"},
       "designValues.placer.coordinateToleranceM": {"status": "UNKNOWN", "why": "no Q, no share, no Bader line and no CHOSEN mark"},
