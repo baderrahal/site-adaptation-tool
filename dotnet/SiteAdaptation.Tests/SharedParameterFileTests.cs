@@ -53,6 +53,35 @@ namespace SiteAdaptation.Tests
             Assert.Equal(new[] { "Plot" }, written["otherBindings"].Select(item => (string)item));
         }
 
+        [Fact]
+        public void R460_a_read_gives_the_spec_and_group_of_each_bound_definition_and_the_first_value_met_on_the_elements()
+        {
+            var elements = new List<SharedParameterElementItem> { new SharedParameterElementItem { Name = "CASE", Guid = First, ElementId = 10 } };
+            var bindings = new List<SharedParameterBindingItem>
+            {
+                new SharedParameterBindingItem
+                {
+                    ElementId = 10, Binding = "instance", Categories = new List<string> { "RVT Links" }, DataType = "autodesk.spec:spec.string-2.0.0", DataTypeLabel = "Text",
+                    Group = "autodesk.parameter.group:data-1.0.0", GroupLabel = "Data",
+                },
+            };
+            var seen = new List<SharedParameterSeenItem>
+            {
+                new SharedParameterSeenItem { Category = "RVT Links", Name = "CASE", Guid = First, Value = null },
+                new SharedParameterSeenItem { Category = "RVT Links", Name = "CASE", Guid = First, Value = "" },
+                new SharedParameterSeenItem { Category = "RVT Links", Name = "CASE", Guid = First, Value = "B" },
+                new SharedParameterSeenItem { Category = "RVT Links", Name = "CASE", Guid = First, Value = "A" },
+                new SharedParameterSeenItem { Category = "Floors", Name = "CASE", Guid = First },
+            };
+            SharedParameterFile file = SharedParameterFile.Build("key_TEST-KC.rvt", elements, bindings, seen);
+            SharedParameterRow row = file.Parameters.Single();
+            Assert.Equal(new[] { "autodesk.spec:spec.string-2.0.0", "Text", "autodesk.parameter.group:data-1.0.0", "Data" }, new[] { row.DataType, row.DataTypeLabel, row.Group, row.GroupLabel });
+            Assert.Equal(new[] { "Floors|0|", "RVT Links|2|B" }, file.OnElements.Select(item => item.Category + "|" + item.Filled + "|" + item.Sample));
+            JObject written = JObject.Parse(JsonOut.ToJson(file));
+            Assert.Equal("Data", (string)written["parameters"][0]["groupLabel"]);
+            Assert.Equal("B", (string)written["onElements"][1]["sample"]);
+        }
+
         // R353. The key points of the step keyPoints keep every double so it reads back as the same double, where the reader writes 3
         // decimals: the project position, the survey point, the project base point and the corners of each floor in internal and shared
         // coordinates, the floors by element id, the plot by the number of its Plot parameter
