@@ -4,10 +4,10 @@
 
 ### Lane A
 
-- Lane: A, round FIX-1NOV-A, branch fix/1nov-a. Time: 2026-11-01 18:02. Blocked: none
-- Now: gate and parity on d10f5c7, review 2 and breaker 2 on the R470 fix
-- Done: R470 front joints at the road once (NBH 012 0 of 285 front joints over 1 mm, before 88), R471 rows, breaker 1 REAL fixed, main PR 126 merged in. No curb is built
-- Next: the records and the PR. Ids R470 to R479, Q340 to Q349
+- Lane: A, round FIX-1NOV-A, branch fix/1nov-a. Time: 2026-11-01 20:55. Blocked: a shutdown notice for 21:14
+- Now: parity on df09841 running. Gate green: pytest 2,261 passed, C# net48 1,832, net8.0 1,607, 0 failed
+- Done: R470 behind floors.rampJoint.join false (Bader, Q340), R471 rows, review 1 and 2 APPROVE, breaker 1 and 2, NBH 012 plan byte-equal to main
+- Next: if the PC stops, rerun the parity (p1nov scripts/all_parity.sh), fill the log entry, the PR. Then queued FIX-1NOV-A2 (Q292, Q278)
 
 ### Lane B, C and D
 
