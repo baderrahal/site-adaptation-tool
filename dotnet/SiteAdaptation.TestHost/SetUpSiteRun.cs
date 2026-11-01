@@ -98,7 +98,7 @@ namespace SiteAdaptation.TestHost
             {
                 app.SharedParametersFilename = file;
                 DefinitionGroup group = app.OpenSharedParameterFile().Groups.Create("SiteAdaptation");
-                ParameterSheet sheet = ParameterSheet.FromConfig(JObject.Parse(File.ReadAllText(Settings)));
+                ParameterSheet sheet = ParameterSheet.FromConfig(Settings, JObject.Parse(File.ReadAllText(Settings)));
                 using (var transaction = new Transaction(document, "Parameters of R212"))
                 {
                     transaction.Start();

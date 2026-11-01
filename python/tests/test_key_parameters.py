@@ -1,4 +1,4 @@
-"""R353. The shared parameter GUIDs of the answer keys into config, python/key_parameters.py, on made up parameter files of the read job
+"""R353, R461. The shared parameter GUIDs of the answer keys held to the parameter sheet, python/key_parameters.py, on made up parameter files of the read job
 (R10): one GUID per name over every key that holds it, the GUID the elements give held as a second route, a conflict or a name no key
 holds listed with why and never given a GUID."""
 import json
@@ -7,6 +7,7 @@ import re
 import pytest
 
 import key_parameters
+import parameter_sheet
 import project_profile
 
 CASE = "11111111-2222-3333-4444-555555555555"
@@ -54,69 +55,6 @@ def test_r353_the_names_are_the_floor_parameter_the_link_parameters_and_the_leve
     assert "RRE_ZZ_SP_Prototype-FFL" in names and "CASE" in names
 
 
-# The block addin.sharedParameters in the text of the config file, as write_block finds it
-BLOCK = re.compile(r'    "sharedParameters": \{\n.*?\n    \},\n', re.S)
-
-
-def config_without_block():
-    """The text of config/project.json with no addin.sharedParameters, as before the first write, so a made up run of one or two keys is
-    no shrink of the block of the 7 keys."""
-    return BLOCK.sub("", project_profile.SETTINGS_PATH.read_text(encoding="utf-8"), count=1)
-
-
-def edit_by_hand(path, change):
-    """The block of the config file at path changed as Bader edits it, by its own lines, every other line kept."""
-    text = path.read_text(encoding="utf-8")
-    block = json.loads(text)["addin"]["sharedParameters"]
-    change(block)
-    path.write_text(BLOCK.sub(lambda match: key_parameters.block_text(block), text, count=1), encoding="utf-8")
-
-
-def test_r353_the_block_is_written_into_the_addin_block_of_config_and_every_other_value_stays(tmp_path):
-    text = config_without_block()
-    assert "sharedParameters" not in json.loads(text)["addin"]
-    path = tmp_path / "project.json"
-    path.write_text(text, encoding="utf-8")
-    found = key_parameters.collect({"imc": made_file()}, NAMES)
-    block = key_parameters.block(found, NAMES, ["imc"])
-    key_parameters.write_block(path, block)
-    written = json.loads(path.read_text(encoding="utf-8"))
-    before = json.loads(text)
-    assert written["addin"]["sharedParameters"]["parameters"][1] == {"name": "CASE", "guid": CASE, "on": ["RVT Links"], "keys": 1, "routes": ["parameterElement", "elements"]}
-    del written["addin"]["sharedParameters"]
-    before["addin"].pop("sharedParameters", None)
-    assert written == before
-    key_parameters.write_block(path, block)
-    assert path.read_text(encoding="utf-8").count('"sharedParameters"') == 1
-    with pytest.raises(ValueError, match="no key"):
-        key_parameters.block(key_parameters.collect({}, NAMES), NAMES, [])
-
-
-def test_r353_q156_a_write_over_the_block_of_config_keeps_the_fixed_block_of_bader(tmp_path):
-    text = project_profile.SETTINGS_PATH.read_text(encoding="utf-8")
-    fixed = json.loads(text)["addin"]["fixedParameters"]
-    assert fixed["parameters"] == [{"name": "Plot", "guid": "faecae98-f82c-46b5-bd80-489380545236", "on": ["Floors"]}]
-    path = tmp_path / "project.json"
-    path.write_text(text, encoding="utf-8")
-    keys = json.loads(text)["addin"]["sharedParameters"]["keys"]
-    files = {key: made_file(key=key) for key in keys}
-    key_parameters.write_block(path, key_parameters.block(key_parameters.collect(files, NAMES), NAMES, keys))
-    written = json.loads(path.read_text(encoding="utf-8"))
-    assert written["addin"]["fixedParameters"] == fixed
-    assert path.read_text(encoding="utf-8").count('"fixedParameters"') == 1
-
-
-def test_r353_config_holds_one_guid_of_the_keys_for_every_name_but_those_noguid_lists_with_why():
-    settings = project_profile.load_settings()
-    block = settings.get("addin")["sharedParameters"]
-    names = key_parameters.names_of(settings)
-    with_guid = [item["name"] for item in block["parameters"]]
-    assert sorted(with_guid + [item["name"] for item in block["noGuid"]]) == sorted(names)
-    assert all(re.fullmatch(r"[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}", item["guid"]) for item in block["parameters"])
-    assert len({item["guid"] for item in block["parameters"]}) == len(block["parameters"])
-    assert all(item["why"] for item in block["noGuid"]) and sorted(block["keys"]) == sorted(settings.get("majority")["groups"]["parsons"])
-
-
 G1 = "11111111-1111-1111-1111-111111111111"
 G2 = "22222222-2222-2222-2222-222222222222"
 
@@ -158,18 +96,6 @@ def test_r353_a_guid_no_element_gives_is_marked_as_held_on_one_route_only():
     assert entry["routes"] == ["parameterElement"]
 
 
-def test_r353_a_write_refuses_a_run_of_fewer_keys_than_the_block_it_writes_over(tmp_path):
-    path = tmp_path / "project.json"
-    path.write_text(config_without_block(), encoding="utf-8")
-    found = key_parameters.collect({"imc": made_file(), "imd": made_file()}, NAMES)
-    key_parameters.write_block(path, key_parameters.block(found, NAMES, ["imc", "imd"]))
-    # A run of fewer keys than the block holds would shrink it, refused with the keys named, the file as it was
-    before = path.read_text(encoding="utf-8")
-    with pytest.raises(ValueError, match="imd"):
-        key_parameters.write_block(path, key_parameters.block(key_parameters.collect({"imc": made_file()}, NAMES), NAMES, ["imc"]))
-    assert path.read_text(encoding="utf-8") == before
-
-
 def two_keys(plot_imc, plot_imd):
     """The parameter files of two made up keys whose bound shared parameter Plot has the GUIDs given, None for a project parameter."""
     found = {}
@@ -189,85 +115,57 @@ def manifest(tmp_path):
     return path
 
 
-def run_main(path, files, tmp_path, capsys, write=True, code=0):
-    """key_parameters.py on made up parameter files with the config at path, its output and the totals it printed."""
-    args = ["--settings", str(path), "--key-copies", str(manifest(tmp_path))]
+def test_r353_a_parameter_file_is_held_to_its_key_by_its_model(tmp_path, capsys):
+    # Inputs: one file given as imc and as imd, the file of imd given as imc, a file of no model, and the two files as they are
+    files = two_keys(None, None)
+    out = run_main({"imc": files["imc"], "imd": files["imc"]}, tmp_path, capsys, code=2)
+    assert "imd parameters model %s is not a work copy %s_TEST-<job> of its answer key" % (files["imc"]["model"], stem("imd")) in out.err
+    out = run_main({"imc": files["imd"], "imd": files["imd"]}, tmp_path, capsys, code=2)
+    assert "imc parameters model" in out.err and "imd parameters model" not in out.err
+    nameless = dict(files["imd"])
+    del nameless["model"]
+    out = run_main({"imc": files["imc"], "imd": nameless}, tmp_path, capsys, code=2)
+    assert "imd parameters model None is not a work copy" in out.err
+
+
+def run_main(files, tmp_path, capsys, code=0, settings=None):
+    """key_parameters.py on made up parameter files with the config of the repo, or the one given, and its output."""
+    args = ["--settings", str(settings or project_profile.SETTINGS_PATH), "--key-copies", str(manifest(tmp_path))]
     for key, payload in files.items():
         name = tmp_path / ("parameters_%s_%d.json" % (key, len(args)))
         name.write_text(json.dumps(payload), encoding="utf-8")
         args += ["--parameters", "%s=%s" % (key, name)]
-    found = key_parameters.main(args + (["--write"] if write else []))
+    found = key_parameters.main(args)
     out = capsys.readouterr()
     assert found == code, out.err
-    totals = next((line for line in out.out.splitlines() if line.startswith("the block written") or line.startswith("the block a write gives")), None)
-    return out, totals and dict(part.rsplit(" ", 1) for part in totals.split(": ", 1)[1].split(", "))
+    return out
 
 
-def counts(path):
-    block = json.loads(path.read_text(encoding="utf-8"))["addin"]["sharedParameters"]
-    return {"parameters": str(len(block["parameters"])), "noGuid": str(len(block["noGuid"])), "conflicts": str(len(block["conflicts"]))}
+def test_r461_the_parameter_sheet_of_config_gives_a_guid_to_every_name_of_the_tool_and_the_guids_config_held_before():
+    settings = project_profile.load_settings()
+    kept, left_out = parameter_sheet.from_file(parameter_sheet.path_of(project_profile.SETTINGS_PATH, {"addin": settings.get("addin")}))
+    guids = {item["name"]: item["guid"] for item in kept}
+    assert left_out == [] and sorted(guids) == sorted(key_parameters.names_of(settings))
+    assert all(re.fullmatch(r"[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}", guid) for guid in guids.values()) and len(set(guids.values())) == 11
+    # The GUIDs addin.sharedParameters and addin.fixedParameters held before R461, as the keys measured them and Q156 fixed Plot
+    assert guids["RRE_ZZ_SP_Plot-Number"] == "7a7813d7-ad61-4bf2-a75f-6234c92957bb" and guids["CASE"] == "c0b2c4ee-e129-4a42-bcb6-225759b874eb"
+    assert guids["Plot"] == "faecae98-f82c-46b5-bd80-489380545236" and guids["RRE_ZZ_SP_Prototype-FFL"] == "cd63d489-5fa8-46a8-a6bc-38ff3aae66bf"
+    assert "sharedParameters" not in settings.get("addin") and "fixedParameters" not in settings.get("addin")
 
 
-def test_r353_a_conflict_of_the_keys_is_written_and_printed_with_the_counts_of_the_block_written(tmp_path, capsys):
-    # Input: two keys give Plot two GUIDs, a conflict of the keys
+def test_r461_a_name_the_keys_give_another_guid_than_the_sheet_is_printed_and_the_run_ends_1(tmp_path, capsys):
+    # Input: the keys give CASE a GUID the sheet does not hold, and Plot two GUIDs, a conflict of the keys
+    out = run_main(two_keys(CASE, OTHER), tmp_path, capsys, code=1)
+    assert "CASE: the keys give the GUID %s, the parameter sheet c0b2c4ee-e129-4a42-bcb6-225759b874eb" % CASE in out.out
+    assert "Plot: a conflict of the keys" in out.out and "the keys against shared_parameters.xlsx: parameters 2, noGuid 9, conflicts 1, 2 differ" in out.out
+    assert key_parameters.against_sheet({"parameters": [{"name": "X", "guid": G1}]}, []) == ["X: the keys give the GUID %s, the parameter sheet has no row of Keep Yes" % G1]
+    assert key_parameters.against_sheet({"parameters": [{"name": "X", "guid": G1}]}, [{"name": "X", "guid": G1}]) == []
+
+
+def test_r461_a_config_whose_sheet_is_not_there_ends_2_with_the_reason(tmp_path, capsys):
+    settings = json.loads(project_profile.SETTINGS_PATH.read_text(encoding="utf-8"))
+    settings["addin"]["parameterSheet"] = str(tmp_path / "none.xlsx")
     path = tmp_path / "project.json"
-    path.write_text(config_without_block(), encoding="utf-8")
-    out, totals = run_main(path, two_keys(CASE, OTHER), tmp_path, capsys)
-    block = json.loads(path.read_text(encoding="utf-8"))["addin"]["sharedParameters"]
-    assert [item["name"] for item in block["conflicts"]] == ["Plot"] and "two GUIDs" in block["conflicts"][0]["why"]
-    assert "Plot" in [item["name"] for item in block["noGuid"]] and "Plot: a conflict of the keys" in out.out
-    assert totals == counts(path) and (totals["parameters"], totals["conflicts"]) == ("2", "1")
-    _, dry = run_main(path, two_keys(CASE, OTHER), tmp_path, capsys, write=False)
-    assert dry == totals
-
-
-HAND_CASES = {
-    "a GUID by hand": lambda block: block["parameters"].append({"name": "Plot", "guid": OTHER, "on": ["Floors"], "keys": 0, "byHand": True}),
-    "byHand as a text": lambda block: next(item for item in block["parameters"] if item["name"] == "CASE").update(byHand="true"),
-    "a null GUID by hand": lambda block: block["parameters"].append({"name": "Plot", "guid": None, "byHand": True}),
-    "a name config does not list": lambda block: block["parameters"].append({"name": "Plot ", "guid": OTHER, "byHand": True}),
-    "a noGuid hand entry": lambda block: block.update(noGuid=[dict(item, byHand=True) if item["name"] == "Plot" else item for item in block["noGuid"]]),
-    "the mark spelled byhand": lambda block: next(item for item in block["parameters"] if item["name"] == "CASE").update(byhand=True),
-    "byHand false": lambda block: next(item for item in block["parameters"] if item["name"] == "CASE").update(byHand=False),
-}
-
-
-def test_r353_a_hand_entry_is_refused_until_q087(tmp_path, capsys):
-    # Inputs: the breaker's cases of the third review, a hand GUID, byHand as the text "true", a hand entry with a null GUID, one of a
-    # name config does not list and a noGuid hand entry, and the mark spelled otherwise and false. Each is refused by a write and by a dry
-    # run with one message naming Q087, the file as it was, since the merge of hand entries is withdrawn (Q087)
-    for name, change in HAND_CASES.items():
-        path = tmp_path / "project.json"
-        path.write_text(config_without_block(), encoding="utf-8")
-        run_main(path, two_keys(None, None), tmp_path, capsys)
-        edit_by_hand(path, change)
-        before = path.read_text(encoding="utf-8")
-        for write in (True, False):
-            out, _ = run_main(path, two_keys(None, None), tmp_path, capsys, write=write, code=2)
-            assert "hand entries are withdrawn until Q087" in out.err, name
-        assert path.read_text(encoding="utf-8") == before, name
-        with pytest.raises(ValueError, match="Q087"):
-            key_parameters.write_block(path, key_parameters.block(key_parameters.collect(two_keys(None, None), NAMES), NAMES, ["imc", "imd"]))
-    # The block of the repo holds none, so the withdrawal drops nothing today
-    assert key_parameters.hand_entries(project_profile.load_settings().get("addin")["sharedParameters"]) == []
-
-
-def test_r353_a_parameter_file_is_held_to_its_key_by_its_model(tmp_path, capsys):
-    # Inputs: one file given as imc and as imd, the file of imd given as imc, a file of no model, and the two files as they are
-    path = tmp_path / "project.json"
-    path.write_text(config_without_block(), encoding="utf-8")
-    files = two_keys(None, None)
-    run_main(path, files, tmp_path, capsys, write=False)
-    out, _ = run_main(path, {"imc": files["imc"], "imd": files["imc"]}, tmp_path, capsys, write=False, code=2)
-    assert "imd parameters model %s is not a work copy %s_TEST-<job> of its answer key" % (files["imc"]["model"], stem("imd")) in out.err
-    out, _ = run_main(path, {"imc": files["imd"], "imd": files["imd"]}, tmp_path, capsys, write=False, code=2)
-    assert "imc parameters model" in out.err and "imd parameters model" not in out.err
-    nameless = dict(files["imd"])
-    del nameless["model"]
-    out, _ = run_main(path, {"imc": files["imc"], "imd": nameless}, tmp_path, capsys, write=False, code=2)
-    assert "imd parameters model None is not a work copy" in out.err
-
-
-def test_r353_the_note_the_measure_writes_is_the_note_config_holds_and_names_the_design_part():
-    held = project_profile.load_settings().get("addin")["sharedParameters"]["note"]
-    assert key_parameters.NOTE == held and "docs/design/03a-buttons-shared-and-1.md 3.1" in held and "addin-design.md" not in held
+    path.write_text(json.dumps(settings), encoding="utf-8")
+    out = run_main(two_keys(None, None), tmp_path, capsys, code=2, settings=path)
+    assert "key_parameters:" in out.err and "none.xlsx" in out.err

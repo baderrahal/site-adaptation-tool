@@ -366,19 +366,32 @@ namespace SiteAdaptation.Common
             return found.Distinct().ToList();
         }
 
-        private static CheckLine ParameterLine(JObject settings, JObject rules)
+        // R461. The parameter sheet addin.parameterSheet names, its rows of Keep Yes, holds a GUID for every parameter name the tool uses
+        private static CheckLine ParameterLine(string configPath, JObject settings, JObject rules, Run run)
         {
             const string name = "parameter sheet";
-            JArray items = Get(settings, "addin.sharedParameters.parameters") as JArray;
-            if (items == null || items.Count == 0)
+            JToken named = Get(settings, "addin.parameterSheet");
+            if (!IsText(named))
             {
-                return Line(name, Missing, "config holds no addin.sharedParameters.parameters");
+                return Line(name, Missing, "config names no addin.parameterSheet");
             }
-            var guids = new Dictionary<string, JToken>();
-            foreach (JObject item in items.OfType<JObject>().Where(item => IsText(item["name"])))
+            string path = SetUp.ParameterSheet.PathOf(configPath, settings);
+            if (!File.Exists(path))
             {
-                guids[(string)item["name"]] = item["guid"];
+                return Line(name, Missing, "the parameter sheet " + Path.GetFileName(path) + " is not there");
             }
+            run.Opened(path);
+            SetUp.ParameterSheet sheet;
+            try
+            {
+                sheet = SetUp.ParameterSheet.FromFile(path);
+            }
+            catch (InvalidDataException error)
+            {
+                return Line(name, DoesNotFit, error.Message);
+            }
+            string file = Path.GetFileName(path);
+            var guids = sheet.Parameters.ToDictionary(item => item.Name, item => item.Guid, StringComparer.Ordinal);
             List<string> names = ParameterNames(settings, rules);
             var faults = new List<string>();
             foreach (string each in names)
@@ -387,7 +400,7 @@ namespace SiteAdaptation.Common
                 {
                     faults.Add(each + " (not in the sheet)");
                 }
-                else if (!IsText(guids[each]) || !Guid.IsMatch((string)guids[each]))
+                else if (guids[each] == null || !Guid.IsMatch(guids[each]))
                 {
                     faults.Add(each + " (no GUID)");
                 }
@@ -396,9 +409,9 @@ namespace SiteAdaptation.Common
             string note = prefix != null ? "the names are held to the prefix " + prefix + " of the ROSHN Makkah parameters" : null;
             if (faults.Count > 0)
             {
-                return Line(name, DoesNotFit, faults.Count + " of " + names.Count + " parameter names have no GUID in addin.sharedParameters: " + string.Join(", ", faults), note);
+                return Line(name, DoesNotFit, faults.Count + " of " + names.Count + " parameter names have no GUID in " + file + ": " + string.Join(", ", faults), note);
             }
-            return Line(name, Ok, "all " + names.Count + " parameter names have a GUID in addin.sharedParameters", note);
+            return Line(name, Ok, "all " + names.Count + " parameter names have a GUID in " + file, note);
         }
 
         private static List<string> UnitCodes(JObject rules)
@@ -696,7 +709,7 @@ namespace SiteAdaptation.Common
             run.Opened(rulesPath);
             string folder = PrototypeFolder(settings, root);
             string work = DataBookWork(settings, workRoot);
-            var lines = new List<CheckLine> { PositionLine(settings, run), ParameterLine(settings, rules), OffsetsLine(settings, rules, offsetsPath, run), HandsLine(rules, folder), PrototypeLine(rules, folder) };
+            var lines = new List<CheckLine> { PositionLine(settings, run), ParameterLine(configPath, settings, rules, run), OffsetsLine(settings, rules, offsetsPath, run), HandsLine(rules, folder), PrototypeLine(rules, folder) };
             lines.AddRange(ExcelBlocks.Select(block => ExcelLine(settings, block, run, work)));
             lines.AddRange(ScheduleLines(settings, run, root));
             lines.Add(PdfLine(settings, run, work));

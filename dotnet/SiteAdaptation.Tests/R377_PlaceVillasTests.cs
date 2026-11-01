@@ -94,14 +94,14 @@ namespace SiteAdaptation.Tests
         }
 
         private Run Make(PlanFile plan, string mode, FakeVillas document = null, Dictionary<string, string> lastHashes = null, List<double[][]> footprint = null,
-            Dictionary<string, string> guids = null)
+            Dictionary<string, string> guids = null, ICollection<string> others = null)
         {
             var run = new Run { Document = document ?? new FakeVillas() };
             Func<RunContext, VillaInputs> load = context => new VillaInputs
             {
                 Plan = plan, PlanPath = Path.Combine(work, "plan_012.json"), Config = Config(), Mode = mode, Profile = "parsons2024Rev6",
                 ParameterGuids = new Dictionary<string, string>(guids ?? new Dictionary<string, string>()) { [LinkFields.PlotNumber] = FakeVillas.PlotGuid, ["CASE"] = "c0000000-0000-0000-0000-000000000000" },
-                Footprint = footprint ?? new List<double[][]>(), LastHashes = lastHashes ?? new Dictionary<string, string>(),
+                Footprint = footprint ?? new List<double[][]>(), LastHashes = lastHashes ?? new Dictionary<string, string>(), FilledByOthers = others ?? new HashSet<string>(),
             };
             run.Body = new PlaceVillasRun(run.Document, load, context => new ShapeCache(context.WorkFolder, run.Reader, path => new string('a', 64)), path => new string('a', 64),
                 lines => { run.Asked.Add(lines); return run.LoadAnswer; });
@@ -119,6 +119,22 @@ namespace SiteAdaptation.Tests
             body.Preview(context);
             body.Outside?.Invoke(context)?.Dispose();
             return body.Apply(context);
+        }
+
+        // R465. A parameter of the plan the parameter sheet gives another button, or none, is never written by button 7 and is no issue
+        [Fact]
+        public void R465_button_7_writes_only_the_parameters_the_sheet_gives_it()
+        {
+            Run own = Make(Plan(Plot("101", 1100, 0, false)), VillaModes.Masses);
+            IReadOnlyList<string> ownIssues = Apply(own, Context());
+            Assert.Equal("A", own.Document.Elements.Single(element => element.IsSolid).Parameters["CASE"]);
+            Run other = Make(Plan(Plot("101", 1100, 0, false)), VillaModes.Masses, others: new HashSet<string> { "CASE" });
+
+            Assert.Equal(ownIssues, Apply(other, Context()));
+
+            FakeElement solid = other.Document.Elements.Single(element => element.IsSolid);
+            Assert.False(solid.Parameters.ContainsKey("CASE"));
+            Assert.Equal("101", solid.Parameters[LinkFields.PlotNumber]);
         }
 
         [Fact]
@@ -343,14 +359,16 @@ namespace SiteAdaptation.Tests
             File.WriteAllText(plan, Newtonsoft.Json.JsonConvert.SerializeObject(Plan(Plot("101", 1100, 0, false))));
             string config = Path.Combine(work, "project.json");
             JToken addin = JObject.Parse(File.ReadAllText(Path.Combine(ThemeGateTests.RepoRoot(), "config", "project.json")))["addin"];
-            File.WriteAllText(config, new JObject { ["addin"] = new JObject { ["lightMode"] = addin["lightMode"], ["sharedParameters"] = addin["sharedParameters"] } }.ToString());
+            File.WriteAllText(config, new JObject { ["addin"] = new JObject { ["lightMode"] = addin["lightMode"], ["parameterSheet"] = Path.Combine(ThemeGateTests.RepoRoot(), "config", "shared_parameters.xlsx") } }.ToString());
             var blocks = new JObject { ["blocks"] = new JArray(new JObject { ["name"] = "VD4", ["outline"] = new JArray(Shape.Select(point => new JArray(point[0], point[1]))) }) };
             var last = new JObject { ["prototypes"] = new JObject { ["x.rvt"] = new string('e', 64) }, ["placed"] = new JArray("101") };
             VillaInputs inputs = VillaInputs.Of(plan, FileHash.Sha256(plan), config, null, "parsons2024Rev6", null, blocks, last);
             Assert.Equal(VillaModes.Masses, inputs.Mode);
             Assert.Equal(VillaModes.Links, VillaInputs.Of(plan, FileHash.Sha256(plan), config, VillaModes.Links, "p", null, blocks, null).Mode);
             Assert.Single(inputs.Footprint);
-            Assert.Equal(10, inputs.ParameterGuids.Count);
+            // R465. The 9 link parameters button 7 fills, the FFL and Plot of Floors never
+            Assert.Equal(9, inputs.ParameterGuids.Count);
+            Assert.Equal(new[] { "Plot", "RRE_ZZ_SP_Prototype-FFL" }, inputs.FilledByOthers.OrderBy(name => name, StringComparer.Ordinal));
             Assert.Contains("101", inputs.LastPlaced);
             Assert.Equal(new string('e', 64), inputs.LastHashes["x.rvt"]);
         }

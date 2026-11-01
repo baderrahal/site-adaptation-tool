@@ -32,7 +32,6 @@ namespace SiteAdaptation.Common.SetUp
         public const string NothingDiffers = "Nothing differs, Apply changes nothing.";
         public const string AtOrigin = "at the internal origin";
         public const string SettingsNotWritten = "The Settings entity is not written yet, it joins at 5c with R367";
-        public const string SheetNotRead = "The parameter sheet is not read yet, the worker reads it from 5c (Q155)";
 
         public static string NotOnDisk(string what, string path)
         {
@@ -57,6 +56,16 @@ namespace SiteAdaptation.Common.SetUp
         public static string NoGuid(string name)
         {
             return name + " has no GUID in the parameter sheet";
+        }
+
+        public static string NoGroup(string name)
+        {
+            return name + " has no Group in the parameter sheet";
+        }
+
+        public static string FloorsOwn(string name, int button)
+        {
+            return name + " is filled by Floors, give it Filled by " + button.ToString(CultureInfo.InvariantCulture) + " in the parameter sheet";
         }
 
         public static string PlotWaits(string name)

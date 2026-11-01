@@ -394,33 +394,8 @@
       "angle": "degrees",
       "slope": "slopeDegrees"
     },
-    "sharedParameters": {
-      "note": "R353. The shared parameters button 1 binds and every button reads and writes by GUID (docs/design/03a-buttons-shared-and-1.md 3.1), read from the answer keys by the read job of the test host (testhost_<code>_parameters.json) and written by python/key_parameters.py: per name its GUID, the categories the keys bind it to, how many keys hold it and routes, the routes of the read that held the GUID, the SharedParameterElement and the parameters of the elements. projectParameterIn names the keys that bind a project parameter of the name. noGuid lists each name with no GUID and why, a project parameter holds none, and button 1 stops on a name of config with no GUID. conflicts lists each name the keys disagree on, two GUIDs, elements of another GUID, or keys that bind it shared and keys that hold it only as a project parameter. The block is a measure the run alone writes, a hand entry here is refused until Q087 and so is a run that reads fewer keys than this block (Q085, Q087).",
-      "keys": ["ima", "imb", "imc", "imd", "ime", "imf", "img"],
-      "parameters": [
-        {"name": "RRE_ZZ_SP_Plot-Number", "guid": "7a7813d7-ad61-4bf2-a75f-6234c92957bb", "on": ["Floors", "RVT Links"], "keys": 7, "routes": ["parameterElement", "elements"]},
-        {"name": "RRE_ZZ_SP_Prototype", "guid": "1229c7c3-996a-4f9e-9060-323c69928777", "on": ["Floors", "RVT Links"], "keys": 7, "routes": ["parameterElement", "elements"]},
-        {"name": "RRE_ZZ_SP_Number-of-Steps", "guid": "c5de81fc-772e-4734-8978-a2e5ebc26572", "on": ["RVT Links"], "keys": 7, "routes": ["parameterElement", "elements"]},
-        {"name": "RRE_ZZ_SP_Façade-Color", "guid": "69ba957d-52c3-4b31-aeaf-f96a4a10a645", "on": ["Floors", "RVT Links"], "keys": 7, "routes": ["parameterElement", "elements"]},
-        {"name": "RRE_ZZ_SP_Façade-Design-Option", "guid": "cb59ad62-e934-4418-bdbe-be61f30e78a4", "on": ["Floors", "RVT Links"], "keys": 7, "routes": ["parameterElement", "elements"]},
-        {"name": "RRE_ZZ_SP_Prototype-Foundation-Type", "guid": "0c697f19-c36d-47bd-b652-4d0b0af45ea0", "on": ["RVT Links"], "keys": 7, "routes": ["parameterElement", "elements"]},
-        {"name": "RRE_ZZ_SP_Prototype-HVAC-Schedule-Type", "guid": "01030dab-cfb1-41f4-b470-f1e3dd03c304", "on": ["RVT Links"], "keys": 7, "routes": ["parameterElement", "elements"]},
-        {"name": "RRE_ZZ_SP_RVT-Name", "guid": "6e8e827b-cc9a-4da2-9ddb-c8e3f09ffa36", "on": ["RVT Links"], "keys": 7, "routes": ["parameterElement", "elements"]},
-        {"name": "CASE", "guid": "c0b2c4ee-e129-4a42-bcb6-225759b874eb", "on": ["Detail Items", "RVT Links"], "keys": 7, "routes": ["parameterElement", "elements"], "projectParameterIn": ["ima", "imb", "imc", "imd", "ime", "imf", "img"]},
-        {"name": "RRE_ZZ_SP_Prototype-FFL", "guid": "cd63d489-5fa8-46a8-a6bc-38ff3aae66bf", "on": ["RVT Links"], "keys": 7, "routes": ["parameterElement", "elements"]}
-      ],
-      "noGuid": [
-        {"name": "Plot", "why": "no key binds a shared parameter of this name, it is a project parameter in ima, imb, imc, imd, ime, imf, img, which holds no GUID", "projectParameterIn": ["ima", "imb", "imc", "imd", "ime", "imf", "img"]}
-      ],
-      "conflicts": [
-      ]
-    },
-    "fixedParameters": {
-      "note": "R373, Q156 (Bader, 2026-10-31, the recommended answer). The shared parameters whose GUID Bader fixed, which no key binds as a shared parameter: Plot, the floor parameter of floors.plotParameter, a project parameter in all 7 keys, takes the GUID Code made once on 2026-10-29. Button 1 binds them after those of addin.sharedParameters until a parameter sheet is chosen, and a name in both blocks is refused. No run writes this block, python/key_parameters.py writes addin.sharedParameters alone.",
-      "parameters": [
-        {"name": "Plot", "guid": "faecae98-f82c-46b5-bd80-489380545236", "on": ["Floors"]}
-      ]
-    },
+    "parameterSheetNote": "R461 (Lane D FIX-1NOV-D). The one source of the shared parameters of the tool, the parameter sheet parameterSheet names, relative to the repo root: sheet Parameters, one row per parameter with Parameter, GUID, Data type, Group, Category, Filled by, Sample value and Keep. Button 1 binds each row of Keep Yes, each button writes the rows its number is Filled by of, RRE_ZZ_SP_Prototype-FFL by none. The names and GUIDs are those the villa links of the 7 keys hold (R460), with Plot of Q156. A new project edits this sheet only. It replaced addin.sharedParameters and addin.fixedParameters.",
+    "parameterSheet": "config/shared_parameters.xlsx",
     "parity": {
       "note": "R345. The tolerance of each kind of field before R385 rounds it, in metres, square metres or degrees, null for a kind compared exactly. After rounding the two sides are equal, or one unit of the last place apart only where the two unrounded values lie within the tolerance and straddle a rounding boundary of R385, each such case listed by step, plot, field and both unrounded values. docs/design/05-plan-steps.md",
       "kinds": {

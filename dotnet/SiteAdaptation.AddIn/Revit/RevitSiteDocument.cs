@@ -198,9 +198,11 @@ namespace SiteAdaptation.AddIn.Revit
         }
 
         // Each definition is taken by its GUID from the file of UseParameterFile and bound as an instance parameter, a binding already
-        // there by that GUID put again with the categories it had and those of the sheet
+        // there by that GUID put again with the categories it had and those of the sheet, under the group of the sheet (R464)
         public void BindParameters(SetUpTarget target, IReadOnlyList<ParameterSpec> parameters)
         {
+            Dictionary<string, ForgeTypeId> groups = ParameterUtils.GetAllBuiltInGroups().GroupBy(id => LabelUtils.GetLabelForGroup(id), StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(found => found.Key, found => found.First(), StringComparer.OrdinalIgnoreCase);
             DefinitionFile file = application.OpenSharedParameterFile() ?? throw new InvalidOperationException("Revit opened no shared parameter file");
             DefinitionGroup group = file.Groups.get_Item(target.ParameterGroup) ?? throw new InvalidOperationException("the shared parameter file holds no group " + target.ParameterGroup);
             foreach (ParameterSpec item in parameters)
@@ -220,7 +222,9 @@ namespace SiteAdaptation.AddIn.Revit
                     categories.Insert(document.Settings.Categories.get_Item(name) ?? throw new InvalidOperationException("the project holds no category " + name + " to bind " + item.Name + " on"));
                 }
                 InstanceBinding binding = application.Create.NewInstanceBinding(categories);
-                bool done = had == null ? document.ParameterBindings.Insert(definition, binding, GroupTypeId.Data) : document.ParameterBindings.ReInsert(definition, binding, GroupTypeId.Data);
+                ForgeTypeId under = item.Group != null && groups.TryGetValue(item.Group, out ForgeTypeId found) ? found
+                    : throw new InvalidOperationException("Revit has no parameter group " + (item.Group ?? "blank") + " to bind " + item.Name + " under, the Group of the parameter sheet (R464)");
+                bool done = had == null ? document.ParameterBindings.Insert(definition, binding, under) : document.ParameterBindings.ReInsert(definition, binding, under);
                 if (!done)
                 {
                     throw new InvalidOperationException("Revit did not bind the parameter " + item.Name);

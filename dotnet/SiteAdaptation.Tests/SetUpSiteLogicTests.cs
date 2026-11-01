@@ -37,6 +37,7 @@ namespace SiteAdaptation.Tests
             config = JObject.Parse(File.ReadAllText(Path.Combine(repo, "config", "project.json")));
             config["profile"] = Path.Combine(repo, "rules", "roshn-makkah.json");
             config["addin"]["position"]["file"] = positionPath;
+            config["addin"]["parameterSheet"] = Path.Combine(repo, "config", "shared_parameters.xlsx");
             configPath = Path.Combine(root, "config", "project.json");
             File.WriteAllText(configPath, config.ToString());
         }
@@ -74,15 +75,15 @@ namespace SiteAdaptation.Tests
 
         private SetUpTarget Target(double slope = 0.5, ParameterSheet sheet = null)
         {
-            return SetUpTarget.From(config, Rules(), null, PositionFile(), slope, sheet ?? ParameterSheet.FromConfig(config));
+            return SetUpTarget.From(config, Rules(), null, PositionFile(), slope, sheet ?? ParameterSheet.FromConfig(configPath, config));
         }
 
-        // The repo config before Q156 was answered, with no addin.fixedParameters
-        private JObject NoFixedBlock()
+        // A parameter sheet of the eight columns of R461, one row per parameter of name, GUID, group, categories, Filled by and Keep
+        private static List<object[]> Sheet(params string[][] rows)
         {
-            var copy = (JObject)config.DeepClone();
-            ((JObject)copy["addin"]).Remove("fixedParameters");
-            return copy;
+            var found = new List<object[]> { ParameterSheet.Columns.Cast<object>().ToArray() };
+            found.AddRange(rows.Select(row => new object[] { row[0], row[1], "Text", row[2], row[3], row[4], "x", row[5] }));
+            return found;
         }
 
         // A project from the default metric template as the probe of 5b read it: millimeters, two levels on the project base point at 0,
@@ -157,74 +158,67 @@ namespace SiteAdaptation.Tests
         [Fact]
         public void R373_a_parameter_of_the_sheet_with_no_guid_stops_and_plot_with_no_guid_waits_on_q153_and_is_no_stop()
         {
-            var rows = new List<object[]>
-            {
-                new object[] { "Categories", "GUID", "Name", "Data type" },
-                new object[] { "Floors, Walls", null, "Plot", "Text" },
-                new object[] { "RVT Links", null, "RRE_ZZ_SP_Prototype", "Text" },
-            };
+            List<object[]> rows = Sheet(new[] { "Plot", null, "Data", "Floors", "5", "Yes" }, new[] { "RRE_ZZ_SP_Prototype", null, "Data", "RVT Links", "7", "Yes" });
             SetUpTarget target = Target(sheet: ParameterSheet.FromRows("parameters.xlsx", rows));
 
             SetUpSiteView view = SetUpPlanner.View(Template(), target, null);
 
             Assert.Equal(new[] { "RRE_ZZ_SP_Prototype has no GUID in the parameter sheet" }, view.Stops);
             Assert.Equal(new[] { "Plot not bound, waiting on Q156" }, view.Waiting);
-            Assert.Equal(new[] { "Plot not bound, waiting on Q156" }, SetUpPlanner.View(Template(), Target(sheet: ParameterSheet.FromConfig(NoFixedBlock())), null).Waiting);
+            List<object[]> noPlot = Sheet(new[] { "CASE", "c0b2c4ee-e129-4a42-bcb6-225759b874eb", "Data", "RVT Links", "7", "Yes" });
+            Assert.Equal(new[] { "Plot not bound, waiting on Q156" }, SetUpPlanner.View(Template(), Target(sheet: ParameterSheet.FromRows("p.xlsx", noPlot)), null).Waiting);
         }
 
+        // R461. config/shared_parameters.xlsx of the repo, the one source: the 10 parameters of the villa links of the 7 keys and Plot of
+        // Q156, each with its GUID, TEXT, the group Data, the categories the keys bind it on and its button
         [Fact]
-        public void R373_q156_plot_binds_on_floors_from_the_fixed_block_of_config_after_the_measured_ones_and_waits_no_more()
+        public void R461_the_parameter_sheet_of_config_gives_the_10_link_parameters_and_plot_with_their_guids_and_buttons()
         {
-            ParameterSheet sheet = ParameterSheet.FromConfig(config);
+            ParameterSheet sheet = ParameterSheet.FromConfig(configPath, config);
 
+            Assert.True(sheet.Chosen);
+            Assert.Equal("shared_parameters.xlsx", sheet.Sheet);
             Assert.Equal(11, sheet.Parameters.Count);
+            Assert.Empty(sheet.LeftOut);
+            Assert.Equal(new[] { "RRE_ZZ_SP_Plot-Number", "RRE_ZZ_SP_Prototype", "RRE_ZZ_SP_Number-of-Steps", "RRE_ZZ_SP_Façade-Color", "RRE_ZZ_SP_Façade-Design-Option",
+                "RRE_ZZ_SP_Prototype-Foundation-Type", "RRE_ZZ_SP_Prototype-HVAC-Schedule-Type", "RRE_ZZ_SP_RVT-Name", "CASE", "RRE_ZZ_SP_Prototype-FFL", "Plot" }, sheet.Parameters.Select(item => item.Name));
+            Assert.All(sheet.Parameters, item => Assert.True(Guid.TryParseExact(item.Guid, "D", out _), item.Name));
+            Assert.All(sheet.Parameters, item => Assert.Equal("TEXT", item.DataType));
+            Assert.All(sheet.Parameters, item => Assert.Equal("Data", item.Group));
             ParameterSpec plot = sheet.Parameters.Last();
-            Assert.Equal("Plot", plot.Name);
             Assert.Equal("faecae98-f82c-46b5-bd80-489380545236", plot.Guid);
-            Assert.Equal("TEXT", plot.DataType);
             Assert.Equal(new[] { "Floors" }, plot.Categories);
-            Assert.Equal("RRE_ZZ_SP_Plot-Number", sheet.Parameters[0].Name);
+            Assert.Equal(ParameterSheet.FloorsButton, plot.FilledBy);
+            Assert.Null(sheet.Parameters.Single(item => item.Name == Placer.FflParameter).FilledBy);
+            Assert.Equal(9, sheet.GuidsFilledBy(ParameterSheet.PlaceVillasButton).Count);
+            Assert.Equal(new[] { "Detail Items", "RVT Links" }, sheet.Parameters.First(item => item.Name == "CASE").Categories);
+            Assert.Equal("From the parameter sheet: shared_parameters.xlsx, 11 parameters", SetUpTexts.FromSheet(sheet.Source));
             SetUpSiteView view = SetUpPlanner.View(Template(), Target(), null);
             Assert.Empty(view.Waiting);
             Assert.Empty(view.Stops);
+            Assert.Equal("shared_parameters.xlsx", view.ParameterSheetName);
             Assert.Contains(SetUpPlanner.Changes(Template(), Target()).Parameters, item => item.Name == "Plot" && item.Guid == plot.Guid);
         }
 
         [Fact]
-        public void R373_q156_a_name_in_both_the_measured_and_the_fixed_block_is_refused()
+        public void R461_config_with_no_parameter_sheet_named_is_refused()
         {
-            var both = (JObject)config.DeepClone();
-            ((JArray)both["addin"]["fixedParameters"]["parameters"]).Add(new JObject { ["name"] = "CASE", ["guid"] = "c0b2c4ee-e129-4a42-bcb6-225759b874eb", ["on"] = new JArray("Floors") });
+            var none = (JObject)config.DeepClone();
+            ((JObject)none["addin"]).Remove("parameterSheet");
 
-            string message = Assert.Throws<InvalidDataException>(() => ParameterSheet.FromConfig(both)).Message;
-
-            Assert.Equal("config names CASE in both addin.sharedParameters and addin.fixedParameters, one parameter per name (Q156)", message);
+            Assert.Equal("config names no addin.parameterSheet, the parameter sheet of button 1 (R461)", Assert.Throws<InvalidDataException>(() => ParameterSheet.FromConfig(configPath, none)).Message);
+            Assert.Equal(Path.Combine(root, "x.xlsx"), ParameterSheet.PathOf(configPath, new JObject { ["addin"] = new JObject { ["parameterSheet"] = "x.xlsx" } }));
         }
 
         [Fact]
-        public void R373_until_a_sheet_is_chosen_the_parameters_are_the_10_of_config_with_the_text_of_q155()
-        {
-            ParameterSheet sheet = ParameterSheet.FromConfig(NoFixedBlock());
-
-            Assert.False(sheet.Chosen);
-            Assert.Equal(10, sheet.Parameters.Count);
-            Assert.All(sheet.Parameters, item => Assert.True(Guid.TryParseExact(item.Guid, "D", out _), item.Name));
-            Assert.All(sheet.Parameters, item => Assert.Equal("TEXT", item.DataType));
-            Assert.Equal(new[] { "Floors", "RVT Links" }, sheet.Parameters.First(item => item.Name == "RRE_ZZ_SP_Prototype").Categories);
-            Assert.Equal(new[] { "Detail Items", "RVT Links" }, sheet.Parameters.First(item => item.Name == "CASE").Categories);
-            Assert.DoesNotContain(sheet.Parameters, item => item.Name == "Plot");
-            Assert.Equal("From the parameter sheet: not chosen, 10 parameters of the answer keys", SetUpTexts.FromSheet(sheet.Source));
-            Assert.Null(SetUpPlanner.View(Template(), Target(), null).ParameterSheetName);
-        }
-
-        [Fact]
-        public void R373_a_parameter_sheet_is_read_by_its_four_columns_in_any_order_and_a_name_twice_or_a_column_missing_is_refused()
+        public void R461_a_parameter_sheet_is_read_by_its_eight_columns_in_any_order_and_keep_no_leaves_a_row_out()
         {
             var rows = new List<object[]>
             {
-                new object[] { "guid", "NAME", "Categories", "Data type", "a note" },
-                new object[] { "C0B2C4EE-E129-4A42-BCB6-225759B874EB", " CASE ", "Detail Items, RVT Links", "text", "x" },
-                new object[] { null, null, null, null, null },
+                new object[] { "guid", "PARAMETER", "Category", "Data type", "group", "Filled By", "Sample value", "keep", "a note" },
+                new object[] { "C0B2C4EE-E129-4A42-BCB6-225759B874EB", " CASE ", "Detail Items, RVT Links", "text", "Data", "7 Place villas", "A", "yes", "x" },
+                new object[] { "6e8e827b-cc9a-4da2-9ddb-c8e3f09ffa36", "RRE_ZZ_SP_RVT-Name", "RVT Links", "Text", "Data", "7", "", "No", null },
+                new object[] { null, null, null, null, null, null, null, null, null },
             };
 
             ParameterSheet sheet = ParameterSheet.FromRows("ROSHN parameters.xlsx", rows);
@@ -233,12 +227,35 @@ namespace SiteAdaptation.Tests
             Assert.Equal("CASE", item.Name);
             Assert.Equal("c0b2c4ee-e129-4a42-bcb6-225759b874eb", item.Guid);
             Assert.Equal("TEXT", item.DataType);
+            Assert.Equal("Data", item.Group);
+            Assert.Equal(7, item.FilledBy);
             Assert.Equal(new[] { "Detail Items", "RVT Links" }, item.Categories);
-            Assert.Equal("ROSHN parameters.xlsx, 1 parameters", sheet.Source);
-            rows.Add(new object[] { null, "CASE", "Floors", "Text", null });
+            Assert.Equal(new[] { "RRE_ZZ_SP_RVT-Name" }, sheet.LeftOut);
+            Assert.Equal("ROSHN parameters.xlsx, 1 parameters, 1 left out", sheet.Source);
+            rows.Add(new object[] { null, "RRE_ZZ_SP_RVT-Name", "Floors", "Text", "Data", "none", null, "Yes", null });
             Assert.Contains("twice", Assert.Throws<InvalidDataException>(() => ParameterSheet.FromRows("a.xlsx", rows)).Message);
-            Assert.Contains("Categories", Assert.Throws<InvalidDataException>(() => ParameterSheet.FromRows("a.xlsx", new List<object[]> { new object[] { "Name", "GUID", "Data type" } })).Message);
-            Assert.Contains("no GUID", Assert.Throws<InvalidDataException>(() => ParameterSheet.FromRows("a.xlsx", new List<object[]> { new object[] { "Name", "GUID", "Data type", "Categories" }, new object[] { "A", "not a guid", "Text", "Floors" } })).Message);
+            Assert.Equal("the parameter sheet a.xlsx has no column Group, Category, Filled by, Sample value, Keep in its first row (R461)",
+                Assert.Throws<InvalidDataException>(() => ParameterSheet.FromRows("a.xlsx", new List<object[]> { new object[] { "Parameter", "GUID", "Data type" } })).Message);
+            Assert.Contains("no GUID", Assert.Throws<InvalidDataException>(() => ParameterSheet.FromRows("a.xlsx", Sheet(new[] { "A", "not a guid", "Data", "Floors", "7", "Yes" }))).Message);
+            Assert.Equal("the parameter sheet a.xlsx gives A the Keep blank, Yes or No (R461)",
+                Assert.Throws<InvalidDataException>(() => ParameterSheet.FromRows("a.xlsx", Sheet(new[] { "A", null, "Data", "Floors", "7", null }))).Message);
+            Assert.Equal("the parameter sheet a.xlsx gives A the Filled by Floors, a button from 1 to 9 or none (R465)",
+                Assert.Throws<InvalidDataException>(() => ParameterSheet.FromRows("a.xlsx", Sheet(new[] { "A", null, "Data", "Floors", "Floors", "Yes" }))).Message);
+        }
+
+        // R465. RRE_ZZ_SP_Prototype-FFL is never written, the floor parameter is Floors' alone, a kept parameter needs a group
+        [Fact]
+        public void R465_a_sheet_that_gives_the_ffl_a_button_is_refused_and_the_plot_parameter_of_another_button_or_no_group_stops()
+        {
+            string ffl = Assert.Throws<InvalidDataException>(() => ParameterSheet.FromRows("a.xlsx", Sheet(new[] { Placer.FflParameter, null, "Data", "RVT Links", "7", "Yes" }))).Message;
+            Assert.Equal("the parameter sheet a.xlsx gives RRE_ZZ_SP_Prototype-FFL to button 7, it is never written, Filled by none (R465)", ffl);
+            Assert.Empty(ParameterSheet.FromRows("a.xlsx", Sheet(new[] { Placer.FflParameter, null, "Data", "RVT Links", "none", "No" })).Parameters);
+            List<object[]> rows = Sheet(new[] { "Plot", "faecae98-f82c-46b5-bd80-489380545236", "Data", "Floors", "7", "Yes" },
+                new[] { "CASE", "c0b2c4ee-e129-4a42-bcb6-225759b874eb", null, "RVT Links", "7", "Yes" });
+
+            SetUpSiteView view = SetUpPlanner.View(Template(), Target(sheet: ParameterSheet.FromRows("p.xlsx", rows)), null);
+
+            Assert.Equal(new[] { "Plot is filled by Floors, give it Filled by 5 in the parameter sheet", "CASE has no Group in the parameter sheet" }, view.Stops);
         }
 
         [Fact]
@@ -453,7 +470,7 @@ namespace SiteAdaptation.Tests
 
             string path = Path.Combine(work, "shared_" + RunId + ".txt");
             Assert.Equal(path, document.ParameterFile);
-            Assert.Contains("PARAM\t" + ParameterSheet.FromConfig(config).Parameters[0].Guid + "\tRRE_ZZ_SP_Plot-Number\tTEXT", document.ParameterText);
+            Assert.Contains("PARAM\t" + ParameterSheet.FromConfig(configPath, config).Parameters[0].Guid + "\tRRE_ZZ_SP_Plot-Number\tTEXT", document.ParameterText);
             Assert.Contains("RRE_ZZ_SP_Fa\u00e7ade-Color", document.ParameterText);
             Assert.False(File.Exists(path));
             Assert.True(calls.IndexOf("useParameterFile") < calls.IndexOf("start"));

@@ -15,8 +15,8 @@
   Revit closed, lock released. Blocked: none
 - Lane C DEMO-FIX, 09:55, branch fix/lane-c-demo-fix: step rows of the pane run steps, a loader on every button, Confirm all in 3 Review
   data, idle buttons hidden (R444). Now: the gate and the PR, merge by 10:15, then lane-b reinstalls. Blocked: none
-- Lane D FIX-1NOV-D, 14:44, branch fix/1nov-d: shared parameters from config/shared_parameters.xlsx, R460 to R469, Q330 to Q339.
-  Now: plan item 1, the read of the IMC key parameters (data type, group, sample). Blocked: none
+- Lane D FIX-1NOV-D, 16:21, branch fix/1nov-d: shared parameters from config/shared_parameters.xlsx, R460 to R465, Q330 to Q339.
+  Now: the gate and the records. The Revit read of the key group stopped at 3 attempts (Q330). Blocked: none
 
 Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane C DEMO-FIX, Lane B demo-fill, Lane A 4j-2, Lane D 4j-1b, Lane C SCAN-UI, Lane A 4i, Lane B 6a, 1 Nov 2026.
 

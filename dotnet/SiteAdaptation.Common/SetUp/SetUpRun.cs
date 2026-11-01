@@ -42,7 +42,7 @@ namespace SiteAdaptation.Common.SetUp
         private string readBack;
 
         // settingsInput is the name of the input of the Settings file in the pane. sheetRows reads the rows of a parameter sheet chosen
-        // by Browse, null until the worker reads xlsx for the add-in (R350, an xlsx is never read inside Revit), then Browse stops
+        // by Browse, null for ParameterBook, which reads it inside Revit (R462)
         public SetUpRun(ISiteDocument document, ISetUpSiteDialog dialog, ITagStep tags, Func<string, string> readText, string settingsInput, Func<string, IReadOnlyList<object[]>> sheetRows)
         {
             this.document = document;
@@ -91,7 +91,8 @@ namespace SiteAdaptation.Common.SetUp
             rules = Json(rulesPath, "the rules profile");
             position = Json(PositionSettings.From(config).File, "the position file");
             slope = RampSlopes.Default(rules, null);
-            sheet = ParameterSheet.FromConfig(config);
+            // R461. The parameter sheet addin.parameterSheet of config names, until another is chosen
+            sheet = ParameterSheet.FromConfig(settings.Path, config);
             target = Make();
             View = SetUpPlanner.View(document.Read(), target, context.DryRun ? (Func<double[], double[]>)DryShared : null);
             return Summary(View);
@@ -282,11 +283,7 @@ namespace SiteAdaptation.Common.SetUp
 
         private ParameterSheet ReadSheet(string path)
         {
-            if (sheetRows == null)
-            {
-                throw new InvalidOperationException(SetUpTexts.SheetNotRead);
-            }
-            return ParameterSheet.FromRows(Path.GetFileName(path), sheetRows(path));
+            return sheetRows == null ? ParameterSheet.FromFile(path) : ParameterSheet.FromRows(Path.GetFileName(path), sheetRows(path));
         }
 
         private JObject Json(string path, string what)
