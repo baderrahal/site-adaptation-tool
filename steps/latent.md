@@ -466,3 +466,20 @@ No real input reaches these, since the ROSHN config runs roshnPastJob (Q224) and
 - A worker that never answers leaves the scan of that work folder marked running until Revit restarts, the time limit of 600 s ends it first.
 - The column dropdown of New project holds one line per villa type source, so two shifts of one sheet and column show twice (Q249).
 
+
+## 4j-2, review 1 and breaker pass 1
+
+No real input reaches these, since the ROSHN config runs roshnPastJob (Q224) and designBasis.split.test is off (Q303, Q304).
+
+- Review 1, rules/roshn-makkah.json rev6.irregular_tolerance_deg reads DOCUMENT in the R401 block, the 2.0 degrees comes from the 4j-2 measurement, not the manual.
+- Review 2, breaker 8, plan_rules.py part_fits and KeyLevels.PartFits: a tested cluster with no unit code on any plot gives no FFL and raises in both languages. Fix when the test is turned on: skip it as untested.
+- Review 3, BuildSteps.cs walls block against plan_from_book.py build: C# reads irregular_tolerance_deg only when the walls step or the check rows are built, Python on every rev6 build, so a bad value is refused by a different set of steps.
+- Review 4, DesignBasis.cs ReadSplit: units past the integer range throw OverflowException where Python refuses by the units rule.
+- Review 5, the R415 and R416 tests: no moved wall on a clockwise irregular ring, no value exactly on the tolerance, no build test on a real irregular face end to end.
+- Review 6, splitTest is written to the step levels only, no plan, check table or Excel reads it (L4j2-1).
+- Review 7, Walls.cs repeats 45, 4 and 90 as literals beside their constants.
+- Breaker 4, part_fits: one slope outside the band blocks every split, a cluster that walls 3 would mend on steps stays whole as noFit (Q303).
+- Breaker 5, plan_walls.inside: at a 45 degree corner the moved body leaves the face by up to 0.150 m, on baseplan plots outside the scope, in scope only plot 2961 by 0.002 m.
+- Breaker 6, a shared edge of two irregular plots: 87 on the whole baseplan, 0 in the all scope, the wall goes inside the plot it is filed under as R416 says.
+- Breaker 7, WallsRun.OnLine: under rev6 an untagged hand wall on the old centre line no longer holds back the moved plan wall, so button 8 places a second wall 0.1 m beside it.
+- Breaker 8, plan_walls.inside: a zero length edge divides by zero, edge_walls builds no wall on one. corners() on 5,000 vertices takes 5.1 s, the largest real ring holds 18.
