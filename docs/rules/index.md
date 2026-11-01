@@ -373,6 +373,10 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R379 Button 6 Levels.
 - R380 Button 8 Walls.
 - R384 Test host runs every button.
+- R450 Mass file per prototype.
+- R451 Wall ring or largest slab.
+- R452 Masses placed as linked files.
+- R453 Footprint check by house outline.
 
 ## 10-addin-r407-up.md
 
