@@ -25,6 +25,10 @@ namespace SiteAdaptation.Common.SetUp
         // point unclipped for the move and its clip state set back
         void SetPosition(SetUpTarget target, SetUpChanges changes);
 
+        // R455, before step 2: the named position of the CAD site made the active one, by its name or by a rename of the active one,
+        // then the latitude and longitude of the site location and its place name when config gives one
+        void SetLocation(SetUpTarget target);
+
         // Step 3, the levels made by name with a floor plan each, the Elevation Base of their type set, then Level.Elevation
         void SetLevels(SetUpTarget target, SetUpChanges changes);
 

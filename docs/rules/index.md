@@ -419,3 +419,9 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R442 Cluster confirm marks.
 - R443 Door level source counts.
 - R444 Pane drives steps, loader, no idle button.
+
+## 13-site-coords-r454-up.md
+
+- R454 Coordinate system of the inputs.
+- R455 Site position from CAD.
+- R456 Three CAD control points.

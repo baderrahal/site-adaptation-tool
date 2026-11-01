@@ -475,6 +475,39 @@ namespace SiteAdaptation.Tests
             Assert.Empty(Directory.GetFiles(work, "*", SearchOption.AllDirectories));
         }
 
+        // R454 to R456. With coordinates.source cad button 1 sets the named position and the site location before the position, takes
+        // the shared origin of the CAD plots and passes the read back with its control points. A conflict of systems stops before any set
+        [Fact]
+        public void R455_button_1_with_the_cad_source_sets_the_location_then_the_position_of_the_plots()
+        {
+            config["coordinates"]["source"] = "cad";
+            File.WriteAllText(configPath, config.ToString());
+            var plots = new List<CadPlot> { new CadPlot { Plot = "1", Vertices = new List<double[]> { new[] { 300010.0, 2400020.0 }, new[] { 300090.0, 2400020.0 }, new[] { 300090.0, 2400060.0 } } } };
+            var calls = new List<string>();
+            var document = new FakeDocument(Template()) { Calls = calls };
+            var run = new SetUpRun(document, new FakeDialog(), new FakeTags(calls), File.ReadAllText, Settings, null)
+                .ReadingCad(context => new CoordinateRead { Files = new List<StatedSystem> { new StatedSystem { File = "Road Layout.dwg", Name = "UTM84-37N" } }, Plots = plots });
+            var flow = new ButtonFlow(new FakeState(work, configPath), new FakeModel(calls), null, input => "h", () => RunId);
+
+            RunOutcome outcome = flow.Run(1, "1 Set up site", run.Body(), Document);
+
+            Assert.Equal(RunEnd.Committed, outcome.End);
+            Assert.True(calls.IndexOf("location") >= 0 && calls.IndexOf("location") < calls.IndexOf("position"));
+            Assert.Equal(300050.0, document.State.Position.EastM);
+            Assert.Equal(2400040.0, document.State.Position.NorthM);
+            Assert.Equal((string)config["coordinates"]["positionName"], document.State.PositionName);
+            Assert.Equal(5, run.View.CheckPoints.Count(row => row.Pass));
+
+            var conflict = new SetUpRun(new FakeDocument(Template()) { Calls = new List<string>() }, new FakeDialog(), new FakeTags(new List<string>()), File.ReadAllText, Settings, null)
+                .ReadingCad(context => new CoordinateRead { Files = new List<StatedSystem> { new StatedSystem { File = "a.dwg", Name = "UTM84-37N" }, new StatedSystem { File = "b.xml", Name = "32638" } }, Plots = plots });
+            RunOutcome stopped = flow.Run(1, "1 Set up site", conflict.Body(), Document);
+            Assert.NotEqual(RunEnd.Committed, stopped.End);
+            Assert.Contains("b.xml EPSG 32638", stopped.Message);
+
+            var none = new SetUpRun(new FakeDocument(Template()) { Calls = new List<string>() }, new FakeDialog(), new FakeTags(new List<string>()), File.ReadAllText, Settings, null);
+            Assert.Contains("reads no CAD", flow.Run(1, "1 Set up site", none.Body(), Document).Message);
+        }
+
         [Fact]
         public void R374_site_json_holds_the_facts_read_back_and_moves_onto_its_name_after_the_commit()
         {
@@ -630,6 +663,15 @@ namespace SiteAdaptation.Tests
             {
                 Calls.Add("units");
                 State.Units = new UnitState { System = State.Units.System, Length = units.Length, LengthAccuracy = units.LengthAccuracy, Area = units.Area, Angle = units.Angle, Slope = units.Slope };
+            }
+
+            public void SetLocation(SetUpTarget target)
+            {
+                Calls.Add("location");
+                State.PositionName = target.Cad.PositionName;
+                State.LatitudeDeg = target.Cad.LatitudeDeg;
+                State.LongitudeDeg = target.Cad.LongitudeDeg;
+                State.PlaceName = target.Cad.PlaceName;
             }
 
             public void SetPosition(SetUpTarget target, SetUpChanges changes)

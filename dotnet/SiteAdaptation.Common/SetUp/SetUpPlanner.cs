@@ -14,6 +14,9 @@ namespace SiteAdaptation.Common.SetUp
         public bool BasePoint { get; set; }
         public bool LevelBase { get; set; }
 
+        // R455. The named position and the site location of a CAD site
+        public bool Location { get; set; }
+
         // Each level of the target whose elevation is set, made first when the document lacks its name
         public List<PositionLevel> Levels { get; set; } = new List<PositionLevel>();
         public List<string> LevelsToMake { get; set; } = new List<string>();
@@ -25,7 +28,7 @@ namespace SiteAdaptation.Common.SetUp
 
         public bool Any
         {
-            get { return Units || Position || SurveyPoint || BasePoint || LevelBase || Levels.Count > 0 || FloorTypes.Count > 0 || WallTypes.Count > 0 || Parameters.Count > 0; }
+            get { return Units || Location || Position || SurveyPoint || BasePoint || LevelBase || Levels.Count > 0 || FloorTypes.Count > 0 || WallTypes.Count > 0 || Parameters.Count > 0; }
         }
     }
 
@@ -101,6 +104,11 @@ namespace SiteAdaptation.Common.SetUp
             {
                 stops.Add(SetUpTexts.NoWallType);
             }
+            // R454. A conflict of the coordinate systems the inputs state, or one unlike coordinates.expectedEpsg
+            if (target.Cad != null)
+            {
+                stops.AddRange(target.Cad.Systems.Stops);
+            }
             return stops;
         }
 
@@ -108,7 +116,13 @@ namespace SiteAdaptation.Common.SetUp
         public static List<string> Waiting(SetUpTarget target)
         {
             bool plotHasGuid = target.Parameters.Parameters.Any(item => item.Name == target.PlotParameter && item.Guid != null);
-            return target.PlotParameter == null || plotHasGuid ? new List<string>() : new List<string> { SetUpTexts.PlotWaits(target.PlotParameter) };
+            List<string> waiting = target.PlotParameter == null || plotHasGuid ? new List<string>() : new List<string> { SetUpTexts.PlotWaits(target.PlotParameter) };
+            // R454. The coordinate system each CAD input states, a file that states none listed and never a stop (Q325)
+            if (target.Cad != null)
+            {
+                waiting.AddRange(target.Cad.Systems.Lines);
+            }
+            return waiting;
         }
 
         public static SetUpChanges Changes(SiteState now, SetUpTarget target)
@@ -116,6 +130,7 @@ namespace SiteAdaptation.Common.SetUp
             var changes = new SetUpChanges
             {
                 Units = !SameUnits(now.Units, target.Units),
+                Location = target.Cad != null && !SameLocation(now, target.Cad),
                 Position = !SamePosition(now.Position, target.Position),
                 SurveyPoint = Gap(now.Survey.InternalM, target.SurveyInternal) > SameMm,
                 BasePoint = Gap(now.ProjectBase.InternalM, target.BaseInternal) > SameMm,
@@ -192,6 +207,8 @@ namespace SiteAdaptation.Common.SetUp
                 }
                 rows.Add(row);
             }
+            // R456. The control points of the CAD site at coordinates.controlPointLimitMm
+            rows.AddRange(target.ControlPoints.Select(point => ControlPoints.Check(point, target.Position, revitShared, target.Cad.ControlPointLimitMm, target.GapDecimals)));
             return rows;
         }
 
@@ -202,6 +219,10 @@ namespace SiteAdaptation.Common.SetUp
             if (!SamePosition(now.Position, target.Position))
             {
                 differs.Add("project position");
+            }
+            if (target.Cad != null && !SameLocation(now, target.Cad))
+            {
+                differs.Add("site location");
             }
             Check(differs, "survey point internal", now.Survey.InternalM, target.SurveyInternal);
             Check(differs, "survey point shared", now.Survey.SharedM, target.SurveyShared);
@@ -255,7 +276,7 @@ namespace SiteAdaptation.Common.SetUp
         {
             return new List<SetUpRow>
             {
-                new SetUpRow { Label = SetUpTexts.CoordinateSystem, Value = SetUpTexts.CoordinateSystemText(target), Differs = changes.Position || changes.BasePoint },
+                new SetUpRow { Label = SetUpTexts.CoordinateSystem, Value = SetUpTexts.CoordinateSystemText(target), Differs = changes.Location || changes.Position || changes.BasePoint },
                 new SetUpRow { Label = SetUpTexts.SurveyPoint, Value = SetUpTexts.Coordinate(target.SurveyShared), Differs = changes.SurveyPoint || Gap(now.Survey.SharedM, target.SurveyShared) > SameMm },
                 new SetUpRow { Label = SetUpTexts.AngleToTrueNorth, Value = SetUpTexts.Number(target.Position.AngleDeg.Value, 6), Differs = Math.Abs(now.Position.AngleDeg.Value - target.Position.AngleDeg.Value) > SameDeg },
                 new SetUpRow { Label = SetUpTexts.Levels, Value = SetUpTexts.LevelsTarget(target), Differs = changes.LevelBase || changes.Levels.Count > 0 },
@@ -287,6 +308,13 @@ namespace SiteAdaptation.Common.SetUp
         {
             return Math.Abs(have.EastM.Value - want.EastM.Value) * 1000.0 <= SameMm && Math.Abs(have.NorthM.Value - want.NorthM.Value) * 1000.0 <= SameMm
                 && Math.Abs(have.ElevationM.Value - want.ElevationM.Value) * 1000.0 <= SameMm && Math.Abs(Turn(have.AngleDeg.Value - want.AngleDeg.Value)) <= SameDeg;
+        }
+
+        // R455. The named position active and the site location within SameDeg, the place name only when config gives one
+        private static bool SameLocation(SiteState now, CadSite cad)
+        {
+            return now.PositionName == cad.PositionName && now.LatitudeDeg.HasValue && now.LongitudeDeg.HasValue && Math.Abs(now.LatitudeDeg.Value - cad.LatitudeDeg) <= SameDeg
+                && Math.Abs(Turn(now.LongitudeDeg.Value - cad.LongitudeDeg)) <= SameDeg && (cad.PlaceName == null || now.PlaceName == cad.PlaceName);
         }
 
         private static bool Zero(SitePosition at)

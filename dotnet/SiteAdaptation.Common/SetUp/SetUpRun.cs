@@ -40,6 +40,8 @@ namespace SiteAdaptation.Common.SetUp
         private double slope;
         private SetUpTarget target;
         private string readBack;
+        private Func<RunContext, CoordinateRead> readCad;
+        private CadSite cad;
 
         // settingsInput is the name of the input of the Settings file in the pane. sheetRows reads the rows of a parameter sheet chosen
         // by Browse, null until the worker reads xlsx for the add-in (R350, an xlsx is never read inside Revit), then Browse stops
@@ -60,6 +62,13 @@ namespace SiteAdaptation.Common.SetUp
             settingsNow = settings ?? throw new ArgumentNullException(nameof(settings));
             store = new SettingsStore(entity);
             clock = utcNow ?? throw new ArgumentNullException(nameof(utcNow));
+            return this;
+        }
+
+        // R454 to R456. The CAD read of coordinates.source cad, the worker command crs in the add-in
+        public SetUpRun ReadingCad(Func<RunContext, CoordinateRead> read)
+        {
+            readCad = read;
             return this;
         }
 
@@ -90,6 +99,7 @@ namespace SiteAdaptation.Common.SetUp
             string rulesPath = Path.IsPathRooted(profile) ? profile : Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(Path.GetFullPath(settings.Path))), profile);
             rules = Json(rulesPath, "the rules profile");
             position = Json(PositionSettings.From(config).File, "the position file");
+            cad = SiteFromCad.Load(config, context, readCad);
             slope = RampSlopes.Default(rules, null);
             sheet = ParameterSheet.FromConfig(config);
             target = Make();
@@ -196,6 +206,10 @@ namespace SiteAdaptation.Common.SetUp
             {
                 document.SetUnits(target.Units);
             }
+            if (changes.Location)
+            {
+                document.SetLocation(target);
+            }
             if (changes.Position || changes.SurveyPoint || changes.BasePoint)
             {
                 document.SetPosition(target, changes);
@@ -277,7 +291,7 @@ namespace SiteAdaptation.Common.SetUp
 
         private SetUpTarget Make()
         {
-            return SetUpTarget.From(config, rules, null, position, slope, sheet);
+            return SetUpTarget.From(config, rules, null, position, slope, sheet, cad);
         }
 
         private ParameterSheet ReadSheet(string path)

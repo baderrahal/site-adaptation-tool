@@ -903,6 +903,7 @@
       "addin.workerTimeLimitS.position": {"status": "CHOSEN by Bader", "question": "Q104", "where": "steps/investigations/status-review.md table 1 row 13"},
       "addin.workerTimeLimitS.newProjectCheck": {"status": "UNKNOWN", "why": "no Q, no share, no Bader line and no CHOSEN mark"},
       "addin.workerTimeLimitS.scan": {"status": "UNKNOWN", "why": "no Q, no share, no Bader line and no CHOSEN mark"},
+      "addin.workerTimeLimitS.crs": {"status": "UNKNOWN", "why": "no Q, no share, no Bader line and no CHOSEN mark"},
       "addin.workerTimeLimitMinS": {"status": "CHOSEN by Bader", "question": "Q104", "where": "steps/investigations/status-review.md table 1 row 14"},
       "addin.position.checkPointLimitMm": {"status": "CHOSEN by Bader", "question": "Q086", "where": "addin.position.note"},
       "addin.position.revitCheckPointLimitMm": {"status": "CHOSEN by Bader", "question": "Q086", "where": "addin.position.note"},
@@ -961,7 +962,16 @@
       "designValues.rounding.entryDecimals": {"status": "UNKNOWN", "why": "no Q, no share, no Bader line and no CHOSEN mark"},
       "designValues.rounding.heightDecimals": {"status": "UNKNOWN", "why": "no Q, no share, no Bader line and no CHOSEN mark"},
       "designValues.rounding.fflDecimals": {"status": "UNKNOWN", "why": "no Q, no share, no Bader line and no CHOSEN mark"},
-      "designValues.rounding.bandDecimals": {"status": "UNKNOWN", "why": "no Q, no share, no Bader line and no CHOSEN mark"}
+      "designValues.rounding.bandDecimals": {"status": "UNKNOWN", "why": "no Q, no share, no Bader line and no CHOSEN mark"},
+      "coordinates.systems.UTM84-37N": {"status": "RECOMMENDED", "question": "Q325", "where": "Q325"},
+      "coordinates.expectedEpsg": {"status": "RECOMMENDED", "question": "Q325", "where": "coordinates.note"},
+      "coordinates.originRoundM": {"status": "RECOMMENDED", "question": "Q326", "where": "coordinates.note"},
+      "coordinates.angleToTrueNorthDeg": {"status": "DOCUMENT", "document": "positionFile", "pageOrSheet": "UNKNOWN", "source": "coordinates.source"},
+      "coordinates.originElevationM": {"status": "RECOMMENDED", "question": "Q326", "where": "coordinates.note"},
+      "coordinates.positionName": {"status": "RECOMMENDED", "question": "Q328", "where": "Q328"},
+      "coordinates.placeName": {"status": "DOCUMENT", "document": "positionFile", "pageOrSheet": "UNKNOWN", "source": "coordinates.source"},
+      "coordinates.controlPointCount": {"status": "RECOMMENDED", "question": "Q329", "where": "Q329"},
+      "coordinates.controlPointLimitMm": {"status": "RECOMMENDED", "question": "Q329", "where": "coordinates.note"}
     }
   }
 }
