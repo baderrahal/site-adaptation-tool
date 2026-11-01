@@ -202,6 +202,11 @@ namespace SiteAdaptation.AddIn.ReviewData
 
         private void ClustersChanged()
         {
+            // Breaker of SCAN-UI: a tick holds for the whole cluster, so the other half of a pair shows its tick too
+            foreach (ReviewRowViewModel row in Rows ?? new List<ReviewRowViewModel>())
+            {
+                row.Update(view.State);
+            }
             Changed(nameof(CanConfirmAll));
             Changed(nameof(NotSavedShown));
             Changed(nameof(SideCluster));

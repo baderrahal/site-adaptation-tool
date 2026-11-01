@@ -320,7 +320,7 @@ namespace SiteAdaptation.Tests
             Assert.Equal(new[] { "32", "33" }, view.Clusters.Confirmed());
             plot33.Confirmed = false;
             Assert.True(session.Model.CanConfirmAll);
-            Assert.Equal(new[] { "33" }, view.Clusters.Unconfirmed());
+            Assert.Equal(new[] { "32", "33" }, view.Clusters.Unconfirmed());
 
             session.ConfirmAll();
 

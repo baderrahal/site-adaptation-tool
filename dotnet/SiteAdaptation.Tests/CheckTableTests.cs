@@ -342,7 +342,7 @@ namespace SiteAdaptation.Tests
             string folder = Path.Combine(Path.GetTempPath(), "r443-window-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(Path.Combine(folder, "config"));
             File.WriteAllText(Path.Combine(folder, "entry.csv"), "Plot No.,El @ Entry\n31,1.5\n");
-            var config = Newtonsoft.Json.Linq.JObject.Parse("{ 'designBasis': { 'doorLevel': { 'source': 'roadPlusSlope', 'civilFile': { 'path': 'entry.csv' } } } }");
+            var config = Newtonsoft.Json.Linq.JObject.Parse("{ 'designBasis': { 'mode': 'rev6', 'doorLevel': { 'source': 'roadPlusSlope', 'civilFile': { 'path': 'entry.csv' } } } }");
             return DoorLevelPick.Of(config, Path.Combine(folder, "config", "project.json"), null, pick);
         }
 

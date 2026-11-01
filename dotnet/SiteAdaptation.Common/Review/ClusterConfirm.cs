@@ -50,7 +50,7 @@ namespace SiteAdaptation.Common.Review
             {
                 return reason;
             }
-            string plain = System.Text.RegularExpressions.Regex.Replace(reason, @"\s*\((?:R\d+|Q\d{3})\)|,\s*Q\d{3}|\s*Q\d{3}", "");
+            string plain = System.Text.RegularExpressions.Regex.Replace(reason, @"\s*\((?:R\d+|Q\d{3})\)|,\s*\bQ\d{3}\b|\s*\bQ\d{3}\b", "");
             return plain.Trim().TrimEnd(',').Trim();
         }
 
@@ -100,9 +100,13 @@ namespace SiteAdaptation.Common.Review
             {
                 throw new ArgumentException("plot " + plot + " has no cluster proposal of 4 Check to confirm", nameof(plot));
             }
-            if (yes ? confirmed.Add(plot) : confirmed.Remove(plot))
+            // Breaker of SCAN-UI: a tick holds for the whole cluster, so the two halves of a pair are never placed apart
+            foreach (string member in marks[plot].Cluster.Where(HasProposal).Concat(new[] { plot }).Distinct(StringComparer.Ordinal))
             {
-                Changed = true;
+                if (yes ? confirmed.Add(member) : confirmed.Remove(member))
+                {
+                    Changed = true;
+                }
             }
         }
 
@@ -188,15 +192,22 @@ namespace SiteAdaptation.Common.Review
             {
                 return none;
             }
-            catch (JsonException)
+            catch (Exception error) when (error is JsonException || error is InvalidCastException || error is IOException || error is UnauthorizedAccessException)
             {
                 return none;
             }
-            if (named.Item2 == null || !File.Exists(named.Item1) || !string.Equals(FileHash.Sha256(named.Item1), named.Item2, StringComparison.OrdinalIgnoreCase))
+            try
+            {
+                if (named.Item2 == null || !File.Exists(named.Item1) || !string.Equals(FileHash.Sha256(named.Item1), named.Item2, StringComparison.OrdinalIgnoreCase))
+                {
+                    return none;
+                }
+                return Tuple.Create(FromPlan(JObject.Parse(WorkFiles.ReadText(named.Item1))), named.Item2);
+            }
+            catch (Exception error) when (error is JsonException || error is InvalidCastException || error is IOException || error is UnauthorizedAccessException)
             {
                 return none;
             }
-            return Tuple.Create(FromPlan(JObject.Parse(WorkFiles.ReadText(named.Item1))), named.Item2);
         }
     }
 }

@@ -123,10 +123,22 @@ namespace SiteAdaptation.Common.Review
             };
         }
 
-        // R442. The plots buttons 5 to 8 skip for NBH, those with a cluster proposal the team did not confirm when it last saved
+        // R442. The plots buttons 5 to 8 skip for NBH: every plot with a cluster proposal in the plan of the last done 4 Check that the
+        // team did not confirm on that same plan. Breaker of SCAN-UI: worked out from the plan now, so a save made before 4 Check, a plan
+        // built again after the save or no review file at all leaves every proposal unconfirmed, never a short list
         public static List<string> ClusterUnconfirmed(string folder, string nbh)
         {
-            return ReadClusters(PathOf(folder, nbh)).Unconfirmed.ToList();
+            Tuple<List<ClusterMark>, string> plan = ClusterConfirm.Load(folder, nbh);
+            ClusterSaved saved;
+            try
+            {
+                saved = ReadClusters(PathOf(folder, nbh));
+            }
+            catch (InvalidDataException)
+            {
+                saved = new ClusterSaved();
+            }
+            return new ClusterConfirm(plan.Item1, plan.Item2, saved).Unconfirmed();
         }
 
         private static List<string> Plots(JObject root, string field, string path)

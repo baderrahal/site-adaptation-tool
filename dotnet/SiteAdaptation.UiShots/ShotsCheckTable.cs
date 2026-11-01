@@ -103,7 +103,7 @@ namespace SiteAdaptation.UiShots
         // grey with its help line
         public static DoorLevelPick SampleDoorLevel()
         {
-            JObject config = JObject.Parse("{ 'designBasis': { 'doorLevel': { 'source': 'roadPlusSlope', 'sources': ['civilFile', 'roadPlusSlope'], 'civilFile': { 'path': null } } } }");
+            JObject config = JObject.Parse("{ 'designBasis': { 'mode': 'rev6', 'doorLevel': { 'source': 'roadPlusSlope', 'sources': ['civilFile', 'roadPlusSlope'], 'civilFile': { 'path': null } } } }");
             var plots = new[] { "31", "32", "33", "34", "35" }.ToDictionary(plot => plot, plot => new Dictionary<string, object> { ["doorSource"] = "roadPlusSlope" });
             JObject levels = StepFile.Build(KeyLevels.StepName, "csharp", "nbh=012", plots, new ParityField[0]);
             return DoorLevelPick.Of(config, Path.Combine("made-up", "config", "project.json"), levels, null);

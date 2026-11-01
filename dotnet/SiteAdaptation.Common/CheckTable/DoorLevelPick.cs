@@ -40,10 +40,13 @@ namespace SiteAdaptation.Common.CheckTable
 
         // Null when config holds no designBasis.doorLevel, so a config of before round 4i shows no row. levelsStep is the step file
         // step_levels_csharp.json of the run, null when the run wrote none. pick is DoorLevelSource of the settings
+        public const string Rev6Mode = "rev6";
+
         public static DoorLevelPick Of(JObject config, string configPath, JObject levelsStep, string pick)
         {
             JObject door = config?["designBasis"]?["doorLevel"] as JObject;
-            if (door == null)
+            // Breaker of SCAN-UI, Q302: under the past job the build reads no door level, so the row is shown under rev6 only
+            if (door == null || (string)config["designBasis"]?["mode"] != Rev6Mode)
             {
                 return null;
             }

@@ -32,13 +32,13 @@ Known bugs:
 - The read of button 2 does not take the picks yet (Q292). The first press hashes the prototypes, over 1 GB, on the Revit thread once
 
 Next:
-- Lane B DEMO with the add-in of main, Lane B joins the skip of clusterUnconfirmed (Q296)
+- Lane B DEMO with the add-in of main, Lane B joins the skip of clusterUnconfirmed (Q300)
 
 Your turn:
 - Opened: Q288 Scan picks in the settings at version 1. Q289 Board rows the scan does not read. Q290 Curbs and road surface left out
   of scan. Q291 Where the line Current files is shown. Q292 The read does not use the picks yet. Q293 Approve the three drafts of
-  SCAN-UI. Q294 Rules chosen in Set up site, when used. Q295 Test host runs skip the scan. Q296 A cluster confirm against a
-  rebuilt plan. Q297 The build takes the door level pick. Q298 Door level row under the past job
+  SCAN-UI. Q294 Rules chosen in Set up site, when used. Q295 Test host runs skip the scan. Q300 Plots with no cluster
+  proposal. Q301 The build takes the door level pick. Q302 Door level row under the past job
 - Closed: Q246 Button 2 starts the scan or the window, Q283 Picks of layers, sheets, columns and coordinates, by Bader's prompt
 - 130 questions open, full text: steps/questions-open.md
 

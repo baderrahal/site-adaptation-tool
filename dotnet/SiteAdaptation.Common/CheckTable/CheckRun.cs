@@ -418,7 +418,15 @@ namespace SiteAdaptation.Common.CheckTable
         public static JObject LevelsStep(string stepsFolder)
         {
             string path = Path.Combine(stepsFolder, StepFile.FileName(KeyLevels.StepName, "csharp"));
-            return File.Exists(path) ? JObject.Parse(WorkFiles.ReadText(path)) : null;
+            // Breaker of SCAN-UI: a step file that does not read costs the row Door level from only, never the window of 4 Check
+            try
+            {
+                return File.Exists(path) ? JObject.Parse(WorkFiles.ReadText(path)) : null;
+            }
+            catch (Exception error) when (error is Newtonsoft.Json.JsonException || error is IOException || error is UnauthorizedAccessException)
+            {
+                return null;
+            }
         }
 
         // 7.4 of the mock, the line under the title: the level profile the build took, the override list and its entries

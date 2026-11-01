@@ -39,7 +39,7 @@ namespace SiteAdaptation.Tests
                 ["majority"] = JObject.Parse("{ 'groups': { 'native': ['n1'], 'parsons': ['kx'] }, 'overrideDefaultSources': ['parsons'], 'linkPlotParameter': 'Plot' }"),
                 ["addin"] = JObject.Parse("{ 'workerTimeLimitS': { 'build': 60 } }"),
                 ["checkRows"] = R376_CheckTableTests.Block(),
-                ["designBasis"] = JObject.Parse("{ 'doorLevel': { 'source': 'roadPlusSlope', 'sources': ['civilFile', 'roadPlusSlope'], 'civilFile': { 'path': null } } }"),
+                ["designBasis"] = JObject.Parse("{ 'mode': 'rev6', 'doorLevel': { 'source': 'roadPlusSlope', 'sources': ['civilFile', 'roadPlusSlope'], 'civilFile': { 'path': null } } }"),
             };
             File.WriteAllText(configPath, settings.ToString());
             File.WriteAllText(Path.Combine(config, "floor_outlines.json"), "{}");

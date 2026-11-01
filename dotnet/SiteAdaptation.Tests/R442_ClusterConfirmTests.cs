@@ -112,8 +112,8 @@ namespace SiteAdaptation.Tests
 
             Assert.True(clusters.IsConfirmed("12"));
             Assert.True(clusters.Changed);
-            Assert.Equal(new[] { "12" }, clusters.Confirmed());
-            Assert.Equal(new[] { "13", "14" }, clusters.Unconfirmed());
+            Assert.Equal(new[] { "12", "13" }, clusters.Confirmed());
+            Assert.Equal(new[] { "14" }, clusters.Unconfirmed());
             Assert.Throws<ArgumentException>(() => clusters.Confirm("15", true));
             Assert.Throws<ArgumentException>(() => clusters.Confirm("16", true));
             clusters.Confirm("12", false);
@@ -130,7 +130,7 @@ namespace SiteAdaptation.Tests
             clusters.MarkSaved();
 
             Assert.True(clusters.AnyToConfirm);
-            Assert.Equal(2, clusters.ConfirmAll());
+            Assert.Equal(1, clusters.ConfirmAll());
 
             Assert.Equal(new[] { "12", "13", "14" }, clusters.Confirmed());
             Assert.Empty(clusters.Unconfirmed());
@@ -172,18 +172,19 @@ namespace SiteAdaptation.Tests
             string path = ReviewFile.Write(work, "012", checks, "R3-1", clusters);
 
             JObject root = JObject.Parse(File.ReadAllText(path));
-            Assert.Equal(new[] { "13" }, root["clusterConfirmed"].Select(item => (string)item));
-            Assert.Equal(new[] { "12", "14" }, root["clusterUnconfirmed"].Select(item => (string)item));
+            Assert.Equal(new[] { "12", "13" }, root["clusterConfirmed"].Select(item => (string)item));
+            Assert.Equal(new[] { "14" }, root["clusterUnconfirmed"].Select(item => (string)item));
             Assert.Equal(clusters.PlanSha256, (string)root["clusterPlanSha256"]);
             Assert.Equal(1, (int)root["formatVersion"]);
             ClusterSaved saved = ReviewFile.ReadClusters(path);
-            Assert.Equal(new[] { "13" }, saved.Confirmed);
-            Assert.Equal(new[] { "12", "14" }, saved.Unconfirmed);
-            Assert.Equal(new[] { "12", "14" }, ReviewFile.ClusterUnconfirmed(work, "012"));
+            Assert.Equal(new[] { "12", "13" }, saved.Confirmed);
+            Assert.Equal(new[] { "14" }, saved.Unconfirmed);
+            Assert.Equal(new[] { "14" }, ReviewFile.ClusterUnconfirmed(work, "012"));
             Assert.Equal("12", ReviewFile.Read(path).Single().Plot);
             // The window opened again on the same plan shows the tick saved
             Assert.True(Loaded(saved).IsConfirmed("13"));
-            Assert.False(Loaded(saved).IsConfirmed("12"));
+            Assert.True(Loaded(saved).IsConfirmed("12"));
+            Assert.False(Loaded(saved).IsConfirmed("14"));
         }
 
         [Fact]
@@ -250,8 +251,8 @@ namespace SiteAdaptation.Tests
             Assert.True(new ReviewDataRun(context => input, dialog, null).Show(input, "R3-1", work));
 
             Assert.False(opened.Clusters.Changed);
-            Assert.Equal(new[] { "13", "14" }, ReviewFile.ClusterUnconfirmed(work, "012"));
-            Assert.Equal(new[] { "12" }, ReviewLoad.Load(work, "012", null).ClusterSaved.Confirmed);
+            Assert.Equal(new[] { "14" }, ReviewFile.ClusterUnconfirmed(work, "012"));
+            Assert.Equal(new[] { "12", "13" }, ReviewLoad.Load(work, "012", null).ClusterSaved.Confirmed);
             Assert.Equal("cluster not confirmed in 3 Review data", ClusterConfirm.NotConfirmedReason);
         }
 
