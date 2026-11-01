@@ -568,6 +568,8 @@ namespace SiteAdaptation.Common
             HashSet<string> laterParameters = KeyLevels.LaterParameters(config, levelProfile);
             List<string> facade = ((config["majority"]?["linkNameFacade"] as JArray) ?? new JArray()).Select(Text).ToList();
             double near = FloorOutlines.JointNear(config, "config");
+            // R470. The road levels of the front pair of each ramp before a rampFrontM gap, the level a joint holds
+            var roads = new Dictionary<string, double[]>();
             var outcomes = new Outcomes();
             // The hand of each plot after a mirror flag override, the link of R356 on it
             var turned = new Dictionary<string, Dictionary<string, object>>();
@@ -815,6 +817,7 @@ namespace SiteAdaptation.Common
                             made["slopePercent"] = found[number].Slope;
                         }
                     }
+                    roads[number] = front;
                     JToken gap = GapOf(mine["rampFrontM"]);
                     if (found[number].RampOnOpenEdge && mine.Property("rampFrontM") != null)
                     {
@@ -893,9 +896,9 @@ namespace SiteAdaptation.Common
                 parameters["lacks"] = values.Item2;
                 parameters["linkName"] = LinkParameters.LinkName(texts);
             }
-            // R470. A corner ramps of two or more written plots share takes the mean of their levels, which BuildPlan writes through rampZ
+            // R470. A front corner ramps of two or more written plots share takes the road of the first, which BuildPlan writes through rampZ
             var ramps = numbers.Where(number => found[number].Overrides["rampZ"] != null)
-                .Select(number => Tuple.Create(number, (double[][])found[number].Overrides["rampOutline"], (double[])found[number].Overrides["rampZ"])).ToList();
+                .Select(number => Tuple.Create(number, (double[][])found[number].Overrides["rampOutline"], (double[])found[number].Overrides["rampZ"], roads[number])).ToList();
             foreach (KeyValuePair<string, double[]> joined in FloorOutlines.JointLevels(ramps, near))
             {
                 found[joined.Key].Overrides["rampZ"] = joined.Value;
