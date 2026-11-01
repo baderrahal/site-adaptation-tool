@@ -25,16 +25,16 @@ namespace SiteAdaptation.Common.PlaceVillas
         // May start with the {workRoot} mark
         public string MassFolder { get; private set; }
 
-        // The height above the ground level the exterior walls are cut at (R451)
+        // R451. An exterior wall stands at the ground level when it crosses the plane this height above the top of the ground floors
         public double WallCutHeightM { get; private set; }
 
         // The share of the slab area the outer wall loop must cover to be the base (R451)
         public double WallRingMinShare { get; private set; }
 
-        public bool AsLinks => LinkFolder != LinkFolders.Solids;
+        // The largest share, so a ring that holds a garden wall of Exterior function is not the base (R451)
+        public double WallRingMaxShare { get; private set; }
 
-        // What a mass file was made from besides its prototype, so a change of these keys makes every mass again
-        public string SourceKey => string.Format(CultureInfo.InvariantCulture, "wallRing cut {0:R} m, minShare {1:R}", WallCutHeightM, WallRingMinShare);
+        public bool AsLinks => LinkFolder != LinkFolders.Solids;
 
         // Null when the block names no linkFolder, a Settings file saved before R450, which keeps the solids of R404
         public static MassFileConfig From(JObject block)
@@ -57,6 +57,11 @@ namespace SiteAdaptation.Common.PlaceVillas
                     : throw new InvalidDataException("addin.lightMode.massFolder is " + (folder?.ToString() ?? "missing") + ", linkFolder masses needs the folder of the mass files (R450)");
                 config.WallCutHeightM = Number(block, "wallCutHeightM", 0, double.MaxValue);
                 config.WallRingMinShare = Number(block, "wallRingMinShare", 0, 1);
+                config.WallRingMaxShare = Number(block, "wallRingMaxShare", 0, double.MaxValue);
+                if (config.WallRingMaxShare < config.WallRingMinShare)
+                {
+                    throw new InvalidDataException("addin.lightMode.wallRingMaxShare is " + block["wallRingMaxShare"] + ", under wallRingMinShare " + block["wallRingMinShare"] + " (R451)");
+                }
             }
             return config;
         }
@@ -94,9 +99,17 @@ namespace SiteAdaptation.Common.PlaceVillas
     public static class MassFiles
     {
         // Raised whenever the Revit read of the base or the file written changes, so every mass file is made again
-        public const int ReaderVersion = 1;
+        public const int ReaderVersion = 2;
         public const string Format = "site-adaptation-mass-file";
         public const string SidecarSuffix = ".json";
+
+        // R450. Every key a mass file is made from besides its prototype, so a change of any of them makes every mass again
+        public static string SourceKey(LightModeConfig config)
+        {
+            MassFileConfig mass = config.MassFiles;
+            return string.Format(CultureInfo.InvariantCulture, "solidHeight {0:R} m, baseBoundary {1} {2}, wallRing cut {3:R} m, minShare {4:R}, maxShare {5:R}", config.SolidHeightM,
+                config.BaseBoundary, config.BaseBoundaryFloorType ?? "", mass.WallCutHeightM, mass.WallRingMinShare, mass.WallRingMaxShare);
+        }
 
         public static string PathFor(string folder, string prototypePath)
         {
@@ -184,7 +197,7 @@ namespace SiteAdaptation.Common.PlaceVillas
         {
             string mass = MassFiles.PathFor(LinkFolder(config.MassFiles, null), prototypePath);
             JObject sidecar = MassFiles.Read(mass);
-            bool stale = MassFiles.Stale(sidecar, hash(prototypePath), config.MassFiles.SourceKey);
+            bool stale = MassFiles.Stale(sidecar, hash(prototypePath), MassFiles.SourceKey(config));
             return new MassState { MassPath = mass, Stale = stale, Base = stale ? null : MassFiles.Base(sidecar) };
         }
 
@@ -199,10 +212,10 @@ namespace SiteAdaptation.Common.PlaceVillas
             }
             string sha = hash(prototypePath);
             MassBaseRead read = maker.ReadBase(prototypePath, config) ?? throw new InvalidDataException(Path.GetFileName(prototypePath) + " gave no base read (R451)");
-            MassBase chosen = WallRing.Choose(read.WallLoops, read.Slab, config.MassFiles.WallRingMinShare);
+            MassBase chosen = WallRing.Choose(read.WallLoops, read.Slab, config.MassFiles.WallRingMinShare, config.MassFiles.WallRingMaxShare);
             Directory.CreateDirectory(folder);
             maker.Write(mass, chosen.Ring, config.SolidHeightM);
-            WorkFiles.WriteText(MassFiles.SidecarPath(mass), "mass", MassFiles.Sidecar(prototypePath, sha, config.MassFiles.SourceKey, chosen).ToString(Newtonsoft.Json.Formatting.Indented));
+            WorkFiles.WriteText(MassFiles.SidecarPath(mass), "mass", MassFiles.Sidecar(prototypePath, sha, MassFiles.SourceKey(config), chosen).ToString(Newtonsoft.Json.Formatting.Indented));
             return chosen;
         }
     }

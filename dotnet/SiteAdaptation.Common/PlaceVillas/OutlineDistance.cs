@@ -66,6 +66,15 @@ namespace SiteAdaptation.Common.PlaceVillas
         public string Why { get; set; }
     }
 
+    // R453. The house outlines of a footprint read, with the line that tells why there are none when the read came before R453 and holds
+    // no rings, so the run says it once and flags no plot for it
+    public sealed class FootprintOutlines : List<double[][]>
+    {
+        public const string NoRings = "the footprint read has no house outlines, run 2 Read data again";
+
+        public string Missing { get; set; }
+    }
+
     public sealed class FootprintSummary
     {
         public string Prototype { get; set; }
@@ -81,7 +90,7 @@ namespace SiteAdaptation.Common.PlaceVillas
         public static FootprintRow Row(string plot, IReadOnlyList<double[]> placedBase, IEnumerable<double[][]> blocks, LightModeConfig config, string prototype = null)
         {
             double[] middle = Middle(placedBase);
-            double[][] block = blocks.Where(outline => outline.Length >= 3 && Holds(outline, middle))
+            double[][] block = blocks.Where(outline => outline.Length >= 3 && RingMath.Holds(outline, middle))
                 .OrderBy(outline => Distance(Middle(outline), middle)).FirstOrDefault();
             if (block == null)
             {
@@ -110,8 +119,14 @@ namespace SiteAdaptation.Common.PlaceVillas
             {
                 return FromRead(villaBlocksRead);
             }
-            var houses = new List<double[][]>();
-            foreach (JToken block in villaBlocksRead?["blocks"] as JArray ?? new JArray())
+            var houses = new FootprintOutlines();
+            JArray blocks = villaBlocksRead?["blocks"] as JArray ?? new JArray();
+            if (blocks.Count > 0 && blocks.All(block => block["rings"] == null))
+            {
+                houses.Missing = FootprintOutlines.NoRings;
+                return houses;
+            }
+            foreach (JToken block in blocks)
             {
                 foreach (JToken ring in block["rings"] as JArray ?? new JArray())
                 {
@@ -120,7 +135,7 @@ namespace SiteAdaptation.Common.PlaceVillas
                         continue;
                     }
                     List<double[]> points = FaceRings.Clean((ring["points"] as JArray ?? new JArray()).Select(point => new[] { (double)point[0], (double)point[1] }));
-                    if (points.Count >= 3 && Math.Abs(WallRing.Area(points)) >= config.HouseMinAreaM2.Value)
+                    if (points.Count >= 3 && Math.Abs(RingMath.Area(points)) >= config.HouseMinAreaM2.Value)
                     {
                         houses.Add(points.ToArray());
                     }
@@ -176,20 +191,6 @@ namespace SiteAdaptation.Common.PlaceVillas
         private static double Distance(double[] a, double[] b)
         {
             return Math.Sqrt((a[0] - b[0]) * (a[0] - b[0]) + (a[1] - b[1]) * (a[1] - b[1]));
-        }
-
-        private static bool Holds(IReadOnlyList<double[]> ring, double[] point)
-        {
-            bool inside = false;
-            for (int i = 0, j = ring.Count - 1; i < ring.Count; j = i++)
-            {
-                if ((ring[i][1] > point[1]) != (ring[j][1] > point[1])
-                    && point[0] < (ring[j][0] - ring[i][0]) * (point[1] - ring[i][1]) / (ring[j][1] - ring[i][1]) + ring[i][0])
-                {
-                    inside = !inside;
-                }
-            }
-            return inside;
         }
     }
 }

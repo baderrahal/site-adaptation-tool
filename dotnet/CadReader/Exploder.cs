@@ -219,7 +219,7 @@ namespace CadReader
                 List<double[]> ring = CadExtractor.JoinedRing(Geometry(child, full)?.Pts);
                 if (ring != null)
                 {
-                    rings.Add(new BlockRing { Layer = child.Layer == null ? "0" : child.Layer.Name, Area = Math.Round(Math.Abs(CadExtractor.RingArea(ring)), 3), Points = ring });
+                    rings.Add(new BlockRing { Layer = child.Layer == null ? "0" : child.Layer.Name, Area = Math.Round(Math.Abs(SiteAdaptation.Common.PlaceVillas.RingMath.Area(ring)), 3), Points = ring });
                 }
             }
             return rings.Count == 0 ? null : rings;

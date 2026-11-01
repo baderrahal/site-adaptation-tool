@@ -382,11 +382,12 @@
       "baseBoundaryFloorType": null,
       "footprintLimitMm": 100.0,
       "footprintSampleStepMm": 10.0,
-      "massNote": "R450 to R453, FIX-1NOV-B. linkFolder is what Masses links: masses the mass file of each prototype in massFolder, prototypes the prototype files of the plan, a full folder path the files of that folder named as the prototypes, solids the DirectShape in the site of R404. massFolder holds one Revit 2024 file per prototype, named as it, with a sidecar JSON. wallCutHeightM is the height above the top of the largest floor the exterior walls are cut at, 1.0 CHOSEN. wallRingMinShare is the least share of the slab area the outer wall loop covers to be the base, 0.9 CHOSEN, else the slab is the base and the prototype is flagged (Q279). houseLayer and houseMinAreaM2 pick the house outline inside a footprint block for the footprint check, layer 0 and 60 m2 measured on VL4, DP4 and C10 (Q276)",
+      "massNote": "R450 to R453, FIX-1NOV-B. linkFolder is what Masses links: masses the mass file of each prototype in massFolder, prototypes the prototype files of the plan, a full folder path the files of that folder named as the prototypes, solids the DirectShape in the site of R404. massFolder holds one Revit 2024 file per prototype, named as it, with a sidecar JSON. An exterior wall is drawn in the mass base when it crosses the plane wallCutHeightM above the top of the ground floors of baseBoundary, 1.0 CHOSEN, its outline from its location line and width so no opening cuts it. wallRingMinShare and wallRingMaxShare are the least and the largest share of the slab area the outer wall loop covers to be the base, 0.9 and 1.3 CHOSEN, else the slab is the base and the prototype is flagged (Q279). houseLayer and houseMinAreaM2 pick the house outline inside a footprint block for the footprint check, layer 0 and 60 m2 measured on VL4, DP4 and C10 (Q276)",
       "linkFolder": "masses",
       "massFolder": "{workRoot}\\masses",
       "wallCutHeightM": 1.0,
       "wallRingMinShare": 0.9,
+      "wallRingMaxShare": 1.3,
       "houseLayer": "0",
       "houseMinAreaM2": 60.0
     },
