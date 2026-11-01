@@ -17,8 +17,8 @@
 
 - Lane B 6a, 00:10, demo freeze at 09:30: NBH 012 through buttons 1 to 9 from a new project with no click, 6.7 min, 2444 MiB peak,
   10 window shots. Merged as PR 115. Next DEMO, the add-in installed, C:\SA-demo, the demo sheet. Links waits on Q275
-- Lane C SCAN-UI, 03:50, freeze 09:30, branch feat/lane-c-scan-ui-2: PR 117 tasks 1 to 4 (R435 to R441) merged, PR 119 tasks 5 and 6
-  (R442, R443) merging, task 7 from the shots of the DEMO run of Lane B. Blocked: none
+- Lane C SCAN-UI, 04:35, done: PR 117 tasks 1 to 4 (R435 to R441), PR 119 tasks 5 and 6 (R442, R443), task 7 the Revit shots of the DEMO
+  run in steps/ui-shots/README.md, the shots outside git. Waits for Bader: Q288 to Q295, Q300 to Q302, Q305. Blocked: none
 
 Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane D 4j-1b, Lane C SCAN-UI, Lane A 4i, Lane B 6a, 1 Nov 2026.
 
