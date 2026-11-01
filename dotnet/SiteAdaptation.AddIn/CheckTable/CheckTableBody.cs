@@ -44,7 +44,15 @@ namespace SiteAdaptation.AddIn.CheckTable
             Func<string, string, string> manualRule = ManualRule?.Invoke(settings.RulesFile);
             var run = new CheckRun(Roles, ReadDataBody.Worker, null, new WorkerDocument { Path = session.Path, SessionId = session.SessionId }, scope,
                 Dialog(mainWindow, settings.RulesFile), manualRule, settings.LevelProfile);
-            return run.Body();
+            return DoorWired(run, settings).Body();
+        }
+
+        // R443. The pick of Door level from rides in the pane settings, written to the model with the record of the next real run (R367)
+        public static CheckRun DoorWired(CheckRun run, PaneSettings settings)
+        {
+            run.DoorPick = () => settings.Project.DoorLevelSource;
+            run.DoorPicked = source => settings.Project.DoorLevelSource = source;
+            return run;
         }
     }
 }

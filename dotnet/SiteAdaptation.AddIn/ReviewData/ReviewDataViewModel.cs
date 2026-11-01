@@ -13,6 +13,7 @@ namespace SiteAdaptation.AddIn.ReviewData
     public sealed class ReviewDataViewModel : INotifyPropertyChanged
     {
         private readonly ReviewView view;
+        private readonly ClusterConfirm clusters;
         private ReviewChip chip = ReviewChip.All;
         private string find = "";
         private ReviewRowViewModel selected;
@@ -22,6 +23,7 @@ namespace SiteAdaptation.AddIn.ReviewData
         public ReviewDataViewModel(ReviewView view)
         {
             this.view = view;
+            clusters = view.Clusters ?? ClusterConfirm.None;
             Rows = new List<ReviewRowViewModel>();
             Chips = new List<ChipViewModel>();
             Corners = new List<CornerViewModel>();
@@ -135,7 +137,25 @@ namespace SiteAdaptation.AddIn.ReviewData
 
         public bool MessageShown => message.Length > 0;
 
-        public bool NotSavedShown => view.State.Changed;
+        public bool NotSavedShown => view.State.Changed || clusters.Changed;
+
+        // R442. Confirm all proposed is grey while no plot with a proposal waits for its confirm
+        public bool CanConfirmAll => clusters.AnyToConfirm;
+
+        // R442. The help line of the cluster confirm stands only while the plan of 4 Check proposes a cluster
+        public bool ClusterHelpShown => clusters.AnyProposed;
+
+        public string ClusterHelp => ReviewDataText.ClusterHowTo;
+
+        public void ConfirmAll()
+        {
+            clusters.ConfirmAll();
+            foreach (ReviewRowViewModel row in Rows)
+            {
+                row.Update(view.State);
+            }
+            ClustersChanged();
+        }
 
         public string NotSavedText => ReviewDataText.NotSavedYet;
 
@@ -172,12 +192,24 @@ namespace SiteAdaptation.AddIn.ReviewData
         // The rows the chip and the find box pick. The selected plot stays selected only while it is among them
         private void Refresh()
         {
-            Rows = view.State.Filter(chip, find).Select(row => new ReviewRowViewModel(row, view.State)).ToList();
+            Rows = view.State.Filter(chip, find).Select(row => new ReviewRowViewModel(row, view.State, clusters, ClustersChanged)).ToList();
             ReviewRowViewModel keep = selected == null ? null : Rows.FirstOrDefault(row => row.PlotNo == selected.PlotNo);
             RefreshChips();
             selected = null;
             Selected = keep;
             Changed(nameof(Rows));
+        }
+
+        private void ClustersChanged()
+        {
+            // Breaker of SCAN-UI: a tick holds for the whole cluster, so the other half of a pair shows its tick too
+            foreach (ReviewRowViewModel row in Rows ?? new List<ReviewRowViewModel>())
+            {
+                row.Update(view.State);
+            }
+            Changed(nameof(CanConfirmAll));
+            Changed(nameof(NotSavedShown));
+            Changed(nameof(SideCluster));
         }
 
         private void RefreshChips()
@@ -221,9 +253,20 @@ namespace SiteAdaptation.AddIn.ReviewData
 
     public sealed class ReviewRowViewModel : INotifyPropertyChanged
     {
-        public ReviewRowViewModel(ReviewRow row, ReviewState state)
+        private readonly ReviewState state;
+        private readonly ClusterConfirm clusters;
+        private readonly Action changed;
+
+        public ReviewRowViewModel(ReviewRow row, ReviewState state) : this(row, state, null, null)
+        {
+        }
+
+        public ReviewRowViewModel(ReviewRow row, ReviewState state, ClusterConfirm clusters, Action changed)
         {
             Row = row;
+            this.state = state;
+            this.clusters = clusters ?? ClusterConfirm.None;
+            this.changed = changed;
             Update(state);
         }
 
@@ -239,7 +282,28 @@ namespace SiteAdaptation.AddIn.ReviewData
 
         public string Mirror => Row.Mirror.HasValue ? (Row.Mirror.Value ? ReviewDataText.Yes : ReviewDataText.No) : ReviewDataText.NotReadYet;
 
-        public string Cluster => Row.Cluster ?? ReviewDataText.NotReadYet;
+        // R442. The proposal of 4 Check when the plan holds one, else the cluster of the plot table as before
+        public string Cluster => ClusterConfirm.Shown(clusters.MarkOf(Row.PlotNo)) ?? Row.Cluster ?? ReviewDataText.NotReadYet;
+
+        // The reason of the proposal, null with none so no tooltip shows
+        public string ClusterTip => clusters.MarkOf(Row.PlotNo)?.Reason;
+
+        public bool CanConfirm => clusters.HasProposal(Row.PlotNo);
+
+        public bool Confirmed
+        {
+            get { return clusters.IsConfirmed(Row.PlotNo); }
+            set
+            {
+                if (!CanConfirm || value == Confirmed)
+                {
+                    return;
+                }
+                clusters.Confirm(Row.PlotNo, value);
+                Update(state);
+                changed?.Invoke();
+            }
+        }
 
         public string Area => Row.AreaM2.ToString("0.00", CultureInfo.InvariantCulture);
 

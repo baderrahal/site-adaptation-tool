@@ -2,6 +2,35 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Lane B DEMO, 2026-11-01, the add-in ready to show at 11:00, Lane B on the laptop
+
+Goal:
+- The add-in installed from main, C:\SA-demo with copies, models, a saved project and the demo sheet steps/demo.md, by 09:30
+
+Done:
+- Installed per user from main 691e1fc, version 1.0.0+691e1fc, with Lane C SCAN-UI, Lane A 4i and Lane D 4j-1b
+- C:\SA-demo: 43 input copies of NBH 012 hashed (originals unchanged 43 of 43), config and rules of main pointed at them, SA-demo-start.rvt, SA-demo-done.rvt, the two Excel files
+- Saved project ROSHN Makkah: the demo config, Masses and the scan picks of a scan of the copies (villa type Makkah Building Footprint.dwg|block|MP_VL4), read back by SavedStarts and PreSetting.Import
+- Base boundary in Revit on the 13 prototypes (Q206): the mass base is the outer loop of the largest floor on the lowest level, 0.0 mm. Floor ids C10 872099, DP1 878667, DP2 849902, DP3 857818, DP4 886879, DT1 860942, DT3 825808, TH1 860942, TH3 825808, VD2 849902, VD4 886879, VL4 2220408, VL6 872099
+- DT3 against its walls: outer wall face 21 corners 82.3 m2, base 8 corners 78.6 m2, 649.1 mm both ways (304.4 without the entrance recess). A DT3 link placed on plot 2294 gives the same 649.1 mm. Slides footprint-vs-mass.png, dt3-outline-vs-mass.png, dt3-link-vs-mass.png
+
+Checked:
+- Revit SAD2 at 691e1fc on the demo copies, RAN: 1, 2 and 4 to 9 commit, 3 closes by design, Rules closes, 5.2 min, peak 2479 MiB, least free 29.0 GiB, 41 of 41 inputs unchanged, 10 shots none blank
+- Originals opened by the probe, RAN: 13 of 13 prototypes unchanged by SHA-256, Revit opened copies only. No code changed in DEMO
+
+Remains:
+- The walls of 9 prototypes do not close into a ring, their wall outline is UNKNOWN (Q279). A saved project holds no drawing path, the demo browses the files (Q296)
+
+Known bugs:
+- All 336 masses flagged by the footprint check (Q276). Update from report stops (Q278). Links waits on Q275
+
+Next:
+- The demo at 11:00 by steps/demo.md, then Bader answers Q275 to Q279 and Q296
+
+Your turn:
+- Opened Q279 Mass base, slab edge or outer wall face. Q296 A saved project holds no drawing path. Closed none
+- 135 questions open, full text: steps/questions-open.md
+
 ## Lane D 4j-1b, 2026-11-01, scan speed, Lane D on the laptop
 
 Goal:
@@ -45,36 +74,40 @@ Goal:
   from the scan (Q283), Current files in 1 Set up site, cluster confirm, door level picker, Revit pictures. Freeze 09:30 for the demo
 
 Done:
-- PR 1 of 2, tasks 1 to 4
+- PR 117 with tasks 1 to 4, PR 2 with tasks 5 and 6
 - R435 Scan value status and R436 Save scan picks with setup: AddIn/ScanResults, Common/Scan/ScanView.cs, ScanPicks.cs
 - R438 Button 2 scan gate and R439 Scan reuse by input hash: ScanStep.Wrap in ReadDataBody.For, ScanGate.Ask, no scan in a test host run
 - R440 Drawing facts from the scan: LatestScanFacts, layer, sheet and column dropdowns, View opens the window
 - R441 Current files gate: the section Current files and Rules in 1 Set up site, Apply waits for the site drawing, the line in button 9
 - The settings JSON gains scanPicks, conflictPicks and currentFiles at formatVersion 1 (Q288), a saved project carries scanPicks
 - Lane C rules in docs/rules/12-lane-c-r430-up.md, R430 to R434 of NEWPROJ-UI written there too
-- Reviewer with the UI checklist and breaker, one pass each: 12 REAL faults fixed with tests, 6 LATENT to steps/latent.md
+- R442 Cluster confirm marks: column Cluster with the proposal and mirror of 4i, Confirmed, Confirm all proposed, clusterUnconfirmed
+  in review_<NBH>.json for buttons 5 to 8. R443 Door level source counts: Door level from in 4 Check, doorLevelSource kept
+- Reviewer with the UI checklist and breaker, one pass each on PR 117: 12 REAL faults fixed with tests, 6 LATENT to steps/latent.md
 
 Checked:
-- Gate, RAN: net48 1745 passed, net8.0 1534 passed, pytest 2212 passed and 1 skipped, 0 failed
+- Gate, RAN: PR 117 net48 1745, net8.0 1534, PR 2 net48 1769, net8.0 1551, pytest 2212 and 1 skipped each, 0 failed
+- PR 2 reviewer and breaker: the skip list from the plan of 4 Check, a tick for the whole cluster, door level row under rev6 only
 - Pictures: steps/ui-shots/scan-results.png, setup-site.png, new-project.png, differences in steps/ui-shots/README.md
 - Second method: the review read the scan.json of the Lane D run (1218 conflicts, 332 keys shared), which led to the key with sourceB
 
 Remains:
-- PR 2: task 5 cluster confirm in 3 Review data (R442), task 6 door level picker in 4 Check (R443), on 4i (PR 116)
-- Task 7 Revit pictures when the window lock is free. The scan window shows only offscreen, a test host run skips the scan (Q295)
+- Task 7: the Revit shots of the DEMO run of Lane B (SAD2_20261101-040247) hold real values, so they stay outside git, the
+  differences are in steps/ui-shots/README.md. What the tool read has no Revit shot, a test host run skips the scan (Q295) The scan window shows only offscreen, a test host run skips the scan (Q295)
 
 Known bugs:
 - The read of button 2 does not take the picks yet (Q292). The first press hashes the prototypes, over 1 GB, on the Revit thread once
 
 Next:
-- PR 2 of SCAN-UI, then Lane B DEMO with the add-in of main
+- Lane B DEMO with the add-in of main, Lane B joins the skip of clusterUnconfirmed (Q300)
 
 Your turn:
 - Opened: Q288 Scan picks in the settings at version 1. Q289 Board rows the scan does not read. Q290 Curbs and road surface left out
   of scan. Q291 Where the line Current files is shown. Q292 The read does not use the picks yet. Q293 Approve the three drafts of
-  SCAN-UI. Q294 Rules chosen in Set up site, when used. Q295 Test host runs skip the scan
+  SCAN-UI. Q294 Rules chosen in Set up site, when used. Q295 Test host runs skip the scan. Q300 Plots with no cluster
+  proposal. Q301 The build takes the door level pick. Q302 Door level row under the past job. Q305 Hide Confirmed under the past job
 - Closed: Q246 Button 2 starts the scan or the window, Q283 Picks of layers, sheets, columns and coordinates, by Bader's prompt
-- 127 questions open, full text: steps/questions-open.md
+- 133 questions open, full text: steps/questions-open.md
 
 ## 4i, 2026-10-31, the plan by Manual Rev 06 with the past job as a switch, Lane A on the laptop
 

@@ -47,12 +47,18 @@ namespace SiteAdaptation.AddIn.ReviewData
                 callbacks.Save(view.State.ToChecks());
                 Saved = true;
                 view.State.MarkSaved();
+                view.Clusters?.MarkSaved();
                 Model.Saved();
             }
             catch (Exception error)
             {
                 Model.Message = error.Message;
             }
+        }
+
+        public void ConfirmAll()
+        {
+            Model.ConfirmAll();
         }
 
         public void Mark(string check)

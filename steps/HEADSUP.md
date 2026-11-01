@@ -19,9 +19,10 @@
 
 ### Lane B and C
 
-- Lane B 6a, 00:10, demo freeze at 09:30: NBH 012 through buttons 1 to 9 from a new project with no click, 6.7 min, 2444 MiB peak,
-  10 window shots. Merged as PR 115. Next DEMO, the add-in installed, C:\SA-demo, the demo sheet. Links waits on Q275
-- Lane C SCAN-UI, 01:40, freeze 09:30: tasks 1 to 4 (R435 to R441) merged as PR 117, then tasks 5 and 6 on 4i, task 7 when the window lock is free
+- Lane B DEMO, 04:25, done: main 691e1fc installed, C:/SA-demo ready, steps/demo.md, 1 to 9 in 5.2 min on the copies. Now: the PR of DEMO.
+  Next: the demo at 11:00. Blocked: none
+- Lane C SCAN-UI, 04:35, done: PR 117 tasks 1 to 4 (R435 to R441), PR 119 tasks 5 and 6 (R442, R443), task 7 the Revit shots of the DEMO
+  run in steps/ui-shots/README.md, the shots outside git. Waits for Bader: Q288 to Q295, Q300 to Q302, Q305. Blocked: none
 
 Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane D 4j-1b, Lane C SCAN-UI, Lane A 4i, Lane B 6a, 1 Nov 2026.
 
@@ -40,12 +41,12 @@ Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane
 - Lane B 5d: buttons 5, 6 and 8, 7 at the FFL, Q115 walls, Q116 ramps, all proven in Revit by 6a
 - Lane D 4j-1: a scanner of any CAD, Excel and PDF, worker command scan, python/scan.py, design part 17. 4j-1b: speed and a time cap
 - Lane A 4i: the design basis switch, the Rev 6 back yard slopes, the new project check (R407 to R412)
-- Lane C NEWPROJ-UI: the New project window, the How it works page. SCAN-UI: What the tool read, opened by button 2 after the scan, New project dropdowns, Current files in 1 Set up site
+- Lane C SCAN-UI: What the tool read after the scan of button 2, New project dropdowns, Current files, cluster confirm, door level from
 
 ## New rules
 
 - R384 Test host runs every button (Lane B 6a). R378 to R380 buttons 5, 6 and 8 (Lane B 5d)
-- R420 to R429 of the scanner (Lane D 4j-1, 4j-1b). R407 to R412 (Lane A 4i). R435 to R441 (Lane C SCAN-UI). R430 to R434 of New project and saved starts (Lane C NEWPROJ-UI)
+- R420 to R429 of the scanner (Lane D 4j-1, 4j-1b). R407 to R412 (Lane A 4i). R430 to R443 of Lane C
 
 ## Wiring
 

@@ -216,9 +216,9 @@ One phase per session (Q096). Two lanes run the phases (D10, D17): tools/run-lan
 
 ## Lane C SCAN-UI, What the tool read and the step gates
 
-- Status: running, Lane C, laptop, 2026-11-01, PR 1 of 2 with tasks 1 to 4, PR 2 with tasks 5 and 6 on 4i, in the worktree Site Adaptation Tool Lane C WT
+- Status: done, Lane C, laptop, 2026-11-01, PR 117 with tasks 1 to 4, PR 2 with tasks 5 and 6 on 4i, in the worktree Site Adaptation Tool Lane C WT
 - What: the window What the tool read from the board ScanResults, button 2 runs the scan (Q246), New project picks from the scan (Q283), Current files in 1 Set up site, rules R435 to R441
-- Left: tasks 5 cluster confirm and 6 door level picker (R442, R443), task 7 Revit pictures, Q288 to Q295 for Bader, the read taking the picks (Q292)
+- Left: Q288 to Q295, Q300 to Q302 and Q305 for Bader, the read taking the picks (Q292), Lane B skips unconfirmed clusters
 
 ## Lane D 4j-1, the scanner
 

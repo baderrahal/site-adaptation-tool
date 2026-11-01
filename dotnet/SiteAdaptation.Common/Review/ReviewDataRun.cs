@@ -14,6 +14,9 @@ namespace SiteAdaptation.Common.Review
         public IReadOnlyList<string> Sources { get; set; }
 
         public ReviewState State { get; set; }
+
+        // R442. The cluster proposals and the confirm of the team, null shows the plot table cluster with nothing to confirm
+        public ClusterConfirm Clusters { get; set; }
     }
 
     // R406. The buttons of the window that reach outside it. Save writes review_<NBH>.json and gives its path. Zoom is set by the Revit
@@ -105,19 +108,21 @@ namespace SiteAdaptation.Common.Review
                 throw new InvalidOperationException("the Review data window is not set");
             }
             var state = new ReviewState(shown.Rows, shown.Checks, shown.ReadRunId, shown.PlotTableHash);
+            var clusters = new ClusterConfirm(shown.Proposals, shown.PlanSha256, shown.ClusterSaved);
             var saved = false;
             var callbacks = new ReviewCallbacks
             {
                 Save = checks =>
                 {
-                    string path = ReviewFile.Write(workFolder, shown.Nbh, checks, runId);
+                    string path = ReviewFile.Write(workFolder, shown.Nbh, checks, runId, clusters);
                     state.MarkSaved();
+                    clusters.MarkSaved();
                     saved = true;
                     return path;
                 },
                 Zoom = zoom,
             };
-            dialog.Show(new ReviewView { Nbh = shown.Nbh, Sources = shown.Sources ?? new string[0], State = state }, callbacks);
+            dialog.Show(new ReviewView { Nbh = shown.Nbh, Sources = shown.Sources ?? new string[0], State = state, Clusters = clusters }, callbacks);
             return saved;
         }
     }

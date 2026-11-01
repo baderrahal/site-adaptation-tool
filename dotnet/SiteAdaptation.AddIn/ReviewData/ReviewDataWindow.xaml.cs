@@ -26,6 +26,11 @@ namespace SiteAdaptation.AddIn.ReviewData
             session.Export();
         }
 
+        private void OnConfirmAll(object sender, RoutedEventArgs e)
+        {
+            session.ConfirmAll();
+        }
+
         private void OnSave(object sender, RoutedEventArgs e)
         {
             session.Save();

@@ -95,6 +95,7 @@
             <ColumnDefinition Width="{StaticResource SA.Grid.ReviewType}" />
             <ColumnDefinition Width="{StaticResource SA.Grid.ReviewMirror}" />
             <ColumnDefinition Width="{StaticResource SA.Grid.ReviewCluster}" />
+            <ColumnDefinition Width="{StaticResource SA.Grid.ReviewConfirmed}" />
             <ColumnDefinition Width="{StaticResource SA.Grid.ReviewArea}" />
             <ColumnDefinition Width="{StaticResource SA.Grid.ReviewRoad}" />
             <ColumnDefinition Width="*" />
@@ -103,10 +104,14 @@
           <TextBlock Grid.Column="1" Style="{StaticResource RowText}" Text="{Binding CadLabel}" />
           <TextBlock Grid.Column="2" Style="{StaticResource RowText}" Text="{Binding VillaType}" />
           <TextBlock Grid.Column="3" Style="{StaticResource RowText}" Text="{Binding Mirror}" />
-          <TextBlock Grid.Column="4" Style="{StaticResource RowText}" Text="{Binding Cluster}" />
-          <TextBlock Grid.Column="5" Style="{StaticResource RowText}" Text="{Binding Area}" />
-          <TextBlock Grid.Column="6" Style="{StaticResource RowText}" Text="{Binding RoadAtFront}" />
-          <Border Grid.Column="7" CornerRadius="{StaticResource SA.Radius.Chip}" Padding="{StaticResource SA.Pad.Chip}" HorizontalAlignment="Left" VerticalAlignment="Center">
+          <TextBlock Grid.Column="4" Style="{StaticResource RowText}" Text="{Binding Cluster}" ToolTip="{Binding ClusterTip}" />
+          <!-- R442. The tick of the cluster confirm, live only on a plot the plan of 4 Check proposes a cluster for. MinHeight 0 keeps the row at
+               the height of its text, the pane row height of the style would make it 40 -->
+          <CheckBox Grid.Column="5" Style="{StaticResource SA.Pane.Check}" Margin="{StaticResource SA.Gap.Cell}" MinHeight="0" IsEnabled="{Binding CanConfirm}"
+                    IsChecked="{Binding Confirmed, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+          <TextBlock Grid.Column="6" Style="{StaticResource RowText}" Text="{Binding Area}" />
+          <TextBlock Grid.Column="7" Style="{StaticResource RowText}" Text="{Binding RoadAtFront}" />
+          <Border Grid.Column="8" CornerRadius="{StaticResource SA.Radius.Chip}" Padding="{StaticResource SA.Pad.Chip}" HorizontalAlignment="Left" VerticalAlignment="Center">
             <Border.Style>
               <Style TargetType="Border">
                 <Style.Triggers>
@@ -194,6 +199,8 @@
         <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="{StaticResource SA.Gap.Left16}">
           <Button Style="{StaticResource SA.Button.Base}" Content="{x:Static rev:ReviewDataText.ZoomToPlot}" Click="OnZoom" />
           <Button Style="{StaticResource SA.Button.Base}" Margin="{StaticResource SA.Gap.Left8}" Content="{x:Static rev:ReviewDataText.ExportToExcel}" Click="OnExport" />
+          <Button Style="{StaticResource SA.Button.Base}" Margin="{StaticResource SA.Gap.Left8}" Content="{x:Static rev:ReviewDataText.ConfirmAllProposed}" Click="OnConfirmAll"
+                  IsEnabled="{Binding CanConfirmAll}" />
           <Button Style="{StaticResource SA.Button.Primary}" Margin="{StaticResource SA.Gap.Left8}" Content="{x:Static rev:ReviewDataText.SaveReview}" Click="OnSave" />
         </StackPanel>
       </Grid>
@@ -201,7 +208,11 @@
 
     <Border DockPanel.Dock="Top" Background="{StaticResource SA.Guide}" BorderBrush="{StaticResource SA.GuideBorder}" BorderThickness="{StaticResource SA.Line.Under}"
             Padding="{StaticResource SA.Pad.Box}">
-      <TextBlock Style="{StaticResource SA.Pane.Help}" Foreground="{StaticResource SA.Text}" Margin="0" Text="{x:Static rev:ReviewDataText.HowTo}" />
+      <StackPanel>
+        <TextBlock Style="{StaticResource SA.Pane.Help}" Foreground="{StaticResource SA.Text}" Margin="0" Text="{x:Static rev:ReviewDataText.HowTo}" />
+        <TextBlock Style="{StaticResource SA.Pane.Help}" Foreground="{StaticResource SA.Text}" Margin="{StaticResource SA.Gap.Top4}" Text="{Binding ClusterHelp}"
+                   Visibility="{Binding ClusterHelpShown, Converter={StaticResource Shown}}" />
+      </StackPanel>
     </Border>
 
     <Border DockPanel.Dock="Top" Background="{StaticResource SA.InfoGround}" Padding="{StaticResource SA.Pad.Box}" Visibility="{Binding MessageShown, Converter={StaticResource Shown}}">
@@ -293,6 +304,7 @@
             <ColumnDefinition Width="{StaticResource SA.Grid.ReviewType}" />
             <ColumnDefinition Width="{StaticResource SA.Grid.ReviewMirror}" />
             <ColumnDefinition Width="{StaticResource SA.Grid.ReviewCluster}" />
+            <ColumnDefinition Width="{StaticResource SA.Grid.ReviewConfirmed}" />
             <ColumnDefinition Width="{StaticResource SA.Grid.ReviewArea}" />
             <ColumnDefinition Width="{StaticResource SA.Grid.ReviewRoad}" />
             <ColumnDefinition Width="*" />
@@ -303,9 +315,10 @@
           <TextBlock Grid.Column="2" Style="{StaticResource HeadText}" Text="{x:Static rev:ReviewDataText.VillaType}" />
           <TextBlock Grid.Column="3" Style="{StaticResource HeadText}" Text="{x:Static rev:ReviewDataText.Mirror}" />
           <TextBlock Grid.Column="4" Style="{StaticResource HeadText}" Text="{x:Static rev:ReviewDataText.Cluster}" />
-          <TextBlock Grid.Column="5" Style="{StaticResource HeadText}" Text="{x:Static rev:ReviewDataText.AreaM2}" />
-          <TextBlock Grid.Column="6" Style="{StaticResource HeadText}" Text="{x:Static rev:ReviewDataText.RoadAtFront}" />
-          <TextBlock Grid.Column="7" Style="{StaticResource HeadText}" Text="{x:Static rev:ReviewDataText.TeamCheck}" />
+          <TextBlock Grid.Column="5" Style="{StaticResource HeadText}" Text="{x:Static rev:ReviewDataText.Confirmed}" />
+          <TextBlock Grid.Column="6" Style="{StaticResource HeadText}" Text="{x:Static rev:ReviewDataText.AreaM2}" />
+          <TextBlock Grid.Column="7" Style="{StaticResource HeadText}" Text="{x:Static rev:ReviewDataText.RoadAtFront}" />
+          <TextBlock Grid.Column="8" Style="{StaticResource HeadText}" Text="{x:Static rev:ReviewDataText.TeamCheck}" />
         </Grid>
       </Border>
       <ListBox ItemsSource="{Binding Rows}" SelectedItem="{Binding Selected, Mode=TwoWay}" ItemTemplate="{StaticResource PlotRow}" ItemContainerStyle="{StaticResource RowBox}"

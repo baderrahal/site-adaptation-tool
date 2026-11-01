@@ -76,4 +76,6 @@ The placeholders of the window New project (docs/design/18-new-project.md). Each
 |---|---|---|---|
 | The read takes the picks | Lane A (reader) and Lane D (scanner) | Button 2 reads with scanPicks and conflictPicks of the settings over the layers and columns of config (Q292) | The picks are saved with the setup, the read uses config |
 | Mirror, survey point and road level in the scan | Lane D | Rows of those kinds in scan.json, so What the tool read and New project show them (Q289, Q283) | Four value rows, the survey point dropdown grey |
+| Skip of unconfirmed clusters | Lane B | Buttons 5 to 8 skip each plot in clusterUnconfirmed of review_<NBH>.json (ReviewFile.ClusterUnconfirmed) with the reason ClusterConfirm.NotConfirmedReason (R442, Q300) | Buttons 5 to 8 place every plot as before |
+| The build takes the door level pick | Lane A | The build of 4 Check takes doorLevelSource of the settings over config and the civil file as a worker input (R443, Q301) | The build reads designBasis.doorLevel of config |
 | Road Layout in the scan | Lane D, 4j-1b | A scan of the curbs drawing within the time of button 2 (Q250, Q290) | Button 2 leaves curbs and road surface out of the scan |

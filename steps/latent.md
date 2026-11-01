@@ -467,6 +467,12 @@ No real input reaches these, since the ROSHN config runs roshnPastJob (Q224) and
 - The column dropdown of New project holds one line per villa type source, so two shifts of one sheet and column show twice (Q249).
 
 
+## Lane C SCAN-UI PR 2, 1 Nov 2026, breaker pass
+
+- Door level from counts every unit plot of doorSource civilFile, also those the civil file gives no level, so its count can pass the rows of the file (DoorLevelPick.Count, with the civil path null today).
+- The plot key of Review data is the location plan number, else the official number, and the plan of 4 Check its build number. Not proven equal on real data, the confirm of a plot no row shows would be lost.
+- A cluster of 4i can name a plot of another NBH, which the window of that NBH cannot tick, so that plot stays unconfirmed. Whether two NBH rows touch on ROSHN is UNKNOWN.
+
 ## 4j-2, review 1 and breaker pass 1
 
 No real input reaches these, since the ROSHN config runs roshnPastJob (Q224) and designBasis.split.test is off (Q303, Q304).
@@ -483,3 +489,5 @@ No real input reaches these, since the ROSHN config runs roshnPastJob (Q224) and
 - Breaker 6, a shared edge of two irregular plots: 87 on the whole baseplan, 0 in the all scope, the wall goes inside the plot it is filed under as R416 says.
 - Breaker 7, WallsRun.OnLine: under rev6 an untagged hand wall on the old centre line no longer holds back the moved plan wall, so button 8 places a second wall 0.1 m beside it.
 - Breaker 8, plan_walls.inside: a zero length edge divides by zero, edge_walls builds no wall on one. corners() on 5,000 vertices takes 5.1 s, the largest real ring holds 18.
+- Fix pass, plan_walls.mitre and Walls.Mitre: with every baseplan face written and a wall on every edge, 106 of 1,002 corners whose ends both sit on vertices stay apart, likely three or more moved walls at one point, in the all scope 28 of 28 corners share one end.
+- Fix pass, a rotationDeg override on a moved wall reads walls.ends from override by rotationDeg, whose entries still name keyRules.wallLine.

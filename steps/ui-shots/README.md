@@ -10,9 +10,9 @@ Control 3 of docs/design/12-ui-spec.md, UI controls. Each PNG is a render of a w
 | pane.png | The pane in use, filled like the NBH 012 column of 7.2 of docs/design/07-mock.md, its steps in the order of docs/design/13-workflow-changes.md | Draft |
 | pane-first-open.png | The pane on first open, no settings file chosen, with the line of a past job | Draft |
 | setup-site.png | The Set up site window of button 1, an existing site file after the dry run, 7 of 7 check points pass, made up numbers, the content of the window at 1280 wide with no title bar of Windows | Draft |
-| review-data.png | The Review data window of button 3, NBH 012 with 5 made up plots, the first three with a plan of button 4 and corners, two checked OK and one Wrong, plot 31 selected, the content of the window at 1280 wide with no title bar of Windows | Draft |
+| review-data.png | The Review data window of button 3, NBH 012 with 5 made up plots, the first three with a plan of button 4 and corners, two checked OK and one Wrong, plot 31 selected, the cluster confirm of R442 with plots 32 and 33 proposed as one cluster, 32 confirmed, 34 with no proposal, the content of the window at 1280 wide with no title bar of Windows | Draft |
 | rules.png | The Site Adaptation Rules window of the ribbon button of that name, the 15 rules of the block manualRules of the rules profile, rule M06 selected, the content of the window at 1280 wide with no title bar of Windows | Draft |
-| check-table.png | The check table window of button 4, NBH 012 with 5 made up plots and 8 rows of every kind, the first row selected, Save overrides on, the content of the window at 1280 wide with no title bar of Windows | Draft |
+| check-table.png | The check table window of button 4, NBH 012 with 5 made up plots and 8 rows of every kind, the first row selected, Save overrides on, Door level from with no civil file and 5 plots by road level plus slope (R443), the content of the window at 1280 wide with no title bar of Windows | Draft |
 | update-from-report.png | The Update from report window of 5f, the level Excel and the report Excel of NBH 012 picked, 4 changes and 1 cell not editable, one change that breaks manual rule M08 unticked, made up numbers, the content of the window at 1280 wide with no title bar of Windows | Draft |
 | new-project.png | The New project window of Lane C NEWPROJ-UI, the site drawing and the plot list found, road levels and the parameter sheet missing as on the board, sample counts 337 plots and 14 villa types, the content of the window at 1080 wide with no title bar of Windows | Draft (Q286) |
 | how-it-works.png | The How it works page of Lane C NEWPROJ-UI, the 9 steps, the content of the window at 1080 wide with no title bar of Windows | Draft (Q286) |
@@ -228,6 +228,7 @@ Made up plots of a made up NBH 012, no coordinate or level of a real model. The 
 1. Mirror is the mirror of the footprint block of the plot table until button 4 gives the one of its plan. Cluster, Front edge, Road at front and the corners come only from the plan of button 4 and read "not read yet" before it.
 2. Every row names the manual rule M01, as the tooltip of its Plot No and as "Manual rule M01" in the side box. No other rule of M01 to M15 reads what a row shows (CHOSEN).
 3. Export to Excel says it is not built yet, no xlsx writer is reachable from the add-in (R350). Zoom to plot says the same until the Revit side sets its delegate.
+4. Lane C SCAN-UI task 5, R442, a DRAFT with no board: the column Confirmed (68) after Cluster with the tick of SA.Pane.Check at the height of the row, the button Confirm all proposed in the band before Save review, grey with nothing to confirm, and a second help line under How to use while the plan proposes a cluster. No existing key changed, Team check, the column that takes the rest, gives up the 68, and the heading Confirmed touches Area m2. The sample proposals and reasons are made up, plot 32 shows "32+33 mirror no" ticked, 33 "32+33 mirror yes" not ticked, 34 "No proposal".
 
 ## Site Adaptation Rules, rules.png against 13-workflow-changes.md
 
@@ -325,3 +326,36 @@ Taken in Revit 2024 by the buttons job of R384 with shots true, run LB6A on NBH 
 - New project: 4 of 4 files ready and no stop box, the inputs of the run are all there, as expected.
 - Ribbon: the four panels Setup, Rules, Build, Output and the 11 buttons with their 32 px icons as the board. The title of the tab is not seen, it sits past the overflow mark at 1922 px (Q146).
 - Set up site, Review data, Check table, Rules and How it works were drawn at their design sizes, 1280 and 1080 px wide, not compared pixel by pixel here.
+
+## Lane C SCAN-UI task 6, Door level from in 4 Check (R443)
+
+No board, so the row follows the style of the check table window and is a DRAFT. check-table.png was rendered again with made up counts, a config with no civil file and 5 plots by road level plus slope, no coordinate, level or file name. No Revit window ran, so the picture is the offscreen render only (UNKNOWN in Revit).
+
+1. The row stands above the chips, the label in HeadText of the window (the style of the table header), the dropdown SA.Pane.Combo as the Use column, its items by the style UseItem, so the grey civil item takes SA.Wait with the help line as its tooltip.
+2. The dropdown is SA.Size.SideBox (340) wide, CHOSEN so the longest label fits with no new key in Theme.xaml.
+3. The help line is SA.Pane.Help, shown only while the civil item is grey. A gap SA.Gap.Bottom16 parts the row from the chips.
+4. A pick goes to DoorLevelSource of the pane settings at once, not with Save overrides, since it is a setting of the project and no override. The build of 4 Check still takes designBasis.doorLevel.source of config until Lane A reads the pick.
+
+## Lane C SCAN-UI, the Revit shots against the boards and drafts
+
+Lane B ran its DEMO run on main 691e1fc on 1 Nov 2026 at 04:02 (RAN by Lane B):
+- the NBH 012 demo copies, buttons 1 to 9 with no click
+- each window drawn in Revit 2024 by WindowShots
+
+The PNGs show real file names, coordinates and values, so they stay outside the repo in C:\Users\p003653k\Documents\SiteAdaptation\addin_run\SAD2_20261101-040247\shots. Lane C read them there. Every difference from the offscreen drafts here and from the boards:
+
+1. Set up site (button1-setup-site.png):
+   - The section Current files lists the seven files of the demo setup, none ticked, so Apply is grey as R441 sets.
+   - The site drawing mark shows on Baseplan.
+   - Long names end in an ellipsis, and Road surface shows its folder name.
+   - The Rules dropdown names the profile ROSHN Makkah Phase 1.
+   - There is no Parameter sheet row, since the demo setup names none.
+2. Review data (button3-review-data.png):
+   - Under roshnPastJob the plan has no proposals, as R442 sets. The Cluster column shows the plot table value, every Confirmed box is grey, Confirm all proposed is grey and the second help line is hidden.
+   - Team check reads "Not che..." in Revit. The scroll bar of the table takes the width the Confirmed column left, and the offscreen draft has no scroll bar.
+   - Whether to hide Confirmed under the past job is open for Bader (Q305).
+3. Check table (button4-check-table.png): there is no row Door level from, since ROSHN runs roshnPastJob and the row shows under rev6 only (R443, Q302). The rest is as the draft.
+4. New project (end-new-project.png):
+   - The survey point dropdown reads Comes with the drawing scan and is grey.
+   - Plots found and Villa types read Not read yet, since a test host run reads with no scan (Q295) and the WindowShots build gives no facts of a scan.
+5. What the tool read has no Revit shot, since a test host run skips the scan and its window (Q295). Its picture is the offscreen scan-results.png only.
