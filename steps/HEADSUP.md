@@ -4,10 +4,10 @@
 
 ### Lane A
 
-- Lane: A, round 4j-2, branch feat/addin-4j2-split-walls. Time: 2026-11-01 06:40. Blocked: none
-- Now: the PR of 4j-2. Parity 48 runs 0 failures, past job 0 differ, gate green
-- Done: R414 off (Q303, Q304), R415, R416 with mitre corners, R417 stopped (Q259), review 1 APPROVE, breaker 1 REAL fixed, past job 0 differ
-- Next: the PR and its merge before 09:30, a message to lane-b with R414 to R416, else PAUSED
+- Lane: A, round FIX-1NOV-A, branch fix/1nov-a. Time: 2026-11-01 15:10. Blocked: none
+- Now: two helpers build R470 (one level at a shared ramp corner) and R471 (the joint check row) in Python and C#
+- Done: cause on NBH 012, 555 joints, 335 over 1 mm, from rampFrontM and the back pair on each El @ Entry. No curb is built, Task 5 needs no code
+- Next: merge the helpers, gate, parity, before and after counts, review and breaker, the PR. Ids R470 to R479, Q340 to Q349
 
 ### Lane B, C and D
 
