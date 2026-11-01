@@ -11,9 +11,9 @@
 ### Lane A
 
 - Lane: A, round 4j-2, branch feat/addin-4j2-split-walls
-- Time: 2026-11-01 03:30
-- Now: parity of the past job, rev6 and rev6 with the split test from a worktree pinned at 5300efe, the breaker pass, no Revit or Civil 3D window
-- Done: R414 off (8 of 82, Q303, Q304), R415 and R416 merged, R417 stopped (Q259), review APPROVE, gate green, Q288 renumbered Q299
+- Time: 2026-11-01 04:45
+- Now: a helper fixes 2 REAL breaker findings of R416 (status of a moved wall, the corners of moved walls), the parity of 5300efe ends, then parity again on the fix
+- Done: R414 off (Q303, Q304), R415, R416, R417 stopped (Q259), review APPROVE, gate green, past job 0 of 673,868 values differ, latent lines, Q299
 - Next: parity numbers, the records, the PR and its merge before 09:30, a message to lane-b with the wall rule ids
 - Blocked: none
 
