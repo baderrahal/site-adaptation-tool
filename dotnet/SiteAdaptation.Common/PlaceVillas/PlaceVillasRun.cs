@@ -176,7 +176,7 @@ namespace SiteAdaptation.Common.PlaceVillas
                     id = decision.Masses ? document.PlaceSolid(villa.Shape.Points, inputs.Config.SolidHeightM, villa.Steps) : document.PlaceLink(TypeKey(decision, villa, created), villa.Steps);
                 }
                 ReadBack(decision, villa, id);
-                issues.AddRange(WriteParameters(decision.Masses, villa, id, inputs.ParameterGuids));
+                issues.AddRange(WriteParameters(decision.Masses, villa, id, inputs.ParameterGuids, inputs.FilledByOthers));
                 document.Tag(id, step.Act == Act.Move ? step.Outcome.NextTag(context.RunId, inputs.Profile) : PlacedTag.ForPlacement(villa.Item, context.RunId, inputs.Profile, id));
                 standing.Add(villa.Number);
             }
@@ -451,13 +451,19 @@ namespace SiteAdaptation.Common.PlaceVillas
         }
 
         // R85, R107. The plot number written or the run fails, except a solid whose category button 1 did not bind it on, whose tag holds
-        // the plot so no later run places it twice (CHOSEN, an open question of Lane B 5c). RRE_ZZ_SP_Prototype-FFL, Number-of-Steps and
-        // RVT-Name are written here with the others, as Levels writes no link parameter (W6)
-        private IEnumerable<string> WriteParameters(bool masses, Villa villa, string id, IReadOnlyDictionary<string, string> guids)
+        // the plot so no later run places it twice (CHOSEN, an open question of Lane B 5c). Number-of-Steps and RVT-Name are written here
+        // with the others, as Levels writes no link parameter (W6), each only when the parameter sheet gives it to button 7, so
+        // RRE_ZZ_SP_Prototype-FFL of Filled by none is never written (R465)
+        private IEnumerable<string> WriteParameters(bool masses, Villa villa, string id, IReadOnlyDictionary<string, string> guids, ICollection<string> filledByOthers)
         {
             var issues = new List<string>();
             foreach (KeyValuePair<string, Sourced<string>> parameter in villa.Plot.Parameters ?? new Dictionary<string, Sourced<string>>())
             {
+                // R465. A parameter the sheet gives another button, or none, is never written here
+                if (filledByOthers != null && filledByOthers.Contains(parameter.Key))
+                {
+                    continue;
+                }
                 if (parameter.Value?.Value == null)
                 {
                     issues.Add("plot " + villa.Number + ": " + parameter.Key + " has no value in the plan");

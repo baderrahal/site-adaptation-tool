@@ -33,7 +33,7 @@ HOST = re.compile(r"(Minutes|Seconds|TimeLimit|Peak|MiB|minFreeGB|staleHours|hel
 # button of the report each override field counts under and the decisions of the walls, which set no plotted value either. addin.readData of
 # R375 names the files button 2 hands the worker beside the pane, and manualRules of R403 holds the texts, groups and pages of the manual rules
 # the window Site Adaptation Rules shows, no plotted value either
-BOOKKEEPING = ("addin.parity", "addin.sharedParameters", "answerKeys", "prototypeNames", "prototypeSets", "pastJob", "handCheck", "cadReads",
+BOOKKEEPING = ("addin.parity", "addin.parameterSheet", "answerKeys", "prototypeNames", "prototypeSets", "pastJob", "handCheck", "cadReads",
                "tableUnits", "drawings", "schedules", "profile", "inputRoot", "siteBuild.snapshot", "siteBuild.roadFolder", "testHost.order",
                "testHost.model", "pastAll", "majority.check", "project", "units_mm", "addin.workbookRoles", "valueStatus", "checkRows", "addin.report",
                "addin.readData", "manualRules", "addin.lightMode")

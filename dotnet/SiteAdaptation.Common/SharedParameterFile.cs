@@ -19,6 +19,13 @@ namespace SiteAdaptation.Common
         public long ElementId { get; set; }
         public string Binding { get; set; }
         public List<string> Categories { get; set; }
+
+        // R460. The spec and the group of the definition, the ForgeTypeId of each with the label Revit shows for it, null when the
+        // read gives none
+        public string DataType { get; set; }
+        public string DataTypeLabel { get; set; }
+        public string Group { get; set; }
+        public string GroupLabel { get; set; }
     }
 
     // R353. A shared parameter met on an element of a category, by its name and the GUID the parameter gives, the second route
@@ -27,6 +34,9 @@ namespace SiteAdaptation.Common
         public string Category { get; set; }
         public string Name { get; set; }
         public Guid Guid { get; set; }
+
+        // R460. The value as Revit shows it, null or empty when the element holds none
+        public string Value { get; set; }
     }
 
     public sealed class SharedParameterRow
@@ -37,6 +47,10 @@ namespace SiteAdaptation.Common
         public bool Bound { get; set; }
         public string Binding { get; set; }
         public List<string> Categories { get; set; }
+        public string DataType { get; set; }
+        public string DataTypeLabel { get; set; }
+        public string Group { get; set; }
+        public string GroupLabel { get; set; }
     }
 
     public sealed class SharedParameterOnElements
@@ -45,6 +59,10 @@ namespace SiteAdaptation.Common
         public string Name { get; set; }
         public List<string> Guids { get; set; }
         public int Count { get; set; }
+
+        // R460. How many of the elements hold a value, and the first value met in the order of the read, null when none holds one
+        public int Filled { get; set; }
+        public string Sample { get; set; }
     }
 
     // R353. testhost_<code>_parameters.json of a read job: every shared parameter element of the model by name with its GUID, whether
@@ -77,12 +95,15 @@ namespace SiteAdaptation.Common
                     {
                         Name = item.Name, Guid = item.Guid.ToString("D"), ElementId = item.ElementId, Bound = bound, Binding = bound ? binding.Binding : null,
                         Categories = bound ? (binding.Categories ?? new List<string>()).OrderBy(name => name, StringComparer.Ordinal).ToList() : new List<string>(),
+                        DataType = bound ? binding.DataType : null, DataTypeLabel = bound ? binding.DataTypeLabel : null, Group = bound ? binding.Group : null,
+                        GroupLabel = bound ? binding.GroupLabel : null,
                     };
                 }).OrderBy(row => row.Name, StringComparer.Ordinal).ThenBy(row => row.Guid, StringComparer.Ordinal).ToList(),
                 OnElements = seen.GroupBy(item => new { item.Category, item.Name }).Select(group => new SharedParameterOnElements
                 {
                     Category = group.Key.Category, Name = group.Key.Name, Guids = group.Select(item => item.Guid.ToString("D")).Distinct().OrderBy(text => text, StringComparer.Ordinal).ToList(),
-                    Count = group.Count(),
+                    Count = group.Count(), Filled = group.Count(item => !string.IsNullOrEmpty(item.Value)),
+                    Sample = group.Select(item => item.Value).FirstOrDefault(value => !string.IsNullOrEmpty(value)),
                 }).OrderBy(item => item.Category, StringComparer.Ordinal).ThenBy(item => item.Name, StringComparer.Ordinal).ToList(),
                 OtherBindings = byId.Where(item => !known.Contains(item.Key)).Select(item => item.Value.Name).OrderBy(name => name, StringComparer.Ordinal).ToList(),
             };

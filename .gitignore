@@ -12,6 +12,7 @@ out/
 *.rfa
 *.pdf
 *.xlsx
+!config/shared_parameters.xlsx
 sample_data/
 sample_output/
 .claude/worktrees/
