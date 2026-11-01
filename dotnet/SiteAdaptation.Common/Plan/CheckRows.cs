@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using Newtonsoft.Json;
@@ -49,13 +50,18 @@ namespace SiteAdaptation.Common
         public static readonly string[] StepFields = { "unit", "nbh", "rows" };
 
         // check_rows.FROM_ORDER, the sources of a row in the order a plot lists them within one check and field
-        private static readonly string[] FromOrder = { "override", "question", "cannot", "missing" };
+        private static readonly string[] FromOrder = { "override", "question", "cannot", "missing", "joint" };
         private const string Rule = "Rule";
         private const string Past = "Past";
         private const string Skip = "Skip";
         // Q108. The rule of every field and source the map gives no entry, one cause, and the head of a decidedByQuestion entry, grouped by question
         public const string NoStatusRule = "valueStatus holds no status for the field and its source (R401)";
         private const string Decided = "majority.decidedByQuestion.";
+        // check_rows.JOINT_FIELD, JOINT_FROM, JOINT_RULE and NO_JOINT of R471
+        private const string JointField = "rampJoint";
+        private const string JointFrom = "joint";
+        private const string JointRule = "R471";
+        public const string NoJoint = "floors.rampJoint of the settings holds no length nearM above 0 and passGapM of 0 or more (R471)";
         public const string NoBlock = "the settings hold no block checkRows, the check rows of R363 take their check types and the form of Past from it";
 
         private static string Text(JToken value)
@@ -141,10 +147,150 @@ namespace SiteAdaptation.Common
             };
         }
 
+        private static JArray Listed(object value)
+        {
+            return value == null ? null : value as JArray ?? JArray.FromObject(value);
+        }
+
+        // check_rows.ramp_corners from the step overrides, as BuildPlan writes floors.ramp corners: the outline after the overrides with rampZ,
+        // each at 3 decimals, for a plot with a ramp type
+        public static Dictionary<string, double[][]> RampCorners(IReadOnlyDictionary<string, PlotPlan> plans)
+        {
+            var found = new Dictionary<string, double[][]>(StringComparer.Ordinal);
+            foreach (KeyValuePair<string, PlotPlan> plan in plans)
+            {
+                Dictionary<string, object> overrides = plan.Value?.Overrides ?? new Dictionary<string, object>();
+                overrides.TryGetValue("rampZ", out object heights);
+                overrides.TryGetValue("rampOutline", out object outline);
+                overrides.TryGetValue("rampType", out object kind);
+                JArray z = Listed(heights), corners = Listed(outline);
+                if (z == null || corners == null || kind == null || (kind is JToken token && token.Type == JTokenType.Null))
+                {
+                    continue;
+                }
+                found[plan.Key] = corners.Select((corner, index) => new[]
+                {
+                    Rounding.Fixed((double)corner[0], 3), Rounding.Fixed((double)corner[1], 3), Rounding.Fixed((double)z[index], 3),
+                }).ToArray();
+            }
+            return found;
+        }
+
+        // check_rows.joint_limits: nearM and passGapM of floors.rampJoint, refused unless nearM is a length above 0 and passGapM one of 0 or more
+        public static Tuple<double, double> JointLimits(JObject config)
+        {
+            JToken block = config["floors"]?["rampJoint"];
+            JToken near = block?["nearM"], pass = block?["passGapM"];
+            bool Length(JToken value) => value != null && (value.Type == JTokenType.Integer || value.Type == JTokenType.Float);
+            if (!Length(near) || !Length(pass) || (double)near <= 0 || (double)pass < 0)
+            {
+                throw new InvalidDataException(NoJoint);
+            }
+            return Tuple.Create((double)near, (double)pass);
+        }
+
+        // check_rows.ramp_joints, R470: the joints of the ramp corners, each a list of plot and corner index, corners of two plots within near in
+        // plan of one another, chained. A grid of cells near wide finds the pairs, so a whole site is not compared corner by corner
+        public static List<List<Tuple<string, int>>> RampJoints(IReadOnlyDictionary<string, double[][]> corners, double near)
+        {
+            var points = corners.Keys.OrderBy(plot => plot, StringComparer.Ordinal)
+                .SelectMany(plot => corners[plot].Select((corner, index) => Tuple.Create(plot, index, corner))).ToList();
+            int[] parent = Enumerable.Range(0, points.Count).ToArray();
+            int Root(int at)
+            {
+                while (parent[at] != at)
+                {
+                    parent[at] = parent[parent[at]];
+                    at = parent[at];
+                }
+                return at;
+            }
+            var cells = new Dictionary<Tuple<double, double>, List<int>>();
+            for (int at = 0; at < points.Count; at++)
+            {
+                var cell = Tuple.Create(Math.Floor(points[at].Item3[0] / near), Math.Floor(points[at].Item3[1] / near));
+                if (!cells.ContainsKey(cell))
+                {
+                    cells[cell] = new List<int>();
+                }
+                cells[cell].Add(at);
+            }
+            foreach (KeyValuePair<Tuple<double, double>, List<int>> cell in cells)
+            {
+                var around = new List<int>();
+                for (int dx = -1; dx <= 1; dx++)
+                {
+                    for (int dy = -1; dy <= 1; dy++)
+                    {
+                        if (cells.TryGetValue(Tuple.Create(cell.Key.Item1 + dx, cell.Key.Item2 + dy), out List<int> members))
+                        {
+                            around.AddRange(members);
+                        }
+                    }
+                }
+                foreach (int at in cell.Value)
+                {
+                    foreach (int other in around)
+                    {
+                        if (other <= at || points[other].Item1 == points[at].Item1)
+                        {
+                            continue;
+                        }
+                        double x = points[other].Item3[0] - points[at].Item3[0], y = points[other].Item3[1] - points[at].Item3[1];
+                        if (x * x + y * y <= near * near)
+                        {
+                            parent[Root(other)] = Root(at);
+                        }
+                    }
+                }
+            }
+            return Enumerable.Range(0, points.Count).GroupBy(Root).Select(group => group.Select(at => Tuple.Create(points[at].Item1, points[at].Item2)).ToList())
+                .Where(joint => joint.Select(item => item.Item1).Distinct().Count() > 1).ToList();
+        }
+
+        // check_rows.joint_rows, R471: per plot of the scope a row for each corner of its ramp in a joint, check and past of
+        // checkRows.fields.rampJoint, from joint, Skip on a plot of the skip list, else Rule, rule R471, the gap of the joint in m at 3 decimals
+        // and why naming the corner, the other plots and Pass when the gap is at most passGapM, else Fail
+        public static Dictionary<string, List<JObject>> JointRows(IReadOnlyList<string> numbers, IReadOnlyDictionary<string, double[][]> corners,
+            IReadOnlyDictionary<string, CheckPlot> plots, JObject block, Tuple<double, double> limits)
+        {
+            JObject item = EntryOf(block, "fields", JointField);
+            var byCorner = new Dictionary<Tuple<string, int>, Tuple<double, List<string>>>();
+            foreach (List<Tuple<string, int>> joint in RampJoints(corners, limits.Item1))
+            {
+                List<double> levels = joint.Select(corner => corners[corner.Item1][corner.Item2][2]).ToList();
+                double gap = Rounding.Fixed(levels.Max() - levels.Min(), 3);
+                foreach (Tuple<string, int> corner in joint)
+                {
+                    byCorner[corner] = Tuple.Create(gap, joint.Select(other => other.Item1).Where(other => other != corner.Item1).Distinct()
+                        .OrderBy(other => other, StringComparer.Ordinal).ToList());
+                }
+            }
+            var found = new Dictionary<string, List<JObject>>();
+            foreach (string number in numbers)
+            {
+                var made = new List<JObject>();
+                plots.TryGetValue(number, out CheckPlot plot);
+                int count = corners.TryGetValue(number, out double[][] mine) ? mine.Length : 0;
+                for (int index = 0; index < count; index++)
+                {
+                    if (!byCorner.TryGetValue(Tuple.Create(number, index), out Tuple<double, List<string>> joint))
+                    {
+                        continue;
+                    }
+                    string why = string.Format(CultureInfo.InvariantCulture, "corner {0} shared with plots {1}, gap {2:0.000} m, {3}, passes at most {4:0.000} m", index + 1,
+                        string.Join(", ", joint.Item2), joint.Item1, joint.Item1 <= limits.Item2 ? "Pass" : "Fail", limits.Item2);
+                    made.Add(Made((string)item["check"], JointField, JointFrom, plot?.Skip != null ? Skip : Rule, JointRule, new JValue(joint.Item1), PastOf(item), why));
+                }
+                found[number] = made;
+            }
+            return found;
+        }
+
         // check_rows.plot_rows: the rows of each plot of the scope, ordered by the check types of the mock, then any other type by name, then
-        // field and source
+        // field and source, joints the rows of R471 by plot, sorted with the others
         public static Dictionary<string, List<JObject>> Rows(IReadOnlyList<string> numbers, IReadOnlyDictionary<string, CheckPlot> plots, IList<JObject> overrides,
-            IList<JObject> cannot, JObject decided, JObject block)
+            IList<JObject> cannot, JObject decided, JObject block, IReadOnlyDictionary<string, List<JObject>> joints = null)
         {
             var byPair = new Dictionary<string, JObject>(StringComparer.Ordinal);
             foreach (JObject item in overrides)
@@ -221,6 +367,10 @@ namespace SiteAdaptation.Common
                 {
                     JObject item = EntryOf(block, "missing", key);
                     made.Add(Made((string)item["check"], key, "missing", skip ? Skip : Rule, null, null, PastOf(item), null));
+                }
+                if (joints != null && joints.TryGetValue(number, out List<JObject> joined))
+                {
+                    made.AddRange(joined);
                 }
                 found[number] = made.OrderBy(item => types.Contains((string)item["check"]) ? types.IndexOf((string)item["check"]) : types.Count)
                     .ThenBy(item => (string)item["check"], StringComparer.Ordinal).ThenBy(item => (string)item["field"], StringComparer.Ordinal)
@@ -368,7 +518,9 @@ namespace SiteAdaptation.Common
             JObject block = config["checkRows"] as JObject ?? throw new InvalidDataException(NoBlock);
             Tuple<List<JObject>, List<JObject>> entries = ListEntries(data, sources);
             Dictionary<string, CheckPlot> plots = PlotsOf(numbers, plans, rows);
-            Dictionary<string, List<JObject>> made = Rows(numbers, plots, entries.Item1, entries.Item2, config["majority"]?["decidedByQuestion"] as JObject, block);
+            // R471. The joint corners of the ramps of the build, read from the step overrides as the plan corners are
+            Dictionary<string, List<JObject>> joints = JointRows(numbers, RampCorners(plans), plots, block, JointLimits(config));
+            Dictionary<string, List<JObject>> made = Rows(numbers, plots, entries.Item1, entries.Item2, config["majority"]?["decidedByQuestion"] as JObject, block, joints);
             List<string> assumed = (config["valueStatus"]?["assumed"] as JArray ?? new JArray()).Select(item => (string)item).ToList();
             List<string> worst = (config["valueStatus"]?["worstFirst"] as JArray ?? new JArray()).Select(item => (string)item).ToList();
             List<StatusValue> values = PlanValues(numbers, status, walls);

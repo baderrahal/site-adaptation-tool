@@ -80,7 +80,7 @@ def test_r363_past_writes_in_the_form_of_the_list_by_check_and_field_as_the_desi
         "entryM": ("Level", "gapToRuleM"), "heightM": ("Level", "gapToRuleM"), "rampFrontM": ("Level", "gapToRuleM"), "steps": ("Level", "wholeNumber"),
         "rampFrontFallM": ("Level", None), "insert": ("Position", "gapToRuleM"), "rotationDeg": ("Position", "gapToRuleDeg"), "mirrored": ("Hand", "trueOrFalse"),
         "rampType": ("Floor", "slopeClass"), "genericFloor": ("Floor", None), "yardOutline": ("Floor", None), "rampOutline": ("Floor", None),
-        "parameter RRE_ZZ_SP_Prototype-FFL": ("Parameter", "gapToRuleM"), "parameter *": ("Parameter", "text"), "prototypeFile": ("Unit code", None)}
+        "rampJoint": ("Floor", None), "parameter RRE_ZZ_SP_Prototype-FFL": ("Parameter", "gapToRuleM"), "parameter *": ("Parameter", "text"), "prototypeFile": ("Unit code", None)}
     assert all(item.get("why") for item in list(BLOCK["fields"].values()) + list(BLOCK["missing"].values()) if item["past"] is None)
     # The check types of the mock in its order (docs/addin-mock.md item 4)
     assert BLOCK["types"] == ["Plot cut", "Floor", "Hand", "Unit code", "Position", "Level"]
@@ -287,10 +287,11 @@ def test_r363_the_step_check_rows_of_a_build_with_the_tables_assumed_and_chips(m
                              "key": "imc"}]}
     numbers = ["1", "2", "3", "4", "5", "6"]
     made, tables = check_rows.step(numbers, built["rows"], plan, listed, ["parsons"], [], project_profile.load_settings())
-    # Plot 3 lacks a yard outline as in the made up build of LevelFloorStepTests.cs
+    # Plot 3 lacks a yard outline as in the made up build of LevelFloorStepTests.cs, and its four ramp corners each join a corner of plot 2 or 4 (R471)
     assert [(item["check"], item["field"], item["from"], item["use"], item["rule"]) for item in made["3"]["rows"]] == [
-        ("Floor", "floors.yard", "missing", "Rule", None), ("Level", "heightM", "override", "Past", "parsons ffl")]
-    assert made["3"]["rows"][1]["past"]["value"] == {"gapToRuleM": 0.1} and list(made) == numbers
+        ("Floor", "floors.yard", "missing", "Rule", None)] + [("Floor", "rampJoint", "joint", "Rule", "R471")] * 4 + [("Level", "heightM", "override", "Past", "parsons ffl")]
+    assert [item["toolValue"] for item in made["3"]["rows"][1:5]] == [0.0] * 4
+    assert made["3"]["rows"][5]["past"]["value"] == {"gapToRuleM": 0.1} and list(made) == numbers
     assert tables["chips"]["All"] == sum(len(item["rows"]) for item in made.values())
     assert tables["assumed"] and all(item["status"] not in ("DOCUMENT", "MEASURED strong") for item in tables["assumed"].values())
 
