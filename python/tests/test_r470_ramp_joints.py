@@ -75,8 +75,27 @@ def test_r470_a_plot_with_no_joint_or_a_joint_with_no_override_is_left_out():
     assert plan_from_book.joint_levels({"1": (LEFT, left, [10.0, 10.12]), "2": (RIGHT, [10.12, 10.24, 10.28, 10.16], [10.12, 10.24])}, NEAR) == {}
 
 
+def joined_settings(*args, **kwargs):
+    """The project settings with floors.rampJoint.join true, which config holds false for now (Q340)."""
+    settings = LOAD_SETTINGS(*args, **kwargs)
+    settings.values["floors"]["rampJoint"]["join"] = True
+    return settings
+
+
+LOAD_SETTINGS = project_profile.load_settings
+
+
 def test_r470_near_is_read_from_config_floors_ramp_joint_and_a_bad_one_refused():
     settings = project_profile.load_settings()
+    # Bader chose join false until Q340 is answered, so the build of config joins no corner
+    assert settings.get("floors.rampJoint.join") is False and plan_from_book.joint_near(settings) is None
+    assert plan_from_book.joint_levels({"1": (LEFT, [10.0, 10.12, 10.16, 10.04], [10.0, 10.12]), "2": (RIGHT, [10.17, 10.24, 10.28, 10.21], [10.12, 10.24])}, None) == {}
+    for bad in (None, "true", 1):
+        refused = copy.deepcopy(settings)
+        refused.values["floors"]["rampJoint"]["join"] = bad
+        with pytest.raises(project_profile.ProfileError, match="floors.rampJoint.join"):
+            plan_from_book.joint_near(refused)
+    settings = joined_settings()
     assert plan_from_book.joint_near(settings) == settings.get("floors.rampJoint.nearM") == NEAR
     wider = copy.deepcopy(settings)
     wider.values["floors"]["rampJoint"]["nearM"] = 0.02
@@ -90,7 +109,16 @@ def test_r470_near_is_read_from_config_floors_ramp_joint_and_a_bad_one_refused()
             plan_from_book.joint_near(wider)
 
 
+def test_r470_with_join_false_a_build_keeps_the_ramp_front_override_at_every_corner(monkeypatch):
+    built = made_build(monkeypatch, {"2": {"rampFrontM": {"gapToRuleM": 0.05}}})
+    assert built["trace"]["rampJoint"] is None
+    corners = {number: built["plan"][number]["floors"]["ramp"]["corners"]["value"] for number in ("1", "2")}
+    # The 5 cm gap of 2 stands at both its front corners and the shared corner of 1 stays at the road, as before R470
+    assert [corner[2] for corner in corners["2"][:2]] == [common.r3(10.12 + 0.05), common.r3(10.24 + 0.05)] and corners["1"][1][2] == 10.12
+
+
 def test_r470_a_build_and_its_step_overrides_keep_the_front_joints_at_the_road_a_ramp_front_override_moved(monkeypatch):
+    monkeypatch.setattr(project_profile, "load_settings", joined_settings)
     built = made_build(monkeypatch, {"2": {"rampFrontM": {"gapToRuleM": 0.05}}})
     assert built["trace"]["rampJoint"] == NEAR
     plan = built["plan"]

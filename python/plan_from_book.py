@@ -698,18 +698,24 @@ def ramp_heights(front, entry):
 
 
 def joint_near(settings):
-    """R470. floors.rampJoint.nearM of the project settings, how near in plan two ramp corners of two plots lie to be one joint."""
+    """R470. floors.rampJoint.nearM of the project settings, how near in plan two ramp corners of two plots lie to be one joint, None while
+    floors.rampJoint.join is false, which Bader chose for now as the road at a joint drops a rampFrontM override (Q340)."""
+    join = settings.get("floors.rampJoint.join")
+    if not isinstance(join, bool):
+        raise project_profile.ProfileError(settings.path.name + " floors.rampJoint.join must be true or false (R470)")
     near = settings.get("floors.rampJoint.nearM")
     if not plan_from_past.is_number(near) or near <= 0:
         raise project_profile.ProfileError(settings.path.name + " floors.rampJoint.nearM must be a length above 0 (R470)")
-    return near
+    return near if join else None
 
 
 def joint_levels(ramps, near):
     """R470. ramps by plot, the plan corners of each ramp, their raw levels and the road levels of the front pair before any rampFrontM gap.
     Front corners of two or more plots within near in plan, chained, are one joint and each takes the road level of the first corner of the
     joint in the order of the plots and corners given, so a gap moves no joint corner. The back pair keeps El @ Entry (R358) and joins
-    nothing. The new levels of each plot a joint changed, a plot whose levels the joint leaves as they were left out."""
+    nothing. The new levels of each plot a joint changed, a plot whose levels the joint leaves as they were left out, none with near None."""
+    if near is None:
+        return {}
     corners = [(plot, index, points[index], road[index]) for plot, (points, _, road) in ramps.items() for index in range(min(2, len(points), len(road)))]
     parent = list(range(len(corners)))
 

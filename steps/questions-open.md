@@ -375,8 +375,9 @@ Q304. The side of an uneven split (R414, 2.2.B, round 4j-2). Bader's order tries
 - Other: keep the order from the first unit of the row as the prompt gives it.
 
 Q340. The level of a joint an override moves (R470, round FIX-1NOV-A). Bader's rule takes a shared ramp corner once from the road. R470 does so: a front joint holds the road level, so where rampFrontM moves one ramp the override no longer moves its joint corner and the ramp twists, the outcome still says applied. On the whole project 240 front joints have an override on one side only, 9 of them over 50 mm. A mean of the two levels was tried first and lifted the plot with no override off the road by up to 87 mm with its status still MEASURED (breaker pass 1).
-- Recommended: keep the road level at a joint, the override moves only the front corner of no joint.
-- Other: move a whole joint by the override, both ramps at the road plus the gap.
+Bader, 1 Nov 2026: the PR ships R470 behind floors.rampJoint.join, false, the R471 rows show every joint and its gap. Breaker pass 2 measured the road rule on the whole project: 324 ramps twist, 40 by over 50 mm, the worst 360 mm, 173 lose the gap at both front corners, up to 531 mm, 20 rev6 ramps keep a slope and type their corners contradict.
+- Recommended: keep join false until a rule for a joint an override moves is chosen, then set join true.
+- Other: join true with the road rule as built, or move a whole joint by the override, both ramps at the road plus the gap.
 
 Q341. Back corners two ramps share (R470, R358, round FIX-1NOV-A). The back pair of a ramp hangs on the El @ Entry of its own plot and the road gives no level there, so R470 joins only the front corners. On NBH 012 150 of 170 back joints with no override differ, by up to 161 mm, and R471 lists each as Fail. Joining them by the mean was tried: 1,025 ramps of the whole project left El @ Entry by over 5 mm, 572 ramps twisted by over 20 mm, and on 24 plots the slope crossed the band of its ramp type (breaker pass 1).
 - Recommended: leave back joints apart, listed as Fail rows, until a rule for the back of a ramp row is chosen.

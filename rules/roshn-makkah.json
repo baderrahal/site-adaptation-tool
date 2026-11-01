@@ -752,6 +752,7 @@
       "entrySpots.radiiM": {"status": "UNKNOWN", "why": "no Q, no share, no Bader line and no CHOSEN mark"},
       "entrySpots.cornerM": {"status": "CHOSEN by Bader", "question": "Q104", "where": "steps/investigations/status-review.md table 1 row 5"},
       "entrySpots.bandsM": {"status": "CHOSEN by Bader", "question": "Q104", "where": "steps/investigations/status-review.md table 1 row 6"},
+      "floors.rampJoint.join": {"status": "RECOMMENDED", "question": "Q340", "where": "floors.rampJoint.note"},
       "floors.rampJoint.nearM": {"status": "CHOSEN by Bader", "question": "Q342", "where": "floors.rampJoint.note"},
       "floors.rampJoint.passGapM": {"status": "CHOSEN by Bader", "question": "Q342", "where": "floors.rampJoint.note"},
       "floors.types.generic": {"status": "UNKNOWN", "why": "no Q, no share, no Bader line and no CHOSEN mark"},

@@ -149,10 +149,9 @@ def test_r408_a_ramp_front_override_gives_the_slope_ramp_type_and_outside_list_o
     assert common.fixed(slope, 3) == 0.232
     ramp = built["plan"]["6"]["floors"]["ramp"]
     assert ramp["slopePercent"]["value"] == 0.232 and ramp["type"]["value"] == "Ramps 0.5%"
-    # The slope the plan writes is that of its own corners on the right side no other ramp shares, the back corner at El @ Entry and the front
-    # corner at the moved road. R470: the front left corner is shared with 5, so it stays at the road 10.6
+    # The slope the plan writes is that of its own corners, the back pair at El @ Entry and the front pair at the moved road
     corners = [corner[2] for corner in ramp["corners"]["value"]]
-    assert abs((corners[2] - corners[1]) / DEPTH * 100.0 - ramp["slopePercent"]["value"]) < 0.05 and corners[0] == 10.6
+    assert abs((corners[2] + corners[3] - corners[0] - corners[1]) / 2.0 / DEPTH * 100.0 - ramp["slopePercent"]["value"]) < 0.05
     assert built["overrides"]["6"]["slopePercent"] == pytest.approx(slope, abs=1e-9) and built["overrides"]["6"]["rampType"] == "Ramps 0.5%"
     assert built["summary"]["slopeOutsideManual"] == [{"plot": "6", "slopePercent": 0.232}]
     assert built["summaryStep"][1]["summary"]["slopeOutsideManual"] == [{"plot": "6", "slopePercent": 0.232}]

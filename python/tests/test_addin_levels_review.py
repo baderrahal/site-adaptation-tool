@@ -178,8 +178,7 @@ def test_r340_a_build_writes_the_levels_the_rule_alone_gives_beside_the_levels_i
     assert rule["entry"] == 10.0626 and rule["ffl"] == 10.263 and rule["height"] == 0.2004 and rule["steps"] == 1
     assert rule["parameter RRE_ZZ_SP_Prototype-FFL"] == "10.260" and level_of(found["4"], "ffl") == 10.264
     corners = found["4"]["floors"]["ramp"]["corners"]["value"]
-    # R470. The front left corner is shared with 3, so it stays at the road and the gap moves the right one alone
-    assert [round(rule["rampFrontCorners"][0], 3), round(rule["rampFrontCorners"][1] + 0.002, 3)] == [corners[0][2], corners[1][2]] and "rampFront" not in rule
+    assert [round(z + 0.002, 3) for z in rule["rampFrontCorners"]] == [corners[0][2], corners[1][2]] and "rampFront" not in rule
 
 
 # R341 a level item one side holds and the other does not is a mismatch

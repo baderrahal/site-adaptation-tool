@@ -32,15 +32,20 @@ namespace SiteAdaptation.Common
             return new[] { front[0], front[1], entry + front[1] - middle, entry + front[0] - middle };
         }
 
-        // R470. plan_from_book.joint_near: floors.rampJoint.nearM of config, a length above 0
-        public static double JointNear(JObject config, string configName)
+        // R470. plan_from_book.joint_near: floors.rampJoint.nearM of config, a length above 0, null while floors.rampJoint.join is false (Q340)
+        public static double? JointNear(JObject config, string configName)
         {
+            JToken join = config["floors"]?["rampJoint"]?["join"];
+            if (join == null || join.Type != JTokenType.Boolean)
+            {
+                throw new InvalidDataException(configName + " floors.rampJoint.join must be true or false (R470)");
+            }
             JToken near = config["floors"]?["rampJoint"]?["nearM"];
             if (near == null || (near.Type != JTokenType.Integer && near.Type != JTokenType.Float) || BuildFace.Number(near) <= 0)
             {
                 throw new InvalidDataException(configName + " floors.rampJoint.nearM must be a length above 0 (R470)");
             }
-            return BuildFace.Number(near);
+            return (bool)join ? BuildFace.Number(near) : (double?)null;
         }
 
         // R470. plan_from_book.joint_levels: ramps by plot, the plan corners, their raw levels and the road levels of the front pair before any

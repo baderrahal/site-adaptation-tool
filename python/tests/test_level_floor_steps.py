@@ -246,8 +246,7 @@ def test_r358_the_floors_of_the_step_are_those_of_the_rule_a_ramp_override_moves
     moved = made_build(monkeypatch, {"5": {"rampFrontM": {"gapToRuleM": 0.3}, "rampType": "flat", "entryM": {"gapToRuleM": 0.1}}})
     assert moved["floors"] == plain
     ramp = moved["plan"]["5"]["floors"]["ramp"]
-    # R470. Both front corners of 5 are shared, so they stay at the road 10.48 and 10.6 and its 30 cm gap moves neither
-    assert ramp["type"]["value"] == "Flat Ramps" and [corner[2] for corner in ramp["corners"]["value"][:2]] == [10.48, 10.6]
+    assert ramp["type"]["value"] == "Flat Ramps" and ramp["corners"]["value"][0][2] == common.r3(10.48 + 0.3)
 
 
 def test_r358_a_yard_outline_of_the_floor_file_or_a_width_step_of_another_kind_is_refused_with_the_line_of_csharp(monkeypatch):

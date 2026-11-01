@@ -567,7 +567,7 @@ namespace SiteAdaptation.Common
             List<string> later = LaterFields(config, levelProfile);
             HashSet<string> laterParameters = KeyLevels.LaterParameters(config, levelProfile);
             List<string> facade = ((config["majority"]?["linkNameFacade"] as JArray) ?? new JArray()).Select(Text).ToList();
-            double near = FloorOutlines.JointNear(config, "config");
+            double? near = FloorOutlines.JointNear(config, "config");
             // R470. The road levels of the front pair of each ramp before a rampFrontM gap, the level a joint holds
             var roads = new Dictionary<string, double[]>();
             var outcomes = new Outcomes();
@@ -899,7 +899,7 @@ namespace SiteAdaptation.Common
             // R470. A front corner ramps of two or more written plots share takes the road of the first, which BuildPlan writes through rampZ
             var ramps = numbers.Where(number => found[number].Overrides["rampZ"] != null)
                 .Select(number => Tuple.Create(number, (double[][])found[number].Overrides["rampOutline"], (double[])found[number].Overrides["rampZ"], roads[number])).ToList();
-            foreach (KeyValuePair<string, double[]> joined in FloorOutlines.JointLevels(ramps, near))
+            foreach (KeyValuePair<string, double[]> joined in near == null ? new Dictionary<string, double[]>() : FloorOutlines.JointLevels(ramps, near.Value))
             {
                 found[joined.Key].Overrides["rampZ"] = joined.Value;
             }

@@ -194,7 +194,7 @@
     "STR": {"source": "00_Revit Models\\Zone 02\\STR\\Prototypes", "target": "00_Revit Models\\Zone 02\\ARC\\Prototypes_2024\\STR", "discipline": "STR", "codePrefix": "S"}
   },
   "floors": {
-    "rampJoint": {"note": "R470, R471. Two front ramp corners of two plots within nearM in plan are one joint and hold one level, the road level taken once at the joint. The check row of a joint passes at a gap of at most passGapM. nearM and passGapM by Bader, Q342", "nearM": 0.01, "passGapM": 0.001},
+    "rampJoint": {"note": "R470, R471. Two front ramp corners of two plots within nearM in plan are one joint and hold one level, the road level taken once at the joint, while join is true. join false, Bader 1 Nov 2026 (Q340): the build joins no corner, since the road at a joint drops a rampFrontM override, and R471 still lists every shared corner with its gap. The check row of a joint passes at a gap of at most passGapM. nearM and passGapM by Bader, Q342", "join": false, "nearM": 0.01, "passGapM": 0.001},
     "types": {
       "generic": ["Generic 150mm"],
       "yard": ["yard"],

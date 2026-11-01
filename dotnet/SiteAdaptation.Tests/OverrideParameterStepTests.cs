@@ -64,7 +64,7 @@ namespace SiteAdaptation.Tests
         // test_level_floor_steps.made_build and test_override_param_steps.row_build: the row of six 12 m faces, the plots of faceless DP2 units with no
         // face, the plots of dry with no road level past their left corner, the step scope the plots and 7, a number with no row
         internal static Built Build(OverrideList list, Action<JObject> change = null, string[] faceless = null, string[] dry = null, Action<JObject> changeRules = null,
-            bool backDry = false, DesignBasis basis = null, JArray bands = null)
+            bool backDry = false, DesignBasis basis = null, JArray bands = null, Action<JObject> changeConfig = null)
         {
             faceless = faceless ?? new string[0];
             dry = dry ?? new string[0];
@@ -72,6 +72,7 @@ namespace SiteAdaptation.Tests
             changeRules?.Invoke(rules);
             change?.Invoke((JObject)rules["levelProfiles"]["parsons2024Rev6"]["keyRules"]);
             JObject config = JObject.Parse(File.ReadAllText(WorkerRunTests.RepoConfig()));
+            changeConfig?.Invoke(config);
             List<string> numbers = new[] { "1", "2", "3", "4", "5", "6" }.Concat(faceless).ToList();
             var faces = numbers.Where(number => !faceless.Contains(number)).ToDictionary(number => number,
                 number => BuildFace.Of(number, LevelFloorStepTests.Ring((int.Parse(number) - 1) * 12.0, 0.0, int.Parse(number) * 12.0, 25.0)));
@@ -159,8 +160,7 @@ namespace SiteAdaptation.Tests
             Assert.Equal(new[] { five[0] + 0.3, five[1] - 0.2 }, (double[])plans["5"].Overrides["insert"]);
             Assert.Equal(4, (int)Written(built, "5")["steps"]);
             Assert.Equal(180.0 + 1.5, (double)((StepValue)plans["6"].Overrides["rotationDeg"]).Raw);
-            // R470. The front corner of 6 at x 60 is shared with 5, so it stays at the road 10.6 and its 5 cm gap moves the other alone
-            Assert.Equal(new[] { 10.6, Rounding.Fixed(10.72 - 0.05, 3) }, six["rampZ"].Take(2).Select(value => (double)value).ToArray());
+            Assert.Equal(new[] { Rounding.Fixed(10.6 - 0.05, 3), Rounding.Fixed(10.72 - 0.05, 3) }, six["rampZ"].Take(2).Select(value => (double)value).ToArray());
             // The raw values: no gap the raw El @ Entry and the FFL of the piece unrounded, a gap the value as written by the rule plus the gap
             Assert.Equal(built.Build.Entries["5"].Raw, (double)plans["5"].Overrides["entry"]);
             Assert.Equal(built.Build.Entries["2"].Rule + 0.05, (double)plans["2"].Overrides["entry"]);
