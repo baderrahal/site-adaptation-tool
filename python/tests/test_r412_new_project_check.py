@@ -15,7 +15,7 @@ PROTOTYPE = "KEO-ARC-C10-ZZ.rvt"
 LINES = [
     ("position file", "ok", "pos.json holds the project position, the survey point, the project base point and 2 levels", None),
     ("parameter sheet", "does not fit",
-     "3 of 4 parameter names have no GUID in addin.sharedParameters: AA_Two (no GUID), AA_Three (not in the sheet), AA_Four (not in the sheet)",
+     "3 of 4 parameter names have no GUID in parameters.xlsx: AA_Two (no GUID), AA_Three (not in the sheet), AA_Four (not in the sheet)",
      "the names are held to the prefix AA_ of the %s parameters" % npc.NAME),
     ("villa offsets", "does not fit", "plotFrame.units of prototype_offsets.json holds no offset for the unit codes: VL3, TH1", "measured on the %s past job N1" % npc.NAME),
     ("hand tables", "does not fit", "the hand tables hold no entry for the prototype files of the unit codes: TH1",
@@ -70,6 +70,8 @@ def build(tmp):
     made_pdf(work / "data_book" / "work" / "Book" / "plan.pdf")
     sheet_book(root / "refs" / "s1.xlsx", "Sched", [["t"]] + [[None]] * 38 + [["Plot No.", "Size"]])
     (root / "protos" / PROTOTYPE).write_bytes(b"x")
+    sheet_book(config / "parameters.xlsx", "Parameters", [["Parameter", "GUID", "Data type", "Group", "Category", "Filled by", "Sample value", "Keep"],
+                                                         ["AA_One", GUID, "Text", "Data", "Floors", "5", None, "Yes"], ["AA_Two", None, "Text", "Data", "RVT Links", "7", None, "Yes"]])
     (config / "prototype_offsets.json").write_text(json.dumps({"plotFrame": {"units": {"C10": {}}}}))
     (config / "rules.json").write_text(json.dumps({
         "typologies": {"C10": {}, "VL3": {"keo_file": "C10"}, "TH1": {}},
@@ -78,7 +80,7 @@ def build(tmp):
         "inputRoot": str(root), "floors": {"plotParameter": "AA_One"}, "pastJob": {"neighbourhood": "N1", "prototypeFolder": "protos", "parameters": ["AA_Two", "AA_Three"]},
         "majority": {"parameterLevels": []}, "connect": {"neighbourhoods": {"N1": {"schedule": "s1.xlsx"}, "N2": None}, "scheduleSheet": "Sched"},
         "addin": {"workbookRoles": {"bk": "dlus"}, "position": {"file": "{workRoot}/pos.json"}, "readData": {"dataBookFolder": "data_book", "scheduleFolder": "refs"},
-                  "sharedParameters": {"parameters": [{"name": "AA_One", "guid": GUID}, {"name": "AA_Two", "guid": None}]}},
+                  "parameterSheet": "cfg/parameters.xlsx"},
         "dataBook": {"rev9": {"workbooks": {"bk": "Book/a.xlsx"}, "dlus": {"workbook": "bk", "sheet": "S1", "headerRow": 2, "columns": {"plot": "Plot", "nbh": "NBH"}},
                               "sales": {"workbook": "bk", "sheet": "Nope", "headerRow": 1, "columns": {"plot": "Plot"}}},
                      "data5": {"areaKey": {"dlus": {"workbook": "bk", "sheet": "S1", "headerRow": 2, "columns": {"plot": "Plot"}}}},
@@ -101,11 +103,11 @@ def test_r412_the_check_gives_one_line_per_input_with_its_status_and_job_only_no
     assert [each[npc.KEY] for each in report["lines"]] == [note is not None for _, _, _, note in LINES]
     assert report["counts"] == {"ok": 4, "missing": 0, "doesNotFit": 9, npc.KEY: 9}
     assert [each["name"] for each in report["inputs"]] == sorted(each["name"] for each in report["inputs"])
-    assert all(each["unchanged"] for each in report["inputs"]) and len(report["inputs"]) == 7
+    assert all(each["unchanged"] for each in report["inputs"]) and len(report["inputs"]) == 8
     text = new_project_check.text_of(report).split("\n")
     assert text[0] == "New project check, 13 lines: 4 ok, 0 missing, 9 do not fit, 9 " + npc.ONLY
     assert text[1] == "position file: ok. pos.json holds the project position, the survey point, the project base point and 2 levels"
-    assert text[-2] == "Inputs opened: 7, none changed"
+    assert text[-2] == "Inputs opened: 8, none changed"
 
 
 def test_r412_an_input_that_is_not_there_is_missing_and_one_that_cannot_be_read_does_not_fit(tmp_path):

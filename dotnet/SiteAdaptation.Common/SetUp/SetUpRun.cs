@@ -27,7 +27,7 @@ namespace SiteAdaptation.Common.SetUp
         private readonly ITagStep tags;
         private readonly Func<string, string> readText;
         private readonly string settingsInput;
-        private readonly Func<string, IReadOnlyList<object[]>> sheetRows;
+        private readonly string sheetInput;
 
         private Func<ProjectSettings> settingsNow;
         private SettingsStore store;
@@ -37,20 +37,22 @@ namespace SiteAdaptation.Common.SetUp
         private JObject rules;
         private JObject position;
         private ParameterSheet sheet;
+        private string configSheet;
+        private string otherSheet;
         private double slope;
         private SetUpTarget target;
         private string readBack;
 
-        // settingsInput is the name of the input of the Settings file in the pane. sheetRows reads the rows of a parameter sheet chosen
-        // by Browse, null until the worker reads xlsx for the add-in (R350, an xlsx is never read inside Revit), then Browse stops
-        public SetUpRun(ISiteDocument document, ISetUpSiteDialog dialog, ITagStep tags, Func<string, string> readText, string settingsInput, Func<string, IReadOnlyList<object[]>> sheetRows)
+        // settingsInput is the name of the input of the Settings file in the pane, sheetInput that of the parameter sheet, null when the
+        // pane gives none
+        public SetUpRun(ISiteDocument document, ISetUpSiteDialog dialog, ITagStep tags, Func<string, string> readText, string settingsInput, string sheetInput)
         {
             this.document = document;
             this.dialog = dialog;
             this.tags = tags;
             this.readText = readText;
             this.settingsInput = settingsInput;
-            this.sheetRows = sheetRows;
+            this.sheetInput = sheetInput;
         }
 
         // J1, J19, R367. The real run writes the Settings entity with its record, the settings of the pane at the time of Apply and
@@ -91,9 +93,14 @@ namespace SiteAdaptation.Common.SetUp
             rules = Json(rulesPath, "the rules profile");
             position = Json(PositionSettings.From(config).File, "the position file");
             slope = RampSlopes.Default(rules, null);
-            sheet = ParameterSheet.FromConfig(config);
+            // R461. The parameter sheet addin.parameterSheet of config names, the one every button reads. A sheet the pane names that is
+            // another file stops the run, so button 1 never binds GUIDs button 7 does not write by
+            configSheet = Path.GetFullPath(ParameterSheet.PathOf(settings.Path, config));
+            sheet = ParameterSheet.FromFile(configSheet);
+            RunInput pane = sheetInput == null ? null : context.Inputs.FirstOrDefault(input => input.Name == sheetInput && !string.IsNullOrEmpty(input.Path));
+            otherSheet = pane == null || SameSheet(pane.Path) ? null : pane.Path;
             target = Make();
-            View = SetUpPlanner.View(document.Read(), target, context.DryRun ? (Func<double[], double[]>)DryShared : null);
+            View = Viewed(context.DryRun ? (Func<double[], double[]>)DryShared : null);
             return Summary(View);
         }
 
@@ -109,13 +116,12 @@ namespace SiteAdaptation.Common.SetUp
                 {
                     slope = chosen;
                     target = Make();
-                    return View = SetUpPlanner.View(document.Read(), target, DryShared);
+                    return View = Viewed(DryShared);
                 },
                 SheetChosen = path =>
                 {
-                    sheet = ReadSheet(path);
-                    target = Make();
-                    return View = SetUpPlanner.View(document.Read(), target, View.DryRunDone ? (Func<double[], double[]>)DryShared : null);
+                    otherSheet = SameSheet(path) ? null : path;
+                    return View = Viewed(View.DryRunDone ? (Func<double[], double[]>)DryShared : null);
                 },
             };
             SetUpSiteAnswer answer = dialog.Show(View, callbacks);
@@ -123,16 +129,16 @@ namespace SiteAdaptation.Common.SetUp
             {
                 return false;
             }
-            if (answer.ParameterSheet != null && !string.Equals(sheet.Sheet, Path.GetFileName(answer.ParameterSheet), StringComparison.OrdinalIgnoreCase))
+            if (answer.ParameterSheet != null)
             {
-                sheet = ReadSheet(answer.ParameterSheet);
+                otherSheet = SameSheet(answer.ParameterSheet) ? null : answer.ParameterSheet;
             }
             if (target.RampSlopeChoices.Contains(answer.RampSlope))
             {
                 slope = answer.RampSlope;
             }
             target = Make();
-            List<string> stops = SetUpPlanner.Stops(document.Read(), target);
+            List<string> stops = SheetStops(SetUpPlanner.Stops(document.Read(), target));
             if (stops.Count > 0)
             {
                 throw new InvalidOperationException(string.Join(". ", stops));
@@ -185,7 +191,7 @@ namespace SiteAdaptation.Common.SetUp
         {
             readBack = null;
             SiteState now = document.Read();
-            List<string> stops = SetUpPlanner.Stops(now, target);
+            List<string> stops = SheetStops(SetUpPlanner.Stops(now, target));
             if (stops.Count > 0)
             {
                 throw new InvalidOperationException(string.Join(". ", stops));
@@ -280,13 +286,22 @@ namespace SiteAdaptation.Common.SetUp
             return SetUpTarget.From(config, rules, null, position, slope, sheet);
         }
 
-        private ParameterSheet ReadSheet(string path)
+        private bool SameSheet(string path)
         {
-            if (sheetRows == null)
-            {
-                throw new InvalidOperationException(SetUpTexts.SheetNotRead);
-            }
-            return ParameterSheet.FromRows(Path.GetFileName(path), sheetRows(path));
+            return string.Equals(Path.GetFullPath(path), configSheet, StringComparison.OrdinalIgnoreCase);
+        }
+
+        // R461. The planner view with the stop of a sheet other than that of config
+        private SetUpSiteView Viewed(Func<double[], double[]> dry)
+        {
+            SetUpSiteView view = SetUpPlanner.View(document.Read(), target, dry);
+            view.Stops = SheetStops(view.Stops);
+            return view;
+        }
+
+        private List<string> SheetStops(List<string> stops)
+        {
+            return otherSheet == null ? stops : stops.Concat(new[] { SetUpTexts.OtherSheet(Path.GetFileName(otherSheet), Path.GetFileName(configSheet)) }).ToList();
         }
 
         private JObject Json(string path, string what)

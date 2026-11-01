@@ -26,7 +26,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R433_the_parameter_sheet_template_holds_the_four_columns_the_sheet_reader_takes()
+        public void R433_the_parameter_sheet_template_holds_the_eight_columns_the_sheet_reader_takes()
         {
             string path = Path.Combine(folder, "parameters.xlsx");
             TemplateBook.Write(path, TemplateBook.SheetsFor(InputNames.ParameterSheet, null));
