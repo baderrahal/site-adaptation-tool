@@ -47,6 +47,7 @@ The scanner (R420 to R427) writes scan.json in the run folder, its shape in docs
 | Show the villa type source proposed and the others | rows villaType | the plot table of button 2 reads the sales sheet of config |
 | List the conflicts and checks by plot, with both values and both sources | conflicts and checks | nothing shows them |
 | Keep what the user took for the next read | none, a new file of the window | none |
+| Say when a drawing was scanned in part, the pairs left by the time cap (R429, 4j-1b) | the check row notRead "<file>\|layer pairs" and notTraced of scan_cad | the row is in scan.json, nothing shows it |
 
 Built by Lane C SCAN-UI on 1 Nov 2026 (R435 to R440, docs/rules/12-lane-c-r430-up.md): button 2 runs the scan and opens the window What the tool read when a value is unclear or a conflict open, and the picks are kept in the settings as scanPicks and conflictPicks. Left of this list: the read takes the picks (Q292), asked below.
 
@@ -66,4 +67,6 @@ The placeholders of the window New project (docs/design/18-new-project.md). Each
 |---|---|---|---|
 | The read takes the picks | Lane A (reader) and Lane D (scanner) | Button 2 reads with scanPicks and conflictPicks of the settings over the layers and columns of config (Q292) | The picks are saved with the setup, the read uses config |
 | Mirror, survey point and road level in the scan | Lane D | Rows of those kinds in scan.json, so What the tool read and New project show them (Q289, Q283) | Four value rows, the survey point dropdown grey |
+| Skip of unconfirmed clusters | Lane B | Buttons 5 to 8 skip each plot in clusterUnconfirmed of review_<NBH>.json (ReviewFile.ClusterUnconfirmed) with the reason ClusterConfirm.NotConfirmedReason (R442, Q300) | Buttons 5 to 8 place every plot as before |
+| The build takes the door level pick | Lane A | The build of 4 Check takes doorLevelSource of the settings over config and the civil file as a worker input (R443, Q301) | The build reads designBasis.doorLevel of config |
 | Road Layout in the scan | Lane D, 4j-1b | A scan of the curbs drawing within the time of button 2 (Q250, Q290) | Button 2 leaves curbs and road surface out of the scan |

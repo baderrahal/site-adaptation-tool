@@ -202,9 +202,9 @@ One phase per session (Q096). Two lanes run the phases (D10, D17): tools/run-lan
 
 ## Lane C SCAN-UI, What the tool read and the step gates
 
-- Status: running, Lane C, laptop, 2026-11-01, PR 1 of 2 with tasks 1 to 4, PR 2 with tasks 5 and 6 on 4i, in the worktree Site Adaptation Tool Lane C WT
+- Status: done but task 7, Lane C, laptop, 2026-11-01, PR 117 with tasks 1 to 4, PR 2 with tasks 5 and 6 on 4i, in the worktree Site Adaptation Tool Lane C WT
 - What: the window What the tool read from the board ScanResults, button 2 runs the scan (Q246), New project picks from the scan (Q283), Current files in 1 Set up site, rules R435 to R441
-- Left: tasks 5 cluster confirm and 6 door level picker (R442, R443), task 7 Revit pictures, Q288 to Q295 for Bader, the read taking the picks (Q292)
+- Left: task 7 Revit pictures from the DEMO run of Lane B, Q288 to Q295 and Q300 to Q302 for Bader, the read taking the picks (Q292), Lane B skips unconfirmed clusters
 
 ## Lane D 4j-1, the scanner
 
@@ -214,5 +214,6 @@ One phase per session (Q096). Two lanes run the phases (D10, D17): tools/run-lan
 
 ## Lane D 4j-1b, scan speed
 
-- Status: queued, Lane D, starts when the PR of 4j-1 merges
+- Status: done, Lane D, laptop, 2026-11-01, one PR with code, tests and records, in the worktree Site Adaptation Tool Lane D WT
 - What: a scan of a large drawing under 10 minutes, measured per stage first, the result of set A and the renamed set the same field by field, a time cap of the profile written into the scan result where a stage cannot get under it
+- Left: Q257 and Q258 for Bader, Q250 still open, the window shows the notRead row of a drawing scanned in part (steps/waiting-on-others.md)

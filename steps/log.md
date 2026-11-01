@@ -2,6 +2,42 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Lane D 4j-1b, 2026-11-01, scan speed, Lane D on the laptop
+
+Goal:
+- A scan of a large drawing under 10 minutes, the result of set A and the renamed set unchanged field by field (Q250)
+
+Done:
+- Measured per stage in the worker log: the layer pair trace of PlotShapes held the time, 2277 s for 220 of 3003 Road Layout pairs
+- PlotShapes finds crossings and T junctions among the pieces and nodes in the cells along each line, in the old order
+- R428 the pairs on scan.pairThreads threads (4, Q257). R429 scan.pairTimeCapS (360 s, Q258) and a notRead row for the pairs left
+- Three attempts at the speed (a box index, a line index, threads), then the cap by the rule of three
+- Reviewer and breaker, one pass each: a capped file now proposes no outline (REAL, the proposal changed with the clock), the
+  full loop reference test (80 random drawings, indexed against every item, equal), 4 LATENT lines in steps/latent.md
+
+Checked:
+- Today's reader, RAN on the 3 drawing copies: 21 of 21 output files equal by SHA-256 before and after the PlotShapes change
+- Set A and the renamed set against 4j-1, RAN, both runtimes: rows 1548, conflicts 2808, checks 268, plots 11856 fields equal, 0 differ.
+  The 2 input fields that differ are the size and SHA-256 of config/project.json after PR 116. Python parity 0 differ, 20 inputs unchanged
+- Times, RAN, whole scan before and after: set A net48 299 to 50 s, net8.0 184 to 34 s, renamed set 240 to 47 s and 207 to 38 s
+- Stages: single layer faces of the Road Layout 87.5 to 7.5 s, the footprint pair stage 157.1 to 35.3 s, the baseplan pairs 10.1 to 6.4 s
+- Road Layout, RAN: before over 40 minutes and stopped, after 489 s on net48 and 465 s on net8.0, the cap left 1851 and 746 of 3003
+  pairs, each with the notRead row and no outline proposed. Python against net8.0 on a capped run 0 differ. With no cap 967.8 s, one thread
+- An input changed while read: a merge of main during a run changed config, the net48 read refused its result (R1, D19), run again
+
+Remains:
+- On 4 threads net48 traced fewer pairs than net8.0 on one, the threads help net8.0 only (Q257). Q250 stays open
+
+Known bugs:
+- A capped scan traces other pairs each time, its outline is not proposed so the result does not change with them (R429, Q258)
+
+Next:
+- Lane D waits for Bader's answers to Q243 to Q258
+
+Your turn:
+- Opened Q257 Threads of the scan pair trace. Q258 The time cap of the scan pair trace
+- 129 questions open, full text: steps/questions-open.md
+
 ## Lane C SCAN-UI, 2026-11-01, What the tool read and the step gates, Lane C on the laptop
 
 Goal:
@@ -9,36 +45,39 @@ Goal:
   from the scan (Q283), Current files in 1 Set up site, cluster confirm, door level picker, Revit pictures. Freeze 09:30 for the demo
 
 Done:
-- PR 1 of 2, tasks 1 to 4
+- PR 117 with tasks 1 to 4, PR 2 with tasks 5 and 6
 - R435 Scan value status and R436 Save scan picks with setup: AddIn/ScanResults, Common/Scan/ScanView.cs, ScanPicks.cs
 - R438 Button 2 scan gate and R439 Scan reuse by input hash: ScanStep.Wrap in ReadDataBody.For, ScanGate.Ask, no scan in a test host run
 - R440 Drawing facts from the scan: LatestScanFacts, layer, sheet and column dropdowns, View opens the window
 - R441 Current files gate: the section Current files and Rules in 1 Set up site, Apply waits for the site drawing, the line in button 9
 - The settings JSON gains scanPicks, conflictPicks and currentFiles at formatVersion 1 (Q288), a saved project carries scanPicks
 - Lane C rules in docs/rules/12-lane-c-r430-up.md, R430 to R434 of NEWPROJ-UI written there too
-- Reviewer with the UI checklist and breaker, one pass each: 12 REAL faults fixed with tests, 6 LATENT to steps/latent.md
+- R442 Cluster confirm marks: column Cluster with the proposal and mirror of 4i, Confirmed, Confirm all proposed, clusterUnconfirmed
+  in review_<NBH>.json for buttons 5 to 8. R443 Door level source counts: Door level from in 4 Check, doorLevelSource kept
+- Reviewer with the UI checklist and breaker, one pass each on PR 117: 12 REAL faults fixed with tests, 6 LATENT to steps/latent.md
 
 Checked:
-- Gate, RAN: net48 1745 passed, net8.0 1534 passed, pytest 2212 passed and 1 skipped, 0 failed
+- Gate, RAN: PR 117 net48 1745, net8.0 1534, PR 2 net48 1769, net8.0 1551, pytest 2212 and 1 skipped each, 0 failed
+- PR 2 reviewer and breaker: the skip list from the plan of 4 Check, a tick for the whole cluster, door level row under rev6 only
 - Pictures: steps/ui-shots/scan-results.png, setup-site.png, new-project.png, differences in steps/ui-shots/README.md
 - Second method: the review read the scan.json of the Lane D run (1218 conflicts, 332 keys shared), which led to the key with sourceB
 
 Remains:
-- PR 2: task 5 cluster confirm in 3 Review data (R442), task 6 door level picker in 4 Check (R443), on 4i (PR 116)
-- Task 7 Revit pictures when the window lock is free. The scan window shows only offscreen, a test host run skips the scan (Q295)
+- Task 7 Revit pictures from the DEMO run of Lane B, which owns the install. The scan window shows only offscreen, a test host run skips the scan (Q295)
 
 Known bugs:
 - The read of button 2 does not take the picks yet (Q292). The first press hashes the prototypes, over 1 GB, on the Revit thread once
 
 Next:
-- PR 2 of SCAN-UI, then Lane B DEMO with the add-in of main
+- Lane B DEMO with the add-in of main, Lane B joins the skip of clusterUnconfirmed (Q300)
 
 Your turn:
 - Opened: Q288 Scan picks in the settings at version 1. Q289 Board rows the scan does not read. Q290 Curbs and road surface left out
   of scan. Q291 Where the line Current files is shown. Q292 The read does not use the picks yet. Q293 Approve the three drafts of
-  SCAN-UI. Q294 Rules chosen in Set up site, when used. Q295 Test host runs skip the scan
+  SCAN-UI. Q294 Rules chosen in Set up site, when used. Q295 Test host runs skip the scan. Q300 Plots with no cluster
+  proposal. Q301 The build takes the door level pick. Q302 Door level row under the past job
 - Closed: Q246 Button 2 starts the scan or the window, Q283 Picks of layers, sheets, columns and coordinates, by Bader's prompt
-- 127 questions open, full text: steps/questions-open.md
+- 130 questions open, full text: steps/questions-open.md
 
 ## 4i, 2026-10-31, the plan by Manual Rev 06 with the past job as a switch, Lane A on the laptop
 

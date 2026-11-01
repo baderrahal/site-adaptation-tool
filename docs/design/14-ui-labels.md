@@ -239,6 +239,14 @@ Built in Lane B 5c. The labels, columns, chips and side box are those of Review 
 - `Earlier note: <n>` CHOSEN, the note of a check made on an earlier read, which shows as Not checked now
 - `Not saved yet` CHOSEN, beside Save review after a mark
 - `Review saved.` CHOSEN, after Save review
+- `Confirmed` CHOSEN, DRAFT, the column of the tick of the cluster confirm (R442), Bader's prompt of 1 Nov 2026 with no board
+- `Confirm all proposed` CHOSEN, DRAFT, the button in the band that ticks every plot with a cluster proposal (R442)
+- `Tick Confirmed for each cluster and mirror that 4 Check proposed, or click Confirm all proposed, then Save review. A plot whose proposed cluster is not confirmed is marked for buttons 5 to 8.` CHOSEN, DRAFT, the second help line, shown while the plan of 4 Check proposes a cluster
+- `<n> mirror <n>` CHOSEN, DRAFT, the Cluster value of a plot with a proposal of R411, the plots of the cluster joined by + then yes, no or none
+- `yes` CHOSEN, DRAFT, the mirror of a proposal, the half mirrored
+- `no` CHOSEN, DRAFT, the mirror of a proposal, the half as drawn
+- `none` CHOSEN, DRAFT, the mirror of a proposal of a detached unit, which has no Rev 6 hand (Q226)
+- `No proposal` CHOSEN, DRAFT, the Cluster value of a plot the build gave a reason and no cluster (Q229), the reason as tooltip
 
 ### Site Adaptation Rules
 
@@ -346,6 +354,10 @@ Built in Lane B 5c. The title, band, buttons, chips, columns and side box are th
 - `Mirrored` CHOSEN, Past job column, side box and Choose line for a past value true, the list keeps the value as it is
 - `Not mirrored` CHOSEN, Past job column, side box and Choose line for a past value false, the list keeps the value as it is
 - `Under Skip the list holds <n>. Choosing <n> only takes the plot off the skip list.` CHOSEN in Lane B 5c, the line under Why of a row on Skip, Rule or Past the list holds under the skip (R330)
+- `Door level from` CHOSEN, DRAFT in Lane C SCAN-UI, the label of the dropdown above the chips, Bader's task 6 of 1 Nov 2026 (R443)
+- `Civil entry file (<n> plots)` CHOSEN, DRAFT, the dropdown item of designBasis.doorLevel.source civilFile with the plots of the step levels from it (R443)
+- `Road level plus slope (<n> plots)` CHOSEN, DRAFT, the dropdown item of roadPlusSlope with the plots of the step levels from it (R443)
+- `No civil entry file in the setup, so the door level comes from road level plus slope.` CHOSEN, DRAFT, the one help line under the dropdown while the civil item is grey (R443)
 
 ### Update from report
 

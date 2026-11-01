@@ -23,6 +23,12 @@ At the decimals of R2 by JsonOut, so both sides score the same numbers.
 
 Inside means the even odd ray test of the point against the ring, a point on an edge counted as the test gives it. Both sides use the same test (PlotLabels.Contains in C#).
 
+## Speed, R428
+
+- The pairs of a file are traced on scan.pairThreads threads and put back in pair order. The worker log holds one line per stage, "<file> | <stage> | <seconds> s", explode, texts and inserts, single layer faces, each pair, pairs done.
+- PlotShapes looks for the crossings and T junctions of a piece in the cells along it, half a cell apart with the cells around, the cell the median line length.
+- R429: past scan.pairTimeCapS no pair is begun, notTraced of scan_cad lists the pairs left and notRead holds "<file>|layer pairs" with their count and the cap.
+
 ## scan.json and scan_python.json, R427
 
 - inputs: per file, in role order: role, name, size, sha256.

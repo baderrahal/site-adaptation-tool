@@ -632,4 +632,7 @@
   <GridLength x:Key="SA.Grid.ScanPlot">64</GridLength>
   <GridLength x:Key="SA.Grid.ScanConflictValue">90</GridLength>
 
+  <!-- Lane C SCAN-UI task 5, R442. The column Confirmed of Review data, narrow so Team check, the column that takes the rest, keeps Not checked whole -->
+  <GridLength x:Key="SA.Grid.ReviewConfirmed">68</GridLength>
+
 </ResourceDictionary>
