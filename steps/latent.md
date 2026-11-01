@@ -456,7 +456,8 @@ No real input reaches these, since the ROSHN config runs roshnPastJob (Q224) and
 - Breaker 1, joint_levels and JointLevels: no limit on the length of a chain, and two corners of one plot can meet through a third. Every real joint holds 2 corners of 2 plots, the widest 1.4 mm.
 - Breaker 1, NoSiteLevel: C# joins and CheckRows.RampCorners lists ramps BuildPlan does not write, Python writes none. Every real site holds the ramp level.
 - Breaker 1, grid cell index at exactly nearM in all four joint finders. No real pair near 0.01 m.
-- Breaker 1, S5: 169 back pairs of a shared side sit 19.7 to 20 mm apart, outside nearM, with steps of up to 229 mm that were in the base too. R470 does not join back corners, R471 lists none of them.
+- Breaker 1, S5: 169 back pairs of a shared side sit 19.7 to 20 mm apart, outside nearM, with steps of up to 229 mm that were in the base too. R470 does not join back corners, R471 lists none of them.- Review 2, check_rows.ramp_joints and CheckRows.RampJoints group all four corners and R470 joins only the front pair, so a back corner within nearM of another ramp's front corner would list as a joint row. No real pair seen.
+
 ## Lane D FIX-1NOV-D, review 1 and breaker 1
 
 - Breaker S1, VillaInputs.Of and PlaceVillasRun.WriteParameters: a sheet that gives RRE_ZZ_SP_Plot-Number another button, none or Keep No turns off the R85 guard, button 7 places a link with no plot number and an untagged link is no longer known as placed. The sheet of the repo gives it 7.
