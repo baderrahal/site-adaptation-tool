@@ -4,10 +4,10 @@
 
 ### Lane A
 
-- Lane: A, round FIX-1NOV-A2, branch fix/1nov-a2. Time: 2026-11-01 22:56. Blocked: none. Resume point below
-- Done and pushed: R472 Q278 fix dc2809e and its proof on copies (round_addin/logs/p1nov2), R473 and R474 Q292 merged from fix/1nov-a2-picks at 2690867
-- Next: full gate on 2690867, Q292 proof on NBH 012 copies (one pick changed, the read differs), parity, review and breaker, records, merge main, PR
-- Nothing of Lane A runs: no worker, no Revit, no helper
+- Lane: A, round FIX-1NOV-A2, branch fix/1nov-a2. Time: 2026-11-01 23:17. Blocked: none. Resume point below
+- Done and pushed: R472 (Q278) proved, R473 and R474 (Q292) merged, a pick proved on NBH 012 copies: plot outlines 3,134 to 912 with MP_PLOT_LINE picked, inputs unchanged
+- Running: Python gate, parity on 8608337 (p1nov/all_parity_a2.txt), review and breaker. C# gate green: net48 1,904, net8.0 1,679 after the label fix
+- Next: tally parity, fix what review and breaker find, records (log, PROGRESS, 01_next), merge main, PR, tell lane-c
 
 ### Lane B, C and D
 
