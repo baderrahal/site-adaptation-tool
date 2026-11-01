@@ -2,6 +2,37 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Lane B Task 6 of FIX-1NOV-B, 2026-11-02, the demo by hand through the real windows, R457, Lane B on the laptop
+
+Goal:
+- Bader's Task 6: pass A with Dry run on and pass B with it off, from the pane's Next step, fix the empty Neighbourhood list, go or no-go
+
+Done:
+- Go or no-go in steps/demo-check.md: GO with Dry run off once four points are done, NO-GO with Dry run on, step 4 refuses (Q195)
+- Pass B, 1 to 9 on NBH 012 (RAN): floors 1003, levels at the plan 1003, masses 336, walls 752, 2 Excel files. Stopped on a Revit box at step 5 (Q324)
+- R457: the Neighbourhood list from the latest read. Callers: RefreshNbhCodes by PaneRunState.Committed and PaneHost.Load, LatestNbhCodes by
+  RefreshNbhCodes, NbhCodes by LatestNbhCodes. Setters with no add-in or test host caller: PaneViewModel PickConfig, PickInput, SetSteps, listed only
+
+Checked:
+- 012_Report.xlsx read apart from the pane (RAN): 336 generic, 331 yard, 336 ramp, 336 links, Revit and Excel equal on links and floors, 0 mismatches
+- C:\SA-demo by write time (RAN): 1 file changed. No SHA-256 before and after on the inputs, the hash rule of the round was not met for this run
+- Gate: see the PR. Review of R457 in steps/latent.md
+
+Remains:
+- Bader answers Q306 to Q309, Q324, Q195. The guard 2a02c6d passed its test, it was not in the installed build and no run reached its case in Revit
+
+Known bugs:
+- Our fault: the driver script wrote an export into C:\SA-demo\inputs, against the rule of the round, left for Bader's answer (Q308)
+- Step 2 back to Ready at the pass A open before any pick, cause UNKNOWN. Revit quit at 22:53:48 by a normal exit, cause UNKNOWN, no repeat
+- Zoom and Export of Check give no sign. Zoom and Export of Review data are not built. Report Summary placeholders (Q307)
+
+Next:
+- Lane D D3 takes Revit. Lane C takes the window findings of steps/demo-check.md
+
+Your turn:
+- Q306 A neighbourhood picked after the first read. Q307 What the report Summary shows after a run. Q308 The stray export in the demo inputs.
+- Q309 Refresh the demo config and add-in. Q324 The Revit warning box at step 5. 161 open, steps/questions-open.md
+
 ## Lane D D2, 2026-11-01, the Revit read of the key link parameter groups (Q330), Lane D on the laptop
 
 Goal:

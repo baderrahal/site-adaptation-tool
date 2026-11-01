@@ -2,7 +2,7 @@
 
 Which file goes in which field, with the full path: [demo-fill.md](demo-fill.md).
 
-Demo check of 10:34: NO-GO for the live run, show SA-demo-done.rvt: [demo-check.md](demo-check.md).
+Demo check of 2 Nov: GO with Dry run off and four points to do first, NO-GO with Dry run on: [demo-check.md](demo-check.md).
 
 Everything sits in C:\SA-demo. The add-in is installed per user from main 691e1fc (Lane C SCAN-UI, Lane A 4i, Lane D 4j-1b in), version 1.0.0+691e1fc. The saved project ROSHN Makkah points at the copies. Masses only, no Links.
 
