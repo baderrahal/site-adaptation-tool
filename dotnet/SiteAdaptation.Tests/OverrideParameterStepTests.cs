@@ -159,7 +159,8 @@ namespace SiteAdaptation.Tests
             Assert.Equal(new[] { five[0] + 0.3, five[1] - 0.2 }, (double[])plans["5"].Overrides["insert"]);
             Assert.Equal(4, (int)Written(built, "5")["steps"]);
             Assert.Equal(180.0 + 1.5, (double)((StepValue)plans["6"].Overrides["rotationDeg"]).Raw);
-            Assert.Equal(new[] { Rounding.Fixed(10.6 - 0.05, 3), Rounding.Fixed(10.72 - 0.05, 3) }, six["rampZ"].Take(2).Select(value => (double)value).ToArray());
+            // R470. The front corner of 6 at x 60, moved down 5 cm, is shared with 5, so both hold the mean of 10.6 and 10.55
+            Assert.Equal(new[] { Rounding.Fixed((10.6 + (10.6 - 0.05)) / 2.0, 3), Rounding.Fixed(10.72 - 0.05, 3) }, six["rampZ"].Take(2).Select(value => (double)value).ToArray());
             // The raw values: no gap the raw El @ Entry and the FFL of the piece unrounded, a gap the value as written by the rule plus the gap
             Assert.Equal(built.Build.Entries["5"].Raw, (double)plans["5"].Overrides["entry"]);
             Assert.Equal(built.Build.Entries["2"].Rule + 0.05, (double)plans["2"].Overrides["entry"]);
