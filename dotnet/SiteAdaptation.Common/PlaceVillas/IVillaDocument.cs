@@ -29,6 +29,9 @@ namespace SiteAdaptation.Common.PlaceVillas
 
         string ReloadType(string key);
 
+        // R450. Outside any transaction too, so a mass file the site links can be written over. Null when it unloaded, else why not
+        string UnloadType(string key);
+
         // The rest inside the one transaction of the button. CreateType gives the key of the new type, null when it did not load
         string CreateType(string fullPath);
 

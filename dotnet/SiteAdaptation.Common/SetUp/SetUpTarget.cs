@@ -7,7 +7,7 @@ using Newtonsoft.Json.Linq;
 namespace SiteAdaptation.Common.SetUp
 {
     // R373, R374, docs/design/03a-buttons-shared-and-1.md 1 Set up site. What button 1 sets: the Parsons position of the position file
-    // (Q068), its levels on their one base, the units, the floor types of config with the Ramps type of the slope chosen, the wall
+    // (Q068) or the site of the CAD inputs when coordinates.source is cad (R455) with the levels and units still of the file (Q328), its levels on their one base, the units, the floor types of config with the Ramps type of the slope chosen, the wall
     // types and the parameters of the parameter sheet. The pass limit and the decimals of the check points come with it
     public sealed class SetUpTarget
     {
@@ -36,8 +36,12 @@ namespace SiteAdaptation.Common.SetUp
         public double PassLimitMm { get; set; }
         public int GapDecimals { get; set; }
 
+        // R454 to R456. The site of the CAD inputs when coordinates.source is cad, null when the position file gives the position
+        public CadSite Cad { get; set; }
+        public List<ControlPoint> ControlPoints { get; set; } = new List<ControlPoint>();
+
         // config, the rules profile and the position file as button 1 reads them, with the slope chosen in the dialog
-        public static SetUpTarget From(JObject config, JObject rules, string levelProfile, JObject position, double rampSlope, ParameterSheet parameters)
+        public static SetUpTarget From(JObject config, JObject rules, string levelProfile, JObject position, double rampSlope, ParameterSheet parameters, CadSite cad = null)
         {
             PositionSettings settings = PositionSettings.From(config);
             JObject floors = config["floors"] as JObject ?? throw new InvalidDataException("config holds no floors block, the floor types of button 1 (R112)");
@@ -72,6 +76,17 @@ namespace SiteAdaptation.Common.SetUp
                 throw new InvalidDataException("floors.types.generic of config names no floor type (R112)");
             }
             ReadPosition(target, position, SetUpDefaults.SiteUnits(config));
+            if (cad != null)
+            {
+                target.Cad = cad;
+                target.Position = cad.Position;
+                target.SurveyInternal = cad.SurveyInternal;
+                target.SurveyShared = cad.SurveyShared;
+                target.BaseInternal = cad.BaseInternal;
+                target.BaseShared = cad.BaseShared;
+                target.ActiveSite = cad.PositionName;
+                target.ControlPoints = cad.ControlPoints;
+            }
             return target;
         }
 

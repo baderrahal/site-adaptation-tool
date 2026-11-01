@@ -50,6 +50,10 @@ namespace SiteAdaptation.AddIn.Revit
                 FloorTypes = FloorTypes().Select(type => type.Name).ToList(),
                 WallTypes = BasicWallTypes().Select(type => type.Name).ToList(),
                 SettingsEntity = HasSettings(),
+                PositionName = document.ActiveProjectLocation.Name,
+                LatitudeDeg = UnitMath.RadiansToDegrees(document.SiteLocation.Latitude),
+                LongitudeDeg = UnitMath.RadiansToDegrees(document.SiteLocation.Longitude),
+                PlaceName = document.SiteLocation.PlaceName,
             };
             var shared = new HashSet<long>();
             foreach (SharedParameterElement element in new FilteredElementCollector(document).OfClass(typeof(SharedParameterElement)).Cast<SharedParameterElement>())
@@ -105,7 +109,8 @@ namespace SiteAdaptation.AddIn.Revit
             document.SetUnits(copy);
         }
 
-        // SetProjectPosition keeps the internal positions of both points and moves their shared points (probe of 5b). The survey point
+        // SetProjectPosition keeps the internal point of the project base point and the shared point of the survey point, whose internal
+        // point goes to (-E,-N) on a new project (survey probe of FIX-1NOV-B), so each move is by the gap read after it. The survey point
         // unclipped moves on its own, not the shared coordinates, and its clip state is set back whatever happens
         public void SetPosition(SetUpTarget target, SetUpChanges changes)
         {
@@ -135,6 +140,41 @@ namespace SiteAdaptation.AddIn.Revit
                 BasePoint projectBase = BasePoint.GetProjectBasePoint(document);
                 ElementTransformUtils.MoveElement(document, projectBase.Id, Feet(target.BaseInternal) - projectBase.Position);
                 document.Regenerate();
+            }
+        }
+
+        // R455. The named position first, so SetProjectPosition of SetPosition sets the position of that name
+        public void SetLocation(SetUpTarget target)
+        {
+            SetNamedPosition(target.Cad.PositionName);
+            SetSiteLocation(target.Cad.LatitudeDeg, target.Cad.LongitudeDeg, target.Cad.PlaceName);
+        }
+
+        // A position of the name made active, else the active one renamed, so a new project keeps one position and no unused
+        // Internal beside it (CHOSEN, Q328)
+        private void SetNamedPosition(string name)
+        {
+            ProjectLocation named = document.ProjectLocations.Cast<ProjectLocation>().FirstOrDefault(location => location.Name == name);
+            if (named == null)
+            {
+                document.ActiveProjectLocation.Name = name;
+            }
+            else if (named.Id != document.ActiveProjectLocation.Id)
+            {
+                document.ActiveProjectLocation = named;
+            }
+            document.Regenerate();
+        }
+
+        // SiteLocation takes radians. A place name null leaves the one of the document
+        private void SetSiteLocation(double latitudeDeg, double longitudeDeg, string placeName)
+        {
+            SiteLocation site = document.SiteLocation;
+            site.Latitude = UnitMath.DegreesToRadians(latitudeDeg);
+            site.Longitude = UnitMath.DegreesToRadians(longitudeDeg);
+            if (placeName != null)
+            {
+                site.PlaceName = placeName;
             }
         }
 

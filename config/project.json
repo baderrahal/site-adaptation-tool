@@ -346,7 +346,8 @@
       "exportChecks": 600,
       "position": 600,
       "newProjectCheck": 120,
-      "scan": 600
+      "scan": 600,
+      "crs": 600
     },
     "workerTimeLimitNote": "R347, R348. read 300 s, measured in Round ADDIN 4c: a whole read of button 2 in the worker, the three drawings, the six road surfaces and the two Rev 9 workbooks, took 20.2 to 21.2 s on net48 and 16.8 to 17.0 s on net8.0 over three runs each (round_addin logs p4c_button2_time.txt), so 300 s is about 14 times the longest, room for a slower PC and the location plan read 4d adds, which measures it again. After the review of PR 53 the same read took 20.9 to 47.0 s on net48 and 21.5 to 32.6 s on net8.0 as the free memory of the PC went from 4.4 to 6.6 GiB, the build before the review as long as the head in the same state (p4cfix_button2_time.txt, p4cfix_time_compare_floor1.txt and _floor2.txt), so 300 s is over 6 times the longest. 600 s for the read until 4c, 28 times the 21.2 s of the Road Layout read alone. 60 s for the level Excel, the other commands 600 s until the PR that builds each measures it (CHOSEN in docs/design/02-folders.md). updateFromReport 60 s, CHOSEN by Code in 5f as the level Excel: it reads two small workbooks and compares them with a plan, no measure yet",
     "report": {
@@ -380,7 +381,15 @@
       "baseBoundary": "lowestFloor",
       "baseBoundaryFloorType": null,
       "footprintLimitMm": 100.0,
-      "footprintSampleStepMm": 10.0
+      "footprintSampleStepMm": 10.0,
+      "massNote": "R450 to R453, FIX-1NOV-B. linkFolder is what Masses links: masses the mass file of each prototype in massFolder, prototypes the prototype files of the plan, a full folder path the files of that folder named as the prototypes, solids the DirectShape in the site of R404. massFolder holds one Revit 2024 file per prototype, named as it, with a sidecar JSON. An exterior wall is drawn in the mass base when it crosses the plane wallCutHeightM above the top of the ground floors of baseBoundary, 1.0 CHOSEN, its outline from its location line and width so no opening cuts it. wallRingMinShare and wallRingMaxShare are the least and the largest share of the slab area the outer wall loop covers to be the base, 0.9 and 1.3 CHOSEN, else the slab is the base and the prototype is flagged (Q279). houseLayer and houseMinAreaM2 pick the house outline inside a footprint block for the footprint check, layer 0 and 60 m2 measured on VL4, DP4 and C10 (Q276)",
+      "linkFolder": "masses",
+      "massFolder": "{workRoot}\\masses",
+      "wallCutHeightM": 1.0,
+      "wallRingMinShare": 0.9,
+      "wallRingMaxShare": 1.3,
+      "houseLayer": "0",
+      "houseMinAreaM2": 60.0
     },
     "plotTable": {
       "note": "R352. The order of the footprint blocks of a face in the plot table of button 2: overlapDecimals, the decimals R385 writes the overlap of each block with its face at before the order, the largest written overlap first and the blocks of one written overlap in the order of the read. Its own setting, never a tolerance of addin.parity, which tells only how far the two sides of the parity may lie apart. CHOSEN in the review of PR 54 at 4, the decimals the table writes faceAreaM2 at: on the 36 faces of the data book with two blocks or more the 1,882 overlaps lie at least 4.99E-07 m2 from a rounding boundary of 4 decimals, 210 times the 2.37E-09 m2 of binary noise between two sides measured in Round ADDIN 4d, where at 7 decimals 27 lie within 1E-08 m2 of one, the nearest 3.5E-10 m2, and at 6 decimals 515 (round_addin logs p4dfix_r352_decimals.txt). Blocks whose overlaps differ by less than the fourth decimal are one group, which puts 15 of the 36 faces in another order than the groups within 1E-06 m2 of 4d.",
@@ -1003,5 +1012,21 @@
     },
     "assumed": ["RECOMMENDED", "CHOSEN by Code", "UNKNOWN", "MEASURED weak"],
     "worstFirst": ["UNKNOWN", "CHOSEN by Code", "RECOMMENDED", "MEASURED weak"]
+  },
+  "coordinates": {
+    "note": "R454 to R456, Lane B FIX-1NOV-B. The coordinate system and site position button 1 takes from CAD. source cad reads them with the worker command crs (addin.workerTimeLimitS.crs, 600 s until a run measures it), positionFile keeps the position file of addin.position, CHOSEN until the Revit run proves cad (Q328). Each key below has a sentence of its own, so its status takes the question of that sentence. coordinates.systems maps a system name an input states to its EPSG code (Q325). coordinates.expectedEpsg is the code every stated system must be (Q325), also the code of the math when no input states one. coordinates.originRoundM rounds the shared origin (Q326), the centre of the box of the plot outlines of the baseplan. coordinates.originElevationM is the survey point height (Q327), 0 until Bader picks a CAD source of it. coordinates.angleToTrueNorthDeg is true north (Q328), 0 for the grid of the drawing. coordinates.positionName names the named position (Q328). coordinates.placeName is the place of the site location (Q328), null keeps the one of the document. coordinates.controlPointCount plot corners far apart are checked (R456, Q329). coordinates.controlPointLimitMm is the gap a control point passes at (R456, Q329). coordinates.utmEastM is the easting a UTM zone is valid in (CHOSEN), by the UTM definition on WGS 84. coordinates.utmNorthM is the northing of a zone north of the equator (CHOSEN), up to 84 degrees north. coordinates.utmSouthNorthM is the northing of a zone south of it (CHOSEN), from 80 degrees south. Under source cad a box of the plot outlines outside them stops button 1 (R455).",
+    "source": "positionFile",
+    "systems": {"UTM84-37N": 32637},
+    "expectedEpsg": 32637,
+    "originRoundM": 1.0,
+    "angleToTrueNorthDeg": 0.0,
+    "originElevationM": 0.0,
+    "positionName": "ROSHN Makkah",
+    "placeName": "Makkah",
+    "controlPointCount": 3,
+    "controlPointLimitMm": 0.1,
+    "utmEastM": [166000, 834000],
+    "utmNorthM": [0, 9330000],
+    "utmSouthNorthM": [1116915, 10000000]
   }
 }

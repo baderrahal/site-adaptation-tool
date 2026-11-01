@@ -509,7 +509,7 @@ namespace SiteAdaptation.Tests
         public Dictionary<string, string> Parameters = new Dictionary<string, string>();
     }
 
-    internal sealed class FakeVillas : IVillaDocument
+    internal sealed class FakeVillas : IVillaDocument, ILinkFileReader
     {
         public readonly List<FakeElement> Elements = new List<FakeElement>();
         public readonly List<VillaLinkType> Types = new List<VillaLinkType>();
@@ -558,6 +558,14 @@ namespace SiteAdaptation.Tests
         public string ReloadType(string key)
         {
             Loaded.Add("reload " + key);
+            Types.Single(type => type.Key == key).Loaded = true;
+            return null;
+        }
+
+        public string UnloadType(string key)
+        {
+            Loaded.Add("unload " + key);
+            Types.Single(type => type.Key == key).Loaded = false;
             return null;
         }
 
@@ -649,6 +657,12 @@ namespace SiteAdaptation.Tests
         public void Tag(string uniqueId, PlacedTag tag)
         {
             Find(uniqueId).Tag = tag;
+        }
+
+        public string LinkFileOf(string uniqueId)
+        {
+            FakeElement element = Elements.SingleOrDefault(item => item.UniqueId == uniqueId);
+            return element == null || element.IsSolid ? null : Types.SingleOrDefault(type => type.Key == element.TypeKey)?.FullPath;
         }
 
         private FakeElement Find(string uniqueId) => Elements.Single(element => element.UniqueId == uniqueId);

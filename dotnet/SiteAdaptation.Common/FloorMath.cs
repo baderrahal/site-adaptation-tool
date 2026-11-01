@@ -105,7 +105,7 @@ namespace SiteAdaptation.Common
         }
 
         // Shoelace formula in plan, closed from the last vertex back to the first
-        public static double SignedArea(IList<double[]> points)
+        public static double SignedArea(IReadOnlyList<double[]> points)
         {
             double sum = 0;
             for (int index = 0; index < points.Count; index++)

@@ -212,7 +212,19 @@ namespace CadReader
         public bool Mirrored { get; set; }
         public bool? ChainMirrored { get; set; }
         public List<double[]> Outline { get; set; }
+
+        // R453. Each polyline drawn in the block with its ends joined, null when the block holds none
+        public List<BlockRing> Rings { get; set; }
         public string Note { get; set; }
+    }
+
+    // R453. One polyline of a block as a ring in world coordinates, its ends joined, with the layer it is drawn on inside the block,
+    // never the layer of the insert, since the house of a footprint block is drawn on layer 0
+    public class BlockRing
+    {
+        public string Layer { get; set; }
+        public double Area { get; set; }
+        public List<double[]> Points { get; set; }
     }
 
     public class BlocksFile

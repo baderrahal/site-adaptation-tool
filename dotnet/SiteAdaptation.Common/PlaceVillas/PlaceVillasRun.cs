@@ -24,15 +24,24 @@ namespace SiteAdaptation.Common.PlaceVillas
         private readonly Func<RunContext, ShapeCache> shapes;
         private readonly Func<string, string> hash;
         private readonly Func<IReadOnlyList<string>, bool> askLoad;
+        private readonly Func<RunContext, MassFileSet> massFiles;
 
         // askLoad shows the lines of the types to load or reload with Load and Cancel and is true for Load (03b 7, Link types to load)
         public PlaceVillasRun(IVillaDocument document, Func<RunContext, VillaInputs> load, Func<RunContext, ShapeCache> shapes, Func<string, string> hash, Func<IReadOnlyList<string>, bool> askLoad)
+            : this(document, load, shapes, hash, askLoad, null)
+        {
+        }
+
+        // R450, R452. massFiles gives the mass files of a run whose linkFolder is not solids, null where none is wired
+        public PlaceVillasRun(IVillaDocument document, Func<RunContext, VillaInputs> load, Func<RunContext, ShapeCache> shapes, Func<string, string> hash, Func<IReadOnlyList<string>, bool> askLoad,
+            Func<RunContext, MassFileSet> massFiles)
         {
             this.document = document;
             this.load = load;
             this.shapes = shapes;
             this.hash = hash;
             this.askLoad = askLoad;
+            this.massFiles = massFiles;
         }
 
         public ButtonBody Body()
@@ -53,6 +62,9 @@ namespace SiteAdaptation.Common.PlaceVillas
         {
             public PlanPlot Plot;
             public string Number;
+
+            // The prototype file of the plan, and the file the villa links, another one in Masses with linkFolder not solids (R452)
+            public string Prototype;
             public string File;
             public double[] Internal;
             public PlacementSteps Steps;
@@ -66,6 +78,23 @@ namespace SiteAdaptation.Common.PlaceVillas
             public Act Act;
             public MatchOutcome Outcome;
             public string Solid;
+            public bool SolidIsLink;
+
+            // R452. The file of a link swapped since it is not the file the run links, else null, and the other links of the plot
+            // with such a file, deleted with it so none is kept as placed
+            public string OldFile;
+            public List<string> AlsoDeleted = new List<string>();
+
+            // R368, R452. Where a link moved by hand stands, so its swap keeps the hand change, else null and the swap goes to the plan
+            public Spot Hand;
+        }
+
+        private sealed class Spot
+        {
+            public double[] Internal;
+            public double RotationDeg;
+            public bool Mirrored;
+            public PlacementSteps Steps;
         }
 
         private sealed class TypeUse
@@ -80,6 +109,14 @@ namespace SiteAdaptation.Common.PlaceVillas
         {
             public VillaInputs Inputs;
             public bool Masses;
+
+            // R452. Masses placed as links of the mass files, or of the files linkFolder names, rather than as solids in the site
+            public bool MassLinks;
+            public bool Solids => Masses && !MassLinks;
+
+            // R450. The prototypes whose mass file is missing or stale, made outside the transaction, and the base of each mass by prototype
+            public readonly List<string> Makes = new List<string>();
+            public readonly SortedDictionary<string, MassBase> MassBases = new SortedDictionary<string, MassBase>(StringComparer.OrdinalIgnoreCase);
             public readonly List<Villa> Villas = new List<Villa>();
             public readonly List<Step> Steps = new List<Step>();
             public readonly List<string> Listed = new List<string>();
@@ -90,6 +127,12 @@ namespace SiteAdaptation.Common.PlaceVillas
             public readonly SortedDictionary<string, string> Hashes = new SortedDictionary<string, string>(StringComparer.Ordinal);
             public readonly List<FootprintRow> Footprint = new List<FootprintRow>();
 
+            // R453. The villas of a masses run with no base to measure yet, their mass still to make, or none since linkFolder names
+            // prototypes or a folder. And the line of a footprint read with no house outlines, which leaves the check out
+            public int NotMeasuredToMake;
+            public int NotMeasuredNoBase;
+            public string FootprintMissing;
+
             public int Count(Act act) => Steps.Count(step => step.Act == act);
         }
 
@@ -99,8 +142,9 @@ namespace SiteAdaptation.Common.PlaceVillas
             string counts = (decision.Masses ? "Masses" : "Links") + ": place " + decision.Count(Act.Place) + ", swap " + decision.Count(Act.Swap) + ", move " + decision.Count(Act.Move)
                 + ", already placed " + decision.Count(Act.Keep) + ", skip " + decision.Count(Act.Skip) + ", listed " + decision.Listed.Count
                 + ", link types to load " + decision.Types.Values.Count(use => use.Load) + ", to reload " + decision.Types.Values.Count(use => use.Reload)
-                + ", over the footprint limit " + decision.Footprint.Count(row => row.Flagged);
-            var lines = decision.Steps.Select(step => "plot " + step.Villa.Number + ": " + What(step)).Concat(decision.Listed).Concat(FootprintLines(decision)).ToList();
+                + FootprintCounts(decision) + (decision.MassLinks ? ", mass files to make " + decision.Makes.Count : "");
+            var lines = decision.Makes.Select(file => "make the mass file of " + Path.GetFileName(file)).Concat(decision.Steps.Select(step => "plot " + step.Villa.Number + ": " + What(step)))
+                .Concat(decision.Listed).Concat(FootprintLines(decision)).ToList();
             return new RunSummary(counts, lines);
         }
 
@@ -108,7 +152,21 @@ namespace SiteAdaptation.Common.PlaceVillas
         private IDisposable Outside(RunContext context)
         {
             Decision decision = Decide(context);
-            List<KeyValuePair<string, TypeUse>> loads = decision.Types.Where(use => use.Value.Load || use.Value.Reload).OrderBy(use => use.Key, StringComparer.Ordinal).ToList();
+            var reloaded = new HashSet<string>(StringComparer.Ordinal);
+            if (decision.Makes.Count > 0)
+            {
+                // R450. The mass files are new documents of their own, made before any transaction of the site and before the link
+                // types load
+                MassFileSet set = massFiles(context);
+                reloaded = MakeUnloaded(set, decision);
+                decision = Decide(context);
+                if (decision.Makes.Count > 0)
+                {
+                    throw new InvalidOperationException("the mass file of " + Path.GetFileName(decision.Makes[0]) + " is still stale after it was made, nothing was placed (R450)");
+                }
+            }
+            List<KeyValuePair<string, TypeUse>> loads = decision.Types.Where(use => use.Value.Load || (use.Value.Reload && !reloaded.Contains(use.Value.Existing.Key)))
+                .OrderBy(use => use.Key, StringComparer.Ordinal).ToList();
             if (loads.Count == 0)
             {
                 return null;
@@ -130,6 +188,44 @@ namespace SiteAdaptation.Common.PlaceVillas
             return null;
         }
 
+        // R450, probe of FIX-1NOV-B. A mass file the site links and has loaded opens as the link document, which takes no transaction
+        // and cannot be closed, so its type is unloaded before the make and reloaded after, also when a make fails, which leaves the
+        // site as it found it. Gives the keys reloaded, which need no second reload
+        private HashSet<string> MakeUnloaded(MassFileSet set, Decision decision)
+        {
+            string folder = set.LinkFolder(decision.Inputs.Config.MassFiles, null);
+            var stale = new HashSet<string>(decision.Makes.Select(prototype => Path.GetFullPath(MassFiles.PathFor(folder, prototype))), StringComparer.OrdinalIgnoreCase);
+            List<string> unloaded = new List<string>();
+            bool made = false;
+            try
+            {
+                foreach (VillaLinkType type in document.LinkTypes().Where(type => type.Loaded && type.FullPath != null && stale.Contains(Path.GetFullPath(type.FullPath))))
+                {
+                    string result = document.UnloadType(type.Key);
+                    if (result != null)
+                    {
+                        throw new InvalidOperationException("the link " + type.FullPath + " did not unload, " + result + ", its mass file was not made and nothing was placed (R450)");
+                    }
+                    unloaded.Add(type.Key);
+                }
+                foreach (string prototype in decision.Makes)
+                {
+                    set.Make(prototype, decision.Inputs.Config);
+                }
+                made = true;
+            }
+            finally
+            {
+                List<string> failed = unloaded.Select(key => new { key, result = document.ReloadType(key) }).Where(item => item.result != null).Select(item => item.key + " " + item.result).ToList();
+                // A failure of the make is the one to report, a reload failure after it would hide it
+                if (made && failed.Count > 0)
+                {
+                    throw new InvalidOperationException("the mass link types did not reload after the make, " + string.Join(", ", failed) + ", nothing was placed (R450)");
+                }
+            }
+            return new HashSet<string>(unloaded, StringComparer.Ordinal);
+        }
+
         private IReadOnlyList<string> Apply(RunContext context)
         {
             Decision decision = Decide(context);
@@ -137,6 +233,10 @@ namespace SiteAdaptation.Common.PlaceVillas
             if (waiting != null)
             {
                 throw new InvalidOperationException("the link type of " + waiting + " is not loaded, the step before the transaction did not load it");
+            }
+            if (decision.Makes.Count > 0)
+            {
+                throw new InvalidOperationException("the mass file of " + Path.GetFileName(decision.Makes[0]) + " is not made, the step before the transaction did not make it (R450)");
             }
             VillaInputs inputs = decision.Inputs;
             var issues = new List<string>(decision.Listed);
@@ -158,7 +258,7 @@ namespace SiteAdaptation.Common.PlaceVillas
                 if (step.Act == Act.Move)
                 {
                     id = step.Outcome.Element;
-                    if (decision.Masses)
+                    if (decision.Solids)
                     {
                         document.ReshapeSolid(id, villa.Shape.Points, inputs.Config.SolidHeightM, villa.Steps);
                     }
@@ -172,11 +272,13 @@ namespace SiteAdaptation.Common.PlaceVillas
                     if (step.Act == Act.Swap)
                     {
                         document.Delete(step.Solid);
+                        step.AlsoDeleted.ForEach(document.Delete);
                     }
-                    id = decision.Masses ? document.PlaceSolid(villa.Shape.Points, inputs.Config.SolidHeightM, villa.Steps) : document.PlaceLink(TypeKey(decision, villa, created), villa.Steps);
+                    id = decision.Solids ? document.PlaceSolid(villa.Shape.Points, inputs.Config.SolidHeightM, villa.Steps)
+                        : document.PlaceLink(TypeKey(decision, villa, created), step.Hand?.Steps ?? villa.Steps);
                 }
-                ReadBack(decision, villa, id);
-                issues.AddRange(WriteParameters(decision.Masses, villa, id, inputs.ParameterGuids, inputs.FilledByOthers));
+                ReadBack(decision, villa, id, step.Hand);
+                issues.AddRange(WriteParameters(decision.Solids, villa, id, inputs.ParameterGuids, inputs.FilledByOthers));
                 document.Tag(id, step.Act == Act.Move ? step.Outcome.NextTag(context.RunId, inputs.Profile) : PlacedTag.ForPlacement(villa.Item, context.RunId, inputs.Profile, id));
                 standing.Add(villa.Number);
             }
@@ -188,12 +290,14 @@ namespace SiteAdaptation.Common.PlaceVillas
             string nbh = inputs.Plan.Neighbourhood ?? "all";
             if (decision.Masses)
             {
-                context.WriteText("footprint_" + nbh + ".json", FootprintCheck.Json(decision.Footprint).ToString(Newtonsoft.Json.Formatting.Indented));
+                issues.AddRange(FootprintCheck.SummaryLines(decision.Footprint));
+                context.WriteText("footprint_" + nbh + ".json", FootprintCheck.Json(decision.Footprint, decision.MassBases).ToString(Newtonsoft.Json.Formatting.Indented));
             }
             var record = new JObject
             {
                 ["format"] = RecordFormat, ["runId"] = context.RunId, ["mode"] = decision.Masses ? VillaModes.Masses : VillaModes.Links, ["plan"] = inputs.PlanPath,
-                ["prototypes"] = new JObject(decision.Hashes.Select(item => new JProperty(item.Key, item.Value))),
+                ["linkFolder"] = decision.Masses ? inputs.Config.MassFiles?.LinkFolder ?? LinkFolders.Solids : null,
+                ["prototypes"] = new JObject(LoadedHashes(decision).Select(item => new JProperty(item.Key, item.Value))),
                 ["placed"] = new JArray(standing.OrderBy(plot => plot, StringComparer.Ordinal)),
                 ["counts"] = new JObject(new[] { Act.Place, Act.Swap, Act.Move, Act.Keep, Act.Skip }.Select(act => new JProperty(act.ToString().ToLowerInvariant(), decision.Count(act)))),
             };
@@ -207,6 +311,25 @@ namespace SiteAdaptation.Common.PlaceVillas
             return ((record?["prototypes"] as JObject) ?? new JObject()).Properties().ToDictionary(item => item.Name, item => (string)item.Value, StringComparer.OrdinalIgnoreCase);
         }
 
+        // R452. The hash of every file a run of 7 linked, those of this run over those of the last record, so a Links run keeps the hash
+        // of the mass files it did not link and the next Masses run still reloads a mass made again
+        private static SortedDictionary<string, string> LoadedHashes(Decision decision)
+        {
+            var all = new SortedDictionary<string, string>(StringComparer.Ordinal);
+            foreach (KeyValuePair<string, string> last in decision.Inputs.LastHashes ?? new Dictionary<string, string>())
+            {
+                if (last.Value != null && !decision.Hashes.Keys.Any(file => SamePath(file, last.Key)))
+                {
+                    all[last.Key] = last.Value;
+                }
+            }
+            foreach (KeyValuePair<string, string> now in decision.Hashes)
+            {
+                all[now.Key] = now.Value;
+            }
+            return all;
+        }
+
         public static HashSet<string> Placed(JObject record)
         {
             return new HashSet<string>(((record?["placed"] as JArray) ?? new JArray()).Select(token => (string)token), StringComparer.Ordinal);
@@ -217,6 +340,7 @@ namespace SiteAdaptation.Common.PlaceVillas
             VillaInputs inputs = load(context) ?? throw new InvalidOperationException("Place villas has no plan to read");
             PlanFile plan = inputs.Plan;
             var decision = new Decision { Inputs = inputs, Masses = VillaModeChoice.Resolve(inputs.Mode, inputs.Config) == VillaModes.Masses };
+            decision.MassLinks = decision.Masses && inputs.Config.MassFiles != null && inputs.Config.MassFiles.AsLinks;
             string format = Placer.CheckFormat(plan);
             if (format != null && !(plan != null && plan.PrototypeFolder != null && format.Contains("prototypeFolder") && UnixFull(plan.PrototypeFolder)))
             {
@@ -236,9 +360,13 @@ namespace SiteAdaptation.Common.PlaceVillas
             double[] offset = SharedCoordinates.Offset(survey.Position, survey.SharedPosition);
             inputs.ParameterGuids.TryGetValue(Placer.PlotParameter, out string plotGuid);
             IReadOnlyList<VillaElement> elements = document.Villas(plotGuid);
-            ILookup<string, VillaElement> linkOn = elements.Where(element => !element.IsSolid).Select(element => new { element, plot = element.Tag != null && element.Tag.Key.Kind == PlacedKinds.Link ? element.Tag.Key.Plot : element.PlotNumber?.Trim() })
+            // R452. A mass link is a link of the masses, never one that keeps Masses off its plot
+            ILookup<string, VillaElement> linkOn = elements.Where(element => !element.IsSolid && !IsMass(element)).Select(element => new { element, plot = element.Tag != null && element.Tag.Key.Kind == PlacedKinds.Link ? element.Tag.Key.Plot : element.PlotNumber?.Trim() })
                 .Where(item => !string.IsNullOrEmpty(item.plot)).ToLookup(item => item.plot, item => item.element, StringComparer.Ordinal);
-            ShapeCache cache = decision.Masses ? shapes(context) : null;
+            ShapeCache cache = decision.Solids ? shapes(context) : null;
+            MassFileSet set = decision.MassLinks ? massFiles?.Invoke(context) ?? throw new InvalidOperationException("addin.lightMode.linkFolder is " + inputs.Config.MassFiles.LinkFolder + " and no mass files are wired (R450)") : null;
+            string linkFolder = set?.LinkFolder(inputs.Config.MassFiles, plan.PrototypeFolder);
+            var states = new Dictionary<string, MassState>(StringComparer.OrdinalIgnoreCase);
             var seen = new HashSet<string>(StringComparer.Ordinal);
             var items = new List<PlanItem>();
             foreach (PlanPlot plot in plan.Plots ?? new List<PlanPlot>())
@@ -286,25 +414,63 @@ namespace SiteAdaptation.Common.PlaceVillas
                 double[] point = PlacementMath.InternalPoint(new[] { plot.Insert.Value[0], plot.Insert.Value[1], ffl }, offset);
                 bool mirrored = plot.Mirrored.Value.Value;
                 double rotation = plot.RotationDeg.Value.Value;
+                string linked = decision.MassLinks ? MassFiles.PathFor(linkFolder, file) : file;
+                BaseShape shape = cache?.Get(file, inputs.Config);
+                if (decision.MassLinks && inputs.Config.MassFiles.LinkFolder == LinkFolders.Masses)
+                {
+                    if (!states.TryGetValue(file, out MassState state))
+                    {
+                        states[file] = state = set.State(file, inputs.Config);
+                        decision.MassBases[file] = state.Base;
+                        if (state.Stale)
+                        {
+                            decision.Makes.Add(file);
+                        }
+                    }
+                    shape = state.Base == null ? null : new BaseShape(state.Base.Source, state.Base.Ring);
+                }
+                else if (decision.MassLinks && !document.FileExists(linked))
+                {
+                    throw new InvalidDataException("the link file " + linked + " of plot " + number + " is not in the folder linkFolder names, nothing was placed (R452)");
+                }
                 var villa = new Villa
                 {
-                    Plot = plot, Number = number, File = file, Internal = point, Steps = PlacementMath.Steps(point, rotation, mirrored),
+                    Plot = plot, Number = number, Prototype = file, File = linked, Internal = point, Steps = PlacementMath.Steps(point, rotation, mirrored),
                     Item = new PlanItem(new TagKey(number, PlacedKinds.Link, decision.Masses ? MassPart : ""), Values(point[0], point[1], point[2], rotation, mirrored),
                         inputs.InScope == null || inputs.InScope(number), inputs.LastPlaced.Contains(number)),
-                    Shape = cache?.Get(file, inputs.Config),
+                    Shape = shape,
                 };
                 decision.Villas.Add(villa);
                 items.Add(villa.Item);
-                if (!decision.Hashes.ContainsKey(file))
+                // A mass file still to make has no hash yet, the run after its making hashes it
+                if (!decision.Hashes.ContainsKey(linked) && (!decision.MassLinks || document.FileExists(linked)))
                 {
-                    decision.Hashes[file] = hash(file);
+                    decision.Hashes[linked] = hash(linked);
                 }
             }
 
             Dictionary<string, Villa> byPlot = decision.Villas.ToDictionary(villa => villa.Number, StringComparer.Ordinal);
             var found = new List<FoundElement>();
+            var otherFile = new Dictionary<string, List<KeyValuePair<VillaElement, string>>>(StringComparer.Ordinal);
             foreach (VillaElement element in elements)
             {
+                if (decision.Masses && IsMass(element) && element.IsSolid != decision.Solids)
+                {
+                    // R452. A mass of the other form, a solid where masses are links or a mass link where they are solids, is swapped
+                    // below, never matched as the villa
+                    continue;
+                }
+                string file = OtherFile(element, byPlot);
+                if (file != null)
+                {
+                    // R452. Every link of this run's part whose file is not the one the run links is swapped below, never kept as placed
+                    if (!otherFile.TryGetValue(element.Tag.Key.Plot, out List<KeyValuePair<VillaElement, string>> others))
+                    {
+                        otherFile[element.Tag.Key.Plot] = others = new List<KeyValuePair<VillaElement, string>>();
+                    }
+                    others.Add(new KeyValuePair<VillaElement, string>(element, file));
+                    continue;
+                }
                 if (element.Tag != null && element.Tag.Key.Kind == PlacedKinds.Link)
                 {
                     found.Add(FoundElement.Tagged(element.UniqueId, element.Tag, Current(decision, element, byPlot)));
@@ -315,7 +481,8 @@ namespace SiteAdaptation.Common.PlaceVillas
                 }
             }
             MatchResult match = SecondRun.Match(items, found, inputs.SetToPlan);
-            Dictionary<string, VillaElement> solids = elements.Where(element => element.IsSolid && element.Tag != null && element.Tag.Key.Part == MassPart && string.Equals(element.UniqueId, element.Tag.PlacedId, StringComparison.Ordinal))
+            // R404, R452. What a run swaps: in Links every mass, a solid or a mass link, in Masses each mass of the other form
+            Dictionary<string, VillaElement> solids = elements.Where(element => IsMass(element) && (!decision.Masses || element.IsSolid != decision.Solids))
                 .GroupBy(element => element.Tag.Key.Plot, StringComparer.Ordinal).Where(group => group.Count() == 1).ToDictionary(group => group.Key, group => group.Single(), StringComparer.Ordinal);
             var swapped = new HashSet<string>(StringComparer.Ordinal);
             foreach (MatchOutcome outcome in match.Outcomes)
@@ -324,11 +491,23 @@ namespace SiteAdaptation.Common.PlaceVillas
                 var step = new Step { Villa = villa, Outcome = outcome };
                 if (outcome.Action == MatchAction.Place)
                 {
-                    if (!decision.Masses && solids.TryGetValue(villa.Number, out VillaElement solid))
+                    if (solids.TryGetValue(villa.Number, out VillaElement solid))
                     {
                         step.Act = Act.Swap;
                         step.Solid = solid.UniqueId;
+                        step.SolidIsLink = !solid.IsSolid;
                         swapped.Add(solid.UniqueId);
+                    }
+                    else if (otherFile.TryGetValue(villa.Number, out List<KeyValuePair<VillaElement, string>> others))
+                    {
+                        List<VillaElement> links = others.Select(other => other.Key).OrderBy(link => link.UniqueId, StringComparer.Ordinal).ToList();
+                        step.Act = Act.Swap;
+                        step.Solid = links[0].UniqueId;
+                        step.AlsoDeleted.AddRange(links.Skip(1).Select(link => link.UniqueId));
+                        step.SolidIsLink = true;
+                        step.OldFile = string.Join(", ", others.Select(other => other.Value).Distinct(StringComparer.OrdinalIgnoreCase));
+                        swapped.UnionWith(links.Select(link => link.UniqueId));
+                        step.Hand = Hand(decision, villa, links, byPlot);
                     }
                     else
                     {
@@ -351,16 +530,40 @@ namespace SiteAdaptation.Common.PlaceVillas
                 decision.Steps.Add(step);
             }
             decision.Listed.AddRange(match.Unplanned.Where(id => !swapped.Contains(id)).Select(id => "element " + id + " is tagged for no villa of this run, left as it is"));
-            if (!decision.Masses)
+            decision.Listed.AddRange(otherFile.SelectMany(item => item.Value.Where(other => !swapped.Contains(other.Key.UniqueId))
+                .Select(other => "plot " + item.Key + ": the link " + other.Key.UniqueId + " shows " + other.Value + ", not the file of this run, left as it is")));
+            if (!decision.Solids)
             {
                 Types(decision);
             }
-            else
+            if (decision.Masses)
             {
-                foreach (Step step in decision.Steps.Where(step => step.Act != Act.Skip))
+                decision.FootprintMissing = (inputs.Footprint as FootprintOutlines)?.Missing;
+                if (decision.FootprintMissing != null)
                 {
+                    decision.Listed.Add(decision.FootprintMissing + ", the footprint check is left out (R453)");
+                }
+                // A mass still to make, or a link of linkFolder prototypes or a folder, has no base to measure, the run after its making does
+                foreach (Step step in decision.Steps.Where(step => step.Act != Act.Skip && decision.FootprintMissing == null))
+                {
+                    if (step.Villa.Shape == null)
+                    {
+                        if (decision.Makes.Contains(step.Villa.Prototype, StringComparer.OrdinalIgnoreCase))
+                        {
+                            decision.NotMeasuredToMake++;
+                        }
+                        else
+                        {
+                            decision.NotMeasuredNoBase++;
+                        }
+                        continue;
+                    }
                     List<double[]> placed = ShapeMath.Place(step.Villa.Shape.Points, step.Villa.Plot.Insert.Value, step.Villa.Plot.RotationDeg.Value.Value, step.Villa.Plot.Mirrored.Value.Value);
-                    decision.Footprint.Add(FootprintCheck.Row(step.Villa.Number, placed, inputs.Footprint ?? new List<double[][]>(), inputs.Config));
+                    decision.Footprint.Add(FootprintCheck.Row(step.Villa.Number, placed, inputs.Footprint ?? new List<double[][]>(), inputs.Config, Path.GetFileName(step.Villa.Prototype)));
+                }
+                foreach (KeyValuePair<string, MassBase> mass in decision.MassBases.Where(item => item.Value != null && item.Value.Flagged))
+                {
+                    decision.Listed.Add("prototype " + Path.GetFileName(mass.Key) + ": the mass base is the largest ground slab, " + mass.Value.Reason + ", flagged (R451, Q279)");
                 }
             }
             return decision;
@@ -416,13 +619,22 @@ namespace SiteAdaptation.Common.PlaceVillas
         }
 
         // R84, R404. Each element read back after its steps: a link by its transform within 1 mm, 0.01 degree and its mirror flag, a solid
-        // by the outline of its base within 1 mm of the shape the plan gives, both ways
-        private void ReadBack(Decision decision, Villa villa, string id)
+        // by the outline of its base within 1 mm of the shape the plan gives, both ways. A link swapped where a hand moved it, against that spot
+        private void ReadBack(Decision decision, Villa villa, string id, Spot hand)
         {
             bool mirrored = villa.Plot.Mirrored.Value.Value;
             double rotation = villa.Plot.RotationDeg.Value.Value;
+            if (hand != null)
+            {
+                string off = PlacementMath.Mismatch(document.ReadBackLink(id), hand.Internal, hand.RotationDeg, hand.Mirrored);
+                if (off != null)
+                {
+                    throw new InvalidOperationException("plot " + villa.Number + ": the swapped villa does not stand where it was moved by hand, " + off);
+                }
+                return;
+            }
             string mismatch;
-            if (decision.Masses)
+            if (decision.Solids)
             {
                 IReadOnlyList<double[]> read = document.ReadBackBase(id);
                 double gap = read == null || read.Count < 3 ? double.PositiveInfinity : OutlineDistance.HausdorffMm(read, ShapeMath.Place(villa.Shape.Points, villa.Internal, rotation, mirrored), decision.Inputs.Config.FootprintSampleStepMm);
@@ -508,7 +720,7 @@ namespace SiteAdaptation.Common.PlaceVillas
                 return element.Tag.Placed.Values.ContainsKey(ZValue) ? now : Without(now, ZValue);
             }
             PlacedValues placed = element.Tag.Placed;
-            if (!decision.Masses || !byPlot.TryGetValue(element.Tag.Key.Plot, out Villa villa) || villa.Shape == null || element.Base == null
+            if (!decision.Solids || !byPlot.TryGetValue(element.Tag.Key.Plot, out Villa villa) || villa.Shape == null || element.Base == null
                 || !placed.Values.TryGetValue("origin", out IReadOnlyList<double> origin) || !placed.Values.TryGetValue("rotationDeg", out IReadOnlyList<double> rotation) || !placed.Values.TryGetValue("mirrored", out IReadOnlyList<double> mirrored))
             {
                 return placed;
@@ -522,6 +734,26 @@ namespace SiteAdaptation.Common.PlaceVillas
             var values = placed.Values.ToDictionary(item => item.Key, item => item.Value.ToArray(), StringComparer.Ordinal);
             values["baseOffMm"] = new[] { Math.Min(Math.Max(gap, zGap), 1e9) };
             return new PlacedValues(values);
+        }
+
+        // R368, R452. A link of the old file that the second run reads as changed by hand, and the user did not set to the plan, gives
+        // the spot its swap keeps, the first by UniqueId when several do. The link of the right file stands there and the line says so
+        private static Spot Hand(Decision decision, Villa villa, IEnumerable<VillaElement> links, Dictionary<string, Villa> byPlot)
+        {
+            foreach (VillaElement link in links)
+            {
+                FoundElement found = FoundElement.Tagged(link.UniqueId, link.Tag, Current(decision, link, byPlot));
+                MatchOutcome outcome = SecondRun.Match(new[] { villa.Item }, new[] { found }, decision.Inputs.SetToPlan).Outcomes[0];
+                if (outcome.Case != MatchCase.ChangedByHand || outcome.Action != MatchAction.None || link.Transform == null)
+                {
+                    continue;
+                }
+                LinkTransform stands = LinkMath.Describe(link.Transform.Origin, link.Transform.AxisX, link.Transform.AxisY, link.Transform.AxisZ);
+                double[] point = stands.Origin.Length > 2 ? stands.Origin : new[] { stands.Origin[0], stands.Origin[1], villa.Internal[2] };
+                decision.Listed.Add("plot " + villa.Number + ": changed by hand in " + string.Join(", ", outcome.Differences) + ", the link of " + villa.File + " takes the place of " + link.UniqueId + " where it stands");
+                return new Spot { Internal = point, RotationDeg = stands.RotationDeg, Mirrored = stands.Mirrored, Steps = PlacementMath.Steps(point, stands.RotationDeg, stands.Mirrored) };
+            }
+            return null;
         }
 
         // W6. The Z of the internal origin, a value of its own so a tag of 5c, which holds origin [x, y] alone, still reads
@@ -585,7 +817,9 @@ namespace SiteAdaptation.Common.PlaceVillas
                 case Act.Place:
                     return "place";
                 case Act.Swap:
-                    return "swap the solid " + step.Solid + " for its link";
+                    return step.OldFile != null ? "swap the link " + string.Join(", ", new[] { step.Solid }.Concat(step.AlsoDeleted)) + " of " + step.OldFile + " for " + step.Villa.File
+                        + (step.Hand != null ? " where it stands" : "")
+                        : step.SolidIsLink ? "swap the mass link " + step.Solid : "swap the solid " + step.Solid + " for its link";
                 case Act.Move:
                     return "move in place, " + string.Join(", ", step.Outcome.Differences);
                 case Act.Keep:
@@ -595,9 +829,45 @@ namespace SiteAdaptation.Common.PlaceVillas
             }
         }
 
+        // R453. A villa with no base yet is never counted within the limit, the count says when its check runs
+        private static string FootprintCounts(Decision decision)
+        {
+            if (decision.FootprintMissing != null)
+            {
+                return ", footprint not checked, " + decision.FootprintMissing;
+            }
+            int over = decision.Footprint.Count(row => row.Flagged);
+            if (decision.NotMeasuredToMake == 0 && decision.NotMeasuredNoBase == 0)
+            {
+                return ", over the footprint limit " + over;
+            }
+            return ", over the footprint limit " + over + " of " + decision.Footprint.Count + " measured"
+                + (decision.NotMeasuredToMake > 0 ? ", footprint not measured " + decision.NotMeasuredToMake + ", the footprint check runs after the masses are made" : "")
+                + (decision.NotMeasuredNoBase > 0 ? ", footprint not measured " + decision.NotMeasuredNoBase + ", linkFolder " + decision.Inputs.Config.MassFiles.LinkFolder + " gives no base to measure" : "");
+        }
+
         private static IEnumerable<string> FootprintLines(Decision decision)
         {
             return decision.Footprint.Where(row => row.Flagged).Select(row => "plot " + row.Plot + ": " + row.Why + ", flagged (R404)");
+        }
+
+        // R452. The file of a tagged link of the part of this run whose plot the plan holds, when it is not the file the run links for
+        // that plot, else null. A document with no ILinkFileReader, or a link whose file does not read, is held by its transform alone
+        private string OtherFile(VillaElement element, Dictionary<string, Villa> byPlot)
+        {
+            if (element.IsSolid || element.Tag == null || element.Tag.Key.Kind != PlacedKinds.Link || !byPlot.TryGetValue(element.Tag.Key.Plot, out Villa villa)
+                || element.Tag.Key.Part != villa.Item.Key.Part || !(document is ILinkFileReader files))
+            {
+                return null;
+            }
+            string file = files.LinkFileOf(element.UniqueId);
+            return file == null || SamePath(file, villa.File) ? null : file;
+        }
+
+        // R404, R452. A solid or a mass link a masses run placed, by the part of its tag and its own UniqueId
+        private static bool IsMass(VillaElement element)
+        {
+            return element.Tag != null && element.Tag.Key.Part == MassPart && string.Equals(element.UniqueId, element.Tag.PlacedId, StringComparison.Ordinal);
         }
 
         private static bool SamePath(string a, string b)

@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using Autodesk.Revit.UI;
+using SiteAdaptation.AddIn.Pane;
 using SiteAdaptation.AddIn.Revit;
 using SiteAdaptation.Common;
 using SiteAdaptation.Common.Flow;
@@ -25,8 +26,15 @@ namespace SiteAdaptation.AddIn.PlaceVillas
         public static ButtonBody For(UIApplication application)
         {
             var run = new PlaceVillasRun(new RevitVillaDocument(application.ActiveUIDocument.Document), Load,
-                context => new ShapeCache(context.WorkFolder, new RevitBaseShapeReader(application, context.WorkFolder), Hash), Hash, LinkLoadDialog.Ask);
+                context => new ShapeCache(context.WorkFolder, new RevitBaseShapeReader(application, context.WorkFolder), Hash), Hash, LinkLoadDialog.Ask,
+                context => new MassFileSet(new RevitMassFileMaker(application, context.WorkFolder), Hash, Root));
             return run.Body();
+        }
+
+        // R450. The work root the {workRoot} mark of massFolder stands for, as the pane takes it
+        private static string Root()
+        {
+            return WorkFolder.Root(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), WorkFolder.ReadIfThere);
         }
 
         private static string Hash(string path)

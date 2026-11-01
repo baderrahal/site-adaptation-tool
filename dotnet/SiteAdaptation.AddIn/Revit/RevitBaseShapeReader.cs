@@ -29,10 +29,12 @@ namespace SiteAdaptation.AddIn.Revit
 
         public IReadOnlyList<double[]> Read(string prototypePath, LightModeConfig config)
         {
-            if (config.BaseBoundary == BaseBoundarySources.AreaBoundary)
-            {
-                throw new NotSupportedException("the base boundary source areaBoundary is not read yet, Q164 holds lowestFloor or floorType");
-            }
+            return Opened(application, copyFolder, prototypePath, opened => Outer(opened, config));
+        }
+
+        // R404, R451. The prototype read from a copy opened detached and closed with no save, the source held by its SHA-256
+        internal static T Opened<T>(UIApplication application, string copyFolder, string prototypePath, Func<Document, T> read)
+        {
             string before = FileHash.Sha256(prototypePath);
             Directory.CreateDirectory(copyFolder);
             string copy = Path.Combine(copyFolder, Guid.NewGuid().ToString("N") + Path.GetExtension(prototypePath));
@@ -43,7 +45,7 @@ namespace SiteAdaptation.AddIn.Revit
             try
             {
                 opened = application.Application.OpenDocumentFile(ModelPathUtils.ConvertUserVisiblePathToModelPath(copy), new OpenOptions { DetachFromCentralOption = DetachFromCentralOption.DetachAndPreserveWorksets });
-                return Outer(opened, config);
+                return read(opened);
             }
             finally
             {
@@ -59,26 +61,128 @@ namespace SiteAdaptation.AddIn.Revit
         }
 
         // The floor of the lowest level, or every floor of the named type, the outer loop of the sketch of the largest of them
-        private static IReadOnlyList<double[]> Outer(Document prototype, LightModeConfig config)
+        internal static IReadOnlyList<double[]> Outer(Document prototype, LightModeConfig config)
         {
-            List<Floor> floors = new FilteredElementCollector(prototype).OfClass(typeof(Floor)).Cast<Floor>().ToList();
-            if (config.BaseBoundary == BaseBoundarySources.LowestFloor)
-            {
-                Level lowest = new FilteredElementCollector(prototype).OfClass(typeof(Level)).Cast<Level>().Where(level => floors.Any(floor => floor.LevelId == level.Id))
-                    .OrderBy(level => level.Elevation).FirstOrDefault();
-                floors = lowest == null ? new List<Floor>() : floors.Where(floor => floor.LevelId == lowest.Id).ToList();
-            }
-            else
-            {
-                floors = floors.Where(floor => string.Equals(prototype.GetElement(floor.GetTypeId())?.Name, config.BaseBoundaryFloorType, StringComparison.Ordinal)).ToList();
-            }
-            List<List<double[]>> loops = floors.Select(floor => prototype.GetElement(floor.SketchId) as Sketch).Where(sketch => sketch != null)
+            List<List<double[]>> loops = GroundFloors(prototype, config).Select(floor => prototype.GetElement(floor.SketchId) as Sketch).Where(sketch => sketch != null)
                 .SelectMany(sketch => sketch.Profile.Cast<CurveArray>().Select(Points)).ToList();
             if (loops.Count == 0)
             {
                 throw new InvalidDataException(prototype.Title + " holds no floor for the base boundary source " + config.BaseBoundary);
             }
-            return loops.OrderByDescending(loop => Math.Abs(Area(loop))).First();
+            return loops.OrderByDescending(loop => Math.Abs(RingMath.Area(loop))).First();
+        }
+
+        // R404, R451. The floors of the base boundary source, the floors of the lowest level that holds one or every floor of the named
+        // type, so the slab base and the ground level of the walls come from the same floors
+        private static List<Floor> GroundFloors(Document prototype, LightModeConfig config)
+        {
+            if (config.BaseBoundary == BaseBoundarySources.AreaBoundary)
+            {
+                throw new NotSupportedException("the base boundary source areaBoundary is not read yet, Q164 holds lowestFloor or floorType");
+            }
+            List<Floor> floors = new FilteredElementCollector(prototype).OfClass(typeof(Floor)).Cast<Floor>().ToList();
+            if (config.BaseBoundary == BaseBoundarySources.LowestFloor)
+            {
+                Level lowest = new FilteredElementCollector(prototype).OfClass(typeof(Level)).Cast<Level>().Where(level => floors.Any(floor => floor.LevelId == level.Id))
+                    .OrderBy(level => level.Elevation).FirstOrDefault();
+                return lowest == null ? new List<Floor>() : floors.Where(floor => floor.LevelId == lowest.Id).ToList();
+            }
+            return floors.Where(floor => string.Equals(prototype.GetElement(floor.GetTypeId())?.Name, config.BaseBoundaryFloorType, StringComparison.Ordinal)).ToList();
+        }
+
+        // R451. The exterior walls, WallType.Function Exterior, that cross the plane wallCutHeightM above the top of the ground floors of
+        // GroundFloors, each drawn by WallStrips from its location line, width and Orientation, the side Revit gives as the exterior
+        // with Flipped already in it, so no door or window opens the ring. The outlines are extruded and joined, and the loops of the
+        // bottom face of the union are the plan of the walls. Where a union fails the solids stay apart and their loops are given as
+        // they are, so WallRing.Choose finds no ring and takes the slab
+        internal static IReadOnlyList<IReadOnlyList<double[]>> WallLoops(Document prototype, LightModeConfig config)
+        {
+            List<BoundingBoxXYZ> boxes = GroundFloors(prototype, config).Select(floor => floor.get_BoundingBox(null)).Where(box => box != null).ToList();
+            if (boxes.Count == 0)
+            {
+                return new List<IReadOnlyList<double[]>>();
+            }
+            double cut = boxes.Max(box => box.Max.Z) + UnitMath.MetresToFeet(config.MassFiles.WallCutHeightM);
+            var solids = new List<Solid>();
+            foreach (Wall wall in new FilteredElementCollector(prototype).OfClass(typeof(Wall)).Cast<Wall>())
+            {
+                BoundingBoxXYZ box = wall.get_BoundingBox(null);
+                if (wall.WallType?.Function != WallFunction.Exterior || box == null || box.Min.Z > cut || box.Max.Z < cut || !(wall.Location is LocationCurve location))
+                {
+                    continue;
+                }
+                Solid outline = WallOutline(wall, location.Curve);
+                if (outline != null)
+                {
+                    solids.Add(outline);
+                }
+            }
+            Solid union = null;
+            var joined = new List<Solid>();
+            foreach (Solid solid in solids)
+            {
+                if (union == null)
+                {
+                    union = solid;
+                    continue;
+                }
+                try
+                {
+                    union = BooleanOperationsUtils.ExecuteBooleanOperation(union, solid, BooleanOperationsType.Union);
+                }
+                catch (Autodesk.Revit.Exceptions.InvalidOperationException)
+                {
+                    joined.Add(solid);
+                }
+            }
+            if (union != null)
+            {
+                joined.Insert(0, union);
+            }
+            return joined.SelectMany(solid => solid.Faces.OfType<PlanarFace>()).Where(face => face.FaceNormal.Z < -0.999)
+                .SelectMany(face => face.GetEdgesAsCurveLoops()).Select(loop => (IReadOnlyList<double[]>)Points(loop)).ToList();
+        }
+
+        // The outline of WallStrips extruded up from Z 0, any height as only its bottom face is read. Null where Revit refuses the loop
+        private static Solid WallOutline(Wall wall, Curve curve)
+        {
+            IList<XYZ> along = curve is Line ? new List<XYZ> { curve.GetEndPoint(0), curve.GetEndPoint(1) } : curve.Tessellate();
+            List<double[]> path = along.Select(point => new[] { UnitMath.FeetToMetres(point.X), UnitMath.FeetToMetres(point.Y) }).ToList();
+            double width = UnitMath.FeetToMetres(wall.Width);
+            CompoundStructure structure = wall.WallType.GetCompoundStructure();
+            List<double> layers = structure?.GetLayers().Select(layer => UnitMath.FeetToMetres(layer.Width)).ToList();
+            int locationLine = wall.get_Parameter(BuiltInParameter.WALL_KEY_REF_PARAM)?.AsInteger() ?? WallStrips.WallCenterline;
+            double offset = WallStrips.LocationOffset(locationLine, width, layers, structure?.GetFirstCoreLayerIndex() ?? -1, structure?.GetLastCoreLayerIndex() ?? -1);
+            double[][] ring = WallStrips.Outline(path, width, offset, new[] { wall.Orientation.X, wall.Orientation.Y });
+            if (ring == null)
+            {
+                return null;
+            }
+            var loop = new CurveLoop();
+            try
+            {
+                for (int i = 0; i < ring.Length; i++)
+                {
+                    double[] a = ring[i], b = ring[(i + 1) % ring.Length];
+                    loop.Append(Line.CreateBound(new XYZ(UnitMath.MetresToFeet(a[0]), UnitMath.MetresToFeet(a[1]), 0), new XYZ(UnitMath.MetresToFeet(b[0]), UnitMath.MetresToFeet(b[1]), 0)));
+                }
+                return GeometryCreationUtilities.CreateExtrusionGeometry(new List<CurveLoop> { loop }, XYZ.BasisZ, 1.0);
+            }
+            catch (Autodesk.Revit.Exceptions.ApplicationException)
+            {
+                return null;
+            }
+        }
+
+        private static List<double[]> Points(IEnumerable<Curve> curves)
+        {
+            var points = new List<double[]>();
+            foreach (Curve curve in curves)
+            {
+                IList<XYZ> along = curve is Line ? new List<XYZ> { curve.GetEndPoint(0), curve.GetEndPoint(1) } : curve.Tessellate();
+                points.AddRange(along.Take(along.Count - 1).Select(point => new[] { UnitMath.FeetToMetres(point.X), UnitMath.FeetToMetres(point.Y) }));
+            }
+            return points;
         }
 
         // Every corner: the start of each line, the tessellated points of an arc, in the order of the sketch
@@ -93,17 +197,7 @@ namespace SiteAdaptation.AddIn.Revit
             return points;
         }
 
-        private static double Area(List<double[]> loop)
-        {
-            double area = 0;
-            for (int i = 0; i < loop.Count; i++)
-            {
-                area += loop[i][0] * loop[(i + 1) % loop.Count][1] - loop[(i + 1) % loop.Count][0] * loop[i][1];
-            }
-            return area / 2;
-        }
-
-        private static void OnFailures(object sender, FailuresProcessingEventArgs args)
+        internal static void OnFailures(object sender, FailuresProcessingEventArgs args)
         {
             args.GetFailuresAccessor().DeleteAllWarnings();
             args.SetProcessingResult(FailureProcessingResult.Continue);
