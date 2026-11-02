@@ -19,8 +19,8 @@ namespace SiteAdaptation.Common.Settings
     // R432, Save setup. The settings of the project with the draft laid over them, in the settings JSON of R367 and nothing else, so
     // its format and field names stay as they are: the saved project as Import of a pre-setting lays it, then each pick as Browse of
     // the pane does. The scope, the dry run tick, the last runs and every input not picked stay. The settings given are not changed,
-    // and the result is read back from its own text, so a value the reader refuses never reaches the pane. Writing them to the model
-    // stays with the next real run (R367, Q280)
+    // and the result is read back from its own text, so a value the reader refuses never reaches the pane. SetupWrite puts them into
+    // the model at once (R445, Q280)
     public static class SetupSave
     {
         public static ProjectSettings Apply(SetupDraft draft, ProjectSettings current)

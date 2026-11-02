@@ -8,18 +8,19 @@ using SiteAdaptation.Common.Settings;
 namespace SiteAdaptation.AddIn.NewProject
 {
     // Lane C NEWPROJ-UI. New project in Revit: modal, its owner the Revit main window. Show returns the settings Save setup gave, null on
-    // Cancel or a close of the window. It opens no transaction and writes no file but a template the user names
+    // Cancel or a close of the window. It opens no transaction and writes no file but a template the user names, the pane host writes
+    // the settings into the model after it closes (R445)
     public static class NewProjectDialog
     {
         // The hook of the scanner of a later Lane B round, which sets its own reader here at start (steps/waiting-on-others.md)
         public static IDrawingFacts Facts { get; set; } = new LatestScanFacts();
 
-        public static ProjectSettings Show(IntPtr owner, ProjectSettings current, string projectName, string workRoot, string workFolder, IPathPicker picker)
+        public static ProjectSettings Show(IntPtr owner, ProjectSettings current, string projectName, string workRoot, string workFolder, IPathPicker picker, bool modelOpen)
         {
             IReadOnlyList<SavedStart> starts = SavedStarts.List(SavedStarts.Folder(workRoot));
             DrawingFactsResult facts = Facts.Read(current?.ConfigFile, workFolder);
             var model = new NewProjectViewModel(current, projectName, starts, facts, There, picker, WorkFolder.ReadIfThere,
-                (path, settings) => ScanResults.ScanResultsDialog.Show(owner, path, settings, ScanResults.ScanGate.PickExport));
+                (path, settings) => ScanResults.ScanResultsDialog.Show(owner, path, settings, ScanResults.ScanGate.PickExport), modelOpen);
             var window = new NewProjectWindow(model);
             if (owner != IntPtr.Zero)
             {

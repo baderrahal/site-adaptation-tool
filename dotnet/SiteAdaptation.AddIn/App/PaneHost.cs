@@ -27,6 +27,7 @@ namespace SiteAdaptation.AddIn
         private ExternalEvent runEvent;
         private ExternalEvent answerEvent;
         private ExternalEvent tellEvent;
+        private ExternalEvent newProjectEvent;
         private IntPtr owner;
 
         public static PaneHost Current { get; private set; }
@@ -94,15 +95,16 @@ namespace SiteAdaptation.AddIn
                 teller.Text = text;
                 host.tellEvent.Raise();
             };
-            // Lane C NEWPROJ-UI. New project and How it works open from the pane on the UI thread of Revit. Neither needs the API context,
-            // since Save setup changes the settings in memory only and the next real run writes them (R367)
+            // R445. New project opens in the API context of Revit through an external event, as a run of a button does, so Save setup
+            // writes the settings into the model at once in a transaction of its own. How it works needs no API context
             host.owner = application.MainWindowHandle;
-            host.model.NewProjectRequested += host.OpenNewProject;
+            host.newProjectEvent = ExternalEvent.Create(new NewProjectHandler(host));
+            host.model.NewProjectRequested += () => host.newProjectEvent.Raise();
             host.model.HowItWorksRequested += () =>
             {
                 if (HowItWorks.HowItWorksDialog.Show(host.owner, host.model.Document != null))
                 {
-                    host.OpenNewProject();
+                    host.newProjectEvent.Raise();
                 }
             };
             host.SavedStartsChanged();
@@ -113,6 +115,7 @@ namespace SiteAdaptation.AddIn
             application.ControlledApplication.DocumentClosing += host.OnClosing;
             application.ControlledApplication.DocumentClosed += host.OnClosed;
             application.ControlledApplication.DocumentSavedAs += host.OnSavedAs;
+            application.ControlledApplication.DocumentChanged += host.OnChanged;
             application.ViewActivated += host.OnViewActivated;
             Current = host;
         }
@@ -123,22 +126,62 @@ namespace SiteAdaptation.AddIn
                 Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), WorkFolder.ReadIfThere);
         }
 
-        // The settings of the document shown, laid over by Save setup, the pane takes them as a pick. Cancel and a document with no
-        // settings yet change nothing. How it works pressed with no document open leaves New project shut, as its pane button is grey then
-        private void OpenNewProject()
+        // R445. The settings of the document shown, laid over by Save setup and written into that document at once, then loaded by the
+        // pane as they were written. Cancel changes nothing. How it works pressed with no document open leaves New project shut, as its
+        // pane button is grey then. With no model to write to, the document not found or read only, the pane keeps the setup as before
+        // R445 and the next real run of a button writes it
+        internal void OpenNewProject(UIApplication application)
         {
             DocumentSession document = model.Document;
             if (document == null)
             {
                 return;
             }
+            Document revit = DocumentOf(application, document);
+            bool modelOpen = revit != null && !revit.IsReadOnly;
             string root = WorkRoot();
-            ProjectSettings saved = NewProject.NewProjectDialog.Show(owner, document.Settings.Project, document.Title, root, WorkFolder.For(root, document.Path), new DialogPicker());
+            ProjectSettings saved = NewProject.NewProjectDialog.Show(owner, document.Settings.Project, document.Title, root, WorkFolder.For(root, document.Path), new DialogPicker(), modelOpen);
             if (saved != null)
             {
-                model.LoadSettings(new PaneSettings(saved));
+                model.LoadSettings(new PaneSettings(Written(modelOpen ? revit : null, saved)));
             }
             SavedStartsChanged();
+        }
+
+        // The setup as the model holds it after the commit, the setup as saved with no model to write to, else the setup as saved with
+        // the reason in the TaskDialog of the buttons
+        private static ProjectSettings Written(Document revit, ProjectSettings saved)
+        {
+            string reason;
+            try
+            {
+                SetupWriteResult result = SetupWrite.Write(saved, revit == null ? null : new Revit.RevitModel(revit), revit == null ? null : new Revit.SettingsEntity(revit));
+                if (result.Outcome != SetupWriteOutcome.Failed)
+                {
+                    return result.Settings ?? saved;
+                }
+                reason = result.Reason;
+            }
+            // Review of FIX-1NOV-C: a refused argument or JSON would otherwise leave Execute with the setup lost and nothing said
+            catch (Exception error) when (error is InvalidOperationException || error is ArgumentException || error is System.IO.InvalidDataException
+                || error is Newtonsoft.Json.JsonException || error is Autodesk.Revit.Exceptions.ApplicationException)
+            {
+                reason = error.Message;
+            }
+            TaskDialog.Show(RibbonLayout.Tab, TextTemplate.Fill(NewProject.NewProjectText.NotWritten, reason));
+            return saved;
+        }
+
+        private Document DocumentOf(UIApplication application, DocumentSession document)
+        {
+            foreach (Document open in application.Application.Documents)
+            {
+                if (!open.IsFamilyDocument && !open.IsLinked && sessions.Find(open) == document)
+                {
+                    return open;
+                }
+            }
+            return null;
         }
 
         private void SavedStartsChanged()
@@ -195,6 +238,26 @@ namespace SiteAdaptation.AddIn
         {
             sessions.Closed(e.DocumentId, e.Status == RevitAPIEventStatus.Succeeded);
             Show(sender as Application);
+        }
+
+        // R445, breaker of FIX-1NOV-C. An undo or a redo can take back the write of Save setup or of a real run, so the pane reads the
+        // Settings entity of that document again. A commit changes nothing here, the writer loads the pane itself
+        private void OnChanged(object sender, DocumentChangedEventArgs e)
+        {
+            if (e.Operation != UndoOperation.TransactionUndone && e.Operation != UndoOperation.TransactionRedone)
+            {
+                return;
+            }
+            Document document = e.GetDocument();
+            if (document == null || document.IsFamilyDocument)
+            {
+                return;
+            }
+            DocumentSession session = sessions.Undone(document, new Revit.SettingsEntity(document));
+            if (session != null && session == model.Document)
+            {
+                model.LoadSettings(session.Settings);
+            }
         }
 
         // A new project saved under a name gets its path and title, so the pane shows them and its steps. A plain save keeps both,
@@ -285,6 +348,27 @@ namespace SiteAdaptation.AddIn
         public string GetName()
         {
             return "SiteAdaptation.RunButton";
+        }
+    }
+
+    // R445. New project in the API context of Revit, so Save setup writes the model at once
+    internal sealed class NewProjectHandler : IExternalEventHandler
+    {
+        private readonly PaneHost host;
+
+        public NewProjectHandler(PaneHost host)
+        {
+            this.host = host;
+        }
+
+        public void Execute(UIApplication app)
+        {
+            host.OpenNewProject(app);
+        }
+
+        public string GetName()
+        {
+            return "SiteAdaptation.NewProject";
         }
     }
 

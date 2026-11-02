@@ -2,6 +2,33 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Lane C FIX-1NOV-C, 2026-11-01 and 02, Save setup writes the model, window check, cleanup, Bader's sheet
+
+Goal:
+- Bader's prompts: Q280, a window check after the lanes' rounds, HEADSUP for all lanes, steps/bader-fix-1nov.md with every open question, the folder cleanup
+
+Done:
+- R445: Save setup writes the Settings entity at once by SetupWrite.Write and SettingsStore.Save in one transaction, New project opens through the external event NewProjectHandler, an undo or redo reloads the pane settings (READ docs/rules/12-lane-c-r430-up.md)
+- Window check: 11 windows rendered by UiShots and held against steps/ui-shots. One issue, the head Confirmed of Review data ran into Area m2, fixed in Theme.xaml. Four shots refreshed after DEMO-FIX. The rounds A, B and D changed no XAML and no window text file (RAN git diff)
+- Cleanup: 36 helper folders moved to C:\_cleanup-1nov, none deleted, 7 merged remote branches deleted, steps/cleanup-1nov.md
+
+Checked:
+- Gate on 4a6fb62 before the last rebase: net48 1920, net8.0 1692, pytest 2268 passed, 1 skipped (RAN). The gate of this PR: see the PR
+- Reviewer and breaker, one pass each. REAL fixed: undo left the pane ahead of the model, a narrow catch, three stale texts. LATENT in steps/latent.md
+- Second method of the cleanup: each file of 39 helper folders hashed as a git blob against the 12,417 objects on origin (RAN)
+
+Remains:
+- Part 11 of the sheet waits for fix/1nov-d3
+
+Known bugs:
+- R445 has not run in Revit, part 10 of the sheet checks it. Hooks: this session started in the Lane A folder of the repo, so the hooks of that folder loaded
+
+Next:
+- FIX-2NOV-C, then part 11 when fix/1nov-d3 merges
+
+Your turn:
+- Closed: Q280 Save setup writes the model at once. 163 open, steps/questions-open.md
+
 ## Lane B Task 6 of FIX-1NOV-B, 2026-11-02, the demo by hand through the real windows, R457, Lane B on the laptop
 
 Goal:

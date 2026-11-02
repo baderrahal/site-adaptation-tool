@@ -13,47 +13,54 @@
 
 - Lane B Task 6 (FIX-1NOV-B), 02:30, branch fix/1nov-b-task6: both passes done, Revit closed, lock free, main with PR 130 merged in, keeping both sides.
   Now: the gate on the merged tree, then merge PR 131. Then Lane D D3 on my word
-- Lane C DEMO-FIX, 09:55, branch fix/lane-c-demo-fix: step rows of the pane run steps, a loader on every button, Confirm all in 3 Review
-  data, idle buttons hidden (R444). Now: the gate and the PR, merge by 10:15, then lane-b reinstalls. Blocked: none
+- Lane C FIX-1NOV-C, 02:51, branch fix/1nov-c: R445, window check, cleanup, sheet and this page done, on main ad05d28. Now: the gate and the PR.
+  Next: FIX-2NOV-C on fix/2nov-c. Part 11 of steps/bader-fix-1nov.md when fix/1nov-d3 merges. Blocked: none
 - Lane D D2, 21:50, branch fix/1nov-d2: R466, a test host job takes the design values of R405 from the repo config, the read KC2 ran
   clean, the sheet takes group Text (Q336). Now: the gate and the PR. Then D3 after Lane B's Task 6 hand run. Blocked: none
 
-Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane D D2, Lane D FIX-1NOV-D, Lane C DEMO-FIX, Lane B demo-fill, Lane A 4j-2, Lane D 4j-1b, Lane C SCAN-UI, Lane A 4i, Lane B 6a, 1 Nov 2026.
+Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane C FIX-1NOV-C, 2 Nov 2026.
 
 ## Repo map
 
-- .claude and .github: agents, hooks, the AI MAX skill, the gate workflow. config and rules: project.json with the files beside it, the override list, the rules profile with the R401 status block and the scan block
+- .claude and .github: agents, hooks, the AI MAX skill, the gate workflow. config and rules: project.json with the files beside it, shared_parameters.xlsx, the override list, the rules profile
 - docs: rules (index.md finds a rule by id), design parts and boards, the mock, the repo map. dotnet/CadReader: the worker, reads CAD, PDF and xlsx, writes the Excel files and the scan
-- dotnet/SiteAdaptation.AddIn: the Revit add-in, ribbon, pane, windows and the Revit side of each button. dotnet/SiteAdaptation.Common: the logic of the add-in and the worker, no Revit type, Scan/ the scan logic
+- dotnet/SiteAdaptation.AddIn: the Revit add-in, ribbon, pane, windows and the Revit side of each button. dotnet/SiteAdaptation.Common: the logic of the add-in and the worker, no Revit type
 - dotnet/SiteAdaptation.Tests and UiShots: the gate tests, the offscreen renders of the windows. dotnet, others: the placer, the test host, the prototype reader, the Civil 3D probe and watchers
-- python and tools: the readers and the plan build, the twin of the C# side with scan.py, the run scripts. steps: progress, log, plan, questions, latent findings, ui-shots, the history of the rounds
+- python and tools: the readers and the plan build, the run scripts. steps: progress, log, plan, questions, latent findings, ui-shots, bader-fix-1nov.md, cleanup-1nov.md, the history of the rounds
 
-## What this round changed
+## What changed on 1 and 2 Nov
 
-- Lane B 6a: the test host runs every button with no click (R384) and draws each window, fixes found in Revit (Q274, R108). 5d: buttons 5, 6, 8
-- Lane D 4j-1: a scanner of any CAD, Excel and PDF, worker command scan, python/scan.py, design part 17. 4j-1b: speed and a time cap
-- Lane A 4i: the design basis switch, the Rev 6 back yard slopes, the new project check (R407 to R412)
-- Lane A 4j-2: split test off (R414), irregular plots (R415), wall face on the plot line (R416). FIX-1NOV-A: ramp joints behind join false, joint rows. A2: button 2 takes the picks, Update finds the plan of 4 Check
-- Lane C SCAN-UI: What the tool read after the scan of button 2, New project dropdowns, Current files, cluster confirm, door level from
+- Lane C DEMO-FIX, PR 124 (R444): step rows of the pane run steps, a loader on every button, Confirm all, idle buttons hidden. AddIn/Loader, Pane, ReviewData
+- Lane D FIX-1NOV-D, PR 126 (R460 to R465): config/shared_parameters.xlsx is the one parameter source of button 1. Common/SetUp/ParameterSheet.cs, ParameterBook.cs, SetUpPlanner.cs, RevitSiteDocument.cs
+- Lane B FIX-1NOV-B, PR 127: masses as one linked file per prototype (R450 to R453), coordinates from CAD with three control points (R454 to R456). Common/PlaceVillas/MassFiles.cs, RevitMassFileMaker.cs, Common/SetUp/SitePosition.cs, CoordinateSystems.cs, ControlPoints.cs
+- Lane A FIX-1NOV-A, PR 128 (R470, R471): shared ramp corners behind floors.rampJoint.join, false, and joint rows in 4 Check. No code builds a curb, curbs are read only (R355). Common/Plan/CheckRows.cs
+- Lane D D2, PR 129 (R466): a test host job takes the design values from the repo config, the sheet takes group Text (Q336)
+- Lane C FIX-1NOV-C (R445): Save setup writes the model at once in its own transaction, an undo or redo reloads the pane settings, Q280 closed. Review data column fix. Folder cleanup, steps/cleanup-1nov.md
+- Lane A FIX-1NOV-A2, PR 130 (R472 to R474): button 2 takes the scan picks (Q292), Update from report finds the plan of 4 Check by its run log (Q278)
+- Lane B Task 6, PR 131 (R457): the demo by hand, two passes, steps/demo-check.md, a neighbourhood kept when the list refills
+- Pending, not on main: fix/1nov-d3 (Links mode)
 
 ## New rules
 
-- R384 Test host runs every button (Lane B 6a). R378 to R380 buttons 5, 6 and 8 (Lane B 5d)
-- R420 to R429 of the scanner (Lane D 4j-1, 4j-1b). R407 to R412 (Lane A 4i). R414 to R416 (Lane A 4j-2). R470 to R474 (Lane A FIX-1NOV-A, A2). R430 to R443 of Lane C
+- R444, R445 (Lane C). R450 to R456 (Lane B). R460 to R466 (Lane D). R457 (Lane B). R470 to R474 (Lane A). Id on a branch: R468 (D3)
 
 ## Wiring
 
-- Lane B: ButtonsRunHost runs Buttons.Run(number) and Buttons.Run(name), answers each Dialog seam with no click, WindowShots draws each window. 4 Check writes run_4_<run id>.json, ReportRun.CheckRun.Find of 9 reads it. Buttons 5, 6, 8 by FloorsBody, LevelsBody, WallsBody
-- Lane A: key_levels calls plan_rules.split_test, build plan_walls.inside. override_step and build call joint_levels, PlanOverrides.Of JointLevels, checks joint_rows, CheckRows.Step JointRows. ReadDataRun calls ReadPicks.Resolve, WorkerReads Take, UpdateFromReportRun.Read CheckRun.PlanOf
-- Lane D: worker command scan, WorkerReads.Commands to CadScan.Command. Button 2 does not start it (Q246)
-- Lane C: the pane opens NewProjectDialog and HowItWorksDialog. Buttons calls ReadDataBody.For, ScanStep.Wrap runs the scan, ScanGate.Ask opens ScanResultsDialog, NewProjectDialog.Facts is LatestScanFacts
+- Pane to a button: a step row or the box raises RunRequested, RunButtonHandler calls Buttons.Run, the path of the ribbon. Buttons.Run starts RunLoader
+- New project: NewProjectRequested raises NewProjectHandler, PaneHost.OpenNewProject opens NewProjectDialog.Show, then SetupWrite.Write, SettingsStore.Save and SettingsEntity in one transaction, then PaneViewModel.LoadSettings. PaneHost.OnChanged calls PaneSessions.Undone on an undo or redo
+- Button 1: SetUpSiteBody calls SetUpRun, ReadingCad runs CoordinateRequest.Run with the worker command crs, ParameterSheet reads the sheet through ParameterBook inside Revit
+- Button 7: PlaceVillasBody makes MassFileSet with RevitMassFileMaker, MassFiles keeps one mass file per prototype in the mass folder, WallRing.Choose takes the base. VillaLoad.Load gives the plan
+- 4 Check: CheckRows gives the joint rows. Button 2: ReadDataBody.For, ScanStep.Wrap runs the scan, ScanGate.Ask opens ScanResultsDialog. 9 Report: ReportRun.CheckRun.Find reads run_4_<run id>.json
+- Test host: ButtonsRunHost runs Buttons.Run and answers each Dialog seam with no click, WindowShots draws each window
 
 ## Open risks
 
-- All 336 masses are flagged by the footprint check, the masses stand right, the drawing holds plot blocks (Q276). Update from report stops on the plan of 4 Check (Q278, Lane A). Links waits on the upgrade first step limit (Q275)
-- New project shows Plots found and Villa types as not read until the scanner hook C1 is built. Lane D: no villa type source reaches the strong share on ROSHN (Q254), a large drawing scanned in part past the cap (Q258). Lane C: the read of button 2 does not take the picks yet (Q292)
-- Lane A: R414 8 of 82 (Q303, Q304), no garden door (Q259). Joints wait on Q340, Q341, configs saved with no floors.rampJoint stop the build (C:\SA-demo\config)
+- R445 has not run in Revit: the window from an external event, the commit and the undo. Part 10 of steps/bader-fix-1nov.md checks them
+- C:\SA-demo\config lacks the keys of today, a config with no floors.rampJoint stops the build (part 2 of the sheet). Links waits on Q275. 4 Check with Dry run on is a dead end (Q195), FIX-2NOV-C
+- Lane D: no villa type source reaches the strong share on ROSHN (Q254). Lane A: joints wait on Q340, Q341, R414 8 of 82 (Q303, Q304)
+- The Parsons shutdown notice runs with higher rights, no session can press Postpone, only Bader. The ASK table of steps/cleanup-1nov.md waits for Bader
 
 ## Next
 
-- Lane B: DEMO for 1 Nov 11:00, then Links after Q275. Lane C: tasks 5 and 6 on 4i, task 7. Lane D: Bader's answers to Q243 to Q258. Lane A: Bader's answers to Q303, Q304 and Q259
+- Lane D: merge fix/1nov-d3, send Lane C its steps, then Lane C fills part 11 of the sheet. Lane C: FIX-2NOV-C on fix/2nov-c, the window findings of steps/demo-check.md
+- Bader: the steps of steps/bader-fix-1nov.md, the 163 questions at its end, the ASK table of steps/cleanup-1nov.md. Then Part 2 after his check of Part 1

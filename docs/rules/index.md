@@ -425,6 +425,7 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R442 Cluster confirm marks.
 - R443 Door level source counts.
 - R444 Pane drives steps, loader, no idle button.
+- R445 Save setup writes the model at once.
 
 ## 13-parameters-r460-up.md
 
