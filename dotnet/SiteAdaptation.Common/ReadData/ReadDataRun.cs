@@ -53,6 +53,9 @@ namespace SiteAdaptation.Common.ReadData
             this.settings = settings;
         }
 
+        // R492. The road surfaces picked in Set up, read under rev6 alone. Null where no pane gives one, or a pick not made, takes those of config
+        public Func<IReadOnlyList<string>> RoadPick { get; set; }
+
         public ButtonBody Body()
         {
             return new ButtonBody { Preview = Preview, Start = Start };
@@ -136,6 +139,7 @@ namespace SiteAdaptation.Common.ReadData
                     Scope = new WorkerScope { Kind = "project" },
                     OutputFolder = folder, Steps = plan.Steps.ToList(), StepsFolder = Path.Combine(folder, "steps"),
                     TimeLimitS = AddinConfig.Load(plan.ConfigPath).WorkerTimeLimitS(Command),
+                    RoadSurfaces = RoadSurfaceChoices.ForRequest(JObject.Parse(WorkFiles.ReadText(plan.ConfigPath)), RoadPick?.Invoke()),
                 };
                 Directory.CreateDirectory(work);
                 string requestPath = request.Write(work);
@@ -175,7 +179,7 @@ namespace SiteAdaptation.Common.ReadData
         // R474. sources names per value kind the source read and from where, and each conflict pick applied
         private static JObject Recorded(string runId, ReadPlan plan, IReadOnlyDictionary<string, string> outputs, JObject counts, IReadOnlyList<string> issues, JObject picks)
         {
-            return new JObject
+            var record = new JObject
             {
                 ["format"] = RecordFormat, ["runId"] = runId,
                 ["inputs"] = new JArray(plan.Inputs.Select(input => new JObject { ["role"] = input.Role, ["path"] = input.Path, ["bytes"] = input.Bytes, ["sha256"] = input.Sha256 })),
@@ -185,6 +189,12 @@ namespace SiteAdaptation.Common.ReadData
                 ["issues"] = new JArray(issues),
                 ["sources"] = ReadPicks.Sources(picks),
             };
+            // R492. The road order of a read under rev6, none in the record of the past job
+            if (plan.RoadOrder != null)
+            {
+                record["roadOrder"] = plan.RoadOrder;
+            }
+            return record;
         }
 
         // The scope of R366 held against the whole plot table of the read. A stop keeps the read for the next run and the step as it was
@@ -217,7 +227,7 @@ namespace SiteAdaptation.Common.ReadData
 
         private ReadPlan Plan(RunContext context)
         {
-            ReadPlan plan = ReadInputs.Make(context.Inputs, roles, context.WorkFolder);
+            ReadPlan plan = ReadInputs.Make(context.Inputs, roles, context.WorkFolder, RoadPick?.Invoke());
             if (plan.Stops.Count > 0)
             {
                 throw new InvalidDataException(string.Join(". ", plan.Stops));
@@ -244,6 +254,11 @@ namespace SiteAdaptation.Common.ReadData
             }
             var listed = ((JArray)record["inputs"] ?? new JArray()).Select(input => (string)input["role"] + "|" + (string)input["sha256"]).OrderBy(item => item, StringComparer.Ordinal);
             if (!listed.SequenceEqual(plan.Inputs.Select(input => input.Role + "|" + input.Sha256).OrderBy(item => item, StringComparer.Ordinal)))
+            {
+                return null;
+            }
+            // R492. The same files in another road order are another read
+            if ((string)record["roadOrder"] != plan.RoadOrder)
             {
                 return null;
             }

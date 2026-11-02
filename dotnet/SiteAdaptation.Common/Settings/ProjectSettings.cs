@@ -34,6 +34,9 @@ namespace SiteAdaptation.Common.Settings
         // The pick of Door level from in the window of 4 Check, civilFile or roadPlusSlope, null until a pick (R443). The build of 4 Check
         // still takes designBasis.doorLevel.source of config, so the pick is only kept here for the next build once Lane A reads it
         public string DoorLevelSource { get; set; }
+
+        // R492. The road surfaces picked in Set up, in order, null until a pick, which under rev6 replace designBasis.roadLevel for the read and the build
+        public List<string> RoadSurfaces { get; set; }
     }
 
     public sealed class SettingsInput

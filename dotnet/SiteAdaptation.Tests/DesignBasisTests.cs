@@ -311,7 +311,7 @@ namespace SiteAdaptation.Tests
             JObject config = JObject.Parse(File.ReadAllText(settings.Path));
             string surface = (string)config["siteBuild"]["roadSurfaces"][0];
             config["designBasis"]["mode"] = DesignBasis.Rev6;
-            config["designBasis"]["roadLevel"]["surface"] = surface;
+            config["designBasis"]["roadLevel"]["surfaces"] = new JArray(surface);
             change?.Invoke(config, request.Inputs);
             File.WriteAllText(settings.Path, config.ToString());
             settings.Sha256 = FileHash.Sha256(settings.Path);
@@ -355,7 +355,7 @@ namespace SiteAdaptation.Tests
             JObject rules = JObject.Parse(File.ReadAllText(BuildStepTests.RepoRules()));
             JObject profile = BuildRules.LevelProfile(rules, null);
             ReadSettings read = ReadSettings.Load(WorkerRunTests.RepoConfig());
-            DesignBasis basis = Rev6(block => block["roadLevel"]["surface"] = "Made Up Road Surface");
+            DesignBasis basis = Rev6(block => block["roadLevel"]["surfaces"] = new JArray("Made Up Road Surface"));
             Assert.Equal(new[] { "Made Up Road Surface" }, Fronts.RoadNames(profile, read, basis));
             Assert.Equal(Fronts.RoadNames(profile, read), Fronts.RoadNames(profile, read, DesignBasis.Of(Config(), () => null)));
             Assert.Equal(((JArray)Config()["siteBuild"]["roadSurfaces"]).Select(item => (string)item), Fronts.RoadNames(profile, read));
@@ -364,11 +364,14 @@ namespace SiteAdaptation.Tests
         [Fact]
         public void R409_no_surface_name_is_refused_under_rev6_and_a_name_the_request_does_not_hold_is_refused()
         {
-            Assert.Equal("designBasis.roadLevel.surface names no road surface, a build under rev6 takes the road level from the one surface it names (R409)",
-                Refusal(() => Rev6(block => block["roadLevel"]["surface"] = "")));
+            Assert.Equal(DesignBasis.NoSurfaces, Refusal(() => Rev6(block =>
+            {
+                ((JObject)block["roadLevel"]).Remove("surfaces");
+                block["roadLevel"]["surface"] = "";
+            })));
             using (var steps = new LevelFloorStepTests())
             {
-                WorkerRequest request = Rev6Request(steps, "d4", (config, inputs) => config["designBasis"]["roadLevel"]["surface"] = "Made Up Road Surface", "levels");
+                WorkerRequest request = Rev6Request(steps, "d4", (config, inputs) => config["designBasis"]["roadLevel"]["surfaces"] = new JArray("Made Up Road Surface"), "levels");
                 Assert.Equal(WorkerExit.Refused, WorkerRunner.Run(request.Write(request.OutputFolder), WorkerCommands.Default(), () => 9000.0));
             }
         }

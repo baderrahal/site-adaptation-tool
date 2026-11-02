@@ -797,8 +797,10 @@
       "slopePercent": {"default": 0.5, "C10": 2.0, "VL4": 2.0, "VL6": 2.0}
     },
     "roadLevel": {
-      "note": "R409, round 4i. Under rev6 the road at a front corner comes from the one surface named here, the road role of config/road_surfaces.json, Top Surface-02 by Bader's choice there, never from the surfaces of siteBuild.roadSurfaces in their order. oldJobOffsetM is the steady difference of the past 1.4 job to today's Top Surface-02, held in the status block, never added to a level",
-      "surface": "Makkah Phase 1_Road Surface C3D__Top Surface-02",
+      "note": "R409 and R490, round FIX-2NOV-D, Bader's decision of 2 Nov on Q364 and Q256. Under rev6 a project names its finished road surfaces in order in surfaces, and a front corner takes its road level from the first of them that covers it (R491). The list here, the same six names in the same order as siteBuild.roadSurfaces, is CHOSEN by Code, Bader decides the list per project. noRoadStopShare 0.10 is CHOSEN by Code (R493): a build stops when a zone has more than this share of its unit plots with no road level, because a zone mostly off the named surfaces means a missing surface, not odd plots, and a few plots are listed instead. oldJobOffsetM is the steady difference of the past 1.4 job to today's Top Surface-02, held in the status block, never added to a level",
+      "surfaces": ["Makkah Phase 1_Road Surface C3D__Top Surface-02", "Makkah Phase 1_Road Surface C3D__Top Surface-01", "Makkah Phase 1_Road Surface C3D__Part 4 Top Surfaces", "Makkah Phase 1_Road Surface C3D__Compiled West_MM", "Makkah Phase 1_Road Surface C3D__Top Surface Part 2 East Of East", "Makkah Phase 1_Road Surface C3D__Missed from Paste"],
+      "noRoadStopShare": 0.10,
+      "noRoadStopWhy": "A zone mostly off the named surfaces means a missing surface, not odd plots, a few plots are listed instead in summary.noRoadLevel",
       "oldJobOffsetM": 0.21,
       "oldJobOffsetSource": "steps/investigations/data-book.md Part X: the ramp corners of the 1.4 key on NBH 022, 294 plots, a median 212 mm under Top Surface-02 and 164 within 5 mm once 0.212 m is taken off (R242, R247 to R249)"
     },

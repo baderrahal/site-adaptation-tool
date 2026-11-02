@@ -406,7 +406,8 @@ namespace CadReader
         }
 
         // R349. The road surfaces of siteBuild.roadSurfaces in their order, each the input roadSurface:<name>, every one of the order and no
-        // other, the first surface of each file, named as a build names it. A LandXML not in meter is refused, never converted
+        // other, the first surface of each file, named as a build names it. A LandXML not in meter is refused, never converted. R492: under rev6
+        // those the request picks or the config names in their order
         private static List<TinSurface> Surfaces(WorkerContext run, ReadSettings settings, HashSet<string> steps, Dictionary<string, Dictionary<string, Dictionary<string, object>>> made)
         {
             WorkerRequest request = run.Request;
@@ -425,12 +426,13 @@ namespace CadReader
             {
                 throw run.Refusal(refused.Message);
             }
-            List<string> order = settings.RoadSurfaces;
+            List<string> order = settings.ReadRoads(request.RoadSurfaces);
             List<string> extra = roles.Where(role => !order.Contains(role.Substring(WorkerRunner.RoadSurfaceRole.Length))).ToList();
             List<string> missing = order.Where(name => !roles.Contains(WorkerRunner.RoadSurfaceRole + name)).ToList();
             if (extra.Count > 0 || missing.Count > 0)
             {
-                throw run.Refusal("the road surfaces of the request are not those of siteBuild.roadSurfaces: not in config " + string.Join(", ", extra) + ", not in the request " + string.Join(", ", missing));
+                throw run.Refusal("the road surfaces of the request are not those of " + (settings.IsRev6 ? "designBasis.roadLevel or the pick of Set up" : "siteBuild.roadSurfaces") + ": not in config "
+                    + string.Join(", ", extra) + ", not in the request " + string.Join(", ", missing));
             }
             var files = new List<LandXmlFile>();
             var summary = new JObject();

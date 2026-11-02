@@ -58,6 +58,12 @@ namespace SiteAdaptation.AddIn.Pane
         public const string SharedParameters = "Shared parameters";
         public const string Export = "Export";
 
+        public const string PickSurfaces = "Pick surfaces";
+        public const string SurfacesInOrder = "Road surfaces in order (<n>): <name>";
+        public const string SurfacesNone = "No road surface is picked.";
+        public const string SurfacesPastJob = "The saved project takes its road surfaces from its past job, so this pick is not used.";
+        public const string SurfacesNoSetup = "Pick a saved project under Start from first.";
+
         public const string NotChosen = "Not chosen";
         public const string Size = "<n> MiB";
         public const string SizeAndHash = "<n> MiB <n>";

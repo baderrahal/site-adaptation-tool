@@ -164,7 +164,7 @@ namespace SiteAdaptation.Tests
             JObject config = JObject.Parse(File.ReadAllText(settings.Path));
             string surface = (string)config["siteBuild"]["roadSurfaces"][0];
             config["designBasis"]["mode"] = DesignBasis.Rev6;
-            config["designBasis"]["roadLevel"]["surface"] = surface;
+            config["designBasis"]["roadLevel"]["surfaces"] = new JArray(surface);
             File.WriteAllText(settings.Path, config.ToString());
             settings.Sha256 = FileHash.Sha256(settings.Path);
             request.Inputs.RemoveAll(input => input.Role.StartsWith(WorkerRunner.RoadSurfaceRole, StringComparison.Ordinal) && input.Role != WorkerRunner.RoadSurfaceRole + surface);

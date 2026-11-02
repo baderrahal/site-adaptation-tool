@@ -13,10 +13,10 @@
 
 - Lane B FIX-2NOV-B, 22:32, branch fix/2nov-b: final gate of R459 running since about 22:15, then PR. Then Q158 in a second PR, then the hand run of task 4. Lane C holds the lock, nothing blocks.
 - Lane C, branch docs/2nov-c-params: the other 12 bound parameters listed Keep No with a Note in config/shared_parameters.xlsx. Then SPEED-2NOV-C on speed/2nov-c, R449 pushed, helpers on R447 and R448. Blocked: none
-- Lane D 6B-DATA-REV6, 2 Nov, branch feat/6b-data-rev6: no Revit, no window lock. 5 TU zones under rev6, levels equal the past rules, config copies outside git. Opened Q364.
-  Now: the PR, merge when green. Blocked: none
+- Lane D FIX-2NOV-D, 2 Nov, branch fix/2nov-d: no Revit, no window lock. Several road surfaces in order (Q364, Q256), R490 to R493, Q370 up. Editing NewProjectDialog and the pane road row, lane-c told.
+  Now: the gate, the PR, merge when green. Then MASS-2NOV-D. Blocked: none
 
-Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane C parameters, 2 Nov 2026.
+Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane D FIX-2NOV-D, 2 Nov 2026.
 
 ## Repo map
 
@@ -38,6 +38,7 @@ Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane
 - Lane B Task 6, PR 131 (R457): the demo by hand, two passes, steps/demo-check.md, a neighbourhood kept when the list refills
 - Lane C FIX-2NOV-C (R446): Review data Close and ask, no idle button, Run complete in the pane, the export refused in the input folder, Dry run off before 4 Check
 - Lane D D3, PR 134 (R467, R468): Links mode proven by the test host on NBH 012, Q275 closed. Through the pane the Prototypes row names the link folder (part 11)
+- Lane D FIX-2NOV-D (R490 to R493): designBasis.roadLevel.surfaces, ProjectSettings.RoadSurfaces, WorkerRequest.RoadSurfaces, the window Road surfaces. A new function and its caller: design_basis.surfaces_of, stop_share_of, not_taken_why, named_surfaces by basis_of, no_road_stop and road_gaps by plan_from_book.run_build, road_order by level_excel_check.expected. DesignBasis.SurfacesOf, StopShareOf by Of, TakePick by BuildSteps.Run, NoRoadStop, NoRoadLine by BuildPlan.NoRoadCheck by BuildPlan.Write, IsNoRoad by CheckRun. RoadSurfaceChoices.Named, IsRev6, OrderText, ForRequest, NotTakenWhy by ReadInputs.Make, CheckRun.Plan, ReadDataRun.Start, PaneRunState.InputsOf, ReadSettings.ReadRoads. ReadSettings.ReadRoads by WorkerReads.Surfaces, LevelWorkbook.Command. RoadSurfacesDialog.Show by NewProjectDialog.Show and PaneHost.Register, RoadSurfacesViewModel by the dialog, RoadPickState by both view models, PickSurfaces by NewProjectWindow and SitePanePage
 
 ## New rules
 

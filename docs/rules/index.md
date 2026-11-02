@@ -449,6 +449,10 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R467 Link folder of a buttons run.
 - R468 Copy saved after each button.
 - R469 Plan of a zone against its key.
+- R490 Road surfaces named in order.
+- R491 Each corner takes first surface.
+- R492 Road surfaces picked in Set up.
+- R493 Stop on plots with no road.
 
 ## 13-site-coords-r454-up.md
 

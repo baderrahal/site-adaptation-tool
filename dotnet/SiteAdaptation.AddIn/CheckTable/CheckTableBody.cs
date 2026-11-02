@@ -52,6 +52,8 @@ namespace SiteAdaptation.AddIn.CheckTable
         {
             run.DoorPick = () => settings.Project.DoorLevelSource;
             run.DoorPicked = source => settings.Project.DoorLevelSource = source;
+            // R492. The road surfaces picked in Set up, null while none was picked
+            run.RoadPick = () => settings.Project.RoadSurfaces;
             return run;
         }
     }
