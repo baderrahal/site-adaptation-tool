@@ -26,7 +26,7 @@ Look for: git pull ends on the merge of fix/1nov-c. The build ends with "0 Error
 1. Copy C:\SA-demo\SA-demo-start.rvt to a new name, for example C:\SA-demo\SA-fix1nov.rvt. Every test below runs on that copy.
 2. C:\SA-demo\config\project.json is from 691e1fc and lacks the keys of today (addin.lightMode linkFolder, massFolder, houseLayer, the coordinates block, addin.parameterSheet). Either pick the repo config C:\Users\p003653k\OneDrive - Parsons Corp\Documents\GitHub\site-adaptation-tool\config\project.json in the pane, or tell Lane B to refresh C:\SA-demo\config, it does so on your word only.
 3. Start Revit 2024 and open the copy. If Revit asks about the Site Adaptation add-in, press Always Load.
-4. In the pane untick Dry run first. With it ticked 4 Check refuses and 5 to 9 cannot be reached (Q195).
+4. Leave Dry run first as it is. From FIX-2NOV-C the tool unticks it before 4 Check and says why under the tick (Q195, R446).
 
 When 5 Floors and ramps stops on the Revit box "Highlighted floors overlap.", press OK. Cancel undoes the step (Q324).
 
@@ -123,13 +123,27 @@ Lane B ran the demo by hand through the real windows, two passes on NBH 012. Its
 2. Read Go or no-go and the four points under it.
 3. Decide Q308 and Q309, the stray export in C:\SA-demo\inputs and the refresh of the demo config.
 
-Look for: GO for a live run of 1 to 9 on NBH 012 with Dry run off, once the four points are done. NO-GO with Dry run on until Q195 is fixed, the round after this one.
+Look for: GO for a live run of 1 to 9 on NBH 012 with Dry run off, once the four points are done. The NO-GO with Dry run on is gone since FIX-2NOV-C (R446), steps/demo-check.md was written before it.
+
+## 13. No dead end in the windows (Lane C, FIX-2NOV-C, R446)
+
+Not run in Revit yet, this is the first check there.
+
+1. Open 3 Review data, mark one plot Wrong, press Close.
+2. In the ask press Cancel, then Close again, then Don't save.
+3. Run 3 Review data again, mark one plot, press the X, then Save in the ask.
+4. In What the tool read press Export to Excel, pick C:\SA-demo\inputs, press Save.
+5. Press Export to Excel again and look at the folder it opens.
+6. With Dry run ticked, press Run 4 Check.
+7. Run on to 9 Report and look at the Next step box, then press Open folder.
+
+Look for: at step 2 the ask "Save your review?" with Save, Don't save and Cancel, and Cancel keeps the window open. At step 3 the window closes and the marks are saved. At step 4 the foot says the tool never writes in the input folder, and no file appears there. At step 5 the dialog opens in the work folder. At step 6 Dry run goes off, the line under it says why, and 4 Check runs. At step 7 the box says Run complete with the report file name, and Explorer opens on its folder.
 
 ## Questions for Bader
 
-Every open question of steps/questions-open.md on the merge of fix/1nov-c, 163 open, by topic, the oldest first, each with its recommended answer. [demo] and [new project] mark the ones a demo or a new project meets first. The full text is in steps/questions-open.md.
+Every open question of steps/questions-open.md on the merge of fix/1nov-c, 162 open, by topic, the oldest first, each with its recommended answer. [demo] and [new project] mark the ones a demo or a new project meets first. The full text is in steps/questions-open.md.
 
-First for a demo or a new project: Q187, Q195, Q201, Q202, Q224, Q227, Q237, Q243, Q254, Q275, Q281, Q282, Q286, Q293, Q296, Q308, Q309, Q320, Q322, Q324, Q325, Q328, Q335.
+First for a demo or a new project: Q187, Q201, Q202, Q224, Q227, Q237, Q243, Q254, Q275, Q281, Q282, Q286, Q293, Q296, Q308, Q309, Q320, Q322, Q324, Q325, Q328, Q335.
 
 ### Levels, ramps and floors
 
@@ -275,7 +289,6 @@ First for a demo or a new project: Q187, Q195, Q201, Q202, Q224, Q227, Q237, Q24
 - Q180 The status of designValues in the R401 block. Recommended: Bader confirms them CHOSEN by Bader, and the block says so.
 - Q182 The 0.05 m side band of majority.side_neighbours. Recommended: move it to hands.sideBandM in config in the next code PR.
 - Q184 Plain rule names and past phrases of the check table. Recommended: accept, Bader checks the wording in the shots.
-- Q195 Dry run of button 4 [demo]. Recommended: a Start body runs the dry build later into dry\<run id>, Revit does not wait.
 - Q196 addin.overrideFile in config. Recommended: add "config/overrides/roshn-makkah.json".
 - Q197 key_join.json and the key reads as inputs. Recommended: two optional pane rows, Key join and Key reads.
 - Q198 Past gaps of the 51 missing and 3 question rows. Recommended: take them from the past_all.csv rows of the keys.
@@ -315,7 +328,7 @@ First for a demo or a new project: Q187, Q195, Q201, Q202, Q224, Q227, Q237, Q24
 - Q294 Rules chosen in Set up site, when used. Recommended: keep it so, the window says the choice is saved with the setup.
 - Q296 A saved project holds no drawing path [demo]. Recommended: Keep it so, a saved project of one job must not point another job at its drawings, and the demo browses the five files once.
 - Q306 A neighbourhood picked after the first read. Recommended: button 2 takes the project key as button 1 does, since the pick does not change what is read.
-- Q308 The stray export in the demo inputs [demo]. Recommended: delete the file, and Lane C makes the export offer the work folder.
+- Q308 The stray export in the demo inputs [demo]. Recommended: delete the file. The Lane C half is done, R446 refuses the input folder and opens in the work folder.
 - Q309 Refresh the demo config and add-in [demo]. Recommended: refresh C:\SA-demo\config from main and reinstall main before a live run, then run it once more on a copy.
 - Q324 The Revit warning box at step 5 [demo]. Recommended: the step takes these overlap warnings itself and lists them as issues, so no box stops a run.
 

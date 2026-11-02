@@ -88,6 +88,8 @@ namespace SiteAdaptation.AddIn
                 runner.Number = number;
                 host.runEvent.Raise();
             };
+            // R446. Open folder of the box, on the UI thread of Revit, no API context needed
+            host.model.OpenFolderRequested += folder => System.Diagnostics.Process.Start("explorer.exe", "\"" + folder + "\"");
             var teller = new TellHandler();
             host.tellEvent = ExternalEvent.Create(teller);
             host.model.Told += text =>

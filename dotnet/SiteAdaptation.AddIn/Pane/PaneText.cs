@@ -11,6 +11,12 @@ namespace SiteAdaptation.AddIn.Pane
         public const string RunButton = "Run <n> <name>";
         public const string DryRunOn = "Dry run is on.";
         public const string DryRunOff = "Dry run is off.";
+        public const string DryRunNoStep4 = "4 Check has no dry run yet, so the tool unticks Dry run when it runs.";
+        public const string DryRunUnticked = "Dry run is off, as 4 Check has no dry run yet.";
+        public const string RunComplete = "Run complete";
+        public const string RunCompleteLine = "The report is in the work folder.";
+        public const string OpenFolder = "Open folder";
+        public const string FolderGone = "The folder is not there any more: <name>";
 
         // docs/design/boards/PaneFirst.dc.html, the first open box of Lane C NEWPROJ-UI
         public const string StartLabel = "Start here";

@@ -13,8 +13,8 @@
 
 - Lane B Task 6 (FIX-1NOV-B), 02:30, branch fix/1nov-b-task6: both passes done, Revit closed, lock free, main with PR 130 merged in, keeping both sides.
   Now: the gate on the merged tree, then merge PR 131. Then Lane D D3 on my word
-- Lane C FIX-1NOV-C, 02:51, branch fix/1nov-c: R445, window check, cleanup, sheet and this page done, on main ad05d28. Now: the gate and the PR.
-  Next: FIX-2NOV-C on fix/2nov-c. Part 11 of steps/bader-fix-1nov.md when fix/1nov-d3 merges. Blocked: none
+- Lane C FIX-2NOV-C, 04:01, branch fix/2nov-c: R446 built, review fix in, tests green. Now: the gate, PR. Q195 closed, Q308 keeps only the stray file. Part 11 of
+  steps/bader-fix-1nov.md when fix/1nov-d3 merges. Blocked: none
 - Lane D D2, 21:50, branch fix/1nov-d2: R466, a test host job takes the design values of R405 from the repo config, the read KC2 ran
   clean, the sheet takes group Text (Q336). Now: the gate and the PR. Then D3 after Lane B's Task 6 hand run. Blocked: none
 
@@ -38,15 +38,17 @@ Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane
 - Lane C FIX-1NOV-C (R445): Save setup writes the model at once in its own transaction, an undo or redo reloads the pane settings, Q280 closed. Review data column fix. Folder cleanup, steps/cleanup-1nov.md
 - Lane A FIX-1NOV-A2, PR 130 (R472 to R474): button 2 takes the scan picks (Q292), Update from report finds the plan of 4 Check by its run log (Q278)
 - Lane B Task 6, PR 131 (R457): the demo by hand, two passes, steps/demo-check.md, a neighbourhood kept when the list refills
+- Lane C FIX-2NOV-C (R446): Review data Close and ask, no idle button, Run complete in the pane, the export refused in the input folder, Dry run off before 4 Check
 - Pending, not on main: fix/1nov-d3 (Links mode)
 
 ## New rules
 
-- R444, R445 (Lane C). R450 to R456 (Lane B). R460 to R466 (Lane D). R457 (Lane B). R470 to R474 (Lane A). Id on a branch: R468 (D3)
+- R444 to R446 (Lane C). R450 to R456 (Lane B). R460 to R466 (Lane D). R457 (Lane B). R470 to R474 (Lane A). Id on a branch: R468 (D3)
 
 ## Wiring
 
 - Pane to a button: a step row or the box raises RunRequested, RunButtonHandler calls Buttons.Run, the path of the ribbon. Buttons.Run starts RunLoader
+- Closing Review data: the X and Close, Window.Closing, ReviewDataSession.CanClose, ReviewCloseWindow.Ask. Run complete: PaneViewModel.RefreshBox, ReportFiles, OpenFolderRequested, PaneHost starts Explorer. Dry run: Buttons.Run, PaneRunState.BeforeRun, PaneViewModel.UntickDryRunFor. Export: ScanResultsSession.Export, InsideInputs, ScanGate.PickExportFor
 - New project: NewProjectRequested raises NewProjectHandler, PaneHost.OpenNewProject opens NewProjectDialog.Show, then SetupWrite.Write, SettingsStore.Save and SettingsEntity in one transaction, then PaneViewModel.LoadSettings. PaneHost.OnChanged calls PaneSessions.Undone on an undo or redo
 - Button 1: SetUpSiteBody calls SetUpRun, ReadingCad runs CoordinateRequest.Run with the worker command crs, ParameterSheet reads the sheet through ParameterBook inside Revit
 - Button 7: PlaceVillasBody makes MassFileSet with RevitMassFileMaker, MassFiles keeps one mass file per prototype in the mass folder, WallRing.Choose takes the base. VillaLoad.Load gives the plan
@@ -55,12 +57,12 @@ Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane
 
 ## Open risks
 
-- R445 has not run in Revit: the window from an external event, the commit and the undo. Part 10 of steps/bader-fix-1nov.md checks them
-- C:\SA-demo\config lacks the keys of today, a config with no floors.rampJoint stops the build (part 2 of the sheet). Links waits on Q275. 4 Check with Dry run on is a dead end (Q195), FIX-2NOV-C
+- R445 has not run in Revit: the window from an external event, the commit and the undo. R446 neither. Parts 10 and 13 of steps/bader-fix-1nov.md check them
+- C:\SA-demo\config lacks the keys of today, a config with no floors.rampJoint stops the build (part 2 of the sheet). Links waits on Q275.
 - Lane D: no villa type source reaches the strong share on ROSHN (Q254). Lane A: joints wait on Q340, Q341, R414 8 of 82 (Q303, Q304)
 - The Parsons shutdown notice runs with higher rights, no session can press Postpone, only Bader. The ASK table of steps/cleanup-1nov.md waits for Bader
 
 ## Next
 
-- Lane D: merge fix/1nov-d3, send Lane C its steps, then Lane C fills part 11 of the sheet. Lane C: FIX-2NOV-C on fix/2nov-c, the window findings of steps/demo-check.md
-- Bader: the steps of steps/bader-fix-1nov.md, the 163 questions at its end, the ASK table of steps/cleanup-1nov.md. Then Part 2 after his check of Part 1
+- Lane D: merge fix/1nov-d3, send Lane C its steps, then Lane C fills part 11 of the sheet. Lane C: part 11 after D3
+- Bader: the steps of steps/bader-fix-1nov.md, the 162 questions at its end, the ASK table of steps/cleanup-1nov.md. Then Part 2 after his check of Part 1

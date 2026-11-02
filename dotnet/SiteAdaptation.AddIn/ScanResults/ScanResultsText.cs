@@ -36,6 +36,7 @@ namespace SiteAdaptation.AddIn.ScanResults
         public const string Foot = "Your picks are saved with the setup. Step 2 Read data uses them next time.";
         public const string Cancel = "Cancel";
         public const string Export = "Export to Excel";
+        public const string NotInInputs = "The tool never writes in the input folder. Press Export to Excel again, it opens in the work folder.";
         public const string UsePicks = "Use these picks";
         public const string Saved = "Saved <name>.";
     }

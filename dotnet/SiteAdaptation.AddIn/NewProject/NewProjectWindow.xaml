@@ -194,7 +194,7 @@
                 <TextBlock Style="{StaticResource CellText}" Foreground="{StaticResource SA.TextMuted}" VerticalAlignment="Center" Text="{x:Static np:NewProjectText.SurveyPoint}" />
                 <ComboBox Grid.Column="1" Style="{StaticResource SA.Pane.Combo}" Margin="{StaticResource SA.Gap.Right8}" ItemsSource="{Binding SurveyChoices}" SelectedIndex="0"
                           IsEnabled="{Binding HasSurvey}" />
-                <Button Grid.Column="2" Style="{StaticResource SA.Button.Base}" HorizontalAlignment="Left" Content="{x:Static np:NewProjectText.Change}" IsEnabled="{Binding CanChange}" />
+                <Button Grid.Column="2" Style="{StaticResource SA.Button.Base}" HorizontalAlignment="Left" Content="{x:Static np:NewProjectText.Change}" Visibility="{Binding CanChange, Converter={StaticResource Shown}}" />
               </Grid>
             </Border>
             <Border Padding="{StaticResource SA.Pad.Cell}" BorderBrush="{StaticResource SA.Border}" BorderThickness="{StaticResource SA.Line.Under}">
@@ -210,7 +210,7 @@
                   <ComboBox Style="{StaticResource SA.Pane.Combo}" Margin="{StaticResource SA.Gap.Top4}" ItemsSource="{Binding LayerChoices}" SelectedIndex="{Binding LayerIndex, Mode=TwoWay}"
                             Visibility="{Binding HasLayers, Converter={StaticResource Shown}}" />
                 </StackPanel>
-                <Button Grid.Column="2" Style="{StaticResource SA.Button.Base}" HorizontalAlignment="Left" Content="{x:Static np:NewProjectText.Change}" IsEnabled="{Binding CanChange}" />
+                <Button Grid.Column="2" Style="{StaticResource SA.Button.Base}" HorizontalAlignment="Left" Content="{x:Static np:NewProjectText.Change}" Visibility="{Binding CanChange, Converter={StaticResource Shown}}" />
               </Grid>
             </Border>
             <Border Padding="{StaticResource SA.Pad.Cell}" BorderBrush="{StaticResource SA.Border}" BorderThickness="{StaticResource SA.Line.Under}">
@@ -222,7 +222,7 @@
                 </Grid.ColumnDefinitions>
                 <TextBlock Style="{StaticResource CellText}" Foreground="{StaticResource SA.TextMuted}" VerticalAlignment="Center" Text="{x:Static np:NewProjectText.VillaTypes}" />
                 <TextBlock Grid.Column="1" Style="{StaticResource CellText}" VerticalAlignment="Center" Text="{Binding VillaTypes}" />
-                <Button Grid.Column="2" Style="{StaticResource SA.Button.Base}" HorizontalAlignment="Left" Content="{x:Static np:NewProjectText.View}" IsEnabled="{Binding CanView}" Click="OnView" />
+                <Button Grid.Column="2" Style="{StaticResource SA.Button.Base}" HorizontalAlignment="Left" Content="{x:Static np:NewProjectText.View}" Visibility="{Binding CanView, Converter={StaticResource Shown}}" Click="OnView" />
               </Grid>
             </Border>
             <!-- R440, Q283: the sheet and the column of the plot list the villa type comes from, the Excel sources the scan found -->

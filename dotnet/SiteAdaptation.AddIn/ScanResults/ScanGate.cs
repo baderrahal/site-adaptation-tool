@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Globalization;
 using Microsoft.Win32;
 using SiteAdaptation.AddIn.Pane;
@@ -14,7 +15,7 @@ namespace SiteAdaptation.AddIn.ScanResults
     public static class ScanGate
     {
         // The window of the gate, a stand-in in the tests and the test host, so a run is driven with no click
-        public static Func<IntPtr, string, ProjectSettings, ProjectSettings> Window { get; set; } = (owner, path, settings) => ScanResultsDialog.Show(owner, path, settings, PickExport);
+        public static Func<IntPtr, string, ProjectSettings, ProjectSettings> Window { get; set; } = (owner, path, settings) => ScanResultsDialog.Show(owner, path, settings, PickExportFor(path));
 
         public static ScanGateAnswer Ask(string scanJsonPath, PaneSettings settings, IntPtr owner, Func<string, string> readText)
         {
@@ -33,10 +34,21 @@ namespace SiteAdaptation.AddIn.ScanResults
             return new ScanGateAnswer { GoOn = true, Line = ScanResultsText.PicksSaved };
         }
 
-        // Export to Excel asks where, the work folder first, never over a file (ScanPicks.Export refuses one)
-        public static string PickExport()
+        // Export to Excel asks where, opening in the work folder of the scan (R446, Q308), never over a file (ScanPicks.Export refuses
+        // one). scan.json lies in scan_<n>_<time> of the work folder
+        public static Func<string> PickExportFor(string scanJsonPath)
         {
-            var dialog = new SaveFileDialog { DefaultExt = TemplateBook.Extension, AddExtension = true, OverwritePrompt = false, FileName = ScanResultsText.Title + TemplateBook.Extension };
+            return () => PickExport(WorkFolderOf(scanJsonPath));
+        }
+
+        public static string WorkFolderOf(string scanJsonPath)
+        {
+            return Path.GetDirectoryName(Path.GetDirectoryName(scanJsonPath));
+        }
+
+        private static string PickExport(string workFolder)
+        {
+            var dialog = new SaveFileDialog { InitialDirectory = workFolder, DefaultExt = TemplateBook.Extension, AddExtension = true, OverwritePrompt = false, FileName = ScanResultsText.Title + TemplateBook.Extension };
             return dialog.ShowDialog() == true ? dialog.FileName : null;
         }
     }

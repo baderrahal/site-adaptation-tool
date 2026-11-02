@@ -472,3 +472,11 @@ No real input reaches these: the plot table of the demo holds whole numbers and 
 - Breaker 6: New project now waits for Revit to be idle, a second click while it waits is dropped. Loud, no wrong value.
 - Breaker 8: a commit that returns Pending would roll back in the finally, failure handling is never delayed.
 - Review F7: SettingsStore.Save repeats the read back of Record. Review F8: Schema and Entity of SettingsEntity are not disposed. Review F9: the result of ExternalEvent.Raise is not read.
+
+## FIX-2NOV-C, R446, review
+
+- PaneHost: Process.Start of Open folder has no catch. A Win32Exception would leave the click. explorer.exe is on every PC of the tool.
+- ScanResultsSession.InsideInputs refuses the folder of every input. An input directly in Documents would refuse the default work root. Real inputs lie under the input roots.
+- NewProjectViewModel.CanChange is always false, so the two Change buttons have no Click and stay collapsed. The sweep skips a collapsed button.
+- No test holds Closing += OnClosing or the IsVisible branch, a shown window cannot be made in a test. The sweep passes any handler, an empty one too. Part 13 of steps/bader-fix-1nov.md checks the ask in Revit.
+- WorkFolder.Inside compares by StartsWith, so inputs2 counts as inside inputs. The refusal only errs to the safe side.
