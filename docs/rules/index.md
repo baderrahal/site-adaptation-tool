@@ -441,6 +441,7 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R448 Revit listener job folder.
 - R494 Pane returns on document open.
 - R495 Check rows sort and filter.
+- R496 Pane warns on old prototypes.
 
 ## 13-parameters-r460-up.md
 

@@ -54,6 +54,10 @@ namespace SiteAdaptation.AddIn
         {
             var host = new PaneHost();
             var runner = new RunButtonHandler();
+            // R496. The row Prototypes warns for files older than this Revit, the look runs off the UI thread. A version text that is no
+            // number gives no warning
+            host.model.FormatLook = host.probe.LookFormat;
+            host.model.RunningRevit = int.TryParse(application.ControlledApplication.VersionNumber, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out int running) ? running : (int?)null;
             host.runEvent = ExternalEvent.Create(runner);
             host.answerEvent = ExternalEvent.Create(new AnswerHandler(host));
             host.Answers = new AnswerRelay(() => host.answerEvent.Raise());
