@@ -9,6 +9,16 @@ namespace SiteAdaptation.Tests
     // R494. The pane returns when a document opens and the ribbon button Show pane opens it by hand. net48 only, the add-in
     public sealed class R494_PaneReturnTests
     {
+        // Item 4 of Bader's list. A save dialog with no owner leaves What the tool read open to a second Export, the window owns it
+        [Fact]
+        public void R495_the_save_as_of_what_the_tool_read_is_owned_by_its_window()
+        {
+            Assert.Contains("dialog.ShowDialog(ExportOwner)", Source("ScanResults", "ScanGate.cs"));
+            string show = Source("ScanResults", "ScanResultsDialog.cs");
+            Assert.Contains("ScanGate.ExportOwner = window", show);
+            Assert.Contains("ScanGate.ExportOwner = null", show);
+        }
+
         private static string Source(params string[] parts)
         {
             return File.ReadAllText(Path.Combine(new[] { ThemeGateTests.RepoRoot(), "dotnet", "SiteAdaptation.AddIn" }.Concat(parts).ToArray()));

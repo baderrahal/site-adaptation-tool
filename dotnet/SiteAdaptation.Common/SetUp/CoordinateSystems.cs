@@ -135,7 +135,7 @@ namespace SiteAdaptation.Common.SetUp
             var stated = new List<KeyValuePair<string, int>>();
             foreach (StatedSystem file in files)
             {
-                string problems = file.Problems > 0 ? ", " + Code(file.Problems) + " read problems" : "";
+                string problems = file.Problems > 0 ? ", the reader skipped " + Code(file.Problems) + " items of this drawing, such as named colours, the position does not use them" : "";
                 if (string.IsNullOrWhiteSpace(file.Name))
                 {
                     check.Lines.Add(file.File + " states no coordinate system" + problems);

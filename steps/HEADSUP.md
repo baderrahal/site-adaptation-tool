@@ -12,7 +12,7 @@
 ### Lane B, C and D
 
 - Lane B CHECK-2NOV, 20:24, branch check/2nov-b: gate running since 20:05, lock free. Lane C takes the lock when it ends. Then the PR, then FIX-2NOV-B. Waits on Bader: Q367, generic with yard rule.
-- Lane C, branch docs/2nov-c-params: the other 12 bound parameters listed Keep No with a Note in config/shared_parameters.xlsx. Then SPEED-2NOV-C on speed/2nov-c, R449 pushed, helpers on R447 and R448. Blocked: none
+- Lane C FIX-2NOV-C-CHECK, branch fix/2nov-c-check: R494 pane, R495 Check sort and filter, Save As owner, sheet parts 17 to 20. SPEED-2NOV-C paused on speed/2nov-c. Blocked: none
 - Lane D 6B-DATA-REV6, 2 Nov, branch feat/6b-data-rev6: no Revit, no window lock. 5 TU zones under rev6, levels equal the past rules, config copies outside git. Opened Q364.
   Now: the PR, merge when green. Blocked: none
 

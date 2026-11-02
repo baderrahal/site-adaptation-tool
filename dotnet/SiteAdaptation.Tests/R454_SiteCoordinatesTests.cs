@@ -407,7 +407,7 @@ namespace SiteAdaptation.Tests
 
             SystemsCheck check = CoordinateSystems.Agree(read.Files, Settings());
 
-            Assert.Contains("Baseplan.dwg states no coordinate system, 2 read problems", check.Lines);
+            Assert.Contains("Baseplan.dwg states no coordinate system, the reader skipped 2 items of this drawing, such as named colours, the position does not use them", check.Lines);
             Assert.Contains("r1.xml states 32637, EPSG 32637", check.Lines);
         }
 

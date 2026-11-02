@@ -20,7 +20,7 @@ Q284 Villa mode row the boards drop. Q285 Name the Rules row shows. Q286 Approve
 Q288 Scan picks in the settings at version 1. Q289 Board rows the scan does not read. Q290 Curbs and road surface left out of scan. Q291 Where the line Current files is shown. Q293 Approve the three drafts of SCAN-UI. Q294 Rules chosen in Set up site, when used. Q295 Test host runs skip the scan. Q300 Plots with no cluster proposal. Q301 The build takes the door level pick. Q302 Door level row under the past job. Q305 Hide Confirmed under the past job.
 Q306 A neighbourhood picked after the first read. Q307 What the report Summary shows after a run.
 Q326 Shared origin at the plot box centre. Q327 Elevation of the shared origin from CAD. Q329 The rule that picks the control points.
-Q331 Plot is no link parameter of the keys. Q332 FFL bound but never written. Q333 Categories beyond the link instances. Q334 An xlsx read inside Revit. Q336 Link parameter group is Text not Data. Q337 Swap back in the same model unproven. Q338 Input guard counts Revit .slog files. Q361 FFL rule far from keys without overrides. Q362 Chosen limits of the zone compare. Q363 Plot 2302 and two IMD FFL plots. Q364 One named road surface and several zones.
+Q331 Plot is no link parameter of the keys. Q332 FFL bound but never written. Q333 Categories beyond the link instances. Q334 An xlsx read inside Revit. Q336 Link parameter group is Text not Data. Q337 Swap back in the same model unproven. Q338 Input guard counts Revit .slog files. Q361 FFL rule far from keys without overrides. Q362 Chosen limits of the zone compare. Q363 Plot 2302 and two IMD FFL plots. Q364 One named road surface and several zones. Q380 The save dialog and the input folder write time. Q381 The crash on Browse For Folder.
 
 Q149. M14, the boundary wall of an irregular plot (Round FOLD, docs/design/15-manual-rules.md). The canvas text reads "boundary wall 200 mm inside the plot limit". The Rev 06 manual, 2.8.A, p. 20 (PDF 23), reads "the boundary wall external face will be identical to the plot limit, and the 200mm will be positioned fully inside the plot", the outer face on the limit and the 200 mm wall thickness inside it. The canvas text is kept until Bader answers. It does not block, M14 is checked by 8 Walls in 5d.
 - Recommended: the PDF reading, the outer face of the wall on the plot limit and its 200 mm inside the plot, and the canvas text written so.
@@ -661,3 +661,10 @@ Q334. An xlsx read inside Revit (Lane D FIX-1NOV-D, R462). R350 kept every xlsx 
 - Recommended: as built, for the parameter sheet alone.
 - Other: a worker command reads the sheet for buttons 1 and 7.
 
+Q380. The save dialog and the input folder write time (R495, Lane B CHECK-2NOV). C:\SA-demo\inputs got a new write time at 18:41:24 when that path was typed into Export of What the tool read. Refused, 0 files, the same 44 by SHA-256. A Windows save dialog can make a test file to check the folder can be written, and neither save dialog class offers a public setting to stop it (READ, the Win32 note on OFN_NOTESTFILECREATE). Not measured on this dialog, so UNKNOWN.
+- Recommended: leave it. No file changed and the tool refuses the write. Test it on a scratch folder if a D19 record ever fails on it.
+- Other: drive the dialog on a scratch folder now and show if it touches the folder.
+
+Q381. The crash on Browse For Folder (Lane B CHECK-2NOV, part 11 of the sheet). Revit crashed once, 16 s after OK on the Prototypes row, explorerframe.dll_unloaded, 0xc0000005, after a script's keys picked Desktop\Pictures. Bader asked for three tries by hand, which no session can do.
+- Recommended: Bader's three tries, part 20 of the sheet. Fix only if it comes back.
+- Other: leave it as seen once.
