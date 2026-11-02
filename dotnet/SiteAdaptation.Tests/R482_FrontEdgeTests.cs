@@ -80,6 +80,9 @@ namespace SiteAdaptation.Tests
         {
             public Dictionary<string, PlotPlan> Plans;
             public Dictionary<string, FrontItem> Fronts;
+            public Dictionary<string, Dictionary<string, object>> Hands;
+            public JObject Rules;
+            public JObject Config;
         }
 
         private static OverrideList List(string plot, int number)
@@ -113,6 +116,9 @@ namespace SiteAdaptation.Tests
             {
                 Plans = PlanOverrides.Of(numbers, rows, build, fronts, context, hands, key, profile, rules, config, files, list, "parsons2024Rev6", 0.5, "the rules profile", Level),
                 Fronts = leveled(numbers),
+                Hands = hands,
+                Rules = rules,
+                Config = config,
             };
         }
 
@@ -259,6 +265,138 @@ namespace SiteAdaptation.Tests
             Assert.Contains("3", CheckShown.Past(Named(3)));
             JObject config = JObject.Parse(File.ReadAllText(WorkerRunTests.RepoConfig()));
             Assert.Equal("Position", (string)config["checkRows"]["fields"]["frontEdge"]["check"]);
+        }
+
+        // R401, Q299. What a frontEdge line moves, as MOVED of python/tests/test_r482_front_edge.py holds it
+        private static readonly string[] Moved =
+        {
+            "insert", "rotationDeg", "mirrored", "levels.entry", "levels.ffl", "levels.ssl", "levels.height", "levels.steps", "levels.roadAtFrontM", "linkName",
+            "parameters.CASE", "parameters.RRE_ZZ_SP_Prototype-Foundation-Type", "parameters.RRE_ZZ_SP_Prototype-FFL", "parameters.RRE_ZZ_SP_Number-of-Steps", "parameters.RRE_ZZ_SP_RVT-Name",
+            "floors.generic.z", "floors.generic.heightOffset", "floors.yard.outline", "floors.yard.type", "floors.yard.z", "floors.yard.heightOffset",
+            "floors.ramp.outline", "floors.ramp.corners", "floors.ramp.heightOffset", "walls.ends", "walls.base", "walls.top",
+        };
+
+        // A value that stands on the elevation of its level or on where a wall ends reads UNKNOWN by what it holds with no override too
+        private static readonly string[] StillUnknown = { "floors.generic.heightOffset", "floors.yard.heightOffset", "floors.ramp.heightOffset", "walls.ends" };
+
+        // test_r482_front_edge.strong_table: the map of the settings on a block that holds every entry a frontEdge value reads as a strong measure, so a value read only by the rules would read MEASURED
+        private static ValueStatusTable StrongTable()
+        {
+            JObject config = JObject.Parse(File.ReadAllText(WorkerRunTests.RepoConfig()));
+            string profileFile = (string)config["profile"];
+            var profile = new JObject();
+            var settings = new JObject();
+            foreach (JProperty field in ((JObject)config["valueStatus"]["overrideReads"]["frontEdge"]).Properties())
+            {
+                string parameter = field.Name.StartsWith("parameters.", StringComparison.Ordinal) ? field.Name.Substring("parameters.".Length) : "";
+                foreach (JObject reference in ((JArray)field.Value).OfType<JObject>())
+                {
+                    foreach (Tuple<string, JObject> kind in new[] { Tuple.Create("profile", profile), Tuple.Create("config", settings) })
+                    {
+                        if (reference[kind.Item1] != null)
+                        {
+                            string path = ((string)reference[kind.Item1]).Replace("{levelProfile}", "parsons2024Rev6").Replace("{hand}", "alone").Replace("{unit}", "DP2").Replace("{parameter}", parameter);
+                            kind.Item2[path] = new JObject { ["status"] = "MEASURED", ["strength"] = "strong", ["share"] = 0.95, ["measuredBy"] = "made" };
+                        }
+                    }
+                }
+            }
+            return new ValueStatusTable((JObject)config["valueStatus"], new JObject { [profileFile] = profile, [ValueStatus.SettingsFile] = settings }, profileFile, "parsons2024Rev6");
+        }
+
+        private static string Sorted(IEnumerable<string> names)
+        {
+            return string.Join(" ", names.OrderBy(name => name, StringComparer.Ordinal));
+        }
+
+        [Fact]
+        public void R482_R401_the_override_sets_hold_what_a_front_edge_line_moves()
+        {
+            JObject status = (JObject)JObject.Parse(File.ReadAllText(WorkerRunTests.RepoConfig()))["valueStatus"];
+            Assert.Equal(Sorted(Moved), Sorted(((JArray)status["overrideSets"]["frontEdge"]).Select(name => (string)name)));
+            // Every field still reads the rules that stand on the front, so the hand pick drops only the rule of the front
+            Assert.Equal(Sorted(Moved), Sorted(((JObject)status["overrideReads"]["frontEdge"]).Properties().Select(field => field.Name)));
+        }
+
+        [Fact]
+        public void R482_R401_a_value_on_a_hand_picked_front_names_the_line_and_never_reads_as_a_rule_measure()
+        {
+            foreach (string field in Moved)
+            {
+                Tuple<string, JObject, string> found = StrongTable().Of(field, "computed", "alone", new[] { "frontEdge" }, "DP2", "6");
+                Assert.EndsWith(" by frontEdge", found.Item3);
+                Assert.Equal("[\"frontEdge\"]", Text(found.Item2["overrides"]));
+                Assert.Equal(StillUnknown.Contains(field) ? "UNKNOWN" : "RECOMMENDED", found.Item1);
+                Assert.Equal("Q053", (string)found.Item2["entries"][0]["question"]);
+                Assert.True(((JArray)found.Item2["entries"]).Count > 1, field);
+            }
+        }
+
+        [Fact]
+        public void R482_R401_the_front_rule_is_what_the_hand_pick_leaves_and_the_road_stays_read()
+        {
+            ValueStatusTable table = StrongTable();
+            Func<string, string> read = field => string.Join(" ", ((JArray)table.Of(field, "estimate", "alone", new[] { "frontEdge" }, "DP2", "6").Item2["entries"]).Select(entry => (string)entry["entry"] ?? ""));
+            Assert.Contains("frontRoad.surface", read("levels.roadAtFrontM"));
+            Assert.DoesNotContain("frontCorner.rule", read("levels.roadAtFrontM"));
+            Assert.Contains("keyRules.linkRotation.rule", read("rotationDeg"));
+            Assert.Contains("keyRules.hand alone.rule", read("rotationDeg"));
+            Assert.Contains("keyRules.entry.rule", read("levels.entry"));
+            Assert.Contains("keyRules.rampOutline.rule", read("floors.ramp.outline"));
+        }
+
+        [Fact]
+        public void R482_R401_a_front_edge_with_a_height_gap_reads_what_both_leave()
+        {
+            ValueStatusTable table = StrongTable();
+            Tuple<string, JObject, string> height = table.Of("levels.height", "estimate", "alone", new[] { "frontEdge", "heightM" }, "DP2", "6");
+            Assert.Equal("levels.height from override by frontEdge heightM", height.Item3);
+            Assert.Equal("RECOMMENDED", height.Item1);
+            Assert.Equal(2, ((JArray)height.Item2["entries"]).Count);
+            Assert.EndsWith("keyRules.entry.rule", (string)height.Item2["entries"][1]["entry"]);
+            // The gap sets the FFL outright, so it reads no rule of the FFL whatever the front left
+            Assert.Single((JArray)table.Of("levels.ffl", "estimate", "alone", new[] { "frontEdge", "heightM" }, "DP2", "6").Item2["entries"]);
+        }
+
+        [Fact]
+        public void R482_R401_the_values_of_a_plot_built_on_the_line_name_it_and_the_others_stay()
+        {
+            Built built = Build(List("6", 2));
+            ValueStatusTable table = ValueStatus.Table(built.Config, built.Rules, "parsons2024Rev6");
+            Dictionary<string, Dictionary<string, object>> step = ValueStatus.Step(built.Plans.Keys.ToList(), built.Plans, built.Hands, table);
+            JObject fields = (JObject)step["6"]["fields"];
+            List<string> named = fields.Properties().Where(field => ((string)field.Value["statusFrom"]).Contains("by frontEdge")).Select(field => field.Name).ToList();
+            Assert.Equal(Sorted(Moved.Where(field => fields[field] != null && (string)fields[field]["source"] != "override")), Sorted(named));
+            foreach (string field in new[] { "insert", "rotationDeg", "levels.entry", "levels.ffl", "floors.ramp.corners" })
+            {
+                Assert.Contains(field, named);
+            }
+            Assert.DoesNotContain(named, field => (string)fields[field]["status"] == "MEASURED");
+            // A plot of the row that holds no line reads as before
+            Assert.DoesNotContain(((JObject)step["4"]["fields"]).Properties(), field => ((string)field.Value["statusFrom"]).Contains("frontEdge"));
+        }
+
+        private static OverrideList Lines(params string[] heightPlots)
+        {
+            Dictionary<string, JObject> found = heightPlots.ToDictionary(plot => plot, plot => new JObject { ["heightM"] = new JObject { ["gapToRuleM"] = -0.004 } });
+            if (!found.ContainsKey("6"))
+            {
+                found["6"] = new JObject();
+            }
+            found["6"]["frontEdge"] = Named(2);
+            return new OverrideList(found);
+        }
+
+        [Fact]
+        public void R482_row_partners_hold_one_ffl_only_when_both_take_the_gap()
+        {
+            double rule = Convert.ToDouble(Build(Lines()).Plans["6"].Overrides["ffl"]);
+            Dictionary<string, PlotPlan> both = Build(Lines("5", "6")).Plans;
+            Assert.Equal(Convert.ToDouble(both["5"].Overrides["ffl"]), Convert.ToDouble(both["6"].Overrides["ffl"]), 9);
+            // The step holds the FFL unrounded with no gap, a gap moves the FFL of the rule at its 3 decimals
+            Assert.Equal(Math.Round(rule, 3) - 0.004, Convert.ToDouble(both["6"].Overrides["ffl"]), 9);
+            Dictionary<string, PlotPlan> alone = Build(Lines("5")).Plans;
+            Assert.NotEqual(Convert.ToDouble(alone["5"].Overrides["ffl"]), Convert.ToDouble(alone["6"].Overrides["ffl"]), 9);
         }
     }
 }

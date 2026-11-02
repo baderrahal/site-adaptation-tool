@@ -15,6 +15,7 @@ import plan_from_past
 import plan_rules
 import project_profile
 import test_level_floor_steps
+import value_status
 from test_level_floor_steps import DP2_FILE, TH1_FILE, VD2_FILE, made_rules
 
 # Drawn clockwise from the east end of the notch, so the ring is walked as drawn: edge 0 the notch of 3 m, edge 1 its side of 5 m, edge 2 the front of 9 m, 3 west, 4 back, 5 east
@@ -220,3 +221,104 @@ def test_r482_each_line_of_the_list_is_a_hand_edit_whose_plot_holds_no_gap_of_th
         assert item["decision"] == "parsons frontEdge" and item["rule"] is None and "Q299" in item["reason"]
     # The gap of about 15 m measured on the notch would throw the link off the plot on the new front
     assert not [item for item in data["overrides"] if item["field"] == "insert" and item["source"] == "parsons" and item["plot"] in plots]
+
+
+# R401, Q299. What a frontEdge line moves, read off a build with the line out and from the hand table the road side of its front feeds, R482_FrontEdgeTests.cs holds the same list
+MOVED = ("insert", "rotationDeg", "mirrored", "levels.entry", "levels.ffl", "levels.ssl", "levels.height", "levels.steps", "levels.roadAtFrontM", "linkName",
+         "parameters.CASE", "parameters.RRE_ZZ_SP_Prototype-Foundation-Type", "parameters.RRE_ZZ_SP_Prototype-FFL", "parameters.RRE_ZZ_SP_Number-of-Steps", "parameters.RRE_ZZ_SP_RVT-Name",
+         "floors.generic.z", "floors.generic.heightOffset", "floors.yard.outline", "floors.yard.type", "floors.yard.z", "floors.yard.heightOffset",
+         "floors.ramp.outline", "floors.ramp.corners", "floors.ramp.heightOffset", "walls.ends", "walls.base", "walls.top")
+# A value that stands on the elevation of its level or on where a wall ends reads UNKNOWN by what it holds with no override too
+STILL_UNKNOWN = ("floors.generic.heightOffset", "floors.yard.heightOffset", "floors.ramp.heightOffset", "walls.ends")
+STRONG = {"status": "MEASURED", "strength": "strong", "share": 0.95, "measuredBy": "made"}
+
+
+def strong_table():
+    """The map of the settings on a block that holds every entry a frontEdge value reads as a strong measure, so a value read only by the rules would read MEASURED."""
+    settings = project_profile.load_settings()
+    status = settings.get("valueStatus")
+    names = {"levelProfile": "parsons2024Rev6", "hand": "alone", "unit": "DP2"}
+    block = {settings.get("profile"): {}, value_status.SETTINGS_FILE: {}}
+    for field, refs in status["overrideReads"]["frontEdge"].items():
+        names["parameter"] = field[len(value_status.PARAMETERS):] if field.startswith(value_status.PARAMETERS) else None
+        for ref in refs:
+            for kind, file in (("profile", settings.get("profile")), ("config", value_status.SETTINGS_FILE)):
+                if kind in ref:
+                    block[file][value_status.PLACEHOLDER.sub(lambda found: names[found.group(1)], ref[kind])] = dict(STRONG)
+    return value_status.Table(status, block, settings.get("profile"), "parsons2024Rev6")
+
+
+def test_r482_r401_the_override_sets_hold_what_a_front_edge_line_moves():
+    status = project_profile.load_settings().get("valueStatus")
+    assert sorted(status["overrideSets"]["frontEdge"]) == sorted(MOVED)
+    # Every field still reads the rules that stand on the front, so the hand pick drops only the rule of the front
+    assert sorted(status["overrideReads"]["frontEdge"]) == sorted(MOVED)
+
+
+@pytest.mark.parametrize("field", MOVED)
+def test_r482_r401_a_value_on_a_hand_picked_front_names_the_line_and_never_reads_as_a_rule_measure(field):
+    status, detail, key = strong_table().of(field, "computed", "alone", ["frontEdge"], "DP2", "6")
+    assert key.endswith(" by frontEdge") and detail["overrides"] == ["frontEdge"]
+    assert status == ("UNKNOWN" if field in STILL_UNKNOWN else "RECOMMENDED")
+    assert detail["entries"][0]["question"] == "Q053" and len(detail["entries"]) > 1
+
+
+def test_r482_r401_the_front_rule_is_what_the_hand_pick_leaves_and_the_road_stays_read():
+    table = strong_table()
+    read = lambda field: " ".join(entry.get("entry", "") for entry in table.of(field, "estimate", "alone", ["frontEdge"], "DP2", "6")[1]["entries"])
+    assert "frontRoad.surface" in read("levels.roadAtFrontM") and "frontCorner.rule" not in read("levels.roadAtFrontM")
+    assert "keyRules.linkRotation.rule" in read("rotationDeg") and "keyRules.hand alone.rule" in read("rotationDeg")
+    assert "keyRules.entry.rule" in read("levels.entry") and "keyRules.rampOutline.rule" in read("floors.ramp.outline")
+
+
+def test_r482_r401_a_front_edge_with_a_height_gap_reads_what_both_leave():
+    table = strong_table()
+    status, detail, key = table.of("levels.height", "estimate", "alone", ["frontEdge", "heightM"], "DP2", "6")
+    assert key == "levels.height from override by frontEdge heightM" and status == "RECOMMENDED" and detail["overrides"] == ["frontEdge", "heightM"]
+    assert len(detail["entries"]) == 2 and detail["entries"][1]["entry"].endswith("keyRules.entry.rule")
+    # The gap sets the FFL outright, so it reads no rule of the FFL whatever the front left
+    assert len(table.of("levels.ffl", "estimate", "alone", ["frontEdge", "heightM"], "DP2", "6")[1]["entries"]) == 1
+
+
+def test_r482_r401_the_values_of_a_plot_built_on_the_line_name_it_and_the_others_stay(monkeypatch, tmp_path):
+    built = build(monkeypatch, tmp_path, [entry()])
+    fields = value_status.fields_of(built["plan"]["6"])
+    named = {field for field, item in fields.items() if "by frontEdge" in item["statusFrom"]}
+    assert named == {field for field in MOVED if field in fields and fields[field]["source"] != "override"}
+    assert {"insert", "rotationDeg", "levels.entry", "levels.ffl", "floors.ramp.corners"} <= named
+    assert not [field for field in named if fields[field]["status"] == "MEASURED"]
+    # A plot of the row that holds no line reads as before
+    assert not [field for field, item in value_status.fields_of(built["plan"]["4"]).items() if "frontEdge" in item["statusFrom"]]
+    # A wall on the plot names it, and its plots stay the faces alone (Q120)
+    walls = [item for item in built["trace"]["walls"] if item["plot"] == "6"]
+    assert walls and all("by frontEdge" in item["ends"]["statusFrom"] and "by frontEdge" in item["base"]["statusFrom"] for item in walls)
+
+
+def height(plot, gap):
+    return {**entry(plot), "field": "heightM", "value": {"gapToRuleM": gap}, "decision": "parsons ffl"}
+
+
+def test_r482_row_partners_hold_one_ffl_only_when_both_take_the_gap(monkeypatch, tmp_path):
+    rule = build(monkeypatch, tmp_path, [entry()])["plan"]["6"]["levels"]["ffl"]["value"]
+    both = build(monkeypatch, tmp_path, [entry(), height("5", -0.004), height("6", -0.004)])["plan"]
+    assert both["5"]["levels"]["ffl"]["value"] == both["6"]["levels"]["ffl"]["value"] == pytest.approx(rule - 0.004, abs=1e-9)
+    alone = build(monkeypatch, tmp_path, [entry(), height("5", -0.004)])["plan"]
+    assert alone["5"]["levels"]["ffl"]["value"] != alone["6"]["levels"]["ffl"]["value"]
+
+
+def list_lines():
+    settings = project_profile.load_settings()
+    return json.loads((project_profile.ROOT / "config" / "overrides" / project_profile.profile_path(settings).name).read_text(encoding="utf-8"))
+
+
+def test_r482_the_row_partners_469_and_470_of_the_list_hold_one_gap():
+    gaps = {item["plot"]: item["value"] for item in list_lines()["overrides"] if item["plot"] in ("469", "470") and item["field"] == "heightM" and item["source"] == "parsons"}
+    assert set(gaps) == {"469", "470"} and gaps["469"] == gaps["470"]
+
+
+def test_r482_a_plot_with_a_front_edge_line_holds_no_cannot_line_of_the_old_front():
+    data = list_lines()
+    plots = {item["plot"] for item in data["overrides"] if item["field"] == "frontEdge"}
+    assert not [(item["plot"], item["field"]) for item in data["cannot"] if item["plot"] in plots and item["source"] == "parsons"]
+    # A native line is of another job and another front, a build of the parsons job never loads it (R330), so it stays
+    assert {item["plot"] for item in data["cannot"] if item["plot"] in plots and item["source"] == "native"} == {"2626", "2665"}
