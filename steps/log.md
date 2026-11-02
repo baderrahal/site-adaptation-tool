@@ -2,6 +2,34 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Lane C answers, 2026-11-02, Bader's answers of 09:20
+
+Goal:
+- Record Bader's answers, send each lane its own, show the drafts of Q286 and Q293, move the folders he accepted
+
+Done:
+- 20 questions moved to steps/questions-closed.md, each lane told by one message
+- Q350 is not added here: Lane A closed it on fix/2nov-a, not yet on main, and adds the overlap clause of today to its row
+- steps/ui-shots/drafts-for-bader.md: 7 drafts beside the Revit shots. The Revit shots hold real coordinates, so they stay in the work root, the page links them
+- 4 folders moved to C:\_cleanup-1nov, 40 now, none deleted
+
+Checked:
+- 164 open before, 144 after, of them Q286 and Q293 waiting, as Bader's 142 others (RAN). Lane A and Lane B folders still read their branches after the moves (RAN). Every shot of the page is on disk (RAN)
+
+Remains:
+- No Revit shot of Door level from: ROSHN runs roshnPastJob and the row shows under rev6 only (R443). Revit shot of the first open pane is from 5a, 29 Oct. The Review data shot is older than PR 132 and PR 133
+- The 20 answers are recorded, not built. The owning lanes build what they call for
+
+Known bugs:
+- None new
+
+Next:
+- Bader's look at the drafts
+
+Your turn:
+- Closed: Q187 Prefill of a new project from config, J16. Q201 Data book files on a PC with no Python. Q202 The schedule folder in config. Q224 The mode the ROSHN config runs. Q227 Civil file format and plot match. Q237 Folder of the Rev 9 workbooks. Q243 Layer pairs for plot outlines in the scan. Q254 The order and share of villa type sources. Q281 Board rows against the nine pane inputs. Q282 Where the project name is kept. Q296 A saved project holds no drawing path. Q308 The stray export in the demo inputs. Q309 Refresh the demo config and add-in. Q320 Keep the solids path of light mode. Q322 Mass files made inside button 7. Q324 The Revit warning box at step 5. Q325 A file that states no coordinate system. Q328 Default source of the site position. Q335 A parameter sheet picked in the pane. Q339 A 2021 file in the link folder
+- 144 open, steps/questions-open.md
+
 ## Lane C part 11, 2026-11-02, Links mode on Bader's sheet
 
 Goal:
