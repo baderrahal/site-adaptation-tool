@@ -10,6 +10,9 @@ Both plans are written to 3 decimals, so a level gap is whole millimetres and th
 The tool plan comes in two builds. The override list was made from these keys, so the build with it agrees partly by construction, and the
 build without it is the test of the rules. Written outside any git work tree: the report and the 10 random plots with their values. The
 Markdown holds counts, gaps and plot numbers, no level and no coordinate, for steps/investigations/6b-data.md. Changes nothing, sets no rule.
+
+With --rev6-plan the first build is a plan of rev6 with no override list, the mode a new project runs, beside the past job with none. Its plan comes
+from a config copy outside the repo, --settings stays the config of the repo for the limits, and a plan with no summary.noDoorLevel is refused.
 """
 import argparse
 import csv
@@ -31,6 +34,8 @@ EPS = 1e-9
 MATCH, WITHIN, OVER, NO_REFERENCE, TOOL_NONE = "match", "withinLimit", "overLimit", "noReference", "toolNone"
 STATUSES = (MATCH, WITHIN, OVER, NO_REFERENCE, TOOL_NONE)
 BUILDS = ("with", "without")
+REV6_BUILDS = ("rev6", "without")
+TITLES = {"with": "with overrides", "without": "without overrides", "rev6": "rev6, no override list"}
 READS = {"villaType": lambda entry: entry["unit"]["value"], "mirror": lambda entry: entry["mirrored"]["value"],
          "rotation": lambda entry: entry["rotationDeg"]["value"], "ffl": lambda entry: entry["levels"]["ffl"]["value"],
          "entry": lambda entry: entry["levels"]["entry"]["value"], "steps": lambda entry: entry["levels"]["steps"]["value"],
@@ -165,6 +170,12 @@ def check_mode(settings):
         raise ValueError("designBasis.mode is %s, round 6B-DATA compares the past job mode only (Q224)" % design_basis.REV6)
 
 
+def check_rev6(plan):
+    """R408. Only a build under rev6 writes summary.noDoorLevel, a plan names its mode nowhere else."""
+    if "noDoorLevel" not in (plan.get("summary") or {}):
+        raise ValueError("--rev6-plan holds no summary.noDoorLevel, so it is no build under rev6 (R408)")
+
+
 def kind_of(settings, code):
     for key in settings["answerKeys"]["keys"]:
         if key["code"] == code:
@@ -184,17 +195,21 @@ def value_cell(entry, name):
     return "" if entry is None else str(plan_compare.value_of(entry, READS[name]))
 
 
+def title_of(build):
+    return TITLES[build][0].upper() + TITLES[build][1:]
+
+
 def side_by_side(rows_of, plans, plots):
     """The 10 random plots with the value of each field in each build and the key, and the gaps of the fields that are no one value."""
     rows = []
     for plot in plots:
         row = {"plot": plot}
         for name in SAME_FIELDS + NUMBER_FIELDS:
-            for build in BUILDS:
+            for build in rows_of:
                 row["%s_%s" % (name, build)] = value_cell(plans[build].get(plot), name)
             row[name + "_key"] = value_cell(plans["key"].get(plot), name)
         for name in CORNER_FIELDS + WALL_FIELDS:
-            for build in BUILDS:
+            for build in rows_of:
                 row["%s_%s_gap" % (name, build)] = rows_of[build][plot][name]["gap"]
                 row["%s_%s_status" % (name, build)] = rows_of[build][plot][name]["status"]
         rows.append(row)
@@ -208,22 +223,22 @@ def count_cell(counts):
 def markdown(code, report):
     """The section of one zone: counts, worst plots and random plots, with gaps and plot numbers only."""
     builds = report["builds"]
-    first = builds["with"]
-    lines = ["### %s (%s)" % (code, report["kind"]), "",
-             "With overrides: plots compared %d, only in the tool plan %d, only in the key %d." % (first["compared"], len(first["onlyInTool"]), len(first["onlyInKey"])),
-             "Without overrides: plots compared %d, only in the tool plan %d, only in the key %d." % (builds["without"]["compared"], len(builds["without"]["onlyInTool"]), len(builds["without"]["onlyInKey"])), "",
-             "Counts are match, within limit, over limit, no reference, tool none.", "",
-             "| Field | With overrides | Without overrides |", "|---|---|---|"]
-    lines += ["| %s | %s | %s |" % (field, count_cell(first["counts"][field]), count_cell(builds["without"]["counts"][field])) for field in FIELDS]
-    for build, title in zip(BUILDS, ("with overrides", "without overrides")):
-        lines += ["", "Worst 10 per field, %s (plot, gap):" % title, ""]
+    names = list(builds)
+    first, second = builds[names[0]], builds[names[1]]
+    lines = ["### %s (%s)" % (code, report["kind"]), ""]
+    lines += ["%s: plots compared %d, only in the tool plan %d, only in the key %d." % (title_of(build), builds[build]["compared"], len(builds[build]["onlyInTool"]), len(builds[build]["onlyInKey"])) for build in names]
+    lines += ["", "Counts are match, within limit, over limit, no reference, tool none.", "",
+              "| Field | %s | %s |" % (title_of(names[0]), title_of(names[1])), "|---|---|---|"]
+    lines += ["| %s | %s | %s |" % (field, count_cell(first["counts"][field]), count_cell(second["counts"][field])) for field in FIELDS]
+    for build in names:
+        lines += ["", "Worst 10 per field, %s (plot, gap):" % TITLES[build], ""]
         for field in FIELDS:
             worst = builds[build]["worst"][field]
             lines.append("- %s: %s" % (field, ", ".join("%s %s" % (row["plot"], shown_gap(field, row)) for row in worst) if worst else "none"))
-    lines += ["", "Random plots at seed %d, the gap with overrides then without. The values are in side_by_side_%s.csv outside git." % (report["seed"], code.lower()), "",
+    lines += ["", "Random plots at seed %d, the gap %s then %s. The values are in side_by_side_%s.csv outside git." % (report["seed"], TITLES[names[0]], TITLES[names[1]], code.lower()), "",
               "| Plot | " + " | ".join(FIELDS) + " |", "|---" * (len(FIELDS) + 1) + "|"]
     for plot in report["randomPlots"]:
-        cells = ["%s / %s" % (shown_gap(field, first["perPlot"][plot][field]), shown_gap(field, builds["without"]["perPlot"][plot][field])) for field in FIELDS]
+        cells = ["%s / %s" % (shown_gap(field, first["perPlot"][plot][field]), shown_gap(field, second["perPlot"][plot][field])) for field in FIELDS]
         lines.append("| %s | %s |" % (plot, " | ".join(cells)))
     return "\n".join(lines) + "\n"
 
@@ -231,7 +246,9 @@ def markdown(code, report):
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Compare the tool plans of one zone with the plan of its answer key.")
     parser.add_argument("code", help="the code of the key in answerKeys")
-    parser.add_argument("--with-overrides", required=True, help="plan.json of plan_from_book.py with the override list")
+    first = parser.add_mutually_exclusive_group(required=True)
+    first.add_argument("--with-overrides", help="plan.json of plan_from_book.py with the override list")
+    first.add_argument("--rev6-plan", help="plan.json of plan_from_book.py under rev6 with no override list")
     parser.add_argument("--without-overrides", required=True, help="plan.json of plan_from_book.py with no override list")
     parser.add_argument("--key-plan", required=True, help="the plan of plan_from_past.py --answer-key --key")
     parser.add_argument("--settings", default=str(project_profile.SETTINGS_PATH))
@@ -251,23 +268,26 @@ def main(argv=None):
     limits = limits_of(settings, chosen)
     left_out = settings["majority"].get("kindLeaveOut", {}).get(kind, [])
     key = link_summary.load(args.key_plan)
-    tools = {"with": link_summary.load(args.with_overrides), "without": link_summary.load(args.without_overrides)}
-    builds = {build: compare_zone(tools[build], key, kind, limits, left_out) for build in BUILDS}
-    # A build with no override list can write fewer plots, a random plot is shown in both
-    plots = random_plots(list(set(builds["with"]["perPlot"]) & set(builds["without"]["perPlot"])), args.seed)
+    names = REV6_BUILDS if args.rev6_plan else BUILDS
+    tools = {names[0]: link_summary.load(args.rev6_plan or args.with_overrides), "without": link_summary.load(args.without_overrides)}
+    if args.rev6_plan:
+        check_rev6(tools["rev6"])
+    builds = {build: compare_zone(tools[build], key, kind, limits, left_out) for build in names}
+    # A build can write fewer plots than the other, a random plot is shown in both
+    plots = random_plots(list(set(builds[names[0]]["perPlot"]) & set(builds["without"]["perPlot"])), args.seed)
     report = {"code": args.code, "kind": kind, "seed": args.seed, "limits": limits, "chosen": chosen, "randomPlots": plots, "builds": builds}
-    plans = {build: {entry["plot"]: entry for entry in tools[build]["plots"]} for build in BUILDS}
+    plans = {build: {entry["plot"]: entry for entry in tools[build]["plots"]} for build in names}
     plans["key"] = {entry["plot"]: entry for entry in key["plots"]}
     name = args.code.lower()
     # A limit of 0.5 mm and the gaps at it must stay exact, write_json rounds to 3 decimals
     common.write_json(out / ("zone_compare_%s.json" % name), report, kept_keys={"limits", "chosen", "gap"})
-    rows = side_by_side({build: builds[build]["perPlot"] for build in BUILDS}, plans, plots)
+    rows = side_by_side({build: builds[build]["perPlot"] for build in names}, plans, plots)
     with (out / ("side_by_side_%s.csv" % name)).open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=list(rows[0]) if rows else ["plot"])
         writer.writeheader()
         writer.writerows(rows)
     (out / ("zone_%s.md" % name)).write_text(markdown(args.code, report), encoding="utf-8")
-    print("%s compared %d, only in the tool plan %d, only in the key %d" % (args.code, builds["with"]["compared"], len(builds["with"]["onlyInTool"]), len(builds["with"]["onlyInKey"])))
+    print("%s compared %d, only in the tool plan %d, only in the key %d" % (args.code, builds[names[0]]["compared"], len(builds[names[0]]["onlyInTool"]), len(builds[names[0]]["onlyInKey"])))
     return 0
 
 

@@ -219,3 +219,48 @@ def test_the_markdown_holds_no_coordinate_of_a_ramp_or_a_wall(tmp_path):
     text = (out / "zone_imc.md").read_text(encoding="utf-8")
     for number in ("501234", "2401234", "501239", "2401237", "77.25"):
         assert number not in text
+
+
+def run_rev6(tmp_path, rev6, past, key, extra=()):
+    settings_path = tmp_path / "project.json"
+    settings_path.write_text(json.dumps(SETTINGS), encoding="utf-8")
+    for name, plan in (("rev6.json", rev6), ("past.json", past), ("key.json", key)):
+        (tmp_path / name).write_text(json.dumps(plan), encoding="utf-8")
+    out = tmp_path / "out"
+    code = zone_compare.main(["IMC", "--rev6-plan", str(tmp_path / "rev6.json"), "--without-overrides", str(tmp_path / "past.json"), "--key-plan", str(tmp_path / "key.json"),
+                              "--settings", str(settings_path), "--rotation-within-deg", "1", "--steps-within", "1", "--wall-match-m", "0.01", "--seed", "14", "--out", str(out), *extra])
+    return code, out
+
+
+def test_a_rev6_plan_is_compared_beside_the_past_job_rules(tmp_path):
+    rev6 = {"plots": [plot("1", ffl=10.2), plot("2")], "walls": [], "summary": {"noDoorLevel": 0}}
+    past = {"plots": [plot("1"), plot("2", ffl=10.003), plot("3")], "walls": [], "summary": {}}
+    key = {"plots": [plot(number) for number in "123"], "walls": []}
+    code, out = run_rev6(tmp_path, rev6, past, key)
+    assert code == 0
+    report = json.loads((out / "zone_compare_imc.json").read_text(encoding="utf-8"))
+    assert list(report["builds"]) == ["rev6", "without"]
+    assert report["builds"]["rev6"]["counts"]["ffl"] == {"overLimit": 1, "match": 1}
+    assert report["builds"]["without"]["counts"]["ffl"] == {"match": 2, "withinLimit": 1}
+    assert report["builds"]["rev6"]["onlyInKey"] == ["3"]
+    assert sorted(report["randomPlots"]) == ["1", "2"]
+    text = (out / "zone_imc.md").read_text(encoding="utf-8")
+    assert "Rev6, no override list: plots compared 2" in text and "Without overrides: plots compared 3" in text
+    with (out / "side_by_side_imc.csv").open(encoding="utf-8", newline="") as handle:
+        rows = list(csv.DictReader(handle))
+    assert rows[0]["ffl_rev6"] == "10.2" and rows[0]["ffl_without"] == "10.0" and rows[0]["ffl_key"] == "10.0"
+
+
+def test_a_plan_of_the_past_job_is_refused_as_a_rev6_plan(tmp_path):
+    past = {"plots": [plot("1")], "walls": [], "summary": {}}
+    key = {"plots": [plot("1")], "walls": []}
+    with pytest.raises(ValueError, match="noDoorLevel"):
+        run_rev6(tmp_path, past, past, key)
+
+
+def test_a_rev6_plan_and_a_plan_with_overrides_cannot_go_together(tmp_path):
+    rev6 = {"plots": [plot("1")], "walls": [], "summary": {"noDoorLevel": 0}}
+    key = {"plots": [plot("1")], "walls": []}
+    (tmp_path / "with.json").write_text(json.dumps(rev6), encoding="utf-8")
+    with pytest.raises(SystemExit):
+        run_rev6(tmp_path, rev6, rev6, key, ("--with-overrides", str(tmp_path / "with.json")))
