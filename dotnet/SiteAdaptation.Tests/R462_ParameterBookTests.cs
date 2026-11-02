@@ -49,8 +49,8 @@ namespace SiteAdaptation.Tests
 
             Assert.Equal(Texts(XlsxSheet.Read(path, ParameterSheet.SheetName).Rows), plain);
             Assert.Equal(Sheet(ParameterSheet.FromRows("s", XlsxSheet.Read(path, ParameterSheet.SheetName).Rows)), Sheet(ParameterSheet.FromFile(path)));
-            Assert.Equal(12, plain.Length);
-            Assert.Equal(ParameterSheet.Columns, plain[0]);
+            Assert.Equal(24, plain.Length);
+            Assert.Equal(ParameterSheet.Columns.Concat(new[] { "Note" }), plain[0]);
             Assert.Equal("RRE_ZZ_SP_Façade-Color", plain[4][0]);
         }
 
