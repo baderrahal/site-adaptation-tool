@@ -15,6 +15,7 @@ plots.csv, worked out again here by its own walk with json and csv only.
 - Placed: plot in column A, one row per written plot and kind, the villa type and mirror flag of a link, no blank row, no merged range,
   the headers of type and Mirror alone in the light fill (D4, items 10 and 11)
 - Skipped, Overrides, Assumed, Issues, Rules: each row worked out again from the plan, the list, the status and the check rows
+- Accepted warnings: the sheet of item 38 of 7.7 with the rows of the file step 5 left for the NBH, none with no file (R459)
 - Settings: the editable columns against the fills, the build id against the run stamp of the plan, the SHA-256 of the plan file bytes by
   hashlib, the SHA-256 of the rules and the list
 
@@ -44,6 +45,8 @@ NOT_PLACED = "not placed yet"
 NO_LEVEL_RUN = "no run of button 6 yet"
 NOT_MEASURED = "not measured"
 RULE_COLUMNS = ("Decision", "Rule", "Share", "Strength", "Plots")
+ACCEPTED_SHEET = "Accepted warnings"
+ACCEPTED_FORMAT = "site-adaptation-accepted-warnings"
 OVERRIDE_COLUMNS = ("Plot", "Field", "Outcome", "Why", "Reason", "Source", "Model")
 ISSUE_COLUMNS = ("Step", "Plot", "Check", "Field", "Source", "Use", "Why")
 RULE_SHEET_COLUMNS = ("Rule", "Status", "Basis", "Plots", "Values")
@@ -115,6 +118,8 @@ def mock_labels(root=ROOT):
     sheets = list(found["sheets"])
     sheets.insert(sheets.index("Overrides") + 1, "Assumed")
     sheets.append("Settings")
+    accepted_item = next(item for item in items.values() if item.startswith('The sheet "%s"' % ACCEPTED_SHEET))
+    sheets.insert(sheets.index(re.search(r"the sheet after (\w+)", accepted_item).group(1)) + 1, ACCEPTED_SHEET)
     placed = [title(word) for word in listed(re.search(r"Placed: one row per placed element, (.*?)\.", part).group(1).replace("the element id", "element id"))]
     mirror = re.search(r"The column (\w+) of the sheet Placed, after (\w+)", items[11])
     placed.insert(placed.index(title(mirror.group(2))) + 1, mirror.group(1))
@@ -122,7 +127,7 @@ def mock_labels(root=ROOT):
     manual = re.search(r'the column "(.*?)" after Issues', part).group(1)
     found.update(
         stepColumns=found["stepColumns"] + [manual], issueColumns=list(ISSUE_COLUMNS) + [manual], reportStep=nine[-1],
-        sheets=sheets, placed=placed, editable=editable,
+        sheets=sheets, placed=placed, editable=editable, accepted=re.split(r", | and ", re.search(r"its columns (.*?), not counted", accepted_item).group(1)),
         skipped=[title(word) for word in listed(re.search(r"Skipped: (.*?)\.", part).group(1))],
         assumed=[title(word) for word in re.split(r", | and ", re.search(r"its columns (.*?) and the Q ID", items[9]).group(1))] + [BASIS],
         plotCount=re.search(r'the count written "(.*?)"', items[9]).group(1),
@@ -149,13 +154,24 @@ def cell(value):
     return value if value is None or isinstance(value, (str, bool, int, float)) else ("json", value)
 
 
-def load_inputs(plan_path, overrides_path, check_rows_path, summary_path, plots_csv, rules_path, config_path, revit_path=None):
+def accepted_rows(accepted, nbh):
+    """R459. The rows the file step 5 left gives the workbook of its NBH, none with no file, in the order of the file."""
+    if accepted is None:
+        return []
+    if accepted.get("format") != ACCEPTED_FORMAT or not isinstance(accepted.get("accepted"), list) or accepted.get("count") != len(accepted["accepted"]):
+        raise ValueError("the accepted warnings file is not of the form of R459")
+    if accepted.get("neighbourhood") != nbh:
+        return []
+    return [[item["plot"], item["firstType"], item["secondType"], item["text"]] for item in accepted["accepted"]]
+
+
+def load_inputs(plan_path, overrides_path, check_rows_path, summary_path, plots_csv, rules_path, config_path, revit_path=None, accepted_path=None):
     read = lambda path: json.loads(Path(path).read_text(encoding="utf-8"))
     with open(plots_csv, encoding="utf-8-sig", newline="") as handle:
         table = [row for row in csv.DictReader(handle)]
     return {"plan": read(plan_path), "planBytes": Path(plan_path).read_bytes(), "overrides": read(overrides_path), "checkRows": read(check_rows_path), "summary": read(summary_path),
             "table": table, "rows": {row["locationPlanNumber"]: row for row in table if row.get("locationPlanNumber")}, "rules": read(rules_path),
-            "config": read(config_path), "revit": read(revit_path) if revit_path else None,
+            "config": read(config_path), "revit": read(revit_path) if revit_path else None, "accepted": read(accepted_path) if accepted_path else None,
             "sha": {name: hashlib.sha256(Path(path).read_bytes()).hexdigest() for name, path in (("rules", rules_path), ("overrides", overrides_path))}}
 
 
@@ -362,7 +378,8 @@ def expected(inputs, profile_name, mock):
         stamp = plan.get("run")
         books[nbh] = {"file": mock["file"].replace("<NBH>", nbh), "topLine": mock["filled"] % {"nbh": nbh, "n": len(order), "profile": profile_name},
                       "steps": steps, "counts": counts, "box": box,
-                      "sheets": {"Placed": placed, "Skipped": skipped, "Overrides": overrides, "Assumed": assumed_rows, "Issues": issues, "Rules": rule_rows},
+                      "sheets": {"Placed": placed, "Skipped": skipped, "Overrides": overrides, "Assumed": assumed_rows, "Issues": issues, "Rules": rule_rows,
+                                 ACCEPTED_SHEET: accepted_rows(inputs.get("accepted"), nbh)},
                       "settings": {"Profile": profile_name, "Rules SHA-256": inputs["sha"]["rules"], "Override list SHA-256": inputs["sha"]["overrides"],
                                    "Editable columns": ", ".join(name for name in mock["placed"] if name in mock["editable"]),
                                    "Plan build id": stamp["runId"] if isinstance(stamp, dict) and isinstance(stamp.get("runId"), str) else NO_BUILD_ID,
@@ -439,7 +456,7 @@ def check_xlsx(path, want, mock, run_id=None):
         if is_number(row[2]):
             hold("share format", summary.cell(row=rules_at + 2 + index, column=3).number_format == SHARE_FORMAT, "Rules applied row %d format" % (rules_at + 2 + index))
     headers = {"Placed": mock["placed"], "Skipped": mock["skipped"], "Overrides": list(OVERRIDE_COLUMNS), "Assumed": mock["assumed"],
-               "Issues": mock["issueColumns"], "Rules": list(RULE_SHEET_COLUMNS)}
+               "Issues": mock["issueColumns"], "Rules": list(RULE_SHEET_COLUMNS), ACCEPTED_SHEET: mock["accepted"]}
     for name, header in headers.items():
         sheet, wanted = book[name], want["sheets"][name]
         hold(name + " header", row_values(sheet, 1, len(header)) == header, name + " row 1")
@@ -493,12 +510,12 @@ def check_folder(folder, want, mock, run_id=None):
 
 def run(args):
     mock = mock_labels()
-    inputs = load_inputs(args.plan, args.overrides, args.check_rows, args.summary, args.plots_csv, args.rules, args.config, args.revit_counts)
+    inputs = load_inputs(args.plan, args.overrides, args.check_rows, args.summary, args.plots_csv, args.rules, args.config, args.revit_counts, args.accepted_warnings)
     want = expected(inputs, args.profile, mock)
     books = want["books"]
     report = {"plan": Path(args.plan).name, "workbooks": sorted(book["file"] for book in books.values()),
               "rows": {"written": want["written"], "notWritten": want["notWritten"],
-                       **{name: sum(len(book["sheets"][name]) for book in books.values()) for name in ("Placed", "Skipped", "Overrides", "Assumed", "Issues", "Rules")}},
+                       **{name: sum(len(book["sheets"][name]) for book in books.values()) for name in ("Placed", "Skipped", "Overrides", "Assumed", "Issues", "Rules", ACCEPTED_SHEET)}},
               "gaps": dict(sorted(want["gaps"].items()))}
     if args.xlsx_folder:
         result, bad = check_folder(args.xlsx_folder, want, mock, args.run_id)
@@ -519,6 +536,7 @@ def main(argv=None):
     parser.add_argument("--config", default=str(project_profile.SETTINGS_PATH))
     parser.add_argument("--profile", default="parsons2024Rev6")
     parser.add_argument("--revit-counts", help="the counts the add-in read from the model, the input revitCounts of the request when it gives one (R381)")
+    parser.add_argument("--accepted-warnings", help="the file step 5 left, floors_<NBH>_accepted.json, the input acceptedWarnings of the request when it gives one (R459)")
     parser.add_argument("--run-id", help="the run id of the reportExcel request, held against Settings when given")
     parser.add_argument("--xlsx-folder", help="the folder of the report Excel files the worker wrote of this plan, left out to check the plan side alone")
     parser.add_argument("--out", required=True, help="the report, outside the repo")

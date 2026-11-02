@@ -26,6 +26,8 @@ namespace SiteAdaptation.Common.Report
         public const string OverridesRole = "overrides";
         public const string PlotsCsvRole = "plotsCsv";
         public const string RevitCountsRole = "revitCounts";
+        // R459. What step 5 accepted, an input only when step 5 left the file
+        public const string AcceptedWarningsRole = "acceptedWarnings";
         public const string RunLogRolePrefix = "runLog";
 
         private const int Check = 4;
@@ -138,6 +140,11 @@ namespace SiteAdaptation.Common.Report
                     var inputs = new List<WorkerFile> { Input("config", configPath), Input("rules", rulesPath) };
                     inputs.AddRange(check.Files(nbh));
                     inputs.Add(Input(RevitCountsRole, countsPath));
+                    string accepted = Path.Combine(context.WorkFolder, Floors.FloorsRun.AcceptedName(nbh));
+                    if (File.Exists(accepted))
+                    {
+                        inputs.Add(Input(AcceptedWarningsRole, accepted));
+                    }
                     inputs.AddRange(logs);
                     var request = new WorkerRequest
                     {

@@ -249,7 +249,7 @@ namespace SiteAdaptation.Common.Flow
         public static string Refusal(JObject file)
         {
             const string not = "the accepted warnings file is not of the form of R459";
-            if ((string)file?["format"] != Format || !(file[List] is JArray items) || file["count"]?.Type != JTokenType.Integer || (int)file["count"] != items.Count)
+            if ((string)file?["format"] != Format || file["neighbourhood"]?.Type != JTokenType.String || !(file[List] is JArray items) || file["count"]?.Type != JTokenType.Integer || (int)file["count"] != items.Count)
             {
                 return not;
             }

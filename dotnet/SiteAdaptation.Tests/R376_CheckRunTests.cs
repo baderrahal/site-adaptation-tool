@@ -269,6 +269,31 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
+        public void R459_a_run_of_4_counts_what_step_5_left_for_its_nbh_and_a_first_pass_has_no_count()
+        {
+            var table = new Table();
+            var builder = new Builder();
+            ButtonBody body = new CheckRun(Roles, builder, (path, folder, request) => builder.Run(request), new WorkerDocument(), Nbh, table, null, null).Body();
+
+            body.Preview(Context("R4-459a", Path.Combine(work, "dry", "R4-459a")));
+            Assert.DoesNotContain(table.Shown.Single().Counts, item => item.Key == CheckTableState.AcceptedChip);
+            int all = table.Shown.Single().Counts.Single(item => item.Key == CheckTableState.AllChip).Value;
+
+            File.WriteAllText(Path.Combine(work, SiteAdaptation.Common.Floors.FloorsRun.AcceptedName("012")), AcceptedWarningFile.Text("5_1", "012", new[]
+            {
+                new AcceptedWarning { Text = "t", Plot = "p", FirstType = "a", SecondType = "b", FirstId = "1", SecondId = "2" },
+                new AcceptedWarning { Text = "t", Plot = "p", FirstType = "a", SecondType = "b", FirstId = "1", SecondId = "3" },
+            }));
+            body.Preview(Context("R4-459b", Path.Combine(work, "dry", "R4-459b")));
+
+            CheckTableView view = table.Shown.Last();
+            Assert.Equal(new KeyValuePair<string, int>(CheckTableState.AcceptedChip, 2), view.Counts.Last());
+            Assert.Equal(all, view.Counts.Single(item => item.Key == CheckTableState.AllChip).Value);
+            Assert.Equal(view.Rows.Count, all);
+            Assert.DoesNotContain(view.Rows, row => row.Check == CheckTableState.AcceptedChip);
+        }
+
+        [Fact]
         public void R376_the_dry_run_builds_into_the_dry_folder_and_greys_save_overrides()
         {
             var builder = new Builder();

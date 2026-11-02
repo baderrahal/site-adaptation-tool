@@ -99,6 +99,40 @@ namespace SiteAdaptation.Tests
             Assert.Empty(asked);
         }
 
+        [Fact]
+        public void R459_the_request_names_the_file_step_5_left_for_the_nbh_only_when_it_is_there_and_the_worker_lists_it()
+        {
+            CheckRunLog();
+            var asked = new List<WorkerRequest>();
+            Model model;
+            State state;
+            Run(false, true, Stand(asked), out model, out state);
+            Assert.DoesNotContain(asked.Single().Inputs, input => input.Role == ReportRun.AcceptedWarningsRole);
+
+            asked.Clear();
+            string file = Path.Combine(work, SiteAdaptation.Common.Floors.FloorsRun.AcceptedName("012"));
+            File.WriteAllText(file, AcceptedWarningFile.Text("5_1", "012", new[]
+            {
+                new AcceptedWarning { Text = "Highlighted floors overlap.", Plot = "VD4-101", FirstType = "Generic 150mm", SecondType = "yard", FirstId = "a", SecondId = "b" },
+            }));
+            Func<WorkerRequest, string, WorkerAnswer> worker = (request, folder) =>
+            {
+                asked.Add(request);
+                int code = WorkerRunner.Run(request.Write(folder), WorkerReads.Commands(), () => 90000.0, () => 0.0);
+                WorkerAnswer answer = WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, request.RunId));
+                Assert.True(code == 0, "exit " + code + ": " + answer.Message);
+                return answer;
+            };
+            RunOutcome outcome = Run(false, true, worker, out model, out state);
+
+            Assert.True(outcome.End == RunEnd.Committed, outcome.End + " " + outcome.Message);
+            WorkerFile input = asked.Single().Inputs.Single(item => item.Role == ReportRun.AcceptedWarningsRole);
+            Assert.Equal(file, input.Path);
+            Assert.Equal(FileHash.Sha256(file), input.Sha256);
+            LevelExcelTests.Book book = LevelExcelTests.Book.Read(Path.Combine(work, "012_Report.xlsx"));
+            Assert.Equal(new object[] { "VD4-101", "Generic 150mm", "yard", "Highlighted floors overlap." }, book.Row("Accepted warnings", 2).ToArray());
+        }
+
         // The request goes to the worker command itself, so a role it does not take or a count file it refuses fails here. The Revit column of the
         // workbook read back, the first after the item as ReportExcelTests reads it, holds the counts the stand in of the model gave for the plots the
         // run log of 6 lists

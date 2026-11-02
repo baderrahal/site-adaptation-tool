@@ -24,6 +24,7 @@ namespace SiteAdaptation.AddIn.CheckTable
         public const string Level = "Level";
         public const string Parameter = "Parameter";
         public const string Assumed = "Assumed";
+        public const string AcceptedAtStep5 = "Accepted at step 5";
 
         public const string Plot = "Plot";
         public const string Nbh = "NBH";

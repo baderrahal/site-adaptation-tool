@@ -33,7 +33,7 @@ namespace SiteAdaptation.Tests
             Directory.Delete(work, true);
         }
 
-        private static JObject Config(string pairs = "[[\"generic\", \"yard\"], [\"generic\", \"ramp\"]]")
+        private static JObject Config(string pairs = "[[\"generic\", \"yard\"], [\"generic\", \"ramp\"], [\"ramp\", \"yard\"]]")
         {
             return JObject.Parse("{\"floors\": {\"plotParameter\": \"Plot\", \"types\": {\"generic\": [\"" + Generic + "\"], \"yard\": [\"" + Yard + "\"], \"ramp\": [\"Ramps 0.5%\", \"" + Ramp + "\", \"Flat Ramps\"]},"
                 + "\"knownWarnings\": {\"note\": \"made up\", \"entries\": [{\"text\": \"" + Overlap + "\", \"samePlot\": true, \"rolePairs\": " + pairs + "}]}}}");
@@ -92,14 +92,23 @@ namespace SiteAdaptation.Tests
         }
 
         [Theory]
-        [InlineData(Yard, Ramp)]
-        [InlineData(Ramp, Yard)]
         [InlineData(Yard, Yard)]
         [InlineData(Ramp, Ramp)]
         [InlineData(Generic, Generic)]
         public void R459_a_pair_the_list_does_not_name_shows_even_on_one_plot(string first, string second)
         {
             Assert.Null(List().Decide(Overlap, new[] { Floor(first, "VD4-101", "a"), Floor(second, "VD4-101", "b") }));
+        }
+
+        // Q367, Bader 2 Nov: a ramp with a yard joins the list, on one plot only
+        [Theory]
+        [InlineData(Yard, Ramp)]
+        [InlineData(Ramp, Yard)]
+        public void R459_a_ramp_with_a_yard_is_accepted_on_one_plot_and_shows_on_two_plots(string first, string second)
+        {
+            AcceptedWarning accepted = List().Decide(Overlap, new[] { Floor(first, "VD4-101", "a"), Floor(second, "VD4-101", "b") });
+            Assert.Equal(new[] { Ramp, Yard }, new[] { accepted.FirstType, accepted.SecondType });
+            Assert.Null(List().Decide(Overlap, new[] { Floor(first, "VD4-101", "a"), Floor(second, "VD4-102", "b") }));
         }
 
         [Theory]
@@ -124,11 +133,12 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R459_a_pair_added_to_the_config_is_accepted_with_no_other_change()
+        public void R459_a_pair_changed_in_the_config_changes_what_is_accepted_with_no_other_change()
         {
-            KnownWarningList wider = KnownWarningList.OfFloors(Config("[[\"generic\", \"yard\"], [\"generic\", \"ramp\"], [\"ramp\", \"yard\"]]"));
-            AcceptedWarning accepted = wider.Decide(Overlap, new[] { Floor(Yard, "VD4-101", "a"), Floor(Ramp, "VD4-101", "b") });
-            Assert.Equal(new[] { Ramp, Yard }, new[] { accepted.FirstType, accepted.SecondType });
+            KnownWarningList narrow = KnownWarningList.OfFloors(Config("[[\"generic\", \"yard\"]]"));
+            Assert.NotNull(narrow.Decide(Overlap, new[] { Floor(Generic, "VD4-101", "a"), Floor(Yard, "VD4-101", "b") }));
+            Assert.Null(narrow.Decide(Overlap, new[] { Floor(Generic, "VD4-101", "a"), Floor(Ramp, "VD4-101", "b") }));
+            Assert.Null(narrow.Decide(Overlap, new[] { Floor(Yard, "VD4-101", "a"), Floor(Ramp, "VD4-101", "b") }));
         }
 
         [Fact]
@@ -148,21 +158,24 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R459_the_real_config_parses_to_the_words_and_the_two_pairs_of_bader_with_every_role_a_floor_role()
+        public void R459_the_real_config_parses_to_the_words_and_the_three_pairs_of_q367_with_every_role_a_floor_role()
         {
             JObject config = JObject.Parse(File.ReadAllText(RepoConfig()));
             KnownWarningList list = KnownWarningList.OfFloors(config);
             KnownWarning entry = Assert.Single(list.Entries);
             Assert.Equal(Overlap, entry.Text);
             Assert.True(entry.SamePlot);
-            Assert.Equal(new[] { "generic|yard", "generic|ramp" }, entry.RolePairs.Select(pair => pair[0] + "|" + pair[1]).ToArray());
+            Assert.Equal(new[] { "generic|yard", "generic|ramp", "ramp|yard" }, entry.RolePairs.Select(pair => pair[0] + "|" + pair[1]).ToArray());
             Assert.Equal("Plot", list.PlotParameter);
-            // Q367 is open: ramp with yard stays out until Bader answers
-            Assert.Null(list.Decide(Overlap, new[] { Floor(Yard, "VD4-101", "a"), Floor(Ramp, "VD4-101", "b") }));
             foreach (string ramp in ((JArray)config["floors"]["types"]["ramp"]).Select(item => (string)item))
             {
                 Assert.NotNull(list.Decide(Overlap, new[] { Floor(Generic, "VD4-101", "a"), Floor(ramp, "VD4-101", "b") }));
+                Assert.NotNull(list.Decide(Overlap, new[] { Floor(Yard, "VD4-101", "a"), Floor(ramp, "VD4-101", "b") }));
+                Assert.Null(list.Decide(Overlap, new[] { Floor(Yard, "VD4-101", "a"), Floor(ramp, "VD4-102", "b") }));
+                Assert.Null(list.Decide(Overlap, new[] { Floor(ramp, "VD4-101", "a"), Floor(ramp, "VD4-101", "b") }));
             }
+            Assert.Null(list.Decide(Overlap, new[] { Floor(Yard, "VD4-101", "a"), Floor(Yard, "VD4-101", "b") }));
+            Assert.Null(list.Decide(Overlap, new[] { Floor(Generic, "VD4-101", "a"), Floor(Generic, "VD4-101", "b") }));
         }
 
         [Theory]
