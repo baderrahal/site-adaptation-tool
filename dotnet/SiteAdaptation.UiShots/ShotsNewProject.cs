@@ -19,6 +19,11 @@ namespace SiteAdaptation.UiShots
             return Draw(Body(LaidOutNewProject()));
         }
 
+        private static BitmapSource RoadSurfacesPage()
+        {
+            return Draw(Body(LaidOutRoadSurfaces()));
+        }
+
         private static BitmapSource HowItWorksPage()
         {
             return Draw(Body(LaidOutHowItWorks()));
@@ -39,6 +44,16 @@ namespace SiteAdaptation.UiShots
             return window;
         }
 
+        // R492. Three surfaces ticked, one more in the folder, one saved name the folder no longer holds, made up names
+        public static RoadSurfacesWindow LaidOutRoadSurfaces()
+        {
+            var window = new RoadSurfacesWindow(new RoadSurfacesViewModel(
+                new[] { "IM_Z1__Access", "IM_Z1__Collector", "IM_Z1__Spine", "IM_Z1__Service" },
+                new[] { "IM_Z1__Spine", "IM_Z1__Collector", "IM_Z1__Old" }));
+            LayOut(window);
+            return window;
+        }
+
         public static HowItWorksWindow LaidOutHowItWorks()
         {
             var window = new HowItWorksWindow(new HowItWorksViewModel());
@@ -53,7 +68,7 @@ namespace SiteAdaptation.UiShots
             settings.Inputs.Remove(InputKeys.ParameterSheet);
             var starts = new[] { new SavedStart(Sample.SavedProject, @"C:\Sample\" + Sample.SavedProject + SavedStarts.Extension, PreSetting.Export(settings)) };
             var facts = new DrawingFactsResult { Plots = 337, PlotLayer = "MP_PLOT_LINE, MP_PLOT_SUBD", VillaTypes = 14 };
-            return new NewProjectViewModel(settings, Sample.Document().Title, starts, facts, (path, folder) => Sample.Files.ContainsKey(Path.GetFileName(path)), null, path => null);
+            return new NewProjectViewModel(settings, Sample.Document().Title, starts, facts, (path, folder) => Sample.Files.ContainsKey(Path.GetFileName(path)), null, Sample.ConfigText);
         }
     }
 }

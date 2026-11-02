@@ -36,6 +36,11 @@ namespace SiteAdaptation.AddIn.NewProject
             }
         }
 
+        private void OnPickSurfaces(object sender, RoutedEventArgs e)
+        {
+            model.PickSurfaces();
+        }
+
         private void OnCheck(object sender, RoutedEventArgs e)
         {
             model.CheckFiles();

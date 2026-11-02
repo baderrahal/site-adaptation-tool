@@ -172,7 +172,7 @@ namespace SiteAdaptation.Common.Flow
         // A button never guesses an input: one not chosen or not on disk stops it, by the first such input
         private static string Absent(string label, IReadOnlyList<RunInput> inputs)
         {
-            foreach (RunInput input in inputs)
+            foreach (RunInput input in inputs.Where(item => item.Text == null))
             {
                 if (string.IsNullOrEmpty(input.Path))
                 {

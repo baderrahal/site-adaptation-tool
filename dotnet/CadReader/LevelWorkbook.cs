@@ -37,6 +37,7 @@ namespace CadReader
             }
             string overridesPath = run.Input(OverridesRole);
             string configPath = run.Input("config");
+            ReadSettings settings = ReadSettings.Load(configPath);
             var inputs = new LevelInputs
             {
                 Plan = plan,
@@ -46,7 +47,8 @@ namespace CadReader
                 RulesName = Path.GetFileName(rulesPath),
                 RulesSha256 = FileHash.Sha256(rulesPath),
                 Config = PyJson.Parse(WorkFiles.ReadText(configPath)) as JObject,
-                RoadOrder = Fronts.RoadNames((JObject)rules["levelProfiles"][request.LevelProfile], ReadSettings.Load(configPath)),
+                // R492. Under rev6 the order the build took, the pick its request carries or designBasis.roadLevel, never siteBuild.roadSurfaces
+                RoadOrder = settings.IsRev6 ? settings.ReadRoads(request.RoadSurfaces) : Fronts.RoadNames((JObject)rules["levelProfiles"][request.LevelProfile], settings),
                 Overrides = PyJson.Parse(WorkFiles.ReadText(overridesPath)) as JObject,
                 OverridesSha256 = FileHash.Sha256(overridesPath),
                 Clusters = PyJson.Parse(WorkFiles.ReadText(run.Input(ClustersRole))) as JObject,
