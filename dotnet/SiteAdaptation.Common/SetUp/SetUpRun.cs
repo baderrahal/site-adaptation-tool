@@ -6,6 +6,7 @@ using System.Linq;
 using Newtonsoft.Json.Linq;
 using SiteAdaptation.Common.Flow;
 using SiteAdaptation.Common.Settings;
+using SiteAdaptation.Common.Steps;
 
 namespace SiteAdaptation.Common.SetUp
 {
@@ -153,9 +154,30 @@ namespace SiteAdaptation.Common.SetUp
             {
                 throw new InvalidOperationException(string.Join(". ", stops));
             }
-            // 03a Second run: with nothing to set no transaction opens, so no site.json and no run record are made again. The window
-            // said so and kept Apply off, this holds the same for a window that answers Apply anyway
-            return SetUpPlanner.Changes(document.Read(), target).Any;
+            // Q158. With nothing to set the run still marks step 1 done, so the steps after it go on after a config edit. A step that holds
+            // already records nothing, since a later record would make the steps after it run again (R366). The window said the line
+            return SetUpPlanner.Changes(document.Read(), target).Any || !StepHolds(context);
+        }
+
+        // Q158. The entity holds the last run of this button on the hash of its inputs now and site.json is there. With no store nothing is known
+        private bool StepHolds(RunContext context)
+        {
+            if (store == null || !File.Exists(Path.Combine(context.WorkFolder, SiteFile)))
+            {
+                return false;
+            }
+            ProjectSettings held;
+            try
+            {
+                held = store.Load();
+            }
+            catch (Exception failure) when (failure is InvalidDataException || failure is Newtonsoft.Json.JsonException)
+            {
+                return false;
+            }
+            ButtonRun last = null;
+            held?.LastRuns.TryGetValue(context.Button.ToString(CultureInfo.InvariantCulture), out last);
+            return last != null && StepHash.Combine(last.InputHashes) == StepHash.Combine(context.InputHashes);
         }
 
         // 03a The shared parameter file: shared_<run id>.txt in the work folder with the group and the definitions of the sheet, the
@@ -232,7 +254,8 @@ namespace SiteAdaptation.Common.SetUp
             {
                 document.BindParameters(target, changes.Parameters);
             }
-            var issues = new List<string>(tags.Tag(context.RunId, context.Button) ?? new string[0]);
+            // Q158. Nothing to set changes no element, so nothing is tagged
+            var issues = changes.Any ? new List<string>(tags.Tag(context.RunId, context.Button) ?? new string[0]) : new List<string>();
 
             SiteState after = document.Read();
             View = SetUpPlanner.View(after, target, document.SharedNow);
@@ -248,7 +271,11 @@ namespace SiteAdaptation.Common.SetUp
                 readBack = string.Join(", ", differs);
                 return issues;
             }
-            context.WriteText(SiteFile, SiteJson(after, context.RunId).ToString(Newtonsoft.Json.Formatting.Indented));
+            // Q158. With nothing set the facts of the file are those of the model, so it is written only when missing
+            if (changes.Any || !File.Exists(Path.Combine(context.WorkFolder, SiteFile)))
+            {
+                context.WriteText(SiteFile, SiteJson(after, context.RunId).ToString(Newtonsoft.Json.Formatting.Indented));
+            }
             if (store == null)
             {
                 issues.Add(SetUpTexts.SettingsNotWritten);

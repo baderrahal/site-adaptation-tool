@@ -48,9 +48,9 @@ namespace SiteAdaptation.Tests
             Assert.Equal("", empty.PassLine);
         }
 
-        // Breaker pass 1 of 5b, 03a Second run: a view where nothing differs says so and Apply stays off, so no empty run commits
+        // Q158 in place of breaker pass 1 of 5b: a view where nothing differs says so and Apply marks the step done, a real stop still keeps it off
         [Fact]
-        public void R374_a_view_where_nothing_differs_says_so_and_keeps_apply_off()
+        public void R374_q158_a_view_where_nothing_differs_says_so_and_turns_apply_on_and_a_stop_keeps_it_off()
         {
             SetUpSiteView view = Shots.SampleSetUpView(true, true);
             view.NothingDiffers = true;
@@ -59,8 +59,28 @@ namespace SiteAdaptation.Tests
             Assert.True(model.NothingShown);
             Assert.Equal(SetUpSiteText.NothingDiffers, model.NothingLine);
             Assert.Equal(SetUpTexts.NothingDiffers, SetUpSiteText.NothingDiffers);
-            Assert.False(model.CanApply);
+            Assert.Equal("Nothing differs, the model stays as it is. Apply marks this step done.", SetUpSiteText.NothingDiffers);
+            Assert.True(model.CanApply);
             Assert.False(new SetUpSiteViewModel(Shots.SampleSetUpView(true, true)).NothingShown);
+
+            // On with no dry run, the view says nothing differs before one, as the line does. A real difference still waits for it
+            SetUpSiteView undone = Shots.SampleSetUpView(true, true);
+            undone.NothingDiffers = true;
+            undone.DryRunDone = false;
+            Assert.True(new SetUpSiteViewModel(undone).CanApply);
+            SetUpSiteView different = Shots.SampleSetUpView(true, true);
+            different.DryRunDone = false;
+            Assert.False(new SetUpSiteViewModel(different).CanApply);
+
+            SetUpSiteView stopped = Shots.SampleSetUpView(true, true);
+            stopped.NothingDiffers = true;
+            stopped.Stops = new List<string> { "a stop" };
+            Assert.False(new SetUpSiteViewModel(stopped).CanApply);
+
+            SetUpSiteView notTicked = Shots.SampleSetUpView(true, true);
+            notTicked.NothingDiffers = true;
+            notTicked.CurrentFiles = new List<CurrentFileRow> { new CurrentFileRow { Site = true, Current = false, Input = "baseplan" } };
+            Assert.False(new SetUpSiteViewModel(notTicked).CanApply);
         }
 
         // Breaker pass 2 of 5b: what waits, Plot on Q156, shows beside the line, so nothing differs never reads as a model complete

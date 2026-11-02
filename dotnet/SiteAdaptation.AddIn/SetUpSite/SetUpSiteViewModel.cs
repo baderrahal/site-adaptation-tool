@@ -39,7 +39,7 @@ namespace SiteAdaptation.AddIn.SetUpSite
         // Before a dry run nothing is measured, so the count and the pass line wait for it
         public bool CountShown => view.DryRunDone;
 
-        // 03a Second run: a view where nothing differs says so, and Apply stays off. It holds for the slope the view was made with
+        // 03a Second run, Q158: a view where nothing differs says so, and Apply marks the step done. It holds for the slope the view was made with
         public bool NothingShown => view.NothingDiffers && SameSlope;
 
         // What waits on a question, Plot on Q156, beside the line, so nothing differs never reads as a model complete
@@ -66,8 +66,8 @@ namespace SiteAdaptation.AddIn.SetUpSite
 
         public bool StopsShown => StopsLine.Length > 0;
 
-        // The dry run has filled the view, no stop is found, something differs, and the slope is the one the view was made with
-        public bool CanApply => SiteTicked && view.Stops.Count == 0 && view.DryRunDone && !view.NothingDiffers && SameSlope && (!dryRunSlope.HasValue || Math.Abs(dryRunSlope.Value - SelectedSlope) < 1e-9);
+        // No stop is found, the slope is the one the view was made with, and nothing differs (Q158) or the dry run has filled the view
+        public bool CanApply => SiteTicked && view.Stops.Count == 0 && SameSlope && (view.NothingDiffers || (view.DryRunDone && (!dryRunSlope.HasValue || Math.Abs(dryRunSlope.Value - SelectedSlope) < 1e-9)));
 
         public IReadOnlyList<CurrentFileViewModel> CurrentFiles { get; private set; }
 

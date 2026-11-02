@@ -36,7 +36,7 @@ namespace SiteAdaptation.AddIn.SetUpSite
 
         public const string PassLimit = "Pass limit <n> mm. <n> of <n> pass";
         public const string Browse = "Browse";
-        public const string NothingDiffers = "Nothing differs, Apply changes nothing.";
+        public const string NothingDiffers = "Nothing differs, the model stays as it is. Apply marks this step done.";
 
         // R441, the section Current files above the two tables, DRAFT of SCAN-UI with no board
         public const string CurrentTitle = "Current files";
