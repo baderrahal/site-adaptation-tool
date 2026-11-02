@@ -529,6 +529,9 @@ No real input reaches these: the plot table of the demo holds whole numbers and 
 - A check point over the pass limit with nothing differing rolls back at the read back with its reason, and the window gives no warning before the press. A model set by the tool matches exactly.
 - While the pane has no input hash yet it shows Ready and the flow has hashed, so a press in that moment can hold and cancel. It lasts until the hash returns, not measured.
 - An extra field added to site.json by hand counts as disagreeing and the file is written again.
+- A level type with no base parameter gives a null in the facts, the file parses back as a null of another token type, so each press commits and steps 2 to 8 go back (RAN the compare). A Revit level type has that parameter.
+- A level added or moved by hand, of no use to the build, fails the compare, so one press commits and steps 2 to 8 run again. Loud, no wrong number.
+- A rules path that differs only by case commits once, then holds.
 
 ## R459 review 1 and breaker 1, 2 Nov 2026
 

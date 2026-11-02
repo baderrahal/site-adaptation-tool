@@ -14,7 +14,7 @@ Done:
   DocumentSession.LastRun by PaneViewModel.LastRun and SetUpSiteBody, StepRun.FromSettings by DocumentSession.LastRun
 
 Checked:
-- Review 1: CHANGES NEEDED, 3 REAL fixed. Breaker 1: 3 REAL fixed. Second breaker pass on the fix: see the PR
+- Review 1: CHANGES NEEDED, 3 REAL fixed. Breaker 1: 3 REAL fixed. Second breaker pass: 0 faults of the fix, 1 REAL older gap added to Q382, 3 LATENT
 - Gate: see the PR. Not run in Revit, the hand run of task 4 checks part 4 again
 
 Remains:
