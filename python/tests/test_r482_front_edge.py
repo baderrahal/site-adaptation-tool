@@ -326,8 +326,7 @@ def test_r482_a_plot_with_a_front_edge_line_holds_no_cannot_line_of_the_old_fron
 
 def test_r482_the_lines_of_the_old_front_are_gone_and_the_hand_stays_out_of_the_set():
     """Breaker 2 of FIX-2NOV-A3: an outline gap of the old front showed 21 m on a ramp 1 mm off its key, and a hand the line does not move read as moved."""
-    with open(Path(__file__).resolve().parents[2] / "config" / "overrides" / "roshn-makkah.json", encoding="utf-8") as handle:
-        lines = [item for item in json.load(handle)["overrides"] if item["source"] == "parsons"]
+    lines = [item for item in list_lines() if item["source"] == "parsons"]
     notched = {"469", "727", "1172", "2626", "2665"}
     assert [item["plot"] for item in lines if item["plot"] in notched and item["field"] == "steps"] == []
     assert sorted(item["plot"] for item in lines if item["plot"] in notched and item["field"] == "rampOutline") == ["1172", "469"]
