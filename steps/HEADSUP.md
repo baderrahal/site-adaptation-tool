@@ -15,8 +15,8 @@
   Now: the gate on the merged tree, then merge PR 131. Then Lane D D3 on my word
 - Lane C DEMO-FIX, 09:55, branch fix/lane-c-demo-fix: step rows of the pane run steps, a loader on every button, Confirm all in 3 Review
   data, idle buttons hidden (R444). Now: the gate and the PR, merge by 10:15, then lane-b reinstalls. Blocked: none
-- Lane D D3, 04:00, branch fix/1nov-d3: 13 of 13 prototypes upgraded to 2024, 286 to 368 s each, checked from the file bytes, sources unchanged by hash. Holding the window lock:
-  run D3L, NBH 012 buttons 1 to 9 with real links. Next: run D3S the swap back, two read jobs, compare 5 plots, records, PR. Blocked: none
+- Lane D D3, 04:27, branch fix/1nov-d3: 13 of 13 upgraded. Run D3L buttons 1 to 9 passed with 13 real files linked, 336 placed. Run D3S gave the masses back, 336 placed, and
+  exited 1 on 13 .slog files in the backup folders of the 2024 copies, no real input changed. Holding the lock: two read jobs. Next: compare 5 plots, records, PR. Blocked: none
 
 Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane D D2, Lane D FIX-1NOV-D, Lane C DEMO-FIX, Lane B demo-fill, Lane A 4j-2, Lane D 4j-1b, Lane C SCAN-UI, Lane A 4i, Lane B 6a, 1 Nov 2026.
 
