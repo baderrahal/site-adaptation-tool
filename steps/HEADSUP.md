@@ -4,20 +4,20 @@
 
 ### Lane A
 
-- Lane: A, round FIX-2NOV-A, branch fix/2nov-a. Time: 2026-11-02 15:00. Blocked: none
-- Done: R475, R476, R477, Revit run of 1 to 5, gate, parity 32 runs 0 failures
+- Lane: A, round FIX-2NOV-A2, branch fix/2nov-a2. Time: 2026-11-02 18:00. Blocked: none
+- Done: R478, R479, R480, review 1, breaker 1, gate on ae8369b, parity 32 runs 0 failures
 - Now: the PR
-- Next: merge when green, tell lane-c and lane-b, then queued FIX-2NOV-A2
+- Next: merge when green, tell lane-c, then queued FIX-2NOV-A3
 
 ### Lane B, C and D
 
 - Lane B Task 6 (FIX-1NOV-B), 02:30, branch fix/1nov-b-task6: both passes done, Revit closed, lock free, main with PR 130 merged in, keeping both sides.
   Now: the gate on the merged tree, then merge PR 131. Then Lane D D3 on my word
-- Lane C SPEED-2NOV-C, branch speed/2nov-c: R449 two window slots pushed, not merged. Helpers on R447 timing and R448 listener. The before run waits for the lock. Blocked: none
+- Lane C, branch docs/2nov-c-params: the other 12 bound parameters listed Keep No with a Note in config/shared_parameters.xlsx. Then SPEED-2NOV-C on speed/2nov-c, R449 pushed, helpers on R447 and R448. Blocked: none
 - Lane D 6B-DATA-REV6, 2 Nov, branch feat/6b-data-rev6: no Revit, no window lock. 5 TU zones under rev6, levels equal the past rules, config copies outside git. Opened Q364.
   Now: the PR, merge when green. Blocked: none
 
-Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane C SPEED-2NOV-C, 2 Nov 2026.
+Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane C parameters, 2 Nov 2026.
 
 ## Repo map
 

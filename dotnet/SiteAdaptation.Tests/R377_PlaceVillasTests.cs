@@ -375,7 +375,7 @@ namespace SiteAdaptation.Tests
             Assert.Single(inputs.Footprint);
             // R465. The 9 link parameters button 7 fills, the FFL and Plot of Floors never
             Assert.Equal(9, inputs.ParameterGuids.Count);
-            Assert.Equal(new[] { "Plot", "RRE_ZZ_SP_Prototype-FFL" }, inputs.FilledByOthers.OrderBy(name => name, StringComparer.Ordinal));
+            Assert.Equal(new[] { "CAD Drawing Name", "E", "FFL", "FFL-0.1", "N", "PSN-Discpline set of drawings", "PSN-Model name", "PSN-Sheet number to above", "PSN_Sheet No to the left side", "PSN_Zone", "Plot", "Point Code", "RRE_ZZ_SP_Prototype-FFL", "Top Of Wall" }, inputs.FilledByOthers.OrderBy(name => name, StringComparer.Ordinal));
             Assert.Contains("101", inputs.LastPlaced);
             Assert.Equal(new string('e', 64), inputs.LastHashes["x.rvt"]);
         }
