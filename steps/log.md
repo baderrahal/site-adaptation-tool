@@ -16,13 +16,14 @@ Done:
 - IME, 316 of 320: FFL 171, entry 126, ramp level 110, steps 0
 - IMF, 438 of 476: FFL 272, entry 211, ramp level 128, steps 9
 - IMG, 179 of 268: FFL 81, entry 73, ramp level 58, steps 0
-- In plain words: FFL within 5 mm on 29 to 55 percent per zone, within 100 mm on 92 to 99. El @ Entry 47 to 60 and 92 to 100. Steps the same on 1,595 of 1,657. The gaps are scatter around zero, no steady offset
+- In plain words: FFL within 5 mm on 29 to 55 percent per zone, within 100 mm on 92 to 99. El @ Entry 47 to 60 and 92 to 100. Steps the same on 1,595 of 1,657. The gaps are scatter, the median near zero except IMC at -20 mm, no steady offset
 
 Checked:
 - By a script outside git, plain json and math, with no function of zone_compare.py (RAN): every status of the rev6 plans worked out again, 16,570 the same, 0 differ. The 50 random plots read again from the raw plans, 250 cells the same, 0 differ. The plans of the past job and the keys are those of steps/investigations/6b-data.md, checked there.
-- The IMC plan really is rev6: it holds the proposal field and summary.noDoorLevel, no yard floors, 92 wall end values differ. Levels equal on 1,657 of 1,657, ramp corners too
+- The IMC plan really is rev6: it holds the proposal field and summary.noDoorLevel, no yard floors, 23 walls differ in their ends, 92 coordinates. Levels equal on 1,657 of 1,657, ramp corners too
 - 62 inputs the same by SHA-256, the repo config unchanged, each config copy differs by mode and surface only
-- GATE_LINE
+- Reviewer APPROVE, 2 latent. Claim-checker: no claim wrong, 3 wordings fixed
+- Gate: dotnet 1,939 and 1,694 passed. Pytest 2,289 passed, 1 failed: test_r62 did not list zone_compare.py among the files that name the mode, added, and its one line changed. Then test_project_profile, test_zone_compare and test_records: 38 passed
 
 Remains:
 - Which surface a new project of many phases names (Q364, Q256). The cluster proposals were not compared. Q070 clouds El @ Entry on IMC and IMD

@@ -271,7 +271,7 @@ def main(argv=None):
     names = REV6_BUILDS if args.rev6_plan else BUILDS
     tools = {names[0]: link_summary.load(args.rev6_plan or args.with_overrides), "without": link_summary.load(args.without_overrides)}
     if args.rev6_plan:
-        check_rev6(tools["rev6"])
+        check_rev6(tools[names[0]])
     builds = {build: compare_zone(tools[build], key, kind, limits, left_out) for build in names}
     # A build can write fewer plots than the other, a random plot is shown in both
     plots = random_plots(list(set(builds[names[0]]["perPlot"]) & set(builds["without"]["perPlot"])), args.seed)

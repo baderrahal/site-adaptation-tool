@@ -15,7 +15,7 @@
   Now: the gate on the merged tree, then merge PR 131. Then Lane D D3 on my word
 - Lane C, branch fix/2nov-c-answers: Bader's answers of 2 Nov 09:20 recorded, 20 closed, Q286 and Q293 wait on steps/ui-shots/drafts-for-bader.md, 4 more folders moved. Blocked: none
 - Lane D 6B-DATA-REV6, 2 Nov, branch feat/6b-data-rev6: no Revit, no window lock. 5 TU zones under rev6, levels equal the past rules, config copies outside git. Opened Q364.
-  Now: gate, review, PR. Blocked: none
+  Now: the PR, merge when green. Blocked: none
 
 Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane D 6B-DATA-REV6, 2 Nov 2026.
 

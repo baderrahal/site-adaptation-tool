@@ -4,7 +4,7 @@ Lane D, 2 Nov 2026, after steps/investigations/6b-data.md. Mode rev6 with no ove
 
 ## In plain words
 
-- **Coverage comes first.** With the config as it stands, rev6 writes plots on IMC only, 324 of 1,791 plots. The one named road surface, Top Surface-02, covers no plot of IMD, IME, IMF or IMG, so those zones get no plan. Naming the largest surface of each zone in a copy of the config (CHOSEN) writes 1,657 of 1,791. IMF still leaves out 38 and IMG 89, since each sits on two surfaces and rev6 takes one.
+- **Coverage comes first.** With the config as it stands, rev6 writes plots on IMC only, 324 of 1,791 plots. The one named road surface, Top Surface-02, covers no plot of IMD, IME, IMF or IMG, so those zones get no plan. Naming the largest surface of each zone in a copy of the config (CHOSEN) writes 1,657 of 1,791. IMF still leaves out 38 and IMG 89, since each sits on two surfaces and rev6 takes one (READ, the road surfaces of the front corners in the summary of the past job plans).
 - **On the plots it writes, rev6 gives the same levels as the past job rules.** FFL, El @ Entry and steps are equal on 1,657 of 1,657 plots, and the ramp corners on 1,657. The modes differ in which road surface they may use, the yard floors, the cluster proposals and some wall ends, not in the level rule.
 - **FFL:** per zone 29 to 55 percent of plots lie within 5 mm of the past model, 46 to 79 percent within 30 mm and 92 to 99 percent within 100 mm. So not close enough to stand without a check, but rarely far off.
 - **El @ Entry:** 47 to 60 percent within 5 mm, 81 to 92 percent within 30 mm, 92 to 100 percent within 100 mm. Closer than FFL. On IMC and IMD the key parameter is itself off the schedule on many plots (Q070), so these two zones may read worse than the real gap.
@@ -93,7 +93,7 @@ Ramp front and back are means of the two corners, the front being those nearest 
 ## 4. What differs between the modes
 
 - Yard floors on the plots written, rev6: 0 (R410). Each plot also carries the cluster proposal field of R411, which sets no value, the proposals themselves not compared here.
-- Wall ends differ on part of the walls, the Walls columns of section 2 show the effect on the counts.
+- Wall ends differ on part of the walls, on IMC 23 walls and 92 coordinates. The Walls columns of section 2 show the effect on the counts.
 
 ## 5. Second check
 
