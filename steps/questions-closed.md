@@ -343,10 +343,10 @@ Lane B numbered its questions QL1 upward from 28 Oct 2026. At the fold in of Rou
 | Q187 | Prefill of a new project from config, J16 | As recommended: build it in 5d as CHOSEN, the key map from inputRoot and the drawings named first | Bader, 2026-11-02, answers of 09:20 |
 | Q201 | Data book files on a PC with no Python | As recommended: config names them under the work root data_book, a missing one stops button 2, a later phase has the worker make them in C# | Bader, 2026-11-02, answers of 09:20 |
 | Q202 | The schedule folder in config | As recommended: keep it in config | Bader, 2026-11-02, answers of 09:20 |
-| Q224 | The mode the ROSHN config runs | As recommended: keep roshnPastJob for ROSHN Makkah, its answer keys are the past job, and rev6 for every new project | Bader, 2026-11-02, answers of 09:20 |
+| Q224 | The mode the ROSHN config runs | As recommended: keep designBasis.mode roshnPastJob for ROSHN Makkah, its answer keys are the past job, and designBasis.newProjectMode rev6 for every new project | Bader, 2026-11-02, answers of 09:20 |
 | Q227 | Civil file format and plot match | As recommended: a CSV with Plot No. and El @ Entry, the plot matched as text, a civil export with another layout converted before it is named | Bader, 2026-11-02, answers of 09:20 |
 | Q237 | Folder of the Rev 9 workbooks | As recommended: a config key that names the folder of the workbooks of a new project | Bader, 2026-11-02, answers of 09:20 |
-| Q243 | Layer pairs for plot outlines in the scan | As recommended: keep singles and pairs, with pairMinSegments in the profile | Bader, 2026-11-02, answers of 09:20 |
+| Q243 | Layer pairs for plot outlines in the scan | As recommended: keep singles and pairs, with scan.pairMinSegments in the profile | Bader, 2026-11-02, answers of 09:20 |
 | Q254 | The order and share of villa type sources | As recommended: keep the order blocks, texts, Excel, PDF and that share | Bader, 2026-11-02, answers of 09:20 |
 | Q281 | Board rows against the nine pane inputs | As recommended: keep the mapping, the other inputs stay in the pane | Bader, 2026-11-02, answers of 09:20 |
 | Q282 | Where the project name is kept | As recommended: keep it read only, the name is the title of the model | Bader, 2026-11-02, answers of 09:20 |
@@ -356,7 +356,7 @@ Lane B numbered its questions QL1 upward from 28 Oct 2026. At the fold in of Rou
 | Q320 | Keep the solids path of light mode | As recommended: keep linkFolder solids as the fallback until the Revit run places the 13 mass files and reloads one, then remove it in a later round | Bader, 2026-11-02, answers of 09:20 |
 | Q322 | Mass files made inside button 7 | As recommended: a separate pane command Make mass files with a loader and a count, run once per prototype set, button 7 only places, the test host step limit for it from config | Bader, 2026-11-02, answers of 09:20 |
 | Q324 | The Revit warning box at step 5 | As recommended: the step takes these overlap warnings itself and lists them as issues, so no box stops a run. Same answer as Q350: step 5 accepts the known overlap warning in its transaction and counts it in the log and report | Bader, 2026-11-02, answers of 09:20 |
-| Q325 | A file that states no coordinate system | As recommended: keep it so, a file that states nothing is listed and does not stop | Bader, 2026-11-02, answers of 09:20 |
+| Q325 | A file that states no coordinate system | As recommended: keep it so, a file that states nothing is listed and does not stop, coordinates.systems.UTM84-37N and coordinates.expectedEpsg as they stand | Bader, 2026-11-02, answers of 09:20 |
 | Q328 | Default source of the site position | As recommended: switch coordinates.source to cad after the runner's Revit run reads back the named position, the site location and the three control points, the levels and units to move into config in a later round | Bader, 2026-11-02, answers of 09:20 |
 | Q335 | A parameter sheet picked in the pane | As recommended: as built, one sheet for every button, the pane row a stop until it names the sheet of config | Bader, 2026-11-02, answers of 09:20 |
 | Q339 | A 2021 file in the link folder | As recommended: Button 7 reads the format of each file first with no Revit open and refuses a 2021 file by its name, pointing to the upgrade step | Bader, 2026-11-02, answers of 09:20 |

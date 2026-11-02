@@ -12,6 +12,7 @@ Done:
 - Q350 is not added here: Lane A closed it on fix/2nov-a, not yet on main, and adds the overlap clause of today to its row
 - steps/ui-shots/drafts-for-bader.md: 7 drafts beside the Revit shots. The Revit shots hold real coordinates, so they stay in the work root, the page links them
 - 4 folders moved to C:\_cleanup-1nov, 40 now, none deleted
+- rule_status.py --write on the answers: 10 values of Q224, Q227, Q243, Q325, Q328 go from RECOMMENDED to CHOSEN by Bader, status lines only. The first gate failed on the stale block (RAN, test_r401_q109), three answer rows now name their key so the tool does not fall back to another source
 
 Checked:
 - 164 open before, 144 after, of them Q286 and Q293 waiting, as Bader's 142 others (RAN). Lane A and Lane B folders still read their branches after the moves (RAN). Every shot of the page is on disk (RAN)
