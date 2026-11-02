@@ -11,8 +11,8 @@ namespace SiteAdaptation.Common
     // R407 to R410, round 4i. The design basis of a build, designBasis of the config read once per run, python/design_basis.py: rev6 the Site
     // Adaptation Manual Rev 06 of the client, the other mode of designBasis.modes the past job. Under the past job nothing but the mode is read,
     // so a build is the build of before round 4i. Under rev6 El @ Entry is the input and the ramp slope the result (R408), the road level comes
-    // from the one surface designBasis.roadLevel names (R409), the back yard is a grade with no floor (R410) and designBasis.split.test turns on
-    // the split of a cluster by slope and steps (R414)
+    // from the first of the surfaces designBasis.roadLevel names in order that covers a corner (R409, R490, R491), a zone mostly off them stops
+    // the build (R493), the back yard is a grade with no floor (R410) and designBasis.split.test turns on the split of a cluster by slope and steps (R414)
     public sealed class DesignBasis
     {
         public const string Rev6 = "rev6";
@@ -33,6 +33,15 @@ namespace SiteAdaptation.Common
 
         public const string NoFloor = "designBasis.backYard.floor is true, the manual gives no level for a yard floor under rev6, so none is placed until Q225 is answered (R410)";
 
+        public const string BothSurfaces = "designBasis.roadLevel holds both surface and surfaces, a build under rev6 takes its road surfaces from surfaces alone (R490)";
+        public const string NoSurfaces = "designBasis.roadLevel names no road surface, a build under rev6 takes the road level from designBasis.roadLevel.surfaces in their order (R490)";
+        public const string BadSurfaces = "designBasis.roadLevel.surfaces must be a list in order, not empty, of non empty unique texts (R490)";
+        public const string BadPick = "the road surfaces of the request must be a list in order, not empty, of non empty unique texts (R492)";
+
+        // R493. The name of a plot whose zone column is blank, the sentence of a zone that stops a build and the end of the message, by which 4 Check knows it
+        private const string NoZone = "no zone";
+        public const string NoRoadEnd = "(R493)";
+
         public string Mode { get; private set; }
 
         public bool IsRev6 => Mode == Rev6;
@@ -46,7 +55,11 @@ namespace SiteAdaptation.Common
 
         public JObject Slopes { get; private set; }
 
-        public string Surface { get; private set; }
+        // R490. The road surfaces of a build under rev6 in order, those of designBasis.roadLevel or the pick of the request (R492)
+        public List<string> Surfaces { get; private set; }
+
+        // R493. designBasis.roadLevel.noRoadStopShare under rev6, 0 for a config with none, which stops at any plot with no road level (CHOSEN)
+        public double NoRoadStopShare { get; private set; }
 
         // R411. designBasis.clusters.propose under rev6, whether the build proposes a cluster and a mirror flag per unit plot
         public bool Propose { get; private set; }
@@ -152,7 +165,8 @@ namespace SiteAdaptation.Common
         }
 
         // design_basis.basis_of: under the past job the mode alone, under rev6 also the back yard floor held false (R410), the door level source
-        // with what it reads (R408) and the one road surface (R409). civilPath gives the path of the input of the civil file, asked only for civilFile
+        // with what it reads (R408), the road surfaces in order (R490) and the limit of plots with no road level (R493). civilPath gives the path of the
+        // input of the civil file, asked only for civilFile
         public static DesignBasis Of(JObject settings, Func<string> civilPath)
         {
             JObject block = Block(settings);
@@ -199,12 +213,9 @@ namespace SiteAdaptation.Common
                 }
                 basis.Slopes = table;
             }
-            JToken surface = block["roadLevel"]?["surface"];
-            if (surface == null || surface.Type != JTokenType.String || ((string)surface).Length == 0)
-            {
-                throw Refuse("designBasis.roadLevel.surface names no road surface, a build under rev6 takes the road level from the one surface it names (R409)");
-            }
-            basis.Surface = (string)surface;
+            JObject road = block["roadLevel"] as JObject ?? new JObject();
+            basis.Surfaces = SurfacesOf(road);
+            basis.NoRoadStopShare = StopShareOf(road);
             JToken propose = block["clusters"]?["propose"];
             if (propose == null || propose.Type != JTokenType.Boolean)
             {
@@ -213,6 +224,109 @@ namespace SiteAdaptation.Common
             basis.Propose = (bool)propose;
             ReadSplit(block["split"] as JObject ?? new JObject(), basis);
             return basis;
+        }
+
+        // design_basis.surfaces_of: the road surfaces in order, non empty and unique texts, the one surface of an old config a list of one, both keys
+        // together, no value or a bad value refused by name
+        private static List<string> SurfacesOf(JObject road)
+        {
+            if (road.Property("surface") != null && road.Property("surfaces") != null)
+            {
+                throw Refuse(BothSurfaces);
+            }
+            if (road.Property("surfaces") == null)
+            {
+                JToken surface = road["surface"];
+                if (surface == null || surface.Type != JTokenType.String || ((string)surface).Length == 0)
+                {
+                    throw Refuse(NoSurfaces);
+                }
+                return new List<string> { (string)surface };
+            }
+            JArray surfaces = road["surfaces"] as JArray;
+            if (surfaces == null || surfaces.Any(name => name.Type != JTokenType.String) || !GoodList(surfaces.Select(name => (string)name).ToList()))
+            {
+                throw Refuse(BadSurfaces);
+            }
+            return surfaces.Select(name => (string)name).ToList();
+        }
+
+        private static bool GoodList(IReadOnlyList<string> names)
+        {
+            return names.Count > 0 && names.All(name => !string.IsNullOrEmpty(name)) && names.Distinct(StringComparer.Ordinal).Count() == names.Count;
+        }
+
+        // design_basis.stop_share_of: a number from 0 to 1 and no bool, refused by name, a config with none reads 0
+        private static double StopShareOf(JObject road)
+        {
+            if (road.Property("noRoadStopShare") == null)
+            {
+                return 0;
+            }
+            JToken share = road["noRoadStopShare"];
+            if (!Finite(share) || (double)share < 0 || (double)share > 1)
+            {
+                throw Refuse("designBasis.roadLevel.noRoadStopShare must be a number from 0 to 1, it holds " + PyRepr(share) + " (R493)");
+            }
+            return (double)share;
+        }
+
+        // R492. The pick of Set up in the request, under rev6 in place of the surfaces of config, ignored under the past job
+        public void TakePick(IReadOnlyList<string> picked)
+        {
+            if (!IsRev6 || picked == null)
+            {
+                return;
+            }
+            if (!GoodList(picked))
+            {
+                throw Refuse(BadPick);
+            }
+            Surfaces = picked.ToList();
+        }
+
+        // design_basis.no_road_stop: under rev6 the message that stops a build, one sentence per zone in zone order whose share of its reached unit plots
+        // with no road level lies above NoRoadStopShare, else null. Exactly at the share does not stop, a few plots stay listed in the summary
+        public string NoRoadStop(IEnumerable<string> reached, IEnumerable<string> noLevel, IReadOnlyDictionary<string, Dictionary<string, string>> rows)
+        {
+            if (!IsRev6)
+            {
+                return null;
+            }
+            string ZoneOf(string number)
+            {
+                string zone = null;
+                if (rows.TryGetValue(number, out Dictionary<string, string> row))
+                {
+                    row.TryGetValue("zone", out zone);
+                }
+                zone = (zone ?? "").Trim();
+                return zone.Length == 0 ? NoZone : zone;
+            }
+            var plots = new SortedDictionary<string, int>(StringComparer.Ordinal);
+            foreach (string zone in reached.Select(ZoneOf))
+            {
+                plots.TryGetValue(zone, out int count);
+                plots[zone] = count + 1;
+            }
+            var lacking = noLevel.GroupBy(ZoneOf, StringComparer.Ordinal).ToDictionary(group => group.Key, group => group.Count(), StringComparer.Ordinal);
+            string names = string.Join(", ", Surfaces.Select(ReadSettings.RoadName));
+            List<string> lines = plots.Where(zone => lacking.ContainsKey(zone.Key) && (double)lacking[zone.Key] / zone.Value > NoRoadStopShare)
+                .Select(zone => zone.Key + ": " + lacking[zone.Key].ToString(CultureInfo.InvariantCulture) + " of " + zone.Value.ToString(CultureInfo.InvariantCulture)
+                    + " plots have no road level on the road surfaces named (" + names + "). What to do: add the road surface of this zone in Set up.").ToList();
+            return lines.Count == 0 ? null : string.Join(" ", lines) + " " + NoRoadEnd;
+        }
+
+        // R493. A stop or a line of this rule, whose text goes to the user as it stands
+        public static bool IsNoRoad(string message)
+        {
+            return message != null && message.EndsWith(NoRoadEnd, StringComparison.Ordinal);
+        }
+
+        // R493. The one issue of a run under rev6 below the limit with the plots it leaves with no road level, null for none
+        public static string NoRoadLine(IReadOnlyCollection<string> noLevel)
+        {
+            return noLevel.Count == 0 ? null : noLevel.Count.ToString(CultureInfo.InvariantCulture) + " plots have no road level on the road surfaces named and are listed in the plan: " + string.Join(", ", noLevel) + " " + NoRoadEnd;
         }
 
         // design_basis.split_of: test true or false, units a whole number of 2 or more and walls a list of walls after a unit inside the cluster
@@ -241,6 +355,10 @@ namespace SiteAdaptation.Common
             if (value == null || value.Type == JTokenType.Null)
             {
                 return "None";
+            }
+            if (value.Type == JTokenType.Float && (double.IsNaN((double)value) || double.IsInfinity((double)value)))
+            {
+                return double.IsNaN((double)value) ? "nan" : (double)value > 0 ? "inf" : "-inf";
             }
             return value.Type == JTokenType.String ? SiteClusters.TextRepr((string)value) : value.Type == JTokenType.Boolean ? ((bool)value ? "True" : "False") : value.ToString(Newtonsoft.Json.Formatting.None);
         }

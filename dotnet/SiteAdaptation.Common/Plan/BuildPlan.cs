@@ -102,8 +102,41 @@ namespace SiteAdaptation.Common
             };
         }
 
+        // The plots the build reaches past the skip list and the unit, whose road levels it counts
+        private static List<string> Reached(JObject overrides, IEnumerable<string> numbers)
+        {
+            return numbers.Where(number => !Held(Side(overrides, number, "written")["skip"]) && Held(Side(overrides, number, "written")["unit"])).ToList();
+        }
+
+        private static List<string> NoLevel(JObject fronts, IEnumerable<string> reached)
+        {
+            return reached.Where(number => !(Held(Side(fronts, number, "raw")["roadLevelLeft"]) && Held(Side(fronts, number, "raw")["roadLevelRight"]))).ToList();
+        }
+
+        // R493. Under rev6 a zone mostly off the road surfaces named stops the run before its plan, below the limit the plots are one issue of the run
+        private static void NoRoadCheck(WorkerContext run, IReadOnlyDictionary<string, JObject> steps, PlanInputs inputs, DesignBasis basis)
+        {
+            if (basis == null || !basis.IsRev6)
+            {
+                return;
+            }
+            JObject overrides = PlotsOf(steps, PlanOverrides.StepName);
+            List<string> reached = Reached(overrides, overrides.Properties().Select(item => item.Name));
+            List<string> noLevel = NoLevel(PlotsOf(steps, Fronts.StepName), reached);
+            string stop = basis.NoRoadStop(reached, noLevel, inputs.Rows);
+            if (stop != null)
+            {
+                throw new InvalidDataException(stop);
+            }
+            string line = DesignBasis.NoRoadLine(noLevel);
+            if (line != null)
+            {
+                run.Issues.Add(line);
+            }
+        }
+
         // R347. The plan from the step files of the run at their temporary names, written by its own beside the outputs of the request
-        public static string Write(WorkerContext run, IReadOnlyDictionary<string, string> stepFiles, PlanInputs inputs)
+        public static string Write(WorkerContext run, IReadOnlyDictionary<string, string> stepFiles, PlanInputs inputs, DesignBasis basis = null)
         {
             var steps = new Dictionary<string, JObject>();
             foreach (string step in Steps)
@@ -118,6 +151,7 @@ namespace SiteAdaptation.Common
                 steps[step] = PyJson.Parse(File.ReadAllText(temporary, new System.Text.UTF8Encoding(false, true))) as JObject
                     ?? throw new InvalidDataException("the step file " + path + " is no JSON object");
             }
+            NoRoadCheck(run, steps, inputs, basis);
             return run.WriteJson(run.Request.OutputFolder, FileName(inputs.Nbh), Assemble(steps, inputs));
         }
 
@@ -581,9 +615,8 @@ namespace SiteAdaptation.Common
         {
             JObject overrides = PlotsOf(steps, PlanOverrides.StepName), fronts = PlotsOf(steps, Fronts.StepName);
             var skipped = numbers.Where(number => Held(Side(overrides, number, "written")["skip"])).ToList();
-            // The plots the build reaches past the skip list and the unit, whose road levels it counts
-            var reached = numbers.Where(number => !Held(Side(overrides, number, "written")["skip"]) && Held(Side(overrides, number, "written")["unit"])).ToList();
-            var noLevel = reached.Where(number => !(Held(Side(fronts, number, "raw")["roadLevelLeft"]) && Held(Side(fronts, number, "raw")["roadLevelRight"]))).ToList();
+            List<string> reached = Reached(overrides, numbers);
+            List<string> noLevel = NoLevel(fronts, reached);
             var book = new List<string>();
             foreach (string number in reached.Except(noLevel))
             {

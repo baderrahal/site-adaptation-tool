@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using Newtonsoft.Json.Linq;
 using SiteAdaptation.Common.Flow;
+using SiteAdaptation.Common.Settings;
 using SiteAdaptation.Common.Steps;
 
 namespace SiteAdaptation.Common.ReadData
@@ -67,8 +68,8 @@ namespace SiteAdaptation.Common.ReadData
         }
 
         // roles names the role of each input of the pane by its name there. workFolder is the work folder of the document, whose
-        // parent is the work root of R372 the data book folder lies in
-        public static ReadPlan Make(IReadOnlyList<RunInput> pane, IReadOnlyDictionary<string, string> roles, string workFolder)
+        // parent is the work root of R372 the data book folder lies in. picked gives the road surfaces picked in Set up, read under rev6 alone (R492)
+        public static ReadPlan Make(IReadOnlyList<RunInput> pane, IReadOnlyDictionary<string, string> roles, string workFolder, IReadOnlyList<string> picked = null)
         {
             var stops = new List<string>();
             var found = new List<KeyValuePair<string, string>>();
@@ -88,10 +89,13 @@ namespace SiteAdaptation.Common.ReadData
                 }
                 if (role == RoadSurface)
                 {
-                    foreach (string name in Strings(config.SelectToken("siteBuild.roadSurfaces")))
+                    // R492. Under rev6 the surfaces named or picked in their order, the past job those of siteBuild.roadSurfaces
+                    bool rev6 = RoadSurfaceChoices.IsRev6(config);
+                    string listed = rev6 ? "the road surfaces named" : "siteBuild.roadSurfaces";
+                    foreach (string name in rev6 ? RoadSurfaceChoices.Named(config, picked) : Strings(config.SelectToken("siteBuild.roadSurfaces")))
                     {
                         string file = Path.Combine(input.Path, name + ".xml");
-                        Add(found, stops, WorkerRunner.RoadSurfaceRole + name, file, input.Name + ": " + name + ".xml of siteBuild.roadSurfaces is not in the folder " + input.Path);
+                        Add(found, stops, WorkerRunner.RoadSurfaceRole + name, file, input.Name + ": " + name + ".xml of " + listed + " is not in the folder " + input.Path);
                     }
                     continue;
                 }

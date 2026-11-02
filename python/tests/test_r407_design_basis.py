@@ -30,6 +30,8 @@ def basis_settings(**changes):
     block["doorLevel"].update(changes.get("door") or {})
     block["doorLevel"]["civilFile"].update(changes.get("civil") or {})
     if "surface" in changes:
+        # An old config names one surface, which R490 refuses beside surfaces
+        block["roadLevel"].pop("surfaces", None)
         block["roadLevel"]["surface"] = changes["surface"]
     if "floor" in changes:
         block["backYard"]["floor"] = changes["floor"]

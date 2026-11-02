@@ -29,6 +29,9 @@ namespace SiteAdaptation.Common.Settings
                 // R436. The source picked for each value of What the tool read goes with a saved project, the conflicts of the plots
                 // belong to that project and stay
                 ScanPicks = job.ScanPicks == null ? null : new System.Collections.Generic.SortedDictionary<string, string>(job.ScanPicks, StringComparer.Ordinal),
+
+                // R492. The road surfaces picked go with a saved project as the scan picks do
+                RoadSurfaces = job.RoadSurfaces == null ? null : new System.Collections.Generic.List<string>(job.RoadSurfaces),
             };
             foreach (string name in Inputs)
             {
@@ -68,6 +71,10 @@ namespace SiteAdaptation.Common.Settings
             if (read.ScanPicks != null)
             {
                 into.ScanPicks = read.ScanPicks;
+            }
+            if (read.RoadSurfaces != null)
+            {
+                into.RoadSurfaces = read.RoadSurfaces;
             }
             foreach (string name in Inputs)
             {
