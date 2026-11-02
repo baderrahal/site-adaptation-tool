@@ -26,7 +26,7 @@ namespace SiteAdaptation.Common
         public const string FootprintSource = "footprint";
 
         // A block of no name is held under a key no row can name
-        private const string NoName = "\u0000";
+        internal const string NoName = "\u0000";
 
         // footprint_check.block_shapes: the outline of every block of three points or more by its name, in the order of the read, after
         // simple_blocks has refused a block whose cleaned outline of three points or more is not a simple ring, the first in the read

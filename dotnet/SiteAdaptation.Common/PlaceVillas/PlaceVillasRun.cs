@@ -559,7 +559,8 @@ namespace SiteAdaptation.Common.PlaceVillas
                         continue;
                     }
                     List<double[]> placed = ShapeMath.Place(step.Villa.Shape.Points, step.Villa.Plot.Insert.Value, step.Villa.Plot.RotationDeg.Value.Value, step.Villa.Plot.Mirrored.Value.Value);
-                    decision.Footprint.Add(FootprintCheck.Row(step.Villa.Number, placed, inputs.Footprint ?? new List<double[][]>(), inputs.Config, Path.GetFileName(step.Villa.Prototype)));
+                    decision.Footprint.Add(FootprintCheck.Row(step.Villa.Number, placed, inputs.Footprint ?? new List<double[][]>(), inputs.Config, Path.GetFileName(step.Villa.Prototype),
+                        step.Villa.Plot.Unit?.Value ?? Hands.UnitOfFile(Path.GetFileName(step.Villa.Prototype))));
                 }
                 foreach (KeyValuePair<string, MassBase> mass in decision.MassBases.Where(item => item.Value != null && item.Value.Flagged))
                 {
@@ -836,12 +837,12 @@ namespace SiteAdaptation.Common.PlaceVillas
             {
                 return ", footprint not checked, " + decision.FootprintMissing;
             }
-            int over = decision.Footprint.Count(row => row.Flagged);
-            if (decision.NotMeasuredToMake == 0 && decision.NotMeasuredNoBase == 0)
+            // A Links run measures nothing, so it has no kinds of plot to tell
+            if (decision.Footprint.Count == 0 && decision.NotMeasuredToMake == 0 && decision.NotMeasuredNoBase == 0)
             {
-                return ", over the footprint limit " + over;
+                return ", over the footprint limit 0";
             }
-            return ", over the footprint limit " + over + " of " + decision.Footprint.Count + " measured"
+            return FootprintCheck.RunCounts(decision.Footprint)
                 + (decision.NotMeasuredToMake > 0 ? ", footprint not measured " + decision.NotMeasuredToMake + ", the footprint check runs after the masses are made" : "")
                 + (decision.NotMeasuredNoBase > 0 ? ", footprint not measured " + decision.NotMeasuredNoBase + ", linkFolder " + decision.Inputs.Config.MassFiles.LinkFolder + " gives no base to measure" : "");
         }
