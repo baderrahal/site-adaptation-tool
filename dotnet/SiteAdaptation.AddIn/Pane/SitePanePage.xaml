@@ -36,19 +36,34 @@
       </DataTemplate>
 
       <DataTemplate x:Key="FileRow" DataType="{x:Type pane:FileRowViewModel}">
-        <Grid Height="{StaticResource SA.Size.Row}">
-          <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="{StaticResource SA.Grid.Mark}" />
-            <ColumnDefinition Width="{StaticResource SA.Grid.Label}" />
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="Auto" />
-          </Grid.ColumnDefinitions>
-          <ContentControl Content="{Binding}" ContentTemplate="{StaticResource RowMark}" />
-          <TextBlock Grid.Column="1" Style="{StaticResource SA.Type.Body}" VerticalAlignment="Center" Text="{Binding Label}" />
-          <TextBlock Grid.Column="2" Style="{StaticResource SA.Type.Body}" VerticalAlignment="Center" Margin="{StaticResource SA.Gap.Right8}"
-                     TextTrimming="CharacterEllipsis" ToolTip="{Binding ToolTip}" Text="{Binding FileName}" />
-          <Button Grid.Column="3" Style="{StaticResource SA.Button.Base}" VerticalAlignment="Center" Content="Browse" Click="OnBrowse" />
-        </Grid>
+        <StackPanel>
+          <Grid Height="{StaticResource SA.Size.Row}">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="{StaticResource SA.Grid.Mark}" />
+              <ColumnDefinition Width="{StaticResource SA.Grid.Label}" />
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <ContentControl Content="{Binding}" ContentTemplate="{StaticResource RowMark}" />
+            <TextBlock Grid.Column="1" Style="{StaticResource SA.Type.Body}" VerticalAlignment="Center" Text="{Binding Label}" />
+            <TextBlock Grid.Column="2" Style="{StaticResource SA.Type.Body}" VerticalAlignment="Center" Margin="{StaticResource SA.Gap.Right8}"
+                       TextTrimming="CharacterEllipsis" ToolTip="{Binding ToolTip}" Text="{Binding FileName}" />
+            <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
+              <!-- R492. Pick surfaces of the row Road surface, grey with its reason as the tooltip under a past job -->
+              <Button Style="{StaticResource SA.Button.Base}" Margin="{StaticResource SA.Gap.Right8}" Content="{x:Static pane:PaneText.PickSurfaces}" Click="OnPickSurfaces"
+                      Visibility="{Binding HasSurfaces, Converter={StaticResource Shown}}" IsEnabled="{Binding SurfacesEnabled}"
+                      ToolTip="{Binding SurfacesTip}" ToolTipService.ShowOnDisabled="True" />
+              <Button Style="{StaticResource SA.Button.Base}" Content="Browse" Click="OnBrowse" />
+            </StackPanel>
+          </Grid>
+          <Grid Visibility="{Binding HasSurfaces, Converter={StaticResource Shown}}">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="{StaticResource SA.Grid.Mark}" />
+              <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="1" Style="{StaticResource SA.Pane.Help}" Margin="{StaticResource SA.Gap.Row}" Text="{Binding SurfacesLine}" />
+          </Grid>
+        </StackPanel>
       </DataTemplate>
 
       <DataTemplate x:Key="StepRow" DataType="{x:Type pane:StepRowViewModel}">

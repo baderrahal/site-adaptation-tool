@@ -16,6 +16,9 @@ namespace SiteAdaptation.AddIn.NewProject
         private string fileName = NewProjectText.NotChosen;
         private string toolTip;
         private SetupState state;
+        private bool surfacesEnabled;
+        private string surfacesTip;
+        private string surfacesLine = string.Empty;
 
         public SetupRowViewModel(SetupRow row)
         {
@@ -69,6 +72,19 @@ namespace SiteAdaptation.AddIn.NewProject
             string[] chosen = shown.Paths.Where(path => !string.IsNullOrEmpty(path)).ToArray();
             FileName = chosen.Length == 0 ? NewProjectText.NotChosen : string.Join(", ", chosen.Select(path => Path.GetFileName(path.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar))));
             ToolTip = chosen.Length == 0 ? null : string.Join(Environment.NewLine, chosen);
+        }
+
+        // R492. The button Pick surfaces and the line under the row Road levels, set by the view model on every refresh
+        public bool HasSurfaces { get { return Row.Id == SetupRows.RoadLevels; } }
+        public bool SurfacesEnabled { get { return surfacesEnabled; } private set { Set(ref surfacesEnabled, value); } }
+        public string SurfacesTip { get { return surfacesTip; } private set { Set(ref surfacesTip, value); } }
+        public string SurfacesLine { get { return surfacesLine; } private set { Set(ref surfacesLine, value); } }
+
+        internal void ShowSurfaces(bool enabled, string tip, string line)
+        {
+            SurfacesEnabled = enabled;
+            SurfacesTip = tip;
+            SurfacesLine = line;
         }
 
         internal void LayersFound(int? layers)
@@ -126,9 +142,14 @@ namespace SiteAdaptation.AddIn.NewProject
         private int sheetIndex;
         private int columnIndex;
 
+        // R492. The window Road surfaces behind the button Pick surfaces, and the order it gave, null until a pick
+        private readonly SurfacePicker pickSurfaces;
+        private List<string> surfaces;
+
         public NewProjectViewModel(ProjectSettings current, string projectName, IReadOnlyList<SavedStart> starts, DrawingFactsResult facts, Func<string, bool, bool> there,
-            IPathPicker picker, Func<string, string> readText, Func<string, ProjectSettings, ProjectSettings> viewScan = null, bool modelOpen = true)
+            IPathPicker picker, Func<string, string> readText, Func<string, ProjectSettings, ProjectSettings> viewScan = null, bool modelOpen = true, SurfacePicker pickSurfaces = null)
         {
+            this.pickSurfaces = pickSurfaces;
             NoModelShown = !modelOpen;
             this.viewScan = viewScan;
             this.current = current ?? new ProjectSettings();
@@ -294,6 +315,25 @@ namespace SiteAdaptation.AddIn.NewProject
             Refresh();
         }
 
+        // R492. Opens the window Road surfaces on the folder of the row and the effective order, a Use keeps the ticked order for Save setup,
+        // a Cancel keeps what was there
+        public void PickSurfaces()
+        {
+            RoadPickState state = RoadPickState.Of(Next(), readText);
+            if (!state.Enabled || pickSurfaces == null)
+            {
+                return;
+            }
+            IReadOnlyList<string> picked = pickSurfaces(state.InFolder(), state.Effective);
+            if (picked == null)
+            {
+                return;
+            }
+            surfaces = picked.ToList();
+            CheckedOk = false;
+            Refresh();
+        }
+
         // R431. Read only, the statuses and the stop box of the settings Save setup would give
         public void CheckFiles()
         {
@@ -361,7 +401,7 @@ namespace SiteAdaptation.AddIn.NewProject
 
         private SetupDraft Draft()
         {
-            var draft = new SetupDraft { StartText = start?.Start?.Text, ScanPicks = new Dictionary<string, string>(scanPicks), ConflictPicks = conflictPicks };
+            var draft = new SetupDraft { StartText = start?.Start?.Text, ScanPicks = new Dictionary<string, string>(scanPicks), ConflictPicks = conflictPicks, RoadSurfaces = surfaces };
             foreach (KeyValuePair<string, string> pick in picks)
             {
                 draft.Picks[pick.Key] = pick.Value;
@@ -374,6 +414,17 @@ namespace SiteAdaptation.AddIn.NewProject
             return SetupSave.Apply(Draft(), current);
         }
 
+        private void ShowSurfaces()
+        {
+            SetupRowViewModel row = Rows.Single(item => item.Row.Id == SetupRows.RoadLevels);
+            RoadPickState state = RoadPickState.Of(Next(), readText);
+            string tip = state.Why == RoadPickWhy.PastJob ? RoadSurfacesText.PastJob : state.Why == RoadPickWhy.NoSetup ? RoadSurfacesText.NoSetup : null;
+            string line = !state.Enabled ? string.Empty
+                : state.Effective.Count == 0 ? RoadSurfacesText.NonePicked
+                : TextTemplate.Fill(RoadSurfacesText.InOrder, state.Effective.Count, string.Join(", ", state.Effective.Select(RoadPickState.Short)));
+            row.ShowSurfaces(state.Enabled, tip, line);
+        }
+
         private SetupCheckResult Refresh()
         {
             SetupCheckResult result = SetupCheck.Run(Next(), there);
@@ -381,6 +432,7 @@ namespace SiteAdaptation.AddIn.NewProject
             {
                 row.Show(result.Rows.Single(item => item.Row.Id == row.Row.Id));
             }
+            ShowSurfaces();
             Ready = TextTemplate.Fill(NewProjectText.Ready, result.Ready, result.Total);
             SetupRowViewModel stop = result.Stops.Select(item => Rows.Single(row => row.Row.Id == item.Row.Id)).FirstOrDefault();
             StopShown = !result.HasStart || stop != null;

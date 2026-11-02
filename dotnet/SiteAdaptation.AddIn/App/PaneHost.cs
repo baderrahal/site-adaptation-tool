@@ -102,6 +102,7 @@ namespace SiteAdaptation.AddIn
             host.owner = application.MainWindowHandle;
             host.newProjectEvent = ExternalEvent.Create(new NewProjectHandler(host));
             host.model.NewProjectRequested += () => host.newProjectEvent.Raise();
+            host.model.SurfacePicker = (inFolder, effective) => NewProject.RoadSurfacesDialog.Show(host.owner, inFolder, effective);
             host.model.HowItWorksRequested += () =>
             {
                 if (HowItWorks.HowItWorksDialog.Show(host.owner, host.model.Document != null))

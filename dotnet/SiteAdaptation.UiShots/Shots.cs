@@ -40,7 +40,8 @@ namespace SiteAdaptation.UiShots
         public const string NewProject = "new-project";
         public const string HowItWorks = "how-it-works";
         public const string ScanResults = "scan-results";
-        public static readonly string[] Windows = { RibbonIcons, Pane, PaneFirstOpen, SetUpSite, ReviewData, Rules, CheckTable, UpdateFromReport, NewProject, HowItWorks, ScanResults };
+        public const string RoadSurfaces = "road-surfaces";
+        public static readonly string[] Windows = { RibbonIcons, Pane, PaneFirstOpen, SetUpSite, ReviewData, Rules, CheckTable, UpdateFromReport, NewProject, HowItWorks, ScanResults, RoadSurfaces };
 
         private const double Dpi = 96.0;
 
@@ -59,6 +60,7 @@ namespace SiteAdaptation.UiShots
                 case NewProject: return NewProjectPage();
                 case HowItWorks: return HowItWorksPage();
                 case ScanResults: return ScanResultsPage();
+                case RoadSurfaces: return RoadSurfacesPage();
                 default: throw new ArgumentException("no window " + window + ", only " + string.Join(", ", Windows), nameof(window));
             }
         }
@@ -473,7 +475,7 @@ namespace SiteAdaptation.UiShots
         // With no document the pane shows its labels with no values and every button grey, as Revit shows it with no project open
         public static SitePanePage LaidOutPane(bool inUse, bool withDocument)
         {
-            var model = new PaneViewModel(new SampleProbe());
+            var model = new PaneViewModel(new SampleProbe()) { ReadText = Sample.ConfigText };
             model.Load(withDocument ? Sample.Document() : null);
             if (inUse && withDocument)
             {
@@ -532,6 +534,16 @@ namespace SiteAdaptation.UiShots
         {
             return new DocumentSession("sample", Folder + "01101-PSN-IMC-R17B-TEST-NEW.rvt", "01101-PSN-IMC-R17B-TEST-NEW");
         }
+
+        // R492. The sample project is a rev6 job with three road surfaces, made up names, so the button Pick surfaces shows its line
+        public static string ConfigText(string path)
+        {
+            return Path.GetFileName(path) == "project.json"
+                ? new JObject { ["designBasis"] = new JObject { ["mode"] = "rev6" }, ["siteBuild"] = new JObject { ["roadSurfaces"] = new JArray(RoadStems) } }.ToString()
+                : null;
+        }
+
+        public static readonly string[] RoadStems = { "IM_Z1__Spine", "IM_Z1__Collector", "IM_Z1__Access" };
 
         public static PaneSettings Settings()
         {
