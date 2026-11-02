@@ -306,3 +306,21 @@ def test_r479_two_villa_type_names_of_one_prototype_file_match_and_of_two_files_
     theirs["prototypeFile"] = "b.rvt"
     row = zone_compare.compare_zone({"plots": [mine], "walls": []}, {"plots": [theirs], "walls": []}, "TU", limits, [])["perPlot"]["1"]["villaType"]
     assert row["status"] == zone_compare.OVER
+
+
+def test_r478_a_point_past_the_end_of_a_key_line_is_not_read_nearer_by_half():
+    assert zone_compare.centre_gap([-0.1, 0.1], [[0.0, 0.0], [10.0, 0.0]], 0.1) == pytest.approx(0.1)
+    assert zone_compare.centre_gap([5.0, 0.1], [[0.0, 0.0], [10.0, 0.0]], 0.1) == pytest.approx(0.0)
+
+
+def test_r478_the_read_holds_no_side_so_a_centre_on_the_far_side_reads_as_the_best_case():
+    # The limit of the compare, kept open in Q365: the true gap here is 0.2 m
+    assert zone_compare.centre_gap([5.0, 0.1], [[0.0, 0.0], [10.0, 0.0]], 0.1) == pytest.approx(0.0)
+
+
+def test_r478_a_thickness_is_a_whole_number_of_three_digits_in_the_type_name():
+    walls = {"centreCodes": [0, 1], "boundaryM": 0.2}
+    assert zone_compare.half_of({"locationLine": 3, "type": "Upsand - 330"}, walls) == pytest.approx(0.165)
+    assert zone_compare.half_of({"locationLine": 3, "type": "Generic Wall-150mm_ Garden"}, walls) == pytest.approx(0.075)
+    assert zone_compare.half_of({"locationLine": 3, "type": "Code 1200 wall"}, walls) == pytest.approx(0.1)
+    assert zone_compare.half_of({"locationLine": 0, "type": "BW"}, walls) == 0.0

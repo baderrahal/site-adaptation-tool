@@ -49,7 +49,7 @@ FIELDS = SAME_FIELDS + NUMBER_FIELDS + CORNER_FIELDS + WALL_FIELDS
 LEAVE_OUT = {"ffl": "ffl", "entry": "entry", "steps": "steps", "rampCornersLevel": "rampFront", "rampCornersPlan": "rampFront"}
 SHOWN = {"rotation": (1.0, "deg", 2), "steps": (1.0, "", 0)}
 METRES_SHOWN = (1000.0, "mm", 1)
-THICKNESS = re.compile(r"(\d{3})")
+THICKNESS = re.compile(r"(?<![0-9])([0-9]{3})(?![0-9])")
 
 
 def limits_of(settings, chosen, boundary_m=None):
@@ -109,13 +109,27 @@ def key_lines(plan, walls):
     return found
 
 
+def centre_gap(point, line, half):
+    """R478. The distance of a point to the centre of a wall drawn half off its line, square to the line and past its end apart, so a point past the
+    end is not read nearer by half. The read of a key holds no side of the wall, so this takes the side nearer the point, the best case, and a centre
+    on the far side would read up to twice half less than it is (Q365 keeps that open)."""
+    (ax, ay), (bx, by) = line[0], line[1]
+    dx, dy = bx - ax, by - ay
+    length = math.hypot(dx, dy)
+    if length == 0.0:
+        return abs(math.hypot(point[0] - ax, point[1] - ay) - half)
+    along = (point[0] - ax) * dx / length + (point[1] - ay) * dy / length
+    square = abs((point[0] - ax) * dy - (point[1] - ay) * dx) / length
+    return math.hypot(max(0.0, -along, along - length), abs(square - half))
+
+
 def wall_gap(mine, theirs):
     """The largest distance of an end of a wall of mine to the nearest wall line of theirs, by the wall centres (R478): a key line on a face stands
     half a thickness from its centre, and a tool line is its centre. None when theirs holds no wall for walls of mine."""
     if not theirs:
         return None
     half = lambda line: line[2] if len(line) > 2 else 0.0
-    return max(min(abs(key_plans_check.segment_distance(point, line[0], line[1]) - half(line) - half(wall)) for line in theirs) for wall in mine for point in wall[:2])
+    return max(min(centre_gap(point, line, half(line) + half(wall)) for line in theirs) for wall in mine for point in wall[:2])
 
 
 def field_row(field, mine, theirs, left_out, limits):
