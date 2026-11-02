@@ -141,6 +141,7 @@ namespace SiteAdaptation.Common.ReadData
                 string requestPath = request.Write(work);
                 worker.Start(requestPath, work, request, answer =>
                 {
+                    context.Timing?.NextStep(RunTiming.WorkerEndStep, RunTiming.Reading);
                     lock (Running)
                     {
                         Running.Remove(work);

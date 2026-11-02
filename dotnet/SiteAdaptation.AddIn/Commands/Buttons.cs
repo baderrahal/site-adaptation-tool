@@ -65,10 +65,12 @@ namespace SiteAdaptation.AddIn
 
         private static Result Run(RibbonButtonSpec button, UIApplication application)
         {
+            // R447. First, so what a run spends before the flow counts too
+            var timing = new RunTiming();
             Document document = application.ActiveUIDocument == null ? null : application.ActiveUIDocument.Document;
             // R446. Before the flow reads the tick. The test host keeps its own state, so a job runs as it names
             (State as Pane.PaneRunState)?.BeforeRun(button.Number);
-            var flow = new ButtonFlow(State, new RevitModel(document), new TaskDialogConfirm(), InputHash.Of, () => RunIds.New(button.Number, DateTime.Now));
+            var flow = new ButtonFlow(State, new RevitModel(document), new TaskDialogConfirm(), InputHash.Of, () => RunIds.New(button.Number, DateTime.Now), timing);
             string configFile = document == null ? null : PaneHost.Current?.Sessions.Seen(document, document.PathName, document.Title)?.Settings?.ConfigFile;
             // R444. One loader for every button, the ribbon and the pane both come here. A run outside Revit keeps it until its end
             Loader.RunLoader loader = Loader.RunLoader.Start(button.Label, application.MainWindowHandle);

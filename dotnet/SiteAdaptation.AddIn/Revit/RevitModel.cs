@@ -36,7 +36,7 @@ namespace SiteAdaptation.AddIn.Revit
             // The TaskDialog of the flow gives the reason, so Revit shows no second dialog of its own after the roll back
             options.SetClearAfterRollback(true);
             transaction.SetFailureHandlingOptions(options);
-            if (transaction.Start() != TransactionStatus.Started)
+            if (RunTiming.Measure(RunTiming.Transactions, () => transaction.Start()) != TransactionStatus.Started)
             {
                 transaction.Dispose();
                 throw new InvalidOperationException("Revit did not start the transaction " + name);
@@ -62,7 +62,7 @@ namespace SiteAdaptation.AddIn.Revit
         {
             try
             {
-                return transaction.Commit() == TransactionStatus.Committed;
+                return RunTiming.Measure(RunTiming.Transactions, () => transaction.Commit()) == TransactionStatus.Committed;
             }
             catch (Autodesk.Revit.Exceptions.ApplicationException failure)
             {
@@ -75,7 +75,7 @@ namespace SiteAdaptation.AddIn.Revit
         {
             if (transaction.HasStarted() && !transaction.HasEnded())
             {
-                transaction.RollBack();
+                RunTiming.Measure(RunTiming.Transactions, () => transaction.RollBack());
             }
         }
 

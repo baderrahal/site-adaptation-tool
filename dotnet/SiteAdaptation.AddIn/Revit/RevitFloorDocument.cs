@@ -6,6 +6,7 @@ using Autodesk.Revit.DB;
 using SiteAdaptation.Common;
 using SiteAdaptation.Common.Floors;
 using SiteAdaptation.Common.Tags;
+using SiteAdaptation.Common.Flow;
 
 namespace SiteAdaptation.AddIn.Revit
 {
@@ -104,7 +105,7 @@ namespace SiteAdaptation.AddIn.Revit
 
         public void Regenerate()
         {
-            document.Regenerate();
+            RunTiming.Measure(RunTiming.ModelRefresh, document.Regenerate);
         }
 
         public IList<double[]> ShapeCorners(string uniqueId)
@@ -121,7 +122,7 @@ namespace SiteAdaptation.AddIn.Revit
             if (found.Count == 0)
             {
                 // The vertices of a floor just made can wait for a regeneration
-                document.Regenerate();
+                RunTiming.Measure(RunTiming.ModelRefresh, document.Regenerate);
                 found = CornerVertices(floor.GetSlabShapeEditor());
             }
             corners[uniqueId] = found.Select(vertex => vertex.Position).ToList();
