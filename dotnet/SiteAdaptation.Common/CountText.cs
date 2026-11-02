@@ -6,11 +6,16 @@ namespace SiteAdaptation.Common
     // docs/design/14-ui-labels.md templates keep the plural form for the count of zero or many
     public static class CountText
     {
-        // thousands parts the count by commas as the Door level row writes it
-        public static string Plots(int count, bool thousands = false)
+        // Parted by commas as the other lines of the window write a count
+        public static string Plots(int count)
         {
-            string number = count.ToString(thousands ? "N0" : "G", CultureInfo.InvariantCulture);
-            return number + (count == 1 ? " plot" : " plots");
+            return count.ToString("N0", CultureInfo.InvariantCulture) + (count == 1 ? " plot" : " plots");
+        }
+
+        // A text filled from a template of the plural, so a template stays one label. 11 and 2,001 keep theirs
+        public static string Singular(string text, string noun)
+        {
+            return System.Text.RegularExpressions.Regex.Replace(text, @"(?<![\d,])1 " + noun + "s\\b", "1 " + noun);
         }
 
         // "1 plot follows every rule" and "2 plots follow every rule"

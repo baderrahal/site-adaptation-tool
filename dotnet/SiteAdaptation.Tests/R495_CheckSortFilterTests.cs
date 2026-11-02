@@ -10,6 +10,16 @@ namespace SiteAdaptation.Tests
     // from a save, a count or Apply. Common only, so it runs on net48 and net8.0
     public sealed class R495_CheckSortFilterTests
     {
+        [Theory]
+        [InlineData("alpha,")]
+        [InlineData("(Q277)")]
+        public void R495_find_takes_text_that_starts_or_ends_with_a_sign(string find)
+        {
+            var row = new CheckRow { Plot = "1", Check = "Floor", Field = "f", Why = "alpha, then (Q277) here" };
+            var view = new CheckTableView { Rows = new List<CheckRow> { row }, Counts = new List<KeyValuePair<string, int>>() };
+            Assert.Single(new CheckTableState(view).Filter(CheckTableState.AllChip, find, null));
+        }
+
         private static CheckTableView NbhView()
         {
             var rows = new List<CheckRow>();

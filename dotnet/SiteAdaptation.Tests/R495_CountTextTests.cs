@@ -10,6 +10,22 @@ namespace SiteAdaptation.Tests
     // R495. The word plot follows the count in the texts of the 4 Check window. Common only, so it runs on net48 and net8.0
     public sealed class R495_CountTextTests
     {
+        [Fact]
+        public void R495_a_count_of_one_in_a_filled_text_reads_singular_and_11_stays_plural()
+        {
+            Assert.Equal("a, 1 override on b", CountText.Singular("a, 1 overrides on b", "override"));
+            Assert.Equal("11 overrides", CountText.Singular("11 overrides", "override"));
+            Assert.Equal("2,001 overrides", CountText.Singular("2,001 overrides", "override"));
+            Assert.Equal("1 issue", CountText.Singular("1 issues", "issue"));
+        }
+
+        [Fact]
+        public void R495_a_count_over_a_thousand_is_parted_as_the_other_lines_of_the_window()
+        {
+            Assert.Equal("2,964 plots", CountText.Plots(2964));
+            Assert.Equal("1,110 plots follow every rule", CountText.FollowEveryRule(1110));
+        }
+
         [Theory]
         [InlineData(0, "0 plots")]
         [InlineData(1, "1 plot")]
@@ -23,8 +39,8 @@ namespace SiteAdaptation.Tests
         [Fact]
         public void R495_the_thousands_form_parts_the_count_by_commas_as_the_door_level_row_writes_it()
         {
-            Assert.Equal("1,234 plots", CountText.Plots(1234, true));
-            Assert.Equal("1 plot", CountText.Plots(1, true));
+            Assert.Equal("1,234 plots", CountText.Plots(1234));
+            Assert.Equal("1 plot", CountText.Plots(1));
         }
 
         [Fact]

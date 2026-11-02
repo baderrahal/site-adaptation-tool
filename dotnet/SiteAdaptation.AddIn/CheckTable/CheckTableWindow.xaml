@@ -336,6 +336,7 @@
       </Border>
       <ListBox ItemsSource="{Binding Rows}" SelectedItem="{Binding Selected, Mode=TwoWay}" ItemTemplate="{StaticResource CheckRow}" ItemContainerStyle="{StaticResource RowBox}"
                Style="{StaticResource SA.Table.List}" th:TableGutter.Column="{x:Reference Gutter}" MaxHeight="{StaticResource SA.Size.CheckList}"
+               VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" ScrollViewer.CanContentScroll="True"
                ScrollViewer.HorizontalScrollBarVisibility="Disabled" />
     </StackPanel>
   </DockPanel>

@@ -402,12 +402,12 @@ namespace SiteAdaptation.Tests
         {
             CoordinateRead read = CoordinateRead.Parse(new JObject
             {
-                ["files"] = new JArray(new JObject { ["file"] = "Baseplan.dwg", ["name"] = null, ["problems"] = 2 }, new JObject { ["file"] = "r1.xml", ["name"] = "32637" }),
+                ["files"] = new JArray(new JObject { ["file"] = "Baseplan.dwg", ["name"] = null, ["problems"] = 2, ["colourProblems"] = 2 }, new JObject { ["file"] = "r1.xml", ["name"] = "32637" }),
             });
 
             SystemsCheck check = CoordinateSystems.Agree(read.Files, Settings());
 
-            Assert.Contains("Baseplan.dwg states no coordinate system, the reader skipped 2 items of this drawing, such as named colours, the position does not use them", check.Lines);
+            Assert.Contains("Baseplan.dwg states no coordinate system, the reader skipped 2 named colours of this drawing, the position does not use them", check.Lines);
             Assert.Contains("r1.xml states 32637, EPSG 32637", check.Lines);
         }
 

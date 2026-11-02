@@ -19,6 +19,31 @@ namespace SiteAdaptation.Tests
             Assert.Contains("ScanGate.ExportOwner = null", show);
         }
 
+        // Review 1. Edit Family and a link raise the same events, only a project brings a hidden pane back
+        [Fact]
+        public void R494_a_family_or_a_link_opening_does_not_bring_a_hidden_pane_back()
+        {
+            string host = Source("App", "PaneHost.cs");
+            Assert.Equal(2, host.Split(new[] { "RearmFor(e.Document);" }, System.StringSplitOptions.None).Length - 1);
+            Assert.Contains("if (!document.IsFamilyDocument && !document.IsLinked)", host);
+        }
+
+        // Review 1. Show may return with no pane and no throw, the button then says so
+        [Fact]
+        public void R494_show_pane_asks_revit_if_the_pane_really_shows()
+        {
+            Assert.Contains("return pane.IsShown();", Source("App", "PaneHost.cs"));
+        }
+
+        // Review 1. Each keystroke of Find builds the rows again, over 2,000 on a real neighbourhood
+        [Fact]
+        public void R495_the_check_list_is_virtualized()
+        {
+            string window = Source("CheckTable", "CheckTableWindow.xaml");
+            Assert.Contains("VirtualizingPanel.IsVirtualizing=\"True\"", window);
+            Assert.Contains("ScrollViewer.CanContentScroll=\"True\"", window);
+        }
+
         private static string Source(params string[] parts)
         {
             return File.ReadAllText(Path.Combine(new[] { ThemeGateTests.RepoRoot(), "dotnet", "SiteAdaptation.AddIn" }.Concat(parts).ToArray()));
@@ -57,7 +82,7 @@ namespace SiteAdaptation.Tests
             string opened = host.Substring(host.IndexOf("private void OnOpened", System.StringComparison.Ordinal));
             opened = opened.Substring(0, opened.IndexOf("private void OnClosing", System.StringComparison.Ordinal));
 
-            Assert.Equal(2, System.Text.RegularExpressions.Regex.Matches(opened, @"firstShow\.Rearm\(\);").Count);
+            Assert.Equal(2, System.Text.RegularExpressions.Regex.Matches(opened, @"RearmFor\(e\.Document\);").Count);
         }
 
         [Fact]

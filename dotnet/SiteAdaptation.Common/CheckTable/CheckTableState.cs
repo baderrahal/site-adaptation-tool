@@ -42,7 +42,7 @@ namespace SiteAdaptation.Common.CheckTable
         {
             string text = (find ?? "").Trim();
             bool plotOnly = text.Length > 0 && text.All(char.IsDigit);
-            Regex word = text.Length == 0 || plotOnly ? null : new Regex(@"\b" + Regex.Escape(text) + @"\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+            Regex word = text.Length == 0 || plotOnly ? null : new Regex(@"(?<!\w)" + Regex.Escape(text) + @"(?!\w)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
             return view.Rows.Where(row => chip == AllChip || (chip != AssumedChip && row.Check == chip))
                 .Where(row => string.IsNullOrEmpty(field) || row.Field == field)
                 .Where(row => text.Length == 0 || row.Plot.IndexOf(text, StringComparison.OrdinalIgnoreCase) >= 0 || (word != null && word.IsMatch(Text(row.Why))))

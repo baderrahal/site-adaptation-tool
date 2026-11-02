@@ -59,7 +59,7 @@ Look for: 13 link types named like the prototypes, RRE-WP-NSP-KEO-ARC-<code>-ZZ-
 4. Manage, Location, tab Location.
 5. Manage, Coordinates, Specify Coordinates at Point or Report Shared Coordinates on the survey point.
 
-Look for: in step 2 the right column says the Road Layout "states UTM84-37N, EPSG 32637" with "the reader skipped 217 items of this drawing, such as named colours, the position does not use them". They are DIC and RAL colour book entries, no line and no position. Every other file "states no coordinate system". Project Address Makkah. Active position "ROSHN Makkah", shared easting and northing those the Road Layout gives, elevation 0, angle 0, and the 3 control point rows with a gap of 0.000 mm.
+Look for: in step 2 the right column says the Road Layout "states UTM84-37N, EPSG 32637" with "the reader skipped 217 named colours of this drawing, the position does not use them". They are DIC and RAL colour book entries, no line and no position. Another drawing with other read errors says "could not read n entries" instead. Every other file "states no coordinate system". Project Address Makkah. Active position "ROSHN Makkah", shared easting and northing those the Road Layout gives, elevation 0, angle 0, and the 3 control point rows with a gap of 0.000 mm.
 
 ## 6. The shared parameter Excel (Lane D, PR 126 and PR 129)
 

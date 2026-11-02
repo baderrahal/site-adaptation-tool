@@ -47,8 +47,8 @@ namespace SiteAdaptation.AddIn.CheckTable
 
         public bool ProfileShown => view.Info != null;
 
-        public string ProfileLine => view.Info == null ? "" : TextTemplate.Fill(CheckTableText.ProfileLine, view.Info.LevelProfile, view.Info.OverrideFile,
-            TextTemplate.Count(view.Info.Overrides), TextTemplate.Count(view.Info.OnNbh), view.Nbh);
+        public string ProfileLine => view.Info == null ? "" : Common.CountText.Singular(TextTemplate.Fill(CheckTableText.ProfileLine, view.Info.LevelProfile, view.Info.OverrideFile,
+            TextTemplate.Count(view.Info.Overrides), TextTemplate.Count(view.Info.OnNbh), view.Nbh), "override");
 
         public string FollowLine => view.FollowLine;
 
@@ -227,9 +227,10 @@ namespace SiteAdaptation.AddIn.CheckTable
             Marks = CheckColumn.All.ToDictionary(column => column, column => sort.MarkOf(column));
             CheckRowViewModel keep = selected == null ? null : Rows.FirstOrDefault(row => row.Row.Index == selected.Row.Index);
             Chips = view.Counts.Select(item => new CheckChipViewModel(item.Key, item.Value, item.Key == chip)).ToList();
+            // The list clears its selection when it gets new rows, so the row is picked again after them
+            Changed(nameof(Rows));
             selected = null;
             Selected = keep;
-            Changed(nameof(Rows));
             Changed(nameof(Chips));
             Changed(nameof(Marks));
             Changed(nameof(ShowingShown));

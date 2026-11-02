@@ -211,7 +211,7 @@ namespace SiteAdaptation.AddIn
         {
             if (e.Status == RevitAPIEventStatus.Succeeded && e.Document != null)
             {
-                firstShow.Rearm();
+                RearmFor(e.Document);
                 DocumentSession session = sessions.Opened(e.Document, e.Document.PathName, e.Document.Title);
                 // J1. The settings kept in the project come back when it opens, a JSON R367 refuses is named and left
                 string refused = e.Document.IsFamilyDocument ? null : session.LoadFrom(new Revit.SettingsEntity(e.Document));
@@ -223,11 +223,20 @@ namespace SiteAdaptation.AddIn
             }
         }
 
+        // R494. Edit Family and a link raise the same events, only a project brings a hidden pane back
+        private void RearmFor(Document document)
+        {
+            if (!document.IsFamilyDocument && !document.IsLinked)
+            {
+                firstShow.Rearm();
+            }
+        }
+
         private void OnCreated(object sender, DocumentCreatedEventArgs e)
         {
             if (e.Status == RevitAPIEventStatus.Succeeded && e.Document != null)
             {
-                firstShow.Rearm();
+                RearmFor(e.Document);
                 sessions.Opened(e.Document, e.Document.PathName, e.Document.Title);
                 Show(sender as Application);
             }
@@ -313,8 +322,9 @@ namespace SiteAdaptation.AddIn
         {
             try
             {
-                application.GetDockablePane(PaneId).Show();
-                return true;
+                DockablePane pane = application.GetDockablePane(PaneId);
+                pane.Show();
+                return pane.IsShown();
             }
             catch (Autodesk.Revit.Exceptions.ApplicationException)
             {

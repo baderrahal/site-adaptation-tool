@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -36,6 +37,37 @@ namespace SiteAdaptation.Tests
             Assert.Equal(model.Rows.Select(row => row.Check).OrderBy(check => check, System.StringComparer.OrdinalIgnoreCase).ToList(), model.Rows.Select(row => row.Check).ToList());
             Assert.Equal("", model.Marks[CheckColumn.Plot]);
             Assert.Equal(8, model.Rows.Count);
+        }
+
+        // Review 1. The list clears its selection when it gets new rows, so the row must be picked again after them
+        [Fact]
+        public void R495_the_picked_row_stays_picked_through_a_sort_and_a_filter()
+        {
+            Exception failure = null;
+            var thread = new System.Threading.Thread(() =>
+            {
+                try
+                {
+                    var window = Shots.LaidOutCheck(Shots.SampleCheckView(false));
+                    var model = (CheckTableViewModel)window.DataContext;
+                    CheckRowViewModel picked = model.Rows[2];
+                    int index = picked.Row.Index;
+                    model.Selected = picked;
+                    model.SortBy(CheckColumn.Plot);
+                    window.UpdateLayout();
+                    Assert.NotNull(model.Selected);
+                    Assert.Equal(index, model.Selected.Row.Index);
+                    window.Close();
+                }
+                catch (Exception caught)
+                {
+                    failure = caught;
+                }
+            });
+            thread.SetApartmentState(System.Threading.ApartmentState.STA);
+            thread.Start();
+            thread.Join();
+            Assert.Null(failure);
         }
 
         [Fact]
