@@ -254,7 +254,8 @@ def main(argv=None):
     plans = {build: {entry["plot"]: entry for entry in tools[build]["plots"]} for build in BUILDS}
     plans["key"] = {entry["plot"]: entry for entry in key["plots"]}
     name = args.code.lower()
-    common.write_json(out / ("zone_compare_%s.json" % name), report)
+    # A limit of 0.5 mm and the gaps at it must stay exact, write_json rounds to 3 decimals
+    common.write_json(out / ("zone_compare_%s.json" % name), report, kept_keys={"limits", "gap"})
     rows = side_by_side({build: builds[build]["perPlot"] for build in BUILDS}, plans, plots)
     with (out / ("side_by_side_%s.csv" % name)).open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=list(rows[0]) if rows else ["plot"])

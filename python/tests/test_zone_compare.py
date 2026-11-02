@@ -186,3 +186,13 @@ def test_the_markdown_holds_no_level_and_the_csv_holds_the_values(tmp_path):
     report = json.loads((out / "zone_compare_imc.json").read_text(encoding="utf-8"))
     assert report["builds"]["with"]["compared"] == 1
     assert report["kind"] == "TU"
+
+
+def test_the_report_keeps_the_limits_and_gaps_exact(tmp_path):
+    tool = {"plots": [plot("1", ffl=10.00049)], "walls": []}
+    key = {"plots": [plot("1")], "walls": []}
+    _, out = run_main(tmp_path, tool, key)
+    report = json.loads((out / "zone_compare_imc.json").read_text(encoding="utf-8"))
+    assert report["limits"]["ffl"]["match"] == 0.0005
+    row = report["builds"]["with"]["perPlot"]["1"]["ffl"]
+    assert row["status"] == "match" and row["gap"] == pytest.approx(0.00049, abs=1e-9)
