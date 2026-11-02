@@ -662,7 +662,7 @@ Q339. A 2021 file in the link folder (Lane D D3, R450, Q275). Button 7 gives no 
 - Recommended: Button 7 reads the format of each file first with no Revit open and refuses a 2021 file by its name, pointing to the upgrade step.
 - Other: Leave it, the 2024 copies are the folder config names.
 
-Q360. Wall ends about 100 mm off the keys (Lane D 6B-DATA, R362, R469). On 64 to 75 percent of the plots the largest gap of a wall end to the key line is between 10 and 150 mm, the most at 100 to 110 mm, on every zone and with or without the override list (RAN, 2,466 plots). The key walls mix location line codes 0, 3, 4 and 5 (READ, the key plans). Half of a 200 mm wall is 100 mm, so the gap may be a line convention and not a wrong wall, but the wall thickness was not read, so the cause is UNKNOWN.
+Q360. Wall ends about 100 mm off the keys (Lane D 6B-DATA, R362, R469). Tool walls against the key lines: on 64 to 75 percent of the plots per zone the largest gap is 10 to 150 mm, and on 53 to 67 percent it is 90 to 110 mm, with or without the override list. Key walls against the tool lines: 44 to 73 percent at 10 to 150 mm (RAN, 2,466 plots). The key walls mix location line codes 0, 3, 4 and 5 (READ, the key plans). Half of a 200 mm wall is 100 mm, so the gap may be a line convention and not a wrong wall, but the wall thickness was not read, so the cause is UNKNOWN.
 - Recommended: Lane A measures it in the Revit half of 6b on one model, the thickness and location line of the key walls against the line the plan writes. No rule changes until then.
 - Other: Accept it as a line convention with no measure.
 
@@ -674,7 +674,7 @@ Q362. Chosen limits of the zone compare (Lane D 6B-DATA, R469). No rule holds th
 - Recommended: Keep them.
 - Other: Name other limits, the compare runs again in minutes with no Revit.
 
-Q363. Plot 2302 and two IMD FFL plots (Lane D 6B-DATA, R469). Plot 2302 of IMC stands mirrored and turned 180 degrees in the key, the rules give the other way, and the override list holds no mirrored or rotationDeg row for it while it holds 11 mirror rows of IMC (READ). Why it is left out is UNKNOWN. On IMD the key plan and past_all.csv differ in FFL on plot 1382 by 153.0 mm and on plot 1436 by 50.0 mm, the tool follows past_all.csv (RAN), and which is right is UNKNOWN.
+Q363. Plot 2302 and two IMD FFL plots (Lane D 6B-DATA, R469). Plot 2302 of IMC stands mirrored and turned 180 degrees in the key, the rules give the other way, and the override list holds no mirrored or rotationDeg row for it while it holds 11 mirror rows of IMC (READ). Why it is left out is UNKNOWN. On IMD the key plan and past_all.csv differ in FFL on plot 1382 by 153.0 mm and on plot 1436 by 50.0 mm, the tool equals past_all.csv on both (RAN, 0.0 mm), and which is right is UNKNOWN.
 - Recommended: Bader adds plot 2302 to the override list by hand, and the Revit half of 6b opens the two IMD plots.
 - Other: Leave all three as they are.
 

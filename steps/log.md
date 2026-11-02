@@ -8,7 +8,7 @@ Goal:
 - For every zone compare the plan of the tool with the past site model, from the data book and the key reads only
 
 Done:
-- python/zone_compare.py and its 18 tests (R469). steps/investigations/6b-data.md with the tables, worst 10 and 10 random plots per zone
+- python/zone_compare.py and its 19 tests (R469). steps/investigations/6b-data.md with the tables, worst 10 and 10 random plots per zone
 - Every zone has reads, none left out. Over limit per zone, with the list, then by the rules alone:
 - IMA (SE), 419 plots: walls 7 and 15. By the rules mirror 8, rotation 8. No level reference
 - IMB (SE), 288 plots: walls 9 and 19. By the rules mirror 3, rotation 3. No level reference
@@ -21,6 +21,7 @@ Done:
 Checked:
 - Second method, plain json and math: every status of all zones the same, 0 differ. 70 random plots against the raw K read, 70 the same. Key plan against past_all.csv: only the El @ Entry of the schedules and 2 IMD FFL plots differ, 260 rows in conflicts.csv
 - 64 inputs the same by SHA-256 before and after, the 7 copies the same as key_copies.json
+- Reviewer one pass, its findings fixed or latent. Claim-checker: 2 figures corrected, the wall share and the mirror total
 - GATE_LINE
 
 Remains:
@@ -28,7 +29,7 @@ Remains:
 - The Lane D worktree lost its git entry on 2 Nov: only its own entry restored by hand, no prune. Lane C helper entries show the same stripped form, cause UNKNOWN
 
 Known bugs:
-- None new in the tool. The second check found two faults of zone_compare.py itself, both fixed with a test: a rounded limit in its report, and the plots of a build with no list
+- None new in the tool. Faults of zone_compare.py itself, each fixed with a test: a rounded limit in its report, the plots of a build with no list, and a plan with no wall read as a match, which no real plot reaches. Two latent in steps/latent.md
 
 Next:
 - The Revit half of 6b. Q339 as answered, to build

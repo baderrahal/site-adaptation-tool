@@ -103,17 +103,17 @@ def test_a_wall_in_two_key_pieces_matches_the_whole_tool_wall():
 def test_a_wall_on_one_side_only_is_over_the_limit_in_that_direction():
     tool = {"plots": [plot("1"), plot("2")], "walls": [tool_wall(["1"], [0.0, 0.0], [10.0, 0.0])]}
     key = {"plots": [plot("1"), plot("2")], "walls": [key_wall(["1"], [0.0, 0.1], [10.0, 0.1])]}
-    assert compare(tool, key)["counts"]["wallsToolOnKey"] == {"withinLimit": 1, "match": 1}
+    assert compare(tool, key)["counts"]["wallsToolOnKey"] == {"withinLimit": 1, "noReference": 1}
     tool["walls"] = []
     counts = compare(tool, key)["counts"]
-    assert counts["wallsKeyOnTool"] == {"overLimit": 1, "match": 1}
-    assert counts["wallsToolOnKey"] == {"match": 2}
+    assert counts["wallsKeyOnTool"] == {"overLimit": 1, "noReference": 1}
+    assert counts["wallsToolOnKey"] == {"noReference": 2}
 
 
 def test_a_wall_with_no_ends_is_left_out():
     tool = {"plots": [plot("1")], "walls": []}
     key = {"plots": [plot("1")], "walls": [{"elementId": 1, "plots": [], "start": None, "end": None}]}
-    assert compare(tool, key)["counts"]["wallsKeyOnTool"] == {"match": 1}
+    assert compare(tool, key)["counts"]["wallsKeyOnTool"] == {"noReference": 1}
 
 
 def test_plots_of_one_side_are_listed_and_not_compared():
@@ -209,3 +209,13 @@ def test_a_plot_only_the_build_with_overrides_writes_is_never_a_random_plot(tmp_
     assert sorted(report["randomPlots"]) == sorted(numbers[:3])
     text = (out / "zone_imc.md").read_text(encoding="utf-8")
     assert "With overrides: plots compared 39" in text and "Without overrides: plots compared 3," in text
+
+
+def test_the_markdown_holds_no_coordinate_of_a_ramp_or_a_wall(tmp_path):
+    far = [[501234.5, 2401234.5, 77.25], [501239.5, 2401234.5, 77.25], [501239.5, 2401237.5, 77.25], [501234.5, 2401237.5, 77.25]]
+    tool = {"plots": [plot("1", corners=far)], "walls": [tool_wall(["1"], [501234.5, 2401234.5], [501239.5, 2401234.5])]}
+    key = {"plots": [plot("1", corners=far)], "walls": [key_wall(["1"], [501234.5, 2401234.6], [501239.5, 2401234.6])]}
+    _, out = run_main(tmp_path, tool, key)
+    text = (out / "zone_imc.md").read_text(encoding="utf-8")
+    for number in ("501234", "2401234", "501239", "2401237", "77.25"):
+        assert number not in text

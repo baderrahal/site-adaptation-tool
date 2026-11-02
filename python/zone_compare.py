@@ -3,7 +3,9 @@
 Compared on each plot both plans hold: villa type, mirror, rotation, FFL, El @ Entry, steps, the ramp corners by level and in plan, and the
 walls in both directions, the ends of each wall of one plan against the nearest wall line of the other among the walls of that plot, since a
 key can hold one wall in pieces. A gap is a match, within its limit or over it. A field the key does not hold, or one majority.kindLeaveOut
-leaves out for the kind of the key, has no reference and is no gap. A value only the key holds is toolNone.
+leaves out for the kind of the key, has no reference and is no gap. A value only the key holds is toolNone. In one direction of the walls, a plan
+with no wall on the plot has nothing to test, no reference, and a wall with no wall of the other plan on the plot is over the limit, no gap.
+Both plans are written to 3 decimals, so a level gap is whole millimetres and the match of 0.5 mm means equal to the mm.
 
 The tool plan comes in two builds. The override list was made from these keys, so the build with it agrees partly by construction, and the
 build without it is the test of the rules. Written outside any git work tree: the report and the 10 random plots with their values. The
@@ -92,8 +94,6 @@ def key_lines(plan):
 
 def wall_gap(mine, theirs):
     """The largest distance of an end of a wall of mine to the nearest wall line of theirs. None when theirs holds no wall for walls of mine."""
-    if not mine:
-        return 0.0
     if not theirs:
         return None
     return max(min(key_plans_check.segment_distance(point, *line) for line in theirs) for wall in mine for point in wall)
@@ -125,6 +125,9 @@ def plot_rows(entry, other, left_out, limits, tool_walls, key_walls):
         rows[field] = field_row(field, read("corners", entry), read("corners", other), left_out, limits)
     plot = entry["plot"]
     for field, mine, theirs in (("wallsToolOnKey", tool_walls.get(plot), key_walls.get(plot)), ("wallsKeyOnTool", key_walls.get(plot), tool_walls.get(plot))):
+        if not mine:
+            rows[field] = {"status": NO_REFERENCE, "gap": None}
+            continue
         gap = wall_gap(mine, theirs)
         rows[field] = {"status": OVER if gap is None else status_of(limits[field], gap), "gap": gap}
     return rows
@@ -257,7 +260,7 @@ def main(argv=None):
     plans["key"] = {entry["plot"]: entry for entry in key["plots"]}
     name = args.code.lower()
     # A limit of 0.5 mm and the gaps at it must stay exact, write_json rounds to 3 decimals
-    common.write_json(out / ("zone_compare_%s.json" % name), report, kept_keys={"limits", "gap"})
+    common.write_json(out / ("zone_compare_%s.json" % name), report, kept_keys={"limits", "chosen", "gap"})
     rows = side_by_side({build: builds[build]["perPlot"] for build in BUILDS}, plans, plots)
     with (out / ("side_by_side_%s.csv" % name)).open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=list(rows[0]) if rows else ["plot"])

@@ -489,3 +489,8 @@ No real input reaches these: the plot table of the demo holds whole numbers and 
 - The R467 and R468 tests hold the text of the host and the script, the usual style for the test host. No test reaches the catch or the value of savedAfter. The runs D3L and D3S do reach the save.
 - result saved of Write now seldom appears, since R468 saves first. Nothing reads it.
 - The two R405 tests of AddInTests.cs set and read DesignValues.Current outside the alone collection, while other tests call UseConfigOf. No failure seen there.
+
+## Lane D 6B-DATA, R469, review
+
+- zone_compare.py stops the whole zone on a ramp corner list with no points, max and min of nothing. No plan of the 7 zones holds one.
+- zone_compare.py reads each field through plan_compare.value_of, which swallows a missing key, so a renamed plan field would show only as toolNone counts. The 7 zones show none.

@@ -8,7 +8,7 @@ The values sit outside git in round_addin\logs\p6b_data\<zone>\compare. This doe
 - All 7 zones have past model reads, so none is left out. 2,466 plots are compared on both sides with the override list (RAN).
 - With the override list the tool agrees on type, mirror, rotation, FFL and steps on almost every plot. That list was made from these same models, so this agreement is partly by construction.
 - Without the override list, the real test of the rules, the placement rules mostly hold and the level rules do not. FFL is within 5 mm on 29% to 53% of the plots of the 5 TU zones.
-- Walls do not change with the list, it holds no wall. On most plots the largest wall gap is about 100 mm from the key line, and a few plots hold walls the other side lacks.
+- Walls do not change with the list, it holds no wall. On most plots the tool walls stand about 100 mm from the key line, and a few plots hold walls the other side lacks.
 
 ## 1. Which zones have reads
 
@@ -40,7 +40,13 @@ Zones with no read: none. Counted from the K read and the key plan (RAN). IMA an
 | Ramp corners, in plan | 1 mm | 10 mm | R138 |
 | Walls, each end against the nearest wall line of the plot, both ways | 10 mm | 300 mm | the match CHOSEN, keyPlans.wallEdgeM |
 
-No reference means the key does not hold the value or majority.kindLeaveOut leaves it out for that kind of key. It is not a gap.
+No reference means the key does not hold the value or majority.kindLeaveOut leaves it out for that kind of key. It is not a gap. In the walls it also means the plan measured from has no wall on that plot, so there is nothing to test. A wall with no wall of the other plan on its plot counts over the limit.
+
+Three things to read the tables by:
+
+- Both plans are written to 3 decimals. A level gap is in whole millimetres, so the match of 0.5 mm means equal to the mm. A gap in plan of near zero can read up to about 1.4 mm, so many of the within limit counts of the ramp corners in plan are rounding.
+- majority.kindLeaveOut leaves frontOpen out for the SE keys, and the wall compare does not take it, so walls on a front edge can count in Walls key on tool on IMA and IMB. How many is UNKNOWN.
+- Walls of a key are tied to a plot by keyPlans.wallEdgeM, so a wall near an edge counts on both plots.
 
 ## 3. The zone table
 
@@ -79,11 +85,11 @@ Plots of a key the tool does not write: IMA 1, IMB 2, IMC 0, IMD 3, IME 4, IMF 1
 | FFL by the rules | 1043 of 1759 TU plots over 5 mm, most within 100 mm, a few up to 1 m | The level rules of R278 work FFL out from the road. Why the past levels differ is UNKNOWN, a designed level is likely. The override list carries it today | Lane A |
 | El @ Entry by the rules | 819 of 1738 TU plots over 5 mm | The same level rules (R278) | Lane A |
 | Ramp corner levels | With the list 509 of 1,759 TU plots over 30 mm, without it 649 | Q057, closed: no front fall is applied (389 overrides not applied). On IME, IMF and IMG the list makes it worse, its front goes to the key and the back corners run parallel to it (R210), likely, not proven | Lane A |
-| Wall lines | 64 to 75 percent of the plots have their largest gap between 10 and 150 mm, the most at 100 to 110 mm, the same with or without the list | Likely the wall location line. The keys mix codes 0, 3, 4 and 5 and the tool writes one line per edge. Half of a 200 mm wall is 100 mm, the wall thickness is not read here, so this is UNKNOWN until measured (Q360) | Lane A |
+| Wall lines | Tool walls against the key lines: on 64 to 75 percent of the plots per zone the largest gap is 10 to 150 mm, and on 53 to 67 percent it is 90 to 110 mm. Key walls against the tool lines: 44 to 73 percent at 10 to 150 mm. The same with or without the list | Likely the wall location line. The keys mix codes 0, 3, 4 and 5 and the tool writes one line per edge. Half of a 200 mm wall is 100 mm, the wall thickness is not read here, so this is UNKNOWN until measured (Q360) | Lane A |
 | Walls one side only | 167 plots of the key have a wall over 300 mm from any tool wall, 54 the other way | keyRules.wallOpen, weak at 0.7409 (Q115, Q266), and walls of the unit C10 on the tool side | Lane A |
-| Mirror and rotation by the rules | 38 of 2,466 plots turned exactly 180 degrees and mirrored, 18 more mirrored only (IME 6, IMG 12). On IMG also 3 plots at about 1 degree | The hand rules and the units with no drawn side (R122, R123). Small. The list corrects all but plot 2302 of IMC, which has no override | Lane B |
+| Mirror and rotation by the rules | Of the 2,460 plots of the build with no list, 38 turned exactly 180 degrees and mirrored, 18 more mirrored only (IME 6, IMG 12). On IMG also 3 plots at about 1 degree | The hand rules and the units with no drawn side (R122, R123). Small. The list corrects all but plot 2302 of IMC, which has no override | Lane B |
 | Ramp in plan | 1 to 14 plots a zone with the list over 10 mm, up to about 4 m. Several of the same plots then show wall gaps | Likely a ramp of another depth or side than R127 gives. Small, not opened one by one | Lane A |
-| Villa type | 2 to 4 plots in each zone | Not a real gap: the location plan says TH1-IM and the key TH1 (Q238) | none |
+| Villa type | 2 to 4 plots in each zone, 18 in all | The location plan says TH1-IM and the key TH1 (Q238), so likely a name. The prototype file is the same on 12 and differs on 6, those 6 not opened | Lane A |
 
 Two gaps look large and are not faults of the tool:
 
