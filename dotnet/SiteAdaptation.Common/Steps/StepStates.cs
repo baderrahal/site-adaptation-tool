@@ -53,6 +53,23 @@ namespace SiteAdaptation.Common.Steps
         public int Issues { get; }
         public IReadOnlyDictionary<string, string> Outputs { get; }
 
+        // Q158. The last run of a step in the settings, null with none or with a time that does not read, which R367 refused already
+        public static StepRun FromSettings(ProjectSettings settings, int step)
+        {
+            if (settings == null || !settings.LastRuns.TryGetValue(step.ToString(CultureInfo.InvariantCulture), out ButtonRun last) || last == null)
+            {
+                return null;
+            }
+            try
+            {
+                return From(last, null);
+            }
+            catch (FormatException)
+            {
+                return null;
+            }
+        }
+
         // The last run of a button as the settings JSON of R367 keeps it, with the outputs of its run record, which lastRuns does not hold
         public static StepRun From(ButtonRun run, IReadOnlyDictionary<string, string> outputs)
         {

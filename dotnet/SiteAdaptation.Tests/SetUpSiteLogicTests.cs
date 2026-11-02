@@ -7,6 +7,7 @@ using SiteAdaptation.Common;
 using SiteAdaptation.Common.Flow;
 using SiteAdaptation.Common.SetUp;
 using SiteAdaptation.Common.Settings;
+using SiteAdaptation.Common.Steps;
 using Xunit;
 
 namespace SiteAdaptation.Tests
@@ -470,12 +471,15 @@ namespace SiteAdaptation.Tests
             Assert.False(dialog.Shown[0].ExistingSite);
 
             calls.Clear();
+            string site = Path.Combine(work, SetUpRun.SiteFile);
+            string siteBefore = File.ReadAllText(site);
             RunOutcome second = Run(document, dialog, tags, calls);
 
-            // Breaker pass 1 of 5b: nothing differs, so no transaction, no site.json and no run record, the window said so
-            Assert.Equal(RunEnd.Cancelled, second.End);
-            Assert.Empty(calls);
-            Assert.Null(second.Record);
+            // Q158 in place of breaker pass 1 of 5b: nothing differs, so the step is done with no element set, no tag and a matching site.json left as it is
+            Assert.Equal(RunEnd.Committed, second.End);
+            Assert.Equal(new[] { "start", "commit" }, calls);
+            Assert.Empty(second.Record.Outputs);
+            Assert.Equal(siteBefore, File.ReadAllText(site));
             Assert.True(dialog.Shown[1].NothingDiffers);
             Assert.True(dialog.Shown[1].ExistingSite);
             Assert.Contains(SetUpSiteTestsText.NothingDiffers, dialog.Summaries[1]);
@@ -664,10 +668,409 @@ namespace SiteAdaptation.Tests
             Assert.Equal(configPath, written.ConfigFile);
             Assert.Empty(settings.LastRuns);
 
-            // A second run with nothing to set opens no transaction, so the entity is not written again
+            // Q158, decision C: the step holds on this hash, so a second run with nothing to set opens no transaction and the entity is not written again
             calls.Clear();
             Assert.Equal(RunEnd.Cancelled, flow.Run(1, "1 Set up site", run.Body(), Document).End);
             Assert.Equal(1, entity.Writes);
+        }
+
+        private const string HashA = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+        private const string HashB = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+        private static readonly DateTime FirstPress = new DateTime(2026, 10, 30, 12, 0, 0, DateTimeKind.Utc);
+
+        // A run of button 1 as the add-in makes it, with the settings entity and a hash of the config given
+        private RunOutcome Press(FakeDocument document, RecordingEntity entity, ProjectSettings settings, List<string> calls, string hash, DateTime time, FakeDialog dialog = null, bool dryFirst = false, Func<StepRun> lastRun = null)
+        {
+            var run = new SetUpRun(document, dialog ?? new FakeDialog(), new FakeTags(calls), File.ReadAllText, Settings, null).Recording(() => settings, entity, () => time);
+            if (lastRun != null)
+            {
+                run.ReadingLastRun(lastRun);
+            }
+            var flow = new ButtonFlow(new FakeState(work, configPath) { DryRunFirst = dryFirst }, new FakeModel(calls), null, input => hash, () => RunId);
+            return flow.Run(1, "1 Set up site", run.Body(), Document);
+        }
+
+        private static IReadOnlyDictionary<string, string> Inputs(string hash)
+        {
+            return new Dictionary<string, string> { [Settings] = hash };
+        }
+
+        // Steps 1 to 8 as the pane holds them after a whole pass, step 1 by the run given, the others run after it on hash runOn, the config now on hash now
+        private static Dictionary<int, StepNow> Pass(StepRun first, string runOn, string now)
+        {
+            var steps = new Dictionary<int, StepNow> { [1] = new StepNow(first, StepHash.Combine(Inputs(now)), first.Outputs) };
+            for (int step = 2; step <= 8; step++)
+            {
+                steps[step] = new StepNow(new StepRun(FirstPress.AddHours(step), StepHash.Combine(Inputs(runOn)), new SettingsScope(), 0, null), StepHash.Combine(Inputs(now)), null);
+            }
+            return steps;
+        }
+
+        private static StepStateKind[] Kinds(Dictionary<int, StepNow> steps)
+        {
+            return StepStates.Of(true, new SettingsScope(), steps).Take(8).Select(line => line.Kind).ToArray();
+        }
+
+        // Part 4 of steps/check-2nov.md: a pass, a config edit, then step 1 with nothing to set, which was the dead end
+        [Fact]
+        public void R374_q158_after_a_config_edit_step_1_is_done_on_the_new_hash_and_step_2_is_ready_and_stays_so_after_a_reopen()
+        {
+            var calls = new List<string>();
+            var document = new FakeDocument(Template()) { Calls = calls };
+            var entity = new RecordingEntity(calls);
+            var settings = new ProjectSettings { ConfigFile = configPath, DryRunFirst = false };
+            Assert.Equal(RunEnd.Committed, Press(document, entity, settings, calls, HashA, FirstPress).End);
+            StepRun first = StepRun.From(SettingsJson.Read(entity.Json).LastRuns["1"], null);
+            Assert.All(Kinds(Pass(first, HashA, HashA)), kind => Assert.Equal(StepStateKind.Done, kind));
+
+            Dictionary<int, StepNow> edited = Pass(first, HashA, HashB);
+            IReadOnlyList<StepLine> dead = StepStates.Of(true, new SettingsScope(), edited);
+            Assert.Equal(StepStateKind.Ready, dead[0].Kind);
+            Assert.Equal(StepStateKind.NeedsStep, dead[1].Kind);
+
+            RunOutcome pressed = Press(document, entity, settings, calls, HashB, FirstPress.AddDays(1));
+
+            Assert.Equal(RunEnd.Committed, pressed.End);
+            var inSession = new StepRun(FirstPress.AddDays(1), StepHash.Combine(pressed.Record.InputHashes), new SettingsScope(), pressed.Record.Issues.Count, pressed.Record.Outputs);
+            foreach (StepRun run in new[] { inSession, StepRun.From(SettingsJson.Read(entity.Json).LastRuns["1"], null) })
+            {
+                Dictionary<int, StepNow> now = Pass(run, HashA, HashB);
+                IReadOnlyList<StepLine> lines = StepStates.Of(true, new SettingsScope(), now);
+                Assert.Equal(StepStateKind.Done, lines[0].Kind);
+                Assert.Equal(StepStateKind.Ready, lines[1].Kind);
+                Assert.Equal(StepStateKind.NeedsStep, lines[2].Kind);
+                Assert.Equal(2, lines[2].Value);
+            }
+        }
+
+        [Fact]
+        public void R374_q158_nothing_differs_sets_no_element_keeps_the_setup_and_updates_only_the_last_run_of_step_1()
+        {
+            var calls = new List<string>();
+            var document = new FakeDocument(Template()) { Calls = calls };
+            var entity = new RecordingEntity(calls);
+            var settings = new ProjectSettings { ConfigFile = configPath, RulesFile = @"C:\Rules\made-up.json", DryRunFirst = false };
+            settings.LastRuns["2"] = new ButtonRun { Time = "2026-10-29T08:00:00.000Z", Mode = RunModes.Direct, Scope = new SettingsScope(), Counts = new SortedDictionary<string, int>(StringComparer.Ordinal), Issues = new List<string>() };
+            Press(document, entity, settings, calls, HashA, FirstPress);
+            int made = document.Made.Count;
+            string site = Path.Combine(work, SetUpRun.SiteFile);
+            string before = File.ReadAllText(site);
+            calls.Clear();
+
+            RunOutcome outcome = Press(document, entity, settings, calls, HashB, FirstPress.AddDays(1));
+
+            Assert.Equal(RunEnd.Committed, outcome.End);
+            Assert.Null(outcome.Message);
+            Assert.Empty(outcome.Record.Issues);
+            Assert.Equal(new[] { "start", "settings", "commit" }, calls);
+            Assert.Equal(made, document.Made.Count);
+            Assert.Equal(before, File.ReadAllText(site));
+            Assert.Empty(outcome.Record.Outputs);
+            ProjectSettings written = SettingsJson.Read(entity.Json);
+            Assert.Equal(HashB, written.LastRuns["1"].InputHashes[Settings]);
+            Assert.Equal(0, written.LastRuns["1"].Counts["set"]);
+            Assert.Equal(configPath, written.ConfigFile);
+            Assert.Equal(@"C:\Rules\made-up.json", written.RulesFile);
+            Assert.Equal("2026-10-29T08:00:00.000Z", written.LastRuns["2"].Time);
+        }
+
+        // Decision C: a press on a step that holds records nothing, so it does not un-Done the steps after it, whose runs are older than a new record would be
+        [Fact]
+        public void R374_q158_a_press_on_a_step_that_holds_records_nothing_and_steps_2_to_8_stay_done()
+        {
+            var calls = new List<string>();
+            var document = new FakeDocument(Template()) { Calls = calls };
+            var entity = new RecordingEntity(calls);
+            var settings = new ProjectSettings { ConfigFile = configPath, DryRunFirst = false };
+            Press(document, entity, settings, calls, HashA, FirstPress);
+            string held = entity.Json;
+            calls.Clear();
+            var dialog = new FakeDialog();
+
+            RunOutcome outcome = Press(document, entity, settings, calls, HashA, FirstPress.AddDays(1), dialog);
+
+            Assert.Equal(RunEnd.Cancelled, outcome.End);
+            Assert.Null(outcome.Record);
+            Assert.Empty(calls);
+            Assert.Equal(held, entity.Json);
+            // The one plain line is in the window, a message would be a box to press
+            Assert.Null(outcome.Message);
+            Assert.Equal(SetUpSiteTestsText.NothingDiffers, dialog.Summaries.Single());
+            Assert.All(Kinds(Pass(StepRun.From(SettingsJson.Read(entity.Json).LastRuns["1"], null), HashA, HashA)), kind => Assert.Equal(StepStateKind.Done, kind));
+        }
+
+        [Fact]
+        public void R374_q158_site_json_and_the_entity_are_written_when_missing_with_no_element_set()
+        {
+            var calls = new List<string>();
+            var document = new FakeDocument(Template()) { Calls = calls };
+            Run(document, new FakeDialog(), new FakeTags(calls), calls);
+            string site = Path.Combine(work, SetUpRun.SiteFile);
+            File.Delete(site);
+            calls.Clear();
+            var entity = new RecordingEntity(calls);
+
+            RunOutcome outcome = Press(document, entity, new ProjectSettings { ConfigFile = configPath, DryRunFirst = false }, calls, HashA, FirstPress);
+
+            Assert.Equal(RunEnd.Committed, outcome.End);
+            Assert.Equal(new[] { "start", "settings", "commit" }, calls);
+            Assert.True(File.Exists(site));
+            Assert.Equal(FileHash.Sha256(site), outcome.Record.Outputs[site]);
+            Assert.Equal((string)JObject.Parse(File.ReadAllText(site))["format"], SetUpRun.SiteFormat);
+            Assert.Equal(HashA, SettingsJson.Read(entity.Json).LastRuns["1"].InputHashes[Settings]);
+        }
+
+        // The hash holds but the file is gone, as 4 Check needs site.json, the run writes it and does not say the step holds
+        [Fact]
+        public void R374_q158_a_hash_that_holds_with_no_site_json_writes_the_file()
+        {
+            var calls = new List<string>();
+            var document = new FakeDocument(Template()) { Calls = calls };
+            var entity = new RecordingEntity(calls);
+            var settings = new ProjectSettings { ConfigFile = configPath, DryRunFirst = false };
+            Press(document, entity, settings, calls, HashA, FirstPress);
+            string site = Path.Combine(work, SetUpRun.SiteFile);
+            File.Delete(site);
+
+            RunOutcome outcome = Press(document, entity, settings, calls, HashA, FirstPress.AddDays(1));
+
+            Assert.Equal(RunEnd.Committed, outcome.End);
+            Assert.True(File.Exists(site));
+            Assert.Equal(2, entity.Writes);
+        }
+
+        [Fact]
+        public void R374_q158_a_real_difference_sets_tags_and_writes_site_json_as_before()
+        {
+            var calls = new List<string>();
+            var document = new FakeDocument(Template()) { Calls = calls };
+            string site = Path.Combine(work, SetUpRun.SiteFile);
+            File.WriteAllText(site, "an older site");
+            var entity = new RecordingEntity(calls);
+
+            RunOutcome outcome = Press(document, entity, new ProjectSettings { ConfigFile = configPath, DryRunFirst = false }, calls, HashA, FirstPress);
+
+            Assert.Equal(RunEnd.Committed, outcome.End);
+            Assert.Equal(new[] { "useParameterFile", "start", "units", "position", "levels", "types", "parameters", "tag", "settings", "commit", "restoreParameterFile" }, calls);
+            Assert.NotEqual("an older site", File.ReadAllText(site));
+            Assert.Equal(FileHash.Sha256(site), outcome.Record.Outputs[site]);
+        }
+
+        [Fact]
+        public void R374_q158_a_dry_run_with_nothing_differing_writes_nothing()
+        {
+            var calls = new List<string>();
+            var document = new FakeDocument(Template()) { Calls = calls };
+            var entity = new RecordingEntity(calls);
+            var settings = new ProjectSettings { ConfigFile = configPath, DryRunFirst = false };
+            Press(document, entity, settings, calls, HashA, FirstPress);
+            string site = Path.Combine(work, SetUpRun.SiteFile);
+            File.Delete(site);
+            string held = entity.Json;
+            calls.Clear();
+            var dialog = new FakeDialog { DryRunSameSlope = true, Answer = false };
+
+            RunOutcome outcome = Press(document, entity, settings, calls, HashB, FirstPress.AddDays(1), dialog, true);
+
+            Assert.Equal(RunEnd.Cancelled, outcome.End);
+            Assert.True(dialog.DryViews.Single().NothingDiffers);
+            Assert.DoesNotContain("start", calls);
+            Assert.DoesNotContain("settings", calls);
+            Assert.False(File.Exists(site));
+            Assert.Equal(held, entity.Json);
+            Assert.Empty(Directory.GetFiles(work, SetUpRun.SiteFile, SearchOption.AllDirectories));
+        }
+
+        private string SitePath()
+        {
+            return Path.Combine(work, SetUpRun.SiteFile);
+        }
+
+        // B1: model P1 with C1, C2 moves it and site.json to P2, Ctrl-Z or close unsaved takes the model and the entity back and site.json stays
+        // at P2, C3 is back at P1. The press finds nothing to set, and the build would take the survey point, angle and levels of the P2 file
+        private void Older(Action<JObject> change)
+        {
+            JObject file = JObject.Parse(File.ReadAllText(SitePath()));
+            change(file);
+            File.WriteAllText(SitePath(), file.ToString());
+        }
+
+        private FakeDocument SetUp(List<string> calls, RecordingEntity entity, ProjectSettings settings)
+        {
+            var document = new FakeDocument(Template()) { Calls = calls };
+            Assert.Equal(RunEnd.Committed, Press(document, entity, settings, calls, HashA, FirstPress).End);
+            calls.Clear();
+            return document;
+        }
+
+        [Fact]
+        public void R374_q158_an_older_site_json_with_nothing_differing_is_written_again_from_the_model_on_any_hash()
+        {
+            foreach (string hash in new[] { HashB, HashA })
+            {
+                var calls = new List<string>();
+                var entity = new RecordingEntity(calls);
+                FakeDocument document = SetUp(calls, entity, new ProjectSettings { ConfigFile = configPath, DryRunFirst = false });
+                string good = File.ReadAllText(SitePath());
+                Older(file => file["surveyPoint"]["sharedPosition"][0] = (double)file["surveyPoint"]["sharedPosition"][0] + 5.0);
+
+                RunOutcome outcome = Press(document, entity, new ProjectSettings { ConfigFile = configPath, DryRunFirst = false }, calls, hash, FirstPress.AddDays(1));
+
+                Assert.Equal(RunEnd.Committed, outcome.End);
+                Assert.Equal(new[] { "start", "settings", "commit" }, calls);
+                Assert.Equal(FileHash.Sha256(SitePath()), outcome.Record.Outputs[SitePath()]);
+                Assert.Equal((double)JObject.Parse(good)["surveyPoint"]["sharedPosition"][0], (double)JObject.Parse(File.ReadAllText(SitePath()))["surveyPoint"]["sharedPosition"][0]);
+            }
+        }
+
+        [Theory]
+        [InlineData("{}")]
+        [InlineData("garbage")]
+        [InlineData("[]")]
+        [InlineData("{\"format\": \"site-adaptation-site-facts\", \"formatVersion\": 1, \"runId\": \"r\"}")]
+        public void R374_q158_a_site_json_that_does_not_parse_or_lacks_its_fields_is_written_again(string text)
+        {
+            var calls = new List<string>();
+            var entity = new RecordingEntity(calls);
+            var settings = new ProjectSettings { ConfigFile = configPath, DryRunFirst = false };
+            FakeDocument document = SetUp(calls, entity, settings);
+            string good = File.ReadAllText(SitePath());
+            File.WriteAllText(SitePath(), text);
+
+            RunOutcome outcome = Press(document, entity, settings, calls, HashA, FirstPress.AddDays(1));
+
+            Assert.Equal(RunEnd.Committed, outcome.End);
+            Assert.Equal(good, File.ReadAllText(SitePath()));
+            Assert.Equal(FileHash.Sha256(SitePath()), outcome.Record.Outputs[SitePath()]);
+        }
+
+        [Fact]
+        public void R374_q158_each_fact_of_site_json_is_held_to_the_model_in_the_tolerance_of_the_diff()
+        {
+            var calls = new List<string>();
+            var entity = new RecordingEntity(calls);
+            FakeDocument document = SetUp(calls, entity, new ProjectSettings { ConfigFile = configPath, DryRunFirst = false });
+            string good = File.ReadAllText(SitePath());
+            SiteState now = document.Read();
+            Assert.True(SetUpRun.SiteFileAgrees(SitePath(), now));
+
+            Action<Action<JObject>, bool> held = (change, agrees) =>
+            {
+                File.WriteAllText(SitePath(), good);
+                Older(change);
+                Assert.Equal(agrees, SetUpRun.SiteFileAgrees(SitePath(), now));
+            };
+            double mm = SetUpPlanner.SameMm / 1000.0;
+            double deg = SetUpPlanner.SameDeg;
+            held(file => file["runId"] = "another run", true);
+            held(file => file["surveyPoint"]["position"][1] = (double)file["surveyPoint"]["position"][1] + mm / 2, true);
+            held(file => file["surveyPoint"]["position"][1] = (double)file["surveyPoint"]["position"][1] + mm * 2, false);
+            held(file => file["angleToTrueNorthDeg"] = (double)file["angleToTrueNorthDeg"] + deg / 2, true);
+            held(file => file["angleToTrueNorthDeg"] = (double)file["angleToTrueNorthDeg"] + deg * 2, false);
+            held(file => file["levels"][0]["elevationM"] = (double)file["levels"][0]["elevationM"] + mm * 2, false);
+            held(file => file["levels"][0]["name"] = "another level", false);
+            held(file => ((JArray)file["levels"]).RemoveAt(0), false);
+            held(file => file["levels"][0]["elevationM"] = "ten", false);
+            held(file => file.Remove("surveyPoint"), false);
+            held(file => file["format"] = "another format", false);
+            Assert.False(SetUpRun.SiteFileAgrees(Path.Combine(work, "no such file"), now));
+        }
+
+        [Fact]
+        public void R374_q158_a_site_json_in_the_tolerance_stays_as_it_is_and_the_step_holds()
+        {
+            var calls = new List<string>();
+            var entity = new RecordingEntity(calls);
+            var settings = new ProjectSettings { ConfigFile = configPath, DryRunFirst = false };
+            FakeDocument document = SetUp(calls, entity, settings);
+            Older(file => file["runId"] = "an older run");
+            string kept = File.ReadAllText(SitePath());
+
+            Assert.Equal(RunEnd.Cancelled, Press(document, entity, settings, calls, HashA, FirstPress.AddDays(1)).End);
+            Assert.Equal(kept, File.ReadAllText(SitePath()));
+            Assert.Empty(calls);
+
+            RunOutcome onNewHash = Press(document, entity, settings, calls, HashB, FirstPress.AddDays(2));
+            Assert.Equal(RunEnd.Committed, onNewHash.End);
+            Assert.Equal(kept, File.ReadAllText(SitePath()));
+            Assert.Empty(onNewHash.Record.Outputs);
+        }
+
+        // B2: the pane reads the run of the session first, so a press takes the same run and never cancels while the pane shows step 1 not holding
+        [Fact]
+        public void R374_q158_a_press_follows_the_run_the_pane_reads_so_it_never_cancels_while_the_pane_shows_ready()
+        {
+            var calls = new List<string>();
+            var entity = new RecordingEntity(calls);
+            var settings = new ProjectSettings { ConfigFile = configPath, DryRunFirst = false };
+            FakeDocument document = SetUp(calls, entity, settings);
+            string scopeHash(string hash) => StepHash.Combine(Inputs(hash));
+
+            // The entity holds this hash, the run of the session another, as after an undo: the pane shows Ready
+            RunOutcome outcome = Press(document, entity, settings, calls, HashA, FirstPress.AddDays(1), null, false,
+                () => new StepRun(FirstPress.AddDays(1), scopeHash(HashB), new SettingsScope(), 0, null));
+            Assert.Equal(RunEnd.Committed, outcome.End);
+            Assert.Equal(new[] { "start", "settings", "commit" }, calls);
+            calls.Clear();
+
+            // An output of the session run is off its hash on disk: the pane shows Ready
+            outcome = Press(document, entity, settings, calls, HashA, FirstPress.AddDays(2), null, false,
+                () => new StepRun(FirstPress.AddDays(2), scopeHash(HashA), new SettingsScope(), 0, new Dictionary<string, string> { [SitePath()] = "another hash" }));
+            Assert.Equal(RunEnd.Committed, outcome.End);
+            calls.Clear();
+
+            // The session run holds on the hash and its outputs: the pane shows Done, the press records nothing
+            outcome = Press(document, entity, settings, calls, HashA, FirstPress.AddDays(3), null, false,
+                () => new StepRun(FirstPress.AddDays(3), scopeHash(HashA), new SettingsScope(), 0, new Dictionary<string, string> { [SitePath()] = FileHash.Sha256(SitePath()) }));
+            Assert.Equal(RunEnd.Cancelled, outcome.End);
+            Assert.Empty(calls);
+
+            // No run at all, as the pane shows Ready with none
+            outcome = Press(document, entity, settings, calls, HashA, FirstPress.AddDays(4), null, false, () => null);
+            Assert.Equal(RunEnd.Committed, outcome.End);
+        }
+
+        // B3: the ticks and the rules file the window keeps in the pane settings are recorded, so nothing is lost on a reopen
+        [Fact]
+        public void R374_q158_a_changed_tick_or_rules_file_does_not_hold_so_the_press_records_it()
+        {
+            var calls = new List<string>();
+            var entity = new RecordingEntity(calls);
+            var settings = new ProjectSettings { ConfigFile = configPath, DryRunFirst = false };
+            FakeDocument document = SetUp(calls, entity, settings);
+
+            settings.CurrentFiles = new List<string> { CurrentFiles.Entry(InputNames.Baseplan, "baseplan.dwg") };
+            Assert.Equal(RunEnd.Committed, Press(document, entity, settings, calls, HashA, FirstPress.AddDays(1)).End);
+            Assert.Equal(settings.CurrentFiles, SettingsJson.Read(entity.Json).CurrentFiles);
+            Assert.Equal(new[] { "start", "settings", "commit" }, calls);
+            calls.Clear();
+
+            settings.RulesFile = @"C:\Rules\another.json";
+            Assert.Equal(RunEnd.Committed, Press(document, entity, settings, calls, HashA, FirstPress.AddDays(2)).End);
+            Assert.Equal(@"C:\Rules\another.json", SettingsJson.Read(entity.Json).RulesFile);
+            calls.Clear();
+
+            // Recorded once, the next press holds again
+            Assert.Equal(RunEnd.Cancelled, Press(document, entity, settings, calls, HashA, FirstPress.AddDays(3)).End);
+            Assert.Empty(calls);
+        }
+
+        // What the tick costs today, for the report: a record is a later run of step 1, so by R366 steps 2 to 8 run again though no input of theirs changed
+        [Fact]
+        public void R374_q158_recording_a_tick_is_a_later_run_of_step_1_so_steps_2_to_8_run_again()
+        {
+            var calls = new List<string>();
+            var entity = new RecordingEntity(calls);
+            var settings = new ProjectSettings { ConfigFile = configPath, DryRunFirst = false };
+            FakeDocument document = SetUp(calls, entity, settings);
+            Assert.All(Kinds(Pass(StepRun.From(SettingsJson.Read(entity.Json).LastRuns["1"], null), HashA, HashA)), kind => Assert.Equal(StepStateKind.Done, kind));
+
+            settings.CurrentFiles = new List<string> { CurrentFiles.Entry(InputNames.Baseplan, "baseplan.dwg") };
+            Press(document, entity, settings, calls, HashA, FirstPress.AddDays(30));
+
+            StepStateKind[] after = Kinds(Pass(StepRun.From(SettingsJson.Read(entity.Json).LastRuns["1"], null), HashA, HashA));
+            Assert.Equal(StepStateKind.Done, after[0]);
+            Assert.Equal(StepStateKind.Ready, after[1]);
         }
 
         private sealed class RecordingEntity : ISettingsEntity
@@ -704,7 +1107,7 @@ namespace SiteAdaptation.Tests
 
         private static class SetUpSiteTestsText
         {
-            public const string NothingDiffers = "Nothing differs, Apply changes nothing.";
+            public const string NothingDiffers = "Nothing differs, the model stays as it is. Apply marks this step done.";
         }
 
         // A document that holds a SiteState and carries out each step on it, as Revit would, recording each call
@@ -854,6 +1257,9 @@ namespace SiteAdaptation.Tests
             public double? DryRunSlope { get; set; }
             public bool Answer { get; set; } = true;
 
+            // The button Dry run with the slope of the view, so a model where nothing differs stays so
+            public bool DryRunSameSlope { get; set; }
+
             // A sheet picked by Browse, given to the run as the window does
             public string Browse { get; set; }
 
@@ -865,6 +1271,10 @@ namespace SiteAdaptation.Tests
                 if (DryRunSlope.HasValue)
                 {
                     slope = DryRunSlope.Value;
+                    DryViews.Add(callbacks.DryRun(slope));
+                }
+                if (DryRunSameSlope)
+                {
                     DryViews.Add(callbacks.DryRun(slope));
                 }
                 if (Browse != null)

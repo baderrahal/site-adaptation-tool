@@ -29,7 +29,7 @@ namespace SiteAdaptation.Common.SetUp
         public const string SignBase = "the project base point off the internal origin";
         public const string NoFloorType = "The project holds no floor type to copy the floor types from";
         public const string NoWallType = "The project holds no basic wall type to copy the wall types from";
-        public const string NothingDiffers = "Nothing differs, Apply changes nothing.";
+        public const string NothingDiffers = "Nothing differs, the model stays as it is. Apply marks this step done.";
         public const string AtOrigin = "at the internal origin";
         public const string SettingsNotWritten = "The Settings entity is not written yet, it joins at 5c with R367";
 
