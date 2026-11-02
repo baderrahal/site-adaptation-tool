@@ -25,14 +25,14 @@ namespace SiteAdaptation.Common.PlaceVillas
         // May start with the {workRoot} mark
         public string MassFolder { get; private set; }
 
-        // R451. An exterior wall stands at the ground level when it crosses the plane this height above the top of the ground floors
-        public double WallCutHeightM { get; private set; }
-
-        // The share of the slab area the outer wall loop must cover to be the base (R451)
+        // The share of the slab area the ring must cover to be the base (R504)
         public double WallRingMinShare { get; private set; }
 
-        // The largest share, so a ring that holds a garden wall of Exterior function is not the base (R451)
+        // The largest share, so a ring that holds a garden wall of Exterior function is not the base (R504)
         public double WallRingMaxShare { get; private set; }
+
+        // R500 to R503. The limits of the ring builder
+        public RingLimits Limits { get; private set; }
 
         public bool AsLinks => LinkFolder != LinkFolders.Solids;
 
@@ -55,12 +55,18 @@ namespace SiteAdaptation.Common.PlaceVillas
                 JToken folder = block["massFolder"];
                 config.MassFolder = folder?.Type == JTokenType.String && !string.IsNullOrWhiteSpace((string)folder) ? ((string)folder).Trim()
                     : throw new InvalidDataException("addin.lightMode.massFolder is " + (folder?.ToString() ?? "missing") + ", linkFolder masses needs the folder of the mass files (R450)");
-                config.WallCutHeightM = Number(block, "wallCutHeightM", 0, double.MaxValue);
+                config.Limits = new RingLimits
+                {
+                    OutsideM = Number(block, "wallRingOutsideM", 0, double.MaxValue), InsideM = Number(block, "wallRingInsideM", 0, double.MaxValue),
+                    MinHeightM = Number(block, "wallRingMinHeightM", 0, double.MaxValue), ShortestEdgeM = Number(block, "wallRingShortestEdgeM", 0, double.MaxValue),
+                    CornerGapM = Number(block, "wallRingCornerGapM", 0, double.MaxValue), SlotM = Number(block, "wallRingSlotM", 0, double.MaxValue),
+                    ArcStepM = Number(block, "wallRingArcStepM", 0, double.MaxValue),
+                };
                 config.WallRingMinShare = Number(block, "wallRingMinShare", 0, 1);
                 config.WallRingMaxShare = Number(block, "wallRingMaxShare", 0, double.MaxValue);
                 if (config.WallRingMaxShare < config.WallRingMinShare)
                 {
-                    throw new InvalidDataException("addin.lightMode.wallRingMaxShare is " + block["wallRingMaxShare"] + ", under wallRingMinShare " + block["wallRingMinShare"] + " (R451)");
+                    throw new InvalidDataException("addin.lightMode.wallRingMaxShare is " + block["wallRingMaxShare"] + ", under wallRingMinShare " + block["wallRingMinShare"] + " (R504)");
                 }
             }
             return config;
@@ -99,7 +105,7 @@ namespace SiteAdaptation.Common.PlaceVillas
     public static class MassFiles
     {
         // Raised whenever the Revit read of the base or the file written changes, so every mass file is made again
-        public const int ReaderVersion = 2;
+        public const int ReaderVersion = 3;
         public const string Format = "site-adaptation-mass-file";
         public const string SidecarSuffix = ".json";
 
@@ -107,8 +113,9 @@ namespace SiteAdaptation.Common.PlaceVillas
         public static string SourceKey(LightModeConfig config)
         {
             MassFileConfig mass = config.MassFiles;
-            return string.Format(CultureInfo.InvariantCulture, "solidHeight {0:R} m, baseBoundary {1} {2}, wallRing cut {3:R} m, minShare {4:R}, maxShare {5:R}", config.SolidHeightM,
-                config.BaseBoundary, config.BaseBoundaryFloorType ?? "", mass.WallCutHeightM, mass.WallRingMinShare, mass.WallRingMaxShare);
+            RingLimits ring = mass.Limits;
+            return string.Format(CultureInfo.InvariantCulture, "solidHeight {0:R} m, baseBoundary {1} {2}, wallRing minShare {3:R}, maxShare {4:R}, outside {5:R} m, inside {6:R} m, minHeight {7:R} m, shortestEdge {8:R} m, cornerGap {9:R} m, slot {10:R} m, arcStep {11:R} m",
+                config.SolidHeightM, config.BaseBoundary, config.BaseBoundaryFloorType ?? "", mass.WallRingMinShare, mass.WallRingMaxShare, ring.OutsideM, ring.InsideM, ring.MinHeightM, ring.ShortestEdgeM, ring.CornerGapM, ring.SlotM, ring.ArcStepM);
         }
 
         public static string PathFor(string folder, string prototypePath)
@@ -121,10 +128,15 @@ namespace SiteAdaptation.Common.PlaceVillas
             return massPath + SidecarSuffix;
         }
 
+        // The points are what R404 and the footprint check read, the edges what a mass is made from, the walls say what the ring took (R500)
         public static JObject Sidecar(string prototypePath, string prototypeSha256, string sourceKey, MassBase mass)
         {
             return new JObject
             {
+                ["edges"] = new JArray(mass.Edges.Select(EdgeJson)),
+                ["wallsUsed"] = new JArray((mass.Build?.Used ?? new List<string>()).Cast<object>().ToArray()),
+                ["wallsBackFace"] = new JArray((mass.Build?.BackFace ?? new List<string>()).Cast<object>().ToArray()),
+                ["wallsLeftOut"] = new JArray((mass.Build?.LeftOut ?? new List<WallLeftOut>()).Select(wall => new JObject { ["id"] = wall.Id, ["why"] = wall.Why })),
                 ["format"] = Format, ["readerVersion"] = ReaderVersion, ["prototype"] = Path.GetFileName(prototypePath), ["prototypeSha256"] = prototypeSha256,
                 ["sourceKey"] = sourceKey, ["source"] = mass.Source, ["flagged"] = mass.Flagged, ["reason"] = mass.Reason,
                 ["points"] = new JArray(mass.Ring.Select(point => new JArray(point[0], point[1]))),
@@ -142,7 +154,25 @@ namespace SiteAdaptation.Common.PlaceVillas
         public static MassBase Base(JObject sidecar)
         {
             List<double[]> points = ((JArray)sidecar["points"]).Select(point => new[] { (double)point[0], (double)point[1] }).ToList();
-            return new MassBase(points, (string)sidecar["source"], (string)sidecar["reason"]);
+            List<RingEdge> edges = (sidecar["edges"] as JArray)?.Select(EdgeOf).ToList();
+            return new MassBase(points, (string)sidecar["source"], (string)sidecar["reason"], edges);
+        }
+
+        private static JObject EdgeJson(RingEdge edge)
+        {
+            var json = new JObject { ["start"] = new JArray(edge.Start[0], edge.Start[1]), ["end"] = new JArray(edge.End[0], edge.End[1]) };
+            if (edge.IsArc)
+            {
+                json["centre"] = new JArray(edge.Centre[0], edge.Centre[1]);
+                json["counterClockwise"] = edge.CounterClockwise;
+            }
+            return json;
+        }
+
+        private static RingEdge EdgeOf(JToken json)
+        {
+            double[] Point(JToken point) => new[] { (double)point[0], (double)point[1] };
+            return json["centre"] == null ? new RingEdge(Point(json["start"]), Point(json["end"])) : new RingEdge(Point(json["start"]), Point(json["end"]), Point(json["centre"]), (bool)json["counterClockwise"]);
         }
 
         public static JObject Read(string massPath)
@@ -212,9 +242,10 @@ namespace SiteAdaptation.Common.PlaceVillas
             }
             string sha = hash(prototypePath);
             MassBaseRead read = maker.ReadBase(prototypePath, config) ?? throw new InvalidDataException(Path.GetFileName(prototypePath) + " gave no base read (R451)");
-            MassBase chosen = WallRing.Choose(read.WallLoops, read.Slab, config.MassFiles.WallRingMinShare, config.MassFiles.WallRingMaxShare);
+            RingLimits limits = config.MassFiles.Limits;
+            MassBase chosen = WallRing.Choose(WallRingBuilder.Build(read.Walls, read.Slab, limits), read.Slab, config.MassFiles.WallRingMinShare, config.MassFiles.WallRingMaxShare, limits.ArcStepM);
             Directory.CreateDirectory(folder);
-            maker.Write(mass, chosen.Ring, config.SolidHeightM);
+            maker.Write(mass, chosen.Edges, config.SolidHeightM);
             WorkFiles.WriteText(MassFiles.SidecarPath(mass), "mass", MassFiles.Sidecar(prototypePath, sha, MassFiles.SourceKey(config), chosen).ToString(Newtonsoft.Json.Formatting.Indented));
             return chosen;
         }

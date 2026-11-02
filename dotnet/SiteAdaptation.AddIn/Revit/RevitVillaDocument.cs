@@ -283,6 +283,26 @@ namespace SiteAdaptation.AddIn.Revit
             return GeometryCreationUtilities.CreateExtrusionGeometry(new List<CurveLoop> { loop }, XYZ.BasisZ, UnitMath.MetresToFeet(heightM));
         }
 
+        // R503. A mass from its ring at Z 0 of its file, an arc kept as an arc so the solid has no facets
+        internal static Solid Extrusion(IReadOnlyList<RingEdge> edges, double heightM)
+        {
+            var loop = new CurveLoop();
+            foreach (RingEdge edge in RingEdges.CounterClockwise(edges))
+            {
+                XYZ start = Feet(new[] { edge.Start[0], edge.Start[1], 0.0 }), end = Feet(new[] { edge.End[0], edge.End[1], 0.0 });
+                if (edge.IsArc)
+                {
+                    double[] middle = RingEdges.Middle(edge);
+                    loop.Append(Arc.Create(start, end, Feet(new[] { middle[0], middle[1], 0.0 })));
+                }
+                else
+                {
+                    loop.Append(Line.CreateBound(start, end));
+                }
+            }
+            return GeometryCreationUtilities.CreateExtrusionGeometry(new List<CurveLoop> { loop }, XYZ.BasisZ, UnitMath.MetresToFeet(heightM));
+        }
+
         // The outer loop of the lowest downward face of the solid, every corner with its Z for the FFL of W6, from the geometry Revit
         // holds and not from the shape
         private static IReadOnlyList<double[]> BaseOf(DirectShape shape)
