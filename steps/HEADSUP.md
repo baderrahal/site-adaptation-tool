@@ -11,8 +11,8 @@
 
 ### Lane B, C and D
 
-- Lane B CHECK-2NOV, branch check/2nov-b: Q308 file deleted, C:\SA-demo\config refreshed from main with its 4 paths kept, main 24bb1a8 installed.
-  Now: parts 2 to 13 of steps/bader-fix-1nov.md through the windows, the lock taken per part. Run files in lane_b_check. Blocked: none
+- Lane B CHECK-2NOV, 13:15, branch check/2nov-b: parts 2 to 4 run, Lane A has a Revit gap now under the lock, Lane B reinstalls main after it.
+  Next: parts 5 to 13 after gap done. Run files in lane_b_check. Blocked: Lane A's gap, about 30 minutes
 - Lane C, branch fix/2nov-c-part11: part 11 of steps/bader-fix-1nov.md filled, Q337 to Q339 in its list. Nothing queued after this PR. Blocked: none
 - Lane D D3, 04:45, branch fix/1nov-d3: Revit runs done, lock released. 13 prototypes in 2024, NBH 012 with 336 real links, 0.000 mm against the masses, masses back.
   Now: records, gate, PR. Q275 closed, opened Q337 to Q339. Blocked: none
