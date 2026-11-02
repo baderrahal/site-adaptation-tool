@@ -92,8 +92,7 @@ namespace SiteAdaptation.AddIn.Revit
 
         // R500. Every wall of the prototype with a line or an arc for WallRingBuilder of Common, which decides: its function, curve, width,
         // Orientation, the side Revit gives as the exterior with Flipped already in it, and how it stands to the plane of the top of the
-        // largest ground floor. The curve is read as it lies, the Location Line setting never moves it (RAN, 640 walls of the 13 prototypes,
-        // R501). The member of a stacked wall is not read, the stacked wall itself is
+        // largest ground floor. The curve is read as it lies, the Location Line setting never moves it (R501). The member of a stacked wall is not read, the stacked wall itself is
         internal static IReadOnlyList<RingWall> RingWalls(Document prototype, LightModeConfig config)
         {
             Floor largest = GroundFloors(prototype, config).Select(floor => new { floor, sketch = prototype.GetElement(floor.SketchId) as Sketch }).Where(item => item.sketch != null)
@@ -104,7 +103,6 @@ namespace SiteAdaptation.AddIn.Revit
             {
                 return walls;
             }
-            double oneMm = UnitMath.MetresToFeet(0.001);
             foreach (Wall wall in new FilteredElementCollector(prototype).OfClass(typeof(Wall)).Cast<Wall>().Where(item => !item.IsStackedWallMember))
             {
                 BoundingBoxXYZ box = wall.get_BoundingBox(null);
@@ -115,7 +113,7 @@ namespace SiteAdaptation.AddIn.Revit
                 var read = new RingWall
                 {
                     Id = wall.Id.ToString(), Function = wall.WallType?.Function.ToString(), Width = UnitMath.FeetToMetres(wall.Width), Exterior = new[] { wall.Orientation.X, wall.Orientation.Y },
-                    SpansGround = box.Min.Z <= top.Max.Z + oneMm && box.Max.Z > top.Max.Z + oneMm, HeightM = UnitMath.FeetToMetres(box.Max.Z - top.Max.Z),
+                    BottomM = UnitMath.FeetToMetres(box.Min.Z - top.Max.Z), HeightM = UnitMath.FeetToMetres(box.Max.Z - top.Max.Z),
                 };
                 if (location.Curve is Line || location.Curve is Arc)
                 {

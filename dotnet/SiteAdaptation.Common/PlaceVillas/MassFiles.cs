@@ -60,7 +60,8 @@ namespace SiteAdaptation.Common.PlaceVillas
                     OutsideM = Number(block, "wallRingOutsideM", 0, double.MaxValue), InsideM = Number(block, "wallRingInsideM", 0, double.MaxValue),
                     MinHeightM = Number(block, "wallRingMinHeightM", 0, double.MaxValue), ShortestEdgeM = Number(block, "wallRingShortestEdgeM", 0, double.MaxValue),
                     CornerGapM = Number(block, "wallRingCornerGapM", 0, double.MaxValue), SlotM = Number(block, "wallRingSlotM", 0, double.MaxValue),
-                    ArcStepM = Number(block, "wallRingArcStepM", 0, double.MaxValue),
+                    ArcStepM = Number(block, "wallRingArcStepM", 0, double.MaxValue), BottomAboveM = Number(block, "wallRingBottomAboveM", 0, double.MaxValue),
+                    SampleM = Number(block, "wallRingSampleM", 0, double.MaxValue), ParallelSine = Number(block, "wallRingParallelSine", 0, 1), OnLineM = Number(block, "wallRingOnLineM", 0, double.MaxValue),
                 };
                 config.WallRingMinShare = Number(block, "wallRingMinShare", 0, 1);
                 config.WallRingMaxShare = Number(block, "wallRingMaxShare", 0, double.MaxValue);
@@ -105,7 +106,7 @@ namespace SiteAdaptation.Common.PlaceVillas
     public static class MassFiles
     {
         // Raised whenever the Revit read of the base or the file written changes, so every mass file is made again
-        public const int ReaderVersion = 3;
+        public const int ReaderVersion = 4;
         public const string Format = "site-adaptation-mass-file";
         public const string SidecarSuffix = ".json";
 
@@ -114,8 +115,8 @@ namespace SiteAdaptation.Common.PlaceVillas
         {
             MassFileConfig mass = config.MassFiles;
             RingLimits ring = mass.Limits;
-            return string.Format(CultureInfo.InvariantCulture, "solidHeight {0:R} m, baseBoundary {1} {2}, wallRing minShare {3:R}, maxShare {4:R}, outside {5:R} m, inside {6:R} m, minHeight {7:R} m, shortestEdge {8:R} m, cornerGap {9:R} m, slot {10:R} m, arcStep {11:R} m",
-                config.SolidHeightM, config.BaseBoundary, config.BaseBoundaryFloorType ?? "", mass.WallRingMinShare, mass.WallRingMaxShare, ring.OutsideM, ring.InsideM, ring.MinHeightM, ring.ShortestEdgeM, ring.CornerGapM, ring.SlotM, ring.ArcStepM);
+            return string.Format(CultureInfo.InvariantCulture, "solidHeight {0:R} m, baseBoundary {1} {2}, wallRing minShare {3:R}, maxShare {4:R}, outside {5:R} m, inside {6:R} m, minHeight {7:R} m, shortestEdge {8:R} m, cornerGap {9:R} m, slot {10:R} m, arcStep {11:R} m, bottomAbove {12:R} m, sample {13:R} m, parallelSine {14:R}, onLine {15:R} m",
+                config.SolidHeightM, config.BaseBoundary, config.BaseBoundaryFloorType ?? "", mass.WallRingMinShare, mass.WallRingMaxShare, ring.OutsideM, ring.InsideM, ring.MinHeightM, ring.ShortestEdgeM, ring.CornerGapM, ring.SlotM, ring.ArcStepM, ring.BottomAboveM, ring.SampleM, ring.ParallelSine, ring.OnLineM);
         }
 
         public static string PathFor(string folder, string prototypePath)
@@ -137,6 +138,7 @@ namespace SiteAdaptation.Common.PlaceVillas
                 ["wallsUsed"] = new JArray((mass.Build?.Used ?? new List<string>()).Cast<object>().ToArray()),
                 ["wallsBackFace"] = new JArray((mass.Build?.BackFace ?? new List<string>()).Cast<object>().ToArray()),
                 ["wallsLeftOut"] = new JArray((mass.Build?.LeftOut ?? new List<WallLeftOut>()).Select(wall => new JObject { ["id"] = wall.Id, ["why"] = wall.Why })),
+                ["wallsSkipped"] = new JArray(mass.Skipped.Cast<object>().ToArray()),
                 ["format"] = Format, ["readerVersion"] = ReaderVersion, ["prototype"] = Path.GetFileName(prototypePath), ["prototypeSha256"] = prototypeSha256,
                 ["sourceKey"] = sourceKey, ["source"] = mass.Source, ["flagged"] = mass.Flagged, ["reason"] = mass.Reason,
                 ["points"] = new JArray(mass.Ring.Select(point => new JArray(point[0], point[1]))),
@@ -155,7 +157,9 @@ namespace SiteAdaptation.Common.PlaceVillas
         {
             List<double[]> points = ((JArray)sidecar["points"]).Select(point => new[] { (double)point[0], (double)point[1] }).ToList();
             List<RingEdge> edges = (sidecar["edges"] as JArray)?.Select(EdgeOf).ToList();
-            return new MassBase(points, (string)sidecar["source"], (string)sidecar["reason"], edges);
+            var read = new MassBase(points, (string)sidecar["source"], (string)sidecar["reason"], edges);
+            read.Skipped = (sidecar["wallsSkipped"] as JArray)?.Select(id => (string)id).ToList() ?? new List<string>();
+            return read;
         }
 
         private static JObject EdgeJson(RingEdge edge)

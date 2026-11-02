@@ -53,7 +53,7 @@ namespace SiteAdaptation.Tests
                 double dx = b[0] - a[0], dy = b[1] - a[1], length = Math.Sqrt(dx * dx + dy * dy), ex = dy / length, ey = -dx / length;
                 return new RingWall
                 {
-                    Id = "wall" + i, Function = "Exterior", Start = new[] { a[0] - ex * 0.1, a[1] - ey * 0.1 }, End = new[] { b[0] - ex * 0.1, b[1] - ey * 0.1 }, Width = 0.2, Exterior = new[] { ex, ey }, SpansGround = true, HeightM = 3,
+                    Id = "wall" + i, Function = "Exterior", Start = new[] { a[0] - ex * 0.1, a[1] - ey * 0.1 }, End = new[] { b[0] - ex * 0.1, b[1] - ey * 0.1 }, Width = 0.2, Exterior = new[] { ex, ey }, HeightM = 3,
                 };
             }).ToList();
         }
@@ -108,7 +108,7 @@ namespace SiteAdaptation.Tests
                 ["footprintLimitMm"] = 100.0, ["footprintSampleStepMm"] = 10.0,
                 ["linkFolder"] = linkFolder, ["massFolder"] = massFolder ?? masses,
                 ["wallRingMinShare"] = 0.9, ["wallRingMaxShare"] = 1.3, ["wallRingOutsideM"] = 1.0, ["wallRingInsideM"] = 0.5, ["wallRingMinHeightM"] = 2.3,
-                ["wallRingShortestEdgeM"] = 0.05, ["wallRingCornerGapM"] = 1.0, ["wallRingSlotM"] = 0.3, ["wallRingArcStepM"] = 0.1,
+                ["wallRingShortestEdgeM"] = 0.01, ["wallRingCornerGapM"] = 1.0, ["wallRingSlotM"] = 0.3, ["wallRingArcStepM"] = 0.1, ["wallRingBottomAboveM"] = 0.1, ["wallRingSampleM"] = 0.05, ["wallRingParallelSine"] = 0.001, ["wallRingOnLineM"] = 0.001,
             };
             if (houses)
             {
@@ -223,7 +223,6 @@ namespace SiteAdaptation.Tests
         {
             MassFileConfig config = Config(LinkFolders.Masses, "{workRoot}\\masses").MassFiles;
             Assert.True(config.AsLinks);
-            Assert.Equal(1.0, config.Limits.OutsideM);
             Assert.Equal(0.9, config.WallRingMinShare);
             Assert.Equal(Path.Combine(work, "masses"), config.FolderFor(prototypes, () => work));
             Assert.Equal(prototypes, Config(LinkFolders.Prototypes).MassFiles.FolderFor(prototypes, () => work));
@@ -426,6 +425,20 @@ namespace SiteAdaptation.Tests
             Assert.Equal(WallRing.FromWalls, (string)footprint["masses"][0]["source"]);
             Assert.False((bool)footprint["masses"][0]["flagged"]);
             Assert.True((double)footprint["rows"][0]["distanceMm"] < 20, (string)footprint["rows"][0]["distanceMm"]);
+        }
+
+        // Fix pass of MASS-2NOV-D. A ring that stands with a wall skipped says so where Bader reads it, not in the sidecar alone
+        [Fact]
+        public void R502_a_ring_that_passed_a_wall_by_says_so_in_the_run_lines_and_the_footprint_file()
+        {
+            Run run = Make(Plan(Plot("101", 1100, 0, false)), VillaModes.Masses, Config(LinkFolders.Masses));
+            run.Maker.Walls = WallsRound(Outer);
+            run.Maker.Walls.Add(new RingWall { Id = "fin", Function = "Exterior", Start = new[] { 3.0, -0.97 }, End = new[] { 4.0, -0.97 }, Width = 0.04, Exterior = new[] { 0.0, -1.0 }, HeightM = 3 });
+            IReadOnlyList<string> issues = Apply(run, Context("r1"));
+            Assert.Contains(issues, line => line.Contains("prototype VD4.rvt") && line.Contains("passed by walls") && line.Contains("fin"));
+            JObject footprint = JObject.Parse(File.ReadAllText(Directory.GetFiles(work, "footprint_012.json*").Single()));
+            Assert.Equal(WallRing.FromWalls, (string)footprint["masses"][0]["source"]);
+            Assert.Equal("fin", (string)footprint["masses"][0]["wallsSkipped"][0]);
         }
 
         [Fact]

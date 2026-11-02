@@ -13,18 +13,18 @@ namespace SiteAdaptation.Tests
     {
         private static readonly double[][] Slab = { new[] { 0.0, 0.0 }, new[] { 10.0, 0.0 }, new[] { 10.0, 8.0 }, new[] { 0.0, 8.0 } };
 
-        private static RingLimits Limits(double shortest = 0.05)
+        private static RingLimits Limits(double shortest = 0.01, double sample = 0.05, double parallelSine = 0.001, double onLine = 0.001)
         {
-            return new RingLimits { OutsideM = 1.0, InsideM = 0.5, MinHeightM = 2.3, ShortestEdgeM = shortest, CornerGapM = 1.0, SlotM = 0.3, ArcStepM = 0.1 };
+            return new RingLimits { OutsideM = 1.0, InsideM = 0.5, MinHeightM = 2.3, ShortestEdgeM = shortest, CornerGapM = 1.0, SlotM = 0.3, ArcStepM = 0.1, BottomAboveM = 0.1, SampleM = sample, ParallelSine = parallelSine, OnLineM = onLine };
         }
 
         // A wall whose exterior face runs from a to b, its curve width/2 behind it
-        private static RingWall Face(string id, double ax, double ay, double bx, double by, double width, double ex, double ey, double height = 3.0, string function = "Exterior", bool spans = true)
+        private static RingWall Face(string id, double ax, double ay, double bx, double by, double width, double ex, double ey, double height = 3.0, string function = "Exterior", double bottom = 0)
         {
             return new RingWall
             {
                 Id = id, Function = function, Start = new[] { ax - ex * width / 2, ay - ey * width / 2 }, End = new[] { bx - ex * width / 2, by - ey * width / 2 },
-                Width = width, Exterior = new[] { ex, ey }, SpansGround = spans, HeightM = height,
+                Width = width, Exterior = new[] { ex, ey }, BottomM = bottom, HeightM = height,
             };
         }
 
@@ -37,7 +37,7 @@ namespace SiteAdaptation.Tests
             };
         }
 
-        private static WallRingBuild Build(IEnumerable<RingWall> walls, double shortest = 0.05, IReadOnlyList<double[]> slab = null)
+        private static WallRingBuild Build(IEnumerable<RingWall> walls, double shortest = 0.01, IReadOnlyList<double[]> slab = null)
         {
             return WallRingBuilder.Build(walls, slab ?? Slab, Limits(shortest));
         }
@@ -93,13 +93,12 @@ namespace SiteAdaptation.Tests
             Assert.Equal(Text(new[] { new[] { 0.0, 0.0 }, new[] { 8.0, 0.0 }, new[] { 10.0, 2.0 }, new[] { 10.0, 8.0 }, new[] { 0.0, 8.0 } }), Text(Corners(Build(cut))));
         }
 
-        // The Location Line setting does not move the curve in these files (RAN, 640 walls), so the setting is no input
+        // The Location Line setting does not move the curve in these files (RAN, 1,906 walls), so the setting is no input
         [Fact]
         public void R501_the_face_lies_half_the_width_from_the_curve_along_the_exterior_vector_and_two_widths_meet_at_one_corner()
         {
             List<RingWall> walls = Box(0.21);
             walls[1] = Face("east", 10, 0, 10, 8, 0.12, 1, 0);
-            Assert.Equal(9.94, walls[1].Start[0], 9);
             Assert.Equal(Text(Slab), Text(Corners(Build(walls))));
 
             // A flip is the other exterior vector on the same curve, the face moves by the width
@@ -121,8 +120,9 @@ namespace SiteAdaptation.Tests
             walls.Add(Face("inner east to the house", 9.7, 0.3, 9.7, 7.7, 0.12, -1, 0));
             WallRingBuild build = Build(walls);
             Assert.Equal(Text(Slab), Text(Corners(build)));
-            Assert.Contains("no face of it on the ring", Why(build, "inner south"));
-            Assert.Contains("no face of it on the ring", Why(build, "inner east to the house"));
+            Assert.Contains("no stretch of its faces sees the outside", Why(build, "inner south"));
+            Assert.Contains("no stretch of its faces sees the outside", Why(build, "inner east to the house"));
+            Assert.Empty(build.Skipped);
             Assert.Empty(build.BackFace);
         }
 
@@ -143,16 +143,32 @@ namespace SiteAdaptation.Tests
             walls.Add(Face("garden", 0, -1.5, 10, -1.5, 0.15, 0, -1));
             walls.Add(Face("low near", 0, -0.5, 4, -0.5, 0.1, 0, -1, 1.8));
             walls.Add(Face("interior", 2, -0.2, 4, -0.2, 0.1, 0, -1, 3.0, "Interior"));
-            walls.Add(Face("above", 2, -0.3, 4, -0.3, 0.1, 0, -1, 3.0, "Exterior", false));
+            walls.Add(Face("above", 2, -0.3, 4, -0.3, 0.1, 0, -1, 3.0, "Exterior", 0.15));
             walls.Add(Face("deep", 2, 3, 8, 3, 0.1, 0, -1));
             WallRingBuild build = Build(walls);
             Assert.Equal(Text(Slab), Text(Corners(build)));
             Assert.Contains("wallRingOutsideM", Why(build, "garden"));
             Assert.Contains("wallRingMinHeightM", Why(build, "low near"));
             Assert.Contains("function Interior", Why(build, "interior"));
-            Assert.Contains("ground plane", Why(build, "above"));
+            Assert.Contains("wallRingBottomAboveM", Why(build, "above"));
             Assert.Contains("wallRingInsideM", Why(build, "deep"));
             Assert.DoesNotContain("deep", build.Used);
+        }
+
+        // The outer skin of a house can start at the FFL, 75 mm over the plane of the SSL slab, with the inner skin on the plane. The ring takes the skin
+        [Fact]
+        public void R500_an_outer_wall_based_at_the_ffl_is_kept_and_the_inner_skin_gives_way_to_it()
+        {
+            var walls = new List<RingWall>
+            {
+                Face("outer south", 0, 0, 10, 0, 0.2, 0, -1, 3.0, "Exterior", 0.075), Face("east", 10, 0, 10, 8, 0.2, 1, 0), Face("north", 10, 8, 0, 8, 0.2, 0, 1), Face("west", 0, 8, 0, 0, 0.2, -1, 0),
+                Face("inner south", 0.3, 0.3, 9.7, 0.3, 0.12, 0, -1),
+            };
+            WallRingBuild build = Build(walls);
+            Assert.Contains("outer south", build.Used);
+            Assert.Equal(Text(Slab), Text(Corners(build)));
+            walls[0] = Face("outer south", 0, 0, 10, 0, 0.2, 0, -1, 3.0, "Exterior", 0.5);
+            Assert.Contains("wallRingBottomAboveM", Why(Build(walls), "outer south"));
         }
 
         // A notch the slab does not follow: its walls stand far inside the slab at one end and reach its edge at the other
@@ -177,6 +193,7 @@ namespace SiteAdaptation.Tests
             WallRingBuild build = Build(walls);
             Assert.Empty(build.Edges);
             Assert.Contains("do not close", build.Reason);
+            Assert.Contains("wall north", build.Reason);
             MassBase chosen = WallRing.Choose(build, Slab, 0.9, 1.3, 0.1);
             Assert.True(chosen.Flagged);
             Assert.Equal(WallRing.FromSlab, chosen.Source);
@@ -216,7 +233,107 @@ namespace SiteAdaptation.Tests
         {
             List<RingWall> walls = Box();
             walls[1] = Face("east", 10, 1.5, 10, 8, 0.2, 1, 0);
-            Assert.Contains("do not close", Build(walls).Reason);
+            WallRingBuild build = Build(walls);
+            Assert.Contains("do not close", build.Reason);
+            Assert.Contains("wall south", build.Reason);
+        }
+
+        [Fact]
+        public void R502_a_wall_on_the_line_of_an_edge_but_past_its_corner_is_not_used()
+        {
+            List<RingWall> walls = Box();
+            walls.Add(Face("past", -0.3, 0, 0, 0, 0.2, 0, -1));
+            WallRingBuild build = Build(walls);
+            Assert.Equal(Text(Slab), Text(Corners(build)));
+            Assert.DoesNotContain("past", build.Used);
+            Assert.Contains("past a corner", Why(build, "past"));
+        }
+
+        // A fin clear of the walk: the ring stands, and the wall it passed by is named as skipped, not as shut in
+        [Fact]
+        public void R502_a_wall_the_walk_passed_by_is_named_as_skipped_and_reaches_the_sidecar()
+        {
+            List<RingWall> walls = Box();
+            walls.Add(Face("fin", 4, -0.5, 5, -0.5, 0.1, 0, -1));
+            WallRingBuild build = Build(walls);
+            Assert.Null(build.Reason);
+            Assert.Equal("fin", build.Skipped.Single().Id);
+            Assert.Contains("walk passed it by", Why(build, "fin"));
+            MassBase chosen = WallRing.Choose(build, Slab, 0.9, 1.3, 0.1);
+            Assert.Equal(new[] { "fin" }, chosen.Skipped);
+            Assert.Equal(new[] { "fin" }, MassFiles.Base(MassFiles.Sidecar("X.rvt", "aa", "key", chosen)).Skipped);
+        }
+
+        // A merge that leaves a corner far from the wall ends it should join has not closed the ring, whatever the crossing says
+        [Fact]
+        public void R503_a_corner_a_merge_moved_past_the_corner_gap_does_not_close()
+        {
+            var walls = new List<RingWall>
+            {
+                Face("south", 0.02, 0, 10, 0, 0.2, 0, -1), Face("east", 10, 0, 10, 8, 0.2, 1, 0), Face("north", 10, 8, 0, 8, 0.2, 0, 1), Face("west long", 0, 8, 0, 3, 0.2, -1, 0), Face("west short", 0.02, 3, 0.02, 0, 0.2, -1, 0),
+            };
+            Assert.Null(Build(walls, 0.01).Reason);
+            Assert.Contains("stands over wallRingCornerGapM", Build(walls, 0.05).Reason);
+        }
+
+        [Fact]
+        public void R503_an_arc_over_half_a_turn_is_kept()
+        {
+            double root = Math.Sqrt(2);
+            var arc = new RingWall
+            {
+                Id = "arc", Function = "Exterior", Width = 0.2, Centre = new[] { 0.0, 0.0 }, CounterClockwise = true, HeightM = 3,
+                Start = new[] { 1.9 * Math.Cos(Math.PI / 4), 1.9 * Math.Sin(Math.PI / 4) }, End = new[] { 1.9 * Math.Cos(-Math.PI / 4), 1.9 * Math.Sin(-Math.PI / 4) }, Exterior = new[] { -1.0, 0.0 },
+            };
+            // The two lines leave the circle along its tangent and meet at a right angle
+            var walls = new List<RingWall> { arc, LineFace("lower", root, -root, 2 * root, 0), LineFace("upper", 2 * root, 0, root, root) };
+            double[][] slab = { new[] { -2.0, -2.0 }, new[] { 2 * root, -2.0 }, new[] { 2 * root, 2.0 }, new[] { -2.0, 2.0 } };
+            WallRingBuild build = Build(walls, slab: slab);
+            Assert.Null(build.Reason);
+            Assert.Equal(3, build.Edges.Count);
+            Assert.Contains("arc", build.Used);
+            Assert.Equal(0.75 * Math.PI * 4 + 4, RingMath.Area(RingEdges.Points(build.Edges, 0.01)), 2);
+        }
+
+        // A straight wall with its exterior on the right of a to b
+        private static RingWall LineFace(string id, double ax, double ay, double bx, double by)
+        {
+            double length = Math.Sqrt((bx - ax) * (bx - ax) + (by - ay) * (by - ay));
+            return Face(id, ax, ay, bx, by, 0.2, (by - ay) / length, -(bx - ax) / length);
+        }
+
+        // Each tuned value moves a result. Two faces 0.5 mm apart are one line or a step by wallRingOnLineM
+        [Fact]
+        public void R502_the_on_line_limit_decides_when_two_faces_are_one_line()
+        {
+            var walls = new List<RingWall>
+            {
+                Face("south", 0, 0, 10, 0, 0.2, 0, -1), Face("east", 10, 0, 10, 8, 0.2, 1, 0), Face("north a", 10, 8, 5, 8, 0.2, 0, 1), Face("north b", 5, 8.0005, 0, 8.0005, 0.2, 0, 1), Face("west", 0, 8.0005, 0, 0, 0.2, -1, 0),
+            };
+            Assert.Equal(4, WallRingBuilder.Build(walls, Slab, Limits(0.0001)).Edges.Count);
+            Assert.Equal(6, WallRingBuilder.Build(walls, Slab, Limits(0.0001, onLine: 0.0001)).Edges.Count);
+        }
+
+        [Fact]
+        public void R502_the_parallel_limit_decides_when_two_faces_cross()
+        {
+            double tilt = 0.0005;
+            var walls = new List<RingWall>
+            {
+                Face("south", 0, 0, 10, 0, 0.2, 0, -1), Face("east", 10, 0, 10, 8, 0.2, 1, 0), Face("north a", 10, 8, 5, 8, 0.2, 0, 1), Face("north b", 5, 8, 0, 8 + 5 * tilt, 0.2, tilt, 1), Face("west", 0, 8 + 5 * tilt, 0, 0, 0.2, -1, 0),
+            };
+            Assert.Equal(4, WallRingBuilder.Build(walls, Slab, Limits(0.0001)).Edges.Count);
+            Assert.Equal(5, WallRingBuilder.Build(walls, Slab, Limits(0.0001, parallelSine: 0.0001)).Edges.Count);
+        }
+
+        // A pier close before the middle of the south face: tried in one long piece the face shows nothing, in short pieces it shows both sides of the pier
+        [Fact]
+        public void R501_the_sample_length_decides_what_stretch_of_a_face_is_seen()
+        {
+            List<RingWall> walls = Box();
+            walls.Add(Face("pier", 4, -0.2, 6, -0.2, 0.2, 0, -1));
+            Assert.Null(WallRingBuilder.Build(walls, Slab, Limits()).Reason);
+            Assert.NotNull(WallRingBuilder.Build(walls, Slab, Limits(sample: 20)).Reason);
         }
 
         [Fact]
@@ -262,14 +379,16 @@ namespace SiteAdaptation.Tests
         {
             var walls = new List<RingWall>
             {
-                Face("south", 0, 0, 10, 0, 0.2, 0, -1), Face("east", 10, 0, 10, 8, 0.2, 1, 0), Face("north long", 10, 8.02, 4, 8.02, 0.2, 0, 1), Face("north short", 4, 8, 0, 8, 0.2, 0, 1), Face("west", 0, 8, 0, 0, 0.2, -1, 0),
+                Face("south", 0, 0, 10, 0, 0.2, 0, -1), Face("east", 10, 0, 10, 8, 0.2, 1, 0), Face("north long", 10, 8.02, 0.4, 8.02, 0.2, 0, 1), Face("north short", 0.4, 8, 0, 8, 0.2, 0, 1), Face("west", 0, 8, 0, 0, 0.2, -1, 0),
             };
             WallRingBuild kept = Build(walls, 0.01);
             Assert.Equal(6, kept.Edges.Count);
             WallRingBuild merged = Build(walls, 0.05);
             Assert.Equal(4, merged.Edges.Count);
             Assert.Contains(Corners(merged), corner => Math.Abs(corner[1] - 8.02) < 1e-9 && Math.Abs(corner[0]) < 1e-9);
-            Assert.Contains("north short", merged.Used);
+            Assert.DoesNotContain("north short", merged.Used);
+            Assert.Contains("the ring does not touch it", Why(merged, "north short"));
+            Assert.Empty(merged.Skipped);
         }
 
         [Fact]
@@ -280,7 +399,7 @@ namespace SiteAdaptation.Tests
             {
                 Face("south", 0, 0, 9.98, 0, 0.2, 0, -1), Face("chamfer", 9.98, 0, 10, 0.02, 0.1, root, -root), Face("east", 10, 0.02, 10, 8, 0.2, 1, 0), Face("north", 10, 8, 0, 8, 0.2, 0, 1), Face("west", 0, 8, 0, 0, 0.2, -1, 0),
             };
-            Assert.Equal(Text(Slab), Text(Corners(Build(walls))));
+            Assert.Equal(Text(Slab), Text(Corners(Build(walls, 0.05))));
         }
 
         [Fact]
@@ -291,7 +410,7 @@ namespace SiteAdaptation.Tests
             {
                 return new RingWall
                 {
-                    Id = id, Function = "Exterior", Width = 0.2, Centre = new[] { cx, 0.0 }, CounterClockwise = true, SpansGround = true, HeightM = 3,
+                    Id = id, Function = "Exterior", Width = 0.2, Centre = new[] { cx, 0.0 }, CounterClockwise = true, HeightM = 3,
                     Start = new[] { cx + 1.9 * Math.Cos(from), 1.9 * Math.Sin(from) }, End = new[] { cx + 1.9 * Math.Cos(to), 1.9 * Math.Sin(to) }, Exterior = new[] { ex, 0.0 },
                 };
             }
@@ -373,7 +492,7 @@ namespace SiteAdaptation.Tests
             return new JObject
             {
                 ["villaModeDefault"] = "masses", ["solidHeightM"] = 3.0, ["baseBoundary"] = "lowestFloor", ["footprintLimitMm"] = 100.0, ["footprintSampleStepMm"] = 10.0, ["linkFolder"] = "masses", ["massFolder"] = "C:\\masses",
-                ["wallRingMinShare"] = 0.9, ["wallRingMaxShare"] = 1.3, ["wallRingOutsideM"] = 1.0, ["wallRingInsideM"] = 0.5, ["wallRingMinHeightM"] = 2.3, ["wallRingShortestEdgeM"] = 0.05, ["wallRingCornerGapM"] = 1.0, ["wallRingSlotM"] = 0.3, ["wallRingArcStepM"] = 0.1,
+                ["wallRingMinShare"] = 0.9, ["wallRingMaxShare"] = 1.3, ["wallRingOutsideM"] = 1.0, ["wallRingInsideM"] = 0.5, ["wallRingMinHeightM"] = 2.3, ["wallRingShortestEdgeM"] = 0.05, ["wallRingCornerGapM"] = 1.0, ["wallRingSlotM"] = 0.3, ["wallRingArcStepM"] = 0.1, ["wallRingBottomAboveM"] = 0.1, ["wallRingSampleM"] = 0.05, ["wallRingParallelSine"] = 0.001, ["wallRingOnLineM"] = 0.001,
             };
         }
 
@@ -390,6 +509,10 @@ namespace SiteAdaptation.Tests
         [InlineData("wallRingCornerGapM")]
         [InlineData("wallRingSlotM")]
         [InlineData("wallRingArcStepM")]
+        [InlineData("wallRingBottomAboveM")]
+        [InlineData("wallRingSampleM")]
+        [InlineData("wallRingParallelSine")]
+        [InlineData("wallRingOnLineM")]
         public void R504_each_limit_is_read_from_config_refused_by_name_when_missing_and_in_the_source_key(string key)
         {
             string before = MassFiles.SourceKey(Config(Block()));
@@ -401,14 +524,13 @@ namespace SiteAdaptation.Tests
             Assert.Contains(key, Assert.Throws<InvalidDataException>(() => Config(missing)).Message);
         }
 
-        // An old mass was made from the union of R451 under version 2, it must be made again
+        // A mass of an earlier reader was made by another rule, it must be made again
         [Fact]
-        public void R504_a_sidecar_of_the_reader_before_the_ring_is_stale()
+        public void R504_a_sidecar_of_the_reader_before_is_stale()
         {
-            Assert.Equal(3, MassFiles.ReaderVersion);
             JObject sidecar = MassFiles.Sidecar("X.rvt", "aa", "key", new MassBase(Slab, WallRing.FromSlab, "test"));
             Assert.False(MassFiles.Stale(sidecar, "aa", "key"));
-            sidecar["readerVersion"] = 2;
+            sidecar["readerVersion"] = MassFiles.ReaderVersion - 1;
             Assert.True(MassFiles.Stale(sidecar, "aa", "key"));
         }
 

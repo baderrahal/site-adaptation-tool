@@ -29,6 +29,9 @@ namespace SiteAdaptation.Common.PlaceVillas
         // The walls of the ring and the walls left out with why, null for a base read back from a sidecar
         public WallRingBuild Build { get; set; }
 
+        // The ids of the walls with a face that sees the outside that the walk of this ring passed by, each a doubt on the ring (R502)
+        public IReadOnlyList<string> Skipped { get; set; } = new List<string>();
+
         // A base taken from the slab since the walls do not close, flagged with Q279
         public bool Flagged => Source == WallRing.FromSlab;
     }
@@ -73,7 +76,7 @@ namespace SiteAdaptation.Common.PlaceVillas
             {
                 return Flag("the ring of the exterior walls covers " + shown + " of the slab area, over wallRingMaxShare " + maxShare.ToString(CultureInfo.InvariantCulture));
             }
-            return new MassBase(outer, FromWalls, "the exterior walls close into a ring of " + shown + " of the slab area", build.Edges) { Build = build };
+            return new MassBase(outer, FromWalls, "the exterior walls close into a ring of " + shown + " of the slab area", build.Edges) { Build = build, Skipped = build.Skipped.Select(wall => wall.Id).ToList() };
         }
 
         private static List<double[]> Ring(IReadOnlyList<double[]> points)

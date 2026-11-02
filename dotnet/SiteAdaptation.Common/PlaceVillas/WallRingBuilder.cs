@@ -18,8 +18,8 @@ namespace SiteAdaptation.Common.PlaceVillas
         public double Width { get; set; }
         public double[] Exterior { get; set; }
 
-        // True when the wall stands on or crosses the plane of the top of the ground slab
-        public bool SpansGround { get; set; }
+        // From the plane of the top of the ground slab to the bottom of the wall, under 0 when it starts below the plane
+        public double BottomM { get; set; }
 
         // From that plane up to the top of the wall
         public double HeightM { get; set; }
@@ -52,6 +52,10 @@ namespace SiteAdaptation.Common.PlaceVillas
         public double ShortestEdgeM { get; set; }
         public double CornerGapM { get; set; }
         public double SlotM { get; set; }
+        public double BottomAboveM { get; set; }
+        public double SampleM { get; set; }
+        public double ParallelSine { get; set; }
+        public double OnLineM { get; set; }
         public double ArcStepM { get; set; }
     }
 
@@ -77,6 +81,9 @@ namespace SiteAdaptation.Common.PlaceVillas
         // The ring walls whose Orientation faces the house, so their other face is the outer one (R501)
         public IReadOnlyList<string> BackFace { get; set; } = new List<string>();
         public IReadOnlyList<WallLeftOut> LeftOut { get; set; } = new List<WallLeftOut>();
+
+        // The walls with a face that sees the outside that the walk passed by, also in LeftOut. They reach the run line of the mass (R502)
+        public IReadOnlyList<WallLeftOut> Skipped { get; set; } = new List<WallLeftOut>();
     }
 
     // R503. The ring as points for a reader that takes points: the start of each edge, an arc cut every arcStepM along its length
@@ -173,15 +180,6 @@ namespace SiteAdaptation.Common.PlaceVillas
     // end of the last gives the order, and each corner is where two face lines cross, so a wall that stops short or runs past never shows
     public static class WallRingBuilder
     {
-        // Two lines closer than this lie on one line. The files hold face lines to 0.02 mm, the smallest real step is 20 mm
-        private const double OnLineM = 0.001;
-
-        // Under this sine two lines are parallel. The walls of the 13 prototypes meet at 90 and 180 degrees only
-        private const double ParallelSine = 0.001;
-
-        // The length of one piece of a face tried for sight of the outside
-        private const double SampleM = 0.05;
-
         public static WallRingBuild Build(IEnumerable<RingWall> walls, IReadOnlyList<double[]> slab, RingLimits limits)
         {
             var leftOut = new List<WallLeftOut>();
@@ -189,8 +187,8 @@ namespace SiteAdaptation.Common.PlaceVillas
             List<RingWall> kept = Filter(walls, slab, limits, leftOut, deep);
             List<double[][]> plans = kept.Concat(deep).Select(wall => Plan(wall, limits)).ToList();
             var back = new HashSet<string>(StringComparer.Ordinal);
-            List<Face> faces = Merged(kept.SelectMany(wall => Runs(wall, plans, back, limits)).ToList());
-            var used = new HashSet<string>(StringComparer.Ordinal);
+            List<Face> runs = kept.SelectMany(wall => Runs(wall, plans, back, limits)).ToList();
+            List<Face> faces = Merged(runs, limits);
             List<Face> edges = faces.Where(face => face.Length >= limits.ShortestEdgeM).ToList();
             if (edges.Count < 3)
             {
@@ -202,21 +200,52 @@ namespace SiteAdaptation.Common.PlaceVillas
             {
                 return Refused(reason, kept, leftOut);
             }
-            List<Face> carriers = Carriers(ring);
+            List<Face> carriers = Carriers(ring, limits);
             List<RingEdge> closed = Closed(carriers, limits, ref reason);
             if (closed == null)
             {
                 return Refused(reason, kept, leftOut);
             }
-            foreach (Face face in carriers)
+            HashSet<string> used = Touching(runs, carriers, closed, limits);
+            var walked = new HashSet<Face>(ring.Select(join => join.From));
+            var skippedIds = new HashSet<string>(edges.Where(edge => !walked.Contains(edge)).SelectMany(edge => edge.Walls), StringComparer.Ordinal);
+            var seeing = new HashSet<string>(runs.SelectMany(run => run.Walls), StringComparer.Ordinal);
+            var skipped = new List<WallLeftOut>();
+            foreach (RingWall wall in kept.Where(wall => !used.Contains(wall.Id)))
             {
-                used.UnionWith(face.Walls);
+                var out1 = new WallLeftOut(wall.Id, !seeing.Contains(wall.Id) ? "no stretch of its faces sees the outside, other walls shut it in"
+                    : skippedIds.Contains(wall.Id) ? "a face of it sees the outside and the walk passed it by"
+                    : "the ring does not touch it, its face lies past a corner or its edge went under wallRingShortestEdgeM");
+                leftOut.Add(out1);
+                if (skippedIds.Contains(wall.Id))
+                {
+                    skipped.Add(out1);
+                }
             }
-            leftOut.AddRange(kept.Where(wall => !used.Contains(wall.Id)).Select(wall => new WallLeftOut(wall.Id, "no face of it on the ring, an outer wall stands before it")));
             return new WallRingBuild
             {
-                Edges = closed, Used = used.OrderBy(id => id, StringComparer.Ordinal).ToList(), BackFace = back.Where(used.Contains).OrderBy(id => id, StringComparer.Ordinal).ToList(), LeftOut = leftOut,
+                Edges = closed, Used = used.OrderBy(id => id, StringComparer.Ordinal).ToList(), BackFace = back.Where(used.Contains).OrderBy(id => id, StringComparer.Ordinal).ToList(), LeftOut = leftOut, Skipped = skipped,
             };
+        }
+
+        // The walls with a stretch that overlaps an edge of the finished ring. A wall on the line of an edge but past its corner, or one whose
+        // edge merged away, is not touched by the ring and is not used
+        private static HashSet<string> Touching(List<Face> runs, List<Face> carriers, List<RingEdge> edges, RingLimits limits)
+        {
+            var used = new HashSet<string>(StringComparer.Ordinal);
+            for (int i = 0; i < carriers.Count; i++)
+            {
+                double length = carriers[i].Between(edges[i].Start, edges[i].End);
+                foreach (Face run in runs.Where(run => carriers[i].OnSameCarrier(run, limits)))
+                {
+                    double from = carriers[i].Offset(edges[i].Start, run.At(0));
+                    if (Math.Min(from + run.Length, length) - Math.Max(from, 0) > limits.OnLineM)
+                    {
+                        used.UnionWith(run.Walls);
+                    }
+                }
+            }
+            return used;
         }
 
         private static WallRingBuild Refused(string reason, List<RingWall> kept, List<WallLeftOut> leftOut)
@@ -242,9 +271,9 @@ namespace SiteAdaptation.Common.PlaceVillas
                 {
                     why = "its curve is no line or arc";
                 }
-                else if (!wall.SpansGround)
+                else if (wall.BottomM > limits.BottomAboveM)
                 {
-                    why = "it does not stand on the ground plane";
+                    why = "its bottom stands " + Metres(wall.BottomM) + " over the ground plane, over wallRingBottomAboveM";
                 }
                 else if (wall.HeightM < limits.MinHeightM)
                 {
@@ -253,7 +282,7 @@ namespace SiteAdaptation.Common.PlaceVillas
                 else
                 {
                     Face face = Face.Of(wall, false);
-                    int pieces = Pieces(face.Length, 0.25);
+                    int pieces = Pieces(face.Length, limits.SampleM);
                     List<double> distances = Enumerable.Range(0, pieces + 1).Select(i => RingGeometry.SignedDistance(face.At(face.Length * i / pieces), slab)).ToList();
                     if (distances.Max() > limits.OutsideM)
                     {
@@ -303,7 +332,7 @@ namespace SiteAdaptation.Common.PlaceVillas
         private static IEnumerable<Face> Runs(RingWall wall, List<double[][]> plans, HashSet<string> back, RingLimits limits)
         {
             Face front = Face.Of(wall, false), other = Face.Of(wall, true);
-            int pieces = Pieces(front.Length, SampleM);
+            int pieces = Pieces(front.Length, limits.SampleM);
             var frontSees = new bool[pieces];
             for (int i = 0; i < pieces; i++)
             {
@@ -350,7 +379,7 @@ namespace SiteAdaptation.Common.PlaceVillas
         private static bool Sees(Face face, double along, List<double[][]> plans, RingLimits limits)
         {
             double[] point = face.At(along), direction = face.Along(along), outward = new[] { direction[1], -direction[0] };
-            double[] from = { point[0] + outward[0] * OnLineM, point[1] + outward[1] * OnLineM };
+            double[] from = { point[0] + outward[0] * limits.OnLineM, point[1] + outward[1] * limits.OnLineM };
             double before = Nearest(from, outward, plans);
             if (double.IsPositiveInfinity(before))
             {
@@ -386,16 +415,16 @@ namespace SiteAdaptation.Common.PlaceVillas
         }
 
         // R502, the 80 mm pieces of the files. Stretches of one line that touch or overlap are one edge, whatever wall they came from
-        private static List<Face> Merged(List<Face> runs)
+        private static List<Face> Merged(List<Face> runs, RingLimits limits)
         {
             var merged = new List<Face>();
-            foreach (IGrouping<int, Face> line in Lines(runs))
+            foreach (IGrouping<int, Face> line in Lines(runs, limits))
             {
                 List<Face> ordered = line.OrderBy(face => face.IsArc ? 0 : Dot(face.At(0), face.Along(0))).ToList();
                 Face open = ordered[0];
                 foreach (Face next in ordered.Skip(1))
                 {
-                    if (!next.IsArc && !open.IsArc && Dot(Minus(next.At(0), open.At(open.Length)), open.Along(0)) <= 2 * SampleM)
+                    if (!next.IsArc && !open.IsArc && Dot(Minus(next.At(0), open.At(open.Length)), open.Along(0)) <= limits.OnLineM)
                     {
                         open = open.Upto(next);
                     }
@@ -411,13 +440,13 @@ namespace SiteAdaptation.Common.PlaceVillas
         }
 
         // Lines that run the same way on one line share a number, every arc has its own
-        private static IEnumerable<IGrouping<int, Face>> Lines(List<Face> runs)
+        private static IEnumerable<IGrouping<int, Face>> Lines(List<Face> runs, RingLimits limits)
         {
             var carriers = new List<Face>();
             var numbers = new Dictionary<Face, int>();
             foreach (Face run in runs)
             {
-                int found = run.IsArc ? -1 : carriers.FindIndex(known => !known.IsArc && OnOneLine(known, run));
+                int found = run.IsArc ? -1 : carriers.FindIndex(known => !known.IsArc && OnOneLine(known, run, limits));
                 if (found < 0)
                 {
                     carriers.Add(run);
@@ -428,10 +457,10 @@ namespace SiteAdaptation.Common.PlaceVillas
             return runs.GroupBy(run => numbers[run]);
         }
 
-        private static bool OnOneLine(Face a, Face b)
+        private static bool OnOneLine(Face a, Face b, RingLimits limits)
         {
             double[] along = a.Along(0);
-            return Dot(along, b.Along(0)) > 0 && Math.Abs(Cross(along, b.Along(0))) < ParallelSine && Math.Abs(Cross(along, Minus(b.At(0), a.At(0)))) < OnLineM;
+            return Dot(along, b.Along(0)) > 0 && Math.Abs(Cross(along, b.Along(0))) < limits.ParallelSine && Math.Abs(Cross(along, Minus(b.At(0), a.At(0)))) < limits.OnLineM;
         }
 
         // How one edge goes on to the next
@@ -488,7 +517,7 @@ namespace SiteAdaptation.Common.PlaceVillas
         private static Join Joined(Face from, Face to, RingLimits limits)
         {
             double[] head = from.At(from.Length), tail = to.At(0);
-            if (!from.IsArc && !to.IsArc && Math.Abs(Cross(from.Along(0), to.Along(0))) < ParallelSine)
+            if (!from.IsArc && !to.IsArc && Math.Abs(Cross(from.Along(0), to.Along(0))) < limits.ParallelSine)
             {
                 double[] along = from.Along(0);
                 double[] gap = Minus(tail, head);
@@ -508,7 +537,7 @@ namespace SiteAdaptation.Common.PlaceVillas
                 {
                     return null;
                 }
-                if (Math.Abs(outward) < OnLineM)
+                if (Math.Abs(outward) < limits.OnLineM)
                 {
                     return new Join { From = from, To = to, Cost = Math.Abs(ahead) };
                 }
@@ -524,7 +553,7 @@ namespace SiteAdaptation.Common.PlaceVillas
                 }
                 return new Join { From = from, To = to, StepFrom = start, StepTo = stop, Cost = Math.Abs(outward) + Math.Max(0, ahead) };
             }
-            double[] corner = Meet(from, to, head, tail);
+            double[] corner = Meet(from, to, head, tail, limits);
             if (corner == null)
             {
                 double apart = RingGeometry.Distance(head, tail);
@@ -539,20 +568,20 @@ namespace SiteAdaptation.Common.PlaceVillas
         }
 
         // Where the lines or circles of two faces cross, the crossing nearest the two ends. Null when parallel or when they never cross
-        private static double[] Meet(Face a, Face b, double[] near, double[] other)
+        private static double[] Meet(Face a, Face b, double[] near, double[] other, RingLimits limits)
         {
-            List<double[]> roots = Crossings(a, b);
+            List<double[]> roots = Crossings(a, b, limits);
             return roots.Count == 0 ? null : roots.OrderBy(root => RingGeometry.Distance(root, near) + RingGeometry.Distance(root, other)).First();
         }
 
-        private static List<double[]> Crossings(Face a, Face b)
+        private static List<double[]> Crossings(Face a, Face b, RingLimits limits)
         {
             var roots = new List<double[]>();
             if (!a.IsArc && !b.IsArc)
             {
                 double[] da = a.Along(0), db = b.Along(0);
                 double cross = Cross(da, db);
-                if (Math.Abs(cross) < ParallelSine)
+                if (Math.Abs(cross) < limits.ParallelSine)
                 {
                     return roots;
                 }
@@ -563,7 +592,7 @@ namespace SiteAdaptation.Common.PlaceVillas
             if (a.IsArc && b.IsArc)
             {
                 double apart = RingGeometry.Distance(a.Centre, b.Centre);
-                if (apart < OnLineM || apart > a.Radius + b.Radius + OnLineM || apart < Math.Abs(a.Radius - b.Radius) - OnLineM)
+                if (apart < limits.OnLineM || apart > a.Radius + b.Radius + limits.OnLineM || apart < Math.Abs(a.Radius - b.Radius) - limits.OnLineM)
                 {
                     return roots;
                 }
@@ -577,7 +606,7 @@ namespace SiteAdaptation.Common.PlaceVillas
             Face line = a.IsArc ? b : a, arc = a.IsArc ? a : b;
             double[] direction = line.Along(0), to = Minus(arc.Centre, line.At(0));
             double foot = Dot(to, direction), off = Cross(direction, to);
-            if (Math.Abs(off) > arc.Radius + OnLineM)
+            if (Math.Abs(off) > arc.Radius + limits.OnLineM)
             {
                 return roots;
             }
@@ -589,40 +618,42 @@ namespace SiteAdaptation.Common.PlaceVillas
         }
 
         // The ring as faces whose every neighbours cross: one line through a join on one line, a connecting edge at a step
-        private static List<Face> Carriers(List<Join> ring)
+        private static List<Face> Carriers(List<Join> ring, RingLimits limits)
         {
             var carriers = new List<Face>();
             foreach (Join join in ring)
             {
-                Face last = carriers.Count > 0 && carriers[carriers.Count - 1].OnSameCarrier(join.From) ? carriers[carriers.Count - 1] : null;
+                Face last = carriers.Count > 0 && carriers[carriers.Count - 1].OnSameCarrier(join.From, limits) ? carriers[carriers.Count - 1] : null;
                 if (last == null)
                 {
                     carriers.Add(join.From);
                 }
                 else
                 {
-                    last.Walls.UnionWith(join.From.Walls);
+                    carriers[carriers.Count - 1] = last.Upto(join.From);
                 }
                 if (join.StepFrom != null)
                 {
                     carriers.Add(Face.Connecting(join.StepFrom, join.StepTo));
                 }
             }
-            if (carriers.Count > 1 && carriers[0].OnSameCarrier(carriers[carriers.Count - 1]))
+            if (carriers.Count > 1 && carriers[0].OnSameCarrier(carriers[carriers.Count - 1], limits))
             {
-                carriers[0].Walls.UnionWith(carriers[carriers.Count - 1].Walls);
+                Face closing = carriers[carriers.Count - 1];
                 carriers.RemoveAt(carriers.Count - 1);
+                carriers[0] = closing.Upto(carriers[0]);
             }
             return carriers;
         }
 
         // R502, R503. The corners of the ring by crossing each carrier with the next. An edge under the shortest edge, or one the crossings
-        // turn back, goes: its neighbours then cross, or when they are parallel the shorter neighbour goes with it into the longer
+        // turn back, goes: its neighbours then cross, or when they are parallel the shorter neighbour goes with it and the longer keeps its
+        // line, never a mean. A corner must still stand within the corner gap of the ends it joins, a merge may have moved it away
         private static List<RingEdge> Closed(List<Face> carriers, RingLimits limits, ref string reason)
         {
             while (carriers.Count >= 3)
             {
-                List<double[]> corners = Corners(carriers);
+                List<double[]> corners = Corners(carriers, limits);
                 if (corners == null)
                 {
                     reason = "two neighbouring faces of the ring never cross";
@@ -632,21 +663,25 @@ namespace SiteAdaptation.Common.PlaceVillas
                 int shortest = Enumerable.Range(0, carriers.Count).OrderBy(i => lengths[i]).First();
                 if (lengths[shortest] >= limits.ShortestEdgeM)
                 {
+                    for (int i = 0; i < carriers.Count; i++)
+                    {
+                        Face a = carriers[i], b = carriers[(i + 1) % carriers.Count];
+                        if (Math.Max(a.ToHead(corners[i]), -b.FromTail(corners[i])) > limits.CornerGapM)
+                        {
+                            reason = "a corner of the ring after wall " + string.Join("+", a.Walls.OrderBy(id => id, StringComparer.Ordinal)) + " stands over wallRingCornerGapM from the wall ends it joins, the walls do not close there";
+                            return null;
+                        }
+                    }
                     return Enumerable.Range(0, carriers.Count).Select(i => carriers[i].Edge(corners[(i + carriers.Count - 1) % carriers.Count], corners[i])).ToList();
                 }
                 int before = (shortest + carriers.Count - 1) % carriers.Count, after = (shortest + 1) % carriers.Count;
                 Face gone = carriers[shortest];
-                if (Crossings(carriers[before], carriers[after]).Count > 0)
+                if (Crossings(carriers[before], carriers[after], limits).Count > 0)
                 {
-                    carriers[before].Walls.UnionWith(gone.Walls);
                     carriers.RemoveAt(shortest);
                     continue;
                 }
-                int shorter = lengths[before] < lengths[after] ? before : after;
-                int keep = shorter == before ? after : before;
-                carriers[keep].Walls.UnionWith(gone.Walls);
-                carriers[keep].Walls.UnionWith(carriers[shorter].Walls);
-                Face leaving = carriers[shorter];
+                Face leaving = carriers[lengths[before] < lengths[after] ? before : after];
                 carriers.Remove(gone);
                 carriers.Remove(leaving);
             }
@@ -654,13 +689,13 @@ namespace SiteAdaptation.Common.PlaceVillas
             return null;
         }
 
-        private static List<double[]> Corners(List<Face> carriers)
+        private static List<double[]> Corners(List<Face> carriers, RingLimits limits)
         {
             var corners = new List<double[]>();
             for (int i = 0; i < carriers.Count; i++)
             {
                 Face a = carriers[i], b = carriers[(i + 1) % carriers.Count];
-                double[] corner = Meet(a, b, a.At(a.Length), b.At(0));
+                double[] corner = Meet(a, b, a.At(a.Length), b.At(0), limits);
                 if (corner == null)
                 {
                     return null;
@@ -793,7 +828,7 @@ namespace SiteAdaptation.Common.PlaceVillas
             {
                 var joined = (Face)MemberwiseClone();
                 joined.Walls = new HashSet<string>(Walls.Concat(other.Walls), StringComparer.Ordinal);
-                joined.Length = Math.Max(Length, Dot(Minus(other.At(other.Length), origin), direction));
+                joined.Length = IsArc ? Length + other.Length + Math.Max(0, Offset(At(Length), other.At(0))) : Math.Max(Length, Dot(Minus(other.At(other.Length), origin), direction));
                 return joined;
             }
 
@@ -812,16 +847,29 @@ namespace SiteAdaptation.Common.PlaceVillas
             // The length of this carrier from one point on it to the next, under 0 when they lie the wrong way
             public double Between(double[] from, double[] to)
             {
+                if (!IsArc)
+                {
+                    return Dot(Minus(to, from), direction);
+                }
+                // An arc over half a turn is told from one turned back by which of the two readings lies nearer its own length
+                double turned = RingGeometry.Turn((counterClockwise ? 1 : -1) * (RingGeometry.Angle(Centre, to) - RingGeometry.Angle(Centre, from))) * Radius;
+                double back = turned - 2 * Math.PI * Radius;
+                return Math.Abs(turned - Length) <= Math.Abs(back - Length) ? turned : back;
+            }
+
+            // How far along from one point of the carrier to another, within half a turn either way on an arc
+            public double Offset(double[] from, double[] to)
+            {
                 return IsArc ? Signed(from, to) * Radius : Dot(Minus(to, from), direction);
             }
 
-            public bool OnSameCarrier(Face other)
+            public bool OnSameCarrier(Face other, RingLimits limits)
             {
                 if (IsArc || other.IsArc)
                 {
-                    return IsArc && other.IsArc && RingGeometry.Distance(Centre, other.Centre) < OnLineM && Math.Abs(Radius - other.Radius) < OnLineM && counterClockwise == other.counterClockwise;
+                    return IsArc && other.IsArc && RingGeometry.Distance(Centre, other.Centre) < limits.OnLineM && Math.Abs(Radius - other.Radius) < limits.OnLineM && counterClockwise == other.counterClockwise;
                 }
-                return OnOneLine(this, other);
+                return OnOneLine(this, other, limits);
             }
 
             public RingEdge Edge(double[] from, double[] to)
