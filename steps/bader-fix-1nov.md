@@ -2,7 +2,7 @@
 
 The checks of the four rounds of 1 Nov 2026, FIX-1NOV-A, B, C and D, on Revit 2024. One action per step. Each part ends with what to look for.
 
-Merged to main: fix/1nov-d (PR 126), fix/1nov-b (PR 127), fix/1nov-a (PR 128), fix/1nov-d2 (PR 129), fix/1nov-a2 (PR 130), fix/1nov-b-task6 (PR 131), fix/1nov-c (PR 132), fix/2nov-c (PR 133), fix/1nov-d3 (PR 134), and this update of the sheet. Nothing of these rounds is pending.
+Merged to main: fix/1nov-d (PR 126), fix/1nov-b (PR 127), fix/1nov-a (PR 128), fix/1nov-d2 (PR 129), fix/1nov-a2 (PR 130), fix/1nov-b-task6 (PR 131), fix/1nov-c (PR 132), fix/2nov-c (PR 133), fix/1nov-d3 (PR 134), fix/2nov-a (PR 139), and this update of the sheet. Nothing of these rounds is pending.
 
 ## 1. Pull, build and install
 
@@ -19,7 +19,7 @@ dotnet build dotnet\SiteAdaptation.sln -c Release
 C:\Users\p003653k\Tools\pwsh\pwsh.exe -File dotnet\SiteAdaptation.AddIn\Install-SiteAdaptation.ps1 -NoBuild
 ```
 
-Look for: git pull ends on the merge of fix/2nov-c-part11. The build ends with "0 Error(s)". The install shows no red line and ends with two lines, "Manifest ... SiteAdaptationAddIn_Revit2024.addin names ..." and "one SiteAdaptation.Common.dll in ... folders of the tool, SHA-256 ...". If it says "Revit 2024 is running", close Revit and run the last line again.
+Look for: git pull ends on the merge of docs/2nov-c-sheet-a. The build ends with "0 Error(s)". The install shows no red line and ends with two lines, "Manifest ... SiteAdaptationAddIn_Revit2024.addin names ..." and "one SiteAdaptation.Common.dll in ... folders of the tool, SHA-256 ...". If it says "Revit 2024 is running", close Revit and run the last line again.
 
 ## 2. The model and the config
 
@@ -156,11 +156,43 @@ Not run in Revit yet, this is the first check there.
 
 Look for: at step 2 the ask "Save your review?" with Save, Don't save and Cancel, and Cancel keeps the window open. At step 3 the window closes and the marks are saved. At step 4 the foot says the tool never writes in the input folder, and no file appears there. At step 5 the dialog opens in the work folder. At step 6 Dry run goes off, the line under it says why, and 4 Check runs. At step 7 the box says Run complete with the report file name, and Explorer opens on its folder.
 
+## 14. Yards inside their plots (Lane A, FIX-2NOV-A, R475)
+
+Lane A ran buttons 1 to 5 through the test host, before the last source change of R475, and read no yard back from the model. A model built before keeps its old yards (Q354), so this needs a new one.
+
+1. Copy C:\SA-demo\SA-demo-start.rvt to C:\SA-demo\SA-yards.rvt and open the copy.
+2. Run 1 to 5 on Neighbourhood 012.
+3. When 5 stops on the Revit box of warnings, press OK. The box stays until Lane B's step 5 item lands.
+4. In plan, look at plots 2543 and 2546.
+
+Look for: place 1,003 and no floor refused. About 1,131 "Highlighted floors overlap" (1,402 before this round) and about 42 "Line in Sketch is slightly off axis" (Q356). The yard of 2543 and of 2546 stays inside its plot. Generic floors still cover the whole plot, as Bader chose (Q350).
+
+## 15. Review lists the plots of Check (Lane A, FIX-2NOV-A, R476)
+
+Not run in the window yet, Lane A counted the rows of the real table.
+
+1. In the same model, open 3 Review data on Neighbourhood 012.
+2. Read the number of plots.
+3. Close the window. If it asks, press Don't save.
+
+Look for: 337 plots, not 379.
+
+## 16. The footprint check by same type (Lane A, FIX-2NOV-A, R477)
+
+Not run in the add-in yet, Lane A applied the check to the last hand run by C# and a second script.
+
+1. In the same model, run 6 Levels.
+2. Set Villa mode to Masses, run 7 Place villas, press Run.
+3. Read the line that starts "Masses: place".
+4. Press Apply.
+
+Look for: in the line of step 3, ", over the footprint limit 0 of 57 of the same type, 271 of another type (Q277), 8 with no outline". If it says "footprint not measured" instead, the mass files were still to make. Press Run at 7 again after Apply, this retry has not run.
+
 ## Questions for Bader
 
-Every open question of steps/questions-open.md after Bader's answers of 2 Nov 09:20, 144 open, by topic, the oldest first, each with its recommended answer. [demo] and [new project] mark the ones a demo or a new project meets first. The full text is in steps/questions-open.md.
+Every open question of steps/questions-open.md after the merge of fix/2nov-a, 154 open, by topic, the oldest first, each with its recommended answer. [demo] and [new project] mark the ones a demo or a new project meets first. The full text is in steps/questions-open.md.
 
-First for a demo or a new project: Q286, Q293.
+First for a demo or a new project: Q286, Q293, Q356.
 
 ### Levels, ramps and floors
 
@@ -189,6 +221,10 @@ First for a demo or a new project: Q286, Q293.
 - Q341 Back corners two ramps share. Recommended: leave back joints apart, listed as Fail rows, until a rule for the back of a ramp row is chosen.
 - Q343 Passing joint rows in the check chips. Recommended: keep every row as asked, and count only Fail rows in the chips, a later change of R471 and the check table.
 - Q344 Joints at the edge of a build. Recommended: keep the scope, each corner takes the road level at its own place, so the two builds agree wherever the road sample is the same point, and list edge joints later.
+- Q354 Yards of a model already built. Recommended: keep it, build NBH 012 again from a new model to take the cut.
+- Q356 The off axis warning of a cut yard [demo]. Recommended: step 5 accepts this warning too and counts it, in Lane B's item L2NOV-1.
+- Q361 FFL rule far from keys without overrides. Recommended: Mark the level rules weak, keep ROSHN Makkah on the list, and compare rev6 on the same keys as the next data step.
+- Q364 One named road surface and several zones. Recommended: Keep one surface for now and make a run that writes no plot, or leaves out most, stop with a plain message naming the surface. Answer Q256 with this count in view.
 
 ### Walls
 
@@ -201,6 +237,7 @@ First for a demo or a new project: Q286, Q293.
 - Q268 Scope of a wall on two plots. Recommended: Any plot in the scope, as coded.
 - Q269 Untagged BW wall on a plan wall. Recommended: Match by both ends, skip and list it, never change it, as coded.
 - Q299 The front of a notched irregular plot. Recommended: check these 6 against the links of their keys in a later Lane A round, and add an override where the front is wrong.
+- Q360 Wall ends about 100 mm off the keys. Recommended: Lane A measures it in the Revit half of 6b on one model, the thickness and location line of the key walls against the line the plan writes. No rule changes until then.
 
 ### Plots, clusters, hand and mirror
 
@@ -217,6 +254,7 @@ First for a demo or a new project: Q286, Q293.
 - Q239 Mirror of DP2 and DP4 with no cluster table. Recommended: take pair left and pair right of the hand alone table of the same file, the fallback plan_rules.hand_table makes since Q098.
 - Q240 The 121 IMC plots of the audit. Recommended: record 116, detached plus no proposal, as the plots with no Rev 6 mirror.
 - Q300 Plots with no cluster proposal. Recommended: list those plots too, with their reason, so buttons 5 to 8 skip them until the team sets their cluster by hand.
+- Q363 Plot 2302 and two IMD FFL plots. Recommended: Bader adds plot 2302 to the override list by hand, and the Revit half of 6b opens the two IMD plots.
 
 ### Villas, masses and links
 
@@ -230,6 +268,8 @@ First for a demo or a new project: Q286, Q293.
 - Q279 Mass base, slab edge or outer wall face. Recommended: Keep the slab edge as the base, it is read on all 13 and exact, and measure the wall face as a second figure where the walls close.
 - Q321 Mass base from walls, third attempt stopped. Recommended: keep the built rule with the flag, a prober counts the location line and the yard walls of the 13 prototypes, then Bader picks: exact corners by line intersections, or the slab for all.
 - Q337 Swap back in the same model unproven. Recommended: Answer Q323 as it recommends, then run the swap back on the D3L model once.
+- Q351 The limit of the footprint check. Recommended: 1,200 mm, it catches a mass placed a house width away and passes the plots that stand right.
+- Q353 The footprint check on other type plots. Recommended: hold those plots by the plot: the base inside its own plot and its front parallel to the plot front, in a later round.
 
 ### Coordinates and site position
 
@@ -308,6 +348,8 @@ First for a demo or a new project: Q286, Q293.
 - Q302 Door level row under the past job. Recommended: show the row only when the mode is rev6.
 - Q305 Hide Confirmed under the past job. Recommended: show the column Confirmed and the button Confirm all proposed only when the plan holds a proposal, as the second help line already does.
 - Q307 What the report Summary shows after a run. Recommended: Lane A fills the top line and the Levels row, adds walls to Placed, and takes one issue count for pane and report.
+- Q355 A Wrong on a plot of two numbers. Recommended: Review takes the official number where the location plan gives two, one line in ReviewTable.Rows and a test.
+- Q362 Chosen limits of the zone compare. Recommended: Keep them.
 
 ### Pane, New project and the windows
 
