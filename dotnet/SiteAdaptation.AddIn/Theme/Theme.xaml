@@ -126,6 +126,7 @@
   <Thickness x:Key="SA.Pad.Box">16,12,16,12</Thickness>
   <Thickness x:Key="SA.Pad.Section">16,16,16,0</Thickness>
   <Thickness x:Key="SA.Gap.Bottom16">0,0,0,16</Thickness>
+  <Thickness x:Key="SA.Gap.Bottom8">0,0,0,8</Thickness>
   <Thickness x:Key="SA.Pad.Panel">12,8,12,8</Thickness>
   <Thickness x:Key="SA.Pad.Chip">8,4,8,4</Thickness>
   <Thickness x:Key="SA.Pad.Button">12,0,12,0</Thickness>
@@ -149,6 +150,11 @@
   <GridLength x:Key="SA.Grid.Label">124</GridLength>
   <GridLength x:Key="SA.Grid.StepMark">38</GridLength>
   <Geometry x:Key="SA.Mark.Found">M3 8.5l3.5 3.5l6.5-8</Geometry>
+  <!-- R495. The arrow of a sorted header of the check table, 8 wide and 5 high -->
+  <Geometry x:Key="SA.Mark.SortUp">M0 5l4-5l4 5z</Geometry>
+  <Geometry x:Key="SA.Mark.SortDown">M0 0l8 0l-4 5z</Geometry>
+  <sys:Double x:Key="SA.Size.SortArrowWidth">8</sys:Double>
+  <sys:Double x:Key="SA.Size.SortArrowHeight">5</sys:Double>
   <Geometry x:Key="SA.Mark.Missing">M2 8a6 6 0 1 0 12 0a6 6 0 1 0 -12 0z</Geometry>
   <Geometry x:Key="SA.Mark.MissingSign">M8 4.5v4.5M8 11.5v0.1</Geometry>
 
@@ -519,6 +525,18 @@
     <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.16}" Geometry="M5 11h16" />
     <GeometryDrawing Pen="{StaticResource SA.Icon.AccentPen.Wide}" Geometry="M29 22.5a6 6 0 1 1 -2-4.5" />
     <GeometryDrawing Pen="{StaticResource SA.Icon.AccentPen.Wide}" Geometry="M27.5 14v4.5H23" />
+  </DrawingGroup>
+
+  <!-- R494, Show pane -->
+  <DrawingGroup x:Key="SA.Icon.ShowPane.32">
+    <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.32}" Geometry="M4 6h24v20H4z" />
+    <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.32}" Geometry="M19 6v20" />
+    <GeometryDrawing Brush="{StaticResource SA.IconAccent}" Geometry="M21.5 9h4v14h-4z" />
+  </DrawingGroup>
+  <DrawingGroup x:Key="SA.Icon.ShowPane.16">
+    <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.16}" Geometry="M4 6h24v20H4z" />
+    <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.16}" Geometry="M19 6v20" />
+    <GeometryDrawing Brush="{StaticResource SA.IconAccent}" Geometry="M21.5 9h4v14h-4z" />
   </DrawingGroup>
 
   <!-- R373, 7.3 of docs/design/12-ui-spec.md. The window of Set up site: its width, the left part, the label column of its rows and

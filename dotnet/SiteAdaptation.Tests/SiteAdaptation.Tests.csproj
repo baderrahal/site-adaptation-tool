@@ -29,6 +29,8 @@
     <Compile Remove="R444_DemoFixTests.cs" />
     <Compile Remove="R445_SaveSetupWindowTests.cs" />
     <Compile Remove="R446_WindowFixTests.cs" />
+    <Compile Remove="R494_PaneReturnTests.cs" />
+    <Compile Remove="R495_CheckWindowSortTests.cs" />
     <Compile Remove="PaneTests.cs" />
     <Compile Remove="PaneRunStateTests.cs" />
     <Compile Remove="UiShotTests.cs" />

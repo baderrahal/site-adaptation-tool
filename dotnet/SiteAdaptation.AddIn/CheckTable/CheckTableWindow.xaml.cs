@@ -51,6 +51,14 @@ namespace SiteAdaptation.AddIn.CheckTable
             session.Model.Choose(CheckUse.Skip);
         }
 
+        private void OnSort(object sender, RoutedEventArgs e)
+        {
+            if (((Button)sender).Tag is string column)
+            {
+                session.Model.SortBy(column);
+            }
+        }
+
         private void OnChip(object sender, RoutedEventArgs e)
         {
             if (((Button)sender).DataContext is CheckChipViewModel chip)

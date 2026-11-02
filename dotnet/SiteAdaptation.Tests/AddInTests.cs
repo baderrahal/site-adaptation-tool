@@ -32,13 +32,13 @@ namespace SiteAdaptation.Tests
         {
             string spec = File.ReadAllText(Path.Combine(ThemeGateTests.RepoRoot(), "docs", "design", "12-ui-spec.md")).Replace("\r\n", "\n");
             string ribbon = spec.Split('\n').SkipWhile(text => text != "### 7.1 Ribbon").Skip(1).First(text => text.StartsWith("Ribbon tab ", StringComparison.Ordinal));
-            Match line = Regex.Match(ribbon, @"^Ribbon tab ""([^""]+)"" with four panels in this order \([^)]*\): (.*)\. Large buttons");
+            Match line = Regex.Match(ribbon, @"^Ribbon tab ""([^""]+)"" with five panels in this order \([^)]*\): (.*)\. Large buttons");
             Assert.True(line.Success, ribbon);
             List<Tuple<string, string[]>> panels = Regex.Matches(line.Groups[2].Value, @"(\w+) \(([^)]*)\)").Cast<Match>()
                 .Select(match => Tuple.Create(match.Groups[1].Value, match.Groups[2].Value.Split(',').Select(label => label.Trim()).ToArray())).ToList();
 
             Assert.Equal(RibbonLayout.Tab, line.Groups[1].Value);
-            Assert.Equal(4, panels.Count);
+            Assert.Equal(5, panels.Count);
             Assert.Equal(panels.Select(panel => panel.Item1), RibbonLayout.Panels.Select(panel => panel.Name));
             for (int at = 0; at < panels.Count; at++)
             {
@@ -46,8 +46,8 @@ namespace SiteAdaptation.Tests
             }
             Assert.Equal(Enumerable.Range(1, 9), RibbonLayout.Buttons.Select(button => button.Number));
             Assert.All(RibbonLayout.Buttons, button => Assert.StartsWith(button.Number + " ", button.Label));
-            Assert.Equal(new[] { "Site Adaptation Rules", "Update from report" }, RibbonLayout.AllButtons.Where(button => button.Number == 0).Select(button => button.Label));
-            Assert.Equal(11, RibbonLayout.AllButtons.Select(button => button.Key).Distinct().Count());
+            Assert.Equal(new[] { "Site Adaptation Rules", "Update from report", "Show pane" }, RibbonLayout.AllButtons.Where(button => button.Number == 0).Select(button => button.Label));
+            Assert.Equal(12, RibbonLayout.AllButtons.Select(button => button.Key).Distinct().Count());
             Assert.All(RibbonLayout.AllButtons, button => Assert.Equal(ThemeGateTests.IconKey(button.Number > 0 ? button.Number.ToString(CultureInfo.InvariantCulture) : null, button.Label), button.Key));
             Assert.Equal("SA.Icon.UpdateFromReport.16", RibbonLayout.ButtonOf("UpdateFromReportCommand").IconKey16);
         }
@@ -68,7 +68,7 @@ namespace SiteAdaptation.Tests
             string source = File.ReadAllText(Path.Combine(ThemeGateTests.RepoRoot(), "dotnet", "SiteAdaptation.AddIn", "Commands", "ButtonCommands.cs"));
             var classes = RibbonLayout.AllButtons.Select(button => button.CommandClass).ToList();
 
-            Assert.Equal(11, classes.Distinct().Count());
+            Assert.Equal(12, classes.Distinct().Count());
             foreach (RibbonButtonSpec button in RibbonLayout.AllButtons)
             {
                 string name = button.CommandClass.Substring(button.CommandClass.LastIndexOf('.') + 1);
@@ -107,7 +107,8 @@ namespace SiteAdaptation.Tests
         {
             var untouched = new ButtonFlow(null, null, null, null, null);
             var told = new List<string>();
-            foreach (RibbonButtonSpec button in RibbonLayout.AllButtons)
+            // R494. Show pane takes no flow, Buttons.Run opens the pane by hand, so it is not one of the not built buttons
+            foreach (RibbonButtonSpec button in RibbonLayout.AllButtons.Where(each => each.NeedsProject))
             {
                 RunOutcome outcome = untouched.Run(button.Number, button.Label, Bodies.Of(button), null);
                 Assert.Equal(RunEnd.Stopped, outcome.End);
@@ -256,7 +257,7 @@ namespace SiteAdaptation.Tests
                     }
                 }
             });
-            Assert.Equal(44, counts.Count);
+            Assert.Equal(48, counts.Count);
         }
 
         // The scale of WPF against the one GDI gives for the screen, a second reading of the same DPI. The test process is DPI

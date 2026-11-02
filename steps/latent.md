@@ -559,3 +559,9 @@ No real input reaches these: the plot table of the demo holds whole numbers and 
 - RoadSurfaceChoices.NotTakenWhy finds a short name as a whole name in the prose reasons of notTaken: a surface named as a phrase of a reason, Grading, is refused loudly with the reason, and Typical Cross Sections, written with an underscore before it, is not found.
 - A saved pick naming a not taken file shows in the window as Not in the folder any more, the wrong words for it. It stays unticked and 2 Read data refuses it with the reason.
 - noRoadStopShare 1.0 never stops, not even at 100 percent, a config value set that way by hand.
+
+Round FIX-2NOV-C-CHECK, review 1 and the gate, 2 Nov 2026:
+- WorkerRunTests R347 tests are load sensitive: 7 of 60 runs failed under 12 parallel test processes (RAN), a 1 s time limit fires before the worker answers, or the launch takes over 1 s. One CI run failed with status failed, the message is now printed, its cause UNKNOWN.
+- Seven WPF tests failed once in a full net48 run while Revit started on the machine, all passed alone (RAN, 66 of 66).
+- Plural by count stays open where no real input reaches it: Review data title, New project plots and types, ScanView plots and files, 0 of 1 rows.
+- CheckTableState.Filter of two arguments has only test callers.

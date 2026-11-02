@@ -57,7 +57,7 @@ namespace CadReader
                 }
                 stated += name == null ? 0 : 1;
                 problemCount += problems.Count;
-                files.Add(new JObject { ["role"] = input.Role, ["file"] = Path.GetFileName(path), ["name"] = name, ["problems"] = problems.Count });
+                files.Add(new JObject { ["role"] = input.Role, ["file"] = Path.GetFileName(path), ["name"] = name, ["problems"] = problems.Count, ["colourProblems"] = problems.Count(item => item.Contains(ColourDictionary)) });
             }
             run.Counts["inputs read"] = files.Count;
             run.Counts["inputs stating a coordinate system"] = stated;
@@ -65,6 +65,9 @@ namespace CadReader
             run.Counts["plot outlines"] = plots.Count;
             run.WriteJson(request.OutputFolder, CoordinateRequest.OutputFile, new JObject { ["format"] = CoordinateRead.Format, ["files"] = files, ["plots"] = plots });
         }
+
+        // The dictionary of a DWG that holds the entries of colour books. An entry it cannot take holds no line and no position
+        private const string ColourDictionary = "ACAD_COLOR";
 
         // The plots of the baseplan with a number and an outline of three corners or more, as CadExtractor reads them for button 2
         private static JArray Plots(WorkerContext run, CadDocument document, string path, List<string> problems)

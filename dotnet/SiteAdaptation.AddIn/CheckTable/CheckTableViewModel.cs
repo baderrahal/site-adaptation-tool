@@ -19,6 +19,8 @@ namespace SiteAdaptation.AddIn.CheckTable
         private readonly CheckTableCallbacks callbacks;
         private string chip = CheckTableState.AllChip;
         private string find = "";
+        private string field = "";
+        private CheckSort sort = CheckSort.None;
         private CheckRowViewModel selected;
         private string message = "";
         private string doorSource;
@@ -34,6 +36,8 @@ namespace SiteAdaptation.AddIn.CheckTable
             DoorOptions = view.DoorLevel == null ? new DoorOptionViewModel[0]
                 : view.DoorLevel.Choices.Select(choice => new DoorOptionViewModel(choice, view.DoorLevel.Help)).ToList();
             doorSource = view.DoorLevel?.Selected;
+            FieldOptions = new[] { new CheckFieldViewModel("", CheckTableText.AllFields) }
+                .Concat(state.Fields().Select(item => new CheckFieldViewModel(item.Key, item.Key + " " + TextTemplate.Count(item.Value)))).ToList();
             Refresh();
         }
 
@@ -43,8 +47,8 @@ namespace SiteAdaptation.AddIn.CheckTable
 
         public bool ProfileShown => view.Info != null;
 
-        public string ProfileLine => view.Info == null ? "" : TextTemplate.Fill(CheckTableText.ProfileLine, view.Info.LevelProfile, view.Info.OverrideFile,
-            TextTemplate.Count(view.Info.Overrides), TextTemplate.Count(view.Info.OnNbh), view.Nbh);
+        public string ProfileLine => view.Info == null ? "" : Common.CountText.Overrides(TextTemplate.Fill(CheckTableText.ProfileLine, view.Info.LevelProfile, view.Info.OverrideFile,
+            TextTemplate.Count(view.Info.Overrides), TextTemplate.Count(view.Info.OnNbh), view.Nbh));
 
         public string FollowLine => view.FollowLine;
 
@@ -71,6 +75,29 @@ namespace SiteAdaptation.AddIn.CheckTable
                 Refresh();
             }
         }
+
+        // R495. The field list above the table, all fields first then each field with its row count
+        public IReadOnlyList<CheckFieldViewModel> FieldOptions { get; }
+
+        // R495. The field the table is narrowed to, an empty text for all of them
+        public string FieldPick
+        {
+            get { return field; }
+            set
+            {
+                field = value ?? "";
+                Refresh();
+                Changed(nameof(FieldPick));
+            }
+        }
+
+        // R495. Up, Down or an empty text for each column key, so the header shows its arrow
+        public IReadOnlyDictionary<string, string> Marks { get; private set; }
+
+        // R495. Shown only when the chips, the field or the find box hide a row, so a count is never read as the whole table
+        public bool ShowingShown => Rows.Count != state.Rows.Count;
+
+        public string ShowingLine => TextTemplate.Fill(CheckTableText.ShowingLine, TextTemplate.Count(Rows.Count), TextTemplate.Count(state.Rows.Count));
 
         public CheckRowViewModel Selected
         {
@@ -160,6 +187,13 @@ namespace SiteAdaptation.AddIn.CheckTable
             }
         }
 
+        // R495. A click on a header
+        public void SortBy(string column)
+        {
+            sort = sort.Click(column);
+            Refresh();
+        }
+
         public void SetChip(string next)
         {
             chip = next;
@@ -188,13 +222,37 @@ namespace SiteAdaptation.AddIn.CheckTable
 
         private void Refresh()
         {
-            Rows = state.Filter(chip, find).Select(row => new CheckRowViewModel(row, state, ruleLine, UseChanged)).ToList();
+            IReadOnlyList<CheckRowViewModel> made = state.Filter(chip, find, field).Select(row => new CheckRowViewModel(row, state, ruleLine, UseChanged)).ToList();
+            Rows = sort.Column == null ? made : sort.Apply(made, row => KeyOf(row, sort.Column));
+            Marks = CheckColumn.All.ToDictionary(column => column, column => sort.MarkOf(column));
             CheckRowViewModel keep = selected == null ? null : Rows.FirstOrDefault(row => row.Row.Index == selected.Row.Index);
             Chips = view.Counts.Select(item => new CheckChipViewModel(item.Key, item.Value, item.Key == chip)).ToList();
+            // The list clears its selection when it gets new rows, so the row is picked again after them
+            Changed(nameof(Rows));
             selected = null;
             Selected = keep;
-            Changed(nameof(Rows));
             Changed(nameof(Chips));
+            Changed(nameof(Marks));
+            Changed(nameof(ShowingShown));
+            Changed(nameof(ShowingLine));
+        }
+
+        // R495. The text a column shows, which the sort compares
+        private static string KeyOf(CheckRowViewModel row, string column)
+        {
+            switch (column)
+            {
+                case CheckColumn.Plot: return row.Plot;
+                case CheckColumn.Nbh: return row.Nbh;
+                case CheckColumn.Unit: return row.Unit;
+                case CheckColumn.Check: return row.Check;
+                case CheckColumn.Tool: return row.ToolText;
+                case CheckColumn.Past: return row.PastText;
+                case CheckColumn.Rule: return row.RuleText;
+                case CheckColumn.Manual: return row.ManualRule;
+                case CheckColumn.Use: return row.Use;
+                default: throw new ArgumentOutOfRangeException(nameof(column));
+            }
         }
 
         private void UseChanged()
@@ -227,6 +285,20 @@ namespace SiteAdaptation.AddIn.CheckTable
 
         // The chip Assumed has a dashed amber border
         public bool IsAssumed { get; }
+    }
+
+    // R495. One entry of the field list, an empty field for all fields
+    public sealed class CheckFieldViewModel
+    {
+        public CheckFieldViewModel(string field, string text)
+        {
+            Field = field;
+            Text = text;
+        }
+
+        public string Field { get; }
+
+        public string Text { get; }
     }
 
     // One entry of the Use dropdown. Past is grey where the row offers none, with its reason as the tooltip
