@@ -30,7 +30,7 @@ namespace SiteAdaptation.Tests
         [InlineData(0, "0 plots")]
         [InlineData(1, "1 plot")]
         [InlineData(2, "2 plots")]
-        [InlineData(1110, "1110 plots")]
+        [InlineData(1110, "1,110 plots")]
         public void R495_the_word_plot_is_plural_by_count_except_for_one(int count, string expected)
         {
             Assert.Equal(expected, CountText.Plots(count));
