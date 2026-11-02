@@ -542,13 +542,14 @@
 
   <!-- R406, docs/design/13-workflow-changes.md Review data. The columns of its table and of the corners table of the side box are
        Code's choice, listed in steps/ui-shots/README.md. The mark is the 3 px of SA.Size.SelectedMark on the left of the selected row -->
-  <GridLength x:Key="SA.Grid.ReviewPlot">88</GridLength>
-  <GridLength x:Key="SA.Grid.ReviewLabel">96</GridLength>
+  <!-- R446. Plot No and CAD label gave 24 to Team check, a long table has a scrollbar and Not checked stays whole -->
+  <GridLength x:Key="SA.Grid.ReviewPlot">72</GridLength>
+  <GridLength x:Key="SA.Grid.ReviewLabel">88</GridLength>
   <GridLength x:Key="SA.Grid.ReviewType">112</GridLength>
   <GridLength x:Key="SA.Grid.ReviewMirror">96</GridLength>
   <GridLength x:Key="SA.Grid.ReviewCluster">112</GridLength>
   <GridLength x:Key="SA.Grid.ReviewArea">88</GridLength>
-  <GridLength x:Key="SA.Grid.ReviewRoad">128</GridLength>
+  <GridLength x:Key="SA.Grid.ReviewRoad">112</GridLength>
   <GridLength x:Key="SA.Grid.ReviewCorner">64</GridLength>
   <GridLength x:Key="SA.Grid.ReviewSideLabel">120</GridLength>
   <Thickness x:Key="SA.Line.Mark">3,0,0,0</Thickness>
@@ -632,11 +633,14 @@
   <GridLength x:Key="SA.Grid.ScanPlot">64</GridLength>
   <GridLength x:Key="SA.Grid.ScanConflictValue">90</GridLength>
 
-  <!-- Lane C SCAN-UI task 5, R442. The column Confirmed of Review data, narrow so Team check, the column that takes the rest, keeps Not checked whole -->
-  <GridLength x:Key="SA.Grid.ReviewConfirmed">68</GridLength>
+  <!-- Lane C SCAN-UI task 5, R442. The column Confirmed of Review data, wide enough for its head next to Area m2, its 16 taken from Road at
+       front in FIX-1NOV-C, so Team check, the column that takes the rest, keeps Not checked whole -->
+  <GridLength x:Key="SA.Grid.ReviewConfirmed">84</GridLength>
 
   <!-- R444, Lane C DEMO-FIX. The loader of every button, a small box with a thin moving bar -->
   <sys:Double x:Key="SA.Size.LoaderWidth">340</sys:Double>
+  <!-- R446. The ask of 3 Review data, wide enough for its three buttons on one line -->
+  <sys:Double x:Key="SA.Size.AskWidth">380</sys:Double>
   <sys:Double x:Key="SA.Size.LoaderBar">6</sys:Double>
 
 </ResourceDictionary>

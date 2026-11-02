@@ -65,6 +65,8 @@ namespace SiteAdaptation.AddIn.NewProject
         public const string Cancel = "Cancel";
         public const string CheckFiles = "Check files";
         public const string SaveSetup = "Save setup";
+        public const string NoModel = "No model is open to write to, so the setup is saved with the next button run.";
+        public const string NotWritten = "Save setup did not reach the model: <name>. The pane keeps the setup and the next button run writes it.";
 
         // The words of each row of SetupRows by its id: file, who gives it, used by, the help line, and when it stops a button what is
         // missing and what to do

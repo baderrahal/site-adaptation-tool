@@ -215,7 +215,8 @@ namespace SiteAdaptation.Tests
                 Border guide = all.OfType<Border>().First(border => border.Background == window.FindResource("SA.Guide"));
                 Assert.Equal(window.FindResource("SA.GuideBorder"), guide.BorderBrush);
 
-                Border side = all.OfType<Border>().First(border => border.Background == window.FindResource("SA.Panel"));
+                // R446. The foot is on SA.Panel too, the side box is the one docked right
+                Border side = all.OfType<Border>().First(border => border.Background == window.FindResource("SA.Panel") && DockPanel.GetDock(border) == Dock.Right);
                 Assert.Equal(340.0, side.ActualWidth);
                 Assert.Contains(Visuals(side).OfType<TextBlock>(), block => block.Text == "Selected plot");
 

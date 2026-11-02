@@ -2,6 +2,93 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Lane D D3, 2026-11-02, Links mode on the real prototypes (Q275)
+
+Goal:
+- Link the 13 real KEO prototypes where the masses stood by config alone, prove it on NBH 012, prove the swap back
+
+Done:
+- 13 of 13 prototypes upgraded to 2024 under the work root, one window each, 286 to 368 s (RAN, reads D3 upgrades.txt)
+- Q275: the cause was the R466 fault, no new limit. The upgrade step before the run is Run-TestHost -Upgrade
+- R467 a buttons run names linkFolder for its config copy. R468 the copy is saved after a button that changed it. The R405 tests run alone (extra, Lane A and Lane C each saw one failure, cause likely, not proven)
+- D3L, NBH 012, linkFolder prototypes: buttons 1, 2, 4 to 9 committed, 3 cancelled by the test host seam. Seconds 1.1, 32.9, 0.6, 18.4, 14.7, 3.6, 84.4, 2.9, 3.2. Private MiB 1909, 2050, 2105, 2120, 2328, 2385, 6164, 6248, 6251. Run 5.4 minutes, peak 6261 MiB, least free 28.39 GiB
+- Links per prototype: C10 15, DP1 34, DP2 11, DP3 10, DP4 30, DT1 44, DT3 68, TH1 16, TH3 16, VD2 29, VD4 29, VL4 15, VL6 19, total 336
+
+Checked:
+- Saved D3L model read from its bytes by rvt_info.py: 13 links, all in prototypes_2024. D3S: 13, all in masses
+- Read jobs D3A and D3B: real link against mass on 5 plots, 2316 DT3, 2360 VD2, 2459 C10, 2490 TH1, 2495 DP1, and on all 336: 0.000 mm, 0 degrees, 0 mirror differences. This holds the link placements, not the geometry inside the files
+- 13 sources and SA-demo-start.rvt the same by SHA-256 after all runs. D3L 275 inputs, 275 unchanged
+
+Remains:
+- D3L started from the template, not a copy of the demo model, and the swap back ran on a new project, both by the guard of Q323 (Q337)
+- D3S ended exit 1 on 13 .slog files in the _backup folders of the 2024 copies (Q338)
+- A first keyCopy attempt was refused in 1.6 minutes, a read pair stopped on my wrong -Code before Revit
+
+Known bugs:
+- A stop reason set after the run file is written is missing from that file (Q338). 1402 lines of Highlighted floors overlap in each run, not looked at in D3
+
+Next:
+- Part 11 of steps/bader-fix-1nov.md by Lane C
+
+Your turn:
+- Closed: Q275 First log step limit of an upgrade job
+- Opened: Q337 Swap back in the same model unproven. Q338 Input guard counts Revit .slog files. Q339 A 2021 file in the link folder
+- 164 open, steps/questions-open.md
+
+## Lane C FIX-2NOV-C, 2026-11-02, no dead end in the windows (R446)
+
+Goal:
+- Bader's queued prompt, the window findings of steps/demo-check.md, UI only
+
+Done:
+- 3 Review data: Close in a foot, the ask Save your review? on the X and Close, the side box scrolls, Team check keeps Not checked whole
+- No idle button: Change and View of New project hidden. Zoom and Export of Check and Review data were hidden already by R444 (READ shots pB-030, pA-012), the driver of Task 6 invoked them through UI automation, demo-check.md corrected
+- 9 Report: Run complete, the file name and Open folder in the box
+- Export of What the tool read refuses the input folder, its dialog opens in the work folder (Q308, the stray file stays Bader's)
+- 4 Check: Buttons.Run unticks Dry run before it, one line says why (Q195 closed)
+
+Checked:
+- R446_WindowFixTests.cs. The sweep proved by putting an idle button back: it failed naming New project: Change, passed once restored (RAN). The gate of this PR: see the PR
+
+Remains:
+- Check has no Close button, only Review data was asked. Part 11 of the sheet waits for fix/1nov-d3
+
+Known bugs:
+- R446 has not run in Revit, part 13 of the sheet checks it. The tests sit on net48 with the other window tests, net8.0 runs the rest of the gate
+
+Next:
+- Part 11 when fix/1nov-d3 merges
+
+Your turn:
+- Closed: Q195 Dry run of button 4. 162 open, steps/questions-open.md
+
+## Lane C FIX-1NOV-C, 2026-11-01 and 02, Save setup writes the model, window check, cleanup, Bader's sheet
+
+Goal:
+- Bader's prompts: Q280, a window check after the lanes' rounds, HEADSUP for all lanes, steps/bader-fix-1nov.md with every open question, the folder cleanup
+
+Done:
+- R445: Save setup writes the Settings entity at once by SetupWrite.Write and SettingsStore.Save in one transaction, New project opens through the external event NewProjectHandler, an undo or redo reloads the pane settings (READ docs/rules/12-lane-c-r430-up.md)
+- Window check: 11 windows rendered by UiShots and held against steps/ui-shots. One issue, the head Confirmed of Review data ran into Area m2, fixed in Theme.xaml. Four shots refreshed after DEMO-FIX. The rounds A, B and D changed no XAML and no window text file (RAN git diff)
+- Cleanup: 36 helper folders moved to C:\_cleanup-1nov, none deleted, 7 merged remote branches deleted, steps/cleanup-1nov.md
+
+Checked:
+- Gate on 4a6fb62 before the last rebase: net48 1920, net8.0 1692, pytest 2268 passed, 1 skipped (RAN). The gate of this PR: see the PR
+- Reviewer and breaker, one pass each. REAL fixed: undo left the pane ahead of the model, a narrow catch, three stale texts. LATENT in steps/latent.md
+- Second method of the cleanup: each file of 39 helper folders hashed as a git blob against the 12,417 objects on origin (RAN)
+
+Remains:
+- Part 11 of the sheet waits for fix/1nov-d3
+
+Known bugs:
+- R445 has not run in Revit, part 10 of the sheet checks it. Hooks: this session started in the Lane A folder of the repo, so the hooks of that folder loaded
+
+Next:
+- FIX-2NOV-C, then part 11 when fix/1nov-d3 merges
+
+Your turn:
+- Closed: Q280 Save setup writes the model at once. 163 open, steps/questions-open.md
+
 ## Lane B Task 6 of FIX-1NOV-B, 2026-11-02, the demo by hand through the real windows, R457, Lane B on the laptop
 
 Goal:

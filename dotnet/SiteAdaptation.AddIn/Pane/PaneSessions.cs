@@ -38,6 +38,15 @@ namespace SiteAdaptation.AddIn.Pane
             return open.TryGetValue(key, out DocumentSession session) ? session : null;
         }
 
+        // R445, breaker of FIX-1NOV-C. An undo or a redo puts back the Settings entity the document held, so the session reads it again.
+        // A document with no session is no project of the pane and stays without one
+        public DocumentSession Undone(object key, ISettingsEntity entity)
+        {
+            DocumentSession session = Find(key);
+            session?.LoadFrom(entity);
+            return session;
+        }
+
         // A document open before the add-in saw it, as one Revit opened from its command line, gets its session on first sight
         public DocumentSession Seen(object key, string path, string title)
         {

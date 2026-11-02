@@ -7,7 +7,7 @@ Lane C round NEWPROJ-UI, 31 Oct 2026. Bader's boards of 31 Oct 2026 are in docs/
 1. On first open the pane says "Set up this project" with the button Open New project. The Setup row says Not done.
 2. New project lists the five files of the board with who gives each, which button uses it, Browse, Get template and Found or Missing. Start from picks Empty project or a saved project such as ROSHN Makkah.
 3. Check files shows what is found and the yellow stop box, read only.
-4. Save setup hands the settings back to the pane. The next real run of a button writes them into the model, as R367 says of every pick.
+4. Save setup writes the settings into the model at once, in a transaction of its own that rolls back unless it commits, and the pane loads them as written (R445, Q280). With no model to write to, the foot says so in one line, the pane keeps the settings and the next real run writes them.
 
 The user never types a path inside a file and never edits a JSON. No text of the add-in names a file ending in .json (NEWPROJ_no_text_of_any_window_names_a_json_file).
 
@@ -33,7 +33,7 @@ docs/rules/ is a Lane A file, and a design part names an id from 400 up only onc
 | Road levels (civil file) | roadSurface, a folder | 4 | optional, never stops a button |
 | Parameter sheet (Excel) | parameterSheet | 1 | |
 
-Get template writes the parameter sheet with the four columns of ParameterSheet on a sheet Parameters (CHOSEN), and the plot list with each sheet of dataBook.rev9 whose workbook has the sales role, at its headerRow. It refuses a path inside inputRoot of config (R1).
+Get template writes the parameter sheet with the eight columns of ParameterSheet, Parameter, GUID, Data type, Group, Category, Filled by, Sample value and Keep, on a sheet Parameters (R461), and the plot list with each sheet of dataBook.rev9 whose workbook has the sales role, at its headerRow. It refuses a path inside inputRoot of config (R1).
 
 ### What the tool read from the drawing
 
@@ -42,12 +42,12 @@ LastReadFacts gives what the current readers already give: the unit plots and th
 ### Wiring
 
 - Pane: Open New project of the first open box, Open and Edit of the Setup row, New project of the row Help raise NewProjectRequested. How it works of the row Help and the link of the first open box raise HowItWorksRequested. Use a saved project runs Import of a pre-setting, as Import from past job did.
-- PaneHost.Register: NewProjectRequested opens NewProjectDialog.Show, and its result goes to PaneViewModel.LoadSettings. HowItWorksRequested opens HowItWorksDialog.Show, and Open New project there opens New project. The names of the saved projects reach the first open line by PaneViewModel.SetSavedStarts.
+- PaneHost.Register: NewProjectRequested raises the external event NewProjectHandler, which opens NewProjectDialog.Show in the API context, writes its result into the model by SetupWrite and gives it to PaneViewModel.LoadSettings (R445). HowItWorksRequested opens HowItWorksDialog.Show, and Open New project there opens New project. The names of the saved projects reach the first open line by PaneViewModel.SetSavedStarts.
 - New project: Browse, Get template, Check files, Save setup and Cancel each call the method of that name of NewProjectViewModel.
 
 ### Not built, each a question or a wait
 
-Save setup does not write the model at once (Q280). The project name box shows the document title read only, since the settings JSON has no name (Q282). Picking a layer, a sheet, a column or a coordinate would change a config file (Q283). The Villa mode row stays, though the boards drop it (Q284). The rules name is the project field of the rules file, "ROSHN Makkah Phase 1" (Q285).
+The project name box shows the document title read only, since the settings JSON has no name (Q282). Picking a layer, a sheet, a column or a coordinate would change a config file (Q283). The Villa mode row stays, though the boards drop it (Q284). The rules name is the project field of the rules file, "ROSHN Makkah Phase 1" (Q285).
 
 ## SCAN-UI, What the tool read and the step gates, Lane C, 1 Nov 2026
 
@@ -68,6 +68,7 @@ The settings JSON of R367 gains scanPicks (value kind to source), conflictPicks 
 
 - Buttons.Body calls ReadDataBody.For, which wraps the read of ReadDataRun with ScanStep.Wrap and the gate ScanGate.Ask, ScanGate.Window opening ScanResultsDialog.Show. A run of the test host reads with no scan (Q295).
 - NewProjectDialog.Facts is LatestScanFacts, View calls ScanResultsDialog.Show, Save setup gives the picks to SetupSave.Apply.
+- R445: the pane button New project raises the external event NewProjectHandler of PaneHost, which calls PaneHost.OpenNewProject in the API context, NewProjectDialog.Show, then SetupWrite.Write with RevitModel and SettingsEntity of the document shown, SettingsStore.Save inside the transaction, then PaneViewModel.LoadSettings with the settings as written.
 - SetUpSiteBody wraps the window of button 1 in CurrentFilesDialog, ReportBody adds the line of CurrentFiles.WithReportLine.
 
 ### Not built, each a question or a wait

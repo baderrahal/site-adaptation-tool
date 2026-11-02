@@ -34,6 +34,12 @@ The four panels and their buttons of 7.1 of docs/design/12-ui-spec.md, Bader's c
 - `Run <n> <name>`
 - `Dry run is on.` CHOSEN, the spec asks one plain line that says dry run is on or off and gives no words
 - `Dry run is off.` CHOSEN, as the line above
+- `4 Check has no dry run yet, so the tool unticks Dry run when it runs.` CHOSEN, the line of the box while step 4 is next and Dry run is on (R446, Q195)
+- `Dry run is off, as 4 Check has no dry run yet.` CHOSEN, under the tick after the tool unticked it, until it is ticked again (R446, Q195)
+- `Run complete` CHOSEN, Bader's words, the label of the box once 9 Report ended (R446)
+- `The report is in the work folder.` CHOSEN, the line of the box under the report file name (R446)
+- `Open folder` CHOSEN, Bader's words, the button of the box (R446)
+- `The folder is not there any more: <name>` CHOSEN, the message when Open folder finds no folder (R446)
 - `Start here`
 - `Set up this project` the first open box of docs/design/boards/PaneFirst.dc.html, Lane C NEWPROJ-UI
 - `Tell the tool where your files are. It reads them, shows what it found, and saves your setup. No file editing.`
@@ -243,6 +249,12 @@ Built in Lane B 5c. The labels, columns, chips and side box are those of Review 
 - `Confirm all proposed` CHOSEN, DRAFT, the button in the band that ticks every plot with a cluster proposal (R442), shown only while 4 Check proposes a cluster (R444)
 - `Confirm all` CHOSEN, DRAFT, the button in the band that marks OK every plot not checked yet (R444), Bader's demo check of 1 Nov 2026
 - `Confirm all shown` CHOSEN, DRAFT, the same button while a chip or the find box narrows the table, it marks only the rows shown (R444)
+- `Close` CHOSEN, the button of the foot of Review data, Bader's prompt of FIX-2NOV-C (R446)
+- `3 Review data` CHOSEN, the title of the ask when the window closes with marks not saved (R446)
+- `Save your review?` CHOSEN, Bader's words, the ask (R446)
+- `Save` CHOSEN, Bader's words, in the ask (R446)
+- `Don't save` CHOSEN, Bader's words, in the ask (R446)
+- `Cancel` CHOSEN, Bader's words, in the ask, the window stays open (R446)
 - `Tick Confirmed for each cluster and mirror that 4 Check proposed, or click Confirm all proposed, then Save review. A plot whose proposed cluster is not confirmed is marked for buttons 5 to 8.` CHOSEN, DRAFT, the second help line, shown while the plan of 4 Check proposes a cluster
 - `<n> mirror <n>` CHOSEN, DRAFT, the Cluster value of a plot with a proposal of R411, the plots of the cluster joined by + then yes, no or none
 - `yes` CHOSEN, DRAFT, the mirror of a proposal, the half mirrored
@@ -517,6 +529,8 @@ The window New project of Lane C NEWPROJ-UI, word for word from docs/design/boar
 - `Cancel`
 - `Check files`
 - `Save setup`
+- `No model is open to write to, so the setup is saved with the next button run.` CHOSEN, the foot line while Save setup has no model to write to, a document not found or read only (R445, Q280)
+- `Save setup did not reach the model: <name>. The pane keeps the setup and the next button run writes it.` CHOSEN, the TaskDialog when the transaction of Save setup rolls back, with the reason Revit gave, else `Revit did not commit the change` (R445)
 - `The scan reads no survey point yet` CHOSEN, the one line of the Survey point dropdown once a scan is there (R440, Q283)
 - `Villa type sheet and column` CHOSEN, the row of the sheet and column dropdowns of the plot list (R440, Q283)
 
@@ -600,6 +614,7 @@ The window What the tool read of Lane C SCAN-UI, word for word from docs/design/
 - `Your picks are saved with the setup. Step 2 Read data uses them next time.`
 - `Cancel`
 - `Export to Excel`
+- `The tool never writes in the input folder. Press Export to Excel again, it opens in the work folder.` CHOSEN, the foot line of a refused export (R446, Q308)
 - `Use these picks`
 - `Saved <name>.` CHOSEN, the foot line after Export to Excel wrote the file
 - `Plot outline`

@@ -4,12 +4,12 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 
 ## State
 
-- Lane D D2 1 Nov: R466, the KC2 read of the key groups, Text (Q336). FIX-1NOV-D: the parameter Excel, R460 to R465. 4j-1, 4j-1b: the scanner, R420 to R429
+- Lane D D3 2 Nov: Links mode on NBH 012, 13 prototypes in 2024, 336 real links, R467, R468. D2: R466, Text (Q336). FIX-1NOV-D: R460 to R465. 4j-1, 4j-1b: R420 to R429
 - Lane A 4i, 4j-2, FIX-1NOV-A and A2, one PR each (D20): R407 to R416, R470 joints behind join false, R471 rows, R472 Update plan, R473, R474 picks
 - Lane B FIX-1NOV-B on 2026-11-01: masses as linked files (R450 to R453), coordinates from CAD (R454 to R456), proven in Revit on NBH 012
 - Lane B Task 6 on 2026-11-02: the demo by hand, Dry run off 1 to 9 on NBH 012, Dry run on stops at 4 (Q195), R457, steps/demo-check.md
-- Lane B 6a on 31 Oct: NBH 012 through 1 to 9 from a new project, no click, Links waits on Q275. 5d, PR 113: 5, 6, 8, 7 at the FFL. 5c, PR 111: 2, 3, 4, 7
-- Lane C SCAN-UI done 2026-11-01, PR 117, 119. DEMO-FIX 1 Nov: step rows run, a loader on every button, Confirm all, idle buttons hidden (R444)
+- Lane B 6a on 31 Oct: NBH 012 through 1 to 9 from a new project, no click. 5d, PR 113: 5, 6, 8, 7 at the FFL. 5c, PR 111: 2, 3, 4, 7
+- Lane C SCAN-UI PR 117, 119. DEMO-FIX R444. FIX-1NOV-C PR 132 (R445). FIX-2NOV-C: no dead end in the windows (R446)
 - Lane A: 5e and 5f on 2026-10-30, one PR (D20), R381 button 9 Report, R402 Update from report. Phase 4 and 5: 4h-1 PR 107, 4h-2 PR 109, 4g3
 - Round FOLD done on 2026-10-29: the fold in of steps/lane-b.md, D9 to D19, the answer pass, M01 to M15. D20 on 29 Oct for Phase 4 and 5
 - ADDIN Part 1 (R300 to R399): the add-in inside Revit 2024 in C#, net48, option B, parsons2024Rev6 for every build (Q050)
@@ -17,7 +17,7 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 
 ## Done
 
-- Lane D D2 and FIX-1NOV-D: one PR each. 4j-1: PR 114. 4j-1b: one PR, set A and the renamed set equal to 4j-1 field by field, today's reader 21 of 21 files equal
+- Lane D D3, D2 and FIX-1NOV-D: one PR each. 4j-1: PR 114. 4j-1b: one PR, set A and the renamed set equal to 4j-1 field by field, today's reader 21 of 21 files equal
 - Lane C SCAN-UI: PR 117, PR 119 and the Revit shot records. 4i, 4j-2, Lane B 6a: one PR each (D20). Lane B 5d: PR 113. Lane C NEWPROJ-UI: PR 112. Lane B 5c: PR 111. 5e and 5f: PR 110
 - 4h-2: PR 109. 4h-1: PR 107. FOLD: PR 101 to 105. Lane B 5b: one PR (D20). 5a: PR 84, 86, 87, 89, 90, 92, 97, 99. L0: branch docs/laptop-l0
 - 4g3: PR 83, 85, 88, 91, 93, 95, 96 and the end records. 4g2: PR 74 to 81. 4g1: PR 69 to 73. AUDIT-RULES: PR 67, 68. 4f: PR 61 to 66
@@ -51,10 +51,11 @@ shown. Q293 Approve the three drafts of SCAN-UI. Q294 Rules chosen in Set up sit
 proposal. Q301 The build takes the door level pick. Q302 Door level row under the past job. Q305 Hide Confirmed under the past job.
 Opened in FIX-1NOV-D, Lane D: Q330 Group of the key link parameters unread. Q331 Plot is no link parameter of the keys. Q332 FFL bound but never written.
 Q333 to Q335. Closed: Q155. Opened in D2: Q336 Link parameter group is Text not Data. Closed in D2: Q330, by Bader's prompt.
-Closed in SCAN-UI: Q246, Q283, by Bader's prompt. 164 questions open, full text and the recommended answers: steps/questions-open.md. Asks: steps/waiting-on-others.md.
+Opened in D3: Q337 to Q339, titles in the log. Closed in D3: Q275, by Bader's prompt.
+Closed in FIX-1NOV-C and FIX-2NOV-C: Q280, Q195, by Bader's prompt. 164 questions open, full text and the recommended answers: steps/questions-open.md. Asks: steps/waiting-on-others.md.
 
 ## Next three steps
 
-1. Bader's answers. Lane D: Q243 to Q258, Q331 to Q336, then D3 Links mode. Lane A: Q340, Q341, Q345 to Q349, Q303, Q304, Q259
-2. Bader answers Q275 to Q277, then the Links run of 6a and Phase 6b
+1. Bader's answers. Lane D: Q243 to Q258, Q331 to Q339. Lane A: Q340, Q341, Q345 to Q349, Q303, Q304, Q259
+2. Bader answers Q277, then Phase 6b
 3. Bader answers Q224 and Q255 of 4i, Q280 to Q287 of Lane C, then Part 2 after Bader's check of Part 1

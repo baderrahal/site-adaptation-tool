@@ -184,6 +184,10 @@
   </Window.Resources>
 
   <DockPanel Background="{StaticResource SA.Surface}">
+    <!-- R446. The foot on SA.Panel, as New project has it. Close takes the path of the X, which asks with marks not saved -->
+    <Border DockPanel.Dock="Bottom" Background="{StaticResource SA.Panel}" BorderBrush="{StaticResource SA.Border}" BorderThickness="{StaticResource SA.Line.Over}" Padding="{StaticResource SA.Pad.Foot}">
+      <Button Style="{StaticResource SA.Button.Base}" Height="{StaticResource SA.Size.MainButton}" HorizontalAlignment="Right" Content="{x:Static rev:ReviewDataText.Close}" Click="OnClose" />
+    </Border>
     <Border DockPanel.Dock="Top" Background="{StaticResource SA.Band}" Padding="{StaticResource SA.Pad.Box}">
       <Grid>
         <Grid.ColumnDefinitions>
@@ -226,6 +230,8 @@
 
     <!-- The side box, 340 wide, on SA.Panel -->
     <Border DockPanel.Dock="Right" Width="{StaticResource SA.Size.SideBox}" Background="{StaticResource SA.Panel}" Padding="{StaticResource SA.Pad.Box}">
+      <!-- R446. The window is capped in height and the foot takes some of it, so a long list of corners scrolls and What is wrong stays in reach -->
+      <ScrollViewer VerticalScrollBarVisibility="Auto">
       <StackPanel>
         <TextBlock Style="{StaticResource SA.Pane.Section}" Text="{x:Static rev:ReviewDataText.SelectedPlot}" />
         <TextBlock Style="{StaticResource SA.Pane.Help}" Text="{Binding PickText}" Visibility="{Binding NoneSelected, Converter={StaticResource Shown}}" />
@@ -284,6 +290,7 @@
           <TextBlock Style="{StaticResource SA.Pane.Help}" Text="{Binding EarlierNoteLine}" Visibility="{Binding EarlierNoteShown, Converter={StaticResource Shown}}" />
         </StackPanel>
       </StackPanel>
+      </ScrollViewer>
     </Border>
 
     <StackPanel Margin="{StaticResource SA.Pad.Side}">

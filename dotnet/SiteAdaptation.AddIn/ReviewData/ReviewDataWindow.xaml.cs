@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using SiteAdaptation.Common.Review;
@@ -14,6 +15,18 @@ namespace SiteAdaptation.AddIn.ReviewData
             this.session = session;
             InitializeComponent();
             DataContext = session.Model;
+            Closing += OnClosing;
+        }
+
+        // R446. The X and Close take one path. A window never shown has no one to ask, as in the tests and the shots
+        private void OnClosing(object sender, CancelEventArgs e)
+        {
+            e.Cancel = IsVisible && !session.CanClose(() => ReviewCloseWindow.Ask(this));
+        }
+
+        private void OnClose(object sender, RoutedEventArgs e)
+        {
+            Close();
         }
 
         private void OnZoom(object sender, RoutedEventArgs e)

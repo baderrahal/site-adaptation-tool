@@ -20,7 +20,10 @@ namespace SiteAdaptation.AddIn.Pane
         private readonly IInputProbe probe;
         private readonly IPathPicker picker;
         private DocumentSession document;
+        private const int NoDryRunStep = 4;
+        private const int ReportStep = 9;
         private IReadOnlyList<StepStatus> statuses = StepPlan.None(false);
+        private string dryRunNote = string.Empty;
         private bool statusesFromOutside;
         private bool refreshing;
         private bool again;
@@ -75,6 +78,9 @@ namespace SiteAdaptation.AddIn.Pane
 
         // NEWPROJ-UI. The Revit side opens the window of each, the pane holds no window
         public event Action NewProjectRequested;
+
+        // R446. Open folder of the box once 9 Report ended, the Revit side opens Explorer on it
+        public event Action<string> OpenFolderRequested;
         public event Action HowItWorksRequested;
 
         // A message for the user, which the Revit side shows in a TaskDialog
@@ -139,6 +145,30 @@ namespace SiteAdaptation.AddIn.Pane
             set { if (document != null) { document.Settings.Scope.Plots = value; Changed(); } }
         }
 
+        // R446. Why Dry run went off, shown under the tick until it is ticked again
+        public string DryRunNote
+        {
+            get { return dryRunNote; }
+            private set
+            {
+                Set(ref dryRunNote, value);
+                Changed(nameof(DryRunNoteShown));
+            }
+        }
+
+        public bool DryRunNoteShown => !string.IsNullOrEmpty(dryRunNote);
+
+        // R446, Q195 by Bader. 4 Check has no dry run in Revit, so the shared path of a button unticks Dry run before it instead of a
+        // dead end at step 4. It writes nothing, the tick is a pick in memory like every other
+        public void UntickDryRunFor(int button)
+        {
+            if (button == NoDryRunStep && DryRun)
+            {
+                DryRun = false;
+                DryRunNote = PaneText.DryRunUnticked;
+            }
+        }
+
         public bool DryRun
         {
             get { return document != null && document.Settings.DryRunFirst; }
@@ -147,6 +177,10 @@ namespace SiteAdaptation.AddIn.Pane
                 if (document != null && document.Settings.DryRunFirst != value)
                 {
                     document.Settings.DryRunFirst = value;
+                    if (value)
+                    {
+                        DryRunNote = string.Empty;
+                    }
                     Changed();
                     RefreshBox();
                 }
@@ -168,6 +202,7 @@ namespace SiteAdaptation.AddIn.Pane
             Loads++;
             document = active;
             statusesFromOutside = false;
+            DryRunNote = string.Empty;
             // Revit run 3: a detached document has a Title but no saved path, so the Title alone would name a project with no work folder
             ProjectName = active == null ? string.Empty : !active.HasPath || string.IsNullOrEmpty(active.Title) ? PaneText.NotSaved : active.Title;
             RefreshAll();
@@ -591,11 +626,32 @@ namespace SiteAdaptation.AddIn.Pane
                 BoxButtonShown = true;
                 return;
             }
+            IReadOnlyList<string> reports = next == 0 ? ReportFiles() : null;
+            if (reports != null)
+            {
+                BoxLabel = PaneText.RunComplete;
+                BoxName = string.Join(", ", reports.Select(System.IO.Path.GetFileName));
+                BoxLine = PaneText.RunCompleteLine;
+                BoxButton = PaneText.OpenFolder;
+                BoxButtonShown = reports.Count > 0;
+                return;
+            }
             BoxLabel = PaneText.NextLabel;
             BoxName = next == 0 ? string.Empty : StepName(next);
-            BoxLine = next == 0 ? string.Empty : PaneText.StepLines[next - 1] + ". " + (DryRun ? PaneText.DryRunOn : PaneText.DryRunOff);
+            BoxLine = next == 0 ? string.Empty : PaneText.StepLines[next - 1] + ". " + (DryRun ? (next == NoDryRunStep ? PaneText.DryRunNoStep4 : PaneText.DryRunOn) : PaneText.DryRunOff);
             BoxButton = next == 0 ? string.Empty : TextTemplate.Fill(PaneText.RunButton, next, StepName(next));
             BoxButtonShown = next != 0;
+        }
+
+        // R446. The files of the last run of 9 Report once it is done and no step is left to run, none known after a reopen, else null
+        private IReadOnlyList<string> ReportFiles()
+        {
+            StepKind report = statuses[ReportStep - 1].Kind;
+            if (document == null || (report != StepKind.Done && report != StepKind.Issues))
+            {
+                return null;
+            }
+            return document.Runs.TryGetValue(ReportStep, out StepRun run) ? run.Outputs.Keys.OrderBy(path => path, StringComparer.OrdinalIgnoreCase).ToList() : new List<string>();
         }
 
         private void OnBox()
@@ -609,6 +665,21 @@ namespace SiteAdaptation.AddIn.Pane
             if (next != 0)
             {
                 RunRequested?.Invoke(next);
+                return;
+            }
+            IReadOnlyList<string> reports = ReportFiles();
+            if (reports == null || reports.Count == 0)
+            {
+                return;
+            }
+            string folder = System.IO.Path.GetDirectoryName(reports[0]);
+            if (System.IO.Directory.Exists(folder))
+            {
+                OpenFolderRequested?.Invoke(folder);
+            }
+            else
+            {
+                Told?.Invoke(TextTemplate.Fill(PaneText.FolderGone, folder));
             }
         }
 

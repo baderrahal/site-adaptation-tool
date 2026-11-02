@@ -20,7 +20,8 @@ namespace SiteAdaptation.Common.Settings
     }
 
     // R367, 06-settings.md When. A pick changes the settings in memory only and this store has no write for it. The entity is written
-    // with the record of a real run inside its transaction, so a dry run and Cancel write nothing and a roll back takes the write back
+    // with the record of a real run inside its transaction, so a dry run and Cancel write nothing and a roll back takes the write back.
+    // Save setup writes it through Save in a transaction of its own (R445)
     public sealed class SettingsStore
     {
         private readonly ISettingsEntity entity;
@@ -60,6 +61,26 @@ namespace SiteAdaptation.Common.Settings
             SettingsJson.Read(json);
             entity.Write(json);
             return true;
+        }
+
+        // R445, Q280. Save setup writes the setup with no run record, in a transaction of its own, so a roll back takes it back as it
+        // takes back the write of a run. The settings as written come back, read from their own text
+        public ProjectSettings Save(ProjectSettings settings, IModelTransaction transaction)
+        {
+            if (transaction == null)
+            {
+                throw new InvalidOperationException("the settings are written only inside a transaction (R367)");
+            }
+            if (settings == null)
+            {
+                throw new ArgumentNullException(nameof(settings));
+            }
+            ProjectSettings next = SettingsJson.Read(SettingsJson.Write(settings));
+            next.FormatVersion = SettingsJson.Version;
+            string json = SettingsJson.Write(next);
+            ProjectSettings written = SettingsJson.Read(json);
+            entity.Write(json);
+            return written;
         }
     }
 }
