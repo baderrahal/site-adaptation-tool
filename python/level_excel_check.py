@@ -29,6 +29,7 @@ from collections import Counter
 from pathlib import Path
 
 import area_key
+import design_basis
 import project_profile
 from common import fixed
 
@@ -198,7 +199,8 @@ def expected(inputs, profile_name, mock):
     ground = inputs["rules"]["levels"]["ground_ssl"] / 1000.0
     formulas = mock["formulas"].replace("FFL - 0.075 m", "FFL %s %s m" % ("-" if ground <= 0 else "+", short(abs(ground))))
     front = profile.get("frontRoad") or {}
-    order = inputs["config"]["siteBuild"]["roadSurfaces"] if front.get("surface") == "roadLevel" else [front.get("surface")]
+    # R490. The level Excel names the order a build took, under the design basis of the Manual Rev 06 the surfaces of the config
+    order = design_basis.road_order(inputs["config"]) or (inputs["config"]["siteBuild"]["roadSurfaces"] if front.get("surface") == "roadLevel" else [front.get("surface")])
     passed = ((inputs["config"].get("placerCheck") or {}).get("level") or {}).get("passMm")
     # Review 2 of PR 91: each cluster in the row order the step hands give it, named so on both sheets, the sorted order when none does
     ordered = {}

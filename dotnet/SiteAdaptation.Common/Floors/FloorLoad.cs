@@ -62,7 +62,7 @@ namespace SiteAdaptation.Common.Floors
             return new LevelRunInputs
             {
                 Plan = plan, PlanPath = planPath, NoFfl = NoFfl(JObject.Parse(WorkFiles.ReadText(planPath))), Profile = request.LevelProfile, InScope = chosen.Item2,
-                ExcelInputs = files, TimeLimitS = AddinConfig.Load(configPath).WorkerTimeLimitS(LevelsRun.Command), Document = document,
+                ExcelInputs = files, TimeLimitS = AddinConfig.Load(configPath).WorkerTimeLimitS(LevelsRun.Command), Document = document, RoadSurfaces = request.RoadSurfaces,
             };
         }
 

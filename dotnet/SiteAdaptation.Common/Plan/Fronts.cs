@@ -207,10 +207,10 @@ namespace SiteAdaptation.Common
         // frontRoad roadLevel, else the one surface frontRoad names. The one setting the build steps and the level Excel take them from
         public static List<string> RoadNames(JObject levelProfile, ReadSettings settings, DesignBasis basis = null)
         {
-            // R409. Under rev6 the one surface of designBasis.roadLevel alone
+            // R490. Under rev6 the surfaces of designBasis.roadLevel in their order, or the pick of the request (R492)
             if (basis != null && basis.IsRev6)
             {
-                return new List<string> { basis.Surface };
+                return new List<string>(basis.Surfaces);
             }
             JToken surface = levelProfile["frontRoad"]?["surface"];
             string name = surface?.Type == JTokenType.String ? (string)surface : null;

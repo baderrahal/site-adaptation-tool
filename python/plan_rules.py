@@ -282,8 +282,8 @@ def check_key_rules(rules):
 
 def road_names(site_build, lp, basis=None):
     """R339, R340. The road surfaces a build asks for El @ Entry and the ramp front, the one setting plan_from_book.py and majority.py
-    take them from: siteBuild.roadSurfaces in their order for frontRoad roadLevel, else the one surface frontRoad names. R409: under the
-    design basis rev6 the one surface of designBasis.roadLevel alone."""
+    take them from: siteBuild.roadSurfaces in their order for frontRoad roadLevel, else the one surface frontRoad names. R490: under the
+    design basis rev6 the surfaces of designBasis.roadLevel in their order."""
     if design_basis.is_rev6(basis):
         return design_basis.road_names(basis)
     surface = lp["frontRoad"]["surface"]

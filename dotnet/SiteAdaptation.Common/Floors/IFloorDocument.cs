@@ -97,5 +97,8 @@ namespace SiteAdaptation.Common.Floors
         // addin.workerTimeLimitS.levelExcel
         public double TimeLimitS { get; set; }
         public WorkerDocument Document { get; set; }
+
+        // R492. The road surfaces the request of the build picked, for the order the level Excel names, null when it picked none
+        public List<string> RoadSurfaces { get; set; }
     }
 }

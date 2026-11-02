@@ -86,6 +86,15 @@ namespace SiteAdaptation.Common
             return double.IsNaN(value) || double.IsInfinity(value) || value < 0 ? (double?)null : value;
         }
 
+        // R492. Whether a build of this config is under rev6, and the road surfaces a read takes: under rev6 those named or picked in their order, else
+        // siteBuild.roadSurfaces
+        public bool IsRev6 => Settings.RoadSurfaceChoices.IsRev6(root);
+
+        public List<string> ReadRoads(IReadOnlyList<string> picked)
+        {
+            return IsRev6 ? new List<string>(Settings.RoadSurfaceChoices.Named(root, picked)) : RoadSurfaces;
+        }
+
         // The name a build gives a surface, plan_from_book.load_roads: the part of the file name after its last double underscore
         public static string RoadName(string stem)
         {

@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
+using SiteAdaptation.AddIn.NewProject;
 using SiteAdaptation.Common.Flow;
 using SiteAdaptation.Common.Settings;
 using SiteAdaptation.Common.Steps;
@@ -285,6 +286,50 @@ namespace SiteAdaptation.AddIn.Pane
             }
         }
 
+        // R492. The window Road surfaces behind the Revit side, set by the pane host. Null in a test with no window
+        public SurfacePicker SurfacePicker { get; set; }
+
+        // Reads the text of the settings file for the pick. The disk by default, a test gives its own
+        public Func<string, string> ReadText { get; set; } = WorkFolder.ReadIfThere;
+
+        // R492. Pick surfaces of the row Road surface. A Use keeps the order in the settings in memory, as a Browse does, so it reaches the
+        // model with the record of the next real run. A Cancel keeps what was there. A change of folder does not clear the pick
+        public void PickSurfaces()
+        {
+            if (document == null || SurfacePicker == null)
+            {
+                return;
+            }
+            RoadPickState state = RoadPickState.Of(document.Settings.Project, ReadText);
+            if (!state.Enabled)
+            {
+                return;
+            }
+            IReadOnlyList<string> picked = SurfacePicker(state.InFolder(), state.Effective);
+            if (picked == null)
+            {
+                return;
+            }
+            document.Settings.Project.RoadSurfaces = picked.ToList();
+            RefreshAll();
+        }
+
+        private void RefreshSurfaces()
+        {
+            FileRowViewModel row = InputRows.Single(item => item.HasSurfaces);
+            if (document == null)
+            {
+                row.ShowSurfaces(false, null, string.Empty);
+                return;
+            }
+            RoadPickState state = RoadPickState.Of(document.Settings.Project, ReadText);
+            string tip = state.Why == RoadPickWhy.PastJob ? PaneText.SurfacesPastJob : state.Why == RoadPickWhy.NoSetup ? PaneText.SurfacesNoSetup : null;
+            string line = !state.Enabled ? string.Empty
+                : state.Effective.Count == 0 ? PaneText.SurfacesNone
+                : TextTemplate.Fill(PaneText.SurfacesInOrder, state.Effective.Count, string.Join(", ", state.Effective.Select(RoadPickState.Short)));
+            row.ShowSurfaces(state.Enabled, tip, line);
+        }
+
         private static string RoleTitle(string key)
         {
             return key == InputKeys.Dlus ? PaneText.DlusTitle : PaneText.SalesTitle;
@@ -390,6 +435,7 @@ namespace SiteAdaptation.AddIn.Pane
             {
                 RefreshRow(row, document == null ? null : row.Keys.Select(key => document.Settings.InputPath(key)).ToArray());
             }
+            RefreshSurfaces();
             RefreshHelp();
             RefreshProfiles();
             if (document != null && !string.IsNullOrEmpty(document.Settings.Scope.Nbh) && !NbhCodes.Contains(document.Settings.Scope.Nbh))
@@ -534,7 +580,7 @@ namespace SiteAdaptation.AddIn.Pane
                 bool missing = false;
                 foreach (RunInput input in PaneRunState.InputsOf(document.Settings, step))
                 {
-                    string hash = string.IsNullOrEmpty(input.Path) ? null : KnownHash(input.Path, input.IsFolder);
+                    string hash = input.Text != null ? InputHash.Of(input) : string.IsNullOrEmpty(input.Path) ? null : KnownHash(input.Path, input.IsFolder);
                     missing |= hash == null;
                     now[input.Name] = hash;
                 }
@@ -766,6 +812,9 @@ namespace SiteAdaptation.AddIn.Pane
         private bool found;
         private string fileName = string.Empty;
         private string toolTip;
+        private bool surfacesEnabled;
+        private string surfacesTip;
+        private string surfacesLine = string.Empty;
 
         public FileRowViewModel(string label, bool folder, params string[] keys)
         {
@@ -781,6 +830,19 @@ namespace SiteAdaptation.AddIn.Pane
         public bool Found { get { return found; } private set { Set(ref found, value); } }
         public string FileName { get { return fileName; } private set { Set(ref fileName, value); } }
         public string ToolTip { get { return toolTip; } private set { Set(ref toolTip, value); } }
+
+        // R492. The button Pick surfaces and the line under the row Road surface
+        public bool HasSurfaces { get { return Keys.Contains(InputKeys.RoadSurface); } }
+        public bool SurfacesEnabled { get { return surfacesEnabled; } private set { Set(ref surfacesEnabled, value); } }
+        public string SurfacesTip { get { return surfacesTip; } private set { Set(ref surfacesTip, value); } }
+        public string SurfacesLine { get { return surfacesLine; } private set { Set(ref surfacesLine, value); } }
+
+        internal void ShowSurfaces(bool enabled, string tip, string line)
+        {
+            SurfacesEnabled = enabled;
+            SurfacesTip = tip;
+            SurfacesLine = line;
+        }
 
         internal void Show(bool on, bool isFound, string name, string tip)
         {

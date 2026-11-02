@@ -393,9 +393,9 @@ namespace SiteAdaptation.Common.ReadData
             {
                 sha = string.Concat(hash.ComputeHash(bytes).Select(item => item.ToString("x2")));
             }
-            var draft = new ReadPlan(files.Inputs.Concat(new[] { new ReadInput(Role, "", bytes.Length, sha) }).ToList(), files.Steps, files.Stops, files.ConfigPath);
+            var draft = new ReadPlan(files.Inputs.Concat(new[] { new ReadInput(Role, "", bytes.Length, sha) }).ToList(), files.Steps, files.Stops, files.ConfigPath, files.RoadOrder);
             string path = Path.GetFullPath(Path.Combine(ReadDataRun.FolderOf(workFolder, draft), FileName));
-            return new ReadPlan(files.Inputs.Concat(new[] { new ReadInput(Role, path, bytes.Length, sha) }).ToList(), files.Steps, files.Stops, files.ConfigPath);
+            return new ReadPlan(files.Inputs.Concat(new[] { new ReadInput(Role, path, bytes.Length, sha) }).ToList(), files.Steps, files.Stops, files.ConfigPath, files.RoadOrder);
         }
 
         public static string Json(JObject picks)

@@ -524,3 +524,27 @@ No real input reaches these: the plot table of the demo holds whole numbers and 
 
 - RevitCounts.ElementId casts each id to long and RevitCounts.Refusal does not check ids, so a hand edited revitCounts file with a non integer id throws rather than being refused. The add-in writes that file itself in the same run, so no real input reaches it.
 - RevitCounts.FromTags counts an element tagged under two schema versions twice where FromElements gives one id. PlacedTag holds one version and PlacedTagStore.Write deletes older entities, so no real input reaches it until a version 2 exists.
+
+## FIX-2NOV-A3 review and breaker, 2 Nov 2026
+
+- valueStatus walls.ends wallOpen holds weak inline, rules/roshn-makkah.json holds the share 0.7409. If that share turns strong the inline entry stays weak.
+- majority.front_edges_of takes every frontEdge line with no source filter or two entries refusal, the build filters and refuses. The list holds 6 lines, each plot once, all parsons.
+- majority.py --keep-from an older list with no frontEdge, or --dry with a new list path, measures on the notch front. No current use found.
+- corner_front.named_frame does not check the edge is the same edge after a re-read baseplan with another first vertex. The read is pinned by SHA-256, R388.
+- BuildPlan.PlanWalls: a step with no endsSource reads keyRules and loses manualInside. A build remakes its steps.
+- BuildSteps: a request with no overrides role takes the notch front. 4 Check asks every step.
+- plan_from_book --override-fields without frontEdge drops the line, its insert line is gone too.
+- Check table Use Rule on the frontEdge of 469: 469 falls out, 470 keeps -0.004 and stands about 55 mm off its key (worked out, not run).
+- Lines left stale on the 5 notched plots, not applied by any build: rampOutline gaps measured on the old front, the reason no value of stepsFromHeight on steps lines.
+
+## Lane D FIX-2NOV-D, review and breaker, 2 Nov 2026
+
+- python/read_steps.py asks plan_rules.road_names with no basis, so the Python read steps take siteBuild.roadSurfaces under rev6 where the C# takes designBasis.roadLevel. They agree while the two lists are one, test_r490 holds that.
+- python/level_excel_check.py takes the road order from config alone, so a level Excel of a build with a pick reads as a mismatch on the line Road surface order. No test host job names a pick.
+- RoadPickState.Of reads and parses the config on each refresh of the pane and New project.
+- PaneRunState.ConfigOf caches by path, time and size in four static fields with no lock.
+- plan_from_book.py leaves an older plan at --out beside new step files after a stop. No script calls it so and it takes a person ignoring exit 2.
+- Two files with one short name, A__Top and B__Top, show as two like rows and one name in the stop line. ["Road", "road"] passes the unique check and reads one file twice. A hand edited ..\..\x in a pick leaves the folder, read only. None of the real names do this.
+- RoadSurfaceChoices.NotTakenWhy finds a short name as a whole name in the prose reasons of notTaken: a surface named as a phrase of a reason, Grading, is refused loudly with the reason, and Typical Cross Sections, written with an underscore before it, is not found.
+- A saved pick naming a not taken file shows in the window as Not in the folder any more, the wrong words for it. It stays unticked and 2 Read data refuses it with the reason.
+- noRoadStopShare 1.0 never stops, not even at 100 percent, a config value set that way by hand.

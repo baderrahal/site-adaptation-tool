@@ -179,7 +179,7 @@ namespace SiteAdaptation.Common
             }
 
             // R349, R344. The road surfaces of the level profile in their order, plan_rules.road_names, each the input roadSurface:<name>, every
-            // one of the order and no other, the first surface of each file, refused when not in meter. R409: under rev6 the one surface of the basis
+            // one of the order and no other, the first surface of each file, refused when not in meter. R490: under rev6 the surfaces of the basis
             public List<TinSurface> Surfaces(JObject levelProfile, DesignBasis basis)
             {
                 if (surfaces != null)
@@ -348,11 +348,14 @@ namespace SiteAdaptation.Common
             PlanInputs planned = null;
             // R407. The design basis of the run, in the run block of each step file
             string mode = null;
+            DesignBasis basis = null;
             try
             {
                 var site = new Site(run, config);
                 // R407. The design basis read once for the whole run, a mode outside designBasis.modes refused before any step
-                DesignBasis basis = DesignBasis.Of(site.Settings, () => run.Input(CivilRole));
+                basis = DesignBasis.Of(site.Settings, () => run.Input(CivilRole));
+                // R492. The road surfaces picked in Set up, under rev6 alone
+                basis.TakePick(request.RoadSurfaces);
                 mode = basis.Mode;
                 if (BuildPlan.PlanAsked(asked, request.Inputs))
                 {
@@ -564,10 +567,11 @@ namespace SiteAdaptation.Common
             }
             if (planned != null)
             {
-                // R80, R347. The plan from the step files just written, an output of the run moved onto its name with them
+                // R80, R347. The plan from the step files just written, an output of the run moved onto its name with them. R493: a zone mostly off the
+                // road surfaces named stops the run here, before the plan
                 try
                 {
-                    BuildPlan.Write(run, stepFiles, planned);
+                    BuildPlan.Write(run, stepFiles, planned, basis);
                 }
                 catch (InvalidDataException refused)
                 {

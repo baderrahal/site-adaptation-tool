@@ -71,6 +71,9 @@ namespace SiteAdaptation.Common.CheckTable
         // R443. Keeps a pick of Door level from in the pane settings. Null keeps it in the window only
         public Action<string> DoorPicked { get; set; }
 
+        // R492. The road surfaces picked in Set up, read under rev6 alone. Null where no pane gives one, or a pick not made, takes those of config
+        public Func<IReadOnlyList<string>> RoadPick { get; set; }
+
         public ButtonBody Body()
         {
             return new ButtonBody { Preview = Preview, Start = Start };
@@ -89,6 +92,9 @@ namespace SiteAdaptation.Common.CheckTable
 
             // Q214. The Prototypes folder of the pane the build takes its prototype files from
             public string PrototypeFolder { get; set; }
+
+            // R492. The road surfaces the request names under rev6 when Set up picked them, null otherwise
+            public List<string> RoadSurfaces { get; set; }
         }
 
         public CheckPlan Plan(RunContext context)
@@ -113,17 +119,53 @@ namespace SiteAdaptation.Common.CheckTable
                 return plan;
             }
             var changed = new List<string>();
+            // R492. Under rev6 only the road roles of the effective list go to the build, in its order, so a list that left out a surface of the read still builds
+            bool rev6 = RoadSurfaceChoices.IsRev6(config);
+            IReadOnlyList<string> picked = rev6 ? RoadPick?.Invoke() : null;
+            plan.RoadSurfaces = RoadSurfaceChoices.ForRequest(config, picked);
+            var roads = new Dictionary<string, WorkerFile>(StringComparer.Ordinal);
+            var readRoads = new HashSet<string>(StringComparer.Ordinal);
+            var listed = new HashSet<string>(RoadSurfaceChoices.Named(config, picked).Select(name => WorkerRunner.RoadSurfaceRole + name), StringComparer.Ordinal);
             foreach (JObject input in ((JArray)record["inputs"] ?? new JArray()).OfType<JObject>())
             {
                 string path = (string)input["path"], role = (string)input["role"];
+                bool road = (role ?? "").StartsWith(WorkerRunner.RoadSurfaceRole, StringComparison.Ordinal);
+                if (road)
+                {
+                    readRoads.Add(role);
+                }
+                // R492. A surface the list left out is no input of this build, so a change of its file stops nothing under rev6
+                if (road && rev6 && !listed.Contains(role))
+                {
+                    continue;
+                }
                 if (path == null || !File.Exists(path) || !string.Equals(FileHash.Sha256(path), (string)input["sha256"], StringComparison.OrdinalIgnoreCase))
                 {
                     changed.Add(Path.GetFileName(path ?? role));
                     continue;
                 }
-                if (ReadRoles.Contains(role) || (role ?? "").StartsWith(WorkerRunner.RoadSurfaceRole, StringComparison.Ordinal))
+                if (road && rev6)
+                {
+                    roads[role] = new WorkerFile { Role = role, Path = path, Sha256 = (string)input["sha256"] };
+                }
+                else if (ReadRoles.Contains(role) || road)
                 {
                     plan.Inputs.Add(new WorkerFile { Role = role, Path = path, Sha256 = (string)input["sha256"] });
+                }
+            }
+            if (rev6)
+            {
+                foreach (string name in RoadSurfaceChoices.Named(config, picked))
+                {
+                    string role = WorkerRunner.RoadSurfaceRole + name;
+                    if (roads.TryGetValue(role, out WorkerFile file))
+                    {
+                        plan.Inputs.Add(file);
+                    }
+                    else if (!readRoads.Contains(role))
+                    {
+                        plan.Stops.Add("2 Read data did not read the road surface " + ReadSettings.RoadName(name) + ". Run 2 Read data again");
+                    }
                 }
             }
             if (changed.Count > 0)
@@ -302,7 +344,7 @@ namespace SiteAdaptation.Common.CheckTable
                 FormatVersion = WorkerRequest.CurrentFormatVersion, RunId = runId, Document = document, Command = Command, Inputs = plan.Inputs.ToList(),
                 Scope = plan.Nbh == null ? new WorkerScope { Kind = "project" } : new WorkerScope { Kind = ScopeKinds.Nbh, Nbh = plan.Nbh },
                 LevelProfile = levelProfile, PrototypeFolder = plan.PrototypeFolder, OutputFolder = folder, StepsFolder = Path.Combine(folder, "steps"),
-                Steps = new[] { FaceStep.Name }.Concat(BuildSteps.Names).ToList(), TimeLimitS = AddinConfig.Load(plan.ConfigPath).WorkerTimeLimitS(Command),
+                Steps = new[] { FaceStep.Name }.Concat(BuildSteps.Names).ToList(), TimeLimitS = AddinConfig.Load(plan.ConfigPath).WorkerTimeLimitS(Command), RoadSurfaces = plan.RoadSurfaces,
             };
         }
 
@@ -324,7 +366,13 @@ namespace SiteAdaptation.Common.CheckTable
             CheckTableView view = Answered(context, plan, request, answer, false);
             context.WriteText(ChecksName(plan.Nbh), ChecksText(view, context.RunId, plan));
             dialog?.Show(view, new CheckTableCallbacks { DoorLevel = DoorPicked });
-            return new RunSummary(view.Title + ", " + view.Rows.Count + " rows, " + view.FollowLine, view.NoPastJobLine == null ? null : new[] { view.NoPastJobLine });
+            // R493. The one line of the plots a dry run leaves with no road level, as the real run gives it among its issues
+            var lines = (answer.Issues ?? new List<string>()).Where(DesignBasis.IsNoRoad).ToList();
+            if (view.NoPastJobLine != null)
+            {
+                lines.Insert(0, view.NoPastJobLine);
+            }
+            return new RunSummary(view.Title + ", " + view.Rows.Count + " rows, " + view.FollowLine, lines.Count == 0 ? null : lines);
         }
 
         private void Start(RunContext context, Action<RunLater> done)
@@ -394,6 +442,11 @@ namespace SiteAdaptation.Common.CheckTable
             if (answer == null || answer.Status != WorkerExit.Status(WorkerExit.Done))
             {
                 string why = answer?.Message ?? "with no answer";
+                // R493. A stop on plots with no road level is plain words for the user and says what to do, so it goes through as it stands
+                if (answer?.Status == WorkerExit.Status(WorkerExit.Refused) && DesignBasis.IsNoRoad(why))
+                {
+                    throw new InvalidDataException(why);
+                }
                 throw new InvalidDataException("the build ended " + (answer?.Status ?? "") + ": " + why + (answer?.Status == WorkerExit.Status(WorkerExit.Refused) ? " (R280 when it names the override list)" : ""));
             }
             string stepPath = Path.Combine(request.StepsFolder, StepFile.FileName(CheckRows.StepName, "csharp"));
