@@ -452,3 +452,9 @@ def test_d13_the_open_questions_are_read_from_questions_open_not_from_baders_tur
     config = entries(root)["config/project.json"]
     assert config["analysis.otherShare"] == {"status": "RECOMMENDED", "question": "Q105", "where": "Q105"}
     assert rule_status.Audit(root).open == {"Q105"}
+
+
+def test_r459_the_known_warnings_of_step_5_set_no_plotted_value_so_the_audit_leaves_them_out():
+    assert "floors.knownWarnings" in rule_status.BOOKKEEPING
+    values = rule_status.Audit(ROOT).values()
+    assert not [path for _, path, _, _ in values if path.startswith("floors.knownWarnings")]

@@ -209,6 +209,20 @@
       "yard": "Level 2",
       "ramp": "Level 1"
     },
+    "knownWarnings": {
+      "note": "R459, Q324, Q350, Q367. The Revit warnings step 5 takes in its transaction without showing them. Each entry: text the exact words of the warning, samePlot whether both floors must hold one plotParameter value, rolePairs the roles of types above that may overlap, Bader's three pairs of Q367. Any other warning, floor or pair shows as before. A pair is one line",
+      "entries": [
+        {
+          "text": "Highlighted floors overlap.",
+          "samePlot": true,
+          "rolePairs": [
+            ["generic", "yard"],
+            ["generic", "ramp"],
+            ["ramp", "yard"]
+          ]
+        }
+      ]
+    },
     "plotParameter": "Plot",
     "yardBelowFflM": 0.1,
     "yardShareTie": 0.01,

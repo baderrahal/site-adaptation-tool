@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using Newtonsoft.Json.Linq;
 using SiteAdaptation.Common.Flow;
@@ -17,6 +18,10 @@ namespace SiteAdaptation.Common.Floors
         private readonly IFloorDocument document;
         private readonly Func<RunContext, FloorInputs> load;
 
+        // R459. Set by Apply when the transaction took the list, for the file only the commit can fill
+        private string acceptedNbh;
+        private HashSet<string> standingBefore;
+
         public FloorsRun(IFloorDocument document, Func<RunContext, FloorInputs> load)
         {
             this.document = document;
@@ -25,13 +30,19 @@ namespace SiteAdaptation.Common.Floors
 
         public ButtonBody Body()
         {
-            return new ButtonBody { Preview = Preview, Apply = Apply };
+            return new ButtonBody { Preview = Preview, Apply = Apply, AfterCommit = RecordAccepted };
         }
 
         // floors_<NBH>.json in the work folder, the record of the last real run of 5
         public static string RecordName(string nbh)
         {
             return "floors_" + nbh + ".json";
+        }
+
+        // R459. floors_<NBH>_accepted.json in the work folder, what step 5 accepted so far
+        public static string AcceptedName(string nbh)
+        {
+            return "floors_" + nbh + "_accepted.json";
         }
 
         public static HashSet<string> Placed(JObject record)
@@ -77,6 +88,13 @@ namespace SiteAdaptation.Common.Floors
         {
             Decision decision = Decide(context);
             FloorInputs inputs = decision.Inputs;
+            FloorPlanView plan = decision.View;
+            KnownWarningList known = inputs.KnownWarnings?.WithPlotNumbers((role, value) => plan.PlotOfValue.TryGetValue(role + "|" + value, out string number) ? number : null);
+            if (context.AcceptKnownWarnings(known))
+            {
+                acceptedNbh = inputs.Plan.Neighbourhood ?? "all";
+                standingBefore = new HashSet<string>(decision.View.Elements.Select(element => element.UniqueId), StringComparer.Ordinal);
+            }
             var issues = new List<string>(decision.Listed);
             var ids = new List<KeyValuePair<Step, string>>();
             var standing = new List<string>();
@@ -96,6 +114,8 @@ namespace SiteAdaptation.Common.Floors
                 if (step.Act == Act.Move)
                 {
                     id = step.Outcome.Element;
+                    // R459. If the floor still overlaps where it now stands, Revit raises it and it is accepted again
+                    standingBefore?.Remove(id);
                     // The plan may type a ramp anew by its slope or give the plot another unit code, so a move takes both of the plan
                     document.SetType(id, candidate.Type.Key);
                     document.SetHeightOffset(id, candidate.HeightOffset);
@@ -142,6 +162,30 @@ namespace SiteAdaptation.Common.Floors
             };
             context.WriteText(RecordName(inputs.Plan.Neighbourhood ?? "all"), record.ToString(Newtonsoft.Json.Formatting.Indented));
             return issues;
+        }
+
+        // R459. A floor deleted by hand since an earlier run takes its pairs off the list
+        private void RecordAccepted(RunContext context)
+        {
+            if (acceptedNbh == null)
+            {
+                return;
+            }
+            string name = AcceptedName(acceptedNbh);
+            List<AcceptedWarning> earlier = AcceptedWarningFile.Load(Path.Combine(context.WorkFolder, name)) ?? new List<AcceptedWarning>();
+            List<AcceptedWarning> list = AcceptedWarningFile.Merge(earlier, context.AcceptedWarnings, standingBefore);
+            string written = context.Output(name);
+            File.WriteAllText(written, AcceptedWarningFile.Text(context.RunId, acceptedNbh, list), new System.Text.UTF8Encoding(false));
+            // Q324, Q350. The count in the log, in the shape of R381, as an accepted warning is no issue and a message would be a box
+            int now = context.AcceptedWarnings.Count;
+            var log = new JObject
+            {
+                ["runId"] = context.RunId, ["button"] = context.Button, ["committed"] = true, ["acceptedWarnings"] = now,
+                ["line"] = now + " known warnings accepted by this run, " + list.Count + " on the list of the NBH",
+                ["inputs"] = new JArray(),
+                ["outputs"] = new JArray(new JObject { ["role"] = "acceptedWarnings", ["path"] = name, ["sha256"] = FileHash.Sha256(written) }),
+            };
+            context.WriteText(LevelsRun.RunLogName(context.RunId), log.ToString(Newtonsoft.Json.Formatting.Indented));
         }
 
         private Decision Decide(RunContext context)

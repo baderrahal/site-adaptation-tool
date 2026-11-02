@@ -20,10 +20,12 @@ namespace SiteAdaptation.Common
         public const string OverridesSheet = "Overrides";
         public const string AssumedSheet = "Assumed";
         public const string IssuesSheet = "Issues";
+        // R459, item 38 of 7.7
+        public const string AcceptedSheet = "Accepted warnings";
         public const string RulesSheet = "Rules";
         public const string SettingsSheet = "Settings";
         // 7.6 in its order, Assumed after Overrides (7.7 item 9) and Settings after them all (7.7 item 12)
-        public static readonly string[] Sheets = { SummarySheet, PlacedSheet, SkippedSheet, OverridesSheet, AssumedSheet, IssuesSheet, RulesSheet, SettingsSheet };
+        public static readonly string[] Sheets = { SummarySheet, PlacedSheet, SkippedSheet, OverridesSheet, AssumedSheet, IssuesSheet, AcceptedSheet, RulesSheet, SettingsSheet };
 
         // 7.6: the open values stay as the mock writes them while no model is placed, Phase 6 fills them
         public const string TopLine = "[file name].rvt, NBH <nbh>, <n> plots, <profile>, run time [n] min";
@@ -111,6 +113,11 @@ namespace SiteAdaptation.Common
         public const string WeakRuleCheck = "Weak rule";
         public const string WeakWhy = "<rule> share <share>, weak";
 
+        public const string FirstFloorType = "First floor type";
+        public const string SecondFloorType = "Second floor type";
+        public const string Warning = "Warning";
+        public static readonly string[] AcceptedColumns = { Plot, FirstFloorType, SecondFloorType, Warning };
+
         public const string Values = "Values";
         public static readonly string[] RuleSheetColumns = { Rule, Status, Basis, Plots, Values };
 
@@ -178,6 +185,8 @@ namespace SiteAdaptation.Common
         public List<Dictionary<string, string>> PlotRows { get; set; }
         // R381, Q124: the counts the add-in read from the model, RevitCounts, null when the request gives none
         public JObject RevitCounts { get; set; }
+        // R459: the file step 5 left, AcceptedWarningFile of Flow, null when the request gives none
+        public JObject AcceptedWarnings { get; set; }
         public string RunId { get; set; }
         public string Profile { get; set; }
         public DateTime Now { get; set; }
@@ -459,7 +468,8 @@ namespace SiteAdaptation.Common
             foreach (var item in new[]
             {
                 Tuple.Create(ReportExcelText.PlacedSheet, placed), Tuple.Create(ReportExcelText.SkippedSheet, skipped), Tuple.Create(ReportExcelText.OverridesSheet, overrides),
-                Tuple.Create(ReportExcelText.AssumedSheet, assumed), Tuple.Create(ReportExcelText.IssuesSheet, issues), Tuple.Create(ReportExcelText.RulesSheet, rulesTable),
+                Tuple.Create(ReportExcelText.AssumedSheet, assumed), Tuple.Create(ReportExcelText.IssuesSheet, issues), Tuple.Create(ReportExcelText.AcceptedSheet, AcceptedTable(inputs, nbh)),
+                Tuple.Create(ReportExcelText.RulesSheet, rulesTable),
                 Tuple.Create(ReportExcelText.SettingsSheet, SettingsTable(inputs)),
             })
             {
@@ -468,6 +478,20 @@ namespace SiteAdaptation.Common
                 book.Sheets.Add(sheet);
             }
             return book;
+        }
+
+        // R459. Apart from the issues, as an accepted warning is no issue of the run. Only a book of the NBH the file names
+        private static ReportTable AcceptedTable(ReportInputs inputs, string nbh)
+        {
+            var table = new ReportTable { Header = ReportExcelText.AcceptedColumns, Formats = new string[ReportExcelText.AcceptedColumns.Length] };
+            if (inputs.AcceptedWarnings != null && (string)inputs.AcceptedWarnings["neighbourhood"] == nbh)
+            {
+                foreach (Flow.AcceptedWarning item in Flow.AcceptedWarningFile.Read(inputs.AcceptedWarnings))
+                {
+                    table.Rows.Add(new object[] { item.Plot, item.FirstType, item.SecondType, item.Text });
+                }
+            }
+            return table;
         }
 
         // D4, items 10 and 11 of 7.7: plot first, one row per written plot and kind, the link with its villa type and mirror flag, then each floor

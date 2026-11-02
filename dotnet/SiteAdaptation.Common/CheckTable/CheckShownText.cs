@@ -4,6 +4,7 @@ namespace SiteAdaptation.Common.CheckTable
     // text test of the window reads this file with the files of the window, each text is in the label list word for word
     public static class CheckShownText
     {
+        public const string AcceptedChip = "Accepted at step 5";
         public const string Entry = "Entry level by the rule";
         public const string Ffl = "FFL by the rule";
         public const string RampFront = "Ramp front level by the rule";
