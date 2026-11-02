@@ -17,6 +17,7 @@ from a config copy outside the repo, --settings stays the config of the repo for
 import argparse
 import csv
 import math
+import re
 import sys
 from pathlib import Path
 
@@ -48,9 +49,10 @@ FIELDS = SAME_FIELDS + NUMBER_FIELDS + CORNER_FIELDS + WALL_FIELDS
 LEAVE_OUT = {"ffl": "ffl", "entry": "entry", "steps": "steps", "rampCornersLevel": "rampFront", "rampCornersPlan": "rampFront"}
 SHOWN = {"rotation": (1.0, "deg", 2), "steps": (1.0, "", 0)}
 METRES_SHOWN = (1000.0, "mm", 1)
+THICKNESS = re.compile(r"(\d{3})")
 
 
-def limits_of(settings, chosen):
+def limits_of(settings, chosen, boundary_m=None):
     """R469. The match and the limit of each number field: the levels by majority, the ramp corners by R138, the rotation match by R129, the wall
     limit by keyPlans. The three that no rule holds come from the command line, so the report names them as chosen."""
     majority = settings["majority"]
@@ -60,6 +62,7 @@ def limits_of(settings, chosen):
             "steps": {"match": 0, "within": chosen["stepsWithin"]},
             "rampCornersLevel": {"match": corners["within5mm"], "within": corners["within30mm"]},
             "rampCornersPlan": {"match": outline["within1mm"], "within": outline["within10mm"]},
+            "wallLine": {"centreCodes": majority.get("wallCentreCodes") or [], "boundaryM": boundary_m or 0.0},
             **{field: {"match": chosen["wallMatchM"], "within": settings["keyPlans"]["wallEdgeM"]} for field in WALL_FIELDS}}
 
 
@@ -87,21 +90,32 @@ def tool_lines(plan):
     return found
 
 
-def key_lines(plan):
+def half_of(wall, walls):
+    """R478. How far the location line of a key wall lies from its centre: none on a centre code or with no code, else half its thickness, the
+    number in its type name in mm, such as Upsand - 330, else the boundary wall of the profile (R335)."""
+    if wall.get("locationLine") is None or wall["locationLine"] in walls["centreCodes"]:
+        return 0.0
+    found = THICKNESS.search(str(wall.get("type") or ""))
+    return int(found.group(1)) / 2000.0 if found else walls["boundaryM"] / 2.0
+
+
+def key_lines(plan, walls):
     found = {}
     for wall in plan.get("walls") or []:
         if wall.get("start") is None or wall.get("end") is None:
             continue
         for plot in wall["plots"]:
-            found.setdefault(plot, []).append([wall["start"][:2], wall["end"][:2]])
+            found.setdefault(plot, []).append([wall["start"][:2], wall["end"][:2], half_of(wall, walls)])
     return found
 
 
 def wall_gap(mine, theirs):
-    """The largest distance of an end of a wall of mine to the nearest wall line of theirs. None when theirs holds no wall for walls of mine."""
+    """The largest distance of an end of a wall of mine to the nearest wall line of theirs, by the wall centres (R478): a key line on a face stands
+    half a thickness from its centre, and a tool line is its centre. None when theirs holds no wall for walls of mine."""
     if not theirs:
         return None
-    return max(min(key_plans_check.segment_distance(point, *line) for line in theirs) for wall in mine for point in wall)
+    half = lambda line: line[2] if len(line) > 2 else 0.0
+    return max(min(abs(key_plans_check.segment_distance(point, line[0], line[1]) - half(line) - half(wall)) for line in theirs) for wall in mine for point in wall[:2])
 
 
 def field_row(field, mine, theirs, left_out, limits):
@@ -123,11 +137,19 @@ def field_row(field, mine, theirs, left_out, limits):
     return {"status": status_of(limits[field], gap), "gap": gap}
 
 
+def same_file(entry, other):
+    read = lambda item: (item.get("prototypeFile") or {}).get("value") if isinstance(item.get("prototypeFile"), dict) else item.get("prototypeFile")
+    return read(entry) is not None and read(entry) == read(other)
+
+
 def plot_rows(entry, other, left_out, limits, tool_walls, key_walls):
     read = lambda name, item: plan_compare.value_of(item, READS[name])
     rows = {field: field_row(field, read(field, entry), read(field, other), left_out, limits) for field in SAME_FIELDS + NUMBER_FIELDS}
     for field in CORNER_FIELDS:
         rows[field] = field_row(field, read("corners", entry), read("corners", other), left_out, limits)
+    # R479. TH1-IM and TH1 are one villa type where both plans give one prototype file, the 6 of 18 plots whose file differs stay over
+    if rows["villaType"]["status"] == OVER and same_file(entry, other):
+        rows["villaType"] = {"status": MATCH, "gap": None, "sameFile": True}
     plot = entry["plot"]
     for field, mine, theirs in (("wallsToolOnKey", tool_walls.get(plot), key_walls.get(plot)), ("wallsKeyOnTool", key_walls.get(plot), tool_walls.get(plot))):
         if not mine:
@@ -149,7 +171,7 @@ def compare_zone(tool, key, kind, limits, left_out):
     """R469. Every plot both plans hold, field by field, with the counts and the worst plots of each field. kind only names the key in the report."""
     theirs = {entry["plot"]: entry for entry in key["plots"]}
     mine = {entry["plot"]: entry for entry in tool["plots"]}
-    tool_walls, key_walls = tool_lines(tool), key_lines(key)
+    tool_walls, key_walls = tool_lines(tool), key_lines(key, limits["wallLine"])
     shared = sorted(set(mine) & set(theirs), key=link_summary.sort_key)
     per_plot = {plot: plot_rows(mine[plot], theirs[plot], left_out, limits, tool_walls, key_walls) for plot in shared}
     counts = {field: {} for field in FIELDS}
@@ -265,7 +287,9 @@ def main(argv=None):
     check_mode(settings)
     kind = kind_of(settings, args.code)
     chosen = {"rotationWithinDeg": args.rotation_within_deg, "stepsWithin": args.steps_within, "wallMatchM": args.wall_match_m}
-    limits = limits_of(settings, chosen)
+    # R478. A config with no profile, as a made up one of the tests, holds no boundary wall to take half of
+    profile = project_profile.load_profile(project_profile.profile_path(project_profile.load_settings(args.settings))) if settings.get("profile") else None
+    limits = limits_of(settings, chosen, profile.metres("plot.boundary_wall_thickness") if profile else None)
     left_out = settings["majority"].get("kindLeaveOut", {}).get(kind, [])
     key = link_summary.load(args.key_plan)
     names = REV6_BUILDS if args.rev6_plan else BUILDS
