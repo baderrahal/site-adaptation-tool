@@ -180,6 +180,12 @@ namespace SiteAdaptation.Tests
                 JToken front = FrontOf(request, "3");
                 var taken = new Dictionary<string, double> { [(string)front["surfaceLeft"]] = (double)front["roadLevelLeft"], [(string)front["surfaceRight"]] = (double)front["roadLevelRight"] };
                 Assert.Equal(new Dictionary<string, double> { ["Road A"] = 10.0, ["Road B"] = 20.0 }, taken);
+                // The plan of the same surfaces names both for the plot
+                WorkerRequest planned = PlanRequest(steps, "t1p", new[] { Tuple.Create(First, -60.0, 30.0, 10.0), Tuple.Create(Second, 30.0, 200.0, 20.0) }, null);
+                Assert.True(RunWorker(planned) == 0, Answer(planned).Message);
+                JObject plan = JObject.Parse(File.ReadAllText(Path.Combine(planned.OutputFolder, BuildPlan.FileName(null))));
+                JToken plot = plan["plots"].Single(item => (string)item["plot"] == "3");
+                Assert.Equal(new[] { "Road A", "Road B" }, plot["roadSurfaces"].Select(name => (string)name).OrderBy(name => name, StringComparer.Ordinal));
             }
         }
 
