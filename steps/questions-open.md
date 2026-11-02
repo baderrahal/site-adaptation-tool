@@ -411,6 +411,7 @@ Q349. A conflict pick and the build (R473, round FIX-1NOV-A2). A villa type conf
 - Other: keep the build on plots.csv and mark the picked plots in Review data as read only.
 
 Q351. The limit of the footprint check (R477, R404, round FIX-2NOV-A). The limit was 100 mm. On NBH 012 the 57 plots whose block is of their own type stand 147 to 1,121 mm, median 650 mm, from the house outline, as the master plan drew another house than the prototype, so no plot could pass. R477 sets 1,200 mm from that measure.
+R477 compares the unit with the block type exactly, so the 2 plots of unit TH1-IM in Townhouse_TH1 count as another type.
 - Recommended: 1,200 mm, it catches a mass placed a house width away and passes the plots that stand right.
 - Other: measure the offset of the middle of the base from the middle of the house and hold that instead.
 

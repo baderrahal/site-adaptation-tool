@@ -27,7 +27,7 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 
 - Scan: a large drawing past scan.pairTimeCapS is scanned in part, a notRead row lists it (Q258). No villa type source at the strong share (Q254)
 - Full text at 73b8c42: steps/history/progress-addin-4e.md. Bugs no real input reaches: steps/latent.md (Q095)
-- Footprint by house outline: 291 of 336 plots of NBH 012 sit in a block of another unit type (Q277)
+- Footprint by house outline: 271 of 336 plots of NBH 012 sit in a block of another unit type (Q277, R477)
 - The wall rule keyRules.wallOpen is weak, 2,539 of 3,427 walls hold on the keys, 0.7409 (Q115, Q266)
 - Q063: the whole NBH 03 image runs past the 30 minute step, I25 did not respond at 10,732 MiB private memory
 - R310 logs free memory in every window with no stop at the floor. In 2a it fell to 0.53 to 1.42 GiB per read window, cause UNKNOWN
