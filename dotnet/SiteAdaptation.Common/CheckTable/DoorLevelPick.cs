@@ -74,7 +74,7 @@ namespace SiteAdaptation.Common.CheckTable
         public static string Label(string source, int plots)
         {
             string text = source == DoorLevelSources.CivilFile ? DoorLevelText.Civil : DoorLevelText.Road;
-            return text.Replace(Slot, plots.ToString("N0", CultureInfo.InvariantCulture));
+            return text.Replace(Slot + " plots", CountText.Plots(plots, true));
         }
 
         // The plots of the step whose doorSource is source, on the written side as the plan takes it, else the raw side

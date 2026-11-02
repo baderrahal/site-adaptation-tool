@@ -86,7 +86,7 @@ namespace SiteAdaptation.Tests
             Assert.All(view.Rows, row => Assert.Null(row.ManualRuleId));
             // Plots 2 and 3 had no row of the build, 3 has the team check now
             Assert.Equal(1, view.FollowEveryRule);
-            Assert.Equal("1 plots follow every rule", view.FollowLine);
+            Assert.Equal("1 plot follows every rule", view.FollowLine);
             Assert.Equal(new[] { "All 4", "Plot cut 0", "Floor 0", "Hand 2", "Unit code 0", "Position 0", "Level 1", "Team check 1", "Assumed 0" }, view.Counts.Select(item => item.Key + " " + item.Value));
             Assert.True(view.SaveAllowed);
         }

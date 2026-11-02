@@ -95,11 +95,11 @@ namespace SiteAdaptation.Common.CheckTable
             return new CheckTableView
             {
                 Nbh = nbh ?? "all",
-                Title = "4 Check, NBH " + (nbh ?? "all") + ", " + numbers.Count + " plots",
+                Title = "4 Check, NBH " + (nbh ?? "all") + ", " + CountText.Plots(numbers.Count),
                 Rows = ordered,
                 Counts = counts,
                 FollowEveryRule = follow,
-                FollowLine = follow + " plots follow every rule",
+                FollowLine = CountText.FollowEveryRule(follow),
                 NoPastJobLine = past != null && past.KeyJoin != null ? null : NoPastJob,
                 Assumed = assumed,
                 SaveAllowed = saveAllowed,

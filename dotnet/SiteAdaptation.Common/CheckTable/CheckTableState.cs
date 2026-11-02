@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using Newtonsoft.Json.Linq;
 
 namespace SiteAdaptation.Common.CheckTable
@@ -31,9 +32,28 @@ namespace SiteAdaptation.Common.CheckTable
         // The chip Assumed groups rules and lists no row, an assumed status is no issue (item 8 of 7.7)
         public IReadOnlyList<CheckRow> Filter(string chip, string find)
         {
+            return Filter(chip, find, null);
+        }
+
+        // R495. field narrows to the rows of one field, null or empty for all of them. The find box takes a number as a plot and any
+        // other text as whole words of the note, so Pass finds the Pass rows and not the words passes of the Fail rows. A filter only
+        // hides rows, the Use of a hidden row stays in the state
+        public IReadOnlyList<CheckRow> Filter(string chip, string find, string field)
+        {
             string text = (find ?? "").Trim();
+            bool plotOnly = text.Length > 0 && text.All(char.IsDigit);
+            Regex word = text.Length == 0 || plotOnly ? null : new Regex(@"\b" + Regex.Escape(text) + @"\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
             return view.Rows.Where(row => chip == AllChip || (chip != AssumedChip && row.Check == chip))
-                .Where(row => text.Length == 0 || row.Plot.IndexOf(text, StringComparison.OrdinalIgnoreCase) >= 0).ToList();
+                .Where(row => string.IsNullOrEmpty(field) || row.Field == field)
+                .Where(row => text.Length == 0 || row.Plot.IndexOf(text, StringComparison.OrdinalIgnoreCase) >= 0 || (word != null && word.IsMatch(Text(row.Why))))
+                .ToList();
+        }
+
+        // R495. Each field the rows hold with its row count, in name order. A row of no field is in no entry and shows under all fields
+        public IReadOnlyList<KeyValuePair<string, int>> Fields()
+        {
+            return view.Rows.Where(row => !string.IsNullOrEmpty(row.Field)).GroupBy(row => row.Field).OrderBy(group => group.Key, StringComparer.Ordinal)
+                .Select(group => new KeyValuePair<string, int>(group.Key, group.Count())).ToList();
         }
 
         public int CountOf(string chip)

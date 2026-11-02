@@ -175,9 +175,9 @@ namespace SiteAdaptation.Tests
                     compared += found.Count;
                 }
             }
-            Assert.Equal(new[] { "1", "2", "3", "4", "5", "6", "7", "8", "9", "SiteAdaptationRules", "UpdateFromReport" }, keys);
-            Assert.Equal(11, theme.Elements(Wpf + "DrawingGroup").Count() / 2);
-            Assert.Equal(42 + 38, compared);
+            Assert.Equal(new[] { "1", "2", "3", "4", "5", "6", "7", "8", "9", "SiteAdaptationRules", "UpdateFromReport", "ShowPane" }, keys);
+            Assert.Equal(12, theme.Elements(Wpf + "DrawingGroup").Count() / 2);
+            Assert.Equal(42 + 38 + 6, compared);
             Assert.All(pens.Values, pen =>
             {
                 Assert.Equal("Round", (string)pen.Attribute("StartLineCap"));

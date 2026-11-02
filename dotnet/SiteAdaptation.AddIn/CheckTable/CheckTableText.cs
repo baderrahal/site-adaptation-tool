@@ -12,6 +12,10 @@ namespace SiteAdaptation.AddIn.CheckTable
         public const string SaveOverrides = "Save overrides";
         public const string HowTo = "Each row is a plot where the tool and the past job differ. Pick a row to see why, then choose Rule, Past or Skip. Save overrides keeps your choices.";
         public const string FollowLine = "<n> plots follow every rule";
+        public const string FieldLabel = "Field";
+        public const string AllFields = "All fields";
+        public const string FindLabel = "Find plot or note";
+        public const string ShowingLine = "Showing <n> of <n> rows";
         public const string NoPastJob = "No past job was given, so Plot cut shows no rows and no plot is counted as following every rule on Plot cut.";
 
         public const string All = "All";

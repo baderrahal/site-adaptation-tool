@@ -211,6 +211,7 @@ namespace SiteAdaptation.AddIn
         {
             if (e.Status == RevitAPIEventStatus.Succeeded && e.Document != null)
             {
+                firstShow.Rearm();
                 DocumentSession session = sessions.Opened(e.Document, e.Document.PathName, e.Document.Title);
                 // J1. The settings kept in the project come back when it opens, a JSON R367 refuses is named and left
                 string refused = e.Document.IsFamilyDocument ? null : session.LoadFrom(new Revit.SettingsEntity(e.Document));
@@ -226,6 +227,7 @@ namespace SiteAdaptation.AddIn
         {
             if (e.Status == RevitAPIEventStatus.Succeeded && e.Document != null)
             {
+                firstShow.Rearm();
                 sessions.Opened(e.Document, e.Document.PathName, e.Document.Title);
                 Show(sender as Application);
             }
@@ -302,6 +304,21 @@ namespace SiteAdaptation.AddIn
             catch (Autodesk.Revit.Exceptions.ApplicationException)
             {
                 // GetDockablePane throws while the pane is not created yet, and Show may refuse, the user can open it from the tab
+            }
+        }
+
+        // R494. The button Show pane. GetDockablePane and Show throw an ApplicationException while Revit has no pane to show, as with no
+        // project open on a Revit that keeps panes for documents, and then the button tells it in one line
+        internal bool ShowByHand(UIApplication application)
+        {
+            try
+            {
+                application.GetDockablePane(PaneId).Show();
+                return true;
+            }
+            catch (Autodesk.Revit.Exceptions.ApplicationException)
+            {
+                return false;
             }
         }
 
