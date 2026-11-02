@@ -26,7 +26,9 @@ param(
     # R104, Lane B 5b. The freeze guard: no first log step, no heartbeat, Revit not responding
     [int]$FirstStepMinutes = 5,
     [int]$HeartbeatMinutes = 10,
-    [int]$NotRespondingMinutes = 5
+    [int]$NotRespondingMinutes = 5,
+    # R448. Makes the run folder and writes the job to this file for Send-RevitJob.ps1, no Revit starts here
+    [string]$ListenerJobOut
 )
 
 $ErrorActionPreference = 'Stop'
@@ -85,6 +87,9 @@ if ($RoundSpec) {
 if (-not $DryStart -and -not $Code) {
     throw 'Give -Code, or -DryStart for a start with no job.'
 }
+if ($ListenerJobOut -and -not ($round -and $round.kind -eq 'addinRun' -and $round.buttons)) {
+    throw '-ListenerJobOut goes with a -RoundSpec of kind addinRun with buttons.'
+}
 if ($NewUpgradeFolder -and -not $Upgrade) {
     throw '-NewUpgradeFolder goes with -Upgrade only.'
 }
@@ -142,14 +147,7 @@ if (-not (Test-Path $watcherExe)) {
     throw "The dialog watcher is not installed at $watcherExe. Run Install-TestHost.ps1 first."
 }
 
-# Revit.exe of the Revit 2024 install folder, found by its own version and not guessed
-$found = @(Get-ChildItem (Join-Path $env:ProgramFiles 'Autodesk') -Directory | ForEach-Object { Join-Path $_.FullName 'Revit.exe' } |
-    Where-Object { Test-Path $_ } | Where-Object { $v = (Get-Item $_).VersionInfo
-        $v.ProductName -eq 'Autodesk Revit' -and $v.ProductMajorPart -eq 24 })
-if ($found.Count -ne 1) {
-    throw "Found $($found.Count) Revit.exe files of version 24, one is needed: $($found -join ', ')"
-}
-$revit = $found[0]
+$revit = Get-Revit2024Exe
 
 # The four add-ins of this tool by their AddInId and name in the repo manifests and the DLLs as the install scripts put them.
 # Only a box that names one of these DLLs gets Load Once, the watcher stops Revit on any other box of the tool
@@ -671,6 +669,13 @@ try {
         }
         # R466. Every job names the config of the repo for the design values of R405, an addinRun takes the copy of its run folder over it
         $job.designConfig = Join-Path $repo 'config\project.json'
+        # R448. The job goes to the Revit that is open, it holds its config and the real inputs it marks before and after (D19)
+        if ($ListenerJobOut) {
+            $job.config = Join-Path $runFolder 'config\project.json'
+            $job.inputs = [string[]]@($buttonsInputs)
+            $job | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $ListenerJobOut -Encoding utf8
+            return
+        }
         $job | ConvertTo-Json -Depth 5 | Set-Content -Path $jobPath -Encoding utf8
         # The token goes to the Revit process alone, this console never holds it
         $info.Environment['SITEADAPTATION_TESTHOST_TOKEN'] = $token
