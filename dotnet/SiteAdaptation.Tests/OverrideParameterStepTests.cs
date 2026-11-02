@@ -153,8 +153,10 @@ namespace SiteAdaptation.Tests
             Assert.Equal(new[] { Rounding.Fixed(rule[0] + 24.0, 3), rule[1] }, four["insert"].Select(value => (double)value).ToArray());
             Assert.Equal(0.0, (double)four["rotationDeg"]);
             Assert.Equal("Flat Ramps", (string)four["rampType"]);
-            double[][] yard = { new[] { 1.0, 2.0 }, new[] { 5.0, 2.0 }, new[] { 5.0, 6.0 }, new[] { 1.0, 6.0 } };
-            Assert.Equal(string.Join(" ", yard.Select(point => Rounding.Fixed(rule[0] + 24.0 + point[0], 3) + "," + Rounding.Fixed(rule[1] + point[1], 3))),
+            // R475. The cut stops the yard of its link at the back of the ramp of 5.52 m
+            double[][] yard = { new[] { Rounding.Fixed(rule[0] + 24.0 + 1.0, 3), 5.52 }, new[] { Rounding.Fixed(rule[0] + 24.0 + 5.0, 3), 5.52 }, new[] { Rounding.Fixed(rule[0] + 24.0 + 5.0, 3), Rounding.Fixed(rule[1] + 6.0, 3) },
+                new[] { Rounding.Fixed(rule[0] + 24.0 + 1.0, 3), Rounding.Fixed(rule[1] + 6.0, 3) } };
+            Assert.Equal(string.Join(" ", yard.Select(point => point[0] + "," + point[1])),
                 string.Join(" ", four["yardOutline"][0].Select(point => (double)point[0] + "," + (double)point[1])));
             double[] five = ((double[])built.Links["5"]["insert"]).Select(value => Rounding.Fixed(value, 3)).ToArray();
             Assert.Equal(new[] { five[0] + 0.3, five[1] - 0.2 }, (double[])plans["5"].Overrides["insert"]);

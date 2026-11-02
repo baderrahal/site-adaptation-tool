@@ -181,6 +181,21 @@ def flat_floor(builder, kind, unit, frame, inputs, z):
             "plotValue": sourced(unit + "-" + builder.plot), "z": sourced(common.r3(z)), "heightOffset": sourced(common.r3(z - elevation))}
 
 
+def cut_yard(builder, floors, face_ring, ramp_ring, slot):
+    """R475. The yard of the floors of a plot cut to its face and by the ramp it ends with, once the ramp is known. A yard the cut leaves empty is
+    the no yard path, its line at slot, where flat_floor would have written it, so the yard stays before the ramp in the missing entry."""
+    yard = floors.get("yard")
+    if yard is None:
+        return
+    given = [loop["points"] for loop in yard["outline"]["value"]["loops"]]
+    kept = floor_fit.yard_in_plot(given, face_ring, ramp_ring)
+    if not kept:
+        del floors["yard"]
+        builder.missing.insert(slot, {"key": "floors.yard", "why": floor_fit.YARD_CUT_EMPTY})
+    elif kept is not given:
+        yard["outline"]["value"] = loops_of(kept)
+
+
 def ramp_floor(builder, unit, frame, inputs, entry_level):
     """R137. The ramp of R127 with its corners: the front pair at the road level of its curb point plus rampFront.offsetM and
     the back pair parallel to it with its mean at El @ Entry, its type from the slope along its depth by rampTypes.bands (R136)."""
@@ -212,8 +227,8 @@ def ramp_floor(builder, unit, frame, inputs, entry_level):
             "heightOffset": sourced(common.r3(min(levels) - elevation)), "slopePercent": sourced(common.r3(slope))}
 
 
-def floor_values(builder, unit, frame, inputs):
-    """R137. The Generic, yard and ramp floors of a plot the plan holds a link and levels for."""
+def floor_values(builder, unit, frame, inputs, face=None):
+    """R137. The Generic, yard and ramp floors of a plot the plan holds a link and levels for, the yard in its plot by R475."""
     floors = {}
     ffl = builder.entry["levels"].get("ffl", {}).get("value")
     entry_level = builder.entry["levels"].get("entry", {}).get("value")
@@ -224,9 +239,12 @@ def floor_values(builder, unit, frame, inputs):
         made = flat_floor(builder, kind, unit, frame, inputs, z)
         if made is not None:
             floors[kind] = made
+    slot = len(builder.missing)
     made = ramp_floor(builder, unit, frame, inputs, entry_level)
     if made is not None:
         floors["ramp"] = made
+    ring = list(face.exterior.coords)[:-1] if face is not None and face.geom_type == "Polygon" else None
+    cut_yard(builder, floors, ring, None if made is None else made["outline"]["value"]["loops"][0]["points"], slot)
     return floors
 
 
@@ -251,7 +269,7 @@ def build_plan(entries, faces, roads, clusters, profile, analysis, frame_section
         if steps is not None:
             builder.entry["parameters"][plan_from_past.STEPS_PARAMETER] = sourced(str(steps))
         complete = all(builder.has(key) for key in LINK_KEYS)
-        builder.entry["floors"] = floor_values(builder, unit, frames.get(plot), floor_inputs) if complete and floor_inputs else {}
+        builder.entry["floors"] = floor_values(builder, unit, frames.get(plot), floor_inputs, faces.get(plot)) if complete and floor_inputs else {}
         floors_found.update(builder.entry["floors"].keys())
         floor_types.update(kind + ": " + floor["type"]["value"] for kind, floor in builder.entry["floors"].items())
         flags.update(builder.entry.get("levelFlags", []))

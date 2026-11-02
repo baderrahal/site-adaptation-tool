@@ -25,8 +25,8 @@ namespace SiteAdaptation.Tests
             addInBuild = Path.Combine(root, "build", "addin");
             workerBuild = Path.Combine(root, "build", "worker");
             Directory.CreateDirectory(addins);
-            Plant(addInBuild, "SiteAdaptation.AddIn.dll", "SiteAdaptation.AddIn.pdb", "SiteAdaptation.Common.dll", "SiteAdaptation.Common.pdb", "Newtonsoft.Json.dll", Path.Combine("Theme", "Fonts", "OFL.txt"));
-            Plant(workerBuild, "CadReader.exe", "CadReader.exe.config", "CadReader.pdb", "ACadSharp.dll", "Newtonsoft.Json.dll", "SiteAdaptation.Common.dll", "SiteAdaptation.Common.pdb", "cad_layers.json");
+            Plant(addInBuild, "SiteAdaptation.AddIn.dll", "SiteAdaptation.AddIn.pdb", "SiteAdaptation.Common.dll", "SiteAdaptation.Common.pdb", "Clipper2Lib.dll", "Newtonsoft.Json.dll", Path.Combine("Theme", "Fonts", "OFL.txt"));
+            Plant(workerBuild, "CadReader.exe", "CadReader.exe.config", "CadReader.pdb", "ACadSharp.dll", "Clipper2Lib.dll", "Newtonsoft.Json.dll", "SiteAdaptation.Common.dll", "SiteAdaptation.Common.pdb", "cad_layers.json");
             File.WriteAllText(Path.Combine(workerBuild, "SiteAdaptation.Common.dll"), "the Common of an older worker build");
         }
 
@@ -83,10 +83,11 @@ namespace SiteAdaptation.Tests
             };
             using (Process process = Process.Start(info))
             {
+                // Both at once: under a long worktree path the error of a refused install passes the 4 KB of its pipe, and pwsh blocks on it while stdout is read
+                var error = process.StandardError.ReadToEndAsync();
                 string output = process.StandardOutput.ReadToEnd();
-                string error = process.StandardError.ReadToEnd();
                 Assert.True(process.WaitForExit(60000), "pwsh did not end in 60 s");
-                return Tuple.Create(process.ExitCode, output + error);
+                return Tuple.Create(process.ExitCode, output + error.Result);
             }
         }
 
@@ -105,6 +106,7 @@ namespace SiteAdaptation.Tests
             string worker = Path.Combine(folder, "Worker");
             Assert.Equal(new[]
             {
+                @"SiteAdaptationAddIn\Clipper2Lib.dll",
                 @"SiteAdaptationAddIn\OFL.txt",
                 @"SiteAdaptationAddIn\SiteAdaptation.AddIn.dll",
                 @"SiteAdaptationAddIn\SiteAdaptation.AddIn.pdb",
@@ -114,6 +116,7 @@ namespace SiteAdaptation.Tests
                 @"SiteAdaptationAddIn\Worker\CadReader.exe",
                 @"SiteAdaptationAddIn\Worker\CadReader.exe.config",
                 @"SiteAdaptationAddIn\Worker\CadReader.pdb",
+                @"SiteAdaptationAddIn\Worker\Clipper2Lib.dll",
                 @"SiteAdaptationAddIn\Worker\Newtonsoft.Json.dll",
                 @"SiteAdaptationAddIn\Worker\SiteAdaptation.Common.dll",
                 @"SiteAdaptationAddIn\Worker\SiteAdaptation.Common.pdb",

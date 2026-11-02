@@ -48,9 +48,9 @@ function Copy-Files($source, $target, $files) {
     }
 }
 
-# The add-in folder takes the add-in and Common by name and nothing else. Revit serves its own Newtonsoft.Json by the redirect of
+# The add-in folder takes the add-in, Common and the clipper Common needs (R475) by name and nothing else. Revit serves its own Newtonsoft.Json by the redirect of
 # Revit.exe.config, and the resolver of the add-in would serve a copy of this folder to the tool (steps/lane-b.md, 5a PR 2 review)
-$addInFiles = @('SiteAdaptation.AddIn.dll', 'SiteAdaptation.AddIn.pdb', $common, 'SiteAdaptation.Common.pdb') |
+$addInFiles = @('SiteAdaptation.AddIn.dll', 'SiteAdaptation.AddIn.pdb', $common, 'SiteAdaptation.Common.pdb', 'Clipper2Lib.dll') |
     ForEach-Object { Join-Path $AddInBuild $_ } |
     Where-Object { $_ -like '*.dll' -or (Test-Path -LiteralPath $_) }
 $addInFiles += Join-Path $AddInBuild 'Theme\Fonts\OFL.txt'

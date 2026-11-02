@@ -43,15 +43,16 @@ def test_r365_r401_parity_summary_the_step_holds_the_counts_and_names_of_the_pla
     # Review 1 of PR 88: every value PlanSummaryTests.cs asserts, so the made row holds both languages to one summary
     table = tables["summary"]
     assert table["frontRule"] == {"nearestCurb": 5, "orientation": 1} and table["roadSurfacesOfFrontCorners"] == {"road": 12}
-    assert table["floorsFound"] == {"generic": 6, "yard": 3, "ramp": 6}
-    assert table["floorTypes"] == {"generic: Generic 150mm": 6, "ramp: Flat Ramps": 1, "ramp: Ramps 0.5%": 5, "yard: Yard made up": 3}
+    # R475. The turn of plot 2 puts its yard outside its plot, so the cut leaves two yards of three
+    assert table["floorsFound"] == {"generic": 6, "yard": 2, "ramp": 6}
+    assert table["floorTypes"] == {"generic: Generic 150mm": 6, "ramp: Flat Ramps": 1, "ramp: Ramps 0.5%": 5, "yard: Yard made up": 2}
     assert table["handRules"] == {"blockMirrorRoadSide": 1, "clusterSide": 2, "override": 1, "rowPairSideOrBlockMirrorOpenEnd": 2}
     assert table["steps"] == {"from": "keyRules.steps stepsFromHeight of parsons2024Rev6", "parameters": ["RRE_ZZ_SP_Number-of-Steps", "RRE_ZZ_SP_RVT-Name"]}
     # Q120: the mirror flag of 4 touches only the outline and type of its yard, so its level and plotValue are no longer assumed
-    assert (sum(sum(counts.values()) for counts in table["statusByField"].values()), len(table["statusByField"]), len(table["assumedByField"])) == (242, 44, 28)
+    assert (sum(sum(counts.values()) for counts in table["statusByField"].values()), len(table["statusByField"]), len(table["assumedByField"])) == (235, 44, 28)
     assert "floors.yard.level" not in table["assumedByField"] and "floors.yard.plotValue" not in table["assumedByField"]
     assert [table["assumedByField"][field] for field in ("floors.yard.outline", "mirrored", "parameters.RRE_ZZ_SP_Number-of-Steps", "rotationDeg")] == [
-        ["2", "4", "5"], ["4"], ["1", "2", "3", "4", "6"], ["2", "4", "6"]]
+        ["4", "5"], ["4"], ["1", "2", "3", "4", "6"], ["2", "4", "6"]]
     assert table["statusPlots"] == {"CHOSEN by Bader": 6, "DOCUMENT": 6, "MEASURED strong": 6, "MEASURED weak": 6, "RECOMMENDED": 5, "UNKNOWN": 6, "assumed": 6}
     assert table["statusByField"]["levels.roadAtFrontM"] and [item["plot"] for item in table["conflicts"]] == ["2"]
 

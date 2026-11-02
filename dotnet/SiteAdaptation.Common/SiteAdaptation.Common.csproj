@@ -6,6 +6,8 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+    <!-- R475. The clipper of the yard, the newest NuGet, one patch under the Clipper2 2.0.1 that pyclipr 0.1.8 of requirements.txt wraps -->
+    <PackageReference Include="Clipper2" Version="2.0.0" />
     <!-- R342, Q079. The SDK gives netstandard2.0 the NETStandard.Library 2.0.3 package, which asks for Microsoft.NETCore.Platforms 1.1.0
          under the Microsoft .NET Library licence. That package holds only the runtime graph of the restore and copies no file, the
          first MIT version replaces it here, build only, so no package of another licence is restored -->

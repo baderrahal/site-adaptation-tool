@@ -317,6 +317,8 @@ def level_step(numbers, rows, trace, rules, profile):
     return found
 
 
+# R475. plan_from_cad imports no plan_from_book, so the cut lives in floor_fit, which both import
+yard_in_plot = floor_fit.yard_in_plot
 FLOOR_FIELDS = ("unit", "generic", "rampOutline", "rampZ", "rampClass", "rampType", "yardDepth", "yardUnit", "yardWidth", "yardType", "yardOutline", "lacks",
                 "yardGrade")
 # R408. The lack of a ramp whose slope no band of the ramp types holds, under rev6
@@ -379,7 +381,13 @@ def floor_step(numbers, rows, trace, links, rules, profile, step):
                 builder.lack("floors.yard", "no fitted outline for " + yard_unit + (" mirrored" if mirrored else " not mirrored") + " on a plot " + str(width) + " m wide")
             else:
                 insert, rotation = plan_from_past.point(link["insert"]), plan_from_past.plan_rotation(link["rotationDeg"])
-                made.update(yardType=group["type"], yardOutline=[[list(point) for point in floor_fit.to_world(loop, insert, rotation, mirrored)] for loop in group["loops"]])
+                # R475. The yard in its plot, by the ramp of the rule, as no override has moved it yet
+                cut = yard_in_plot([[list(point) for point in floor_fit.to_world(loop, insert, rotation, mirrored)] for loop in group["loops"]],
+                                   None if face is None else face_ring(face), item.get("corners"))
+                if cut:
+                    made.update(yardType=group["type"], yardOutline=cut)
+                else:
+                    builder.lack("floors.yard", floor_fit.YARD_CUT_EMPTY)
         ramp_class = plan_rules.key_ramp_class(key, unit)
         made.update(rampClass=ramp_class, rampType=lp["rampTypes"].get(ramp_class) if ramp_class is not None else None)
         if made["rampType"] is None:
@@ -505,7 +513,10 @@ def override_step(numbers, rows, trace, hands, files, rules, profile, step):
             group = floor_fit.outline_for(outlines, "yard", yard_unit, mirrored, floor_fit.width_key(item["frame"]["length"], step))
             if group is not None:
                 origin, turn = plan_from_past.point(made["insert"]), plan_from_past.plan_rotation(made["rotationDeg"])
-                made.update(yardZ=ffl - below, yardOutline=[[list(point) for point in floor_fit.to_world(loop, origin, turn, mirrored)] for loop in group["loops"]])
+                # R475. Cut by the ramp the plot ends with, on the open edge of Q116 after a turn
+                cut = yard_in_plot([[list(point) for point in floor_fit.to_world(loop, origin, turn, mirrored)] for loop in group["loops"]], face_ring(item["face"]), made["rampOutline"])
+                if cut:
+                    made.update(yardZ=ffl - below, yardOutline=cut)
         written = plot["entry"]
         held_plan(number, "mirror flag", made["mirrored"], written["mirrored"]["value"])
         held_plan(number, "insert", plan_from_past.point(made["insert"]), written["insert"]["value"][:2])
@@ -1231,6 +1242,7 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
             if made:
                 made["z"]["source"] = made["heightOffset"]["source"] = ESTIMATE
                 floors["yard"] = made
+            yard_slot = len(builder.missing)
             ramp_frame, ramp_corners, ramp_front, kind, ramp_class, moved, named = item["frame"], item["corners"], item["front"], None, "rule", [], None
             if "rotationDeg" in outcomes.done[number]:
                 turned = open_ramp(item["face"], item["frame"], builder.entry["rotationDeg"]["value"], builder.entry["mirrored"]["value"], item.get("depth"), surfaces, snap)
@@ -1278,6 +1290,8 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
             if made:
                 floors["ramp"] = made
                 joint_ramps[number] = (ramp_corners, ramp_heights(ramp_front, builder.entry["levels"]["entry"]["value"]), ramp_road, made)
+            # R475. A ramp type with no level of the new site still cuts, the C# fits the yard before it knows the levels
+            plan_from_cad.cut_yard(builder, floors, face_ring(item["face"]), ramp_corners if made or kind is not None else None, yard_slot)
         builder.entry["floors"] = floors
         builder.entry["roadSurfaces"] = item["surfaces"]
         # R337. What the build did with each override of the plot, in the plan entry or the missing entry of a plot not written

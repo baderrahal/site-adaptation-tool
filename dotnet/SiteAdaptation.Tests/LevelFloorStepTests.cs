@@ -56,7 +56,8 @@ namespace SiteAdaptation.Tests
             return new JObject
             {
                 ["unit"] = "TH1", ["mirrored"] = false, ["width"] = 12.0, ["type"] = "Yard TH1 made up",
-                ["loops"] = new JArray { new JArray(new JArray(2.0, 3.0), new JArray(6.0, 3.0), new JArray(6.0, 7.0)) },
+                // R475. On the plot of the link of TH1 and behind its ramp, so the cut leaves it as it is
+                ["loops"] = new JArray { new JArray(new JArray(12.0, 13.0), new JArray(16.0, 13.0), new JArray(16.0, 17.0)) },
             };
         }
 
@@ -219,7 +220,8 @@ namespace SiteAdaptation.Tests
             Assert.Equal(12.0, (double)five["yardWidth"]);
             Assert.Equal("\"Yard made up\"", Text(five["yardType"]));
             double[] insert = ((double[])made.Links["5"]["insert"]).Select(value => Rounding.Fixed(value, 3)).ToArray();
-            var expected = new[] { new[] { 1.0, 2.0 }, new[] { 5.0, 2.0 }, new[] { 5.0, 6.0 }, new[] { 1.0, 6.0 } }.Select(point => new[] { insert[0] + point[0], insert[1] + point[1] }).ToArray();
+            // R475. The outline runs from 2 m behind the link, onto the ramp of 5.52 m, so the cut stops it at the back of the ramp
+            var expected = new[] { new[] { insert[0] + 1.0, 5.52 }, new[] { insert[0] + 5.0, 5.52 }, new[] { insert[0] + 5.0, insert[1] + 6.0 }, new[] { insert[0] + 1.0, insert[1] + 6.0 } };
             Assert.Equal(expected, ((IEnumerable<IEnumerable<double[]>>)five["yardOutline"]).Single().ToArray());
             Assert.True((bool)(JToken)made.Links["4"]["mirrored"]);
             Assert.Null(made.Floors["4"]["yardOutline"]);
@@ -249,7 +251,7 @@ namespace SiteAdaptation.Tests
             Assert.Equal("TH1 \"Yard TH1 made up\" 12", Text(five["yardUnit"]) + " " + Text(five["yardType"]) + " " + Text(five["yardWidth"]));
             Assert.Equal(0.0, (double)((StepValue)made.Links["5"]["rotationDeg"]).Written);
             double[] insert = ((double[])made.Links["5"]["insert"]).Select(value => Rounding.Fixed(value, 3)).ToArray();
-            var expected = new[] { new[] { 2.0, 3.0 }, new[] { 6.0, 3.0 }, new[] { 6.0, 7.0 } }.Select(point => new[] { insert[0] + point[0], insert[1] + point[1] }).ToArray();
+            var expected = new[] { new[] { 12.0, 13.0 }, new[] { 16.0, 13.0 }, new[] { 16.0, 17.0 } }.Select(point => new[] { insert[0] + point[0], insert[1] + point[1] }).ToArray();
             Assert.Equal(expected, ((IEnumerable<IEnumerable<double[]>>)five["yardOutline"]).Single().ToArray());
         }
 
