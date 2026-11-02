@@ -13,9 +13,10 @@
 
 - Lane B FIX-2NOV-B, 22:32, branch fix/2nov-b: final gate of R459 running since about 22:15, then PR. Then Q158 in a second PR, then the hand run of task 4. Lane C holds the lock, nothing blocks.
 - Lane C FIX-2NOV-C-CHECK, branch fix/2nov-c-check: R494 pane, R495 Check sort and filter, Save As owner, sheet parts 17 to 20. SPEED-2NOV-C paused on speed/2nov-c. Blocked: none
-- Lane D FIX-2NOV-D, 2 Nov, branch fix/2nov-d: no Revit, no window lock. Several road surfaces in order (Q364, Q256), R490 to R493, Q370 up. Editing NewProjectDialog and the pane road row, lane-c told.
+- Lane D MASS-2NOV-D, 3 Nov, branch mass/2nov-d: the mass outline by the outer wall faces (Q321, Q279), R500 to R505, Q380 up. Probe of the 13 prototypes done, steps/investigations/mass-outline.md.
+  Now: the ring builder, no Revit until its proof. Blocked: none
 
-Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane D FIX-2NOV-D, 2 Nov 2026.
+Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane D MASS-2NOV-D, 3 Nov 2026.
 
 ## Repo map
 
