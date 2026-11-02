@@ -37,7 +37,7 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 - The reader angleToTrueNorthDeg has 3 decimals and is not brought into 0 to 360, the placer takes 0 only
 - 4 yards that stand only by a mirror override read a status stronger than their evidence (Q163)
 - The tab title of the ribbon sits behind the overflow mark at 1536 logical px (Q146). 4 Check dry run has no worker start (Q195)
-- Under rev6 one road surface covers 630 of 2,704 plots (Q256), the past overrides apply (Q255). R414 off, 8 of 82 (Q303, Q304). No R417 (Q259)
+- Under rev6 one road surface covers 630 of 2,704 plots (Q256), the past overrides apply (Q255). R414 off, 43 of 82, Q303 and Q304 closed. No R417 (Q259)
 
 ## Bader's turn
 
