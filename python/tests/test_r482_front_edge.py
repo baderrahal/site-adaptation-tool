@@ -224,8 +224,8 @@ def test_r482_each_line_of_the_list_is_a_hand_edit_whose_plot_holds_no_gap_of_th
 
 
 # R401, Q299. What a frontEdge line moves, read off a build with the line out and from the hand table the road side of its front feeds, R482_FrontEdgeTests.cs holds the same list
-MOVED = ("insert", "rotationDeg", "mirrored", "levels.entry", "levels.ffl", "levels.ssl", "levels.height", "levels.steps", "levels.roadAtFrontM", "linkName",
-         "parameters.CASE", "parameters.RRE_ZZ_SP_Prototype-Foundation-Type", "parameters.RRE_ZZ_SP_Prototype-FFL", "parameters.RRE_ZZ_SP_Number-of-Steps", "parameters.RRE_ZZ_SP_RVT-Name",
+MOVED = ("insert", "rotationDeg", "levels.entry", "levels.ffl", "levels.ssl", "levels.height", "levels.steps", "levels.roadAtFrontM", "linkName",
+         "parameters.RRE_ZZ_SP_Prototype-FFL", "parameters.RRE_ZZ_SP_Number-of-Steps", "parameters.RRE_ZZ_SP_RVT-Name",
          "floors.generic.z", "floors.generic.heightOffset", "floors.yard.outline", "floors.yard.type", "floors.yard.z", "floors.yard.heightOffset",
          "floors.ramp.outline", "floors.ramp.corners", "floors.ramp.heightOffset", "walls.ends", "walls.base", "walls.top")
 # A value that stands on the elevation of its level or on where a wall ends reads UNKNOWN by what it holds with no override too
@@ -322,3 +322,17 @@ def test_r482_a_plot_with_a_front_edge_line_holds_no_cannot_line_of_the_old_fron
     assert not [(item["plot"], item["field"]) for item in data["cannot"] if item["plot"] in plots and item["source"] == "parsons"]
     # A native line is of another job and another front, a build of the parsons job never loads it (R330), so it stays
     assert {item["plot"] for item in data["cannot"] if item["plot"] in plots and item["source"] == "native"} == {"2626", "2665"}
+
+
+def test_r482_the_lines_of_the_old_front_are_gone_and_the_hand_stays_out_of_the_set():
+    """Breaker 2 of FIX-2NOV-A3: an outline gap of the old front showed 21 m on a ramp 1 mm off its key, and a hand the line does not move read as moved."""
+    with open(Path(__file__).resolve().parents[2] / "config" / "overrides" / "roshn-makkah.json", encoding="utf-8") as handle:
+        lines = [item for item in json.load(handle)["overrides"] if item["source"] == "parsons"]
+    notched = {"469", "727", "1172", "2626", "2665"}
+    assert [item["plot"] for item in lines if item["plot"] in notched and item["field"] == "steps"] == []
+    assert sorted(item["plot"] for item in lines if item["plot"] in notched and item["field"] == "rampOutline") == ["1172", "469"]
+    with open(Path(__file__).resolve().parents[2] / "config" / "project.json", encoding="utf-8") as handle:
+        status = json.load(handle)["valueStatus"]
+    for name in ("mirrored", "parameters.CASE", "parameters.RRE_ZZ_SP_Prototype-Foundation-Type"):
+        assert name not in status["overrideSets"]["frontEdge"]
+        assert name not in status["overrideReads"]["frontEdge"]

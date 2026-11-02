@@ -976,7 +976,7 @@
       "mirrored": ["mirrored", "insert", "rotationDeg", "parameters.CASE", "parameters.RRE_ZZ_SP_Prototype-Foundation-Type", "floors.yard.outline", "floors.yard.type"],
       "insert": ["insert", "floors.yard.outline"],
       "rotationDeg": ["rotationDeg", "floors.yard.outline", "walls.ends", "walls.base", "walls.top", "floors.ramp.outline", "floors.ramp.corners", "floors.ramp.heightOffset"],
-      "frontEdge": ["insert", "rotationDeg", "mirrored", "levels.entry", "levels.ffl", "levels.ssl", "levels.height", "levels.steps", "levels.roadAtFrontM", "linkName", "parameters.CASE", "parameters.RRE_ZZ_SP_Prototype-Foundation-Type", "parameters.RRE_ZZ_SP_Prototype-FFL", "parameters.RRE_ZZ_SP_Number-of-Steps", "parameters.RRE_ZZ_SP_RVT-Name", "floors.generic.z", "floors.generic.heightOffset", "floors.yard.outline", "floors.yard.type", "floors.yard.z", "floors.yard.heightOffset", "floors.ramp.outline", "floors.ramp.corners", "floors.ramp.heightOffset", "walls.ends", "walls.base", "walls.top"]
+      "frontEdge": ["insert", "rotationDeg", "levels.entry", "levels.ffl", "levels.ssl", "levels.height", "levels.steps", "levels.roadAtFrontM", "linkName", "parameters.RRE_ZZ_SP_Prototype-FFL", "parameters.RRE_ZZ_SP_Number-of-Steps", "parameters.RRE_ZZ_SP_RVT-Name", "floors.generic.z", "floors.generic.heightOffset", "floors.yard.outline", "floors.yard.type", "floors.yard.z", "floors.yard.heightOffset", "floors.ramp.outline", "floors.ramp.corners", "floors.ramp.heightOffset", "walls.ends", "walls.base", "walls.top"]
     },
     "overrideReads": {
       "entryM": {
@@ -1035,7 +1035,6 @@
       "frontEdge": {
         "insert": [{"profile": "levelProfiles.{levelProfile}.keyRules.linkOrigin.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.hand {hand}.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.ffl.rule"}],
         "rotationDeg": [{"profile": "levelProfiles.{levelProfile}.keyRules.linkRotation.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.hand {hand}.rule"}],
-        "mirrored": [{"profile": "levelProfiles.{levelProfile}.keyRules.hand {hand}.rule"}],
         "levels.entry": [{"profile": "levelProfiles.{levelProfile}.keyRules.entry.rule"}],
         "levels.ffl": [{"profile": "levelProfiles.{levelProfile}.keyRules.ffl.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.levelSplit.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.baseHeight.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.entry.rule"}],
         "levels.ssl": [{"profile": "levelProfiles.{levelProfile}.keyRules.ssl.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.ffl.rule"}],
@@ -1043,8 +1042,6 @@
         "levels.steps": [{"profile": "levelProfiles.{levelProfile}.keyRules.steps.rule"}, {"profile": "steps.riser_added"}, {"profile": "levelProfiles.{levelProfile}.keyRules.ffl.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.entry.rule"}],
         "levels.roadAtFrontM": [{"profile": "levelProfiles.{levelProfile}.frontRoad.surface"}],
         "linkName": [{"profile": "levelProfiles.{levelProfile}.keyRules.parameter RRE_ZZ_SP_RVT-Name.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.steps.rule"}, {"profile": "steps.riser_added"}, {"profile": "levelProfiles.{levelProfile}.keyRules.ffl.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.entry.rule"}],
-        "parameters.CASE": [{"profile": "levelProfiles.{levelProfile}.keyRules.parameter {parameter}.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.hand {hand}.rule"}],
-        "parameters.RRE_ZZ_SP_Prototype-Foundation-Type": [{"profile": "levelProfiles.{levelProfile}.keyRules.parameter {parameter}.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.hand {hand}.rule"}],
         "parameters.RRE_ZZ_SP_Prototype-FFL": [{"profile": "levelProfiles.{levelProfile}.keyRules.parameter {parameter}.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.ffl.rule"}],
         "parameters.RRE_ZZ_SP_Number-of-Steps": [{"profile": "levelProfiles.{levelProfile}.keyRules.parameter {parameter}.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.steps.rule"}, {"profile": "steps.riser_added"}, {"profile": "levelProfiles.{levelProfile}.keyRules.ffl.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.entry.rule"}],
         "parameters.RRE_ZZ_SP_RVT-Name": [{"profile": "levelProfiles.{levelProfile}.keyRules.parameter {parameter}.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.steps.rule"}, {"profile": "steps.riser_added"}, {"profile": "levelProfiles.{levelProfile}.keyRules.ffl.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.entry.rule"}],

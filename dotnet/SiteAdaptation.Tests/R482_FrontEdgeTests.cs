@@ -270,8 +270,8 @@ namespace SiteAdaptation.Tests
         // R401, Q299. What a frontEdge line moves, as MOVED of python/tests/test_r482_front_edge.py holds it
         private static readonly string[] Moved =
         {
-            "insert", "rotationDeg", "mirrored", "levels.entry", "levels.ffl", "levels.ssl", "levels.height", "levels.steps", "levels.roadAtFrontM", "linkName",
-            "parameters.CASE", "parameters.RRE_ZZ_SP_Prototype-Foundation-Type", "parameters.RRE_ZZ_SP_Prototype-FFL", "parameters.RRE_ZZ_SP_Number-of-Steps", "parameters.RRE_ZZ_SP_RVT-Name",
+            "insert", "rotationDeg", "levels.entry", "levels.ffl", "levels.ssl", "levels.height", "levels.steps", "levels.roadAtFrontM", "linkName",
+            "parameters.RRE_ZZ_SP_Prototype-FFL", "parameters.RRE_ZZ_SP_Number-of-Steps", "parameters.RRE_ZZ_SP_RVT-Name",
             "floors.generic.z", "floors.generic.heightOffset", "floors.yard.outline", "floors.yard.type", "floors.yard.z", "floors.yard.heightOffset",
             "floors.ramp.outline", "floors.ramp.corners", "floors.ramp.heightOffset", "walls.ends", "walls.base", "walls.top",
         };
