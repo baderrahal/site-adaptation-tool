@@ -2,6 +2,34 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Lane B CHECK-2NOV, 2026-11-02, the parts of Bader's sheet through the real windows, Lane B on the laptop
+
+Goal:
+- Bader's round: run parts 2 to 13 of steps/bader-fix-1nov.md on copies, pass or fail against each Look for, close Revit at the end
+
+Done:
+- steps/check-2nov.md: 8 parts pass, 5 fail, on add-in dbda940. PR 139, PR 141 and PR 142 are not in this check, parts 14 to 16 not run
+- Q308 file deleted after its hash matched, C:\SA-demo\config refreshed from main with 4 demo paths kept
+- R458 Revit slog leaves step hash. Caller: Where in InputHash.OfFolder, reached by InputHash.Of and InputProbe.FolderSha256. Test R458_a_revit_slog...
+- steps/demo-check.md: the wrong lines on hidden buttons taken out, the R446 change noted
+
+Checked:
+- Inputs: same 44 files by SHA-256 after each part (RAN). Folder C:\SA-demo\inputs write time moved at 18:41:24, no file left, cause UNKNOWN
+- Part 11 cause: 13 .slog files timed inside button 7 (RAN). Gate: see the PR. R458 not run again in Revit
+
+Remains:
+- Fails sent to their lanes by message. Q158 decides the second run of part 4
+
+Known bugs:
+- Part 10: no pane after a reopen in the same Revit session (Lane C). Part 4: Element id empty in Placed (Lane A)
+- Our fault: an Error Report written outside the run folder, part 9 unsaved for 19 min, see steps/check-2nov.md
+
+Next:
+- FIX-2NOV-B: the shared handler of known warnings at step 5, then the hand run of main
+
+Your turn:
+- No question opened or closed. 158 open, steps/questions-open.md
+
 ## Lane C parameters, 2026-11-02, the other 12 bound parameters on the sheet
 
 Goal:
@@ -348,7 +376,7 @@ Remains:
 Known bugs:
 - Our fault: the driver script wrote an export into C:\SA-demo\inputs, against the rule of the round, left for Bader's answer (Q308)
 - Step 2 back to Ready at the pass A open before any pick, cause UNKNOWN. Revit quit at 22:53:48 by a normal exit, cause UNKNOWN, no repeat
-- Zoom and Export of Check give no sign. Zoom and Export of Review data are not built. Report Summary placeholders (Q307)
+- Report Summary placeholders (Q307)
 
 Next:
 - Lane D D3 takes Revit. Lane C takes the window findings of steps/demo-check.md
