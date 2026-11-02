@@ -442,6 +442,36 @@ namespace SiteAdaptation.Tests
             Assert.Contains(RevitCounts.NotCounts, refused.Message);
         }
 
+        // CHECK-2NOV part 4: the column stood empty on all 1,339 rows of the sheet Placed, so a row could not be traced to its element
+        [Fact]
+        public void R483_the_sheet_placed_names_the_element_of_each_row_from_the_model_and_stays_empty_where_none_stands()
+        {
+            Func<long, string, string, KeyValuePair<long, SiteAdaptation.Common.Tags.PlacedTag>> element = (id, plot, kind) => new KeyValuePair<long, SiteAdaptation.Common.Tags.PlacedTag>(id,
+                new SiteAdaptation.Common.Tags.PlacedTag(1, new SiteAdaptation.Common.Tags.TagKey(plot, kind, ""), "r7", "parsons2024Rev6", "u" + id, new SiteAdaptation.Common.Tags.PlacedValues(new Dictionary<string, double[]>())));
+            // A copied ramp stands twice on 101, the yard of 101 is deleted by hand, a wall has no row of the sheet
+            JObject counts = RevitCounts.FromElements(new[] { element(5001, "101", "link"), element(5002, "101", "generic"), element(5004, "101", "ramp"), element(5003, "101", "ramp"), element(5005, "101", "boundaryWall") }, new string[0], null);
+            Assert.Equal(5001L, RevitCounts.ElementId(counts, "101", "link"));
+            Assert.Equal("5003, 5004", RevitCounts.ElementId(counts, "101", "ramp"));
+            Assert.Null(RevitCounts.ElementId(counts, "101", "yard"));
+            Assert.Null(RevitCounts.ElementId(counts, "102", "link"));
+            Assert.Null(RevitCounts.ElementId(counts, "101", "boundaryWall"));
+            // A counts file of an earlier add-in holds no ids and stays a counts file
+            Assert.Null(RevitCounts.ElementId(RevitCounts.FromTags(new SiteAdaptation.Common.Tags.PlacedTag[0], new[] { "101" }, null), "101", "link"));
+            Assert.Null(RevitCounts.Refusal(counts));
+
+            LevelExcelTests.Book book = RunBook(out WorkerAnswer answer, out string plan, revitCounts: counts);
+            var ids = new Dictionary<string, object>();
+            for (int row = 2; book.Row("Placed", row).Count() > 0; row++)
+            {
+                object[] cells = book.Row("Placed", row).ToArray();
+                ids[cells[0] + " " + cells[1]] = cells.Length > 4 ? cells[4] : null;
+            }
+            Assert.Equal(5001.0, ids["101 link"]);
+            Assert.Equal(5002.0, ids["101 generic"]);
+            Assert.Equal("5003, 5004", ids["101 ramp"]);
+            Assert.Null(ids["102 link"]);
+        }
+
         [Fact]
         public void R365_the_box_rules_applied_names_each_key_rule_with_its_share_strength_and_the_plots_that_took_its_value()
         {

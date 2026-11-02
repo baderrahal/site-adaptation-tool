@@ -221,8 +221,6 @@ def changes_of(books, plan, sha, rules, profile, overrides=None):
                     why = "a second row of the plot and kind" if not first else why_not(plot) if plot not in written else "no kind of the plot in the plan"
                     ignore(book, PLACED, index, plot, "Kind", None, cell(row, 1), why)
                     continue
-                if cell(row, 4) is not None:
-                    ignore(book, PLACED, index, plot, "Element id", None, cell(row, 4), "not editable")
                 if floor is not None:
                     model = (floor.get("type") or {}).get("value")
                     model = model if isinstance(model, str) else None

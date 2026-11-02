@@ -4,15 +4,14 @@
 
 ### Lane A
 
-- Lane: A, round FIX-2NOV-A2, branch fix/2nov-a2. Time: 2026-11-02 18:00. Blocked: none
-- Done: R478, R479, R480, review 1, breaker 1, gate on ae8369b, parity 32 runs 0 failures
+- Lane: A, item of CHECK-2NOV, branch fix/2nov-a-placed-ids. Time: 2026-11-02 21:30. Blocked: none
+- Done: R483 Element id of Placed, review 1, breaker 1, gate on 8e611bb
 - Now: the PR
-- Next: merge when green, tell lane-c, then queued FIX-2NOV-A3
+- Next: back to FIX-2NOV-A3 on fix/2nov-a3, helpers done
 
 ### Lane B, C and D
 
-- Lane B Task 6 (FIX-1NOV-B), 02:30, branch fix/1nov-b-task6: both passes done, Revit closed, lock free, main with PR 130 merged in, keeping both sides.
-  Now: the gate on the merged tree, then merge PR 131. Then Lane D D3 on my word
+- Lane B CHECK-2NOV, 20:24, branch check/2nov-b: gate running since 20:05, lock free. Lane C takes the lock when it ends. Then the PR, then FIX-2NOV-B. Waits on Bader: Q367, generic with yard rule.
 - Lane C, branch docs/2nov-c-params: the other 12 bound parameters listed Keep No with a Note in config/shared_parameters.xlsx. Then SPEED-2NOV-C on speed/2nov-c, R449 pushed, helpers on R447 and R448. Blocked: none
 - Lane D FIX-2NOV-D, 2 Nov, branch fix/2nov-d: no Revit, no window lock. Several road surfaces in order (Q364, Q256), R490 to R493, Q370 up. Editing NewProjectDialog and the pane road row, lane-c told.
   Now: review fixes joined, final proof and parity next. Blocked: none

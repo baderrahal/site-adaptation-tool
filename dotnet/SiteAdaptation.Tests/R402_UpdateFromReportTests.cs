@@ -146,11 +146,11 @@ namespace SiteAdaptation.Tests
         }
 
         // The sheets Placed and Settings of the report Excel of 012 as ReportSheets makes Placed, written by ReportWorkbook
-        private string WriteReportExcel(JObject plan, string planSha = PlanSha)
+        private string WriteReportExcel(JObject plan, string planSha = PlanSha, JObject revitCounts = null)
         {
             var book = new ReportBook { Nbh = "012", FileName = "012_Report.xlsx" };
             var placed = new ReportSheet { Name = ReportExcelText.PlacedSheet };
-            placed.Tables.Add(ReportSheets.PlacedTable(plan["plots"].OfType<JObject>().ToList()));
+            placed.Tables.Add(ReportSheets.PlacedTable(plan["plots"].OfType<JObject>().ToList(), revitCounts));
             var settings = new ReportSheet { Name = ReportExcelText.SettingsSheet };
             var table = new ReportTable { Header = ReportExcelText.SettingColumns, Formats = new string[2] };
             table.Rows.Add(new object[] { ReportExcelText.RunId, "rx1" });
@@ -451,6 +451,26 @@ namespace SiteAdaptation.Tests
             Assert.False(held.Ticked);
             UpdateApplied applied = UpdateFromReport.Apply(list.Changes.Where(change => change.Ticked), plan, overrides, MadeRules(), Profile, "u9");
             Assert.Equal(new[] { "102" }, applied.Plots.ToArray());
+        }
+
+        // R483. The report fills the element id, so every filled cell would read as an edit not allowed and bury the real lines of the list
+        [Fact]
+        public void R483_a_filled_element_id_is_no_edit_of_the_report_excel()
+        {
+            JObject plan = MadePlan();
+            var counts = new JObject { ["format"] = RevitCounts.Format, ["plots"] = new JObject() };
+            foreach (JObject plot in plan["plots"].OfType<JObject>())
+            {
+                counts["plots"][(string)plot["plot"]] = new JObject { ["ids"] = new JObject { ["link"] = new JArray(5001L), ["generic"] = new JArray(5002L, 5003L) } };
+            }
+            string report = WriteReportExcel(plan, revitCounts: counts);
+            Assert.Equal("5001", Convert.ToString(XlsxSheet.Read(report, ReportExcelText.PlacedSheet).Rows[1][4], System.Globalization.CultureInfo.InvariantCulture));
+
+            UpdateList list = UpdateFromReport.Compare(new List<UpdateBook> { UpdateWorkbook.Read(report) }, plan, PlanSha, MadeRules(), Profile);
+
+            Assert.Null(list.Refusal);
+            Assert.Empty(list.Ignored);
+            Assert.Empty(list.Changes);
         }
 
         // Breaker 2 of 5f: two level Excels of one NBH picked together listed a plot twice and Apply saved one of them silently, so a second
