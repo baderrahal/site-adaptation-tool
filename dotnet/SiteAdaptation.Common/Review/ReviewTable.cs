@@ -25,6 +25,12 @@ namespace SiteAdaptation.Common.Review
                 {
                     continue;
                 }
+                // R476. A plot with no official number is land with no villa type, open space or a school, which 4 Check does not build. A table
+                // with no field officialNumber, as the made up tables of the tests, keeps every row
+                if (face.Property("officialNumber") != null && Text(face["officialNumber"]) == null)
+                {
+                    continue;
+                }
                 string label = Text(face["baseplanLabel"]) ?? entry.Name;
                 string number = Text(face["locationPlanNumber"]) ?? Text(face["officialNumber"]);
                 if (number == null)
