@@ -60,7 +60,8 @@ def test_r362_a_rule_the_build_does_not_place_walls_by_is_refused():
     profile = project_profile.load_profile(project_profile.profile_path(project_profile.load_settings()))
     level = profile.get("levelProfiles.parsons2024Rev6")
     rules = plan_walls.wall_rules(level["keyRules"], level, "parsons2024Rev6", profile, 0.3)
-    assert {name: value for name, value in rules.items() if name != "open"} == {"higherBase": True, "higherTop": True, "depth": 0.1, "rise": 1.7, "near": 0.3}
+    # The spans of Q115 and R480 have tests of their own
+    assert {name: value for name, value in rules.items() if name not in ("open", "sides")} == {"higherBase": True, "higherTop": True, "depth": 0.1, "rise": 1.7, "near": 0.3}
     for entry, line in (("wallLine", "centreOnTheEdge"), ("frontOpen", "all"), ("wallBase", "yardLevelOfTheHigherPlot or yardLevelOfTheLowerPlot")):
         key = dict(level["keyRules"], **{entry: {"rule": "other"}})
         with pytest.raises(project_profile.ProfileError) as error:

@@ -1340,7 +1340,9 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
         for index, cluster in enumerate(clusters if numbered else numbered_clusters(clusters, number_of)):
             for plot in cluster["plots"]:
                 kin[plot] = (index, (rows.get(plot) or {}).get("typologyRev9") or None)
-        placed = plan_walls.walls(numbers, set(ffls), rings, opened, ffls, wall_rules, faced, kin)
+        # R480. The hand of each written plot after the overrides, for the span keyRules.wallSideOpen leaves open on a side edge
+        hands_after = {plot: entry["mirrored"]["value"] for plot, entry in written.items() if (entry.get("mirrored") or {}).get("value") is not None}
+        placed = plan_walls.walls(numbers, set(ffls), rings, opened, ffls, wall_rules, faced, kin, hands_after)
         if lines is not None:
             plan_walls.inside(placed, rings, set(ffls), irregulars, lines["half"], lines["tolerance"], wall_rules["near"])
         for wall in placed:

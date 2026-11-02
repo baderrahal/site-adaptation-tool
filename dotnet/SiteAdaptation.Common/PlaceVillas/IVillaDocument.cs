@@ -114,6 +114,9 @@ namespace SiteAdaptation.Common.PlaceVillas
         // R300, the villa outlines of the footprint read of button 2 in shared plan coordinates
         public IReadOnlyList<double[][]> Footprint { get; set; } = new List<double[][]>();
 
+        // R479. The keo_file of each unit in the rules of the build of the plan, so the footprint check takes a unit as the type of its file
+        public IReadOnlyDictionary<string, string> KeoFiles { get; set; } = new Dictionary<string, string>();
+
         // The SHA-256 of each prototype file by its full path, from the record of the last real run of 7
         public IReadOnlyDictionary<string, string> LastHashes { get; set; } = new Dictionary<string, string>();
 

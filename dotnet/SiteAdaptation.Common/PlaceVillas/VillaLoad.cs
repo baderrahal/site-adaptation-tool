@@ -33,7 +33,23 @@ namespace SiteAdaptation.Common.PlaceVillas
             VillaInputs inputs = VillaInputs.Of(plan, named.Item2, configPath, pickedMode, profile, inScope, blocks, last);
             // R453, Q276. The house outlines of the blocks in place of the plot envelope Of takes
             inputs.Footprint = FootprintCheck.FromRead(blocks, inputs.Config);
+            inputs.KeoFiles = FootprintCheck.KeoFiles(RulesOfBuild(plan));
             return inputs;
+        }
+
+        // R479. The rules file the run of 4 Check built the plan on, from its request as buttons 5 and 6 find it. A build that left no request gives no rules, so the
+        // footprint check compares a unit by its own name, which is told in no line as every real run of 4 Check leaves one
+        private static JObject RulesOfBuild(string planPath)
+        {
+            string folder = Path.GetDirectoryName(Path.GetFullPath(planPath));
+            string runId = (string)CheckRun.RecordOf(folder)?["runId"];
+            string request = runId == null ? null : WorkerFiles.RequestPath(folder, runId);
+            if (request == null || !File.Exists(request))
+            {
+                return null;
+            }
+            string rules = WorkerRequest.Read(request).Inputs?.FirstOrDefault(input => input.Role == CheckRun.Rules)?.Path;
+            return rules != null && File.Exists(rules) ? JObject.Parse(WorkFiles.ReadText(rules)) : null;
         }
 
         // R366. The scope of the pane held against the plot table of the latest read: an NBH takes every plot of its plan, a plot list takes

@@ -113,8 +113,8 @@ namespace SiteAdaptation.Common.PlaceVillas
         // The footprint of a plot is the villa block of R300 whose outline holds the middle of the placed base, CHOSEN since a plot row
         // names no block and the blocks are listed by block name only. Where two hold it the nearer middle wins. R477, Q277. Only a block
         // of the type of the unit is held to the limit, the master plan drew another house in a block of another type. An outline with no
-        // block name, which no read gives, has no type to tell and is held as in R404
-        public static FootprintRow Row(string plot, IReadOnlyList<double[]> placedBase, IEnumerable<double[][]> blocks, LightModeConfig config, string prototype = null, string unit = null)
+        // block name, which no read gives, has no type to tell and is held as in R404. R479. keoFile is the keo_file of the unit, the type its house is drawn as
+        public static FootprintRow Row(string plot, IReadOnlyList<double[]> placedBase, IEnumerable<double[][]> blocks, LightModeConfig config, string prototype = null, string unit = null, string keoFile = null)
         {
             double[] middle = Middle(placedBase);
             double[][] block = blocks.Where(outline => outline.Length >= 3 && RingMath.Holds(outline, middle))
@@ -125,7 +125,7 @@ namespace SiteAdaptation.Common.PlaceVillas
             }
             double distance = JsonOut.Round3(OutlineDistance.HausdorffMm(placedBase, block, config.FootprintSampleStepMm));
             string name = (blocks as FootprintOutlines)?.BlockOf(block);
-            if (name != null && !SameType(name, unit))
+            if (name != null && !SameType(name, unit, keoFile))
             {
                 return new FootprintRow
                 {
@@ -141,11 +141,32 @@ namespace SiteAdaptation.Common.PlaceVillas
             };
         }
 
-        // R477. The type of a block is the part of its name after the last underscore, so a name with none is of no type
-        private static bool SameType(string block, string unit)
+        // R477. The type of a block is the part of its name after the last underscore, so a name with none is of no type. R479. A block of
+        // the unit by its own name stays the same type, as a unit can have blocks of its own beside the file it links
+        private static bool SameType(string block, string unit, string keoFile)
         {
             int underscore = block.LastIndexOf('_');
-            return underscore >= 0 && string.Equals(block.Substring(underscore + 1), unit, StringComparison.OrdinalIgnoreCase);
+            if (underscore < 0)
+            {
+                return false;
+            }
+            string type = block.Substring(underscore + 1);
+            return string.Equals(type, unit, StringComparison.OrdinalIgnoreCase) || string.Equals(type, keoFile, StringComparison.OrdinalIgnoreCase);
+        }
+
+        // R479. The keo_file of each unit of typologies of the rules profile, by the unit without case as the block type is told
+        public static Dictionary<string, string> KeoFiles(JObject rules)
+        {
+            var found = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (JProperty typology in (rules?["typologies"] as JObject)?.Properties() ?? Enumerable.Empty<JProperty>())
+            {
+                JToken keo = (typology.Value as JObject)?["keo_file"];
+                if (keo != null && keo.Type == JTokenType.String && !string.IsNullOrEmpty((string)keo))
+                {
+                    found[typology.Name] = (string)keo;
+                }
+            }
+            return found;
         }
 
         // Every outline of the footprint read of button 2 (read_villaBlocks.json), by SiteClusters.BlocksByName as the build reads it
