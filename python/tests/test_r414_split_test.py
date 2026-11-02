@@ -18,14 +18,14 @@ FOUR = [{"code": "Townhouse_made_up", "plots": CLUSTER, "source": "footprint"}]
 LOW, MID, HIGH = 10.0, 10.255, 10.51
 
 
-def made_split(levels, slopes=None):
-    """split_test on a made up cluster of four DP2 units with El @ Entry levels in row order and a slope of 1 percent each, or slopes."""
+def made_split(levels, roads=None):
+    """split_test on a made up cluster of four DP2 units with El @ Entry levels in row order and the road at front of each, none when left out."""
     profile = made_rules()
     key = profile.get("levelProfiles")["parsons2024Rev6"]["keyRules"]
     lp = plan_rules.level_profile(profile, "parsons2024Rev6")
     entries = {plot: {"unit": "DP2", "entry": level, "rule": level} for plot, level in zip(CLUSTER, levels)}
     roles = {plot: {"plots": list(CLUSTER)} for plot in CLUSTER}
-    return plan_rules.split_test(entries, dict(zip(CLUSTER, slopes or [1.0] * 4)), roles, SPLIT, key, profile, lp)
+    return plan_rules.split_test(entries, dict(zip(CLUSTER, roads or [])), roles, SPLIT, key, profile, lp)
 
 
 def test_r414_a_cluster_whose_units_all_fit_stays_whole():
@@ -47,11 +47,10 @@ def test_r414_a_split_after_unit_2_when_after_unit_3_does_not_fit_is_the_middle(
 
 
 def test_r414_a_cluster_no_split_fits_stays_whole_as_no_fit():
-    # A slope outside front_min to front_max fits in no part, so no split helps and the cluster stays whole
-    pieces, marks = made_split([LOW, LOW, MID, HIGH], slopes=[1.0, 1.0, 1.0, 2.5])
+    # Q303 took the slope out of the test, so this case holds steps alone: plot 2 lies 0.51 m under plot 4 and plot 4 0.51 m under plot 5,
+    # so neither wall leaves two parts that fit
+    pieces, marks = made_split([LOW, LOW, HIGH, LOW + 1.02])
     assert pieces == {plot: CLUSTER for plot in CLUSTER} and marks == {plot: "noFit" for plot in CLUSTER}
-    # Steps alone: plot 2 lies 0.51 m under plot 4 and plot 4 0.51 m under plot 5, so neither wall leaves two parts that fit
-    assert made_split([LOW, LOW, HIGH, LOW + 1.02])[1]["2"] == "noFit"
 
 
 def test_r414_the_slope_is_taken_on_the_unrounded_el_at_entry_and_a_slope_of_exactly_front_min_fits():
@@ -62,9 +61,9 @@ def test_r414_the_slope_is_taken_on_the_unrounded_el_at_entry_and_a_slope_of_exa
     rounded_first = design_basis.slope_of(common.fixed(raw, plan_rules.ENTRY_DECIMALS), front, depth)
     # Rounding El @ Entry to 4 decimals first turns 0.5 into 0.499, outside the manual, the unrounded one is 0.5 as the plan writes it
     assert common.fixed(unrounded, 3) == 0.5 and common.fixed(rounded_first, 3) == 0.499
-    assert made_split([LOW] * 4, slopes=[unrounded] * 4)[1]["2"] == "none"
-    assert made_split([LOW] * 4, slopes=[rounded_first] * 4)[1]["2"] == "noFit"
-    assert made_split([LOW] * 4, slopes=[0.5, 0.5, 2.0, 2.0])[1]["2"] == "none"
+    # Q303. The slope is no longer in the split test, the report by outside_manual holds it as before
+    limits = {"front_min": 0.5, "front_max": 2.0}
+    assert design_basis.outside_manual(unrounded, limits) is False and design_basis.outside_manual(rounded_first, limits) is True
 
 
 def test_r414_a_cluster_of_another_size_or_with_a_plot_with_no_el_at_entry_is_not_tested():
@@ -73,10 +72,40 @@ def test_r414_a_cluster_of_another_size_or_with_a_plot_with_no_el_at_entry_is_no
     lp = plan_rules.level_profile(profile, "parsons2024Rev6")
     entries = {plot: {"unit": "DP2", "entry": LOW, "rule": LOW} for plot in CLUSTER[:3]}
     three = {plot: {"plots": CLUSTER[:3]} for plot in CLUSTER[:3]}
-    slopes = {plot: 1.0 for plot in CLUSTER}
-    assert plan_rules.split_test(entries, slopes, three, SPLIT, key, profile, lp) == ({}, {})
+    roads = {plot: 10.0 for plot in CLUSTER}
+    assert plan_rules.split_test(entries, roads, three, SPLIT, key, profile, lp) == ({}, {})
     four = {plot: {"plots": CLUSTER} for plot in CLUSTER[:3]}
-    assert plan_rules.split_test(entries, slopes, four, SPLIT, key, profile, lp) == ({}, {})
+    assert plan_rules.split_test(entries, roads, four, SPLIT, key, profile, lp) == ({}, {})
+
+
+def test_r414_q304_a_row_rising_to_its_last_unit_counts_the_walls_from_there_and_the_lone_unit_stands_at_the_low_end():
+    # After unit 3 from the high road end is after unit 1 in row order, named from the first unit as split_pattern names it
+    pieces, marks = made_split([LOW, MID, MID, HIGH], roads=[10.0, 10.1, 10.2, 10.3])
+    assert pieces == {"2": ["2"], "3": ["3", "4", "5"], "4": ["3", "4", "5"], "5": ["3", "4", "5"]} and marks == {plot: "walls 1" for plot in CLUSTER}
+    assert marks["2"] == plan_rules.split_pattern([LOW, HIGH, HIGH, HIGH])
+
+
+def test_r414_q304_a_row_falling_from_its_first_unit_counts_the_walls_from_there_and_the_lone_unit_stands_at_the_low_end():
+    pieces, marks = made_split([HIGH, MID, MID, LOW], roads=[10.3, 10.2, 10.1, 10.0])
+    assert pieces == {"2": ["2", "3", "4"], "3": ["2", "3", "4"], "4": ["2", "3", "4"], "5": ["5"]} and marks == {plot: "walls 3" for plot in CLUSTER}
+    assert marks["2"] == plan_rules.split_pattern([HIGH, HIGH, HIGH, LOW])
+
+
+def test_r414_q304_the_second_wall_counts_from_the_high_road_end_too_and_the_middle_is_the_middle_either_way():
+    # Rising to the last unit: after unit 3 from there leaves plot 3 0.51 m under plot 5, after unit 2 from there is the middle
+    pieces, marks = made_split([LOW, LOW, HIGH, HIGH], roads=[10.0, 10.1, 10.2, 10.3])
+    assert pieces == {"2": ["2", "3"], "3": ["2", "3"], "4": ["4", "5"], "5": ["4", "5"]} and marks == {plot: "middle" for plot in CLUSTER}
+
+
+def test_r414_q304_a_tie_or_no_road_counts_the_walls_from_the_first_unit():
+    three = {"2": ["2", "3", "4"], "3": ["2", "3", "4"], "4": ["2", "3", "4"], "5": ["5"]}
+    levels = [LOW, MID, MID, HIGH]
+    assert made_split(levels, roads=[10.0, 10.1, 10.2, 10.0]) == (three, {plot: "walls 3" for plot in CLUSTER})
+    # A rise under the 4 decimals the plan writes the road at is a tie
+    assert made_split(levels, roads=[10.0, 10.1, 10.2, 10.00001]) == (three, {plot: "walls 3" for plot in CLUSTER})
+    assert made_split(levels) == (three, {plot: "walls 3" for plot in CLUSTER})
+    assert made_split(levels, roads=[None, 10.1, 10.2, 10.3]) == (three, {plot: "walls 3" for plot in CLUSTER})
+    assert made_split(levels, roads=[10.0, 10.1, 10.2, None]) == (three, {plot: "walls 3" for plot in CLUSTER})
 
 
 def split_settings(tmp_path, mode="rev6", test=True):
@@ -91,13 +120,44 @@ def split_settings(tmp_path, mode="rev6", test=True):
 def test_r414_the_build_splits_the_cluster_and_the_levels_step_marks_each_plot(monkeypatch, tmp_path):
     built = rev6_build(monkeypatch, split_settings(tmp_path), clusters=FOUR)
     levels, plan = built["levels"], built["plan"]
-    assert [levels[plot]["splitTest"] for plot in CLUSTER] == ["walls 3"] * 4
-    assert levels["2"]["piece"] == ["2", "3", "4"] and levels["5"]["piece"] == ["5"]
+    # Q304 changes this case: the road of the made up row rises to plot 5, so the first wall cuts after plot 2 and not after plot 4
+    assert [levels[plot]["splitTest"] for plot in CLUSTER] == ["walls 1"] * 4
+    assert levels["2"]["piece"] == ["2"] and levels["5"]["piece"] == ["3", "4", "5"]
     assert levels["1"]["splitTest"] is None and levels["6"]["splitTest"] is None and levels["7"]["splitTest"] is None
-    # Each part its own FFL by piece_top: plot 4 at 10.4476 plus 0.2, plot 5 at 10.65 plus 0.2
-    assert plan["2"]["levels"]["ffl"]["value"] == common.fixed(10.4476 + 0.2, 3) and plan["5"]["levels"]["ffl"]["value"] == common.fixed(10.65 + 0.2, 3)
+    # Each part its own FFL by piece_top: plot 2 at 10.2076 plus 0.2, plot 5 at 10.65 plus 0.2
+    assert plan["2"]["levels"]["ffl"]["value"] == common.fixed(10.2076 + 0.2, 3) and plan["5"]["levels"]["ffl"]["value"] == common.fixed(10.65 + 0.2, 3)
     # The slope of plot 2 is front_min as the plan writes it
     assert common.fixed(levels["2"]["slopePercent"], 3) == 0.5
+
+
+def test_r414_q303_a_slope_outside_the_limits_no_longer_stops_a_fit_and_stays_reported_for_each_unit_of_the_cluster(monkeypatch, tmp_path):
+    # Roads of the row 10.18, 10.30, 10.42, 10.54 over a ramp of 5.52 m: 3.08 percent on plots 2 to 4 and 3.623 percent on plot 5, all over
+    # front_max. Plot 2 lies 0.59 m under the FFL of the cluster, 3 steps, so the cluster stays whole
+    path = civil_csv(tmp_path, [("1", "10.1"), ("2", "10.35"), ("3", "10.47"), ("4", "10.59"), ("5", "10.74"), ("6", "10.7")])
+    settings = basis_settings(mode="rev6", door={"source": "civilFile"}, civil={"path": str(path)})
+    settings.values["designBasis"]["split"]["test"] = True
+    built = rev6_build(monkeypatch, settings, clusters=FOUR)
+    levels = built["levels"]
+    assert [levels[plot]["splitTest"] for plot in CLUSTER] == ["none"] * 4 and levels["2"]["piece"] == CLUSTER
+    assert [levels[plot]["steps"] for plot in CLUSTER] == [3, 3, 2, 1]
+    listed = {item["plot"]: item["slopePercent"] for item in built["summary"]["slopeOutsideManual"]}
+    assert set(CLUSTER) <= set(listed)
+    assert all(listed[plot] == common.fixed(levels[plot]["slopePercent"], design_basis.SLOPE_DECIMALS) for plot in CLUSTER)
+    assert built["summaryStep"][1]["summary"]["slopeOutsideManual"] == built["summary"]["slopeOutsideManual"]
+
+
+def test_r414_q303_the_steps_stop_a_fit_where_every_slope_is_inside_the_limits(monkeypatch, tmp_path):
+    # split_settings holds every slope of the cluster inside the limits and plot 2 at 4 steps when whole, so the steps alone split it
+    built = rev6_build(monkeypatch, split_settings(tmp_path), clusters=FOUR)
+    assert built["levels"]["2"]["splitTest"] == "walls 1"
+    assert not {item["plot"] for item in built["summary"]["slopeOutsideManual"]} & set(CLUSTER)
+    # At 1 percent each plot 2 lies 0.56 m under the FFL of the cluster, 3 steps, so the same row stays whole
+    fit = [("1", "10.1"), ("2", "10.2352"), ("3", "10.3552"), ("4", "10.4752"), ("5", "10.5952"), ("6", "10.7")]
+    settings = basis_settings(mode="rev6", door={"source": "civilFile"}, civil={"path": str(civil_csv(tmp_path, fit))})
+    settings.values["designBasis"]["split"]["test"] = True
+    built = rev6_build(monkeypatch, settings, clusters=FOUR)
+    assert built["levels"]["2"]["splitTest"] == "none"
+    assert not {item["plot"] for item in built["summary"]["slopeOutsideManual"]} & set(CLUSTER)
 
 
 def test_r414_the_switch_off_gives_the_pieces_of_key_pieces_and_a_null_split_test(monkeypatch, tmp_path):
