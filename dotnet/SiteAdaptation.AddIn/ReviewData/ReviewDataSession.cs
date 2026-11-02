@@ -56,6 +56,26 @@ namespace SiteAdaptation.AddIn.ReviewData
             }
         }
 
+        // R446. Whether the window may close. With marks not saved it asks. Save closes only once the save ran, its reason stays shown
+        // when it did not. Don't save closes, Cancel stays
+        public bool CanClose(Func<ReviewCloseChoice> ask)
+        {
+            if (!Model.NotSavedShown)
+            {
+                return true;
+            }
+            switch (ask())
+            {
+                case ReviewCloseChoice.DontSave:
+                    return true;
+                case ReviewCloseChoice.Save:
+                    Save();
+                    return !Model.NotSavedShown;
+                default:
+                    return false;
+            }
+        }
+
         public void ConfirmAll()
         {
             Model.ConfirmAll();

@@ -48,6 +48,7 @@ Run: real windows by UI automation, every step from the pane's Next step box, on
 - Works: pane Export, How it works and its Close, View of New project once a read exists, Confirm all (379 of 379), Save review.
 - Not built, and the window says so: Zoom to plot and Export to Excel of Review data.
 - No visible effect: Zoom to plot and Export to Excel of Check gave no message and no change in the window, and no export file was found. Whether Zoom moved the view is UNKNOWN.
+- Correction by Lane C, 2 Nov: a person sees neither button in Check or Review data, R444 hides them (READ shots pB-030 and pA-012 of lane_b_task6). The driver invoked them through UI automation, which reaches a hidden button. So the two lines above and below describe the driver, not a person.
 - Review data and Check have no Close button, only the window X. No window has a Back control.
 - Export to Excel of What the tool read works, and it offers C:\SA-demo\inputs as its folder with no refusal. That is how the stray file was written (Q308).
 - Not tested: Hide of the loader, OK and Wrong rows, Get template, Save overrides.

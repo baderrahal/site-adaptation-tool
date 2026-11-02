@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using SiteAdaptation.Common.Scan;
 using SiteAdaptation.Common.Settings;
 
@@ -63,6 +64,12 @@ namespace SiteAdaptation.AddIn.ScanResults
             {
                 return;
             }
+            // R446, Q308. The rule of the tool, nothing is written where the inputs lie (R1)
+            if (InsideInputs(Path.GetDirectoryName(Path.GetFullPath(path))))
+            {
+                Model.FootLine = ScanResultsText.NotInInputs;
+                return;
+            }
             try
             {
                 ScanPicks.Export(path, Model.Data);
@@ -72,6 +79,23 @@ namespace SiteAdaptation.AddIn.ScanResults
             {
                 Model.FootLine = error.Message;
             }
+        }
+
+        // The input root of the config and the folder of each input picked, which may lie outside that root
+        private bool InsideInputs(string folder)
+        {
+            var places = new List<string> { Pane.WorkFolder.InputRoot(settings?.ConfigFile, Pane.WorkFolder.ReadIfThere) };
+            if (settings != null)
+            {
+                foreach (SettingsInput input in settings.Inputs.Values)
+                {
+                    if (!string.IsNullOrEmpty(input?.Path))
+                    {
+                        places.Add(Directory.Exists(input.Path) ? input.Path : Path.GetDirectoryName(input.Path));
+                    }
+                }
+            }
+            return places.Any(place => !string.IsNullOrEmpty(place) && Pane.WorkFolder.Inside(folder, place));
         }
 
         public void UseProposedForAll()

@@ -1,0 +1,26 @@
+<Window x:Class="SiteAdaptation.AddIn.ReviewData.ReviewCloseWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:rev="clr-namespace:SiteAdaptation.AddIn.ReviewData"
+        Title="{x:Static rev:ReviewDataText.CloseTitle}" Width="{DynamicResource SA.Size.AskWidth}"
+        SizeToContent="Height" ResizeMode="NoResize" ShowInTaskbar="False" WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource SA.Surface}">
+  <!-- R446. Asks before 3 Review data closes with marks not saved. Every colour, size and font by Theme.xaml. Esc and the X are Cancel -->
+  <Window.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="/SiteAdaptation.AddIn;component/Theme/Theme.xaml" />
+      </ResourceDictionary.MergedDictionaries>
+    </ResourceDictionary>
+  </Window.Resources>
+  <StackPanel>
+    <TextBlock Style="{StaticResource SA.Type.Section}" Margin="{StaticResource SA.Pad.Box}" Text="{x:Static rev:ReviewDataText.CloseAsk}" />
+    <Border Background="{StaticResource SA.Panel}" BorderBrush="{StaticResource SA.Border}" BorderThickness="{StaticResource SA.Line.Over}" Padding="{StaticResource SA.Pad.Foot}">
+      <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+        <Button Style="{StaticResource SA.Button.Base}" Height="{StaticResource SA.Size.MainButton}" IsCancel="True" Content="{x:Static rev:ReviewDataText.CloseCancel}" Click="OnCancel" />
+        <Button Style="{StaticResource SA.Button.Base}" Height="{StaticResource SA.Size.MainButton}" Margin="{StaticResource SA.Gap.Left8}" Content="{x:Static rev:ReviewDataText.CloseDontSave}" Click="OnDontSave" />
+        <Button Style="{StaticResource SA.Button.Primary}" Margin="{StaticResource SA.Gap.Left8}" Content="{x:Static rev:ReviewDataText.CloseSave}" Click="OnSave" />
+      </StackPanel>
+    </Border>
+  </StackPanel>
+</Window>

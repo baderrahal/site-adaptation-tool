@@ -302,6 +302,7 @@
           <Border Margin="{StaticResource SA.Gap.Top8}" Background="{StaticResource SA.Panel}" CornerRadius="{StaticResource SA.Radius.Control}" Padding="{StaticResource SA.Pad.Panel}">
             <StackPanel>
               <CheckBox Style="{StaticResource SA.Pane.Check}" Content="Dry run first, change nothing" IsChecked="{Binding DryRun}" />
+              <TextBlock Style="{StaticResource SA.Pane.Help}" TextWrapping="Wrap" Text="{Binding DryRunNote}" Visibility="{Binding DryRunNoteShown, Converter={StaticResource Shown}}" />
               <StackPanel Orientation="Horizontal">
                 <TextBlock Style="{StaticResource SA.Type.Body}" VerticalAlignment="Center" Margin="{StaticResource SA.Gap.Right8}" Text="Villa mode" />
                 <RadioButton Style="{StaticResource SA.Pane.Radio}" Margin="{StaticResource SA.Gap.Right8}" GroupName="Villa" Content="Masses" IsChecked="{Binding VillaMasses}" />

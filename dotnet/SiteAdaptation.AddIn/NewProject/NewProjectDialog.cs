@@ -20,7 +20,7 @@ namespace SiteAdaptation.AddIn.NewProject
             IReadOnlyList<SavedStart> starts = SavedStarts.List(SavedStarts.Folder(workRoot));
             DrawingFactsResult facts = Facts.Read(current?.ConfigFile, workFolder);
             var model = new NewProjectViewModel(current, projectName, starts, facts, There, picker, WorkFolder.ReadIfThere,
-                (path, settings) => ScanResults.ScanResultsDialog.Show(owner, path, settings, ScanResults.ScanGate.PickExport), modelOpen);
+                (path, settings) => ScanResults.ScanResultsDialog.Show(owner, path, settings, ScanResults.ScanGate.PickExportFor(path)), modelOpen);
             var window = new NewProjectWindow(model);
             if (owner != IntPtr.Zero)
             {

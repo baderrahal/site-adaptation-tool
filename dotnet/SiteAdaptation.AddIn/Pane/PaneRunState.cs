@@ -41,6 +41,15 @@ namespace SiteAdaptation.AddIn.Pane
             get { return model.DryRun; }
         }
 
+        // R446. Called by Buttons.Run before the flow, for the ribbon and the pane. A step that still waits runs nothing, so it unticks nothing
+        public void BeforeRun(int button)
+        {
+            if (MissingStep(button) == 0)
+            {
+                model.UntickDryRunFor(button);
+            }
+        }
+
         public int MissingStep(int button)
         {
             StepStatus status = model.Statuses[button - 1];
