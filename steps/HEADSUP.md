@@ -4,10 +4,10 @@
 
 ### Lane A
 
-- Lane: A, round FIX-2NOV-A2, branch fix/2nov-a2. Time: 2026-11-02 18:00. Blocked: none
-- Done: R478, R479, R480, review 1, breaker 1, gate on ae8369b, parity 32 runs 0 failures
-- Now: the PR
-- Next: merge when green, tell lane-c, then queued FIX-2NOV-A3
+- Lane: A, round FIX-2NOV-A3, branch fix/2nov-a3. Time: 2026-11-02 18:14. Blocked: none
+- Done: FIX-2NOV-A2 merged PR 142, the plan and contract. Q303, Q304, Q265, Q299 closed by Bader
+- Now: helpers build R414, R481 and R482
+- Next: gate, parity, review and breaker, the PR. Lane B's check-2nov item goes first when it lands
 
 ### Lane B, C and D
 
