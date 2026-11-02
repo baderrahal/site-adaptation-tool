@@ -110,6 +110,11 @@ The four panels and their buttons of 7.1 of docs/design/12-ui-spec.md, Bader's c
 - `Needs step <n>`
 - `Needs setup`
 - `<name> to <n> <name>` CHOSEN in NEWPROJ-UI, the one row of the steps after 4 on first open, as Floors and ramps to 9 Report of the PaneFirst board
+- `Pick surfaces` CHOSEN, DRAFT, the button next to Browse on the row Road surface (R492)
+- `Road surfaces in order (<n>): <name>` CHOSEN, DRAFT, the line under the row Road surface with the count and the short names in order (R492)
+- `No road surface is picked.` CHOSEN, DRAFT, the line under the row when the order is empty (R492)
+- `The saved project takes its road surfaces from its past job, so this pick is not used.` CHOSEN, DRAFT, the tooltip of the grey button under the past job (R492)
+- `Pick a saved project under Start from first.` CHOSEN, DRAFT, the tooltip of the grey button while no saved project is chosen (R492)
 
 ### Button messages
 
@@ -533,6 +538,19 @@ The window New project of Lane C NEWPROJ-UI, word for word from docs/design/boar
 - `Save setup did not reach the model: <name>. The pane keeps the setup and the next button run writes it.` CHOSEN, the TaskDialog when the transaction of Save setup rolls back, with the reason Revit gave, else `Revit did not commit the change` (R445)
 - `The scan reads no survey point yet` CHOSEN, the one line of the Survey point dropdown once a scan is there (R440, Q283)
 - `Villa type sheet and column` CHOSEN, the row of the sheet and column dropdowns of the plot list (R440, Q283)
+- `Pick surfaces` CHOSEN, DRAFT, the button next to Browse on the row Road levels, and the same button on the row Road surface of the pane (R492)
+- `Road surfaces in order (<n>): <name>` CHOSEN, DRAFT, the line under the row Road levels with the count and the short names in order (R492)
+- `No road surface is picked.` CHOSEN, DRAFT, the line under the row when the order is empty (R492)
+- `The saved project takes its road surfaces from its past job, so this pick is not used.` CHOSEN, DRAFT, the tooltip of the grey button under the past job (R492)
+- `Pick a saved project under Start from first.` CHOSEN, DRAFT, the tooltip of the grey button while no saved project is chosen (R492)
+- `Road surfaces` CHOSEN, DRAFT, the title of the window opened by Pick surfaces (R492)
+- `The tool takes each plot corner from the first ticked surface that covers it.` CHOSEN, DRAFT, the help line of that window, Bader's words (R492)
+- `Up` CHOSEN, DRAFT, moves the selected ticked road surface one place up (R492)
+- `Down` CHOSEN, DRAFT, moves the selected ticked road surface one place down (R492)
+- `Use these picks` CHOSEN, DRAFT, the button that keeps the ticked order (R492)
+- `Tick at least one road surface to use the picks.` CHOSEN, DRAFT, the line while no surface is ticked (R492)
+- `Not in the folder any more: <name>. It stays unticked.` CHOSEN, DRAFT, the line naming the saved surfaces the folder no longer holds (R492)
+- `The road surface folder holds no road surface files. Pick the folder in the row Road levels, then open this window again.` CHOSEN, DRAFT, the line of a folder with nothing to pick (R492)
 
 ### How it works
 

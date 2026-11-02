@@ -64,8 +64,13 @@
                         Visibility="{Binding CanBrowse, Converter={StaticResource Shown}}" Click="OnBrowse" />
                 <Button Grid.Column="2" Style="{StaticResource SA.Button.Base}" Content="{x:Static np:NewProjectText.GetTemplate}" Click="OnTemplate"
                         Visibility="{Binding HasTemplate, Converter={StaticResource Shown}}" />
+                <Button Grid.Column="2" Style="{StaticResource SA.Button.Base}" Content="{x:Static np:RoadSurfacesText.Pick}" Click="OnPickSurfaces"
+                        Visibility="{Binding HasSurfaces, Converter={StaticResource Shown}}" IsEnabled="{Binding SurfacesEnabled}"
+                        ToolTip="{Binding SurfacesTip}" ToolTipService.ShowOnDisabled="True" />
               </Grid>
               <TextBlock Style="{StaticResource HelpText}" Margin="{StaticResource SA.Gap.Top4}" Text="{Binding Help}" />
+              <TextBlock Style="{StaticResource HelpText}" Margin="{StaticResource SA.Gap.Top4}" Text="{Binding SurfacesLine}"
+                         Visibility="{Binding HasSurfaces, Converter={StaticResource Shown}}" />
             </StackPanel>
             <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Top">
               <Grid Width="{StaticResource SA.Size.RowMark}" Height="{StaticResource SA.Size.RowMark}" Margin="{StaticResource SA.Gap.Right8}">

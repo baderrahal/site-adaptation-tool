@@ -75,3 +75,25 @@ The settings JSON of R367 gains scanPicks (value kind to source), conflictPicks 
 
 The board rows Mirror, Survey point and Road level have no scan row (Q289). Curbs and road surface are not scanned (Q290). The read of button 2 does not take the picks yet (Q292). The line Current files is in the pane, not the Excel report (Q291).
 
+
+## R492, Road surfaces picked in Set up, Lane D FIX-2NOV-D, 2 Nov 2026
+
+R492 Road surfaces picked in Set up. A new project picks its road surfaces from a list, several of them, in the order the tool tries them, with no file editing. The scan does not read road surfaces (Q290), so the list is the surface files of the road surface folder of the pane. No board holds the window, so it is a DRAFT in the style of New project, its words CHOSEN in docs/design/14-ui-labels.md.
+
+### What the user does
+
+- On the row Road levels of New project, and on the row Road surface of the pane, the button Pick surfaces sits next to Browse. One line under the row gives the count and the short names in order. A short name is the part of the file name after the double underscore.
+- The window Road surfaces holds one list, a tick box and the short name on each row. Ticked rows stand first in their order, the rest below in sorted order. Up and Down move the selected ticked row and are grey at the ends and on an unticked row. Use these picks keeps the order, Cancel keeps what was there. With no tick Use is grey and one line says to tick one.
+- The window opens on the effective order, the saved pick, else the list of the saved project. A name of the pick that the folder no longer holds stays in the list marked Missing and unticked, with one line naming it. A change of folder does not clear the pick.
+- Under the past job a build does not read the pick, so the button is grey and its tooltip says the saved project takes its road surfaces from its past job. With no saved project chosen it is grey and says to pick one.
+
+### Settings
+
+ProjectSettings.RoadSurfaces, a list of file names with no extension, null while never picked, so a file written before it reads as before. SetupSave.Apply lays it over the settings when the draft holds one. RoadSurfaceChoices of Common gives the files of a folder, the effective order and whether the design basis is rev6.
+
+### Wiring
+
+- RoadPickState.Of reads the settings and the saved project and gives the reason the button is grey, the folder and the effective order. NewProjectViewModel.PickSurfaces and PaneViewModel.PickSurfaces call it, then the SurfacePicker they hold, which NewProjectDialog.Show and PaneHost.Register set to RoadSurfacesDialog.Show.
+- New project keeps the order in the draft until Save setup (SetupDraft.RoadSurfaces), Cancel of the whole window keeps nothing. The pane keeps it in the settings in memory as a Browse does, and the next real run writes it into the model (R367).
+- CheckTableBody.DoorWired sets CheckRun.RoadPick and ReadDataBody.For sets ReadDataRun.RoadPick, each from ProjectSettings.RoadSurfaces of the pane settings.
+- Tests: dotnet/SiteAdaptation.Tests/R492_RoadPickTests.cs. The picture is road-surfaces of dotnet/SiteAdaptation.UiShots.

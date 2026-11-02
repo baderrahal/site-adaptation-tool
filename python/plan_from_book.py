@@ -1802,7 +1802,7 @@ def run_build(args):
         # Q105. The file of each code, which tells the cluster units of the table of hand alone whose row pair the hand walks
         files = folder_files(folder, profile)
         rules = rule_inputs(args, settings, profile, cover["plots"], rows, faces, roads, sales, everything, files=files, basis=basis)
-        # R339, R340. The road surfaces of the one setting majority.py measures the levels on, R409 the one surface of rev6
+        # R339, R340. The road surfaces of the one setting majority.py measures the levels on, R490 those of rev6 in their order
         args.road_names = plan_rules.road_names(block, rules["levelProfile"], basis)
         if design_basis.is_rev6(basis):
             design_basis.check_surfaces(basis, args.landxml)
@@ -1833,6 +1833,15 @@ def run_build(args):
             write_build_step(args, settings, check_rows.STEP, made, tables=tables)
             made, tables = summary_step(cover["plots"], rows, plan)
             write_build_step(args, settings, "summary", made, tables=tables)
+        # R493. A zone mostly off the road surfaces named stops the build before its plan, the reached plots those the summary counts its no road level from
+        if design_basis.is_rev6(basis):
+            skipped = set(plan["summary"]["skipped"])
+            stop = design_basis.no_road_stop(basis, [number for number in cover["plots"] if number not in skipped and trace["front"][number]["unit"] is not None],
+                                             plan["summary"]["plotsWithNoRoadLevel"], rows)
+            if stop:
+                # The step files of this run are complete, so they stay for the parity of a config with one surface, only the plan is not written
+                done = True
+                raise project_profile.ProfileError(stop)
         plan_from_past.write_plan(out, plan)
         done = True
     except (project_profile.ProfileError, KeyError, OSError, ValueError) as error:

@@ -341,7 +341,7 @@ namespace SiteAdaptation.Tests
         }
 
         // A made up road surface of two triangles over a box at the level z
-        private string Surface(string name, double x0, double y0, double x1, double y1, double z)
+        internal string Surface(string name, double x0, double y0, double x1, double y1, double z)
         {
             Func<double, double, string> point = (x, y) => y.ToString(CultureInfo.InvariantCulture) + " " + x.ToString(CultureInfo.InvariantCulture) + " " + z.ToString(CultureInfo.InvariantCulture);
             string path = Path.Combine(folder, name + ".xml");
