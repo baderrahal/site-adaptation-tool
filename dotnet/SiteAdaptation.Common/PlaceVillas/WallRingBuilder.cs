@@ -122,7 +122,7 @@ namespace SiteAdaptation.Common.PlaceVillas
         }
 
         // The angle the arc turns through, above 0 and at most a full turn
-        public static double Sweep(RingEdge edge)
+        private static double Sweep(RingEdge edge)
         {
             double from = RingGeometry.Angle(edge.Centre, edge.Start), to = RingGeometry.Angle(edge.Centre, edge.End);
             double sweep = RingGeometry.Turn(edge.CounterClockwise ? to - from : from - to);
