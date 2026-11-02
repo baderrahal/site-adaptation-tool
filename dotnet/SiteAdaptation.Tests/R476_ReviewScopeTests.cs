@@ -18,7 +18,7 @@ namespace SiteAdaptation.Tests
         public void R476_a_plot_with_no_official_number_is_left_out_and_a_unit_plot_stays()
         {
             var table = new JObject { ["2289"] = Plot("2289", "1", "2289", "VL4"), ["12"] = Plot("12", "7", null, "NCC"), ["21"] = Plot("21", "25", null, "MIXEDUSE COMMERCIAL") };
-            Assert.Equal(new[] { "2289" }, ReviewTable.Rows(table, "012", null, null, null).Select(row => row.Label));
+            Assert.Equal(new[] { "2289" }, ReviewTable.Rows(table, "012", null, null, null).Select(row => row.CadLabel));
         }
 
         [Fact]
