@@ -2,6 +2,33 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Lane C FIX-2NOV-C, 2026-11-02, no dead end in the windows (R446)
+
+Goal:
+- Bader's queued prompt, the window findings of steps/demo-check.md, UI only
+
+Done:
+- 3 Review data: Close in a foot, the ask Save your review? on the X and Close, the side box scrolls, Team check keeps Not checked whole
+- No idle button: Change and View of New project hidden. Zoom and Export of Check and Review data were hidden already by R444 (READ shots pB-030, pA-012), the driver of Task 6 invoked them through UI automation, demo-check.md corrected
+- 9 Report: Run complete, the file name and Open folder in the box
+- Export of What the tool read refuses the input folder, its dialog opens in the work folder (Q308, the stray file stays Bader's)
+- 4 Check: Buttons.Run unticks Dry run before it, one line says why (Q195 closed)
+
+Checked:
+- R446_WindowFixTests.cs. The sweep proved by putting an idle button back: it failed naming New project: Change, passed once restored (RAN). The gate of this PR: see the PR
+
+Remains:
+- Check has no Close button, only Review data was asked. Part 11 of the sheet waits for fix/1nov-d3
+
+Known bugs:
+- R446 has not run in Revit, part 13 of the sheet checks it. The tests sit on net48 with the other window tests, net8.0 runs the rest of the gate
+
+Next:
+- Part 11 when fix/1nov-d3 merges
+
+Your turn:
+- Closed: Q195 Dry run of button 4. 162 open, steps/questions-open.md
+
 ## Lane C FIX-1NOV-C, 2026-11-01 and 02, Save setup writes the model, window check, cleanup, Bader's sheet
 
 Goal:
