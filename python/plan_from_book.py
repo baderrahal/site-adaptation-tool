@@ -881,7 +881,7 @@ def not_applied_why(records):
             for field, whys in sorted(found.items())}
 
 
-def key_levels(entries, key, roles, partners, rows, overrides, outcomes, numbers, front, profile, lp, basis=None, slopes=None):
+def key_levels(entries, key, roles, partners, rows, overrides, outcomes, numbers, front, profile, lp, basis=None):
     """R340. FFL, SSL, height and steps by the level rules of keyRules, as R339 measured them: one FFL per piece at its highest El @ Entry
     plus the base of that unit to the mm, then the heightM gap moves the FFL onto the key with its SSL, height and steps, and a steps
     override sets the steps. An override of a plot with no FFL is left with why. R414: under rev6 with designBasis.split.test the pieces
@@ -890,7 +890,8 @@ def key_levels(entries, key, roles, partners, rows, overrides, outcomes, numbers
     pieces = plan_rules.key_pieces(key, list(entries), roles, partners, units)
     marks = {}
     if design_basis.splits(basis):
-        found, marks = plan_rules.split_test(entries, slopes, roles, basis["split"], key, profile, lp)
+        roads = {number: plan_rules.road_at_front(item["front"]) for number, item in front.items() if item["front"] is not None}
+        found, marks = plan_rules.split_test(entries, roads, roles, basis["split"], key, profile, lp)
         pieces.update(found)
     level_rows = plan_rules.key_level_rows(entries, pieces, profile, lp, key)
     for number, mark in marks.items():
@@ -1078,7 +1079,7 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
     if rules is None:
         level_rows = plan_from_cad.plot_levels(profile, mine, entries)
     elif by_levels:
-        level_rows = key_levels(entries, key, roles, partners, rows, overrides, outcomes, numbers, front, profile, rules["levelProfile"], basis, slopes)
+        level_rows = key_levels(entries, key, roles, partners, rows, overrides, outcomes, numbers, front, profile, rules["levelProfile"], basis)
         if trace is not None:
             # R359. The El @ Entry and the levels of each plot with the FFL by the rule kept apart, for the step levels
             trace.update(entries=entries, levelRows=level_rows)
