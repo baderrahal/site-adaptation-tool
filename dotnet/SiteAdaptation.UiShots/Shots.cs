@@ -543,7 +543,7 @@ namespace SiteAdaptation.UiShots
         public static string ConfigText(string path)
         {
             return Path.GetFileName(path) == "project.json"
-                ? new JObject { ["designBasis"] = new JObject { ["mode"] = "rev6" }, ["siteBuild"] = new JObject { ["roadSurfaces"] = new JArray(RoadStems) } }.ToString()
+                ? new JObject { ["designBasis"] = new JObject { ["mode"] = "rev6", ["roadLevel"] = new JObject { ["surfaces"] = new JArray(RoadStems) } } }.ToString()
                 : null;
         }
 

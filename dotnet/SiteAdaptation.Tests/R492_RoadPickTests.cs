@@ -34,7 +34,7 @@ namespace SiteAdaptation.Tests
 
         private static string Text(bool rev6, params string[] listed)
         {
-            return new JObject { ["designBasis"] = new JObject { ["mode"] = rev6 ? "rev6" : "past" }, ["siteBuild"] = new JObject { ["roadSurfaces"] = new JArray(listed) } }.ToString();
+            return new JObject { ["designBasis"] = new JObject { ["mode"] = rev6 ? "rev6" : "past", ["roadLevel"] = new JObject { ["surfaces"] = new JArray(listed) } } }.ToString();
         }
 
         private static RoadSurfacesViewModel Window(IReadOnlyList<string> inFolder, IReadOnlyList<string> effective)
