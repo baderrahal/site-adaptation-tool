@@ -21,6 +21,7 @@ namespace SiteAdaptation.Common.CheckTable
             { "rampSlope", CheckShownText.RampType },
             { "linkOrigin", CheckShownText.LinkOrigin },
             { "linkRotation", CheckShownText.LinkRotation },
+            { "frontEdge", CheckShownText.FrontEdge },
             { "yardOutline", CheckShownText.YardOutline },
             { "rampOutline", CheckShownText.RampOutline },
             { "generic", CheckShownText.GenericFloor },
@@ -86,6 +87,10 @@ namespace SiteAdaptation.Common.CheckTable
             }
             if (value is JObject gap && gap.Count == 1)
             {
+                if (gap["edge"]?.Type == JTokenType.Integer)
+                {
+                    return CheckShownText.FrontEdgePast.Replace(Slot, Number(gap["edge"]));
+                }
                 JToken metres = gap["gapToRuleM"];
                 if (metres is JArray along && along.Count == 2 && IsNumber(along[0]) && IsNumber(along[1]))
                 {

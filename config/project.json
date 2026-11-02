@@ -870,6 +870,7 @@
       "rampFrontFallM": {"check": "Level", "past": null, "why": "a build never applies a fall (Q057)"},
       "insert": {"check": "Position", "past": "gapToRuleM"},
       "rotationDeg": {"check": "Position", "past": "gapToRuleDeg"},
+      "frontEdge": {"check": "Position", "past": "edgeOfRing"},
       "mirrored": {"check": "Hand", "past": "trueOrFalse"},
       "rampType": {"check": "Floor", "past": "slopeClass"},
       "genericFloor": {"check": "Floor", "past": null, "why": "a build places the outline of its rule and leaves these (LEFT of plan_from_book.py)"},
