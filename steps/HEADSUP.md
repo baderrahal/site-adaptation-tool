@@ -4,10 +4,10 @@
 
 ### Lane A
 
-- Lane: A, round FIX-2NOV-A, branch fix/2nov-a. Time: 2026-11-02 15:00. Blocked: none
-- Done: R475, R476, R477, Revit run of 1 to 5, gate, parity 32 runs 0 failures
-- Now: the PR
-- Next: merge when green, tell lane-c and lane-b, then queued FIX-2NOV-A2
+- Lane: A, round FIX-2NOV-A2, branch fix/2nov-a2. Time: 2026-11-02 15:13. Blocked: none
+- Done and pushed: R478 compare by wall centre, 653 to 1,368 of 2,466 within 10 mm, Q360 closed, R479 in the compare, 12 of 18 TH1-IM match, the 6 are ARC against STR of the SE keys
+- Now: helper builds R480 C10 side walls and R479 in the footprint check
+- Next: gate, parity, review and breaker, records, the PR. Questions Q357, Q358
 
 ### Lane B, C and D
 

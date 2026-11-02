@@ -279,3 +279,8 @@ One phase per session (Q096). Two lanes run the phases (D10, D17): tools/run-lan
 
 - Status: done, Lane A, laptop, 2026-11-02, branch fix/2nov-a, one PR with code, tests and records (D20)
 - Task 1: R475 each yard cut to its plot and ramp (Q350). Task 2: R476 Review lists the plots of Check, 337. Task 3: R477 footprint check by same type, limit 1,200 mm (Q351)
+
+## FIX-2NOV-A2, the walls against the keys and TH1-IM
+
+- Status: running, Lane A, laptop, 2026-11-02, branch fix/2nov-a2, one PR with code, tests and records (D20)
+- Task 1: R478 the compare by wall centre, no tool line changes (Q360). Task 2: R480 C10 side walls by hand if the measure holds, the rest Q358. Task 3: R479 one villa type by prototype file
