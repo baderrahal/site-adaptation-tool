@@ -11,7 +11,7 @@
 
 ### Lane B, C and D
 
-- Lane B FIX-2NOV-B, 02:42, branch fix/2nov-b-handrun: task 4, buttons 1 to 9 done, the Q158 checks on a second copy running, nothing blocks. Lock handrun, under the lock since 00:42.
+- Lane B FIX-2NOV-B, 02:57, branch fix/2nov-b-handrun: task 4, buttons 1 to 9 and Q158 checks done, helper closing up, nothing blocks. Lock handrun, under the lock since 00:42.
 - Lane C FIX-2NOV-C-CHECK, branch fix/2nov-c-check: R494 pane, R495 Check sort and filter, Save As owner, sheet parts 17 to 20. SPEED-2NOV-C paused on speed/2nov-c. Blocked: none
 - Lane D FIX-2NOV-D, 2 Nov, branch fix/2nov-d: no Revit, no window lock. Several road surfaces in order (Q364, Q256), R490 to R493, Q370 up. Editing NewProjectDialog and the pane road row, lane-c told.
 
