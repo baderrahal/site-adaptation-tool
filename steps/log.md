@@ -2,6 +2,36 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## FIX-2NOV-A ids, 2026-11-02, the element of a row of Placed (CHECK-2NOV part 4)
+
+Goal:
+- Lane B's item: Element id of the sheet Placed stood empty on all 1,339 rows, so a row could not be traced to its element
+
+Done:
+- R483: button 9 reads the id of each tagged link and floor with its tags, revitCounts holds them by plot and kind, Placed writes them
+- One id as a number, the ids joined where a person copied an element, empty where none stands
+- Update from report and update_check.py no longer list a filled cell, R402 text and two design docs follow
+- report_excel_check.py holds each cell against the ids of the counts file
+
+Checked:
+- Gate on 8e611bb, RAN: pytest 2,329 passed 1 skipped, net48 2,000, net8.0 1,755, 0 failed. R310 failed once on net8.0 under load in the first gate, then 3 of 3 alone and 0 failed in the second
+- Second way, RAN: worker on the whole project plan with made up ids, 9,753 Placed rows, net48 and net8.0, 538,285 cells match, 0 mismatch. One id planted wrong gives 1 mismatch, that row. 8 of 8 inputs unchanged by hash
+- The R402 test failed on the old Update code, listing each filled cell, RAN
+- Review 1: two stale design doc lines, fixed. Breaker 1: the two Python routes above, fixed
+
+Remains:
+- UNKNOWN: real ids in Revit. Lane B holds Revit, the re-check is its call. Not installed by Lane A
+- The Conflicts list shows the CAD label: READ, ScanView of Lane C, passed by Lane B. The pick lands on the right plot by that label
+
+Known bugs:
+- Two latent lines in steps/latent.md
+
+Next:
+- Back to FIX-2NOV-A3, its helpers are done
+
+Your turn:
+- Opened none, closed none. Open count as in steps/PROGRESS.md, steps/questions-open.md
+
 ## Lane B CHECK-2NOV, 2026-11-02, the parts of Bader's sheet through the real windows, Lane B on the laptop
 
 Goal:
