@@ -4,10 +4,10 @@
 
 ### Lane A
 
-- Lane: A, round FIX-2NOV-A2, branch fix/2nov-a2. Time: 2026-11-02 15:13. Blocked: none
-- Done and pushed: R478 compare by wall centre, 653 to 1,368 of 2,466 within 10 mm, Q360 closed, R479 in the compare, 12 of 18 TH1-IM match, the 6 are ARC against STR of the SE keys
-- Now: helper builds R480 C10 side walls and R479 in the footprint check
-- Next: gate, parity, review and breaker, records, the PR. Questions Q357, Q358
+- Lane: A, round FIX-2NOV-A2, branch fix/2nov-a2. Time: 2026-11-02 18:00. Blocked: none
+- Done: R478, R479, R480, review 1, breaker 1, gate on ae8369b, parity 32 runs 0 failures
+- Now: the PR
+- Next: merge when green, tell lane-c, then queued FIX-2NOV-A3
 
 ### Lane B, C and D
 

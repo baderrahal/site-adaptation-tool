@@ -282,5 +282,5 @@ One phase per session (Q096). Two lanes run the phases (D10, D17): tools/run-lan
 
 ## FIX-2NOV-A2, the walls against the keys and TH1-IM
 
-- Status: running, Lane A, laptop, 2026-11-02, branch fix/2nov-a2, one PR with code, tests and records (D20)
-- Task 1: R478 the compare by wall centre, no tool line changes (Q360). Task 2: R480 C10 side walls by hand if the measure holds, the rest Q358. Task 3: R479 one villa type by prototype file
+- Status: done, Lane A, laptop, 2026-11-02, branch fix/2nov-a2, one PR with code, tests and records (D20)
+- Task 1: R478 the compare by wall centre, no tool line changes (Q360). Task 2: R480 C10 side walls by hand, 229 of 250, the rest Q358, Q359, Q366. Task 3: R479 one villa type by prototype file
