@@ -11,7 +11,7 @@
 
 ### Lane B, C and D
 
-- Lane B FIX-2NOV-B, 23:02, branch fix/2nov-b-q158: R459 merged, PR 146, not yet run in Revit. Now the Q158 fix, then the hand run of task 4. Lock free, nothing blocks.
+- Lane B FIX-2NOV-B, 23:17, branch fix/2nov-b-q158: R459 merged, PR 146. Helper builds the Q158 fix since 23:03, then review, PR, hand run of task 4. Lock free, nothing blocks.
 - Lane C, branch docs/2nov-c-params: the other 12 bound parameters listed Keep No with a Note in config/shared_parameters.xlsx. Then SPEED-2NOV-C on speed/2nov-c, R449 pushed, helpers on R447 and R448. Blocked: none
 - Lane D FIX-2NOV-D, 2 Nov, branch fix/2nov-d: no Revit, no window lock. Several road surfaces in order (Q364, Q256), R490 to R493, Q370 up. Editing NewProjectDialog and the pane road row, lane-c told.
   Now: the gate, the PR, merge when green. Then MASS-2NOV-D. Blocked: none
