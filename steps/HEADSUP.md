@@ -4,10 +4,10 @@
 
 ### Lane A
 
-- Lane: A, round FIX-2NOV-A, branch fix/2nov-a at 3525b05. Time: 2026-11-02 12:08. Blocked: none
-- Done and pushed: R475 yards (Clipper2, Q352 by Bader), R476 Review 337 of 379, R477 footprint flagged 336 to 8, main merged
-- Now: gate, parity, review and breaker on 3525b05
-- Next: one Revit run of step 5 on a copy of NBH 012 for the 1 mm edges and the warning count, records, the PR, lane-c. Then queued FIX-2NOV-A2
+- Lane: A, round FIX-2NOV-A, branch fix/2nov-a. Time: 2026-11-02 15:00. Blocked: none
+- Done: R475, R476, R477, Revit run of 1 to 5, gate, parity 32 runs 0 failures
+- Now: the PR
+- Next: merge when green, tell lane-c and lane-b, then queued FIX-2NOV-A2
 
 ### Lane B, C and D
 

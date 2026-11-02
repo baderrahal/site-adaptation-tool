@@ -277,5 +277,5 @@ One phase per session (Q096). Two lanes run the phases (D10, D17): tools/run-lan
 
 ## FIX-2NOV-A, the yards, the plots of Review data and the footprint check
 
-- Status: running, Lane A, laptop, 2026-11-02, branch fix/2nov-a, one PR with code, tests and records (D20)
+- Status: done, Lane A, laptop, 2026-11-02, branch fix/2nov-a, one PR with code, tests and records (D20)
 - Task 1: R475 each yard cut to its plot and ramp (Q350). Task 2: R476 Review lists the plots of Check, 337. Task 3: R477 footprint check by same type, limit 1,200 mm (Q351)

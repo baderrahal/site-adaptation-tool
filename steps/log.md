@@ -2,6 +2,39 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## FIX-2NOV-A, 2026-11-02, the yards, the plots of Review data and the footprint check, Lane A on the laptop
+
+Goal:
+- Bader's FIX-2NOV-A, from Lane B's hand run: floors that overlap, 379 plots against 337, all masses flagged over the footprint limit
+
+Done:
+- R475 Yard stays inside its plot: each yard cut to its plot and its ramp by Clipper2 and pyclipr on the mm grid, a cut yard reads yardCut, RECOMMENDED. Bader chose plan faults only (Q350): generic floors keep the whole plot, as in the past models, so overlaps inside a plot stay. BSL-1.0 allowed by name (Q352)
+- R476 Review lists the plots of Check: the 42 are land, open space, sports, mixed use, a masjid, schools, with no official number and no villa type
+- R477 Footprint check by same type: a block of another type is listed apart (Q277), same type held to 1,200 mm (Q351). The check compared each mass with a house the master plan drew, of another type on 271 of 336 plots, and even the same type stands 147 to 1,121 mm off
+- Cause of the 70 m2 yards: a link override moved the yard with the link (2543, 2546, 2008, 2005, 865), a width group fitted on one wider plot (1761, 1737)
+
+Checked:
+- Floor pairs by a 3D count at 150 mm, RAN: NBH 012 1,356 to 1,082, whole project 9,386 to 7,409. Yard area past its plot NBH 012 187.25 to 0.87 m2, whole project 589.46 to 5.31 m2, largest 70.01 to 0.02 m2
+- Revit run A2NV of buttons 1 to 5 on a new NBH 012 model, RAN on e94077f: 1,003 floors placed, 0 refused, overlap warnings 1,402 to 1,131, 42 off axis (Q356). The source yardCut came after it, no outline changed since. No yard read back from the model
+- R476 on the real table, RAN: NBH 012 379 to 337 rows, 013 466 to 410. R477 on the last hand run, RAN by C# and a second script: flagged 336 to 8, all 8 no outline, 57 same type 0 over, 271 other
+- Past job against main, RAN: the 7 keys and the whole project differ only in yard fields (outline, status, and on 4 plots the rule step), Python and C# 2,199 yards equal
+- Parity, RAN: 13 steps, net48 and net8.0, whole project and the 7 keys, past job and rev6, 32 runs, 416 step lines, 0 failures, on c57fd1b
+- Gate, RAN on c57fd1b: pytest 2,307 passed, 1 skipped. C# net48 1,979, net8.0 1,734, 0 failed. Review 1 APPROVE, breaker 1 and 2: 2 REAL fixed, the rest questions and latent lines
+
+Remains:
+- Step 5 accepts the overlap warning: Lane B's item L2NOV-1. Other type plots are not held (Q353). A built model keeps its old yards (Q354), build again from a new model
+
+Known bugs:
+- A Wrong on 2312 of NBH 012 never reaches Check (Q355). Mass checks of TH1-IM in the next round (Q238)
+
+Next:
+- Queued FIX-2NOV-A2: wall lines (Q360), walls one side, TH1-IM. Bader answers Q351, Q353 to Q356
+
+Your turn:
+- Opened Q351 The limit of the footprint check. Q353 The footprint check on other type plots. Q354 Yards of a model already built. Q355 A Wrong on a plot of two numbers. Q356 The off axis warning of a cut yard.
+  Closed Q350 Floors edge to edge. Q352 A Boost licence package
+- 154 questions open, full text: steps/questions-open.md
+
 ## Lane D 6B-DATA-REV6, 2026-11-02, what a new project gets on the 5 TU zones, no Revit
 
 Goal:
