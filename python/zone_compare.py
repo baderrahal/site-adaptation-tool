@@ -207,7 +207,8 @@ def markdown(code, report):
     builds = report["builds"]
     first = builds["with"]
     lines = ["### %s (%s)" % (code, report["kind"]), "",
-             "Plots compared %d, only in the tool plan %d, only in the key %d." % (first["compared"], len(first["onlyInTool"]), len(first["onlyInKey"])), "",
+             "With overrides: plots compared %d, only in the tool plan %d, only in the key %d." % (first["compared"], len(first["onlyInTool"]), len(first["onlyInKey"])),
+             "Without overrides: plots compared %d, only in the tool plan %d, only in the key %d." % (builds["without"]["compared"], len(builds["without"]["onlyInTool"]), len(builds["without"]["onlyInKey"])), "",
              "Counts are match, within limit, over limit, no reference, tool none.", "",
              "| Field | With overrides | Without overrides |", "|---|---|---|"]
     lines += ["| %s | %s | %s |" % (field, count_cell(first["counts"][field]), count_cell(builds["without"]["counts"][field])) for field in FIELDS]
@@ -249,7 +250,8 @@ def main(argv=None):
     key = link_summary.load(args.key_plan)
     tools = {"with": link_summary.load(args.with_overrides), "without": link_summary.load(args.without_overrides)}
     builds = {build: compare_zone(tools[build], key, kind, limits, left_out) for build in BUILDS}
-    plots = random_plots(list(builds["with"]["perPlot"]), args.seed)
+    # A build with no override list can write fewer plots, a random plot is shown in both
+    plots = random_plots(list(set(builds["with"]["perPlot"]) & set(builds["without"]["perPlot"])), args.seed)
     report = {"code": args.code, "kind": kind, "seed": args.seed, "limits": limits, "chosen": chosen, "randomPlots": plots, "builds": builds}
     plans = {build: {entry["plot"]: entry for entry in tools[build]["plots"]} for build in BUILDS}
     plans["key"] = {entry["plot"]: entry for entry in key["plots"]}

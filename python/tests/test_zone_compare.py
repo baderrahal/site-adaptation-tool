@@ -159,10 +159,10 @@ def test_kind_of_a_key_comes_from_the_config():
         zone_compare.kind_of(SETTINGS, "IMZ")
 
 
-def run_main(tmp_path, tool, key, settings=SETTINGS):
+def run_main(tmp_path, tool, key, settings=SETTINGS, without=None):
     settings_path = tmp_path / "project.json"
     settings_path.write_text(json.dumps(settings), encoding="utf-8")
-    for name, plan in (("with.json", tool), ("without.json", tool), ("key.json", key)):
+    for name, plan in (("with.json", tool), ("without.json", without or tool), ("key.json", key)):
         (tmp_path / name).write_text(json.dumps(plan), encoding="utf-8")
     out = tmp_path / "out"
     code = zone_compare.main(["IMC", "--with-overrides", str(tmp_path / "with.json"), "--without-overrides", str(tmp_path / "without.json"),
@@ -196,3 +196,16 @@ def test_the_report_keeps_the_limits_and_gaps_exact(tmp_path):
     assert report["limits"]["ffl"]["match"] == 0.0005
     row = report["builds"]["with"]["perPlot"]["1"]["ffl"]
     assert row["status"] == "match" and row["gap"] == pytest.approx(0.00049, abs=1e-9)
+
+
+def test_a_plot_only_the_build_with_overrides_writes_is_never_a_random_plot(tmp_path):
+    numbers = [str(number) for number in range(1, 40)]
+    tool = {"plots": [plot(number) for number in numbers], "walls": []}
+    fewer = {"plots": [plot(number) for number in numbers[:3]], "walls": []}
+    key = {"plots": [plot(number) for number in numbers], "walls": []}
+    code, out = run_main(tmp_path, tool, key, without=fewer)
+    assert code == 0
+    report = json.loads((out / "zone_compare_imc.json").read_text(encoding="utf-8"))
+    assert sorted(report["randomPlots"]) == sorted(numbers[:3])
+    text = (out / "zone_imc.md").read_text(encoding="utf-8")
+    assert "With overrides: plots compared 39" in text and "Without overrides: plots compared 3," in text
