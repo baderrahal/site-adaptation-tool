@@ -6,6 +6,7 @@ namespace SiteAdaptation.AddIn.Pane
     {
         public const string Title = "Site Adaptation";
         public const string NotSaved = "not saved";
+        public const string ShowRefused = "Revit would not show the pane now. Open a project and try again.";
 
         public const string NextLabel = "Next step";
         public const string RunButton = "Run <n> <name>";
@@ -57,6 +58,12 @@ namespace SiteAdaptation.AddIn.Pane
         public const string Prototypes = "Prototypes";
         public const string SharedParameters = "Shared parameters";
         public const string Export = "Export";
+
+        public const string PickSurfaces = "Pick surfaces";
+        public const string SurfacesInOrder = "Road surfaces in order (<n>): <name>";
+        public const string SurfacesNone = "No road surface is picked.";
+        public const string SurfacesPastJob = "The saved project takes its road surfaces from its past job, so this pick is not used.";
+        public const string SurfacesNoSetup = "Pick a saved project under Start from first.";
 
         public const string NotChosen = "Not chosen";
         public const string Size = "<n> MiB";

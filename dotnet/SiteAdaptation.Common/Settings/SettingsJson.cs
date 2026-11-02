@@ -68,6 +68,11 @@ namespace SiteAdaptation.Common.Settings
             {
                 throw new InvalidDataException("the settings JSON holds the number with decimals " + fraction.ToString(Formatting.None) + " at " + fraction.Path + ", it holds no coordinate or level value");
             }
+            // Newtonsoft turns a number or a bool in a list of texts into its text without a word
+            if (root["roadSurfaces"] is JArray roads && roads.Any(name => name.Type != JTokenType.String))
+            {
+                throw new InvalidDataException("the settings JSON names roadSurfaces that are no list of non empty unique texts");
+            }
             ProjectSettings settings;
             try
             {
@@ -107,6 +112,11 @@ namespace SiteAdaptation.Common.Settings
             OneOf(settings.DoorLevelSource, DoorLevelSources.All, "doorLevelSource");
             Picks(settings.ScanPicks, "scanPicks");
             Picks(settings.ConflictPicks, "conflictPicks");
+            if (settings.RoadSurfaces != null && (settings.RoadSurfaces.Count == 0 || settings.RoadSurfaces.Any(string.IsNullOrEmpty)
+                || settings.RoadSurfaces.Distinct(StringComparer.Ordinal).Count() != settings.RoadSurfaces.Count))
+            {
+                throw new InvalidDataException("the settings JSON names roadSurfaces that are no list of non empty unique texts");
+            }
             foreach (string entry in settings.CurrentFiles ?? new List<string>())
             {
                 string name = (entry ?? "").Split('|')[0];

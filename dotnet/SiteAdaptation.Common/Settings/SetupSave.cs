@@ -14,6 +14,9 @@ namespace SiteAdaptation.Common.Settings
         public IDictionary<string, string> ScanPicks { get; set; }
 
         public IDictionary<string, string> ConflictPicks { get; set; }
+
+        // R492. The road surfaces of the window in their order, null keeps what the settings hold
+        public IReadOnlyList<string> RoadSurfaces { get; set; }
     }
 
     // R432, Save setup. The settings of the project with the draft laid over them, in the settings JSON of R367 and nothing else, so
@@ -69,6 +72,10 @@ namespace SiteAdaptation.Common.Settings
             if (draft.ConflictPicks != null && draft.ConflictPicks.Count > 0)
             {
                 next.ConflictPicks = new SortedDictionary<string, string>(draft.ConflictPicks, StringComparer.Ordinal);
+            }
+            if (draft.RoadSurfaces != null)
+            {
+                next.RoadSurfaces = new List<string>(draft.RoadSurfaces);
             }
             return SettingsJson.Read(SettingsJson.Write(next));
         }

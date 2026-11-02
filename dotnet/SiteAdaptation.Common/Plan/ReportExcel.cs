@@ -20,10 +20,12 @@ namespace SiteAdaptation.Common
         public const string OverridesSheet = "Overrides";
         public const string AssumedSheet = "Assumed";
         public const string IssuesSheet = "Issues";
+        // R459, item 38 of 7.7
+        public const string AcceptedSheet = "Accepted warnings";
         public const string RulesSheet = "Rules";
         public const string SettingsSheet = "Settings";
         // 7.6 in its order, Assumed after Overrides (7.7 item 9) and Settings after them all (7.7 item 12)
-        public static readonly string[] Sheets = { SummarySheet, PlacedSheet, SkippedSheet, OverridesSheet, AssumedSheet, IssuesSheet, RulesSheet, SettingsSheet };
+        public static readonly string[] Sheets = { SummarySheet, PlacedSheet, SkippedSheet, OverridesSheet, AssumedSheet, IssuesSheet, AcceptedSheet, RulesSheet, SettingsSheet };
 
         // 7.6: the open values stay as the mock writes them while no model is placed, Phase 6 fills them
         public const string TopLine = "[file name].rvt, NBH <nbh>, <n> plots, <profile>, run time [n] min";
@@ -111,6 +113,11 @@ namespace SiteAdaptation.Common
         public const string WeakRuleCheck = "Weak rule";
         public const string WeakWhy = "<rule> share <share>, weak";
 
+        public const string FirstFloorType = "First floor type";
+        public const string SecondFloorType = "Second floor type";
+        public const string Warning = "Warning";
+        public static readonly string[] AcceptedColumns = { Plot, FirstFloorType, SecondFloorType, Warning };
+
         public const string Values = "Values";
         public static readonly string[] RuleSheetColumns = { Rule, Status, Basis, Plots, Values };
 
@@ -178,6 +185,8 @@ namespace SiteAdaptation.Common
         public List<Dictionary<string, string>> PlotRows { get; set; }
         // R381, Q124: the counts the add-in read from the model, RevitCounts, null when the request gives none
         public JObject RevitCounts { get; set; }
+        // R459: the file step 5 left, AcceptedWarningFile of Flow, null when the request gives none
+        public JObject AcceptedWarnings { get; set; }
         public string RunId { get; set; }
         public string Profile { get; set; }
         public DateTime Now { get; set; }
@@ -422,7 +431,7 @@ namespace SiteAdaptation.Common
             List<JObject> walls = made.Walls.Where(item => writtenNumbers.Contains((string)item["plot"])).ToList();
             List<string> order = written.Select(item => (string)item["plot"]).Concat(made.NotWritten.Select(item => (string)item["plot"]).Where(mine.Contains)).ToList();
 
-            ReportTable placed = PlacedTable(written);
+            ReportTable placed = PlacedTable(written, inputs.RevitCounts);
             ReportTable skipped = SkippedTable(missing);
             ReportTable overrides = OverridesTable(made, written, missing);
             ReportTable assumed = AssumedTable(made, written);
@@ -459,7 +468,8 @@ namespace SiteAdaptation.Common
             foreach (var item in new[]
             {
                 Tuple.Create(ReportExcelText.PlacedSheet, placed), Tuple.Create(ReportExcelText.SkippedSheet, skipped), Tuple.Create(ReportExcelText.OverridesSheet, overrides),
-                Tuple.Create(ReportExcelText.AssumedSheet, assumed), Tuple.Create(ReportExcelText.IssuesSheet, issues), Tuple.Create(ReportExcelText.RulesSheet, rulesTable),
+                Tuple.Create(ReportExcelText.AssumedSheet, assumed), Tuple.Create(ReportExcelText.IssuesSheet, issues), Tuple.Create(ReportExcelText.AcceptedSheet, AcceptedTable(inputs, nbh)),
+                Tuple.Create(ReportExcelText.RulesSheet, rulesTable),
                 Tuple.Create(ReportExcelText.SettingsSheet, SettingsTable(inputs)),
             })
             {
@@ -470,18 +480,32 @@ namespace SiteAdaptation.Common
             return book;
         }
 
+        // R459. Apart from the issues, as an accepted warning is no issue of the run. Only a book of the NBH the file names
+        private static ReportTable AcceptedTable(ReportInputs inputs, string nbh)
+        {
+            var table = new ReportTable { Header = ReportExcelText.AcceptedColumns, Formats = new string[ReportExcelText.AcceptedColumns.Length] };
+            if (inputs.AcceptedWarnings != null && (string)inputs.AcceptedWarnings["neighbourhood"] == nbh)
+            {
+                foreach (Flow.AcceptedWarning item in Flow.AcceptedWarningFile.Read(inputs.AcceptedWarnings))
+                {
+                    table.Rows.Add(new object[] { item.Plot, item.FirstType, item.SecondType, item.Text });
+                }
+            }
+            return table;
+        }
+
         // D4, items 10 and 11 of 7.7: plot first, one row per written plot and kind, the link with its villa type and mirror flag, then each floor
-        // with its type as the plan writes them. CHOSEN: the element id stays empty until the run logs of buttons 4 and 5 are an input
-        internal static ReportTable PlacedTable(List<JObject> written)
+        // with its type as the plan writes them, and the element id the model holds at report time (R483), empty where no element stands
+        internal static ReportTable PlacedTable(List<JObject> written, JObject revitCounts = null)
         {
             var table = new ReportTable { Header = ReportExcelText.PlacedColumns, Formats = new string[5], Editable = ReportExcelText.Editable };
             foreach (JObject plot in written)
             {
                 string number = (string)plot["plot"];
-                table.Rows.Add(new[] { number, ReportExcelText.LinkKind, Cell(plot["unit"]?["value"]), Cell(plot["mirrored"]?["value"]), null });
+                table.Rows.Add(new[] { number, ReportExcelText.LinkKind, Cell(plot["unit"]?["value"]), Cell(plot["mirrored"]?["value"]), RevitCounts.ElementId(revitCounts, number, ReportExcelText.LinkKind) });
                 foreach (JProperty floor in (plot["floors"] as JObject ?? new JObject()).Properties())
                 {
-                    table.Rows.Add(new[] { number, floor.Name, Cell(floor.Value["type"]?["value"]), null, null });
+                    table.Rows.Add(new[] { number, floor.Name, Cell(floor.Value["type"]?["value"]), null, RevitCounts.ElementId(revitCounts, number, floor.Name) });
                 }
             }
             return table;

@@ -13,9 +13,16 @@ namespace SiteAdaptation.Common.Flow
             IsFolder = isFolder;
         }
 
+        // R492. A value of the settings a step depends on, no file: it is never absent and its hash is the hash of its text
+        public static RunInput OfText(string name, string text)
+        {
+            return new RunInput(name, null, false) { Text = text ?? throw new ArgumentNullException(nameof(text)) };
+        }
+
         public string Name { get; }
         public string Path { get; }
         public bool IsFolder { get; }
+        public string Text { get; private set; }
     }
 
     // R382, R372. What the flow asks of the pane side, which fills it: the work folder of 06-settings, the tick "Dry run first, change
@@ -80,6 +87,10 @@ namespace SiteAdaptation.Common.Flow
         public Func<RunContext, RunSummary> Preview { get; set; }
         public Func<RunContext, IReadOnlyList<string>> Apply { get; set; }
         public Func<RunContext, string> ReadBack { get; set; }
+
+        // R459. Runs once the transaction committed and before the files move, for an output only the commit can tell. The model has
+        // committed, so a failure here is an issue of the run and rolls nothing back. Null for none
+        public Action<RunContext> AfterCommit { get; set; }
 
         // The message of a real run once it committed and moved its files, what it saved, null for none
         public Func<RunContext, string> Done { get; set; }

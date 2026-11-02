@@ -333,6 +333,26 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
+        public void R458_a_revit_slog_in_a_backup_folder_leaves_the_folder_hash_and_any_other_file_changes_it()
+        {
+            string folder = Path.Combine(root, "prototypes");
+            string backup = Path.Combine(folder, "villa_backup");
+            Directory.CreateDirectory(backup);
+            File.WriteAllText(Path.Combine(folder, "villa.rvt"), "abc");
+            string first = InputHash.OfFolder(folder);
+
+            File.WriteAllText(Path.Combine(backup, "villa.slog"), "log");
+            Assert.Equal(first, InputHash.OfFolder(folder));
+
+            File.WriteAllText(Path.Combine(backup, "incremental.dat"), "x");
+            string withData = InputHash.OfFolder(folder);
+            Assert.NotEqual(first, withData);
+
+            File.WriteAllText(Path.Combine(folder, "notes.slog"), "log");
+            Assert.NotEqual(withData, InputHash.OfFolder(folder));
+        }
+
+        [Fact]
         public void R382_the_flow_lives_in_common_with_no_revit_reference_and_a_run_id_names_files()
         {
             string id = RunIds.New(4, new DateTime(2026, 10, 28, 10, 18, 0, 123));

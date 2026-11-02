@@ -4,20 +4,18 @@
 
 ### Lane A
 
-- Lane: A, round FIX-2NOV-A2, branch fix/2nov-a2. Time: 2026-11-02 18:00. Blocked: none
-- Done: R478, R479, R480, review 1, breaker 1, gate on ae8369b, parity 32 runs 0 failures
+- Lane: A, item of CHECK-2NOV, branch fix/2nov-a-placed-ids. Time: 2026-11-02 21:30. Blocked: none
+- Done: R483 Element id of Placed, review 1, breaker 1, gate on 8e611bb
 - Now: the PR
-- Next: merge when green, tell lane-c, then queued FIX-2NOV-A3
+- Next: back to FIX-2NOV-A3 on fix/2nov-a3, helpers done
 
 ### Lane B, C and D
 
-- Lane B Task 6 (FIX-1NOV-B), 02:30, branch fix/1nov-b-task6: both passes done, Revit closed, lock free, main with PR 130 merged in, keeping both sides.
-  Now: the gate on the merged tree, then merge PR 131. Then Lane D D3 on my word
-- Lane C SPEED-2NOV-C, branch speed/2nov-c: R447, R448, R449 on the branch, not merged. Before run done, steps/investigations/speed-2nov.md. Fixes of review 1 and breaker 1 going on, then the listener first in Revit. Blocked: none
-- Lane D 6B-DATA-REV6, 2 Nov, branch feat/6b-data-rev6: no Revit, no window lock. 5 TU zones under rev6, levels equal the past rules, config copies outside git. Opened Q364.
-  Now: the PR, merge when green. Blocked: none
+- Lane B FIX-2NOV-B, 00:19, branch fix/2nov-b-q158: second breaker pass clean, gate running, then PR, then the hand run of task 4. Lock free, nothing blocks.
+- Lane D FIX-2NOV-D, 2 Nov, branch fix/2nov-d: no Revit, no window lock. Several road surfaces in order (Q364, Q256), R490 to R493, Q370 up. Editing NewProjectDialog and the pane road row, lane-c told.
+- Lane C SPEED-2NOV-C, branch speed/2nov-c: R447, R448, R449 on the branch, not merged. Before table in steps/investigations/speed-2nov.md. Now the split of button 7. Blocked: Revit, Lane B's hand run
 
-Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane C parameters, 2 Nov 2026.
+Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane D FIX-2NOV-D, 2 Nov 2026.
 
 ## Repo map
 
@@ -39,13 +37,15 @@ Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane
 - Lane B Task 6, PR 131 (R457): the demo by hand, two passes, steps/demo-check.md, a neighbourhood kept when the list refills
 - Lane C FIX-2NOV-C (R446): Review data Close and ask, no idle button, Run complete in the pane, the export refused in the input folder, Dry run off before 4 Check
 - Lane D D3, PR 134 (R467, R468): Links mode proven by the test host on NBH 012, Q275 closed. Through the pane the Prototypes row names the link folder (part 11)
+- Lane D FIX-2NOV-D (R490 to R493): designBasis.roadLevel.surfaces, ProjectSettings.RoadSurfaces, WorkerRequest.RoadSurfaces, the window Road surfaces. A new function and its caller: design_basis.surfaces_of, stop_share_of, not_taken_why, named_surfaces by basis_of, no_road_stop and road_gaps by plan_from_book.run_build, road_order by level_excel_check.expected. DesignBasis.SurfacesOf, StopShareOf by Of, TakePick by BuildSteps.Run, NoRoadStop, NoRoadLine by BuildPlan.NoRoadCheck by BuildPlan.Write, IsNoRoad by CheckRun. RoadSurfaceChoices.Named, IsRev6, OrderText, ForRequest, NotTakenWhy by ReadInputs.Make, CheckRun.Plan, ReadDataRun.Start, PaneRunState.InputsOf, ReadSettings.ReadRoads. ReadSettings.ReadRoads by WorkerReads.Surfaces, LevelWorkbook.Command. RoadSurfacesDialog.Show by NewProjectDialog.Show and PaneHost.Register, RoadSurfacesViewModel by the dialog, RoadPickState by both view models, PickSurfaces by NewProjectWindow and SitePanePage
 
 ## New rules
 
-- R444 to R446 (Lane C). R450 to R456 (Lane B). R460 to R466 (Lane D). R457 (Lane B). R470 to R474 (Lane A). R467, R468 (D3)
+- R444 to R446 (Lane C). R450 to R456 (Lane B). R460 to R466 (Lane D). R457 (Lane B). R470 to R474 (Lane A). R467, R468 (D3). R458, R459 (Lane B)
 
 ## Wiring
 
+- Known warnings, R459: a step calls RunContext.AcceptKnownWarnings with its KnownWarningList (KnownWarningList.Parse takes its config block), WarningCollector deletes each accepted one at commit. FloorsRun.Apply is the first caller.
 - Pane to a button: a step row or the box raises RunRequested, RunButtonHandler calls Buttons.Run, the path of the ribbon. Buttons.Run starts RunLoader
 - Closing Review data: the X and Close, Window.Closing, ReviewDataSession.CanClose, ReviewCloseWindow.Ask. Run complete: PaneViewModel.RefreshBox, ReportFiles, OpenFolderRequested, PaneHost starts Explorer. Dry run: Buttons.Run, PaneRunState.BeforeRun, PaneViewModel.UntickDryRunFor. Export: ScanResultsSession.Export, InsideInputs, ScanGate.PickExportFor
 - New project: NewProjectRequested raises NewProjectHandler, PaneHost.OpenNewProject opens NewProjectDialog.Show, then SetupWrite.Write, SettingsStore.Save and SettingsEntity in one transaction, then PaneViewModel.LoadSettings. PaneHost.OnChanged calls PaneSessions.Undone on an undo or redo

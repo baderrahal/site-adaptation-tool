@@ -131,6 +131,12 @@ namespace SiteAdaptation.AddIn.Pane
         // takes its last run from lastRuns of the settings, which hold no outputs, so it is held by its hash and scope alone (CHOSEN)
         public Dictionary<int, StepRun> Runs { get; } = new Dictionary<int, StepRun>();
 
+        // R366, Q158. The last run of a step as the pane and a press of button 1 read it: the one of this session first, else the one of the settings
+        public StepRun LastRun(int step)
+        {
+            return Runs.TryGetValue(step, out StepRun run) ? run : StepRun.FromSettings(Settings.Project, step);
+        }
+
         public bool HasPath
         {
             get { return SavedPath.Is(Path); }

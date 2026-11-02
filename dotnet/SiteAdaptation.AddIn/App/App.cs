@@ -55,7 +55,7 @@ namespace SiteAdaptation.AddIn
                     {
                         LargeImage = IconRenderer.Render(theme, button.IconKey32, 32, scale),
                         Image = IconRenderer.Render(theme, button.IconKey16, 16, scale),
-                        AvailabilityClassName = RibbonLayout.AvailabilityClass,
+                        AvailabilityClassName = button.NeedsProject ? RibbonLayout.AvailabilityClass : RibbonLayout.AlwaysAvailableClass,
                     };
                     ribbonPanel.AddItem(data);
                 }

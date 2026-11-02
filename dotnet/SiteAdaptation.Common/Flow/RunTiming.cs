@@ -39,6 +39,10 @@ namespace SiteAdaptation.Common.Flow
         internal const string WorkerEndStep = "workerEnd";
         internal const string WindowStep = "window";
         internal const string OutsideStep = "outside";
+        // R447. The parts of the outside step of 7 Place villas, which is most of its time
+        internal const string VillaDecideStep = "villaDecide";
+        internal const string VillaMassFilesStep = "villaMassFiles";
+        internal const string VillaLoadTypesStep = "villaLoadTypes";
         internal const string ApplyStep = "apply";
         internal const string ReadBackStep = "readBack";
         internal const string CommitStep = "commit";

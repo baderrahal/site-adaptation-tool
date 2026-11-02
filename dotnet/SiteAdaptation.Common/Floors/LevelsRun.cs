@@ -162,7 +162,7 @@ namespace SiteAdaptation.Common.Floors
             var request = new WorkerRequest
             {
                 FormatVersion = WorkerRequest.CurrentFormatVersion, RunId = context.RunId + "-" + decision.Nbh, Command = Command, Document = inputs.Document, Inputs = files,
-                LevelProfile = inputs.Profile, Scope = new WorkerScope { Kind = "nbh", Nbh = decision.Nbh }, OutputFolder = stage, TimeLimitS = inputs.TimeLimitS,
+                LevelProfile = inputs.Profile, Scope = new WorkerScope { Kind = "nbh", Nbh = decision.Nbh }, OutputFolder = stage, TimeLimitS = inputs.TimeLimitS, RoadSurfaces = inputs.RoadSurfaces,
             };
             try
             {

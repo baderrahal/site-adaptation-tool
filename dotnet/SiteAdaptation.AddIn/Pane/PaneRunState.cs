@@ -1,5 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using SiteAdaptation.Common;
 using SiteAdaptation.Common.Flow;
 using SiteAdaptation.Common.Settings;
 using SiteAdaptation.Common.Steps;
@@ -10,6 +14,9 @@ namespace SiteAdaptation.AddIn.Pane
     // on. No Revit type, so a test fills it without Revit
     public sealed class PaneRunState : IRunState
     {
+        // R492. The name of the input of step 2 that holds the road order under rev6, a key of the hashes the user never sees, as a value is never absent
+        public const string RoadOrderInput = "Road surface order";
+
         private readonly PaneViewModel model;
         private readonly Func<string> root;
         private readonly Func<string, string> readText;
@@ -71,12 +78,51 @@ namespace SiteAdaptation.AddIn.Pane
             if (button == 2)
             {
                 inputs.AddRange(ReadDataBody.Inputs(settings));
+                // R492. Under rev6 the effective road order is an input of the read as a file is, so a changed pick or order runs step 2 and the
+                // chain after it again, as a Browse does. Under the past job there is no such input, so its hashes stay as they were
+                string order = RoadSurfaceChoices.OrderText(ConfigOf(settings.ConfigFile), settings.Project.RoadSurfaces);
+                if (order != null)
+                {
+                    inputs.Add(RunInput.OfText(RoadOrderInput, order));
+                }
             }
             if (button == 4)
             {
                 inputs.AddRange(CheckTable.CheckTableBody.Inputs(settings));
             }
             return inputs;
+        }
+
+        // The config the step lines ask for on every refresh, read again only when its file changed. One that does not read holds no road
+        // order, its own input of step 2 names the fault
+        private static string heldPath;
+        private static DateTime heldStamp;
+        private static long heldSize;
+        private static JObject heldConfig;
+
+        private static JObject ConfigOf(string path)
+        {
+            try
+            {
+                var file = string.IsNullOrEmpty(path) ? null : new FileInfo(path);
+                if (file == null || !file.Exists)
+                {
+                    return null;
+                }
+                if (heldPath != file.FullName || heldStamp != file.LastWriteTimeUtc || heldSize != file.Length)
+                {
+                    heldConfig = JObject.Parse(WorkFiles.ReadText(file.FullName));
+                    heldPath = file.FullName;
+                    heldStamp = file.LastWriteTimeUtc;
+                    heldSize = file.Length;
+                }
+                return heldConfig;
+            }
+            catch (Exception failure) when (failure is JsonException || failure is IOException || failure is UnauthorizedAccessException || failure is ArgumentException || failure is NotSupportedException)
+            {
+                heldPath = null;
+                return null;
+            }
         }
 
         // R457. The Neighbourhood list of Scope from the latest read of the active document. A work folder refused or a table that does

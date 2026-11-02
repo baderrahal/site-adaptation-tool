@@ -378,6 +378,8 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R452 Masses placed as linked files.
 - R453 Footprint check by house outline.
 - R457 Neighbourhood list from the read.
+- R458 Revit slog leaves step hash.
+- R459 Step accepts known warnings.
 
 ## 10-addin-r407-up.md
 
@@ -401,6 +403,7 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R478 Wall compare by wall centre.
 - R479 One villa type by prototype file.
 - R480 C10 side wall by hand.
+- R483 Placed names its element.
 
 ## 11-scanner-r420-up.md
 
@@ -436,6 +439,8 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R449 Two Revit window slots.
 - R447 Run timing per step.
 - R448 Revit listener job folder.
+- R494 Pane returns on document open.
+- R495 Check rows sort and filter.
 
 ## 13-parameters-r460-up.md
 
@@ -449,6 +454,10 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R467 Link folder of a buttons run.
 - R468 Copy saved after each button.
 - R469 Plan of a zone against its key.
+- R490 Road surfaces named in order.
+- R491 Each corner takes first surface.
+- R492 Road surfaces picked in Set up.
+- R493 Stop on plots with no road.
 
 ## 13-site-coords-r454-up.md
 

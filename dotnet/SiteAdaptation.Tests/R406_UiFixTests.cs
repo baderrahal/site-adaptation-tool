@@ -39,7 +39,7 @@ namespace SiteAdaptation.Tests
         {
             FrameworkElement body = Shots.Body(window);
             Grid header = Visuals(body).OfType<Border>().Select(border => border.Child).OfType<Grid>()
-                .First(grid => grid.ColumnDefinitions.Count >= 5 && grid.Children.OfType<TextBlock>().Count() >= 5);
+                .First(grid => grid.ColumnDefinitions.Count >= 5 && (grid.Children.OfType<TextBlock>().Count() >= 5 || grid.Children.OfType<StackPanel>().Count() >= 5));
             ListBoxItem item = Visuals(body).OfType<ListBoxItem>().First();
             Grid row = Visuals(item).OfType<Grid>().First(grid => grid.ColumnDefinitions.Count >= 5);
 

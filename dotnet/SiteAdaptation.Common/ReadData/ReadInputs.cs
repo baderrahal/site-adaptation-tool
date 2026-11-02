@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using Newtonsoft.Json.Linq;
 using SiteAdaptation.Common.Flow;
+using SiteAdaptation.Common.Settings;
 using SiteAdaptation.Common.Steps;
 
 namespace SiteAdaptation.Common.ReadData
@@ -28,14 +29,19 @@ namespace SiteAdaptation.Common.ReadData
     // R375. Every input of the read with the one hash over them and the read steps, or the stops that keep it from starting
     public sealed class ReadPlan
     {
-        public ReadPlan(IReadOnlyList<ReadInput> inputs, IReadOnlyList<string> steps, IReadOnlyList<string> stops, string configPath)
+        public ReadPlan(IReadOnlyList<ReadInput> inputs, IReadOnlyList<string> steps, IReadOnlyList<string> stops, string configPath, string roadOrder = null)
         {
+            RoadOrder = roadOrder;
             Inputs = inputs;
             Steps = steps;
             Stops = stops;
             ConfigPath = configPath;
             var named = inputs.ToDictionary(input => input.Role, input => input.Sha256, StringComparer.Ordinal);
             named["steps"] = string.Join(",", steps);
+            if (roadOrder != null)
+            {
+                named["roadOrder"] = roadOrder;
+            }
             Hash = StepHash.Combine(named);
         }
 
@@ -43,6 +49,9 @@ namespace SiteAdaptation.Common.ReadData
         public IReadOnlyList<string> Steps { get; }
         public IReadOnlyList<string> Stops { get; }
         public string ConfigPath { get; }
+
+        // R492. The effective road order under rev6, one line per name, in the hash so a new order is a new read. Null under the past job, whose hash stays
+        public string RoadOrder { get; }
 
         // One SHA-256 over every role and hash and the step list, which names the folder of the read
         public string Hash { get; }
@@ -67,8 +76,8 @@ namespace SiteAdaptation.Common.ReadData
         }
 
         // roles names the role of each input of the pane by its name there. workFolder is the work folder of the document, whose
-        // parent is the work root of R372 the data book folder lies in
-        public static ReadPlan Make(IReadOnlyList<RunInput> pane, IReadOnlyDictionary<string, string> roles, string workFolder)
+        // parent is the work root of R372 the data book folder lies in. picked gives the road surfaces picked in Set up, read under rev6 alone (R492)
+        public static ReadPlan Make(IReadOnlyList<RunInput> pane, IReadOnlyDictionary<string, string> roles, string workFolder, IReadOnlyList<string> picked = null)
         {
             var stops = new List<string>();
             var found = new List<KeyValuePair<string, string>>();
@@ -80,6 +89,7 @@ namespace SiteAdaptation.Common.ReadData
             string configPath = Path.GetFullPath(configInput.Path);
             JObject config = JObject.Parse(WorkFiles.ReadText(configPath));
             var referenceOnly = new HashSet<string>(Strings(config.SelectToken("drawings.referenceOnly")), StringComparer.OrdinalIgnoreCase);
+            string order = RoadSurfaceChoices.OrderText(config, picked);
             foreach (RunInput input in pane)
             {
                 if (!roles.TryGetValue(input.Name, out string role))
@@ -88,10 +98,24 @@ namespace SiteAdaptation.Common.ReadData
                 }
                 if (role == RoadSurface)
                 {
-                    foreach (string name in Strings(config.SelectToken("siteBuild.roadSurfaces")))
+                    // R492. Under rev6 the surfaces named or picked in their order, the past job those of siteBuild.roadSurfaces
+                    bool rev6 = RoadSurfaceChoices.IsRev6(config);
+                    string listed = rev6 ? "the road surfaces named" : "siteBuild.roadSurfaces";
+                    if (rev6 && RoadSurfaceChoices.Named(config, picked).Count == 0)
                     {
+                        stops.Add(input.Name + ": config names no road surface and Set up picked none (R490)");
+                    }
+                    foreach (string name in rev6 ? RoadSurfaceChoices.Named(config, picked) : Strings(config.SelectToken("siteBuild.roadSurfaces")))
+                    {
+                        // R492. A surface siteBuild.roadFolder.notTaken names covers corners with the wrong level, so it is refused with its reason
+                        string why = rev6 ? RoadSurfaceChoices.NotTakenWhy(config, name) : null;
+                        if (why != null)
+                        {
+                            stops.Add(input.Name + ": " + name + " is no road surface: " + why + " (R492)");
+                            continue;
+                        }
                         string file = Path.Combine(input.Path, name + ".xml");
-                        Add(found, stops, WorkerRunner.RoadSurfaceRole + name, file, input.Name + ": " + name + ".xml of siteBuild.roadSurfaces is not in the folder " + input.Path);
+                        Add(found, stops, WorkerRunner.RoadSurfaceRole + name, file, input.Name + ": " + name + ".xml of " + listed + " is not in the folder " + input.Path);
                     }
                     continue;
                 }
@@ -106,7 +130,7 @@ namespace SiteAdaptation.Common.ReadData
             if (read == null)
             {
                 stops.Add("config names no addin.readData, the files of the read beside the pane (R375)");
-                return Plan(found, stops, configPath);
+                return Plan(found, stops, configPath, order);
             }
             string layers = Text(read, "cadLayers");
             if (layers == null)
@@ -119,7 +143,7 @@ namespace SiteAdaptation.Common.ReadData
             }
             Schedules(config, read, found, stops);
             DataBook(read, workFolder, found, stops);
-            return Plan(found, stops, configPath);
+            return Plan(found, stops, configPath, order);
         }
 
         // R351. The fit schedule must be named, and every schedule named must be on disk, as the worker refuses the read without them
@@ -185,14 +209,14 @@ namespace SiteAdaptation.Common.ReadData
             found.Add(new KeyValuePair<string, string>(role, Path.GetFullPath(path)));
         }
 
-        private static ReadPlan Plan(List<KeyValuePair<string, string>> found, List<string> stops, string configPath)
+        private static ReadPlan Plan(List<KeyValuePair<string, string>> found, List<string> stops, string configPath, string order)
         {
             var inputs = new List<ReadInput>();
             if (stops.Count == 0)
             {
                 inputs.AddRange(found.Select(item => new ReadInput(item.Key, item.Value, new FileInfo(item.Value).Length, FileHash.Sha256(item.Value))));
             }
-            return new ReadPlan(inputs, ReadSteps(), stops, configPath);
+            return new ReadPlan(inputs, ReadSteps(), stops, configPath, order);
         }
 
         private static string Text(JObject parent, string name)

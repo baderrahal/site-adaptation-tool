@@ -33,7 +33,7 @@ namespace SiteAdaptation.Tests
 
             Assert.Equal(new[] { "Ribbon", "Pane", "Button messages", "Set up site", "Review data", "Site Adaptation Rules", "Check table", "Update from report", "New project", "How it works", "What the tool read", "Loader" }, list.Keys.ToArray());
             Assert.Equal(new[] { "Ribbon", "Pane", "Button messages", "Set up site", "Review data", "Site Adaptation Rules", "Check table", "Update from report", "New project", "How it works", "What the tool read", "Loader" }, list.Values.Where(window => window.Built).Select(window => window.Name).ToArray());
-            Assert.Equal(16, list["Ribbon"].Entries.Count);
+            Assert.Equal(18, list["Ribbon"].Entries.Count);
             Assert.Contains(shown["Ribbon"], found => found.Text == "Update from report");
             Assert.Contains(shown["Pane"], found => found.Text == "Browse" && found.Where.EndsWith(".xaml", StringComparison.Ordinal));
             Assert.Contains(shown["Pane"], found => found.Text == "Needs step <n>" && found.Where.EndsWith("PaneText.cs", StringComparison.Ordinal));
@@ -177,8 +177,10 @@ namespace SiteAdaptation.Tests
             // Confirm all and Confirm all shown of Review data and 5 of the Loader (R444). FIX-1NOV-A2 took out 1, the 5f line of a plan not
             // in the work folder, as Update from report finds the plan of 4 Check by its run log (R472). Lane C FIX-1NOV-C added 2 of New
             // project, the no model line and the TaskDialog of a Save setup that rolls back (R445). FIX-2NOV-C added 13: 6 of the Close and
-            // the ask of Review data, 6 of the pane, Run complete and Dry run before 4 Check, 1 of the refused export (R446)
-            Assert.Equal(224, chosen);
+            // the ask of Review data, 6 of the pane, Run complete and Dry run before 4 Check, 1 of the refused export (R446). FIX-2NOV-D added 18 of the road surface pick: 13 of New project and its window, 5 of the pane (R492)
+            // FIX-2NOV-C-CHECK added 2: the panel Pane and the refusal line of Show pane (R494). It added 4 more: Field, All fields, Find plot or note and Showing of Check table (R495)
+            // Q158 added 1, the short line of a grey Apply
+            Assert.Equal(250, chosen);
             Assert.True(matched > 100, matched.ToString());
         }
 

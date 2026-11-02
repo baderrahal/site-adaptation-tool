@@ -37,13 +37,13 @@ namespace SiteAdaptation.AddIn.CheckTable
             };
         }
 
-        public static ButtonBody For(DocumentSession session, IntPtr mainWindow)
+        public static ButtonBody For(DocumentSession session, IntPtr mainWindow, Func<ICollection<string>> standingFloors)
         {
             PaneSettings settings = session.Settings;
             Func<SettingsScope> scope = () => new SettingsScope { Kind = settings.Scope.Kind, Nbh = settings.Scope.Nbh, Plots = settings.Scope.Plots };
             Func<string, string, string> manualRule = ManualRule?.Invoke(settings.RulesFile);
             var run = new CheckRun(Roles, ReadDataBody.Worker, null, new WorkerDocument { Path = session.Path, SessionId = session.SessionId }, scope,
-                Dialog(mainWindow, settings.RulesFile), manualRule, settings.LevelProfile);
+                Dialog(mainWindow, settings.RulesFile), manualRule, settings.LevelProfile) { StandingFloors = standingFloors };
             return DoorWired(run, settings).Body();
         }
 
@@ -52,6 +52,8 @@ namespace SiteAdaptation.AddIn.CheckTable
         {
             run.DoorPick = () => settings.Project.DoorLevelSource;
             run.DoorPicked = source => settings.Project.DoorLevelSource = source;
+            // R492. The road surfaces picked in Set up, null while none was picked
+            run.RoadPick = () => settings.Project.RoadSurfaces;
             return run;
         }
     }

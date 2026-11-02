@@ -1,8 +1,10 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Autodesk.Revit.DB;
 using Newtonsoft.Json.Linq;
 using SiteAdaptation.Common;
+using SiteAdaptation.Common.Tags;
 
 namespace SiteAdaptation.AddIn.Revit
 {
@@ -14,8 +16,18 @@ namespace SiteAdaptation.AddIn.Revit
     {
         public static JObject Read(Document document, ICollection<string> levelPlots, string levelRun)
         {
-            var tags = new PlacedTagStore(document).Collect().Select(pair => pair.Value);
-            return RevitCounts.FromTags(tags, levelPlots, levelRun);
+            var elements = new PlacedTagStore(document).Collect().Select(pair => new KeyValuePair<long, PlacedTag>(pair.Key.Id.Value, pair.Value)).ToList();
+            return RevitCounts.FromElements(elements, levelPlots, levelRun);
+        }
+
+        // R459. The ids of the floors the document holds now, what 4 Check and 9 Report hold the accepted warnings against. Null for a closed document
+        public static ICollection<string> FloorIds(Document document)
+        {
+            if (document == null || !document.IsValidObject)
+            {
+                return null;
+            }
+            return new HashSet<string>(new FilteredElementCollector(document).OfClass(typeof(Floor)).Select(floor => floor.UniqueId), StringComparer.Ordinal);
         }
     }
 }

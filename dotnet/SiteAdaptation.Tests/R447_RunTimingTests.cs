@@ -181,6 +181,17 @@ namespace SiteAdaptation.Tests
             Assert.Equal("absent", (string)StepOf(Json(), "start")["modelOpen"]);
         }
 
+        // Source text only, the seconds show in the run_timing file of a Revit run. Bader's item 8: the time outside the transaction of 7 has names
+        [Fact]
+        public void R447_the_outside_step_of_button_7_has_a_step_for_each_part()
+        {
+            string run = File.ReadAllText(Path.Combine(ThemeGateTests.RepoRoot(), "dotnet", "SiteAdaptation.Common", "PlaceVillas", "PlaceVillasRun.cs"));
+            int decide = run.IndexOf("NextStep(RunTiming.VillaDecideStep)", StringComparison.Ordinal);
+            int make = run.IndexOf("NextStep(RunTiming.VillaMassFilesStep)", StringComparison.Ordinal);
+            int load = run.IndexOf("NextStep(RunTiming.VillaLoadTypesStep)", StringComparison.Ordinal);
+            Assert.True(decide > 0 && make > decide && load > make, decide + " " + make + " " + load);
+        }
+
         [Fact]
         public void R447_a_later_call_of_the_hook_keeps_what_an_earlier_call_gave()
         {

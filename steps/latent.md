@@ -519,3 +519,50 @@ No real input reaches these: the plot table of the demo holds whole numbers and 
 - R480: two C10 on one edge leave open from the first start to the last end, 0 such edges on the 5 keys. An edge shorter than its span end stays whole, the lengths are 25 and 28 m.
 - R479: a build with no 4 Check request gives no keo_file map, the footprint check compares by the own name with no line.
 - Breaker 1, a mirror edit in Update from report on a C10 now moves its wall gaps, the apply line names no button 8. No real edit yet. A number in a type name such as BW 1800 is held out by the digit limits now. Near span rests on one length class, all side edges are 25 m but 2965.
+
+## Q158 review and breaker, 2 Nov 2026
+
+- A press on a step with DoneWithIssues writes 0 issues over the earlier record, so the step reads Done. Whether button 1 gives warnings on a real model is UNKNOWN.
+- A sheet with no GUID for Plot gives a Waiting line and a press makes the step Done with 0 issues. R461 puts Plot in the sheet.
+- A level outside the position file, moved by hand, stays old in site.json. floors.levels names only Level 1 and Level 2.
+- An entity the reader refuses, as from a newer build, is overwritten by a press with the settings of the pane, as a real run already did.
+- A check point over the pass limit with nothing differing rolls back at the read back with its reason, and the window gives no warning before the press. A model set by the tool matches exactly.
+- While the pane has no input hash yet it shows Ready and the flow has hashed, so a press in that moment can hold and cancel. It lasts until the hash returns, not measured.
+- An extra field added to site.json by hand counts as disagreeing and the file is written again.
+- A level type with no base parameter gives a null in the facts, the file parses back as a null of another token type, so each press commits and steps 2 to 8 go back (RAN the compare). A Revit level type has that parameter.
+- A level added or moved by hand, of no use to the build, fails the compare, so one press commits and steps 2 to 8 run again. Loud, no wrong number.
+- A rules path that differs only by case commits once, then holds.
+
+## R459 review 1 and breaker 1, 2 Nov 2026
+
+- An AfterCommit that throws, or a move of floors_<NBH>_accepted.json that fails, comes after the warnings left the model. The line says the failure, the next step 5 raises none for floors left alone, so chip and sheet stay short. Needs a disk or lock failure.
+- An unreadable earlier floors_<NBH>_accepted.json is taken as no earlier pairs and overwritten, while 4 Check shows no chip and 9 Report refuses the same file. Needs a hand edit or a read lock.
+- FloorLoad.KnownWarnings reads the config on disk with no SHA hold, as button 6 has. No block or no file gives no list, so every warning shows.
+- python accepted_rows raises on a file with a missing field where C# refuses it by name. No real file is malformed.
+- A type named in two roles of floors.types takes the last. Today's config holds none.
+- A floor moved by hand keeps its pair, the counts read floor ids, not positions. A later Move by step 5 does take it off.
+- 9 Report with a floor reader that returns null lists every pair unfiltered. The document is active on the real path.
+- ReportRun and CheckRun name the file of step 5 and one input role. A second step's list, as Lane C may add, needs both changed to show in the report and the chip.
+
+## R483 review, 2 Nov 2026
+
+- RevitCounts.ElementId casts each id to long and RevitCounts.Refusal does not check ids, so a hand edited revitCounts file with a non integer id throws rather than being refused. The add-in writes that file itself in the same run, so no real input reaches it.
+- RevitCounts.FromTags counts an element tagged under two schema versions twice where FromElements gives one id. PlacedTag holds one version and PlacedTagStore.Write deletes older entities, so no real input reaches it until a version 2 exists.
+
+## Lane D FIX-2NOV-D, review and breaker, 2 Nov 2026
+
+- python/read_steps.py asks plan_rules.road_names with no basis, so the Python read steps take siteBuild.roadSurfaces under rev6 where the C# takes designBasis.roadLevel. They agree while the two lists are one, test_r490 holds that.
+- python/level_excel_check.py takes the road order from config alone, so a level Excel of a build with a pick reads as a mismatch on the line Road surface order. No test host job names a pick.
+- RoadPickState.Of reads and parses the config on each refresh of the pane and New project.
+- PaneRunState.ConfigOf caches by path, time and size in four static fields with no lock.
+- plan_from_book.py leaves an older plan at --out beside new step files after a stop. No script calls it so and it takes a person ignoring exit 2.
+- Two files with one short name, A__Top and B__Top, show as two like rows and one name in the stop line. ["Road", "road"] passes the unique check and reads one file twice. A hand edited ..\..\x in a pick leaves the folder, read only. None of the real names do this.
+- RoadSurfaceChoices.NotTakenWhy finds a short name as a whole name in the prose reasons of notTaken: a surface named as a phrase of a reason, Grading, is refused loudly with the reason, and Typical Cross Sections, written with an underscore before it, is not found.
+- A saved pick naming a not taken file shows in the window as Not in the folder any more, the wrong words for it. It stays unticked and 2 Read data refuses it with the reason.
+- noRoadStopShare 1.0 never stops, not even at 100 percent, a config value set that way by hand.
+
+Round FIX-2NOV-C-CHECK, review 1 and the gate, 2 Nov 2026:
+- WorkerRunTests R347 tests are load sensitive: 7 of 60 runs failed under 12 parallel test processes (RAN), a 1 s time limit fires before the worker answers, or the launch takes over 1 s. One CI run failed with status failed, the message is now printed, its cause UNKNOWN.
+- Seven WPF tests failed once in a full net48 run while Revit started on the machine, all passed alone (RAN, 66 of 66).
+- Plural by count stays open where no real input reaches it: Review data title, New project plots and types, ScanView plots and files, 0 of 1 rows.
+- CheckTableState.Filter of two arguments has only test callers.

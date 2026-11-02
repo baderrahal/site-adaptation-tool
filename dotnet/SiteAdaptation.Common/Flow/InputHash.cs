@@ -13,13 +13,23 @@ namespace SiteAdaptation.Common.Flow
     {
         public static string Of(RunInput input)
         {
-            return input.IsFolder ? OfFolder(input.Path) : FileHash.Sha256(input.Path);
+            return input.Text != null ? OfText(input.Text) : input.IsFolder ? OfFolder(input.Path) : FileHash.Sha256(input.Path);
+        }
+
+        private static string OfText(string text)
+        {
+            using (var sha = SHA256.Create())
+            {
+                byte[] hash = sha.ComputeHash(Encoding.UTF8.GetBytes(text));
+                return string.Concat(hash.Select(item => item.ToString("x2", CultureInfo.InvariantCulture)));
+            }
         }
 
         public static string OfFolder(string folder)
         {
             string root = Path.GetFullPath(folder);
             var lines = Directory.GetFiles(root, "*", SearchOption.AllDirectories)
+                .Where(path => !IsRevitWorksharingLog(path))
                 .Select(path => new FileInfo(path))
                 .Select(file => file.FullName.Substring(root.Length).TrimStart(Path.DirectorySeparatorChar).ToLowerInvariant()
                     + "|" + file.Length.ToString(CultureInfo.InvariantCulture)
@@ -30,6 +40,16 @@ namespace SiteAdaptation.Common.Flow
                 byte[] hash = sha.ComputeHash(Encoding.UTF8.GetBytes(string.Join("\n", lines)));
                 return string.Concat(hash.Select(item => item.ToString("x2", CultureInfo.InvariantCulture)));
             }
+        }
+
+        // R458. Revit writes <model>_backup\<model>.slog when it opens a workshared prototype to read it, so making the masses would
+        // make every later step look stale though no input changed. Any other file of that folder still counts
+        private static bool IsRevitWorksharingLog(string path)
+        {
+            string folder = Path.GetFileName(Path.GetDirectoryName(path));
+            return string.Equals(Path.GetExtension(path), ".slog", StringComparison.OrdinalIgnoreCase)
+                && folder != null
+                && folder.EndsWith("_backup", StringComparison.OrdinalIgnoreCase);
         }
     }
 

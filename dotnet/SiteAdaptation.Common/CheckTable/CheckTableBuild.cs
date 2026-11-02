@@ -95,15 +95,24 @@ namespace SiteAdaptation.Common.CheckTable
             return new CheckTableView
             {
                 Nbh = nbh ?? "all",
-                Title = "4 Check, NBH " + (nbh ?? "all") + ", " + numbers.Count + " plots",
+                Title = "4 Check, NBH " + (nbh ?? "all") + ", " + CountText.Plots(numbers.Count),
                 Rows = ordered,
                 Counts = counts,
                 FollowEveryRule = follow,
-                FollowLine = follow + " plots follow every rule",
+                FollowLine = CountText.FollowEveryRule(follow),
                 NoPastJobLine = past != null && past.KeyJoin != null ? null : NoPastJob,
                 Assumed = assumed,
                 SaveAllowed = saveAllowed,
             };
+        }
+
+        // R459. The count step 5 left for the scope, after every other chip, none while step 5 left no file. No row and no chip sum takes it
+        public static void AddAccepted(CheckTableView view, int? accepted)
+        {
+            if (accepted != null)
+            {
+                view.Counts = view.Counts.Concat(new[] { new KeyValuePair<string, int>(CheckTableState.AcceptedChip, accepted.Value) }).ToList();
+            }
         }
 
         // R330, R376. The Use the list holds under the skip of each row that opens on Skip, and the line the side box shows under Why, as

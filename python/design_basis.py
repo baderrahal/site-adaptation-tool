@@ -1,12 +1,13 @@
 """R407 to R410, round 4i. The design basis of a build, designBasis of config/project.json read once per run: rev6 the Site Adaptation
 Manual Rev 06 of the client, the other mode of designBasis.modes the past job as the keys measured it. Under the past job nothing but the
 mode is read, so a build is the build of before round 4i. Under rev6 El @ Entry is the input and the ramp slope the result (R408), the road level comes
-from the one surface designBasis.roadLevel names (R409), the back yard is a grade with no floor (R410) and designBasis.split.test turns on the
-split of a cluster by slope and steps (R414). DesignBasis.cs of the C#
-gives the same, each refusal with the same line. docs/design/16-design-basis.md"""
+from the first of the surfaces designBasis.roadLevel names in order that covers a corner (R409, R490, R491), a zone mostly off them stops the build
+(R493), the back yard is a grade with no floor (R410) and designBasis.split.test turns on the split of a cluster by slope and steps (R414).
+DesignBasis.cs of the C# gives the same, each refusal with the same line. docs/design/16-design-basis.md"""
 import csv
 import math
 import re
+from collections import Counter
 from pathlib import Path
 
 import common
@@ -27,6 +28,13 @@ SLOPE_DECIMALS = 3
 NUMBER = re.compile(r"^[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?$")
 NO_FLOOR = ("designBasis.backYard.floor is true, the manual gives no level for a yard floor under rev6, so none is placed until Q225 is "
             "answered (R410)")
+BOTH_SURFACES = "designBasis.roadLevel holds both surface and surfaces, a build under rev6 takes its road surfaces from surfaces alone (R490)"
+NO_SURFACES = "designBasis.roadLevel names no road surface, a build under rev6 takes the road level from designBasis.roadLevel.surfaces in their order (R490)"
+BAD_SURFACES = "designBasis.roadLevel.surfaces must be a list in order, not empty, of non empty unique texts (R490)"
+# R493. The name of a plot whose zone column is blank, and the sentence of a zone that stops a build
+NO_ZONE = "no zone"
+NO_ROAD_ZONE = "%s: %d of %d plots have no road level on the road surfaces named (%s). What to do: add the road surface of this zone in Set up."
+NO_ROAD_END = " (R493)"
 
 
 def refuse(text):
@@ -111,12 +119,55 @@ def door_of(block):
     return {"source": source, "slopes": slope_table(door)}
 
 
-def surface_of(block):
-    """R409. designBasis.roadLevel.surface, the one road surface of a build under rev6, a name of text."""
-    surface = (block.get("roadLevel") or {}).get("surface")
-    if not isinstance(surface, str) or not surface:
-        refuse("designBasis.roadLevel.surface names no road surface, a build under rev6 takes the road level from the one surface it names (R409)")
-    return surface
+def road_block(block):
+    road = block.get("roadLevel")
+    return road if isinstance(road, dict) else {}
+
+
+def not_taken_why(site_build, name):
+    """R490. The reason of siteBuild.roadFolder.notTaken that names this surface by its short name, as a whole name, None for none. Those reasons are the
+    one list of R344 of what is no road, read in the Roads folder, so no list of names stands in code."""
+    reasons = ((site_build or {}).get("roadFolder") or {}).get("notTaken")
+    whole = re.compile(r"(?<!\w)" + re.escape(name.rpartition("__")[2] or name) + r"(?!\w)")
+    return next((reason for reason in (reasons.values() if isinstance(reasons, dict) else ()) if isinstance(reason, str) and whole.search(reason)), None)
+
+
+def surfaces_of(block, site_build):
+    """R490. designBasis.roadLevel.surfaces, the road surfaces of a build under rev6 in order, non empty and unique texts, each no surface
+    siteBuild.roadFolder.notTaken names. The one surface of an old config reads as a list of one, both keys together, no value or a bad value refused by name."""
+    surfaces = named_surfaces(block)
+    for name in surfaces:
+        why = not_taken_why(site_build, name)
+        if why is not None:
+            refuse("designBasis.roadLevel.surfaces names %s, which is no road surface: %s (R490)" % (name, why))
+    return surfaces
+
+
+def named_surfaces(block):
+    road = road_block(block)
+    if "surface" in road and "surfaces" in road:
+        refuse(BOTH_SURFACES)
+    if "surfaces" not in road:
+        surface = road.get("surface")
+        if not isinstance(surface, str) or not surface:
+            refuse(NO_SURFACES)
+        return [surface]
+    surfaces = road["surfaces"]
+    if not isinstance(surfaces, list) or not surfaces or not all(isinstance(name, str) and name for name in surfaces) or len(set(surfaces)) != len(surfaces):
+        refuse(BAD_SURFACES)
+    return list(surfaces)
+
+
+def stop_share_of(block):
+    """R493. designBasis.roadLevel.noRoadStopShare, a number from 0 to 1 and no bool, refused by name. A config with none (CHOSEN) reads 0, so it stops at
+    any plot with no road level and never loses plots silently."""
+    road = road_block(block)
+    if "noRoadStopShare" not in road:
+        return 0
+    share = road["noRoadStopShare"]
+    if not finite(share) or not 0 <= share <= 1:
+        refuse("designBasis.roadLevel.noRoadStopShare must be a number from 0 to 1, it holds %r (R493)" % (share,))
+    return share
 
 
 def check_yard(block):
@@ -155,14 +206,15 @@ def split_of(block):
 
 def basis_of(settings):
     """R407. The design basis of a build, read once: under the past job the mode alone, under rev6 also the door level source with what it
-    reads (R408), the one road surface (R409), the back yard floor held false (R410), whether the build proposes clusters (R411) and the
-    split test of a cluster (R414)."""
+    reads (R408), the road surfaces in order (R490) with the limit of plots with no road level (R493), the back yard floor held false (R410),
+    whether the build proposes clusters (R411) and the split test of a cluster (R414)."""
     block = block_of(settings)
     mode = mode_of(settings)
     if mode != REV6:
         return {"mode": mode}
     check_yard(block)
-    return {"mode": mode, "door": door_of(block), "surface": surface_of(block), "propose": propose_of(block), "split": split_of(block)}
+    return {"mode": mode, "door": door_of(block), "surfaces": surfaces_of(block, settings.values.get("siteBuild")), "noRoadStopShare": stop_share_of(block), "propose": propose_of(block),
+            "split": split_of(block)}
 
 
 def is_rev6(basis):
@@ -180,14 +232,43 @@ def splits(basis):
 
 
 def road_names(basis):
-    """R409. The road surfaces of a build under rev6, the one surface of designBasis.roadLevel."""
-    return [basis["surface"]]
+    """R490. The road surfaces of a build under rev6, those of designBasis.roadLevel in their order."""
+    return list(basis["surfaces"])
+
+
+def road_order(settings):
+    """R490. The road surfaces of the values of a config under rev6 in their order, None under the past job, for a reader that builds nothing."""
+    block = settings.get("designBasis") or {}
+    return surfaces_of(block, settings.get("siteBuild")) if block.get("mode") == REV6 else None
 
 
 def check_surfaces(basis, folder):
-    """R409. The surface of designBasis.roadLevel is a LandXML file of the landxml folder, else refused by name."""
-    if not (Path(folder) / (basis["surface"] + ".xml")).is_file():
-        refuse("designBasis.roadLevel.surface %s is no surface of the inputs, the landxml folder holds no %s.xml (R409)" % (basis["surface"], basis["surface"]))
+    """R490. Each surface of designBasis.roadLevel is a LandXML file of the landxml folder, else refused by name."""
+    for name in basis["surfaces"]:
+        if not (Path(folder) / (name + ".xml")).is_file():
+            refuse("designBasis.roadLevel.surfaces names %s, which is no surface of the inputs, the landxml folder holds no %s.xml (R490)" % (name, name))
+
+
+def road_gaps(no_road):
+    """R493. The plots of summary.noRoadLevel that have a front and lack a road level at a corner. A plot with no front has no corner to lack a road at,
+    so it is no missing surface, it stays in the summary."""
+    return [entry["plot"] for entry in no_road if entry["corners"]]
+
+
+def no_road_stop(basis, reached, gaps, rows):
+    """R493. Under rev6 the message that stops a build, one sentence per zone in zone order whose share of its reached unit plots that are gaps (road_gaps)
+    lies above noRoadStopShare, else None. A zone mostly off the named surfaces means a missing surface, a few plots stay listed in the summary. The
+    zone is the zone column of the plot table, blank reads as no zone. Exactly at the share does not stop."""
+    if not is_rev6(basis):
+        return None
+
+    def zone_of(number):
+        return (rows.get(number, {}).get("zone") or "").strip() or NO_ZONE
+
+    plots, lacking = Counter(zone_of(number) for number in reached), Counter(zone_of(number) for number in gaps)
+    names = ", ".join(name.rpartition("__")[2] or name for name in basis["surfaces"])
+    lines = [NO_ROAD_ZONE % (zone, lacking[zone], plots[zone], names) for zone in sorted(plots) if lacking[zone] / plots[zone] > basis["noRoadStopShare"]]
+    return " ".join(lines) + NO_ROAD_END if lines else None
 
 
 def door_entry(basis, number, unit, front, depth):

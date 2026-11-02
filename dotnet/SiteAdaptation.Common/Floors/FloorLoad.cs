@@ -29,7 +29,15 @@ namespace SiteAdaptation.Common.Floors
             PlanFile plan = PlanSource.Open(named.Item1, named.Item2);
             string lastPath = Path.Combine(context.WorkFolder, FloorsRun.RecordName(nbh));
             JObject last = File.Exists(lastPath) ? JObject.Parse(WorkFiles.ReadText(lastPath)) : null;
-            return new FloorInputs { Plan = plan, PlanPath = named.Item1, Profile = Request(named.Item1).LevelProfile, InScope = chosen.Item2, LastPlaced = FloorsRun.Placed(last) };
+            WorkerRequest request = Request(named.Item1);
+            return new FloorInputs { Plan = plan, PlanPath = named.Item1, Profile = request.LevelProfile, InScope = chosen.Item2, LastPlaced = FloorsRun.Placed(last), KnownWarnings = KnownWarnings(request) };
+        }
+
+        // R459. From the config the build read. No config on disk is no list, so every warning shows as it did
+        private static KnownWarningList KnownWarnings(WorkerRequest request)
+        {
+            string path = (request.Inputs ?? new List<WorkerFile>()).Where(item => item.Role == "config").Select(item => item.Path).FirstOrDefault();
+            return path == null || !File.Exists(path) ? null : KnownWarningList.OfFloors(JObject.Parse(WorkFiles.ReadText(path)));
         }
 
         public static LevelRunInputs Levels(RunContext context, SettingsScope scope, WorkerDocument document)
@@ -62,7 +70,7 @@ namespace SiteAdaptation.Common.Floors
             return new LevelRunInputs
             {
                 Plan = plan, PlanPath = planPath, NoFfl = NoFfl(JObject.Parse(WorkFiles.ReadText(planPath))), Profile = request.LevelProfile, InScope = chosen.Item2,
-                ExcelInputs = files, TimeLimitS = AddinConfig.Load(configPath).WorkerTimeLimitS(LevelsRun.Command), Document = document,
+                ExcelInputs = files, TimeLimitS = AddinConfig.Load(configPath).WorkerTimeLimitS(LevelsRun.Command), Document = document, RoadSurfaces = request.RoadSurfaces,
             };
         }
 

@@ -41,6 +41,24 @@ namespace SiteAdaptation.Common.Flow
         // here, or the wait of a user would read as the wait of a worker
         internal RunTiming Timing { get; set; }
 
+        // R459. What a step calls in Apply to give its known warnings to the open transaction. False when it takes none: no list, no real
+        // run, or a transaction with no such side, and then every warning stays as it was
+        public bool AcceptKnownWarnings(KnownWarningList list)
+        {
+            if (list == null || !(Transaction is IKnownWarningTransaction known))
+            {
+                return false;
+            }
+            known.AcceptKnownWarnings(list);
+            return true;
+        }
+
+        // R459. What the transaction accepted, known only once it committed
+        public IReadOnlyList<AcceptedWarning> AcceptedWarnings
+        {
+            get { return (Transaction as IKnownWarningTransaction)?.AcceptedWarnings ?? new AcceptedWarning[0]; }
+        }
+
         public bool DryRun
         {
             get { return DryFolder != null; }

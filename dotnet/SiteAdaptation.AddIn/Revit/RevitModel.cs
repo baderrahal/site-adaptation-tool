@@ -22,7 +22,7 @@ namespace SiteAdaptation.AddIn.Revit
         }
     }
 
-    internal sealed class RevitTransaction : IModelTransaction
+    internal sealed class RevitTransaction : IModelTransaction, IKnownWarningTransaction
     {
         private readonly Transaction transaction;
         private readonly WarningCollector collector = new WarningCollector();
@@ -46,6 +46,17 @@ namespace SiteAdaptation.AddIn.Revit
         public IReadOnlyList<string> Warnings
         {
             get { return collector.Warnings; }
+        }
+
+        // R459. Read by the collector at the commit, so a step gives its list any time in Apply
+        public void AcceptKnownWarnings(KnownWarningList list)
+        {
+            collector.Known = list;
+        }
+
+        public IReadOnlyList<AcceptedWarning> AcceptedWarnings
+        {
+            get { return collector.Accepted; }
         }
 
         public IReadOnlyList<string> Errors

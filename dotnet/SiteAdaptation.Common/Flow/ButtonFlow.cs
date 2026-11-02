@@ -209,7 +209,7 @@ namespace SiteAdaptation.Common.Flow
         // A button never guesses an input: one not chosen or not on disk stops it, by the first such input
         private static string Absent(string label, IReadOnlyList<RunInput> inputs)
         {
-            foreach (RunInput input in inputs)
+            foreach (RunInput input in inputs.Where(item => item.Text == null))
             {
                 if (string.IsNullOrEmpty(input.Path))
                 {
@@ -329,6 +329,14 @@ namespace SiteAdaptation.Common.Flow
                     return new RunOutcome(RunEnd.RolledBack, RunTexts.ChangedNothing(context.Label, reason), null);
                 }
                 issues.AddRange(transaction.Warnings);
+                try
+                {
+                    body.AfterCommit?.Invoke(context);
+                }
+                catch (Exception failure)
+                {
+                    issues.Add("after the commit: " + failure.Message);
+                }
             }
 
             timing?.NextStep(RunTiming.OutputsStep);
