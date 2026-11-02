@@ -11,7 +11,7 @@
 
 ### Lane B, C and D
 
-- Lane B CHECK-2NOV, 17:15, branch check/2nov-b: part 11 of 13 runs, 60 min under the lock, Revit crashed 16:23, restarted 16:53 on a copy, saving at 17:10. Nothing blocks. Next parts 13, 12, then FIX-2NOV-B.
+- Lane B CHECK-2NOV, 17:30, branch check/2nov-b: part 11 pass 2 runs (mass remake, about 40 min), under the lock since 16:15. Pass 1 reached 9 Report at 17:17. Nothing blocks. Next parts 13, 12, then FIX-2NOV-B.
   Next: parts 5 to 13 after gap done. Run files in lane_b_check. Blocked: Lane A's gap, about 30 minutes
 - Lane C, branch fix/2nov-c-part11: part 11 of steps/bader-fix-1nov.md filled, Q337 to Q339 in its list. Nothing queued after this PR. Blocked: none
 - Lane D D3, 04:45, branch fix/1nov-d3: Revit runs done, lock released. 13 prototypes in 2024, NBH 012 with 336 real links, 0.000 mm against the masses, masses back.
