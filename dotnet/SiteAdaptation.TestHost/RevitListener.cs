@@ -2,12 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Threading;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.DB.Events;
 using Autodesk.Revit.UI;
 using Autodesk.Revit.UI.Events;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using SiteAdaptation.Common;
 
 namespace SiteAdaptation.TestHost
@@ -63,13 +65,19 @@ namespace SiteAdaptation.TestHost
             var queue = new RevitListenerQueue(setting);
             queue.Prepare();
             var loop = new RevitListenerLoop(queue,
-                claim => RevitListenerCheck.Of(claim, token, documents, setting.InputRoots, DateTime.UtcNow, File.Exists, Directory.Exists), () => DateTime.UtcNow);
+                claim => RevitListenerCheck.Of(claim, token, documents, setting.InputRoots, File.Exists, Directory.Exists), () => DateTime.UtcNow, FreeGb);
             var listener = new RevitListener(application, loop, setting);
             listener.Subscribe();
             loop.Step = listener.CurrentStep;
             // The start script removed the file of an earlier listener before it started this Revit, and waits for this one
-            RevitListenerFiles.WriteWhole(Path.Combine(setting.OutFolder, RevitListenerQueue.ReadyFile), "{\"pid\": " + Process.GetCurrentProcess().Id + "}");
+            RevitListenerFiles.WriteWhole(Path.Combine(setting.OutFolder, RevitListenerQueue.ReadyFile), new JObject
+            {
+                { "pid", Process.GetCurrentProcess().Id },
+                // S4. Two Revits write one journal folder, so the freeze guard of a send gets the tail of this one by its name
+                { "journal", application.ControlledApplication.RecordingJournalFilename },
+            }.ToString());
             new Thread(listener.Looks) { IsBackground = true, Name = "SiteAdaptation listener" }.Start();
+            new Thread(listener.Beats) { IsBackground = true, Name = "SiteAdaptation listener beat" }.Start();
         }
 
         // From OnStartup, outside any Revit event, the one place a handler is added
@@ -98,6 +106,48 @@ namespace SiteAdaptation.TestHost
                 }
                 Thread.Sleep(TimeSpan.FromMilliseconds(LookMilliseconds));
             }
+        }
+
+        // L6. Apart from Looks, whose one look may hash inputs for many minutes. Beat keeps its own pace
+        private void Beats()
+        {
+            while (true)
+            {
+                try
+                {
+                    loop.Beat();
+                }
+                catch (Exception failure)
+                {
+                    Trace.WriteLine("listener beat: " + failure.Message);
+                }
+                Thread.Sleep(TimeSpan.FromMilliseconds(LookMilliseconds));
+            }
+        }
+
+        // L5. Free physical memory as python/window_lock.py reads it. Null when Windows does not say, the job then goes on with no look
+        private static double? FreeGb()
+        {
+            var status = new MemoryStatus { Length = (uint)Marshal.SizeOf(typeof(MemoryStatus)) };
+            return GlobalMemoryStatusEx(ref status) ? status.AvailPhys / (1024.0 * 1024.0 * 1024.0) : (double?)null;
+        }
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool GlobalMemoryStatusEx(ref MemoryStatus status);
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct MemoryStatus
+        {
+            public uint Length;
+            public uint Load;
+            public ulong TotalPhys;
+            public ulong AvailPhys;
+            public ulong TotalPage;
+            public ulong AvailPage;
+            public ulong TotalVirtual;
+            public ulong AvailVirtual;
+            public ulong AvailExtended;
         }
 
         private string CurrentStep()
@@ -384,7 +434,7 @@ namespace SiteAdaptation.TestHost
             private void PastTheLimit(string why)
             {
                 Volatile.Write(ref pastLimit, 1);
-                listener.loop.End(Run, RevitListenerResult.Timeout, why);
+                listener.loop.PastLimit(Run, why);
             }
 
             public void Dispose()

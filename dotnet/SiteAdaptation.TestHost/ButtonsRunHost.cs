@@ -176,6 +176,8 @@ namespace SiteAdaptation.TestHost
             addIn = AppDomain.CurrentDomain.GetAssemblies().First(each => each.GetName().Name == AddinRunNames.Assembly);
             Directory.CreateDirectory(work);
             string made = "opened the key copy";
+            // A project made from the template and saved here is part of what the job waits for before its first button
+            Stopwatch opening = Stopwatch.StartNew();
             if (!File.Exists(job.Model))
             {
                 Document fresh = ui.Application.NewProjectDocument(job.Template);
@@ -183,7 +185,6 @@ namespace SiteAdaptation.TestHost
                 fresh.Close(false);
                 made = "made from the template and opened";
             }
-            Stopwatch opening = Stopwatch.StartNew();
             document = ui.OpenAndActivateDocument(job.Model).Document;
             RunTiming.BeforeRun(null, opening.Elapsed.TotalSeconds);
             config = JObject.Parse(File.ReadAllText(Settings));

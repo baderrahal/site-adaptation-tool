@@ -46,6 +46,7 @@ namespace SiteAdaptation.Tests
                 { RevitListenerSetting.RootVariable, folder },
                 { RevitListenerSetting.SlotVariable, slot },
                 { RevitListenerSetting.InputRootsVariable, inputRoots },
+                { RevitListenerSetting.MinFreeVariable, "2" },
             };
             return RevitListenerSetting.Read(name => values.TryGetValue(name, out string value) ? value : null);
         }
@@ -211,10 +212,11 @@ namespace SiteAdaptation.Tests
             loop.Look();
             RevitListenerRun slow = loop.Take();
             // The watchdog on its own thread while Revit is still in the step
-            loop.End(slow, RevitListenerResult.Timeout, "step 7 ran over its limit of 20 minutes");
+            loop.PastLimit(slow, "step 7 ran over its limit of 20 minutes");
             loop.Look();
             Assert.Equal("timeout", (string)Result("slow")["result"]);
-            // Revit comes back from the step, its end changes nothing
+            Assert.Null(loop.Take());
+            // Revit comes back from the step, its end does not change the outcome, and the next job goes
             loop.End(slow, RevitListenerResult.Ok, null);
             loop.Look();
             Assert.Equal("timeout", (string)Result("slow")["result"]);
@@ -438,10 +440,10 @@ namespace SiteAdaptation.Tests
             };
         }
 
-        private RevitListenerCheck Check(JObject job, string inputRoots = null)
+        private RevitListenerCheck Check(JObject job, string inputRoots = null, DateTime? arrived = null)
         {
-            var claim = new RevitListenerClaim { Stem = "run1", Text = job.ToString() };
-            return RevitListenerCheck.Of(claim, Token, root, inputRoots == null ? new string[0] : inputRoots.Split('|'), DateTime.UtcNow, File.Exists, Directory.Exists);
+            var claim = new RevitListenerClaim { Stem = "run1", Text = job.ToString(), ArrivedUtc = arrived ?? DateTime.UtcNow };
+            return RevitListenerCheck.Of(claim, Token, root, inputRoots == null ? new string[0] : inputRoots.Split('|'), File.Exists, Directory.Exists);
         }
 
         private string RunFolder()
@@ -633,6 +635,294 @@ namespace SiteAdaptation.Tests
             Assert.True(failure.Item1 == 0, failure.Item3);
             Assert.Contains("result", failure.Item2);
             Assert.Contains("freeze guard: it hung", failure.Item2);
+        }
+
+        // Fix round, review 1 and breaker 1
+
+        private string RunFolderOfTest(string name, string buttonsResult = null)
+        {
+            string folder = Path.Combine(root, name);
+            Directory.CreateDirectory(folder);
+            if (buttonsResult != null)
+            {
+                File.WriteAllText(Path.Combine(folder, ButtonsRun.ResultFile), buttonsResult);
+            }
+            return Path.Combine(folder, "P1-TEST-NEW.rvt");
+        }
+
+        [WindowsFact]
+        public void R448_a_job_that_waited_hours_in_the_queue_still_runs_its_age_counts_at_arrival()
+        {
+            string model = Path.Combine(RunFolder(), "P1-TEST-NEW.rvt");
+            JObject job = GoodJob(model, Path.Combine(Path.GetDirectoryName(model), "config", "project.json"));
+            DateTime sent = DateTime.UtcNow.AddHours(-3);
+            job["createdUtc"] = sent.ToString("o");
+            RevitListenerCheck check = Check(job, arrived: sent.AddSeconds(30));
+            Assert.True(check.Act, check.Reason);
+        }
+
+        [Fact]
+        public void R448_a_job_old_when_it_arrived_is_refused_and_the_arrival_is_the_write_time_of_the_job_file()
+        {
+            var job = new JObject
+            {
+                ["kind"] = TestHostGuard.AddinRunKind, ["token"] = Token, ["runId"] = "run1", ["buttons"] = new JArray(1), ["createdUtc"] = now.AddHours(-2).ToString("o"),
+            };
+            RevitListenerCheck stale = RevitListenerCheck.Of(new RevitListenerClaim { Stem = "run1", Text = job.ToString(), ArrivedUtc = now }, Token, root, new string[0], File.Exists, Directory.Exists);
+            Assert.False(stale.Act);
+            Assert.Contains("younger", stale.Reason);
+
+            DateTime arrival = now.AddMinutes(-90);
+            Drop("run1", arrival: arrival);
+            Assert.Equal(arrival, queue.Next().ArrivedUtc);
+        }
+
+        [Fact]
+        public void R448_the_wait_in_the_queue_counts_from_the_send_on_every_path()
+        {
+            Drop("first", arrival: now);
+            Drop("behind", arrival: now.AddSeconds(1));
+            Drop("broken", "{ no json", now.AddSeconds(2));
+            loop.Look();
+            RevitListenerRun first = loop.Take();
+            now = now.AddMinutes(25);
+            loop.End(first, RevitListenerResult.Ok, null);
+            loop.Look();
+            loop.End(loop.Take(), RevitListenerResult.Ok, null);
+            now = now.AddMinutes(1);
+            loop.Look();
+
+            Assert.Equal(0, (double)Result("first")["queueSeconds"]);
+            Assert.Equal(1499, (double)Result("behind")["queueSeconds"]);
+            Assert.Equal(1558, (double)Result("broken")["queueSeconds"]);
+            Assert.False(string.IsNullOrEmpty((string)Result("broken")["arrivedUtc"]));
+        }
+
+        [Fact]
+        public void R448_a_refused_result_says_no_input_was_marked_and_not_one()
+        {
+            Drop("broken", "{ no json");
+            loop.Look();
+            string path = Path.Combine(setting.OutFolder, "broken" + RevitListenerQueue.ResultTail);
+            Tuple<int, string, string> lines = Pwsh("Get-ListenerResultLines -Result (Get-Content -Raw " + Quoted(path) + " | ConvertFrom-Json)");
+            Assert.True(lines.Item1 == 0, lines.Item3);
+            Assert.Contains("no input was marked", lines.Item2);
+            Assert.DoesNotContain("changed 1", lines.Item2);
+        }
+
+        [Theory]
+        [InlineData("{\"steps\": [{\"command\": \"UpdateFromReportCommand\", \"outcome\": \"stopped\"}]}", "namedStopped")]
+        [InlineData("{\"steps\": [{\"button\": 7, \"outcome\": \"committed\", \"villasNotRead\": \"IOException it failed\"}]}", "villasNotRead")]
+        [InlineData("{\"steps\": [{\"button\": 7, \"outcome\": \"committed\", \"notHeld\": 3}]}", "notHeld")]
+        [InlineData("{\"steps\": [{\"button\": 7, \"outcome\": \"committed\", \"savedAfter\": \"IOException the disk\"}]}", "saveErrors")]
+        public void R448_a_finding_of_the_buttons_result_does_not_read_as_clean(string buttons, string count)
+        {
+            Drop("seen", JobText("seen", model: RunFolderOfTest("seen", buttons)));
+            loop.Look();
+            loop.End(loop.Take(), RevitListenerResult.Ok, null);
+            loop.Look();
+            JObject result = Result("seen");
+            Assert.Equal("findings", (string)result["result"]);
+            Assert.True((int)result["findings"][count] > 0);
+
+            string path = Path.Combine(setting.OutFolder, "seen" + RevitListenerQueue.ResultTail);
+            Tuple<int, string, string> send = Pwsh("$r = Get-Content -Raw " + Quoted(path) + " | ConvertFrom-Json\n(Get-ListenerResultLines -Result $r) -join ' '\nGet-ListenerExitCode -Result $r");
+            Assert.Contains(count, send.Item2);
+            Assert.EndsWith("5", send.Item2.Trim());
+        }
+
+        [Fact]
+        public void R448_a_clean_buttons_result_stays_ok_and_a_failed_job_stays_failed_with_its_findings()
+        {
+            string clean = "{\"steps\": [{\"command\": \"SiteAdaptationRulesCommand\", \"outcome\": \"closed\"}, {\"button\": 7, \"outcome\": \"committed\", \"notHeld\": 0, \"savedAfter\": true}]}";
+            Drop("clean", JobText("clean", model: RunFolderOfTest("clean", clean)));
+            loop.Look();
+            loop.End(loop.Take(), RevitListenerResult.Ok, null);
+            loop.Look();
+            Assert.Equal("ok", (string)Result("clean")["result"]);
+
+            Drop("both", JobText("both", model: RunFolderOfTest("both", "{\"steps\": [{\"button\": 7, \"notHeld\": 2}]}")));
+            loop.Look();
+            loop.End(loop.Take(), RevitListenerResult.Failed, "7: it threw");
+            loop.Look();
+            Assert.Equal("failed", (string)Result("both")["result"]);
+            Assert.Equal(2, (int)Result("both")["findings"]["notHeld"]);
+
+            Drop("garbled", JobText("garbled", model: RunFolderOfTest("garbled", "{ half")));
+            loop.Look();
+            loop.End(loop.Take(), RevitListenerResult.Ok, null);
+            loop.Look();
+            Assert.Equal("findings", (string)Result("garbled")["result"]);
+        }
+
+        [Fact]
+        public void R448_the_journal_tail_of_a_named_file_is_that_file_and_a_journal_not_known_gives_no_tail()
+        {
+            string journals = Path.Combine(root, "journals");
+            Directory.CreateDirectory(journals);
+            string own = Path.Combine(journals, "journal.0001.txt");
+            File.WriteAllLines(own, new[] { "' frozen one", "' its last line" });
+            Tuple<int, string, string> tail = Pwsh("(Read-JournalTail -Path " + Quoted(own) + " -Lines 1).tail");
+            Assert.Equal("' its last line", tail.Item2.Trim());
+            Tuple<int, string, string> unknown = Pwsh("$j = Read-JournalTail -Path '' -Lines 1\n'journal[' + $j.journal + '] lines ' + @($j.tail).Count");
+            Assert.Equal("journal[] lines 0", unknown.Item2.Trim());
+        }
+
+        [WindowsFact]
+        public void R448_a_frozen_revit_gets_the_tail_of_its_own_journal_never_the_newest_of_another_revit()
+        {
+            string journals = Path.Combine(root, "journals");
+            Directory.CreateDirectory(journals);
+            string own = Path.Combine(journals, "journal.0001.txt");
+            File.WriteAllText(own, "' the frozen one");
+            File.SetLastWriteTimeUtc(own, DateTime.UtcNow.AddMinutes(-5));
+            File.WriteAllText(Path.Combine(journals, "journal.0002.txt"), "' the healthy one");
+            string run = "$child = Start-Process -FilePath (Get-Command pwsh).Source -ArgumentList @('-NoProfile', '-Command', 'Start-Sleep 60') -PassThru -WindowStyle Hidden\n"
+                + "$stop = Stop-FrozenRevit -Process $child -Reason 'it hung' -LogPath '' -JournalFolder " + Quoted(journals) + " -JournalPath " + Quoted(own) + " -Start ([datetime]::Now.AddHours(-1))\n"
+                + "$stop.journalTail -join ' '";
+            Tuple<int, string, string> stopped = Pwsh(run);
+            Assert.True(stopped.Item1 == 0, stopped.Item3);
+            Assert.Contains("the frozen one", stopped.Item2);
+            Assert.DoesNotContain("the healthy one", stopped.Item2);
+            Assert.Contains("-JournalPath $session.journal", File.ReadAllText(HostFile("Send-RevitJob.ps1")));
+        }
+
+        [Fact]
+        public void R448_a_job_past_its_limit_says_the_marks_are_not_final_and_a_later_change_of_an_input_is_reported()
+        {
+            string input = Path.Combine(root, "real.txt");
+            File.WriteAllText(input, "one");
+            Drop("slow", JobText("slow", new[] { input }));
+            loop.Look();
+            RevitListenerRun slow = loop.Take();
+            loop.PastLimit(slow, "step 7 ran over its limit of 20 minutes");
+            loop.Look();
+            JObject first = Result("slow");
+            Assert.Equal("timeout", (string)first["result"]);
+            Assert.False((bool)first["marksFinal"]);
+            Assert.Empty(first["inputsChanged"]);
+            string path = Path.Combine(setting.OutFolder, "slow" + RevitListenerQueue.ResultTail);
+            Assert.Contains("not final", Pwsh("(Get-ListenerResultLines -Result (Get-Content -Raw " + Quoted(path) + " | ConvertFrom-Json)) -join ' '").Item2);
+
+            // Revit is still in the step and writes to the input
+            File.WriteAllText(input, "two, longer");
+            loop.Look();
+            Assert.False((bool)Result("slow")["marksFinal"]);
+            loop.End(slow, RevitListenerResult.Ok, null);
+            loop.Look();
+
+            JObject final = Result("slow");
+            Assert.Equal("timeout", (string)final["result"]);
+            Assert.True((bool)final["marksFinal"]);
+            Assert.Equal(new[] { "real.txt" }, final["inputsChanged"].Select(name => (string)name).ToArray());
+            Assert.Contains("D19", (string)final["error"]);
+            Assert.Contains("ran over", (string)final["error"]);
+            Assert.Single(Directory.GetFiles(setting.OutFolder, "slow*" + RevitListenerQueue.ResultTail));
+            Assert.Empty(Directory.GetFiles(setting.OutFolder, "*" + RevitListenerFiles.WritingTail));
+        }
+
+        [Fact]
+        public void R448_a_job_that_ended_normally_has_final_marks()
+        {
+            string input = Path.Combine(root, "real.txt");
+            File.WriteAllText(input, "one");
+            Drop("run1", JobText("run1", new[] { input }));
+            loop.Look();
+            loop.End(loop.Take(), RevitListenerResult.Ok, null);
+            loop.Look();
+            Assert.True((bool)Result("run1")["marksFinal"]);
+        }
+
+        [Fact]
+        public void R448_the_listener_path_never_moves_the_outputs_of_an_own_run_of_the_same_code()
+        {
+            string script = File.ReadAllText(HostFile("Run-TestHost.ps1"));
+            int guarded = script.IndexOf("if (-not $ListenerJobOut) {", StringComparison.Ordinal);
+            int old = script.IndexOf("$old = @(Get-ChildItem $docs -Filter ('testhost_' + $name + '_*.json*')", StringComparison.Ordinal);
+            Assert.True(guarded > 0 && old > guarded && old - guarded < 400, "the move aside sits inside the guard");
+        }
+
+        [Fact]
+        public void R448_a_listener_that_ends_removes_only_the_files_of_its_own_process()
+        {
+            string folders = "$folders = Get-ListenerFolders -Root " + Quoted(root) + " -Slot '1'\n";
+            string session = Path.Combine(setting.OutFolder, "session.json");
+            string ready = Path.Combine(setting.OutFolder, RevitListenerQueue.ReadyFile);
+            File.WriteAllText(session, "{\"pid\": 222}");
+            File.WriteAllText(ready, "{\"pid\": 222}");
+            Assert.Equal(0, Pwsh(folders + "Remove-ListenerFilesOf -Folders $folders -ProcessId 111").Item1);
+            Assert.True(File.Exists(session) && File.Exists(ready));
+
+            Assert.Equal(0, Pwsh(folders + "Remove-ListenerFilesOf -Folders $folders -ProcessId 222").Item1);
+            Assert.False(File.Exists(session) || File.Exists(ready));
+            Assert.Contains("Remove-ListenerFilesOf -Folders $folders -ProcessId $process.Id", File.ReadAllText(HostFile("Start-RevitListener.ps1")));
+        }
+
+        [Fact]
+        public void R448_under_the_memory_floor_a_job_is_refused_with_its_reason_and_the_queue_goes_on()
+        {
+            double free = 1.5;
+            var low = new RevitListenerLoop(queue, RevitListenerCheck.Read, () => now, () => free);
+            Drop("low", arrival: now);
+            Drop("high", arrival: now.AddSeconds(1));
+            low.Look();
+            Assert.Null(low.Take());
+            Assert.Equal("refused", (string)Result("low")["result"]);
+            Assert.Contains("minFreeGB", (string)Result("low")["error"]);
+            Assert.Equal("refused", (string)Result("high")["result"]);
+
+            free = 3;
+            Drop("after");
+            low.Look();
+            Assert.Equal("after", low.Take().Job.RunId);
+        }
+
+        [Fact]
+        public void R448_the_floor_is_a_value_of_the_setting_and_a_setting_with_none_is_refused()
+        {
+            Assert.Equal(2, setting.MinFreeGb);
+            var values = new Dictionary<string, string> { { RevitListenerSetting.RootVariable, root }, { RevitListenerSetting.SlotVariable, "1" } };
+            Assert.Contains("floor", RevitListenerSetting.Read(name => values.TryGetValue(name, out string value) ? value : null).Refusal());
+            Assert.Contains("SITEADAPT_LISTENER_MIN_FREE_GB", File.ReadAllText(HostFile("Start-RevitListener.ps1")));
+        }
+
+        [Fact]
+        public void R448_the_heartbeat_goes_on_while_the_inputs_are_hashed()
+        {
+            string input = Path.Combine(root, "big.txt");
+            File.WriteAllText(input, "one");
+            string beat = Path.Combine(setting.OutFolder, RevitListenerQueue.HeartbeatFile);
+            using (var hashing = new System.Threading.ManualResetEventSlim())
+            using (var go = new System.Threading.ManualResetEventSlim())
+            {
+                var slow = new RevitListenerLoop(queue, RevitListenerCheck.Read, () => now, null, path =>
+                {
+                    hashing.Set();
+                    go.Wait(TimeSpan.FromSeconds(30));
+                    return InputGuard.Mark(path);
+                });
+                Drop("big", JobText("big", new[] { input }));
+                System.Threading.Tasks.Task look = System.Threading.Tasks.Task.Run(() => slow.Look());
+                Assert.True(hashing.Wait(TimeSpan.FromSeconds(30)));
+
+                now = now.AddSeconds(RevitListenerLoop.BeatSeconds);
+                slow.Beat();
+                JObject during = JObject.Parse(File.ReadAllText(beat));
+                Assert.Equal("marking", (string)during["state"]);
+                Assert.Equal("big", (string)during["runId"]);
+
+                go.Set();
+                look.Wait();
+            }
+            Assert.Contains("listener.Beats", File.ReadAllText(HostFile("RevitListener.cs")));
+        }
+
+        [Fact]
+        public void R448_the_ready_file_names_the_journal_of_this_revit_and_the_session_carries_it()
+        {
+            string listener = File.ReadAllText(HostFile("RevitListener.cs"));
+            Assert.Contains("application.ControlledApplication.RecordingJournalFilename", listener);
+            Assert.Contains("$session | Add-Member", File.ReadAllText(HostFile("ListenerPaths.ps1")));
         }
     }
 }
