@@ -227,6 +227,55 @@ namespace SiteAdaptation.Tests
             Assert.Single(timed.Records);
         }
 
+        private sealed class Lines : System.Diagnostics.TraceListener
+        {
+            public readonly List<string> Seen = new List<string>();
+
+            public override void Write(string message)
+            {
+                lock (Seen)
+                {
+                    Seen.Add(message);
+                }
+            }
+
+            public override void WriteLine(string message)
+            {
+                Write(message);
+            }
+        }
+
+        [Fact]
+        public void R447_a_report_that_fails_leaves_a_trace_line_and_changes_nothing()
+        {
+            var lines = new Lines();
+            System.Diagnostics.Trace.Listeners.Add(lines);
+            try
+            {
+                Assert.NotNull(new RunTiming(() => throw new InvalidOperationException("the clock failed")));
+            }
+            finally
+            {
+                System.Diagnostics.Trace.Listeners.Remove(lines);
+            }
+            lock (lines.Seen)
+            {
+                Assert.Contains(lines.Seen, line => line.Contains("the clock failed"));
+            }
+        }
+
+        [Fact]
+        public void R447_making_the_project_counts_in_the_model_open_and_the_commit_of_a_mass_file_is_measured()
+        {
+            string host = File.ReadAllText(Path.Combine(ThemeGateTests.RepoRoot(), "dotnet", "SiteAdaptation.TestHost", "ButtonsRunHost.cs"));
+            int clock = host.IndexOf("Stopwatch opening = Stopwatch.StartNew();", StringComparison.Ordinal);
+            int make = host.IndexOf("ui.Application.NewProjectDocument(job.Template)", StringComparison.Ordinal);
+            int read = host.IndexOf("RunTiming.BeforeRun(null, opening.Elapsed.TotalSeconds);", StringComparison.Ordinal);
+            Assert.True(clock > 0 && clock < make && make < read, "the clock starts before the project is made");
+            string mass = File.ReadAllText(Path.Combine(ThemeGateTests.RepoRoot(), "dotnet", "SiteAdaptation.AddIn", "Revit", "RevitMassFileMaker.cs"));
+            Assert.Contains("RunTiming.Measure(RunTiming.Transactions, () => transaction.Commit())", mass);
+        }
+
         [Fact]
         public void R447_a_clock_that_throws_changes_nothing_in_the_outcome()
         {

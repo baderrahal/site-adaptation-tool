@@ -54,7 +54,60 @@ function Read-ListenerSession($Folders) {
     if (-not $process -or $process.ProcessName -ne 'Revit') {
         throw "The Revit of slot $($Folders.slot), process $($session.pid), is gone, start the listener again"
     }
+    # S4. The journal this Revit records to, as it named it itself, null when it could not say
+    $session | Add-Member -NotePropertyName journal -NotePropertyValue ([string]$ready.journal)
     $session
+}
+
+# L2. Only the files of this listener. A new listener that took the slot in between keeps its own, or every send would say none is ready
+function Remove-ListenerFilesOf($Folders, [int]$ProcessId) {
+    foreach ($path in @($Folders.session, $Folders.ready)) {
+        if (Test-Path -LiteralPath $path) {
+            $named = $null
+            try {
+                $named = (Get-Content -Raw -LiteralPath $path | ConvertFrom-Json).pid
+            }
+            catch {
+                # Half a file is no file of this process, its writer is another listener
+            }
+            if ($named -eq $ProcessId) {
+                Remove-Item -LiteralPath $path
+            }
+        }
+    }
+}
+
+# What the send prints of a result. A refused job marked no input, and @($null).Count would call that 1
+function Get-ListenerResultLines($Result) {
+    $queue = if ($null -ne $Result.queueSeconds) { "queue $($Result.queueSeconds) s" } else { 'queue not counted' }
+    $run = if ($null -ne $Result.seconds) { "run $($Result.seconds) s" } else { 'no run' }
+    "Result of $($Result.runId): $($Result.result), $queue, $run"
+    if ($Result.error) {
+        "Error: $($Result.error)"
+    }
+    if ($Result.findings) {
+        $found = $Result.findings
+        "Findings: namedStopped $($found.namedStopped), villasNotRead $($found.villasNotRead), notHeld $($found.notHeld), saveErrors $($found.saveErrors), unreadable $($found.unreadable)"
+    }
+    if ($Result.inputsBefore) {
+        "Real inputs: $(@($Result.inputsBefore).Count), changed $(@($Result.inputsChanged | Where-Object { $_ }).Count)"
+    }
+    else {
+        'Real inputs: no input was marked'
+    }
+    if ($Result.marksFinal -eq $false) {
+        'The marks are not final, Revit is still in the job. This result is written again when it comes out, read it then'
+    }
+    "Timing: $(if ($Result.timing) { $Result.timing } else { $Result.timingNote })"
+}
+
+# 0 ok, 5 ran to its end with findings, 1 anything else
+function Get-ListenerExitCode($Result) {
+    switch ($Result.result) {
+        'ok' { 0 }
+        'findings' { 5 }
+        default { 1 }
+    }
 }
 
 function Write-ListenerJob($Folders, $Job) {
@@ -81,6 +134,21 @@ function Write-ListenerFailure($Folders, [string]$RunId, [string]$Reason) {
     }
 }
 
+# The result is written over when a job past its limit ends, and a read in that moment may meet the file held
+function Read-ListenerResult([string]$Path) {
+    foreach ($try in 1..5) {
+        try {
+            return Get-Content -Raw -LiteralPath $Path -ErrorAction Stop | ConvertFrom-Json
+        }
+        catch {
+            if ($try -ge 5) {
+                throw
+            }
+            Start-Sleep -Milliseconds 200
+        }
+    }
+}
+
 # R104. Waits for the result, with the freeze guard of a run on the beat and the answer of that Revit. The job may wait behind another
 # job, so no first log step is asked for. State result, timeout, gone or frozen, nothing is stopped here
 function Wait-ListenerResult {
@@ -101,7 +169,7 @@ function Wait-ListenerResult {
         if (Test-Path -LiteralPath $path) {
             return [pscustomobject]@{
                 state  = 'result'
-                result = Get-Content -Raw -LiteralPath $path | ConvertFrom-Json
+                result = Read-ListenerResult -Path $path
                 reason = $null
             }
         }

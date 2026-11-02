@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -18,15 +19,20 @@ namespace SiteAdaptation.Common
         public const string RootVariable = "SITEADAPT_LISTENER_ROOT";
         public const string SlotVariable = "SITEADAPT_LISTENER_SLOT";
         public const string InputRootsVariable = "SITEADAPT_LISTENER_INPUT_ROOTS";
+        public const string MinFreeVariable = "SITEADAPT_LISTENER_MIN_FREE_GB";
         private const char RootSeparator = '|';
         private static readonly Regex SlotText = new Regex(@"\A[1-9][0-9]?\z", RegexOptions.CultureInvariant);
 
-        private RevitListenerSetting(string root, string slot, IReadOnlyList<string> inputRoots)
+        private RevitListenerSetting(string root, string slot, IReadOnlyList<string> inputRoots, double? minFreeGb)
         {
             Root = root;
             Slot = slot;
             InputRoots = inputRoots;
+            MinFreeGb = minFreeGb;
         }
+
+        // siteBuild.minFreeGB of the config as the start script gives it, the floor of R200 before each job
+        public double? MinFreeGb { get; }
 
         public string Root { get; }
 
@@ -59,7 +65,8 @@ namespace SiteAdaptation.Common
                 return null;
             }
             string[] inputRoots = (variable(InputRootsVariable) ?? "").Split(new[] { RootSeparator }, StringSplitOptions.RemoveEmptyEntries);
-            return new RevitListenerSetting(root, slot, inputRoots);
+            double? minFree = double.TryParse(variable(MinFreeVariable), NumberStyles.Float, CultureInfo.InvariantCulture, out double floor) ? floor : (double?)null;
+            return new RevitListenerSetting(root, slot, inputRoots, minFree);
         }
 
         public string Refusal()
@@ -67,6 +74,10 @@ namespace SiteAdaptation.Common
             if (!SlotText.IsMatch(Slot))
             {
                 return "the slot of the listener is not a number from 1 to 99: " + Slot;
+            }
+            if (!MinFreeGb.HasValue)
+            {
+                return "the listener has no memory floor in " + MinFreeVariable;
             }
             return InsideRoot(Root, InputRoots);
         }
@@ -100,12 +111,22 @@ namespace SiteAdaptation.Common
             File.WriteAllText(writing, text, new UTF8Encoding(false));
             File.Move(writing, path);
         }
+
+        // S5. The same over a file that is there, so the one result of a job says its final marks. Replace is one step of the file system
+        public static void WriteOver(string path, string text)
+        {
+            string writing = path + WritingTail;
+            File.WriteAllText(writing, text, new UTF8Encoding(false));
+            File.Replace(writing, path, null);
+        }
     }
 
     public sealed class RevitListenerClaim
     {
         public string Stem { get; set; }
         public string Text { get; set; }
+        // The write time of the job file, which one move keeps: when the send made it appear
+        public DateTime ArrivedUtc { get; set; }
         // Why the claimed file could not be read, null when it could
         public string Error { get; set; }
         public DateTime ClaimedUtc { get; set; }
@@ -146,6 +167,7 @@ namespace SiteAdaptation.Common
             {
                 string stem = file.Name.Substring(0, file.Name.Length - JobTail.Length);
                 string target = FreeName(setting.ClaimedFolder, stem, JobTail);
+                DateTime arrived = file.LastWriteTimeUtc;
                 bool link = false;
                 try
                 {
@@ -160,7 +182,9 @@ namespace SiteAdaptation.Common
                 {
                     continue;
                 }
-                return Read(stem, target, link);
+                RevitListenerClaim claim = Read(stem, target, link);
+                claim.ArrivedUtc = arrived;
+                return claim;
             }
             return null;
         }
@@ -263,8 +287,9 @@ namespace SiteAdaptation.Common
         }
 
         // Every check a run job passes in JobSession.Start, then what a listener job adds. A model copy may be there already, the other
-        // files of the run may not
-        public static RevitListenerCheck Of(RevitListenerClaim claim, string token, string documents, IReadOnlyList<string> inputRoots, DateTime nowUtc,
+        // files of the run may not. The age of the guard is taken at the arrival of the job file and not now: the send made the run folder
+        // and the copy already, so a job that waited in the queue must run. What keeps an old job out is the token of this Revit session
+        public static RevitListenerCheck Of(RevitListenerClaim claim, string token, string documents, IReadOnlyList<string> inputRoots,
             Func<string, bool> fileExists, Func<string, bool> folderExists)
         {
             RevitListenerCheck read = Read(claim);
@@ -281,7 +306,7 @@ namespace SiteAdaptation.Common
             {
                 return Refuse("a listener job names its buttons");
             }
-            GuardResult guard = TestHostGuard.Check(claim.Text, token, nowUtc,
+            GuardResult guard = TestHostGuard.Check(claim.Text, token, claim.ArrivedUtc,
                 file => !string.Equals(file, job.Model, StringComparison.OrdinalIgnoreCase) && fileExists(file), folderExists);
             if (!guard.Act)
             {
@@ -333,10 +358,59 @@ namespace SiteAdaptation.Common
         public RevitListenerClaim Claim { get; }
         public RevitListenerJob Job { get; }
         internal List<InputMark> Before { get; set; }
+        internal double? FreeGb { get; set; }
         internal DateTime? StartedUtc { get; set; }
         internal DateTime? EndedUtc { get; set; }
         internal string Outcome { get; set; }
         internal string Error { get; set; }
+        // Revit is out of the job. Past its limit the outcome comes first and this later, so the marks of that first result are not final
+        internal bool RevitDone { get; set; }
+        internal DateTime? RevitDoneUtc { get; set; }
+        internal RevitListenerResult Written { get; set; }
+        internal string WrittenPath { get; set; }
+    }
+
+    // S3. What buttons_result.json of a run says that the steps of the job do not: the run went to its end and these did not hold. A
+    // result with any of them is findings and never ok, the job did not fail and its outputs are there, but a lane must see them
+    public sealed class RevitListenerFindings
+    {
+        public int NamedStopped { get; set; }
+        public int VillasNotRead { get; set; }
+        public int NotHeld { get; set; }
+        public int SaveErrors { get; set; }
+        public int Unreadable { get; set; }
+
+        [JsonIgnore]
+        public bool Any
+        {
+            get { return NamedStopped + VillasNotRead + NotHeld + SaveErrors + Unreadable > 0; }
+        }
+
+        // Null when the run folder holds no result file, a job that stopped before its write step has failed already
+        public static RevitListenerFindings Read(string path)
+        {
+            if (!File.Exists(path))
+            {
+                return null;
+            }
+            var findings = new RevitListenerFindings();
+            try
+            {
+                JToken steps = JObject.Parse(File.ReadAllText(path))["steps"];
+                foreach (JToken step in steps == null ? Enumerable.Empty<JToken>() : steps.Children())
+                {
+                    findings.NamedStopped += step["command"]?.Type == JTokenType.String && (string)step["outcome"] == ButtonOutcomes.Stopped ? 1 : 0;
+                    findings.VillasNotRead += step["villasNotRead"] != null ? 1 : 0;
+                    findings.NotHeld += step["notHeld"]?.Value<int>() ?? 0;
+                    findings.SaveErrors += step["savedAfter"]?.Type == JTokenType.String ? 1 : 0;
+                }
+            }
+            catch (Exception failure) when (failure is JsonException || failure is IOException || failure is UnauthorizedAccessException || failure is FormatException || failure is InvalidCastException)
+            {
+                findings.Unreadable = 1;
+            }
+            return findings;
+        }
     }
 
     // What the out folder holds of one job, counts and seconds and file names, no value of a model
@@ -346,15 +420,23 @@ namespace SiteAdaptation.Common
         public const string Failed = "failed";
         public const string Timeout = "timeout";
         public const string Refused = "refused";
+        public const string WithFindings = "findings";
 
         public string RunId { get; set; }
         public string Result { get; set; }
         public string Error { get; set; }
+        public DateTime? ArrivedUtc { get; set; }
         public DateTime? ClaimedUtc { get; set; }
         public DateTime? StartedUtc { get; set; }
         public DateTime FinishedUtc { get; set; }
+        // From the arrival of the job file to its start, or to its refusal for a job that never starts
         public double? QueueSeconds { get; set; }
         public double? Seconds { get; set; }
+        public DateTime? RevitDoneUtc { get; set; }
+        public RevitListenerFindings Findings { get; set; }
+        public double? FreeGbAtStart { get; set; }
+        // False while Revit may still be in a job past its limit, the marks after are taken again when it comes out and this file written over
+        public bool? MarksFinal { get; set; }
         public string RunFolder { get; set; }
         public string Timing { get; set; }
         public string TimingNote { get; set; }
@@ -403,16 +485,25 @@ namespace SiteAdaptation.Common
         private readonly RevitListenerQueue queue;
         private readonly Func<RevitListenerClaim, RevitListenerCheck> check;
         private readonly Func<DateTime> clock;
+        private readonly Func<double?> freeGb;
+        private readonly Func<string, InputMark> mark;
+        private readonly object beatGate = new object();
+        // Results written while Revit was still in the job, each to be marked again when it comes out. The next job waits for that, so what
+        // it does is never counted for the one before
+        private readonly List<RevitListenerRun> notFinal = new List<RevitListenerRun>();
         private RevitListenerRun current;
         private RevitListenerRun waiting;
+        private string marking;
         private DateTime? lastBeat;
         private int done;
 
-        public RevitListenerLoop(RevitListenerQueue queue, Func<RevitListenerClaim, RevitListenerCheck> check, Func<DateTime> clock)
+        public RevitListenerLoop(RevitListenerQueue queue, Func<RevitListenerClaim, RevitListenerCheck> check, Func<DateTime> clock, Func<double?> freeGb = null, Func<string, InputMark> mark = null)
         {
             this.queue = queue;
             this.check = check;
             this.clock = clock;
+            this.freeGb = freeGb;
+            this.mark = mark ?? InputGuard.Mark;
         }
 
         // The step Revit is in now, for the heartbeat
@@ -424,7 +515,7 @@ namespace SiteAdaptation.Common
             {
                 lock (gate)
                 {
-                    return waiting;
+                    return notFinal.Count > 0 ? null : waiting;
                 }
             }
         }
@@ -433,6 +524,10 @@ namespace SiteAdaptation.Common
         {
             lock (gate)
             {
+                if (notFinal.Count > 0)
+                {
+                    return null;
+                }
                 RevitListenerRun run = waiting;
                 waiting = null;
                 if (run != null)
@@ -443,23 +538,40 @@ namespace SiteAdaptation.Common
             }
         }
 
-        // A call after the first of a run changes nothing, so a watchdog and a Revit that came back never write two results
+        // Revit is out of the job. The first outcome of a run counts, so a watchdog and a Revit that came back never give two
         public void End(RevitListenerRun run, string outcome, string error)
         {
             lock (gate)
             {
-                if (run.Outcome == null)
-                {
-                    run.Outcome = outcome;
-                    run.Error = error;
-                    run.EndedUtc = clock();
-                }
+                Outcome(run, outcome, error);
+                run.RevitDone = true;
+                run.RevitDoneUtc = clock();
+            }
+        }
+
+        // On the thread of the watchdog while Revit may still be in a call, the lane gets its answer now and Revit is not done
+        public void PastLimit(RevitListenerRun run, string why)
+        {
+            lock (gate)
+            {
+                Outcome(run, RevitListenerResult.Timeout, why);
+            }
+        }
+
+        private void Outcome(RevitListenerRun run, string outcome, string error)
+        {
+            if (run.Outcome == null)
+            {
+                run.Outcome = outcome;
+                run.Error = error;
+                run.EndedUtc = clock();
             }
         }
 
         public void Look()
         {
             Beat();
+            MarkAgain();
             RevitListenerRun run;
             lock (gate)
             {
@@ -471,14 +583,58 @@ namespace SiteAdaptation.Common
             }
             if (run != null)
             {
-                WriteResult(run);
+                bool final = WriteResult(run);
                 lock (gate)
                 {
                     current = null;
                     done++;
+                    if (!final)
+                    {
+                        notFinal.Add(run);
+                    }
                 }
             }
             ClaimNext();
+        }
+
+        // S5, D19. Revit came out of a job past its limit: the marks again, what it wrote while it ran over is reported in the one result
+        private void MarkAgain()
+        {
+            List<RevitListenerRun> back;
+            lock (gate)
+            {
+                back = notFinal.Where(run => run.RevitDone).ToList();
+            }
+            foreach (RevitListenerRun run in back)
+            {
+                RevitListenerResult result = run.Written;
+                string outcome = result.Result;
+                string error = result.Error;
+                lock (gate)
+                {
+                    result.RevitDoneUtc = run.RevitDoneUtc;
+                }
+                AfterMarks(run, result, ref outcome, ref error);
+                Finals(result, ref outcome);
+                result.Result = outcome;
+                result.Error = error;
+                result.MarksFinal = true;
+                RevitListenerFiles.WriteOver(run.WrittenPath, JsonOut.ToJsonUnrounded(result));
+                lock (gate)
+                {
+                    notFinal.Remove(run);
+                }
+            }
+        }
+
+        // Read only when Revit is out of the job, before that the file is not at its end
+        private static void Finals(RevitListenerResult result, ref string outcome)
+        {
+            result.Findings = RevitListenerFindings.Read(Path.Combine(result.RunFolder ?? "", ButtonsRun.ResultFile));
+            if (result.Findings != null && result.Findings.Any && outcome == RevitListenerResult.Ok)
+            {
+                outcome = RevitListenerResult.WithFindings;
+            }
         }
 
         private void ClaimNext()
@@ -494,6 +650,10 @@ namespace SiteAdaptation.Common
                     continue;
                 }
                 var run = new RevitListenerRun(claim, checkedJob.Job);
+                lock (beatGate)
+                {
+                    marking = claim.Stem;
+                }
                 try
                 {
                     run.Before = Marks(run.Job);
@@ -503,6 +663,21 @@ namespace SiteAdaptation.Common
                     WriteRefusal(claim, "an input could not be marked (D19): " + failure.Message);
                     continue;
                 }
+                finally
+                {
+                    lock (beatGate)
+                    {
+                        marking = null;
+                    }
+                }
+                // L5. The floor of R200 is looked at last, nearest the start of the job, and only here since a window lock looks once
+                double? free = freeGb?.Invoke();
+                if (free.HasValue && queue.Setting.MinFreeGb.HasValue && free.Value < queue.Setting.MinFreeGb.Value)
+                {
+                    WriteRefusal(claim, "free memory " + free.Value.ToString("0.0", CultureInfo.InvariantCulture) + " GB is under siteBuild.minFreeGB " + queue.Setting.MinFreeGb.Value.ToString("0.0", CultureInfo.InvariantCulture) + " GB, the job did not start");
+                    continue;
+                }
+                run.FreeGb = free;
                 lock (gate)
                 {
                     current = run;
@@ -525,9 +700,9 @@ namespace SiteAdaptation.Common
             }
         }
 
-        private static List<InputMark> Marks(RevitListenerJob job)
+        private List<InputMark> Marks(RevitListenerJob job)
         {
-            return (job.Inputs ?? new List<string>()).Select(InputGuard.Mark).ToList();
+            return (job.Inputs ?? new List<string>()).Select(mark).ToList();
         }
 
         private void WriteRefusal(RevitListenerClaim claim, string reason)
@@ -537,42 +712,63 @@ namespace SiteAdaptation.Common
                 RunId = claim.Stem,
                 Result = RevitListenerResult.Refused,
                 Error = reason,
+                ArrivedUtc = claim.ArrivedUtc,
                 ClaimedUtc = claim.ClaimedUtc,
                 FinishedUtc = clock(),
+                QueueSeconds = Waited(claim, clock()),
             });
         }
 
-        private void WriteResult(RevitListenerRun run)
+        // From the send, one meaning on every path. A clock a little behind the file time is no wait
+        private static double Waited(RevitListenerClaim claim, DateTime until)
+        {
+            return Rounding.Fixed(Math.Max(0, (until - claim.ArrivedUtc).TotalSeconds), 1);
+        }
+
+        // True when the marks of this result are final
+        private bool WriteResult(RevitListenerRun run)
         {
             string outcome;
             string error;
             DateTime? ended;
+            bool final;
             lock (gate)
             {
                 outcome = run.Outcome;
                 error = run.Error;
                 ended = run.EndedUtc;
+                final = run.RevitDone;
             }
             var result = new RevitListenerResult
             {
                 RunId = run.Job.RunId,
+                ArrivedUtc = run.Claim.ArrivedUtc,
                 ClaimedUtc = run.Claim.ClaimedUtc,
+                RevitDoneUtc = run.RevitDoneUtc,
+                FreeGbAtStart = run.FreeGb,
+                MarksFinal = final,
                 StartedUtc = run.StartedUtc,
                 FinishedUtc = clock(),
-                QueueSeconds = run.StartedUtc.HasValue ? Rounding.Fixed((run.StartedUtc.Value - run.Claim.ClaimedUtc).TotalSeconds, 1) : (double?)null,
+                QueueSeconds = run.StartedUtc.HasValue ? Waited(run.Claim, run.StartedUtc.Value) : (double?)null,
                 Seconds = run.StartedUtc.HasValue && ended.HasValue ? Rounding.Fixed((ended.Value - run.StartedUtc.Value).TotalSeconds, 1) : (double?)null,
                 RunFolder = Path.GetDirectoryName(run.Job.Model),
                 InputsBefore = run.Before,
             };
             AfterMarks(run, result, ref outcome, ref error);
+            if (final)
+            {
+                Finals(result, ref outcome);
+            }
             Timing(result);
             result.Result = outcome;
             result.Error = error;
-            WriteJson(run.Claim.Stem, result);
+            run.Written = result;
+            run.WrittenPath = WriteJson(run.Claim.Stem, result);
+            return final;
         }
 
         // D19. An input that changed fails the job whatever it did, as the run script does at the end of a run
-        private static void AfterMarks(RevitListenerRun run, RevitListenerResult result, ref string outcome, ref string error)
+        private void AfterMarks(RevitListenerRun run, RevitListenerResult result, ref string outcome, ref string error)
         {
             string changedText = null;
             try
@@ -623,43 +819,50 @@ namespace SiteAdaptation.Common
         }
 
         // Unrounded, a bad job has no config and so no design values, and a result holds only counts and seconds
-        private void WriteJson(string stem, RevitListenerResult result)
+        private string WriteJson(string stem, RevitListenerResult result)
         {
-            RevitListenerFiles.WriteWhole(queue.ResultPath(stem), JsonOut.ToJsonUnrounded(result));
+            string path = queue.ResultPath(stem);
+            RevitListenerFiles.WriteWhole(path, JsonOut.ToJsonUnrounded(result));
+            return path;
         }
 
-        // The write time is what the freeze guard of the send script reads, a new file each time as JobSession.Beat writes it
-        private void Beat()
+        // The write time is what the freeze guard of the send script reads, a new file each time as JobSession.Beat writes it. L6. Look
+        // beats, and the thread of RevitListener.Beats too, since hashing the inputs takes as long as they are large and sits in one Look.
+        // No lock of the queue is held while a file is hashed, so a beat never waits for that
+        public void Beat()
         {
-            DateTime now = clock();
-            if (lastBeat.HasValue && (now - lastBeat.Value).TotalSeconds < BeatSeconds)
+            lock (beatGate)
             {
-                return;
+                DateTime now = clock();
+                if (lastBeat.HasValue && (now - lastBeat.Value).TotalSeconds < BeatSeconds)
+                {
+                    return;
+                }
+                lastBeat = now;
+                RevitListenerRun run;
+                int finished;
+                lock (gate)
+                {
+                    run = current;
+                    finished = done;
+                }
+                bool running = run != null && run.StartedUtc.HasValue;
+                string text = new JObject
+                {
+                    { "utc", now },
+                    { "pid", Process.GetCurrentProcess().Id },
+                    { "slot", queue.Setting.Slot },
+                    { "state", marking != null ? "marking" : running ? "running" : run != null ? "queued" : "idle" },
+                    { "runId", marking ?? run?.Job.RunId },
+                    { "step", running ? Step?.Invoke() : null },
+                    { "jobsDone", finished },
+                }.ToString();
+                string beat = Path.Combine(queue.Setting.OutFolder, RevitListenerQueue.HeartbeatFile);
+                string next = beat + ".next";
+                File.WriteAllText(next, text);
+                File.Copy(next, beat, true);
+                File.Delete(next);
             }
-            lastBeat = now;
-            RevitListenerRun run;
-            int finished;
-            lock (gate)
-            {
-                run = current;
-                finished = done;
-            }
-            bool running = run != null && run.StartedUtc.HasValue;
-            string text = new JObject
-            {
-                { "utc", now },
-                { "pid", Process.GetCurrentProcess().Id },
-                { "slot", queue.Setting.Slot },
-                { "state", running ? "running" : run != null ? "queued" : "idle" },
-                { "runId", run?.Job.RunId },
-                { "step", running ? Step?.Invoke() : null },
-                { "jobsDone", finished },
-            }.ToString();
-            string beat = Path.Combine(queue.Setting.OutFolder, RevitListenerQueue.HeartbeatFile);
-            string next = beat + ".next";
-            File.WriteAllText(next, text);
-            File.Copy(next, beat, true);
-            File.Delete(next);
         }
     }
 }

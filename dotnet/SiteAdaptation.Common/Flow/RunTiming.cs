@@ -269,8 +269,9 @@ namespace SiteAdaptation.Common.Flow
                     action();
                 }
             }
-            catch (Exception)
+            catch (Exception failure)
             {
+                Trace.WriteLine("run timing: " + failure.Message);
             }
         }
 

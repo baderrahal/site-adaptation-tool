@@ -1,7 +1,7 @@
 # R448, developers only. Sends one buttons job to the Revit listener of a slot and waits for its result. The spec is a -RoundSpec of
 # Run-TestHost.ps1 of kind addinRun with buttons, which makes the run folder, the config copy and the model copy as for a run of its own,
 # only no Revit starts. One job at a time in the order they arrive, the job may wait behind another. It takes no window lock, the
-# Start-RevitListener.ps1 of the slot holds it. Exit code 0 ok, 1 failed or refused, 2 no result in the time, 3 Revit gone, 4 Revit frozen.
+# Start-RevitListener.ps1 of the slot holds it. Exit code 0 ok, 1 failed or refused, 2 no result in the time, 3 Revit gone, 4 Revit frozen, 5 ran with findings.
 param(
     [Parameter(Mandatory)]
     [string]$RoundSpec,
@@ -38,14 +38,9 @@ $log = Join-Path $folders.out ($job.runId + '.log.json')
 switch ($wait.state) {
     'result' {
         $result = $wait.result
-        "Result of $($job.runId): $($result.result), queue $($result.queueSeconds) s, run $($result.seconds) s"
-        if ($result.error) {
-            "Error: $($result.error)"
-        }
-        "Real inputs: $(@($result.inputsBefore).Count), changed $(@($result.inputsChanged).Count)"
-        "Timing: $(if ($result.timing) { $result.timing } else { $result.timingNote })"
+        Get-ListenerResultLines -Result $result
         "Result file: $(Join-Path $folders.out ($job.runId + '.result.json')), log: $log, run folder: $($result.runFolder)"
-        exit $(if ($result.result -eq 'ok') { 0 } else { 1 })
+        exit (Get-ListenerExitCode -Result $result)
     }
     'timeout' {
         "$($job.runId): $($wait.reason). Its result will still be written to $($folders.out)"
@@ -59,7 +54,7 @@ switch ($wait.state) {
     default {
         # R104. This Revit only. Its windows and the journal tail go into the log of the job, as in a run of its own
         $journals = Join-Path $env:LOCALAPPDATA 'Autodesk\Revit\Autodesk Revit 2024\Journals'
-        $frozen = Stop-FrozenRevit -Process (Get-Process -Id $session.pid) -Reason $wait.reason -LogPath $log -JournalFolder $journals -Start $start
+        $frozen = Stop-FrozenRevit -Process (Get-Process -Id $session.pid) -Reason $wait.reason -LogPath $log -JournalFolder $journals -JournalPath $session.journal -Start $start
         Write-ListenerFailure -Folders $folders -RunId $job.runId -Reason ('freeze guard: ' + $wait.reason)
         "Freeze guard: $($wait.reason). Revit $($frozen.pid) ended, open step: $($frozen.step). Start the listener again and send the job again"
         exit 4

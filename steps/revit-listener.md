@@ -11,6 +11,8 @@ Each Revit start and model open is waiting time. The listener keeps one Revit op
 - Folders: root in testHost.listener of config/project.json, then in-<slot> and out-<slot> under it. The slot comes from the window lock.
 - One job at a time, first in first out. A job that fails writes its error and the next job runs.
 - Each job gets a new run folder under the work root, as a run of its own does. Real inputs are only read, the result holds their SHA-256 before and after.
+- A job waiting in the queue still runs however long it waits. Its age is checked at its arrival, and queueSeconds counts from the send.
+- Before a job starts the listener looks at free memory against siteBuild.minFreeGB. Under it the job gets a refused result and the queue goes on.
 
 ## Status
 
@@ -34,18 +36,20 @@ After a new build go back to step 1. Revit holds the DLLs open, so a running lis
 ## What is in the folders
 
 - in-<slot>: job files waiting, `<run id>.job.json`. in-<slot>\claimed holds each job taken.
-- out-<slot>: `<run id>.result.json`, `<run id>.log.json`, the run_timing file when the run wrote one, `heartbeat.json`, `ready.json`, `session.json`, `listener_log.json` and `listener_home.rvt`, the small project that stays active while a model closes.
+- out-<slot>: `<run id>.result.json`, `<run id>.log.json`, the run_timing file when the run wrote one, `heartbeat.json`, `ready.json` with the process and its journal, `session.json`, `listener_log.json` and `listener_home.rvt`, the small project that stays active while a model closes.
 
 ## If a job fails
 
 - Exit code 1. The Error line names the failed step. Read `<run id>.log.json` for all of it. The listener goes on, fix the cause and send again. A send makes a new run folder and a new run id.
 - Result refused: the job never ran, the error says which check refused it.
-- Result timeout: the job ran past its limit. Its result goes out at once. If Revit is still inside the call the next job waits until Revit is back. Terminal 1 stays as it is.
+- Result timeout: the job ran past its limit. Its result goes out at once with marksFinal false, and the send says the marks are not final. If Revit is still inside the call the next job waits until Revit is back. Then the marks are taken again, the same result file is written over with marksFinal true, and a real input that changed is named in its error (D19). Read the result file again then. Terminal 1 stays as it is.
+- Exit code 5, result findings: the run reached its end but a named command stopped, villas were not read, notHeld is above 0 or a save after a button failed. The send prints the counts, buttons_result.json of the run folder holds which. The outputs are there, the listener goes on.
+- Result refused for free memory: close what holds the memory and send again.
 - Exit code 2: no result in the time of -TimeoutMinutes. The job may still run or wait, its result still comes to out-<slot>.
 
 ## If Revit freezes
 
-- The send script watches the heartbeat and whether Revit answers, with the limits of a run of its own. Past them it logs the windows and the journal tail into `<run id>.log.json`, ends that Revit only and exits with code 4. NOT RUN.
+- The send script watches the heartbeat and whether Revit answers, with the limits of a run of its own. The heartbeat has a thread of its own, so hashing large inputs does not stop it. Past the limits it logs the windows and the tail of the journal that Revit named as its own into `<run id>.log.json`, ends that Revit only and exits with code 4. With no journal named the log has no tail. NOT RUN.
 - Exit code 3: Revit is gone and left no result.
 - Either way terminal 1 ends and the slot is free. Go back to step 4 and send again. A job that was waiting behind it is refused at the next start, its token belonged to the Revit that ended, and its own send exits with code 3.
 
@@ -60,4 +64,7 @@ None of these has run. Each is a fact the tests cannot reach.
 5. A second job runs clean in the same Revit, the small project closes after its model opens, and a third job after it.
 6. A job that throws gives failed and the next job runs. A model already there, a key copy, runs as well.
 7. A job past its limit gives timeout, the add-in is put back and the next job runs.
-8. A killed Revit gives exit code 3, a hung one exit code 4.
+8. A killed Revit gives exit code 3, a hung one exit code 4, with the tail of its own journal.
+9. RecordingJournalFilename gives the full path at OnStartup, and GlobalMemoryStatusEx reads inside Revit.
+10. A job past its limit that Revit comes back from: the result is written over with marksFinal true and the next job runs.
+11. A real buttons_result.json with notHeld above 0 gives result findings and exit code 5.
