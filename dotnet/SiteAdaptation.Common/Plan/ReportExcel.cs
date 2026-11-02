@@ -422,7 +422,7 @@ namespace SiteAdaptation.Common
             List<JObject> walls = made.Walls.Where(item => writtenNumbers.Contains((string)item["plot"])).ToList();
             List<string> order = written.Select(item => (string)item["plot"]).Concat(made.NotWritten.Select(item => (string)item["plot"]).Where(mine.Contains)).ToList();
 
-            ReportTable placed = PlacedTable(written);
+            ReportTable placed = PlacedTable(written, inputs.RevitCounts);
             ReportTable skipped = SkippedTable(missing);
             ReportTable overrides = OverridesTable(made, written, missing);
             ReportTable assumed = AssumedTable(made, written);
@@ -471,17 +471,17 @@ namespace SiteAdaptation.Common
         }
 
         // D4, items 10 and 11 of 7.7: plot first, one row per written plot and kind, the link with its villa type and mirror flag, then each floor
-        // with its type as the plan writes them. CHOSEN: the element id stays empty until the run logs of buttons 4 and 5 are an input
-        internal static ReportTable PlacedTable(List<JObject> written)
+        // with its type as the plan writes them, and the element id the model holds at report time (R483), empty where no element stands
+        internal static ReportTable PlacedTable(List<JObject> written, JObject revitCounts = null)
         {
             var table = new ReportTable { Header = ReportExcelText.PlacedColumns, Formats = new string[5], Editable = ReportExcelText.Editable };
             foreach (JObject plot in written)
             {
                 string number = (string)plot["plot"];
-                table.Rows.Add(new[] { number, ReportExcelText.LinkKind, Cell(plot["unit"]?["value"]), Cell(plot["mirrored"]?["value"]), null });
+                table.Rows.Add(new[] { number, ReportExcelText.LinkKind, Cell(plot["unit"]?["value"]), Cell(plot["mirrored"]?["value"]), RevitCounts.ElementId(revitCounts, number, ReportExcelText.LinkKind) });
                 foreach (JProperty floor in (plot["floors"] as JObject ?? new JObject()).Properties())
                 {
-                    table.Rows.Add(new[] { number, floor.Name, Cell(floor.Value["type"]?["value"]), null, null });
+                    table.Rows.Add(new[] { number, floor.Name, Cell(floor.Value["type"]?["value"]), null, RevitCounts.ElementId(revitCounts, number, floor.Name) });
                 }
             }
             return table;
