@@ -44,6 +44,8 @@ EPSILON = 1e-9
 KINDS = ("generic", "yard")
 # R475. The line of a plot whose fitted yard outline the cut leaves empty, FloorOutlines.YardCutEmpty of the C#
 YARD_CUT_EMPTY = "the cut of R475 leaves the fitted yard outline empty"
+# R475, Q350. The source of a yard outline the cut changed, so it no longer reads the status of the fit. FloorOutlines.YardCutSource of the C#
+YARD_CUT = "yardCut"
 NOTE = ("Measured from the {job} past job, not a rule of the client, written by python/floor_fit.py --write and never by hand (R135, R136). "
         "outlines: per floor kind one group per unit, mirror flag and plot width, the width being the front edge of the baseplan face (R122) rounded to cadLinks.floorWidthStepM. "
         "loops are in the axes of the link, x along its X axis and y along its Y axis from its origin, so the outline is placed by the insert, rotation and mirror flag of the link. "

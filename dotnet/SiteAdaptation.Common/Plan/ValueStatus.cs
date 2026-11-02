@@ -323,7 +323,7 @@ namespace SiteAdaptation.Common
             }
             foreach (Tuple<string, string[]> kind in kinds)
             {
-                found.AddRange(FloorFields.Select(name => Tuple.Create("floors." + kind.Item1 + "." + name, Computed)));
+                found.AddRange(FloorFields.Select(name => Tuple.Create("floors." + kind.Item1 + "." + name, plan.YardCut && kind.Item1 == "yard" && name == "outline" ? FloorOutlines.YardCutSource : Computed)));
                 found.AddRange(kind.Item2.Select(name => Tuple.Create("floors." + kind.Item1 + "." + name, Estimate)));
             }
             return found;

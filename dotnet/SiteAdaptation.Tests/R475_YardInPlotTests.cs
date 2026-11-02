@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using Newtonsoft.Json.Linq;
 using SiteAdaptation.Common;
@@ -162,6 +163,54 @@ namespace SiteAdaptation.Tests
             // By hand: turned 90 degrees the yard lies x 52.005 to 58.005 and y 10.155 to 14.155, far behind the ramp of the front, y 0 to 5.52. The ramp on the
             // open edge covers x 54.48 to 60, so the cut stops the yard at 54.48
             Assert.Equal("52.005,10.155 54.48,10.155 54.48,14.155 52.005,14.155", Text((List<List<double[]>>)five.Overrides["yardOutline"]));
+        }
+
+        private static JObject Strong()
+        {
+            return new JObject { ["status"] = "MEASURED", ["share"] = 0.95, ["strength"] = "strong" };
+        }
+
+        private static ValueStatusTable Table()
+        {
+            JObject config = JObject.Parse(File.ReadAllText(WorkerRunTests.RepoConfig()));
+            var block = new JObject();
+            foreach (string name in new[] { "yardOutline", "linkOrigin", "linkRotation", "hand alone" })
+            {
+                block["levelProfiles.parsons2024Rev6.keyRules." + name + ".rule"] = Strong();
+            }
+            return new ValueStatusTable((JObject)config["valueStatus"], new JObject { [(string)config["profile"]] = block }, (string)config["profile"], "parsons2024Rev6");
+        }
+
+        [Fact]
+        public void R475_Q350_a_cut_yard_reads_recommended_from_its_own_source_and_an_uncut_one_keeps_its_status()
+        {
+            Tuple<string, JObject, string> cut = Table().Of("floors.yard.outline", "yardCut", "alone");
+            Assert.Equal("RECOMMENDED floors.yard.outline from yardCut hand alone", cut.Item1 + " " + cut.Item3);
+            Assert.Contains("R475", (string)cut.Item2["entries"][0]["why"]);
+            Assert.Contains("Q350", (string)cut.Item2["entries"][0]["why"]);
+            Assert.Equal("RECOMMENDED MEASURED MEASURED MEASURED MEASURED", string.Join(" ", cut.Item2["entries"].Select(entry => (string)entry["status"])));
+            Tuple<string, JObject, string> uncut = Table().Of("floors.yard.outline", "computed", "alone");
+            Assert.Equal("MEASURED floors.yard.outline from computed hand alone", uncut.Item1 + " " + uncut.Item3);
+            // An override that moved the link names itself, the source of the value stays that of the cut
+            Assert.Equal("RECOMMENDED", Table().Of("floors.yard.outline", "yardCut", "alone", new[] { "insert" }).Item1);
+        }
+
+        [Fact]
+        public void R475_Q350_the_plan_marks_a_cut_yard_with_its_source_and_an_uncut_one_as_computed()
+        {
+            var none = new OverrideList(new Dictionary<string, JObject>());
+            OverrideParameterStepTests.Built built = OverrideParameterStepTests.Build(none, changeRules: rules => Yard(rules, Past()));
+            Assert.True(built.Plans["5"].YardCut);
+            JToken field = ((JObject)ValueStatus.Step(new[] { "5" }, built.Plans, built.Hands, Table())["5"]["fields"])["floors.yard.outline"];
+            Assert.Equal(FloorOutlines.YardCutSource, (string)field["source"]);
+            Assert.Equal("yardCut", FloorOutlines.YardCutSource);
+            Assert.StartsWith("floors.yard.outline from yardCut", (string)field["statusFrom"]);
+
+            built = OverrideParameterStepTests.Build(none, changeRules: rules => Yard(rules, new JArray(new JArray(1.0, 8.0), new JArray(5.0, 8.0), new JArray(5.0, 12.0), new JArray(1.0, 12.0))));
+            Assert.False(built.Plans["5"].YardCut);
+            field = ((JObject)ValueStatus.Step(new[] { "5" }, built.Plans, built.Hands, Table())["5"]["fields"])["floors.yard.outline"];
+            Assert.Equal("computed", (string)field["source"]);
+            Assert.StartsWith("floors.yard.outline from computed", (string)field["statusFrom"]);
         }
 
         [Fact]

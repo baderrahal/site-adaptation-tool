@@ -2,9 +2,12 @@
 R475_YardInPlotTests.cs holds the same cases and the same expected values."""
 from shapely.geometry import MultiPolygon, Polygon
 
+import floor_fit
 import plan_from_book
 import plan_from_past
+import project_profile
 import test_level_floor_steps as floor_steps
+import value_status
 from test_level_floor_steps import made_build
 
 # A plot 20 m wide and 30 m deep and its ramp on the front, drawn as the build draws them, the face not from its smallest corner
@@ -148,3 +151,32 @@ def test_r475_a_yard_the_cut_leaves_empty_is_the_no_yard_path_with_its_line_befo
     assert "yard" not in built["plan"]["5"]["floors"] and {"key": "floors.yard", "why": GONE} in built["missing"]["5"]["missing"]
     made = plan_from_book.override_step(built["scope"], built["rows"], built["trace"], built["hands"], built["files"], built["rules"], built["profile"], 0.5)
     assert (made["5"]["yardOutline"], made["5"]["yardZ"]) == (None, None)
+
+
+# Behind the ramp and on the plot, so the cut leaves it as it is
+INSIDE = {"unit": "DP2", "mirrored": False, "width": 12.0, "type": "Yard made up", "loops": [[[1.0, 8.0], [5.0, 8.0], [5.0, 12.0], [1.0, 12.0]]]}
+FIT = "levelProfiles.parsons2024Rev6.keyRules."
+
+
+def test_r475_q350_a_cut_yard_reads_recommended_from_its_own_source_and_an_uncut_one_keeps_its_status():
+    settings = project_profile.load_settings()
+    strong = {"status": "MEASURED", "share": 0.95, "strength": "strong"}
+    block = {FIT + name + ".rule": dict(strong) for name in ("yardOutline", "linkOrigin", "linkRotation", "hand alone")}
+    table = value_status.Table(settings.get("valueStatus"), {settings.get("profile"): block}, settings.get("profile"), "parsons2024Rev6")
+    status, detail, key = table.of("floors.yard.outline", "yardCut", hand="alone")
+    assert (status, key) == ("RECOMMENDED", "floors.yard.outline from yardCut hand alone")
+    assert "R475" in detail["entries"][0]["why"] and "Q350" in detail["entries"][0]["why"]
+    assert [entry["status"] for entry in detail["entries"]] == ["RECOMMENDED", "MEASURED", "MEASURED", "MEASURED", "MEASURED"]
+    status, _, key = table.of("floors.yard.outline", "computed", hand="alone")
+    assert (status, key) == ("MEASURED", "floors.yard.outline from computed hand alone")
+    # An override that moved the link names itself, the source of the value stays that of the cut
+    assert table.of("floors.yard.outline", "yardCut", hand="alone", applied=["insert"])[0] == "RECOMMENDED"
+
+
+def test_r475_q350_the_plan_marks_a_cut_yard_with_its_source_and_an_uncut_one_as_computed(monkeypatch):
+    monkeypatch.setattr(floor_steps, "YARD", PAST)
+    outline = made_build(monkeypatch, {})["plan"]["5"]["floors"]["yard"]["outline"]
+    assert outline["source"] == floor_fit.YARD_CUT == "yardCut" and outline["statusFrom"].startswith("floors.yard.outline from yardCut")
+    monkeypatch.setattr(floor_steps, "YARD", INSIDE)
+    outline = made_build(monkeypatch, {})["plan"]["5"]["floors"]["yard"]["outline"]
+    assert outline["source"] == "computed" and outline["statusFrom"].startswith("floors.yard.outline from computed")

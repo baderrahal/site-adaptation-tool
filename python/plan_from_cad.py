@@ -193,7 +193,7 @@ def cut_yard(builder, floors, face_ring, ramp_ring, slot):
         del floors["yard"]
         builder.missing.insert(slot, {"key": "floors.yard", "why": floor_fit.YARD_CUT_EMPTY})
     elif kept is not given:
-        yard["outline"]["value"] = loops_of(kept)
+        yard["outline"] = sourced(loops_of(kept), floor_fit.YARD_CUT)
 
 
 def ramp_floor(builder, unit, frame, inputs, entry_level):

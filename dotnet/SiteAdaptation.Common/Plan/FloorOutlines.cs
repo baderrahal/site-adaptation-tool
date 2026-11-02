@@ -26,6 +26,9 @@ namespace SiteAdaptation.Common
         // R475. floor_fit.YARD_CUT_EMPTY, the line of a plot whose fitted yard outline the cut leaves empty
         public const string YardCutEmpty = "the cut of R475 leaves the fitted yard outline empty";
 
+        // R475, Q350. floor_fit.YARD_CUT, the source of a yard outline the cut changed, so it no longer reads the status of the fit
+        public const string YardCutSource = "yardCut";
+
         // floor_fit.EPSILON, the width of a fitted outline a plot takes
         private const double Epsilon = 1e-9;
 
