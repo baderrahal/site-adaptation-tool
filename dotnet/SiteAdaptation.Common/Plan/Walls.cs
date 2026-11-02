@@ -22,6 +22,18 @@ namespace SiteAdaptation.Common
 
         // Q115. The span keyRules.wallOpen leaves open by unit pair, start and end from the front end of the edge, null for no wallOpen
         public IReadOnlyDictionary<string, double[]> Open { get; set; }
+
+        // R480. keyRules.wallSideOpen, null for no wallSideOpen
+        public WallSides Sides { get; set; }
+    }
+
+    // R480, plan_walls.side_spans. The largest cosine of a side edge to the front, and per unit the left and the right span on a plot not mirrored, each the
+    // start and the end in metres from the front end of the edge
+    public sealed class WallSides
+    {
+        public double Cos { get; set; }
+
+        public IReadOnlyDictionary<string, double[][]> ByUnit { get; set; }
     }
 
     // R415, R416. What a build under rev6 reads for the walls of irregular plots, plan_walls.line_rules of Python: the degrees of
@@ -131,7 +143,7 @@ namespace SiteAdaptation.Common
             {
                 HigherBase = (string)key["wallBase"]["rule"] == "yardLevelOfTheHigherPlot", HigherTop = (string)key["wallTop"]["rule"] == "higherFflPlusRev6",
                 Depth = BuildFace.Number(depth), Rise = Fronts.Metres(rules, rulesName, rise, "rev6.boundary_wall_top_above_ffl"), Near = BuildFace.Number(near),
-                Open = OpenSpans(key["wallOpen"], name),
+                Open = OpenSpans(key["wallOpen"], name), Sides = SideSpans(key["wallSideOpen"], name),
             };
         }
 
@@ -150,6 +162,33 @@ namespace SiteAdaptation.Common
                 throw new InvalidDataException("keyRules.wallOpen of " + name + " holds no span table a build leaves an edge open by, it takes clusterPairSpan with spans of two numbers, the first under the second (R362, Q115)");
             }
             return spans.Properties().ToDictionary(span => span.Name, span => new[] { BuildFace.Number(span.Value[0]), BuildFace.Number(span.Value[1]) }, StringComparer.Ordinal);
+        }
+
+        private static bool IsSpan(JToken span)
+        {
+            return span is JArray pair && pair.Count == 2 && pair.All(IsNumber) && BuildFace.Number(pair[0]) < BuildFace.Number(pair[1]);
+        }
+
+        // plan_walls.side_spans, R480: keyRules.wallSideOpen, null when the profile holds no wallSideOpen
+        private static WallSides SideSpans(JToken entry, string name)
+        {
+            if (entry == null || entry.Type == JTokenType.Null)
+            {
+                return null;
+            }
+            var table = (entry as JObject)?["byUnit"] as JObject;
+            JToken rule = (entry as JObject)?["rule"], limit = (entry as JObject)?["sideCosMax"];
+            if (table == null || rule == null || rule.Type != JTokenType.String || (string)rule != "sideSpanByHand" || !IsNumber(limit) || !(BuildFace.Number(limit) > 0) || BuildFace.Number(limit) > 1
+                || table.Properties().Any(unit => !IsSpan((unit.Value as JObject)?["left"]) || !IsSpan((unit.Value as JObject)?["right"])))
+            {
+                throw new InvalidDataException("keyRules.wallSideOpen of " + name + " holds no span table a build leaves a side edge open by, it takes sideSpanByHand with sideCosMax and for each unit a left and a right span of two numbers, the first under the second (R480)");
+            }
+            Func<JToken, double[]> span = pair => new[] { BuildFace.Number(pair[0]), BuildFace.Number(pair[1]) };
+            return new WallSides
+            {
+                Cos = BuildFace.Number(limit),
+                ByUnit = table.Properties().ToDictionary(unit => unit.Name, unit => new[] { span(unit.Value["left"]), span(unit.Value["right"]) }, StringComparer.Ordinal),
+            };
         }
 
         // Q115. The footprint cluster and the unit of each plot with a face, as plan_from_book.build gives kin to plan_walls.walls: the index of
@@ -267,12 +306,15 @@ namespace SiteAdaptation.Common
 
         // plan_walls.walls: the walls of the plots of order the plan writes, on the rings of every face of the site, the open edges of the
         // written plots as left and right and their FFL at 3 decimals, in the order of the plot, its edge and its part. fronts holds the front of
-        // R355 of each written plot before a turn, so Turned lists the plots whose front a wall lies on (Q120)
+        // R355 of each written plot before a turn, so Turned lists the plots whose front a wall lies on (Q120). mirrored holds the flag of each written plot after the
+        // overrides for keyRules.wallSideOpen (R480)
         public static List<PlanWall> Of(IList<string> order, ISet<string> written, IReadOnlyDictionary<string, double[][]> rings, IReadOnlyDictionary<string, double[][]> frames,
-            IReadOnlyDictionary<string, double> ffls, WallRules rules, IReadOnlyDictionary<string, double[][]> fronts = null, IReadOnlyDictionary<string, string[]> kin = null)
+            IReadOnlyDictionary<string, double> ffls, WallRules rules, IReadOnlyDictionary<string, double[][]> fronts = null, IReadOnlyDictionary<string, string[]> kin = null,
+            IReadOnlyDictionary<string, bool> mirrored = null)
         {
             fronts = fronts ?? new Dictionary<string, double[][]>();
             double near = rules.Near;
+            Dictionary<string, List<SideEdge>> sides = SideEdges(written, rings, frames, kin, mirrored, rules);
             Dictionary<string, double[]> bounds = rings.ToDictionary(item => item.Key, item => Bounds(item.Value));
             var found = new List<PlanWall>();
             foreach (string plot in order)
@@ -309,7 +351,7 @@ namespace SiteAdaptation.Common
                     {
                         continue;
                     }
-                    found.AddRange(EdgeWalls(plot, edge, a, b, others, written, ffls, rules, SameEdge(a, b, ownFront), kin, ownFront));
+                    found.AddRange(EdgeWalls(plot, edge, a, b, others, written, ffls, rules, SameEdge(a, b, ownFront), kin, ownFront, sides));
                 }
             }
             return found;
@@ -319,7 +361,7 @@ namespace SiteAdaptation.Common
         // written plot open and a part another written plot comes first on left to it. turned is the edge on the front of plot before its turn,
         // and a part on the front of another written plot before its turn names that plot in Turned (Q120)
         private static IEnumerable<PlanWall> EdgeWalls(string plot, int edge, double[] a, double[] b, List<Other> others, ISet<string> written, IReadOnlyDictionary<string, double> ffls,
-            WallRules rules, bool turned, IReadOnlyDictionary<string, string[]> kin, double[][] ownFront)
+            WallRules rules, bool turned, IReadOnlyDictionary<string, string[]> kin, double[][] ownFront, IReadOnlyDictionary<string, List<SideEdge>> sides)
         {
             double near = rules.Near;
             double dx = b[0] - a[0], dy = b[1] - a[1];
@@ -386,7 +428,9 @@ namespace SiteAdaptation.Common
                     continue;
                 }
                 string basePlot = Pick(writers, ffls, rules.HigherBase), topPlot = Pick(writers, ffls, rules.HigherTop);
-                foreach (double[] piece in Pieces(part.Start, part.End, Opening(part.Owners, written, a, b, length, rules, kin, ownFront), near))
+                // R480. An edge of a pair the table of Q115 holds keeps that rule
+                double[] gap = Opening(part.Owners, written, a, b, length, rules, kin, ownFront) ?? SideOpening(part.Owners, a, b, length, near, sides);
+                foreach (double[] piece in Pieces(part.Start, part.End, gap, near))
                 {
                     double start = piece[0], end = piece[1];
                     double[] first = start == 0.0 ? new[] { a[0], a[1] } : new[] { a[0] + ux * start, a[1] + uy * start };
@@ -421,6 +465,97 @@ namespace SiteAdaptation.Common
             double toA = (a[0] - middle[0]) * (a[0] - middle[0]) + (a[1] - middle[1]) * (a[1] - middle[1]);
             double toB = (b[0] - middle[0]) * (b[0] - middle[0]) + (b[1] - middle[1]) * (b[1] - middle[1]);
             return toA <= toB ? span : new[] { length - span[1], length - span[0] };
+        }
+
+        // R480. A side edge of a written unit of keyRules.wallSideOpen
+        private sealed class SideEdge
+        {
+            public double[] NearEnd;
+            public double[] FarEnd;
+            public double[] Span;
+        }
+
+        // plan_walls.side_edges, R480: per written plot of a unit keyRules.wallSideOpen holds, its side edges as the end nearer the middle of its open edge, the far
+        // end and the span. A side edge runs across the open edge, within sideCosMax of square to it. Left and right are seen from the middle of the open edge into the
+        // plot, as the house faces after a turn, and a mirrored plot swaps them. An edge shorter than the end of its span holds none of the measure and stays whole
+        private static Dictionary<string, List<SideEdge>> SideEdges(ISet<string> written, IReadOnlyDictionary<string, double[][]> rings, IReadOnlyDictionary<string, double[][]> frames,
+            IReadOnlyDictionary<string, string[]> kin, IReadOnlyDictionary<string, bool> mirrored, WallRules rules)
+        {
+            var found = new Dictionary<string, List<SideEdge>>(StringComparer.Ordinal);
+            if (rules.Sides == null || rules.Sides.ByUnit.Count == 0 || kin == null || kin.Count == 0 || mirrored == null || mirrored.Count == 0)
+            {
+                return found;
+            }
+            foreach (string plot in written)
+            {
+                string unit = kin.TryGetValue(plot, out string[] held) ? held[1] : null;
+                if (unit == null || !rules.Sides.ByUnit.TryGetValue(unit, out double[][] spans) || !frames.TryGetValue(plot, out double[][] frame) || frame == null
+                    || !rings.TryGetValue(plot, out double[][] ring) || !mirrored.TryGetValue(plot, out bool flipped))
+                {
+                    continue;
+                }
+                double[] middle = { (frame[0][0] + frame[1][0]) / 2.0, (frame[0][1] + frame[1][1]) / 2.0 };
+                double[] inward = { ring.Sum(point => point[0]) / ring.Length - middle[0], ring.Sum(point => point[1]) / ring.Length - middle[1] };
+                double[] across = { frame[1][0] - frame[0][0], frame[1][1] - frame[0][1] };
+                double size = Math.Sqrt(across[0] * across[0] + across[1] * across[1]);
+                var edges = new List<SideEdge>();
+                found[plot] = edges;
+                for (int index = 0; index < ring.Length; index++)
+                {
+                    double[] a = ring[index], b = ring[(index + 1) % ring.Length];
+                    double dx = b[0] - a[0], dy = b[1] - a[1];
+                    double length = Math.Sqrt(dx * dx + dy * dy);
+                    if (length == 0 || size == 0 || SameEdge(a, b, frame) || Math.Abs(dx * across[0] + dy * across[1]) / (length * size) > rules.Sides.Cos)
+                    {
+                        continue;
+                    }
+                    double atX = (a[0] + b[0]) / 2.0 - middle[0], atY = (a[1] + b[1]) / 2.0 - middle[1];
+                    bool onLeft = inward[0] * atY - inward[1] * atX > 0;
+                    double[] span = spans[onLeft != flipped ? 0 : 1];
+                    if (length < span[1])
+                    {
+                        continue;
+                    }
+                    double toA = (a[0] - middle[0]) * (a[0] - middle[0]) + (a[1] - middle[1]) * (a[1] - middle[1]);
+                    double toB = (b[0] - middle[0]) * (b[0] - middle[0]) + (b[1] - middle[1]) * (b[1] - middle[1]);
+                    edges.Add(new SideEdge { NearEnd = toA <= toB ? a : b, FarEnd = toA <= toB ? b : a, Span = span });
+                }
+            }
+            return found;
+        }
+
+        // plan_walls.side_opening, R480: the part of the edge a b that the side edges of the owners along it leave open, start and end along the edge from a, else null.
+        // The span runs from the front of the unit, also where the wall is filed under a plot of another unit whose edge reaches past it. Two units on one edge leave open
+        // all from the first start to the last end
+        private static double[] SideOpening(List<string> owners, double[] a, double[] b, double length, double near, IReadOnlyDictionary<string, List<SideEdge>> sides)
+        {
+            double[] found = null;
+            double ux = (b[0] - a[0]) / length, uy = (b[1] - a[1]) / length;
+            foreach (string owner in owners)
+            {
+                if (sides == null || !sides.TryGetValue(owner, out List<SideEdge> edges))
+                {
+                    continue;
+                }
+                foreach (SideEdge edge in edges)
+                {
+                    double[] from = edge.NearEnd, to = edge.FarEnd;
+                    if (Math.Abs((from[0] - a[0]) * uy - (from[1] - a[1]) * ux) > near || Math.Abs((to[0] - a[0]) * uy - (to[1] - a[1]) * ux) > near)
+                    {
+                        continue;
+                    }
+                    double start = (from[0] - a[0]) * ux + (from[1] - a[1]) * uy, stop = (to[0] - a[0]) * ux + (to[1] - a[1]) * uy;
+                    if (Math.Max(start, stop) <= 0 || Math.Min(start, stop) >= length)
+                    {
+                        continue;
+                    }
+                    double way = stop > start ? 1.0 : -1.0;
+                    double one = start + way * edge.Span[0], two = start + way * edge.Span[1];
+                    double low = Math.Min(one, two), high = Math.Max(one, two);
+                    found = found == null ? new[] { low, high } : new[] { Math.Min(found[0], low), Math.Max(found[1], high) };
+                }
+            }
+            return found;
         }
 
         // plan_walls.pieces, Q115: the part start to end less the open gap, each piece left longer than near
@@ -702,6 +837,8 @@ namespace SiteAdaptation.Common
             Dictionary<string, double[][]> rings = faces.Where(item => item.Value != null).ToDictionary(item => item.Key, item => item.Value.Ring);
             var frames = new Dictionary<string, double[][]>(StringComparer.Ordinal);
             var faced = new Dictionary<string, double[][]>(StringComparer.Ordinal);
+            // R480. The hand of each written plot after the overrides, for the span keyRules.wallSideOpen leaves open on a side edge
+            var mirrored = new Dictionary<string, bool>(StringComparer.Ordinal);
             foreach (KeyValuePair<string, FrontItem> item in fronts)
             {
                 if (plans.TryGetValue(item.Key, out PlotPlan plan) && Written(plan) && item.Value?.Frame != null && rings.ContainsKey(item.Key))
@@ -710,13 +847,14 @@ namespace SiteAdaptation.Common
                     var rotation = (StepValue)plan.Overrides["rotationDeg"];
                     bool turned = AppliedOf(plan).Contains(Rotation);
                     faced[item.Key] = new[] { item.Value.Frame.Left, item.Value.Frame.Right };
+                    mirrored[item.Key] = (bool)(JToken)plan.Overrides["mirrored"];
                     frames[item.Key] = OpenEdge(rings[item.Key], faced[item.Key],
-                        Convert.ToDouble(rotation.Written, System.Globalization.CultureInfo.InvariantCulture), (bool)(JToken)plan.Overrides["mirrored"], turned);
+                        Convert.ToDouble(rotation.Written, System.Globalization.CultureInfo.InvariantCulture), mirrored[item.Key], turned);
                 }
             }
             // Q120. The fronts before a turn, so a wall names the rotation of a plot only where the turn decides whether it stands
             var written = new HashSet<string>(ffls.Keys, StringComparer.Ordinal);
-            List<PlanWall> walls = Of(order, written, rings, frames, ffls, rules, faced, kin);
+            List<PlanWall> walls = Of(order, written, rings, frames, ffls, rules, faced, kin, mirrored);
             if (line != null && irregular != null)
             {
                 // R416. Under rev6 the walls of an irregular plot move inside it, plan_from_book.build after plan_walls.walls

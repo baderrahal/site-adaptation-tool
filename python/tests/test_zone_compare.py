@@ -6,7 +6,7 @@ import pytest
 
 import zone_compare
 
-SETTINGS = {"majority": {"levelPassMm": 0.5, "levelHoldMm": 5, "kindLeaveOut": {"SE": ["entry", "steps", "ffl", "rampFront"]}},
+SETTINGS = {"majority": {"levelPassMm": 0.5, "levelHoldMm": 5, "wallCentreCodes": [0, 1], "kindLeaveOut": {"SE": ["entry", "steps", "ffl", "rampFront"]}},
             "keyPlans": {"wallEdgeM": 0.3},
             "answerKeys": {"keys": [{"code": "IMC", "kind": "TU"}, {"code": "IMA", "kind": "SE"}]},
             "designBasis": {"modes": ["rev6", "pastJobMode"], "mode": "pastJobMode"}}
@@ -264,3 +264,63 @@ def test_a_rev6_plan_and_a_plan_with_overrides_cannot_go_together(tmp_path):
     (tmp_path / "with.json").write_text(json.dumps(rev6), encoding="utf-8")
     with pytest.raises(SystemExit):
         run_rev6(tmp_path, rev6, rev6, key, ("--with-overrides", str(tmp_path / "with.json")))
+
+
+def walls_of(wall, line_code, type_name="BW"):
+    wall.update(locationLine=line_code, type=type_name)
+    return wall
+
+
+def wall_gaps(key_wall_of):
+    tool = {"plots": [plot("1")], "walls": [tool_wall(["1"], [0.0, 0.0], [10.0, 0.0])]}
+    key = {"plots": [plot("1")], "walls": [key_wall_of]}
+    limits = zone_compare.limits_of(SETTINGS, CHOSEN, 0.2)
+    return zone_compare.compare_zone(tool, key, "TU", limits, [])["perPlot"]["1"]
+
+
+def test_r478_a_key_wall_on_its_centre_line_is_held_by_its_line():
+    rows = wall_gaps(walls_of(key_wall(["1"], [0.0, 0.0], [10.0, 0.0]), 0))
+    assert rows["wallsToolOnKey"]["gap"] == pytest.approx(0.0) and rows["wallsKeyOnTool"]["gap"] == pytest.approx(0.0)
+
+
+def test_r478_a_key_wall_drawn_on_a_face_half_its_thickness_off_has_its_centre_on_the_tool_line():
+    rows = wall_gaps(walls_of(key_wall(["1"], [0.0, 0.1], [10.0, 0.1]), 5))
+    assert rows["wallsToolOnKey"]["gap"] == pytest.approx(0.0) and rows["wallsKeyOnTool"]["gap"] == pytest.approx(0.0)
+    # The thickness in the type name wins over the boundary wall of the profile
+    rows = wall_gaps(walls_of(key_wall(["1"], [0.0, 0.165], [10.0, 0.165]), 3, "KEO_ST-CIP-RC Upsand - 330"))
+    assert rows["wallsToolOnKey"]["gap"] == pytest.approx(0.0)
+
+
+def test_r478_a_key_wall_with_its_face_on_the_tool_line_stands_half_a_thickness_off():
+    rows = wall_gaps(walls_of(key_wall(["1"], [0.0, 0.0], [10.0, 0.0]), 5))
+    assert rows["wallsToolOnKey"]["gap"] == pytest.approx(0.1)
+
+
+def test_r479_two_villa_type_names_of_one_prototype_file_match_and_of_two_files_stay_over():
+    limits = zone_compare.limits_of(SETTINGS, CHOSEN, 0.2)
+    mine, theirs = plot("1"), plot("1")
+    mine["unit"], theirs["unit"] = value("TH1-IM"), value("TH1")
+    mine["prototypeFile"], theirs["prototypeFile"] = value("a.rvt"), "a.rvt"
+    row = zone_compare.compare_zone({"plots": [mine], "walls": []}, {"plots": [theirs], "walls": []}, "TU", limits, [])["perPlot"]["1"]["villaType"]
+    assert row["status"] == zone_compare.MATCH and row["sameFile"] is True
+    theirs["prototypeFile"] = "b.rvt"
+    row = zone_compare.compare_zone({"plots": [mine], "walls": []}, {"plots": [theirs], "walls": []}, "TU", limits, [])["perPlot"]["1"]["villaType"]
+    assert row["status"] == zone_compare.OVER
+
+
+def test_r478_a_point_past_the_end_of_a_key_line_is_not_read_nearer_by_half():
+    assert zone_compare.centre_gap([-0.1, 0.1], [[0.0, 0.0], [10.0, 0.0]], 0.1) == pytest.approx(0.1)
+    assert zone_compare.centre_gap([5.0, 0.1], [[0.0, 0.0], [10.0, 0.0]], 0.1) == pytest.approx(0.0)
+
+
+def test_r478_the_read_holds_no_side_so_a_centre_on_the_far_side_reads_as_the_best_case():
+    # The limit of the compare, kept open in Q365: the true gap here is 0.2 m
+    assert zone_compare.centre_gap([5.0, 0.1], [[0.0, 0.0], [10.0, 0.0]], 0.1) == pytest.approx(0.0)
+
+
+def test_r478_a_thickness_is_a_whole_number_of_three_digits_in_the_type_name():
+    walls = {"centreCodes": [0, 1], "boundaryM": 0.2}
+    assert zone_compare.half_of({"locationLine": 3, "type": "Upsand - 330"}, walls) == pytest.approx(0.165)
+    assert zone_compare.half_of({"locationLine": 3, "type": "Generic Wall-150mm_ Garden"}, walls) == pytest.approx(0.075)
+    assert zone_compare.half_of({"locationLine": 3, "type": "Code 1200 wall"}, walls) == pytest.approx(0.1)
+    assert zone_compare.half_of({"locationLine": 0, "type": "BW"}, walls) == 0.0
