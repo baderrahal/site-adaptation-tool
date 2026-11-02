@@ -11,8 +11,8 @@
 
 ### Lane B, C and D
 
-- Lane B Task 6 (FIX-1NOV-B), 02:30, branch fix/1nov-b-task6: both passes done, Revit closed, lock free, main with PR 130 merged in, keeping both sides.
-  Now: the gate on the merged tree, then merge PR 131. Then Lane D D3 on my word
+- Lane B CHECK-2NOV, branch check/2nov-b: Q308 file deleted, C:\SA-demo\config refreshed from main with its 4 paths kept, main 24bb1a8 installed.
+  Now: parts 2 to 13 of steps/bader-fix-1nov.md through the windows, the lock taken per part. Run files in lane_b_check. Blocked: none
 - Lane C, branch fix/2nov-c-part11: part 11 of steps/bader-fix-1nov.md filled, Q337 to Q339 in its list. Nothing queued after this PR. Blocked: none
 - Lane D D3, 04:45, branch fix/1nov-d3: Revit runs done, lock released. 13 prototypes in 2024, NBH 012 with 336 real links, 0.000 mm against the masses, masses back.
   Now: records, gate, PR. Q275 closed, opened Q337 to Q339. Blocked: none
