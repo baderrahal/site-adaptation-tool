@@ -92,6 +92,10 @@ namespace SiteAdaptation.Common.ReadData
                     // R492. Under rev6 the surfaces named or picked in their order, the past job those of siteBuild.roadSurfaces
                     bool rev6 = RoadSurfaceChoices.IsRev6(config);
                     string listed = rev6 ? "the road surfaces named" : "siteBuild.roadSurfaces";
+                    if (rev6 && RoadSurfaceChoices.Named(config, picked).Count == 0)
+                    {
+                        stops.Add(input.Name + ": config names no road surface and Set up picked none (R490)");
+                    }
                     foreach (string name in rev6 ? RoadSurfaceChoices.Named(config, picked) : Strings(config.SelectToken("siteBuild.roadSurfaces")))
                     {
                         string file = Path.Combine(input.Path, name + ".xml");

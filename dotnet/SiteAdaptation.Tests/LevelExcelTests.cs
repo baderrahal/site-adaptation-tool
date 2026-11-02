@@ -186,6 +186,8 @@ namespace SiteAdaptation.Tests
             public JObject Overrides = MadeOverrides();
             public JObject Rules = MadeRules();
             public string Profile = "parsons2024Rev6";
+            public JObject Config = MadeConfig();
+            public List<string> RoadSurfaces;
         }
 
         private const string PlotsCsv = "locationPlanNumber,baseplanLabel,zone,nbhId\n101,A1,Zone 2,012\n102,A2,Zone 2,012\n103,A3,Zone 2,012\n104|106,A4,Zone 2,012\n105,A5,Zone 3,012\n201,B1,Zone 3,013\n";
@@ -195,7 +197,7 @@ namespace SiteAdaptation.Tests
             planPath = Write("plan_all.json", made.Plan.ToString());
             var inputs = new List<WorkerFile>
             {
-                Input("config", Write("project.json", MadeConfig().ToString())),
+                Input("config", Write("project.json", made.Config.ToString())),
                 Input("rules", Write("rules.json", made.Rules.ToString())),
                 Input(LevelWorkbook.PlanRole, planPath),
                 Input(LevelWorkbook.OverridesRole, Write("overrides.json", made.Overrides.ToString())),
@@ -207,7 +209,7 @@ namespace SiteAdaptation.Tests
             var request = new WorkerRequest
             {
                 FormatVersion = 1, RunId = id, Command = "levelExcel", Document = new WorkerDocument { Path = @"C:\Projects\a.rvt", SessionId = "s1" },
-                Inputs = inputs, LevelProfile = made.Profile, Scope = new WorkerScope { Kind = "project" }, OutputFolder = Path.Combine(folder, "out"), TimeLimitS = 60,
+                Inputs = inputs, LevelProfile = made.Profile, Scope = new WorkerScope { Kind = "project" }, OutputFolder = Path.Combine(folder, "out"), TimeLimitS = 60, RoadSurfaces = made.RoadSurfaces,
             };
             code = WorkerRunner.Run(request.Write(folder), WorkerReads.Commands(), () => 90000.0, () => 0.0);
             return WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, id));
@@ -340,6 +342,23 @@ namespace SiteAdaptation.Tests
             Assert.Equal(new[] { "Setting", "Value" }, book.Row("Settings", 1).Cast<string>().ToArray());
             Assert.Equal(new[] { "Run id", "Profile", "Rules SHA-256", "Override list SHA-256", "Road surface order", "Pass limit", "Run time", "Editable columns", "Plan build id", "Plan SHA-256" },
                 book.Sheets["Settings"].Keys.Skip(1).Select(row => (string)book.Row("Settings", row)[0]).ToArray());
+        }
+
+        // R492. The line Road surface order names the order the build took: under rev6 the pick of its request, else designBasis.roadLevel, never
+        // siteBuild.roadSurfaces, the past job as before whatever the request holds
+        [Theory]
+        [InlineData("rev6", null, "Road B", "Road A")]
+        [InlineData("rev6", "Road A", "Road A", null)]
+        [InlineData("madeUpPastJob", "Road B", "Road A", "Road B")]
+        public void R492_the_level_excel_names_the_order_the_build_took(string mode, string picked, string first, string second)
+        {
+            var made = new Made { RoadSurfaces = picked == null ? null : new List<string> { picked } };
+            made.Config["designBasis"] = new JObject { ["mode"] = mode, ["roadLevel"] = new JObject { ["surfaces"] = new JArray("Road B", "Road A") } };
+            WorkerAnswer answer;
+            string plan;
+            Book book = RunBook(made, out answer, out plan);
+            object order = book.Sheets["Settings"].Keys.Skip(1).Select(row => book.Row("Settings", row)).Single(values => (string)values[0] == LevelExcelText.RoadOrder)[1];
+            Assert.Equal(second == null ? first : first + LevelExcelText.ListJoin + second, (string)order);
         }
 
         [Fact]

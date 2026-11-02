@@ -21,7 +21,7 @@ Bader's decision C: the user picks per project. civilFile is a CSV of the civil 
 
 ### Road level (R409)
 
-One surface. The 0.21 m the past 1.4 job ran over today's Top Surface-02 is held as roadLevel.oldJobOffsetM, MEASURED in the status block, and never added to a level.
+The road surfaces a project names in order, each corner on the first that covers it, and a stop when a zone is mostly off them (R490, R491, R493). The 0.21 m the past 1.4 job ran over today's Top Surface-02 is held as roadLevel.oldJobOffsetM, MEASURED in the status block, and never added to a level.
 
 ### Back yard (R410)
 

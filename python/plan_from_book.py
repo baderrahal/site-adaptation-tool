@@ -1832,13 +1832,14 @@ def run_build(args):
             made, tables = summary_step(cover["plots"], rows, plan)
             write_build_step(args, settings, "summary", made, tables=tables)
         # R493. A zone mostly off the road surfaces named stops the build before its plan, the reached plots those the summary counts its no road level from
-        skipped = set(plan["summary"]["skipped"])
-        stop = design_basis.no_road_stop(basis, [number for number in cover["plots"] if number not in skipped and trace["front"][number]["unit"] is not None],
-                                         plan["summary"]["plotsWithNoRoadLevel"], rows)
-        if stop:
-            # The step files of this run are complete, so they stay for the parity of a config with one surface, only the plan is not written
-            done = True
-            raise project_profile.ProfileError(stop)
+        if design_basis.is_rev6(basis):
+            skipped = set(plan["summary"]["skipped"])
+            stop = design_basis.no_road_stop(basis, [number for number in cover["plots"] if number not in skipped and trace["front"][number]["unit"] is not None],
+                                             plan["summary"]["plotsWithNoRoadLevel"], rows)
+            if stop:
+                # The step files of this run are complete, so they stay for the parity of a config with one surface, only the plan is not written
+                done = True
+                raise project_profile.ProfileError(stop)
         plan_from_past.write_plan(out, plan)
         done = True
     except (project_profile.ProfileError, KeyError, OSError, ValueError) as error:
