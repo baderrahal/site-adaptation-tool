@@ -15,8 +15,8 @@
   Now: the gate on the merged tree, then merge PR 131. Then Lane D D3 on my word
 - Lane C FIX-2NOV-C, 04:01, branch fix/2nov-c: R446 built, review fix in, tests green. Now: the gate, PR. Q195 closed, Q308 keeps only the stray file. Part 11 of
   steps/bader-fix-1nov.md when fix/1nov-d3 merges. Blocked: none
-- Lane D D2, 21:50, branch fix/1nov-d2: R466, a test host job takes the design values of R405 from the repo config, the read KC2 ran
-  clean, the sheet takes group Text (Q336). Now: the gate and the PR. Then D3 after Lane B's Task 6 hand run. Blocked: none
+- Lane D D3, 04:45, branch fix/1nov-d3: Revit runs done, lock released. 13 prototypes in 2024, NBH 012 with 336 real links, 0.000 mm against the masses, masses back.
+  Now: records, gate, PR. Q275 closed, opened Q337 to Q339. Blocked: none
 
 Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane C FIX-1NOV-C, 2 Nov 2026.
 

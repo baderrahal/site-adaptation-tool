@@ -2,6 +2,40 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Lane D D3, 2026-11-02, Links mode on the real prototypes (Q275)
+
+Goal:
+- Link the 13 real KEO prototypes where the masses stood by config alone, prove it on NBH 012, prove the swap back
+
+Done:
+- 13 of 13 prototypes upgraded to 2024 under the work root, one window each, 286 to 368 s (RAN, reads D3 upgrades.txt)
+- Q275: the cause was the R466 fault, no new limit. The upgrade step before the run is Run-TestHost -Upgrade
+- R467 a buttons run names linkFolder for its config copy. R468 the copy is saved after a button that changed it. The R405 tests run alone (extra, Lane A and Lane C each saw one failure, cause likely, not proven)
+- D3L, NBH 012, linkFolder prototypes: buttons 1, 2, 4 to 9 committed, 3 cancelled by the test host seam. Seconds 1.1, 32.9, 0.6, 18.4, 14.7, 3.6, 84.4, 2.9, 3.2. Private MiB 1909, 2050, 2105, 2120, 2328, 2385, 6164, 6248, 6251. Run 5.4 minutes, peak 6261 MiB, least free 28.39 GiB
+- Links per prototype: C10 15, DP1 34, DP2 11, DP3 10, DP4 30, DT1 44, DT3 68, TH1 16, TH3 16, VD2 29, VD4 29, VL4 15, VL6 19, total 336
+
+Checked:
+- Saved D3L model read from its bytes by rvt_info.py: 13 links, all in prototypes_2024. D3S: 13, all in masses
+- Read jobs D3A and D3B: real link against mass on 5 plots, 2316 DT3, 2360 VD2, 2459 C10, 2490 TH1, 2495 DP1, and on all 336: 0.000 mm, 0 degrees, 0 mirror differences. This holds the link placements, not the geometry inside the files
+- 13 sources and SA-demo-start.rvt the same by SHA-256 after all runs. D3L 275 inputs, 275 unchanged. Saved in reads D3 final_check.txt
+- Reviewer one pass: APPROVE, 6 latent in steps/latent.md, R468 text set to the code. Claim-checker: no WRONG, its UNBACKED outputs now in final_check.txt
+
+Remains:
+- D3L started from the template, not a copy of the demo model, and the swap back ran on a new project, both by the guard of Q323 (Q337)
+- D3S ended exit 1 on 13 .slog files in the _backup folders of the 2024 copies (Q338)
+- A first keyCopy attempt was refused in 1.6 minutes, a read pair stopped on my wrong -Code before Revit
+
+Known bugs:
+- A stop reason set after the run file is written is missing from that file (Q338). 1402 lines of Highlighted floors overlap in each run, not looked at in D3
+
+Next:
+- Part 11 of steps/bader-fix-1nov.md by Lane C
+
+Your turn:
+- Closed: Q275 First log step limit of an upgrade job
+- Opened: Q337 Swap back in the same model unproven. Q338 Input guard counts Revit .slog files. Q339 A 2021 file in the link folder
+- 164 open, steps/questions-open.md
+
 ## Lane C FIX-2NOV-C, 2026-11-02, no dead end in the windows (R446)
 
 Goal:

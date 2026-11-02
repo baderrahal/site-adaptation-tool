@@ -11,6 +11,8 @@ namespace SiteAdaptation.Tests
 {
     // R405, Q103. The design values of a build, the placer and button 1 come from designValues of config/project.json, each the literal
     // the code held before, so the move changes no plan by one unit, and a value missing is refused by its name
+    // Alone since Lane A saw R466 fail once on net48 in a full run at 25c84c7, 3 of 3 alone after: these tests set and read the static Current, which other test classes also set
+    [Collection(AloneCollection.Name)]
     public sealed class R405_DesignValuesTests
     {
         private static JObject RepoConfig()

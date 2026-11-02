@@ -480,3 +480,12 @@ No real input reaches these: the plot table of the demo holds whole numbers and 
 - NewProjectViewModel.CanChange is always false, so the two Change buttons have no Click and stay collapsed. The sweep skips a collapsed button.
 - No test holds Closing += OnClosing or the IsVisible branch, a shown window cannot be made in a test. The sweep passes any handler, an empty one too. Part 13 of steps/bader-fix-1nov.md checks the ask in Revit.
 - WorkFolder.Inside compares by StartsWith, so inputs2 counts as inside inputs. The refusal only errs to the safe side.
+
+## Lane D D3, R467, R468, R405, review
+
+- ButtonsRunHost.Finish saves before it writes the result. A hung save past the step limit of 10 or 20 minutes ends Revit before the entry of that button is written. D3L ran 5.4 minutes in all.
+- The test host log says ok for a button whose save failed, the failure is only in savedAfter. Write has its own unguarded Save after it. No save failed in D3L or D3S.
+- villaLinkFolder with a full path is read in place with no hash before and after, only the prototypes input is hashed. The D3 specs name prototypes and masses only. prototypes with no prototypes input fails late, inside Revit.
+- The R467 and R468 tests hold the text of the host and the script, the usual style for the test host. No test reaches the catch or the value of savedAfter. The runs D3L and D3S do reach the save.
+- result saved of Write now seldom appears, since R468 saves first. Nothing reads it.
+- The two R405 tests of AddInTests.cs set and read DesignValues.Current outside the alone collection, while other tests call UseConfigOf. No failure seen there.
