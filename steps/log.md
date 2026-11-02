@@ -2,6 +2,38 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## FIX-2NOV-A3, 2026-11-03, the split test, the ends of parted walls and notched fronts
+
+Goal:
+- Q303, Q304 R414 by steps alone from the high road end. Q265 walls.ends weak measured for parted walls. Q299 the 6 notched plots against their key links
+
+Done:
+- R414 steps alone, walls from the high road end, slope reported per unit. It stays off: 43 of 82, 0.5244, under majority.strongShare 0.90
+- R481 parted cluster walls read MEASURED weak, source wallOpen, new step field endsSource, the rest as before
+- R482 override frontEdge names the front edge. 6 lines, plots 1553, 1172, 2626, 2665, 727, 469. Insert lines of the old front gone. Level gaps of 5 plots measured on the true front, 16 no value lines gone, heightM of pair 469 and 470 -0.004, overrideSets frontEdge
+
+Checked:
+- R414 on the 5 TU keys, RAN: clusters 8 to 43 of 82, key splits 0 to 3 of 41, key whole 40 of 41. On 37 of the 41 key splits the whole cluster already fits, no wall is tried
+- Second route, RAN: 82 of 82 marks equal. Q304 holds on 13 of 13 uneven key splits
+- Plan against main f11994b line, past job, RAN: 2,518 to 2,524 written, only the 6 new and 470 differ. Missing 236 to 233. Walls 5,999 to 6,029, ends MEASURED weak 0 to 1,528, UNKNOWN 5,999 to 4,501, ends values equal
+- Notched plots against key, RAN: rotation and insert within holds on 6, FFL, entry and steps equal on 5, second way 48 match 0 mismatch. 1553 is SE, levels left out
+- Parity on c91c1fa, RAN: 13 steps, net48 and net8.0, whole project and 7 keys, past job and rev6, 32 runs, 416 step lines, 0 failures
+- GATELINE
+- Review 1: no code fault. Breaker 1: 3 REAL on R482, fixed. Breaker 2: stale outline and steps lines, the hand in the set, fixed, slope of 1172 is Q375
+
+Remains:
+- UNKNOWN: why the keys split clusters that fit. No full majority.py run, its inputs not rebuilt, the lines are by hand and measured by its method, 3,646 other lines equal
+- No Revit run, none needed. Latent lines in steps/latent.md
+
+Known bugs:
+- Plan ramp of 1172 falls 0.658 percent against 2 in the key (Q375)
+
+Next:
+- FIX-3NOV-A, Q373 and Q371
+
+Your turn:
+- Closed Q265, Q299, Q303, Q304. Opened Q375 Ramp type after a rampFrontM gap, Q376 Plain words for the front edge override. 162 open, steps/questions-open.md
+
 ## Lane B FIX-2NOV-B Q158, 2026-11-02, button 1 with nothing different marks the step, R374, Lane B on the laptop
 
 Goal:

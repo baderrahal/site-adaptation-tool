@@ -4,10 +4,10 @@
 
 ### Lane A
 
-- Lane: A, round FIX-2NOV-A3, branch fix/2nov-a3. Time: 2026-11-02 21:45. Blocked: none
-- Done: R483 merged PR 144. R414 stays off, 43 of 82. R481 and R482 joined, review 1 and breaker 1 done
-- Now: a helper fixes the 3 R482 findings of breaker 1, levels of the notched plots, the pair 469 and 470, the status by frontEdge
-- Next: parity on the joined tree, gate, the PR
+- Lane: A, round FIX-2NOV-A3, branch fix/2nov-a3. Time: 2026-11-03 01:20. Blocked: none
+- Done: R414 off at 43 of 82, R481, R482, review 1, breaker 1 and 2, parity 32 runs 0 failures
+- Now: final gate, then the PR
+- Next: FIX-3NOV-A, Q373 and Q371, tells lane-c before NewProjectDialog
 
 ### Lane B, C and D
 
