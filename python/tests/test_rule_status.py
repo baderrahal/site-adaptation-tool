@@ -425,6 +425,8 @@ def test_r401_r455_each_coordinates_key_has_the_question_of_its_own_sentence():
     block = json.loads((ROOT / settings["profile"]).read_text(encoding="utf-8"))["status"]["config/project.json"]
     coordinates = settings["coordinates"]
     said = rule_status.sentences(coordinates["note"])
+    # An answered question makes its values Bader's, as Q325 and Q328 of 2 Nov 2026
+    still_open = (ROOT / "steps" / "questions-open.md").read_text(encoding="utf-8")
     for key in [k for k in coordinates if k not in ("note", "source")]:
         own = [s for s in said if rule_status.named_in("coordinates." + key, s)]
         assert len(own) == 1, (key, own)
@@ -434,7 +436,8 @@ def test_r401_r455_each_coordinates_key_has_the_question_of_its_own_sentence():
         for path, entry in entries.items():
             if asked:
                 assert len(asked) == 1, (key, asked)
-                assert (entry["status"], entry.get("question")) == (rule_status.RECOMMENDED, asked[0]), (path, entry)
+                status = rule_status.RECOMMENDED if re.search(r"^%s\. " % asked[0], still_open, re.M) else rule_status.BADER
+                assert (entry["status"], entry.get("question")) == (status, asked[0]), (path, entry)
             else:
                 assert "CHOSEN" in own[0], key
                 assert entry["status"] == rule_status.CODE, (path, entry)

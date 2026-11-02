@@ -24,11 +24,11 @@ Look for: git pull ends on the merge of fix/2nov-c-part11. The build ends with "
 ## 2. The model and the config
 
 1. Copy C:\SA-demo\SA-demo-start.rvt to a new name, for example C:\SA-demo\SA-fix1nov.rvt. Every test below runs on that copy.
-2. C:\SA-demo\config\project.json is from 691e1fc and lacks the keys of today (addin.lightMode linkFolder, massFolder, houseLayer, the coordinates block, addin.parameterSheet). Either pick the repo config C:\Users\p003653k\OneDrive - Parsons Corp\Documents\GitHub\site-adaptation-tool\config\project.json in the pane, or tell Lane B to refresh C:\SA-demo\config, it does so on your word only.
+2. C:\SA-demo\config\project.json is from 691e1fc and lacks the keys of today (addin.lightMode linkFolder, massFolder, houseLayer, the coordinates block, addin.parameterSheet). Either pick the repo config C:\Users\p003653k\OneDrive - Parsons Corp\Documents\GitHub\site-adaptation-tool\config\project.json in the pane, or wait for Lane B's refresh of C:\SA-demo\config, answered in Q309 on 2 Nov.
 3. Start Revit 2024 and open the copy. If Revit asks about the Site Adaptation add-in, press Always Load.
 4. Leave Dry run first as it is. From FIX-2NOV-C the tool unticks it before 4 Check and says why under the tick (Q195, R446).
 
-When 5 Floors and ramps stops on the Revit box "Highlighted floors overlap.", press OK. Cancel undoes the step (Q324).
+When 5 Floors and ramps stops on the Revit box "Highlighted floors overlap.", press OK. Cancel undoes the step. Bader answered Q324 and Q350 on 2 Nov, the box stays until that is built.
 
 Look for: the pane Site Adaptation on the right, the inputs of C:\SA-demo\inputs as steps/demo-fill.md lists them, scope Neighbourhood 012, Villa mode Masses.
 
@@ -139,7 +139,6 @@ Lane B ran the demo by hand through the real windows, two passes on NBH 012. Its
 
 1. Open steps/demo-check.md.
 2. Read Go or no-go and the four points under it.
-3. Decide Q308 and Q309, the stray export in C:\SA-demo\inputs and the refresh of the demo config.
 
 Look for: GO for a live run of 1 to 9 on NBH 012 with Dry run off, once the four points are done. The NO-GO with Dry run on is gone since FIX-2NOV-C (R446), steps/demo-check.md was written before it.
 
@@ -159,9 +158,9 @@ Look for: at step 2 the ask "Save your review?" with Save, Don't save and Cancel
 
 ## Questions for Bader
 
-Every open question of steps/questions-open.md on the merge of fix/1nov-d3, 164 open, by topic, the oldest first, each with its recommended answer. [demo] and [new project] mark the ones a demo or a new project meets first. The full text is in steps/questions-open.md.
+Every open question of steps/questions-open.md after Bader's answers of 2 Nov 09:20, 144 open, by topic, the oldest first, each with its recommended answer. [demo] and [new project] mark the ones a demo or a new project meets first. The full text is in steps/questions-open.md.
 
-First for a demo or a new project: Q187, Q201, Q202, Q224, Q227, Q237, Q243, Q254, Q281, Q282, Q286, Q293, Q296, Q308, Q309, Q320, Q322, Q324, Q325, Q328, Q335, Q339.
+First for a demo or a new project: Q286, Q293.
 
 ### Levels, ramps and floors
 
@@ -171,9 +170,7 @@ First for a demo or a new project: Q187, Q201, Q202, Q224, Q227, Q237, Q243, Q25
 - Q163 A yard that stands only by its mirror. Recommended: a mirror override marks every value of a yard or of a plot that would not stand without it, found by a build with and without the override as the turned walls of Q120 are.
 - Q164 Levels count and the link Z of 7. Recommended: no. Levels stays the plots whose floors the last committed run of 6 set and read back within 1 mm. A link off its FFL after 7 becomes a check of 7 Place villas once 5d writes its run log.
 - Q172 heightM gap with an El @ Entry edit. Recommended: keep the gap to levelRule.ffl of the plan and measure the effect on the rebuilt plan in 6a.
-- Q224 The mode the ROSHN config runs [demo]. Recommended: keep roshnPastJob for ROSHN Makkah, its answer keys are the past job, and rev6 for every new project.
 - Q225 The level of a yard floor under Rev 6. Recommended: keep the yard floor off under rev6, the owner builds it (2.3.B).
-- Q227 Civil file format and plot match [new project]. Recommended: a CSV with Plot No. and El @ Entry, the plot matched as text, a civil export with another layout converted before it is named.
 - Q228 Default slopes of road plus slope. Recommended: keep these defaults, the user sets them per project.
 - Q230 Value status of the Rev 6 values. Recommended: a valueStatus.fieldsRev6 overlay keyed as fields, El @ Entry and the ramp type to designBasis.doorLevel, the yard fields empty.
 - Q231 Civil door level where no road level. Recommended: keep it so, the plot listed in noRoadLevel.
@@ -231,19 +228,14 @@ First for a demo or a new project: Q187, Q201, Q202, Q224, Q227, Q237, Q243, Q25
 - Q271 Python build takes the pane folder. Recommended: plan_from_book.py takes a --prototypes folder for parity runs, the config folder by default.
 - Q277 Footprint block names unlike the unit. Recommended: Keep choosing the block by position as R404 does now, never by its name.
 - Q279 Mass base, slab edge or outer wall face. Recommended: Keep the slab edge as the base, it is read on all 13 and exact, and measure the wall face as a second figure where the walls close.
-- Q320 Keep the solids path of light mode [demo]. Recommended: keep linkFolder solids as the fallback until the Revit run places the 13 mass files and reloads one, then remove it in a later round.
 - Q321 Mass base from walls, third attempt stopped. Recommended: keep the built rule with the flag, a prober counts the location line and the yard walls of the 13 prototypes, then Bader picks: exact corners by line intersections, or the slab for all.
-- Q322 Mass files made inside button 7 [demo]. Recommended: a separate pane command Make mass files with a loader and a count, run once per prototype set, button 7 only places, the test host step limit for it from config.
 - Q337 Swap back in the same model unproven. Recommended: Answer Q323 as it recommends, then run the swap back on the D3L model once.
-- Q339 A 2021 file in the link folder [new project]. Recommended: Button 7 reads the format of each file first with no Revit open and refuses a 2021 file by its name, pointing to the upgrade step.
 
 ### Coordinates and site position
 
 - Q205 The corner table coordinates of Review data. Recommended: X, Y in model coordinates, Shared coordinates the CAD value.
-- Q325 A file that states no coordinate system [new project]. Recommended: keep it so, a file that states nothing is listed and does not stop.
 - Q326 Shared origin at the plot box centre. Recommended: keep the centre of the plot box rounded to 1 m.
 - Q327 Elevation of the shared origin from CAD. Recommended: Bader names a CAD source for the height, such as the lowest road level of the LandXML under the origin, until then 0 from config.
-- Q328 Default source of the site position [demo]. Recommended: switch coordinates.source to cad after the runner's Revit run reads back the named position, the site location and the three control points, the levels and units to move into config in a later round.
 - Q329 The rule that picks the control points. Recommended: keep this rule.
 
 ### Set up site and shared parameters
@@ -254,17 +246,12 @@ First for a demo or a new project: Q187, Q201, Q202, Q224, Q227, Q237, Q243, Q25
 - Q332 FFL bound but never written. Recommended: as built, bound and empty.
 - Q333 Categories beyond the link instances. Recommended: keep the categories of the keys, a user edits the Category cell to narrow them.
 - Q334 An xlsx read inside Revit. Recommended: as built, for the parameter sheet alone.
-- Q335 A parameter sheet picked in the pane [new project]. Recommended: as built, one sheet for every button, the pane row a stop until it names the sheet of config.
 - Q336 Link parameter group is Text not Data. Recommended: Text, as the past links hold it.
 
 ### Scanner and reading the inputs
 
-- Q201 Data book files on a PC with no Python [new project]. Recommended: config names them under the work root data_book, a missing one stops button 2, a later phase has the worker make them in C#.
-- Q202 The schedule folder in config [new project]. Recommended: keep it in config.
 - Q236 Label size in the PDF check. Recommended: no, pdfplumber and PdfPig words may differ in size.
-- Q237 Folder of the Rev 9 workbooks [new project]. Recommended: a config key that names the folder of the workbooks of a new project.
 - Q242 The reason of an input the new project check cannot read. Recommended: keep the one line, the user opens the file to see why.
-- Q243 Layer pairs for plot outlines in the scan [new project]. Recommended: keep singles and pairs, with pairMinSegments in the profile.
 - Q244 A tie in a scan proposal. Recommended: propose none on a tie, the user picks in the scanner window.
 - Q245 The old and the new code of one row agree. Recommended: a check row, not a conflict.
 - Q248 Villa blocks on one layer per type. Recommended: propose as one source every insert layer whose block names hold a code of R425.
@@ -273,7 +260,6 @@ First for a demo or a new project: Q187, Q201, Q202, Q224, Q227, Q237, Q243, Q25
 - Q251 The centroid of today's plots.json. Recommended: take the centroid from the first point in PlotLabels too, in a round that reruns the reader parity.
 - Q252 PDF tables and turned text in the scan. Recommended: R180 pairs only, a PDF table waits for a real one to measure.
 - Q253 The header row of a scanned sheet. Recommended: the header is the row above the first row that joins a plot.
-- Q254 The order and share of villa type sources [new project]. Recommended: keep the order blocks, texts, Excel, PDF and that share.
 - Q257 Threads of the scan pair trace. Recommended: 4, or the cores less one on a PC that runs the scan alone.
 - Q258 The time cap of the scan pair trace. Recommended: 360 s with the list, and the pairs of a file only with a layer that covers a plot alone (Q250), which the Road Layout has none of.
 - Q288 Scan picks in the settings at version 1. Recommended: keep formatVersion 1, every PC runs the same add-in after the install of Part 1.
@@ -330,26 +316,19 @@ First for a demo or a new project: Q187, Q201, Q202, Q224, Q227, Q237, Q243, Q25
 - Q161 A changed step reruns every higher step. Recommended: keep it, the report reads what 5 to 8 placed.
 - Q181 When the labels J11 and J14 change. Recommended: in the PR of the window that changes those labels.
 - Q186 Close J2 as no work. Recommended: close it.
-- Q187 Prefill of a new project from config, J16 [new project]. Recommended: build it in 5d as CHOSEN, the key map from inputRoot and the drawings named first.
 - Q188 Load the entity on a session seen with no open event. Recommended: yes, in a later PR.
 - Q189 Check table modal or modeless. Recommended: modal for now, modeless in 6c.
 - Q200 Export to Excel of Review data and of Site Adaptation Rules. Recommended: the worker writes the xlsx (R350), the button asks the worker, for both windows.
 - Q203 A worker end on a document not active. Recommended: the message at once in 5c, the wait of 02-folders.md in 5d.
 - Q207 No foot and no Esc in the three windows. Recommended: add both as the spec says.
 - Q208 The How to use line of Rules. Recommended: Code drafts one line, such as "Pick a rule to see what the tool does for it.", and Bader checks it.
-- Q281 Board rows against the nine pane inputs [new project]. Recommended: keep the mapping, the other inputs stay in the pane.
-- Q282 Where the project name is kept [new project]. Recommended: keep it read only, the name is the title of the model.
 - Q284 Villa mode row the boards drop. Recommended: keep the row.
 - Q285 Name the Rules row shows. Recommended: keep the project field as it is.
 - Q286 Approve the four drafts of NEWPROJ-UI [demo]. Recommended: approve each as drafted, then each is copied into baseline/.
 - Q287 Button messages that name a work file. Recommended: a later round rewords those messages by what the file holds.
 - Q293 Approve the three drafts of SCAN-UI [demo]. Recommended: approve the three as drawn, the labels in docs/design/14-ui-labels.md.
 - Q294 Rules chosen in Set up site, when used. Recommended: keep it so, the window says the choice is saved with the setup.
-- Q296 A saved project holds no drawing path [demo]. Recommended: Keep it so, a saved project of one job must not point another job at its drawings, and the demo browses the five files once.
 - Q306 A neighbourhood picked after the first read. Recommended: button 2 takes the project key as button 1 does, since the pick does not change what is read.
-- Q308 The stray export in the demo inputs [demo]. Recommended: delete the file. The Lane C half is done, R446 refuses the input folder and opens in the work folder.
-- Q309 Refresh the demo config and add-in [demo]. Recommended: refresh C:\SA-demo\config from main and reinstall main before a live run, then run it once more on a copy.
-- Q324 The Revit warning box at step 5 [demo]. Recommended: the step takes these overlap warnings itself and lists them as issues, so no box stops a run.
 
 ### Test host and runs
 

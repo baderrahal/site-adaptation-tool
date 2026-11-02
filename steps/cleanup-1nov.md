@@ -9,7 +9,7 @@ How each move was checked:
 - No running process names it on its command line (RAN).
 - Git could no longer read 38 of the helper folders, so each file was hashed as a git blob and looked up among the 12,417 objects reachable from origin. A file not found sends the folder to ASK (RAN, outside bin, obj and .git).
 
-## MOVED, 36 folders into C:\_cleanup-1nov
+## MOVED, 40 folders into C:\_cleanup-1nov
 
 | Folders | Made by | Files checked per folder | Not on origin |
 |---|---|---|---|
@@ -20,6 +20,7 @@ How each move was checked:
 | Lane B fix1nov coords, fix1nov masses | Lane B | 924 to 933 | 0 |
 | Site Adaptation Tool Lane C h1, h2, h3, h4 | Lane C | 852 to 894 | 0 |
 | Site Adaptation Tool Lane D read, Lane D run | Lane D | 912 to 933 | 0 |
+| Lane B 5d q116, Lane B 5d walls, Lane B fix1nov run, scratch | Lane B, scratch maker unknown | Moved on Bader's answer of 2 Nov 2026, the ASK rows below list what is not on origin | 18 and 19 and 1, scratch empty |
 
 ## KEEP
 
@@ -36,12 +37,10 @@ How each move was checked:
 
 ## ASK, left in place for Bader
 
+Bader, 2 Nov 2026: the three Lane B folders and scratch are moved. What was not on origin moved with them: 18 sample_output files in q116, the same 18 and docs\rules\07-addin-r354-r388.md in walls, config\project.json in fix1nov run. Nothing was deleted. Bader leaves .claude\worktrees and the old run folders for now.
+
 | What | What is in it | Recommended |
 |---|---|---|
-| Lane B 5d q116 | 18 files under sample_output\round4c not on origin, run outputs that git ignores | Move it, the outputs are from Round 4c |
-| Lane B 5d walls | The same 18 sample_output files and docs\rules\07-addin-r354-r388.md, a version not on origin | Move it, Lane B says it is free and 5d is merged. Lane B can check the rule file first |
-| Lane B fix1nov run | config\project.json, a version not on origin. Lane B says it is free | Move it, FIX-1NOV-B is merged |
-| scratch, next to the repo | Empty, made on 30 Oct, maker unknown | Leave it or move it, it holds nothing |
 | .claude\worktrees in the Lane A folder, 39 folders, 31 of them registered worktrees | Old helper worktrees and the parity folders p4i, p4j2, p1nov. Lane A uses p1nov-base and p1nov-head now. The folder is on Bader's never touch list | Review after FIX-1NOV-A2 merges. Each has its own branch, so each needs a check for commits not on main first |
 | Old run folders in Documents\SiteAdaptation, such as lane_b_5a_run3, lane_b_5b, lane_b_5c, lane_b_5d, lane_b_6a, lane_d_4j1 | Run evidence the records may cite | Leave them, or review once the lanes are idle |
 | 46 leftover records in .git\worktrees of the Lane A folder | What remains of removed worktrees. git worktree prune stops on each with Permission denied, and it was the same before this cleanup | Harmless. Each git fetch and prune prints these lines. Try again after a restart with no session open |

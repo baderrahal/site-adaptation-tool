@@ -8,19 +8,19 @@ Every question open before 2026-10-29 was closed in the answer pass of Round FOL
 
 Q148 Place villas before Floors and Levels after 5c. Q149 M14 boundary wall of an irregular plot. Q150 M15 foundation depth, at least or equal. Q151 Q075 moved without the majority run. Q152 Mode of the last run of a button. Q153 A lone copy of a tagged element.
 Q154 Freeze guard limit for an image job. Q156 The GUID of Plot. Q157 The type button 1 copies new types from. Q158 Step 1 Done on a model already set up. Q159 Q055 reads 11 more 1.4 plots off the ramp. Q160 A plot list takes unit plots only. Q161 A changed step reruns every higher step. Q162 Reads of entryM with heightM or rampFrontM. Q163 A yard that stands only by its mirror. Q164 Levels count and the link Z of 7. Q165 Shape of the block manualRules. Q166 Manual rule of a check row. Q167 Manual rule on the other sheets. Q168 The villa type of Update from report. Q169 Key of an update entry with none of its job. Q170 updateChecks of manualRules. Q171 Which breaks untick a change. Q172 heightM gap with an El @ Entry edit. Q173 Level profile of Update from report. Q174 The plan Update from report reads. Q175 Run log format 9 Report reads. Q176 Plain names of the update rule checks. Q177 Manual rule ids in Rule check. Q178 A computed mirror edit breaks the hand rule. Q179 Guide line, side box and row mark of Update.
-Q180 designValues status in the R401 block. Q181 Timing of the labels J11 and J14. Q182 Side band of majority.side_neighbours. Q183 Time cap of a buttons job. Q184 Plain rule names of the check table. Q185 A plot list over two NBHs. Q186 Close J2 as no work. Q187 Prefill of a new project, J16. Q188 Entity load on a session unseen. Q189 Check table modal or modeless. Q190 Where buttons 5 to 8 find the plan. Q191 The plan name of a plot list. Q192 Solid height of light mode. Q193 Footprint limit of the base. Q194 RRE parameters on Generic Models. Q196 addin.overrideFile in config. Q197 key_join.json and key reads as inputs. Q198 Past gaps of the missing and question rows. Q199 What the tool does per manual rule. Q200 Export to Excel of the two windows. Q201 Data book files with no Python. Q202 The schedule folder in config. Q203 A worker end on a document not active. Q204 Manual rule of a Review data row. Q205 Corner table coordinates of Review data. Q206 Base boundary of a prototype. Q207 No foot and no Esc in the windows. Q208 How to use line of Rules. Q209 Manual column mixes section and revision. Q210 Q015 in a past job text. Q211 7 after a plot list 4 Check. Q212 4 Check stops 7 on another NBH. Q213 Use of an override entry under Skip. Q214 The build reads pastJob, not the pane. Q215 Where the 2024 prototypes come from. Q216 Rows of 4 Check with no past job. Q217 Follow every rule count, table against chip. Q218 Config files beside a user's config. Q219 First run of 7 against the step limit. Q220 Judge rows of J10 test the old claim. Q221 Judge rows for Q146 and Q147. Q222 The NBH 03 image of Q063. Q223 The test host gives up after a refused raise.
-Q243 Layer pairs for plot outlines in the scan. Q244 A tie in a scan proposal. Q245 Old and new code of one row agree. Q248 Villa blocks on one layer per type.
-Q249 A sheet whose numbers shift by area. Q250 The pair trace on the Road Layout. Q251 The centroid of today's plots.json. Q252 PDF tables and turned text in the scan. Q253 The header row of a scanned sheet. Q254 The order and share of villa type sources. Q257 Threads of the scan pair trace. Q258 The time cap of the scan pair trace.
+Q180 designValues status in the R401 block. Q181 Timing of the labels J11 and J14. Q182 Side band of majority.side_neighbours. Q183 Time cap of a buttons job. Q184 Plain rule names of the check table. Q185 A plot list over two NBHs. Q186 Close J2 as no work. Q188 Entity load on a session unseen. Q189 Check table modal or modeless. Q190 Where buttons 5 to 8 find the plan. Q191 The plan name of a plot list. Q192 Solid height of light mode. Q193 Footprint limit of the base. Q194 RRE parameters on Generic Models. Q196 addin.overrideFile in config. Q197 key_join.json and key reads as inputs. Q198 Past gaps of the missing and question rows. Q199 What the tool does per manual rule. Q200 Export to Excel of the two windows. Q203 A worker end on a document not active. Q204 Manual rule of a Review data row. Q205 Corner table coordinates of Review data. Q206 Base boundary of a prototype. Q207 No foot and no Esc in the windows. Q208 How to use line of Rules. Q209 Manual column mixes section and revision. Q210 Q015 in a past job text. Q211 7 after a plot list 4 Check. Q212 4 Check stops 7 on another NBH. Q213 Use of an override entry under Skip. Q214 The build reads pastJob, not the pane. Q215 Where the 2024 prototypes come from. Q216 Rows of 4 Check with no past job. Q217 Follow every rule count, table against chip. Q218 Config files beside a user's config. Q219 First run of 7 against the step limit. Q220 Judge rows of J10 test the old claim. Q221 Judge rows for Q146 and Q147. Q222 The NBH 03 image of Q063. Q223 The test host gives up after a refused raise.
+Q244 A tie in a scan proposal. Q245 Old and new code of one row agree. Q248 Villa blocks on one layer per type.
+Q249 A sheet whose numbers shift by area. Q250 The pair trace on the Road Layout. Q251 The centroid of today's plots.json. Q252 PDF tables and turned text in the scan. Q253 The header row of a scanned sheet. Q257 Threads of the scan pair trace. Q258 The time cap of the scan pair trace.
 Q149 M14 boundary wall of an irregular plot. Q150 M15 foundation depth, at least or equal. Q151 Q075 moved without the majority run. Q152 Mode of the last run of a button. Q153 A lone copy of a tagged element.
 Q154 Freeze guard limit for an image job. Q157 The type button 1 copies new types from. Q158 Step 1 Done on a model already set up. Q159 Q055 reads 11 more 1.4 plots off the ramp. Q160 A plot list takes unit plots only. Q161 A changed step reruns every higher step. Q162 Reads of entryM with heightM or rampFrontM. Q163 A yard that stands only by its mirror. Q164 Levels count and the link Z of 7. Q165 Shape of the block manualRules. Q166 Manual rule of a check row. Q167 Manual rule on the other sheets. Q168 The villa type of Update from report. Q169 Key of an update entry with none of its job. Q170 updateChecks of manualRules. Q171 Which breaks untick a change. Q172 heightM gap with an El @ Entry edit. Q173 Level profile of Update from report. Q174 The plan Update from report reads. Q175 Run log format 9 Report reads. Q176 Plain names of the update rule checks. Q177 Manual rule ids in Rule check. Q178 A computed mirror edit breaks the hand rule. Q179 Guide line, side box and row mark of Update.
-Q180 designValues status in the R401 block. Q181 Timing of the labels J11 and J14. Q182 Side band of majority.side_neighbours. Q183 Time cap of a buttons job. Q184 Plain rule names of the check table. Q185 A plot list over two NBHs. Q186 Close J2 as no work. Q187 Prefill of a new project, J16. Q188 Entity load on a session unseen. Q189 Check table modal or modeless. Q191 The plan name of a plot list. Q192 Solid height of light mode. Q193 Footprint limit of the base. Q194 RRE parameters on Generic Models. Q196 addin.overrideFile in config. Q197 key_join.json and key reads as inputs. Q198 Past gaps of the missing and question rows. Q199 What the tool does per manual rule. Q200 Export to Excel of the two windows. Q201 Data book files with no Python. Q202 The schedule folder in config. Q203 A worker end on a document not active. Q204 Manual rule of a Review data row. Q205 Corner table coordinates of Review data. Q206 Base boundary of a prototype. Q207 No foot and no Esc in the windows. Q208 How to use line of Rules. Q209 Manual column mixes section and revision. Q210 Q015 in a past job text. Q211 7 after a plot list 4 Check. Q212 4 Check stops 7 on another NBH. Q213 Use of an override entry under Skip. Q217 Follow every rule count, table against chip. Q222 The NBH 03 image of Q063. Q223 The test host gives up after a refused raise.
-Q224 The mode the ROSHN config runs. Q225 The level of a yard floor under Rev 6. Q226 The hand of a detached unit. Q227 Civil file format and plot match. Q228 Default slopes of road plus slope. Q229 A row with no single cluster split. Q230 Value status of the Rev 6 values. Q231 Civil door level where no road level. Q232 yardGrade in plan.json. Q233 Slope limit at 3 or 4 decimals. Q234 Read step road levels under Rev 6. Q235 Hand table cover per unit code. Q236 Label size in the PDF check. Q237 Folder of the Rev 9 workbooks. Q238 TH1-IM in the cluster sequences. Q239 Mirror of DP2 and DP4. Q240 The 121 IMC plots of the audit. Q241 doorLevel.source reads as a note in R401. Q242 The reason of an unreadable input. Q255 The override list under rev6. Q256 The one road surface covers a quarter. Q303 The slope limit in the split test. Q304 The side of an uneven split. Q259 Garden door place of each unit. Q299 The front of a notched irregular plot. Q345 The key of a conflict pick. Q346 A villa block pick of one layer. Q347 A second Update before 4 Check runs again. Q348 A conflict pick of the first source. Q349 A conflict pick and the build.
-Q260 Outline change of a placed floor. Q262 Level Excel and the read back values. Q263 Levels count still at its level. Q265 Ends status of walls after Q115. Q266 Walls on edges other units meet. Q267 Base level of a boundary wall. Q268 Scope of a wall on two plots. Q269 Untagged BW wall on a plan wall. Q270 Where a prototype set upgrades now. Q271 Python build takes the pane folder. Q273 6 Levels on a floor moved by hand. Q277 Footprint block names unlike the unit. Q279 Mass base, slab edge or outer wall face. Q296 A saved project holds no drawing path. Q320 Keep the solids path of light mode. Q321 Mass base from walls, third attempt stopped. Q322 Mass files made inside button 7. Q323 A keyCopy run refused by its guard. Q340 The level of a joint an override moves. Q341 Back corners two ramps share. Q343 Passing joint rows in the check chips. Q344 Joints at the edge of a build.
-Q281 Board rows against the nine pane inputs. Q282 Where the project name is kept. Q284 Villa mode row the boards drop. Q285 Name the Rules row shows. Q286 Approve the four drafts of NEWPROJ-UI. Q287 Button messages that name a work file.
+Q180 designValues status in the R401 block. Q181 Timing of the labels J11 and J14. Q182 Side band of majority.side_neighbours. Q183 Time cap of a buttons job. Q184 Plain rule names of the check table. Q185 A plot list over two NBHs. Q186 Close J2 as no work. Q188 Entity load on a session unseen. Q189 Check table modal or modeless. Q191 The plan name of a plot list. Q192 Solid height of light mode. Q193 Footprint limit of the base. Q194 RRE parameters on Generic Models. Q196 addin.overrideFile in config. Q197 key_join.json and key reads as inputs. Q198 Past gaps of the missing and question rows. Q199 What the tool does per manual rule. Q200 Export to Excel of the two windows. Q203 A worker end on a document not active. Q204 Manual rule of a Review data row. Q205 Corner table coordinates of Review data. Q206 Base boundary of a prototype. Q207 No foot and no Esc in the windows. Q208 How to use line of Rules. Q209 Manual column mixes section and revision. Q210 Q015 in a past job text. Q211 7 after a plot list 4 Check. Q212 4 Check stops 7 on another NBH. Q213 Use of an override entry under Skip. Q217 Follow every rule count, table against chip. Q222 The NBH 03 image of Q063. Q223 The test host gives up after a refused raise.
+Q225 The level of a yard floor under Rev 6. Q226 The hand of a detached unit. Q228 Default slopes of road plus slope. Q229 A row with no single cluster split. Q230 Value status of the Rev 6 values. Q231 Civil door level where no road level. Q232 yardGrade in plan.json. Q233 Slope limit at 3 or 4 decimals. Q234 Read step road levels under Rev 6. Q235 Hand table cover per unit code. Q236 Label size in the PDF check. Q238 TH1-IM in the cluster sequences. Q239 Mirror of DP2 and DP4. Q240 The 121 IMC plots of the audit. Q241 doorLevel.source reads as a note in R401. Q242 The reason of an unreadable input. Q255 The override list under rev6. Q256 The one road surface covers a quarter. Q303 The slope limit in the split test. Q304 The side of an uneven split. Q259 Garden door place of each unit. Q299 The front of a notched irregular plot. Q345 The key of a conflict pick. Q346 A villa block pick of one layer. Q347 A second Update before 4 Check runs again. Q348 A conflict pick of the first source. Q349 A conflict pick and the build.
+Q260 Outline change of a placed floor. Q262 Level Excel and the read back values. Q263 Levels count still at its level. Q265 Ends status of walls after Q115. Q266 Walls on edges other units meet. Q267 Base level of a boundary wall. Q268 Scope of a wall on two plots. Q269 Untagged BW wall on a plan wall. Q270 Where a prototype set upgrades now. Q271 Python build takes the pane folder. Q273 6 Levels on a floor moved by hand. Q277 Footprint block names unlike the unit. Q279 Mass base, slab edge or outer wall face. Q321 Mass base from walls, third attempt stopped. Q323 A keyCopy run refused by its guard. Q340 The level of a joint an override moves. Q341 Back corners two ramps share. Q343 Passing joint rows in the check chips. Q344 Joints at the edge of a build.
+Q284 Villa mode row the boards drop. Q285 Name the Rules row shows. Q286 Approve the four drafts of NEWPROJ-UI. Q287 Button messages that name a work file.
 Q288 Scan picks in the settings at version 1. Q289 Board rows the scan does not read. Q290 Curbs and road surface left out of scan. Q291 Where the line Current files is shown. Q293 Approve the three drafts of SCAN-UI. Q294 Rules chosen in Set up site, when used. Q295 Test host runs skip the scan. Q300 Plots with no cluster proposal. Q301 The build takes the door level pick. Q302 Door level row under the past job. Q305 Hide Confirmed under the past job.
-Q306 A neighbourhood picked after the first read. Q307 What the report Summary shows after a run. Q308 The stray export in the demo inputs. Q309 Refresh the demo config and add-in. Q324 The Revit warning box at step 5.
-Q325 A file that states no coordinate system. Q326 Shared origin at the plot box centre. Q327 Elevation of the shared origin from CAD. Q328 Default source of the site position. Q329 The rule that picks the control points.
-Q331 Plot is no link parameter of the keys. Q332 FFL bound but never written. Q333 Categories beyond the link instances. Q334 An xlsx read inside Revit. Q335 A parameter sheet picked in the pane. Q336 Link parameter group is Text not Data. Q337 Swap back in the same model unproven. Q338 Input guard counts Revit .slog files. Q339 A 2021 file in the link folder. Q360 Wall ends about 100 mm off the keys. Q361 FFL rule far from keys without overrides. Q362 Chosen limits of the zone compare. Q363 Plot 2302 and two IMD FFL plots.
+Q306 A neighbourhood picked after the first read. Q307 What the report Summary shows after a run.
+Q326 Shared origin at the plot box centre. Q327 Elevation of the shared origin from CAD. Q329 The rule that picks the control points.
+Q331 Plot is no link parameter of the keys. Q332 FFL bound but never written. Q333 Categories beyond the link instances. Q334 An xlsx read inside Revit. Q336 Link parameter group is Text not Data. Q337 Swap back in the same model unproven. Q338 Input guard counts Revit .slog files. Q360 Wall ends about 100 mm off the keys. Q361 FFL rule far from keys without overrides. Q362 Chosen limits of the zone compare. Q363 Plot 2302 and two IMD FFL plots.
 
 Q149. M14, the boundary wall of an irregular plot (Round FOLD, docs/design/15-manual-rules.md). The canvas text reads "boundary wall 200 mm inside the plot limit". The Rev 06 manual, 2.8.A, p. 20 (PDF 23), reads "the boundary wall external face will be identical to the plot limit, and the 200mm will be positioned fully inside the plot", the outer face on the limit and the 200 mm wall thickness inside it. The canvas text is kept until Bader answers. It does not block, M14 is checked by 8 Walls in 5d.
 - Recommended: the PDF reading, the outer face of the wall on the plot limit and its 200 mm inside the plot, and the canvas text written so.
@@ -167,10 +167,6 @@ Q186. Close J2 as no work (join item, Lane B 5c). Button 1 places no element of 
 - Recommended: close it.
 - Other: keep it open until button 1 places a tagged element.
 
-Q187. Prefill of a new project from config, J16 (Lane B 5c). The key map from inputRoot and the drawings named first are CHOSEN only, not built.
-- Recommended: build it in 5d as CHOSEN, the key map from inputRoot and the drawings named first.
-- Other: leave the pane rows empty for the user to fill.
-
 Q188. Load the entity on a session seen with no open event (Lane B 5c). The pane reads the Settings entity on an open event only.
 - Recommended: yes, in a later PR.
 - Other: keep as is, the user presses Set up site again.
@@ -214,14 +210,6 @@ Q199. What the tool does, per manual rule (W3, 15-manual-rules.md). The Rules wi
 Q200. Export to Excel of Review data and of Site Adaptation Rules (Q165 of Lane A widened). Both windows could export their table.
 - Recommended: the worker writes the xlsx (R350), the button asks the worker, for both windows.
 - Other: Review data only.
-
-Q201. Data book files on a PC with no Python (R375). plots.csv, labels.csv and phase1_border.csv come from the data book made by Python.
-- Recommended: config names them under the work root data_book, a missing one stops button 2, a later phase has the worker make them in C#.
-- Other: the worker makes them in 5d.
-
-Q202. The schedule folder in config (R375). addin.readData.scheduleFolder holds "01_Output/1.11 References".
-- Recommended: keep it in config.
-- Other: the pane names it.
 
 Q203. A worker end on a document not active (R375). The ExternalEvent runs on the document of the run, which the user may have left.
 - Recommended: the message at once in 5c, the wait of 02-folders.md in 5d.
@@ -280,10 +268,6 @@ Q223. The test host gives up after one refused raise of its phase event (Revit r
 - Recommended: retry a refused raise on the next tick, a test host change in 5d.
 - Other: keep one raise and run again on a Denied.
 
-Q224. The mode the ROSHN config runs (R407, round 4i). designBasis.mode of config/project.json is roshnPastJob, so every build of today is unchanged, and newProjectMode rev6 is what a new project starts on.
-- Recommended: keep roshnPastJob for ROSHN Makkah, its answer keys are the past job, and rev6 for every new project.
-- Other: switch ROSHN Makkah to rev6, the plots then leave the keys by the door level, road and yard rules.
-
 Q225. The level of a yard floor under Rev 6 (R410, round 4i). Manual 2.3.B and 2.3.C give the grade of the back yard, not the level it starts from, so backYard.floor true under rev6 is refused.
 - Recommended: keep the yard floor off under rev6, the owner builds it (2.3.B).
 - Other: name the level, for example FFL less floors.yardBelowFflM at the front edge of the yard, and the slope within 0.3% to 0.5%.
@@ -291,10 +275,6 @@ Q225. The level of a yard floor under Rev 6 (R410, round 4i). Manual 2.3.B and 2
 Q226. The hand of a detached unit under Rev 6 (R411, round 4i). Manual 2.1.A gives a detached unit no hand, the past job took the mirror flag of the footprint block.
 - Recommended: the team sets it in 3 Review data, the proposal stays empty with its reason.
 - Other: propose the hand of the footprint block where a footprint is given.
-
-Q227. Civil file format and plot match (R408, round 4i). civilFile is a CSV, plotColumn matched to the plot number as text, stripped, so 12.0 does not match 12.
-- Recommended: a CSV with Plot No. and El @ Entry, the plot matched as text, a civil export with another layout converted before it is named.
-- Other: read numbers as numbers, or take entrance points by coordinate and match them to the plot face.
 
 Q228. Default slopes of road plus slope (R408, round 4i). doorLevel.slopePercent holds 0.5% by default and 2.0% for C10, VL4 and VL6, the values of rampSlopePercent of parsons2024Rev6, CHOSEN by Code. The manual gives only 0.5% to 2% (2.3.A).
 - Recommended: keep these defaults, the user sets them per project.
@@ -331,10 +311,6 @@ Q235. Hand table cover per unit code (R412, round 4i). The new project check hol
 Q236. Label size in the PDF check (R412, round 4i). The check holds the page count and the label patterns, not labelSize or searchWords.
 - Recommended: no, pdfplumber and PdfPig words may differ in size.
 - Other: add both.
-
-Q237. Folder of the Rev 9 workbooks (R412, round 4i). The check reads them from the data book work folder of the work root, CHOSEN by Code.
-- Recommended: a config key that names the folder of the workbooks of a new project.
-- Other: keep the data book folder.
 
 Q238. TH1-IM in the cluster sequences (R411, round 4i). clusters of the rules profile hold no sequence with TH1-IM, so a row such as DP1 TH1-IM TH1-IM DP1 gets no proposal, 8 IMC plots and most of the 96 no split plots of the whole project (RAN).
 - Recommended: add the TH1-IM sequences, DP1 TH1-IM TH1-IM DP1 and those the manual table of 2.1.D allows, to clusters as data, no code change.
@@ -418,10 +394,6 @@ Q299. The front of a notched irregular plot (R355, round 4j-2). On 6 of the 10 p
 - Recommended: check these 6 against the links of their keys in a later Lane A round, and add an override where the front is wrong.
 - Other: leave them, the override list already holds what the keys give.
 
-Q243. Layer pairs for plot outlines in the scan (Lane D 4j-1, R421). Bader's rule names one layer for plot outlines. The ROSHN baseplan draws a plot by the lines of two layers, MP_PLOT_LINE for the block and MP_PLOT_SUBD for the cuts between plots (READ, round4c layers.json), so no single layer closes a plot. The scan scores each layer alone and each pair of layers that both hold scan.pairMinSegments segments, 100 CHOSEN by Code.
-- Recommended: keep singles and pairs, with pairMinSegments in the profile.
-- Other: singles only, the user names a second layer by hand.
-
 Q244. A tie in a scan proposal (Lane D 4j-1, R421 to R426). The rules say propose the source of the highest score and are silent on a tie. The scan proposes none and writes a check row that names the tied sources.
 - Recommended: propose none on a tie, the user picks in the scanner window.
 - Other: the first by name order, with the check row.
@@ -454,9 +426,6 @@ Q253. The header row of a scanned sheet (Lane D 4j-1, R426). The header is the f
 - Recommended: the header is the row above the first row that joins a plot.
 - Other: the user names the header row in the scanner window.
 
-Q254. The order and share of villa type sources (Lane D 4j-1, R426). Bader's rule of 31 Oct 2026: a source scores by its match with the prototype names given, and the villa blocks inside plots are checked before text labels. Code CHOSEN the rest: Excel before PDF after the texts, and the share of the lead over the plots that any source gives a prototype code, held against majority.strongShare.
-- Recommended: keep the order blocks, texts, Excel, PDF and that share.
-- Other: the share over every plot of the plot drawing, which no source of ROSHN reaches.
 Q260. Outline change of a placed floor (Lane B 5d, R378). Button 5 lists a tagged floor whose outline the plan changed and leaves it. SketchEditScope opens its own transaction, so it cannot run inside the transaction of the flow.
 - Recommended: In 5, delete the tagged floor and place it again inside the transaction, listing the old UniqueId.
 - Other: A SketchEditScope step before the transaction, as Load is in 7.
@@ -509,14 +478,6 @@ Q258. The time cap of the scan pair trace (Lane D 4j-1b, R429). The Road Layout 
 - Recommended: 360 s with the list, and the pairs of a file only with a layer that covers a plot alone (Q250), which the Road Layout has none of.
 - Other: no cap, a scan of a large drawing then takes 15 to 20 minutes.
 
-Q281. Board rows against the nine pane inputs (Lane C NEWPROJ-UI). The board has five files, the pane nine inputs. Code maps Site drawing to baseplan and Plot list to the sales workbook (addin.workbookRoles), and Villa blocks, Curbs, the DLUS workbook, Plot numbers and Prototypes keep their rows in the pane only (CHOSEN, docs/design/18-new-project.md).
-- Recommended: keep the mapping, the other inputs stay in the pane.
-- Other: add a row for each of them to New project.
-
-Q282. Where the project name is kept (Lane C NEWPROJ-UI). The settings JSON has no name field, so the Project name box shows the document title read only.
-- Recommended: keep it read only, the name is the title of the model.
-- Other: add a name to the settings JSON, a change of its format.
-
 Q284. Villa mode row the boards drop (Lane C NEWPROJ-UI). The Pane board shows no Villa mode row under the dry run box. Q129 and Q133 set it.
 - Recommended: keep the row.
 - Other: drop it and take villaModeDefault of config only.
@@ -526,6 +487,7 @@ Q285. Name the Rules row shows (Lane C NEWPROJ-UI). The row shows the field proj
 - Other: Lane A adds a short name to the rules profile.
 
 Q286. Approve the four drafts of NEWPROJ-UI (Lane C NEWPROJ-UI). steps/ui-shots/new-project.png, how-it-works.png, pane.png and pane-first-open.png with the differences listed in steps/ui-shots/README.md.
+- Bader, 2 Nov 2026: waits. Bader approves after seeing the Revit screenshots, steps/ui-shots/drafts-for-bader.md.
 - Recommended: approve each as drafted, then each is copied into baseline/.
 - Other: name the changes per picture.
 
@@ -540,10 +502,6 @@ Q277. Footprint block names unlike the unit (Lane B 6a, R404, R300). The footpri
 Q279. Mass base, slab edge or outer wall face (Lane B DEMO, light mode, Q206). Measured in Revit on the 13 prototypes (probe of DEMO, lane_b_demo probe_report.txt): the mass base is the outer loop of the largest floor on the lowest level, 0.0 mm from the slab sketch on 13 of 13. On DT3 the outer face of the exterior walls (21 corners, 82.3 m2) lies up to 649.1 mm from that base (78.6 m2, 8 corners), 304.4 mm with the entrance recess left out, the east wall 300 mm out. DT1, TH1, TH3 600 to 629 mm. A DT3 link placed on plot 2294 at the transform of its mass gives the same 649.1 mm, so the placement is exact. On C10, DP1 to DP4, VD2, VD4, VL4, VL6 the exterior walls do not close into a ring, so their wall outline is UNKNOWN. footprintLimitMm is 100 (CHOSEN by Code).
 - Recommended: Keep the slab edge as the base, it is read on all 13 and exact, and measure the wall face as a second figure where the walls close.
 - Other: Take the outer wall face where the walls close into a ring and the slab elsewhere.
-
-Q320. Keep the solids path of light mode (Lane B FIX-1NOV-B, R450, R452). Masses now links one mass file per prototype (linkFolder masses). The DirectShape solid in the site of R404, proven in Revit by 6a on NBH 012, stays reachable as linkFolder solids, and a Settings file saved before FIX-1NOV-B, which names no linkFolder, still places solids. The mass files are not yet made or placed in Revit, the runner does that next.
-- Recommended: keep linkFolder solids as the fallback until the Revit run places the 13 mass files and reloads one, then remove it in a later round.
-- Other: remove the solids path now, Masses always links files.
 
 Q288. Scan picks in the settings at version 1 (Lane C SCAN-UI, R436, R441). The settings JSON of R367 gains scanPicks, conflictPicks and currentFiles. Each is left out of the file while null, so a file written before reads as before and formatVersion stays 1. An add-in built before SCAN-UI refuses a file that holds one of them, since its reader refuses a field it does not know.
 - Recommended: keep formatVersion 1, every PC runs the same add-in after the install of Part 1.
@@ -562,6 +520,7 @@ Q291. Where the line Current files is shown (Lane C SCAN-UI, R441). Button 9 giv
 - Other: a row of the Excel report now, a change to the worker of Lane A.
 
 Q293. Approve the three drafts of SCAN-UI (Lane C SCAN-UI). Three parts have no board and follow the style of the SetUpSite, ReviewData and CheckTable windows: the section Current files with the Rules dropdown in 1 Set up site (R441), the column Cluster with Confirmed in 3 Review data (R442) and the dropdown Door level from in 4 Check (R443). Their pictures are in steps/ui-shots.
+- Bader, 2 Nov 2026: waits. Bader approves after seeing the Revit screenshots, steps/ui-shots/drafts-for-bader.md.
 - Recommended: approve the three as drawn, the labels in docs/design/14-ui-labels.md.
 - Other: name the changes, Code redraws them.
 
@@ -572,10 +531,6 @@ Q294. Rules chosen in Set up site, when used (Lane C SCAN-UI, R441). The Rules d
 Q295. Test host runs skip the scan (Lane C SCAN-UI, R438). A run of the test host has no one to pick in the window What the tool read, so button 2 reads with no scan while SITEADAPT_JOB is set, and the runs of Lane B keep their time. The scan and its gate are proven by the tests of R438 and by Bader's run by hand only.
 - Recommended: keep it so until the test host can answer the window.
 - Other: let a job ask for the scan and answer the window with the proposed for all.
-
-Q296. A saved project holds no drawing path (Lane B DEMO, R434, W4, PreSetting). Bader's demo task asks that New project, Use a saved project, fills the files in one click. A pre-setting holds no drawing input by design (PreSetting.Import refuses one), so a saved project brings the config, the rules, the level profile, the villa mode, the dry run tick, the parameter sheet and the scan picks, and the user browses the drawing files. The demo sheet says so.
-- Recommended: Keep it so, a saved project of one job must not point another job at its drawings, and the demo browses the five files once.
-- Other: Let a saved project carry the drawing paths under its input folder, a rule change of R434.
 
 Q300. Plots with no cluster proposal (Lane C SCAN-UI, R442). Buttons 5 to 8 are to skip every plot with a proposal the team did not confirm on the plan of the last 4 Check (ReviewFile.ClusterUnconfirmed, worked out from that plan, so a save before 4 Check, a plan built again or no review file leaves every proposal unconfirmed). A plot whose build gave a reason and no cluster (a crowded row, no split, several splits, no attachment, Q229) has nothing to confirm, so it is not on the list and buttons 5 to 8 place it as today.
 - Recommended: list those plots too, with their reason, so buttons 5 to 8 skip them until the team sets their cluster by hand.
@@ -597,17 +552,9 @@ Q321. Mass base from walls, third attempt stopped (Lane B FIX-1NOV-B, R451, Q279
 - Recommended: keep the built rule with the flag, a prober counts the location line and the yard walls of the 13 prototypes, then Bader picks: exact corners by line intersections, or the slab for all.
 - Other: the slab for all 13 now, the walls only as a check in the log.
 
-Q322. Mass files made inside button 7 (Lane B FIX-1NOV-B, R450). Each mass file takes about 2 to 3 min in Revit (RAN, file times 17:53 to 18:50), button 7 makes them one after another inside its step, and the test host step of 20 min (ButtonsRunHost, in code) ended the first two runs after 7 and 6 files. With 12 of 13 cached the third run placed 336 links in 141.9 s. A user's first Masses run on a new work root waits about 30 min in button 7.
-- Recommended: a separate pane command Make mass files with a loader and a count, run once per prototype set, button 7 only places, the test host step limit for it from config.
-- Other: keep it in button 7 and raise the step limit in config to 45 min.
-
 Q323. A keyCopy run refused by its guard (Lane B FIX-1NOV-B, R384). A test host buttons job with keyCopy copies the key into the run folder before the job, then the job refuses it: "a file of the run is already there, it is never overwritten" (RAN, LB6B, run_LB6B_console.txt). Runs from the template work.
 - Recommended: copy the key under the name the job opens and let the guard skip that one file, with a test, in the next Lane B round.
 - Other: drop keyCopy from the buttons job.
-
-Q325. A file that states no coordinate system (Lane B FIX-1NOV-B, R454). Of the copies in C:\SA-demo\inputs only the Road Layout drawing states one, UTM84-37N in its GeoData. The baseplan, the footprint and the 18 LandXML files state none. Button 1 lists such a file as "states no coordinate system" and goes on, a conflict between two stated systems or a system unlike coordinates.expectedEpsg stops it.
-- Recommended: keep it so, a file that states nothing is listed and does not stop.
-- Other: stop button 1 until every drawing states the system.
 
 Q326. Shared origin at the plot box centre (Lane B FIX-1NOV-B, R455). With coordinates.source cad the shared origin is the centre of the box of every plot outline of the baseplan, rounded to coordinates.originRoundM, 1 m now, so the internal origin sits in the middle of the site. On the demo baseplan it lies 820.992 m west and 110.240 m south of the origin of the past job.
 - Recommended: keep the centre of the plot box rounded to 1 m.
@@ -616,10 +563,6 @@ Q326. Shared origin at the plot box centre (Lane B FIX-1NOV-B, R455). With coord
 Q327. Elevation of the shared origin from CAD (Lane B FIX-1NOV-B, R455). The past job holds the survey point and the project base point at 179.51 m with the internal origin at shared height 0. No CAD input gives a height for the origin yet, so coordinates.originElevationM is 0.
 - Recommended: Bader names a CAD source for the height, such as the lowest road level of the LandXML under the origin, until then 0 from config.
 - Other: put 179.51 of the past job in coordinates.originElevationM.
-
-Q328. Default source of the site position (Lane B FIX-1NOV-B, R455). coordinates.source is positionFile in the PR, so button 1 sets the position of the past job as before and the demo is not changed. The CAD source still takes the levels and units of the position file, and on a new project it renames the active position Internal to coordinates.positionName. Neither is run in Revit yet. coordinates.angleToTrueNorthDeg 0, the grid of the drawing, and coordinates.placeName Makkah are recommended with it, no source document gives them. Under positionFile no other key of the block is read.
-- Recommended: switch coordinates.source to cad after the runner's Revit run reads back the named position, the site location and the three control points, the levels and units to move into config in a later round.
-- Other: switch it now.
 
 Q329. The rule that picks the control points (Lane B FIX-1NOV-B, R456). Button 1 checks coordinates.controlPointCount plot corners, 3: the south west corner, then each next corner the one whose nearest chosen corner is the farthest, a tie to the least north, the least east, then the plot name. They spread over the whole site and do not hang on the order of the read.
 - Recommended: keep this rule.
@@ -633,18 +576,6 @@ Q307. What the report Summary shows after a run (Lane B Task 6, R365, R381, Lane
 - Recommended: Lane A fills the top line and the Levels row, adds walls to Placed, and takes one issue count for pane and report.
 - Other: leave it until Part 2, the output sheets.
 
-Q308. The stray export in the demo inputs (Lane B Task 6). At 01:06:47 on 2 Nov the driver script pressed Save on Export to Excel of What the tool read and wrote C:\SA-demo\inputs\What the tool read.xlsx, 11771 bytes, SHA-256 CB772FD4129CCADA895D400C3ED260D49FFE6FCAE11028A203E8B0FB06C52A84. The rule was no change in C:\SA-demo. No other file there changed by write time (RAN). Left in place for this answer. The window offers that folder and does not refuse it.
-- Recommended: delete the file. The Lane C half is done, R446 refuses the input folder and opens in the work folder.
-- Other: keep the file.
-
-Q309. Refresh the demo config and add-in (Lane B Task 6). C:\SA-demo\config is from 691e1fc and lacks addin.parameterSheet and the new lightMode and coordinates keys. Task 6 ran on a config copy of main 8f5412e and the add-in of 283ec9f, so C:\SA-demo\config was not run.
-- Recommended: refresh C:\SA-demo\config from main and reinstall main before a live run, then run it once more on a copy.
-- Other: show C:\SA-demo\SA-demo-done.rvt and make no live run.
-
-Q324. The Revit warning box at step 5 (Lane B Task 6). Step 5 stops on the Revit box "Highlighted floors overlap.", 0 errors, 1402 warnings, buttons OK and Cancel. OK goes on (RAN, pass B, place 1003). Cancel undoing the step is what the box offers, not pressed. steps/demo.md does not mention it.
-- Recommended: the step takes these overlap warnings itself and lists them as issues, so no box stops a run.
-- Other: keep the box and say press OK in the sheet.
-
 Q336. Link parameter group is Text not Data (Lane D D2, R460, R464). The read KC2 of the IMC key copy in Revit gives all 10 shared link parameters the group Text (autodesk.parameter.group:text-1.0.0) and the spec String, 338 links, 337 holding a value (RAN, round_addin\reads\KC2\run4\testhost_KC2_parameters.json). The sheet held Data, CHOSEN in FIX-1NOV-D. D2 wrote Text into config/shared_parameters.xlsx for the 10 rows, so button 1 binds them under Text as the past job does, and R464 moves a parameter a model holds under Data to Text. Plot is a project parameter of the key with no GUID, the read gives it no group, it stays Data.
 - Recommended: Text, as the past links hold it.
 - Other: Data, the group of FIX-1NOV-D, by editing the Group column back.
@@ -656,11 +587,6 @@ Q337. Swap back in the same model unproven (Lane D D3, R450, R467, Q323). Bader 
 Q338. Input guard counts Revit .slog files (Lane D D3, D19, R384). A buttons run whose inputs.prototypes is a folder hashes every file under it. Remaking masses opens each central prototype, Revit writes the .slog in its _backup folder, so D3S ended 275 inputs, 262 unchanged, exit 1, with 13 .slog files newer than the run start and no other file there (RAN). The 2021 sources stayed the same by SHA-256 (RAN, 13). The stop reason is set after testhost_D3S_run.json is written, so that file says none (READ, Run-TestHost.ps1:926, 947). Whether this also writes into a 2021 folder under an input root is UNKNOWN, D3 did not run that.
 - Recommended: The guard skips the _backup folders of a prototypes input under the work root only, an input root still fails on any change, and the reason goes into the run file.
 - Other: Keep the guard as it is and read exit 1 by hand on such a run.
-
-Q339. A 2021 file in the link folder (Lane D D3, R450, Q275). Button 7 gives no warning for a Revit 2021 file in the link folder, Revit would upgrade it during the link load (READ, not run). One upgrade took 286 to 368 s in its own window (RAN, 13), so 13 such files could pass the 20 minute step limit of a test host run. D3 linked 2024 files only, and whether the loader shows that wait is UNKNOWN.
-- Lane C, 2 Nov: through the pane the row Prototypes names the folder, ahead of config (READ CheckRun.cs, CheckTableBody.cs). C:\SA-demo\inputs\Prototypes holds format 2021 (RAN rvt_info.py, the C10 file, 1 of 13), so linkFolder prototypes with that row would link 2021 files. Part 11 of the sheet picks prototypes_2024 on the row.
-- Recommended: Button 7 reads the format of each file first with no Revit open and refuses a 2021 file by its name, pointing to the upgrade step.
-- Other: Leave it, the 2024 copies are the folder config names.
 
 Q360. Wall ends about 100 mm off the keys (Lane D 6B-DATA, R362, R469). Tool walls against the key lines: on 64 to 75 percent of the plots per zone the largest gap is 10 to 150 mm, and on 53 to 67 percent it is 90 to 110 mm, with or without the override list. Key walls against the tool lines: 44 to 73 percent at 10 to 150 mm (RAN, 2,466 plots). The key walls mix location line codes 0, 3, 4 and 5 (READ, the key plans). Half of a 200 mm wall is 100 mm, so the gap may be a line convention and not a wrong wall, but the wall thickness was not read, so the cause is UNKNOWN.
 - Recommended: Lane A measures it in the Revit half of 6b on one model, the thickness and location line of the key walls against the line the plan writes. No rule changes until then.
@@ -694,6 +620,3 @@ Q334. An xlsx read inside Revit (Lane D FIX-1NOV-D, R462). R350 kept every xlsx 
 - Recommended: as built, for the parameter sheet alone.
 - Other: a worker command reads the sheet for buttons 1 and 7.
 
-Q335. A parameter sheet picked in the pane (Lane D FIX-1NOV-D, R461, review 1). The pane row Shared parameters and Browse of Set up site name a sheet for button 1 alone, while button 7 and the new project check read the sheet of config, so a sheet picked there would bind GUIDs button 7 does not write by. Button 1 now stops on a picked sheet that is another file than that of config and names both, and the sheet of config picked again runs as before. A new project edits config/shared_parameters.xlsx.
-- Recommended: as built, one sheet for every button, the pane row a stop until it names the sheet of config.
-- Other: the sheet of the pane row replaces that of config for every button, buttons 1 and 7 and the check reading the pane setting.
