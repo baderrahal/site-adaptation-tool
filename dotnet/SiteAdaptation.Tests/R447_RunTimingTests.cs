@@ -473,6 +473,10 @@ namespace SiteAdaptation.Tests
             Assert.Contains("new RunTiming()", buttons);
             string host = File.ReadAllText(Path.Combine(ThemeGateTests.RepoRoot(), "dotnet", "SiteAdaptation.TestHost", "ButtonsRunHost.cs"));
             Assert.Contains("RunTiming.BeforeRun(null, ", host);
+            // The save of a host run comes after the file is written, so its seconds stand in the result, and the first tick gives the start of Revit
+            Assert.Contains("entry[\"saveSeconds\"]", host);
+            Assert.Contains("result[\"saveSeconds\"]", host);
+            Assert.Contains("RunTiming.BeforeRun((DateTime.Now - ", File.ReadAllText(Path.Combine(ThemeGateTests.RepoRoot(), "dotnet", "SiteAdaptation.TestHost", "AddinRunSession.cs")));
         }
 
         private sealed class Closing : IDisposable

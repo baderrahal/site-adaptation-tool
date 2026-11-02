@@ -604,7 +604,7 @@ namespace SiteAdaptation.Common
         {
             try
             {
-                string[] files = Directory.Exists(result.RunFolder) ? Directory.GetFiles(result.RunFolder, TimingPattern) : new string[0];
+                string[] files = Directory.Exists(result.RunFolder) ? Directory.GetFiles(result.RunFolder, TimingPattern, SearchOption.AllDirectories) : new string[0];
                 if (files.Length == 0)
                 {
                     result.TimingNote = "no run_timing file in the run folder";

@@ -382,7 +382,10 @@ namespace SiteAdaptation.Tests
             Assert.Null((string)Result("none")["timing"]);
             Assert.Contains("no run_timing", (string)Result("none")["timingNote"]);
 
-            File.WriteAllText(Path.Combine(folder, "run_timing_with.json"), "{\"any\": \"shape\"}");
+            // The buttons of a job write it in the work folder of ButtonsRunHost, under the run folder
+            string work = Path.Combine(folder, "work", "buttons");
+            Directory.CreateDirectory(work);
+            File.WriteAllText(Path.Combine(work, "run_timing_with.json"), "{\"any\": \"shape\"}");
             Drop("with", JobText("with", model: model));
             loop.Look();
             loop.End(loop.Take(), RevitListenerResult.Ok, null);

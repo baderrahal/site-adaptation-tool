@@ -293,8 +293,11 @@ namespace SiteAdaptation.TestHost
             {
                 try
                 {
+                    // R447. The run_timing file is written before this save, so its seconds stand in the entry of the step
+                    Stopwatch saving = Stopwatch.StartNew();
                     document.Save();
                     entry["savedAfter"] = true;
+                    entry["saveSeconds"] = Math.Round(saving.Elapsed.TotalSeconds, 3);
                 }
                 catch (Exception failure)
                 {
@@ -403,8 +406,10 @@ namespace SiteAdaptation.TestHost
             // The copy keeps what the buttons did, for a look after the run. It lies in the run folder under the work root
             if (document != null && document.IsValidObject && document.IsModified)
             {
+                Stopwatch saving = Stopwatch.StartNew();
                 document.Save();
                 result["saved"] = true;
+                result["saveSeconds"] = Math.Round(saving.Elapsed.TotalSeconds, 3);
             }
             result["finishedUtc"] = DateTime.UtcNow;
             result["privateMiB"] = PrivateMiB();
