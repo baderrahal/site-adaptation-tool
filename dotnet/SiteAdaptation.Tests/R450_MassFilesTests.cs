@@ -414,6 +414,20 @@ namespace SiteAdaptation.Tests
             Assert.Equal(Path.Combine(prototypes, "VD4.rvt"), masses.Document.Created[1]);
         }
 
+        // Task 6 of MASS-2NOV-D. A house outline on the ring measures 0 where the slab, 0.6 m inside it, would measure 600 mm, and the
+        // run after the masses are made reads the ring from the sidecar, no code of the check changed
+        [Fact]
+        public void R504_the_footprint_check_measures_the_ring_and_not_the_slab()
+        {
+            var house = new List<double[][]> { Outer.Select(point => new[] { point[0] + 1100, point[1] + 2000 }).ToArray() };
+            Run run = Make(Plan(Plot("101", 1100, 0, false)), VillaModes.Masses, Config(LinkFolders.Masses), footprint: house);
+            Apply(run, Context("r1"));
+            JObject footprint = JObject.Parse(File.ReadAllText(Directory.GetFiles(work, "footprint_012.json*").Single()));
+            Assert.Equal(WallRing.FromWalls, (string)footprint["masses"][0]["source"]);
+            Assert.False((bool)footprint["masses"][0]["flagged"]);
+            Assert.True((double)footprint["rows"][0]["distanceMm"] < 20, (string)footprint["rows"][0]["distanceMm"]);
+        }
+
         [Fact]
         public void R452_R451_a_slab_base_flags_its_prototype_in_the_run_lines_and_the_footprint_file()
         {
