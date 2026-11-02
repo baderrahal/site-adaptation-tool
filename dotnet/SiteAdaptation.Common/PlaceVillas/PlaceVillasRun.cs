@@ -559,13 +559,8 @@ namespace SiteAdaptation.Common.PlaceVillas
                         continue;
                     }
                     List<double[]> placed = ShapeMath.Place(step.Villa.Shape.Points, step.Villa.Plot.Insert.Value, step.Villa.Plot.RotationDeg.Value.Value, step.Villa.Plot.Mirrored.Value.Value);
-                    string unit = step.Villa.Plot.Unit?.Value ?? Hands.UnitOfFile(Path.GetFileName(step.Villa.Prototype));
-                    string keoFile = null;
-                    if (unit != null)
-                    {
-                        inputs.KeoFiles?.TryGetValue(unit, out keoFile);
-                    }
-                    decision.Footprint.Add(FootprintCheck.Row(step.Villa.Number, placed, inputs.Footprint ?? new List<double[][]>(), inputs.Config, Path.GetFileName(step.Villa.Prototype), unit, keoFile));
+                    decision.Footprint.Add(FootprintCheck.Row(step.Villa.Number, placed, inputs.Footprint ?? new List<double[][]>(), inputs.Config, Path.GetFileName(step.Villa.Prototype),
+                        step.Villa.Plot.Unit?.Value ?? Hands.UnitOfFile(Path.GetFileName(step.Villa.Prototype))));
                 }
                 foreach (KeyValuePair<string, MassBase> mass in decision.MassBases.Where(item => item.Value != null && item.Value.Flagged))
                 {

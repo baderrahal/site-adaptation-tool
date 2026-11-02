@@ -113,6 +113,44 @@ def test_r480_two_units_on_one_edge_leave_open_both_their_spans_as_one():
     assert shared(found, ["1", "2"]) == [[(0.0, 25.0), (0.0, 22.025)], [(0.0, 1.8), (0.0, 0.0)]]
 
 
+# The made up row of test_override_param_steps.py, whose plot 1 is the one VD2, its face x 0 to 12 and y 0 to 25, its front of R355 on y = 0 along the road. The table takes the
+# VD2 so plot 1 alone holds the spans. R480_C10SideTests.cs holds the same row and the same values
+ROW_SIDES = {"rule": "sideSpanByHand", "sideCosMax": 0.5, "byUnit": {"VD2": {"left": [1.8, 7.21], "right": [5.5, 22.025]}}}
+
+
+def row(monkeypatch, overrides):
+    from test_override_param_steps import row_build
+    return row_build(monkeypatch, overrides, change=lambda key: key.update(wallSideOpen=ROW_SIDES))
+
+
+def along(built, x):
+    """The y of the two ends of each wall of plot 1 on the line x of the row, lowest first."""
+    return sorted(sorted(round(end[1], 6) for end in item["ends"]["value"]) for item in built["trace"]["walls"] if item["plot"] == "1" and all(end[0] == x for end in item["ends"]["value"]))
+
+
+def test_r480_a_mirrored_override_swaps_the_spans_through_the_build(monkeypatch):
+    by_rule = row(monkeypatch, {})["plan"]["1"]["mirrored"]["value"]
+    plain, turned = row(monkeypatch, {"1": {"mirrored": False}}), row(monkeypatch, {"1": {"mirrored": True}})
+    assert (plain["plan"]["1"]["mirrored"]["value"], turned["plan"]["1"]["mirrored"]["value"]) == (False, True)
+    # One of the two moves the flag off its rule, so the span follows the flag after the overrides and not the hand of the rule
+    assert "mirrored" in (plain if by_rule else turned)["plan"]["1"]["overrides"]["applied"]
+    # Seen from y = 0 into the plot the left side is x = 0
+    assert (along(plain, 0.0), along(plain, 12.0)) == ([[0.0, 1.8], [7.21, 25.0]], [[0.0, 5.5], [22.025, 25.0]])
+    assert (along(turned, 0.0), along(turned, 12.0)) == ([[0.0, 5.5], [22.025, 25.0]], [[0.0, 1.8], [7.21, 25.0]])
+
+
+def test_r480_a_plot_a_rotation_override_turned_takes_its_spans_from_the_edge_it_opens_and_not_from_the_front_of_r355(monkeypatch):
+    built = row(monkeypatch, {"1": {"mirrored": False, "rotationDeg": {"gapToRuleDeg": -179.999}}})
+    assert "rotationDeg" in built["plan"]["1"]["overrides"]["applied"]
+    walls = [item for item in built["trace"]["walls"] if item["plot"] == "1"]
+    # The turn opens the back edge on y = 25 and walls the front of R355 on y = 0
+    assert not any(all(end[1] == 25.0 for end in item["ends"]["value"]) for item in walls)
+    assert any(all(end[1] == 0.0 for end in item["ends"]["value"]) for item in walls)
+    # Seen from y = 25 into the plot the left side is x = 12, each span measured down from y = 25
+    assert along(built, 12.0) == [[0.0, 17.79], [23.2, 25.0]]
+    assert along(built, 0.0) == [[0.0, 2.975], [19.5, 25.0]]
+
+
 def test_r480_keyrules_wallsideopen_is_read_at_the_strong_share_and_a_table_that_is_no_span_table_is_refused():
     profile = project_profile.load_profile(project_profile.profile_path(project_profile.load_settings()))
     level = profile.get("levelProfiles.parsons2024Rev6")

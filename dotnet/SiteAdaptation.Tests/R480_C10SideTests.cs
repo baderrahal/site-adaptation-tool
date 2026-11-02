@@ -173,6 +173,68 @@ namespace SiteAdaptation.Tests
             Assert.Equal(new[] { "0 25 0 22.025", "0 1.8 0 0" }, Shared(found, "1", "2"));
         }
 
+        // The made up row of OverrideParameterStepTests, whose plot 1 is the one VD2, its face x 0 to 12 and y 0 to 25, its front of R355 on y = 0 along the road. The table
+        // takes the VD2 so plot 1 alone holds the spans, as test_r480_c10_side.py takes the row
+        private static OverrideParameterStepTests.Built Row(string overrideOfOne)
+        {
+            var list = new Dictionary<string, JObject>();
+            if (overrideOfOne != null)
+            {
+                list["1"] = JObject.Parse(overrideOfOne);
+            }
+            return OverrideParameterStepTests.Build(new OverrideList(list), key => key["wallSideOpen"] = JObject.Parse(
+                "{ 'rule': 'sideSpanByHand', 'sideCosMax': 0.5, 'byUnit': { 'VD2': { 'left': [1.8, 7.21], 'right': [5.5, 22.025] } } }"));
+        }
+
+        // The walls of a build as BuildSteps gives them, by Walls.OfPlans on the kin of Walls.Kin
+        private static List<PlanWall> RowWalls(OverrideParameterStepTests.Built built)
+        {
+            var key = (JObject)built.Rules["levelProfiles"]["parsons2024Rev6"];
+            WallRules rules = Walls.Rules((JObject)key["keyRules"], key, "parsons2024Rev6", built.Rules, "roshn-makkah.json", built.Config["keyPlans"]["wallEdgeM"]);
+            var rows = built.Faces.Keys.ToDictionary(number => number, number => new Dictionary<string, string> { ["typologyRev9"] = number == "1" ? "VD2" : "DP2" });
+            var clusters = new List<SiteCluster> { new SiteCluster { Code = "Duplex_DP2", Plots = new List<string> { "2", "3" }, Source = "footprint" } };
+            return Walls.OfPlans(built.Plans.Keys.ToList(), built.Plans, built.Faces, built.Fronts, rules, Walls.Kin(built.Faces, clusters, rows));
+        }
+
+        // The y of the two ends of each wall of plot 1 on the line x of the row, lowest first
+        private static string[] Along(List<PlanWall> walls, double x)
+        {
+            return walls.Where(wall => wall.Plot == "1" && wall.Ends.All(end => end[0] == x))
+                .Select(wall => wall.Ends.Select(end => Math.Round(end[1], 6)).OrderBy(value => value).ToArray()).OrderBy(pair => pair[0])
+                .Select(pair => pair[0].ToString("R", CultureInfo.InvariantCulture) + " " + pair[1].ToString("R", CultureInfo.InvariantCulture)).ToArray();
+        }
+
+        [Fact]
+        public void R480_a_mirrored_override_swaps_the_spans_through_the_build()
+        {
+            bool byRule = (bool)(JToken)Row(null).Plans["1"].Overrides["mirrored"];
+            OverrideParameterStepTests.Built plain = Row("{ 'mirrored': false }"), turned = Row("{ 'mirrored': true }");
+            Assert.False((bool)(JToken)plain.Plans["1"].Overrides["mirrored"]);
+            Assert.True((bool)(JToken)turned.Plans["1"].Overrides["mirrored"]);
+            // One of the two moves the flag off its rule, so the span follows the flag after the overrides and not the hand of the rule
+            Assert.Contains("mirrored", Walls.AppliedOf((byRule ? plain : turned).Plans["1"]));
+            // Seen from y = 0 into the plot the left side is x = 0
+            List<PlanWall> first = RowWalls(plain), second = RowWalls(turned);
+            Assert.Equal(new[] { "0 1.8", "7.21 25" }, Along(first, 0.0));
+            Assert.Equal(new[] { "0 5.5", "22.025 25" }, Along(first, 12.0));
+            Assert.Equal(new[] { "0 5.5", "22.025 25" }, Along(second, 0.0));
+            Assert.Equal(new[] { "0 1.8", "7.21 25" }, Along(second, 12.0));
+        }
+
+        [Fact]
+        public void R480_a_plot_a_rotation_override_turned_takes_its_spans_from_the_edge_it_opens_and_not_from_the_front_of_r355()
+        {
+            OverrideParameterStepTests.Built built = Row("{ 'mirrored': false, 'rotationDeg': { 'gapToRuleDeg': -179.999 } }");
+            Assert.Contains("rotationDeg", Walls.AppliedOf(built.Plans["1"]));
+            List<PlanWall> walls = RowWalls(built);
+            // The turn opens the back edge on y = 25 and walls the front of R355 on y = 0
+            Assert.DoesNotContain(walls, wall => wall.Plot == "1" && wall.Ends.All(end => end[1] == 25.0));
+            Assert.Contains(walls, wall => wall.Plot == "1" && wall.Ends.All(end => end[1] == 0.0));
+            // Seen from y = 25 into the plot the left side is x = 12, each span measured down from y = 25
+            Assert.Equal(new[] { "0 17.79", "23.2 25" }, Along(walls, 12.0));
+            Assert.Equal(new[] { "0 2.975", "19.5 25" }, Along(walls, 0.0));
+        }
+
         [Fact]
         public void R480_keyrules_wallsideopen_is_read_at_the_strong_share_and_a_table_that_is_no_span_table_is_refused()
         {
