@@ -2,6 +2,41 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Lane D 6B-DATA, 2026-11-02, each zone against its past model, no Revit
+
+Goal:
+- For every zone compare the plan of the tool with the past site model, from the data book and the key reads only
+
+Done:
+- python/zone_compare.py and its 18 tests (R469). steps/investigations/6b-data.md with the tables, worst 10 and 10 random plots per zone
+- Every zone has reads, none left out. Over limit per zone, with the list, then by the rules alone:
+- IMA (SE), 419 plots: walls 7 and 15. By the rules mirror 8, rotation 8. No level reference
+- IMB (SE), 288 plots: walls 9 and 19. By the rules mirror 3, rotation 3. No level reference
+- IMC (TU), 324 plots: entry 113, ramp level 43, walls 9 and 36. By the rules FFL 230, entry 162, mirror 12
+- IMD (TU), 400 plots: FFL 2, entry 145, ramp level 53, walls 11 and 44. By the rules FFL 238, entry 197, mirror 2
+- IME (TU), 316 plots: ramp level 130, walls 4 and 12. By the rules FFL 171, entry 126, mirror 8
+- IMF (TU), 462 plots: ramp level 183, walls 9 and 21. By the rules FFL 282, entry 222, mirror 2
+- IMG (TU), 257 plots: ramp level 100, walls 5 and 20. By the rules FFL 122, entry 112, mirror 21
+
+Checked:
+- Second method, plain json and math: every status of all zones the same, 0 differ. 70 random plots against the raw K read, 70 the same. Key plan against past_all.csv: only the El @ Entry of the schedules and 2 IMD FFL plots differ, 260 rows in conflicts.csv
+- 64 inputs the same by SHA-256 before and after, the 7 copies the same as key_copies.json
+- GATE_LINE
+
+Remains:
+- The 6b shares of steps/01_next.md still need their Revit runs. Insert position was not asked for and not compared. Rev6 not compared (Q361)
+- The Lane D worktree lost its git entry on 2 Nov: only its own entry restored by hand, no prune. Lane C helper entries show the same stripped form, cause UNKNOWN
+
+Known bugs:
+- None new in the tool. The second check found two faults of zone_compare.py itself, both fixed with a test: a rounded limit in its report, and the plots of a build with no list
+
+Next:
+- The Revit half of 6b. Q339 as answered, to build
+
+Your turn:
+- Opened: Q360 Wall ends about 100 mm off the keys. Q361 FFL rule far from keys without overrides. Q362 Chosen limits of the zone compare. Q363 Plot 2302 and two IMD FFL plots
+- 168 open, steps/questions-open.md
+
 ## Lane C part 11, 2026-11-02, Links mode on Bader's sheet
 
 Goal:

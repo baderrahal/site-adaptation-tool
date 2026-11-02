@@ -14,8 +14,8 @@
 - Lane B Task 6 (FIX-1NOV-B), 02:30, branch fix/1nov-b-task6: both passes done, Revit closed, lock free, main with PR 130 merged in, keeping both sides.
   Now: the gate on the merged tree, then merge PR 131. Then Lane D D3 on my word
 - Lane C, branch fix/2nov-c-part11: part 11 of steps/bader-fix-1nov.md filled, Q337 to Q339 in its list. Nothing queued after this PR. Blocked: none
-- Lane D 6B-DATA, 2 Nov, branch feat/6b-data: no Revit, no window lock. The plan of each zone against its key, python/zone_compare.py. IMC compared.
-  Now: IMA, IMB, IMD to IMG in order, then the second check. Blocked: none
+- Lane D 6B-DATA, 2 Nov, branch feat/6b-data: no Revit, no window lock. All 7 zones compared, second check clean, 64 inputs unchanged. steps/investigations/6b-data.md.
+  Now: gate, review, PR. Opened Q360 to Q363. Blocked: none
 
 Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane D 6B-DATA, 2 Nov 2026.
 
