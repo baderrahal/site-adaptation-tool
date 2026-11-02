@@ -17,7 +17,8 @@ Done:
 Checked:
 - Saved D3L model read from its bytes by rvt_info.py: 13 links, all in prototypes_2024. D3S: 13, all in masses
 - Read jobs D3A and D3B: real link against mass on 5 plots, 2316 DT3, 2360 VD2, 2459 C10, 2490 TH1, 2495 DP1, and on all 336: 0.000 mm, 0 degrees, 0 mirror differences. This holds the link placements, not the geometry inside the files
-- 13 sources and SA-demo-start.rvt the same by SHA-256 after all runs. D3L 275 inputs, 275 unchanged
+- 13 sources and SA-demo-start.rvt the same by SHA-256 after all runs. D3L 275 inputs, 275 unchanged. Saved in reads D3 final_check.txt
+- Reviewer one pass: APPROVE, 6 latent in steps/latent.md, R468 text set to the code. Claim-checker: no WRONG, its UNBACKED outputs now in final_check.txt
 
 Remains:
 - D3L started from the template, not a copy of the demo model, and the swap back ran on a new project, both by the guard of Q323 (Q337)
