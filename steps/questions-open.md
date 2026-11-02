@@ -20,7 +20,7 @@ Q284 Villa mode row the boards drop. Q285 Name the Rules row shows. Q286 Approve
 Q288 Scan picks in the settings at version 1. Q289 Board rows the scan does not read. Q290 Curbs and road surface left out of scan. Q291 Where the line Current files is shown. Q293 Approve the three drafts of SCAN-UI. Q294 Rules chosen in Set up site, when used. Q295 Test host runs skip the scan. Q300 Plots with no cluster proposal. Q301 The build takes the door level pick. Q302 Door level row under the past job. Q305 Hide Confirmed under the past job.
 Q306 A neighbourhood picked after the first read. Q307 What the report Summary shows after a run.
 Q326 Shared origin at the plot box centre. Q327 Elevation of the shared origin from CAD. Q329 The rule that picks the control points.
-Q331 Plot is no link parameter of the keys. Q332 FFL bound but never written. Q333 Categories beyond the link instances. Q334 An xlsx read inside Revit. Q336 Link parameter group is Text not Data. Q337 Swap back in the same model unproven. Q338 Input guard counts Revit .slog files.
+Q331 Plot is no link parameter of the keys. Q332 FFL bound but never written. Q333 Categories beyond the link instances. Q334 An xlsx read inside Revit. Q336 Link parameter group is Text not Data. Q337 Swap back in the same model unproven. Q338 Input guard counts Revit .slog files. Q360 Wall ends about 100 mm off the keys. Q361 FFL rule far from keys without overrides. Q362 Chosen limits of the zone compare. Q363 Plot 2302 and two IMD FFL plots.
 
 Q149. M14, the boundary wall of an irregular plot (Round FOLD, docs/design/15-manual-rules.md). The canvas text reads "boundary wall 200 mm inside the plot limit". The Rev 06 manual, 2.8.A, p. 20 (PDF 23), reads "the boundary wall external face will be identical to the plot limit, and the 200mm will be positioned fully inside the plot", the outer face on the limit and the 200 mm wall thickness inside it. The canvas text is kept until Bader answers. It does not block, M14 is checked by 8 Walls in 5d.
 - Recommended: the PDF reading, the outer face of the wall on the plot limit and its 200 mm inside the plot, and the canvas text written so.
@@ -587,6 +587,22 @@ Q337. Swap back in the same model unproven (Lane D D3, R450, R467, Q323). Bader 
 Q338. Input guard counts Revit .slog files (Lane D D3, D19, R384). A buttons run whose inputs.prototypes is a folder hashes every file under it. Remaking masses opens each central prototype, Revit writes the .slog in its _backup folder, so D3S ended 275 inputs, 262 unchanged, exit 1, with 13 .slog files newer than the run start and no other file there (RAN). The 2021 sources stayed the same by SHA-256 (RAN, 13). The stop reason is set after testhost_D3S_run.json is written, so that file says none (READ, Run-TestHost.ps1:926, 947). Whether this also writes into a 2021 folder under an input root is UNKNOWN, D3 did not run that.
 - Recommended: The guard skips the _backup folders of a prototypes input under the work root only, an input root still fails on any change, and the reason goes into the run file.
 - Other: Keep the guard as it is and read exit 1 by hand on such a run.
+
+Q360. Wall ends about 100 mm off the keys (Lane D 6B-DATA, R362, R469). Tool walls against the key lines: on 64 to 75 percent of the plots per zone the largest gap is 10 to 150 mm, and on 53 to 67 percent it is 90 to 110 mm, with or without the override list. Key walls against the tool lines: 44 to 73 percent at 10 to 150 mm (RAN, 2,466 plots). The key walls mix location line codes 0, 3, 4 and 5 (READ, the key plans). Half of a 200 mm wall is 100 mm, so the gap may be a line convention and not a wrong wall, but the wall thickness was not read, so the cause is UNKNOWN.
+- Recommended: Lane A measures it in the Revit half of 6b on one model, the thickness and location line of the key walls against the line the plan writes. No rule changes until then.
+- Other: Accept it as a line convention with no measure.
+
+Q361. FFL rule far from keys without overrides (Lane D 6B-DATA, R278, R469, Q224). With no override list the FFL is within 5 mm on 29 to 53 percent of the plots of the 5 TU zones, 1,043 of 1,759 over, and El @ Entry 819 of 1,738 over, against majority.strongShare 0.90 (RAN). ROSHN Makkah takes its levels from the list, so a build for ROSHN is not hurt. A new project has no such list, so this is the share a past job mode build would reach there. New projects start on rev6 (Q224), which this round did not compare.
+- Recommended: Mark the level rules weak, keep ROSHN Makkah on the list, and compare rev6 on the same keys as the next data step.
+- Other: Lane A looks now for a better level rule on these keys.
+
+Q362. Chosen limits of the zone compare (Lane D 6B-DATA, R469). No rule holds three limits of the zone table, so Code chose them: rotation within 1 degree, steps within 1 step, wall match 10 mm. They only move plots between match, within limit and over limit in the table.
+- Recommended: Keep them.
+- Other: Name other limits, the compare runs again in minutes with no Revit.
+
+Q363. Plot 2302 and two IMD FFL plots (Lane D 6B-DATA, R469). Plot 2302 of IMC stands mirrored and turned 180 degrees in the key, the rules give the other way, and the override list holds no mirrored or rotationDeg row for it while it holds 11 mirror rows of IMC (READ). Why it is left out is UNKNOWN. On IMD the key plan and past_all.csv differ in FFL on plot 1382 by 153.0 mm and on plot 1436 by 50.0 mm, the tool equals past_all.csv on both (RAN, 0.0 mm), and which is right is UNKNOWN.
+- Recommended: Bader adds plot 2302 to the override list by hand, and the Revit half of 6b opens the two IMD plots.
+- Other: Leave all three as they are.
 
 Q331. Plot is no link parameter of the keys (Lane D FIX-1NOV-D, R461). The 10 shared parameters on the villa links of the IMC key are those config held, none added, dropped or renamed (READ, round_addin\reads\KC\testhost_KC_parameters.json, 338 links). Plot, the floor parameter of floors.plotParameter that button 5 writes on every Generic, yard and ramp floor (unit-plot, as VD2-2441), is a project parameter of the floors in all 7 keys and no link parameter, its GUID that of Q156.
 - Recommended: keep Plot as the 11th row, Category Floors, Filled by 5 Floors, since button 5 and the check of 4 tell a placed floor by it.
