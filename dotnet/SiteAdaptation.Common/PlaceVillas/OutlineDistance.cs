@@ -113,7 +113,8 @@ namespace SiteAdaptation.Common.PlaceVillas
         // The footprint of a plot is the villa block of R300 whose outline holds the middle of the placed base, CHOSEN since a plot row
         // names no block and the blocks are listed by block name only. Where two hold it the nearer middle wins. R477, Q277. Only a block
         // of the type of the unit is held to the limit, the master plan drew another house in a block of another type. An outline with no
-        // block name, which no read gives, has no type to tell and is held as in R404
+        // block name, which no read gives, has no type to tell and is held as in R404. R479. The type of the plot is the unit of the file it links, TH1-IM a TH1 file, and
+        // not keo_file of the rules, which gives DP4 for a VD4 that links a VD4 file. A plot with no prototype, or a file name of no unit, goes by its own unit
         public static FootprintRow Row(string plot, IReadOnlyList<double[]> placedBase, IEnumerable<double[][]> blocks, LightModeConfig config, string prototype = null, string unit = null)
         {
             double[] middle = Middle(placedBase);
@@ -125,7 +126,7 @@ namespace SiteAdaptation.Common.PlaceVillas
             }
             double distance = JsonOut.Round3(OutlineDistance.HausdorffMm(placedBase, block, config.FootprintSampleStepMm));
             string name = (blocks as FootprintOutlines)?.BlockOf(block);
-            if (name != null && !SameType(name, unit))
+            if (name != null && !SameType(name, Hands.UnitOfFile(prototype) ?? unit))
             {
                 return new FootprintRow
                 {
@@ -142,10 +143,10 @@ namespace SiteAdaptation.Common.PlaceVillas
         }
 
         // R477. The type of a block is the part of its name after the last underscore, so a name with none is of no type
-        private static bool SameType(string block, string unit)
+        private static bool SameType(string block, string type)
         {
             int underscore = block.LastIndexOf('_');
-            return underscore >= 0 && string.Equals(block.Substring(underscore + 1), unit, StringComparison.OrdinalIgnoreCase);
+            return underscore >= 0 && string.Equals(block.Substring(underscore + 1), type, StringComparison.OrdinalIgnoreCase);
         }
 
         // Every outline of the footprint read of button 2 (read_villaBlocks.json), by SiteClusters.BlocksByName as the build reads it
