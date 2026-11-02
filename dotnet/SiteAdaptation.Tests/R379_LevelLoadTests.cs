@@ -89,6 +89,29 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
+        public void R459_floors_take_their_known_warnings_from_the_config_the_build_read_and_no_block_gives_none()
+        {
+            Assert.Null(FloorLoad.Floors(Context(5), Nbh).KnownWarnings);
+
+            string config = Path.Combine(work, "config", "project.json");
+            JObject settings = JObject.Parse(File.ReadAllText(config));
+            settings["floors"] = new JObject
+            {
+                ["plotParameter"] = "Plot", ["types"] = new JObject { ["generic"] = new JArray("G"), ["yard"] = new JArray("Y") },
+                ["knownWarnings"] = new JObject { ["entries"] = new JArray(new JObject { ["text"] = "Overlap.", ["samePlot"] = true, ["rolePairs"] = JArray.Parse("[[\"generic\", \"yard\"]]") }) },
+            };
+            File.WriteAllText(config, settings.ToString());
+            Assert.True(FloorLoad.Floors(Context(5), Nbh).KnownWarnings.Knows("Overlap."));
+
+            settings["floors"]["knownWarnings"] = new JObject { ["entries"] = 1 };
+            File.WriteAllText(config, settings.ToString());
+            Assert.Contains("floors.knownWarnings", Assert.Throws<InvalidDataException>(() => FloorLoad.Floors(Context(5), Nbh)).Message);
+
+            File.Delete(config);
+            Assert.Null(FloorLoad.Floors(Context(5), Nbh).KnownWarnings);
+        }
+
+        [Fact]
         public void R378_floors_take_the_plan_its_level_profile_and_the_last_record_of_5()
         {
             File.WriteAllText(Path.Combine(work, FloorsRun.RecordName("012")), new JObject { ["placed"] = new JArray("101|generic") }.ToString());

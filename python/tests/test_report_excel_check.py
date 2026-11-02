@@ -97,7 +97,14 @@ FILL = PatternFill(fill_type="solid", fgColor="FFDDEBF7")
 THIN = Side(style="thin")
 
 
-def build(tmp_path, rules=RULES, summary=SUMMARY, revit=None):
+ACCEPTED_ROW = {"text": "Highlighted floors overlap.", "plot": "VD4-101", "firstType": "Generic 150mm", "secondType": "yard", "firstId": "a", "secondId": "b"}
+
+
+def accepted_file(nbh="012"):
+    return {"format": "site-adaptation-accepted-warnings", "runId": "5_1", "neighbourhood": nbh, "count": 1, "accepted": [ACCEPTED_ROW]}
+
+
+def build(tmp_path, rules=RULES, summary=SUMMARY, revit=None, accepted=None):
     paths = {}
     for name, content in (("plan", PLAN), ("overrides", OVERRIDES), ("checkRows", CHECK_ROWS), ("summary", summary), ("rules", rules), ("config", CONFIG)):
         paths[name] = tmp_path / (name + ".json")
@@ -107,8 +114,11 @@ def build(tmp_path, rules=RULES, summary=SUMMARY, revit=None):
     if revit is not None:
         paths["revit"] = tmp_path / "revit_counts.json"
         paths["revit"].write_text(json.dumps(revit), encoding="utf-8")
+    if accepted is not None:
+        paths["accepted"] = tmp_path / "floors_012_accepted.json"
+        paths["accepted"].write_text(json.dumps(accepted), encoding="utf-8")
     mock = check.mock_labels()
-    inputs = check.load_inputs(paths["plan"], paths["overrides"], paths["checkRows"], paths["summary"], paths["plots"], paths["rules"], paths["config"], paths.get("revit"))
+    inputs = check.load_inputs(paths["plan"], paths["overrides"], paths["checkRows"], paths["summary"], paths["plots"], paths["rules"], paths["config"], paths.get("revit"), paths.get("accepted"))
     return paths, mock, check.expected(inputs, "parsons2024Rev6", mock)
 
 
@@ -142,7 +152,7 @@ def write_book(path, want, mock, settings):
                 if start == 19 and column == 3 and offset > 0 and check.is_number(value):
                     target.number_format = check.SHARE_FORMAT
     headers = {"Placed": mock["placed"], "Skipped": mock["skipped"], "Overrides": list(check.OVERRIDE_COLUMNS), "Assumed": mock["assumed"],
-               "Issues": mock["issueColumns"], "Rules": list(check.RULE_SHEET_COLUMNS)}
+               "Issues": mock["issueColumns"], "Rules": list(check.RULE_SHEET_COLUMNS), check.ACCEPTED_SHEET: mock["accepted"]}
     for name in mock["sheets"][1:-1]:
         sheet = book.create_sheet(name)
         sheet.append(headers[name])
@@ -231,7 +241,8 @@ def test_r365_each_planted_fault_is_caught_by_its_check(made, tmp_path, fault, c
 
 def test_r365_the_labels_come_from_the_mock_files_and_their_additions_of_7_7(made):
     paths, mock, want = made
-    assert mock["sheets"] == ["Summary", "Placed", "Skipped", "Overrides", "Assumed", "Issues", "Rules", "Settings"]
+    assert mock["sheets"] == ["Summary", "Placed", "Skipped", "Overrides", "Assumed", "Issues", "Accepted warnings", "Rules", "Settings"]
+    assert mock["accepted"] == ["Plot", "First floor type", "Second floor type", "Warning"]
     assert mock["placed"] == ["Plot", "Kind", "Type", "Mirror", "Element id"]
     assert mock["editable"] == ["Type", "Mirror"]
     # R381: the steps 1 to 8 of the order of docs/design/13-workflow-changes.md, 9 Report the step of the report
@@ -296,6 +307,34 @@ def test_r483_the_placed_sheet_is_held_against_the_ids_of_the_counts_file(tmp_pa
     assert placed[("101", "ramp")] == "5003, 5004"
     assert placed[("102", "link")] is None
     assert check.element_id(None, "101", "link") is None
+
+
+def test_r459_the_sheet_holds_the_rows_of_the_file_of_its_nbh_and_a_workbook_that_differs_is_caught(tmp_path):
+    paths, mock, want = build(tmp_path, accepted=accepted_file())
+    assert want["books"]["012"]["sheets"][check.ACCEPTED_SHEET] == [["VD4-101", "Generic 150mm", "yard", "Highlighted floors overlap."]]
+    assert want["books"]["013"]["sheets"][check.ACCEPTED_SHEET] == []
+    path = tmp_path / "012_Report.xlsx"
+    write_book(path, want["books"]["012"], mock, SETTINGS)
+    result, bad = check.check_xlsx(path, want["books"]["012"], mock, "rx1")
+    assert not bad, bad
+    assert result["match Accepted warnings rows"] == 1
+
+    # A sheet that lost its row, as a report that took no file would
+    book = openpyxl.load_workbook(path)
+    book[check.ACCEPTED_SHEET].delete_rows(2)
+    book.save(path)
+    result, bad = check.check_xlsx(path, want["books"]["012"], mock, "rx1")
+    assert any("Accepted warnings" in item for item in bad), bad
+
+
+def test_r459_no_file_expects_an_empty_sheet(made):
+    paths, mock, want = made
+    assert all(book["sheets"][check.ACCEPTED_SHEET] == [] for book in want["books"].values())
+
+
+def test_r459_a_file_with_a_wrong_count_is_refused(tmp_path):
+    with pytest.raises(ValueError, match="R459"):
+        build(tmp_path, accepted=dict(accepted_file(), count=2))
 
 
 def test_r365_settings_with_no_block_addin_report_are_refused(made, tmp_path):

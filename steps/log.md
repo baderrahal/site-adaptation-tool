@@ -2,6 +2,33 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Lane B FIX-2NOV-B task 3, 2026-11-02, step 5 accepts the known overlap, R459, Lane B on the laptop
+
+Goal:
+- Bader's task 3: one shared handler of known warnings, step 5 first, each accepted one counted, in the report and the 4 Check counts
+
+Done:
+- R459: generic with yard or ramp and ramp with yard of one plot are taken without showing (Q367), all else shows as before
+- Callers: FloorsRun.Apply gives the list by RunContext.AcceptKnownWarnings, WarningCollector.Decide calls KnownWarningList.Decide, ButtonFlow calls
+  ButtonBody.AfterCommit, FloorsRun.RecordAccepted writes the file, CheckRun.AcceptedCount the chip, ReportRun.AcceptedFile the sheet Accepted warnings
+- Q158 and Q367 closed by Bader's answers. The Q158 fix is the next PR
+
+Checked:
+- Review 1 approved, 0 REAL, 6 LATENT. Breaker 1 found 5 REAL, all fixed with a test, the rest in steps/latent.md
+- part7\warnings.html read a second way (RAN): 1,402 warnings, 2 elements each, listed pairs at most 1,303, so at least 99 always show
+- Gate: see the PR. No run in Revit yet, every Revit behaviour UNKNOWN until task 4
+
+Remains:
+- Q158 PR, then task 4 by hand: the count still showing on NBH 012, a warning coming back at step 6, the text padding
+
+Known bugs:
+- The Revit box stays at step 5 for overlaps of two plots, so Q324 stays open. Breaker's estimate on the export is about 611 showing, by id order, not a read
+
+Next:
+- Q158, install main, the hand run. Lane C reuses the handler by RunContext.AcceptKnownWarnings and KnownWarningList.Parse
+
+Your turn:
+- Q158 Step 1 Done on a model already set up, closed. Q367 Which overlap pairs step 5 accepts, closed. 160 open, steps/questions-open.md
 ## Lane D FIX-2NOV-D, 2026-11-02, several road surfaces for a new project, no Revit
 
 Goal:

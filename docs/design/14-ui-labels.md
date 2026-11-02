@@ -317,6 +317,7 @@ Built in Lane B 5c. The title, band, buttons, chips, columns and side box are th
 - `Parameter`
 - `Assumed`
 - `Team check` CHOSEN, the chip and the Check value of a plot the team marked Wrong in 3 Review data
+- `Accepted at step 5` CHOSEN, the chip with the count of warnings step 5 took without showing them (R459), it lists no row
 - `<n> plots follow every rule`
 - `No past job was given, so Plot cut shows no rows and no plot is counted as following every rule on Plot cut.` CHOSEN, the one line of Q117 when the run has no past job
 - `Plot`
