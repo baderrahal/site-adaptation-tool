@@ -64,14 +64,14 @@ namespace SiteAdaptation.AddIn.ScanResults
             {
                 return;
             }
-            // R446, Q308. The rule of the tool, nothing is written where the inputs lie (R1)
-            if (InsideInputs(Path.GetDirectoryName(Path.GetFullPath(path))))
-            {
-                Model.FootLine = ScanResultsText.NotInInputs;
-                return;
-            }
             try
             {
+                // R446, Q308. The rule of the tool, nothing is written where the inputs lie (R1)
+                if (InsideInputs(Path.GetDirectoryName(Path.GetFullPath(path))))
+                {
+                    Model.FootLine = ScanResultsText.NotInInputs;
+                    return;
+                }
                 ScanPicks.Export(path, Model.Data);
                 Model.FootLine = ScanView.Fill(ScanResultsText.Saved, Path.GetFileName(path));
             }

@@ -282,6 +282,19 @@ namespace SiteAdaptation.Tests
             Assert.False(model.DryRunNoteShown);
         }
 
+        // Review of FIX-2NOV-C: Update from report has number 0, Statuses[-1] would throw before its flow starts
+        [Fact]
+        public void R446_a_button_with_no_step_passes_and_leaves_the_tick()
+        {
+            PaneViewModel model = Loaded();
+            var state = new PaneRunState(model, () => folder, path => null);
+
+            state.BeforeRun(0);
+
+            Assert.True(model.DryRun);
+            Assert.False(model.DryRunNoteShown);
+        }
+
         [Fact]
         public void R446_a_step_4_that_still_waits_unticks_nothing()
         {
