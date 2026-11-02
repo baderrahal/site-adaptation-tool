@@ -84,4 +84,4 @@ The placeholders of the window New project (docs/design/18-new-project.md). Each
 
 | Ask | Who | What | Now |
 |---|---|---|---|
-| L2NOV-1 Step 5 takes the overlap warnings | Lane B, next item | Step 5 accepts the known warning Highlighted floors overlap in its transaction and counts it in the log and report, so no box stops a run (Q324, Q350) | Not built. After R475 about 740 pairs of NBH 012 still warn by a 3D count |
+| L2NOV-1 Step 5 takes the overlap warnings | Lane B, next item | Step 5 accepts the known warning Highlighted floors overlap in its transaction and counts it in the log and report, so no box stops a run (Q324, Q350) | Taken by Lane B. After R475 button 5 on NBH 012 gave 1,131 overlap warnings (1,402 before) and 42 off axis (Q356) |
