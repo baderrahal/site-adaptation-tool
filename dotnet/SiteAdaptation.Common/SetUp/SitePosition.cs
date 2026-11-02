@@ -116,6 +116,7 @@ namespace SiteAdaptation.Common.SetUp
                 {
                     File = (string)file["file"], Name = file["name"]?.Type == JTokenType.String ? (string)file["name"] : null,
                     Problems = file["problems"]?.Type == JTokenType.Integer ? file["problems"].Value<int>() : 0,
+                    ColourProblems = file["colourProblems"]?.Type == JTokenType.Integer ? file["colourProblems"].Value<int>() : 0,
                 });
             }
             foreach (JObject plot in (answer["plots"] as JArray ?? new JArray()).OfType<JObject>())

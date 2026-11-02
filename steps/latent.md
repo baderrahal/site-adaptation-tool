@@ -520,6 +520,16 @@ No real input reaches these: the plot table of the demo holds whole numbers and 
 - R479: a build with no 4 Check request gives no keo_file map, the footprint check compares by the own name with no line.
 - Breaker 1, a mirror edit in Update from report on a C10 now moves its wall gaps, the apply line names no button 8. No real edit yet. A number in a type name such as BW 1800 is held out by the digit limits now. Near span rests on one length class, all side edges are 25 m but 2965.
 
+## Q158 review and breaker, 2 Nov 2026
+
+- A press on a step with DoneWithIssues writes 0 issues over the earlier record, so the step reads Done. Whether button 1 gives warnings on a real model is UNKNOWN.
+- A sheet with no GUID for Plot gives a Waiting line and a press makes the step Done with 0 issues. R461 puts Plot in the sheet.
+- A level outside the position file, moved by hand, stays old in site.json. floors.levels names only Level 1 and Level 2.
+- An entity the reader refuses, as from a newer build, is overwritten by a press with the settings of the pane, as a real run already did.
+- A check point over the pass limit with nothing differing rolls back at the read back with its reason, and the window gives no warning before the press. A model set by the tool matches exactly.
+- While the pane has no input hash yet it shows Ready and the flow has hashed, so a press in that moment can hold and cancel. It lasts until the hash returns, not measured.
+- An extra field added to site.json by hand counts as disagreeing and the file is written again.
+
 ## R459 review 1 and breaker 1, 2 Nov 2026
 
 - An AfterCommit that throws, or a move of floors_<NBH>_accepted.json that fails, comes after the warnings left the model. The line says the failure, the next step 5 raises none for floors left alone, so chip and sheet stay short. Needs a disk or lock failure.
@@ -547,3 +557,9 @@ No real input reaches these: the plot table of the demo holds whole numbers and 
 - RoadSurfaceChoices.NotTakenWhy finds a short name as a whole name in the prose reasons of notTaken: a surface named as a phrase of a reason, Grading, is refused loudly with the reason, and Typical Cross Sections, written with an underscore before it, is not found.
 - A saved pick naming a not taken file shows in the window as Not in the folder any more, the wrong words for it. It stays unticked and 2 Read data refuses it with the reason.
 - noRoadStopShare 1.0 never stops, not even at 100 percent, a config value set that way by hand.
+
+Round FIX-2NOV-C-CHECK, review 1 and the gate, 2 Nov 2026:
+- WorkerRunTests R347 tests are load sensitive: 7 of 60 runs failed under 12 parallel test processes (RAN), a 1 s time limit fires before the worker answers, or the launch takes over 1 s. One CI run failed with status failed, the message is now printed, its cause UNKNOWN.
+- Seven WPF tests failed once in a full net48 run while Revit started on the machine, all passed alone (RAN, 66 of 66).
+- Plural by count stays open where no real input reaches it: Review data title, New project plots and types, ScanView plots and files, 0 of 1 rows.
+- CheckTableState.Filter of two arguments has only test callers.

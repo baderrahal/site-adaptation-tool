@@ -2,7 +2,7 @@
 
 The checks of the four rounds of 1 Nov 2026, FIX-1NOV-A, B, C and D, on Revit 2024. One action per step. Each part ends with what to look for.
 
-Merged to main: fix/1nov-d (PR 126), fix/1nov-b (PR 127), fix/1nov-a (PR 128), fix/1nov-d2 (PR 129), fix/1nov-a2 (PR 130), fix/1nov-b-task6 (PR 131), fix/1nov-c (PR 132), fix/2nov-c (PR 133), fix/1nov-d3 (PR 134), fix/2nov-a (PR 139), and this update of the sheet. Nothing of these rounds is pending.
+Merged to main: fix/1nov-d (PR 126), fix/1nov-b (PR 127), fix/1nov-a (PR 128), fix/1nov-d2 (PR 129), fix/1nov-a2 (PR 130), fix/1nov-b-task6 (PR 131), fix/1nov-c (PR 132), fix/2nov-c (PR 133), fix/1nov-d3 (PR 134), fix/2nov-a (PR 139), docs/2nov-c-params (PR 141), and this update of the sheet. Nothing of these rounds is pending.
 
 ## 1. Pull, build and install
 
@@ -19,7 +19,7 @@ dotnet build dotnet\SiteAdaptation.sln -c Release
 C:\Users\p003653k\Tools\pwsh\pwsh.exe -File dotnet\SiteAdaptation.AddIn\Install-SiteAdaptation.ps1 -NoBuild
 ```
 
-Look for: git pull ends on the merge of docs/2nov-c-sheet-a. The build ends with "0 Error(s)". The install shows no red line and ends with two lines, "Manifest ... SiteAdaptationAddIn_Revit2024.addin names ..." and "one SiteAdaptation.Common.dll in ... folders of the tool, SHA-256 ...". If it says "Revit 2024 is running", close Revit and run the last line again.
+Look for: git pull ends on the merge of fix/2nov-c-check. The build ends with "0 Error(s)". The install shows no red line and ends with two lines, "Manifest ... SiteAdaptationAddIn_Revit2024.addin names ..." and "one SiteAdaptation.Common.dll in ... folders of the tool, SHA-256 ...". If it says "Revit 2024 is running", close Revit and run the last line again.
 
 ## 2. The model and the config
 
@@ -36,20 +36,20 @@ Look for: the pane Site Adaptation on the right, the inputs of C:\SA-demo\inputs
 
 1. Run buttons 1 to 4 on NBH 012 with the repo config of main. A config saved before FIX-1NOV-A has no floors.rampJoint, and its build stops with "floors.rampJoint.join must be true or false (R470)".
 2. In the 4 Check window, pick the chip Floor.
-3. Sort or filter the rows by the field rampJoint.
+3. In the Field list above the chips pick rampJoint. In the Find box type Fail, then Pass.
 
-Look for: 1,110 rampJoint rows on NBH 012, 670 Fail and 440 Pass. Each reads like "corner 2 shared with plots 2290, gap 0.012 m, Fail, passes at most 0.001 m". The ramps themselves are unchanged, since R470 ships with floors.rampJoint.join false (Q340).
+Look for: 1,110 rampJoint rows on NBH 012, 670 with Fail and 440 with Pass (R495, part 18). Each reads like "corner 2 shared with plots 2290, gap 0.012 m, Fail, passes at most 0.001 m". The ramps themselves are unchanged, since R470 ships with floors.rampJoint.join false (Q340).
 
 ## 4. Mass links and one reload (Lane B, PR 127)
 
 1. Run 1 to 6 as steps/demo-fill.md says.
-2. Press 7 Place villas, Run, then Apply. The first run makes 13 mass files in Documents\SiteAdaptation\masses, 2 to 3 minutes each, so about 30 minutes the first time (Q322).
+2. Press 7 Place villas, Run, then Apply. The first run makes 13 mass files in Documents\SiteAdaptation\masses, from the Revit 2021 folder about 41 minutes in Lane B's run with Model Upgrade boxes, from prototypes_2024 239 s (Q322, part 11).
 3. Manage, Manage Links, tab Revit.
-4. Close Manage Links, select a placed villa on plot 2291, then one on plot 2289, and read Properties each time.
+4. Close Manage Links. Revit shows no mirror row in Properties on a link, so the mirror is read in the report: after 9 Report open sheet Placed and read plots 2291 and 2289.
 5. In the config, change addin.lightMode.solidHeightM from 3 to 4 and save the file.
 6. Press 7 Place villas, Run, then Apply.
 
-Look for: 13 link types named like the prototypes, RRE-WP-NSP-KEO-ARC-<code>-ZZ-MOD-<n>.rvt, all Loaded. 336 link instances. Plot 2291 shows the mirror, plot 2289 does not. footprint_012.json in the work folder with a row per prototype. After step 6 every DT3 instance is 4.0 m tall, 68 of 68 in Lane B's run. A second run of 1 to 7 with no change shows nothing to place and makes no mass file again.
+Look for: 13 link types named like the prototypes, RRE-WP-NSP-KEO-ARC-<code>-ZZ-MOD-<n>.rvt, all Loaded. 336 link instances. On sheet Placed plot 2291 reads mirror True and plot 2289 False (the report, the model itself was not read). Each link and floor row shows an element id, a joined list where a person copied an element, empty where none stands. Manage, Select by ID takes the number (R483, Lane A, not yet seen on a real model). footprint_012.json in the work folder with a row per prototype. After step 6 every DT3 instance is 4.0 m tall, 68 of 68 in Lane B's run. A second run of 1 to 7 with no change shows nothing to place and makes no mass file again.
 
 ## 5. Coordinates read back under Manage (Lane B, PR 127)
 
@@ -59,7 +59,7 @@ Look for: 13 link types named like the prototypes, RRE-WP-NSP-KEO-ARC-<code>-ZZ-
 4. Manage, Location, tab Location.
 5. Manage, Coordinates, Specify Coordinates at Point or Report Shared Coordinates on the survey point.
 
-Look for: in step 2 the right column says the Road Layout "states UTM84-37N, EPSG 32637" and every other file "states no coordinate system". Project Address Makkah. Active position "ROSHN Makkah", shared easting and northing those the Road Layout gives, elevation 0, angle 0, and the 3 control point rows with a gap of 0.000 mm.
+Look for: in step 2 the right column says the Road Layout "states UTM84-37N, EPSG 32637" with "the reader skipped 217 named colours of this drawing, the position does not use them". They are DIC and RAL colour book entries, no line and no position. Another drawing with other read errors says "could not read n entries" instead. Every other file "states no coordinate system". Project Address Makkah. Active position "ROSHN Makkah", shared easting and northing those the Road Layout gives, elevation 0, angle 0, and the 3 control point rows with a gap of 0.000 mm.
 
 ## 6. The shared parameter Excel (Lane D, PR 126 and PR 129)
 
@@ -75,7 +75,7 @@ Look for: 23 rows with the columns Parameter, GUID, Data type, Group, Category, 
 1. After 5 Floors and ramps, open Project Browser, Families, Floors, Floor.
 2. Read the floor types listed.
 
-Look for: only the types of floors.types of the config, Generic 150mm, yard, Ramps 0.5%, Ramps 2% and Flat Ramps. No curb type and no floor named curb. Curbs are read only, to find the plot front (R355). The pane row Curbs stays and still takes the Road Layout drawing.
+Look for: the types of floors.types of the config, Generic 150mm, yard, Ramps 0.5%, Ramps 2% and Flat Ramps, and 8 other floor types the start model brings of its own. No curb type and no floor named curb. Curbs are read only, to find the plot front (R355). The pane row Curbs stays and still takes the Road Layout drawing.
 
 ## 8. The scanner picks used by button 2 (Lane A2, PR 130, R473, R474)
 
@@ -188,9 +188,52 @@ Not run in the add-in yet, Lane A applied the check to the last hand run by C# a
 
 Look for: in the line of step 3, ", over the footprint limit 0 of 57 of the same type, 271 of another type (Q277), 8 with no outline". If it says "footprint not measured" instead, the mass files were still to make. Press Run at 7 again after Apply, this retry has not run.
 
+## 17. The pane comes back, Show pane (Lane C, R494)
+
+Not run in Revit yet, this is the first check there.
+
+1. With a project open, Close it so Revit stands on Home.
+2. Open the project again.
+3. Hide the pane with its X.
+4. Press Show pane on the Site Adaptation tab.
+5. Close the project, and on Home press Show pane.
+
+Look for: at step 2 the pane is back by itself. At step 4 it is back. At step 5 it shows, or one line says Revit would not show it and to open a project.
+
+## 18. Sort and filter in 4 Check (Lane C, R495)
+
+Not run in Revit yet. Part 3 uses this window.
+
+1. Open 4 Check on Neighbourhood 012.
+2. Click the column head Plot, then click it again.
+3. In the Field list pick rampJoint.
+4. In the Find box type Fail, then type Pass.
+5. Change one Use, clear the Find box and the Field list, then press Close and Save.
+
+Look for: step 2 sorts up, then down. Step 3 shows 1,110 rows, step 4 shows 670, then 440, with a line "Showing n of m rows". At step 5 the Use you changed is kept, and the counts of the chips never move with the filter.
+
+## 19. Save As of What the tool read (Lane C, R495)
+
+Not run in Revit yet.
+
+1. Open What the tool read, press Export to Excel.
+2. With the Save As open, try to press Export to Excel again.
+3. Cancel.
+
+Look for: at step 2 the window does not answer and no second dialog opens.
+
+## 20. The crash on Browse For Folder, by your own hand (Q381)
+
+Lane B's script saw Revit crash once, 16 s after OK on Browse For Folder of the Prototypes row, in explorerframe.dll. Bader asked for three tries by hand. No session can try by hand, so these three are yours.
+
+1. On the row Prototypes press Browse, pick a folder with the mouse, press OK, then wait one minute.
+2. Do step 1 twice more, picking Desktop\Pictures as the script did at least once.
+
+Look for: Revit still open after each try. If it crashes, note which try and which folder and tell Lane C.
+
 ## Questions for Bader
 
-Every open question of steps/questions-open.md after the merge of fix/2nov-a, 154 open, by topic, the oldest first, each with its recommended answer. [demo] and [new project] mark the ones a demo or a new project meets first. The full text is in steps/questions-open.md.
+Every open question of steps/questions-open.md on 2 Nov, after PR 145, 163 open, by topic, the oldest first, each with its recommended answer. [demo] and [new project] mark the ones a demo or a new project meets first. The full text is in steps/questions-open.md.
 
 First for a demo or a new project: Q286, Q293, Q356.
 
@@ -210,7 +253,6 @@ First for a demo or a new project: Q286, Q293, Q356.
 - Q233 Slope limit at 3 or 4 decimals. Recommended: keep the raw value at 3 decimals.
 - Q234 Read step road levels under Rev 6. Recommended: leave the read as it is, it reads, the build chooses.
 - Q255 The override list under rev6. Recommended: a rev6 build applies no override of a past job, only the hand edits of the team (byHand), each override left with why.
-- Q256 The one road surface covers a quarter of ROSHN. Recommended: keep the one surface, a new project names its one finished road surface, ROSHN runs roshnPastJob (Q224).
 - Q260 Outline change of a placed floor. Recommended: In 5, delete the tagged floor and place it again inside the transaction, listing the old UniqueId.
 - Q262 Level Excel and the read back values. Recommended: The Levels sheet reads levels_<run id>.json and shows the level read back beside the plan.
 - Q263 Levels count still at its level. Recommended: RevitCountsReader takes levels_<run id>.json of the last committed run of 6 and counts a plot only while its tagged floors stand within 1 mm of it.
@@ -224,7 +266,6 @@ First for a demo or a new project: Q286, Q293, Q356.
 - Q354 Yards of a model already built. Recommended: keep it, build NBH 012 again from a new model to take the cut.
 - Q356 The off axis warning of a cut yard [demo]. Recommended: step 5 accepts this warning too and counts it, in Lane B's item L2NOV-1.
 - Q361 FFL rule far from keys without overrides. Recommended: Mark the level rules weak, keep ROSHN Makkah on the list, and compare rev6 on the same keys as the next data step.
-- Q364 One named road surface and several zones. Recommended: Keep one surface for now and make a run that writes no plot, or leaves out most, stop with a plain message naming the surface. Answer Q256 with this count in view.
 
 ### Walls
 
@@ -237,7 +278,11 @@ First for a demo or a new project: Q286, Q293, Q356.
 - Q268 Scope of a wall on two plots. Recommended: Any plot in the scope, as coded.
 - Q269 Untagged BW wall on a plan wall. Recommended: Match by both ends, skip and list it, never change it, as coded.
 - Q299 The front of a notched irregular plot. Recommended: check these 6 against the links of their keys in a later Lane A round, and add an override where the front is wrong.
-- Q360 Wall ends about 100 mm off the keys. Recommended: Lane A measures it in the Revit half of 6b on one model, the thickness and location line of the key walls against the line the plan writes. No rule changes until then.
+- Q357 Key walls with the face on the line. Recommended: keep the centre on the edge, the SE keys are structural models, and leave these as they are.
+- Q358 Walls only the keys hold. Recommended: leave the structural walls out, take the garden walls with Q259, and read the 37 back edges plot by plot in Phase 6.
+- Q359 A C10 side wall beside a VL6. Recommended: leave them, 12 edges are listed and the wall is short.
+- Q365 The side of a key wall. Recommended: read the wall flip and orientation from one key in a Revit read of Phase 6 and settle it there.
+- Q366 C10 side walls of the SE keys. Recommended: keep R480 on the TU measure, read the 19 against the architects' intent in Phase 6.
 
 ### Plots, clusters, hand and mirror
 
@@ -270,6 +315,7 @@ First for a demo or a new project: Q286, Q293, Q356.
 - Q337 Swap back in the same model unproven. Recommended: Answer Q323 as it recommends, then run the swap back on the D3L model once.
 - Q351 The limit of the footprint check. Recommended: 1,200 mm, it catches a mass placed a house width away and passes the plots that stand right.
 - Q353 The footprint check on other type plots. Recommended: hold those plots by the plot: the base inside its own plot and its front parallel to the plot front, in a later round.
+- Q381 The crash on Browse For Folder. Recommended: Bader's three tries, part 20 of the sheet. Fix only if it comes back.
 
 ### Coordinates and site position
 
@@ -350,6 +396,7 @@ First for a demo or a new project: Q286, Q293, Q356.
 - Q307 What the report Summary shows after a run. Recommended: Lane A fills the top line and the Levels row, adds walls to Placed, and takes one issue count for pane and report.
 - Q355 A Wrong on a plot of two numbers. Recommended: Review takes the official number where the location plan gives two, one line in ReviewTable.Rows and a test.
 - Q362 Chosen limits of the zone compare. Recommended: Keep them.
+- Q380 The save dialog and the input folder write time. Recommended: leave it. No file changed and the tool refuses the write. Test it on a scratch folder if a D19 record ever fails on it.
 
 ### Pane, New project and the windows
 
@@ -371,6 +418,11 @@ First for a demo or a new project: Q286, Q293, Q356.
 - Q293 Approve the three drafts of SCAN-UI [demo]. Recommended: approve the three as drawn, the labels in docs/design/14-ui-labels.md.
 - Q294 Rules chosen in Set up site, when used. Recommended: keep it so, the window says the choice is saved with the setup.
 - Q306 A neighbourhood picked after the first read. Recommended: button 2 takes the project key as button 1 does, since the pick does not change what is read.
+- Q370 Approve the road surface window draft. Recommended: Approve it as built, a small picker needs no band.
+- Q371 Seven non road files still offered. Recommended: A list designBasis.roadLevel.notRoad in config, read under rev6 only, the window leaves its names out and a build refuses them.
+- Q372 A road pick in the pane, when it is kept. Recommended: Keep it as a Browse, one rule for the pane rows.
+- Q373 New project does not start under rev6. Recommended: A project mode in the settings, set by Start from: Empty project takes newProjectMode, a saved project keeps its own. A round of its own, every reader of the mode takes it, as the road pick does.
+- Q374 The stop looks at the zone, not the neighbourhood. Recommended: Keep the zone as Bader set it.
 
 ### Test host and runs
 

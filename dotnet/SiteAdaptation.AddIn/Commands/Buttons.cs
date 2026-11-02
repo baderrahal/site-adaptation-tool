@@ -32,7 +32,22 @@ namespace SiteAdaptation.AddIn
             {
                 return Rules(application);
             }
+            if (commandName == nameof(Commands.ShowPaneCommand))
+            {
+                return ShowPane(application);
+            }
             return Run(RibbonLayout.ButtonOf(commandName), application);
+        }
+
+        // R494. No flow, no step and no model change. A pane Revit will not show is told in one line and the button ends as done
+        private static Result ShowPane(UIApplication application)
+        {
+            string refused = Pane.PaneFirstShow.ByHand(() => PaneHost.Current != null && PaneHost.Current.ShowByHand(application));
+            if (refused != null)
+            {
+                TaskDialog.Show(RibbonLayout.Tab, refused);
+            }
+            return Result.Succeeded;
         }
 
         // R403. The window changes no model element, so it takes no flow, no step and no saved project, only the rules file the pane

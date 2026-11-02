@@ -105,6 +105,25 @@ namespace SiteAdaptation.AddIn.Commands
         }
     }
 
+    // R494. Opens the pane by hand, also with no project open
+    [Transaction(TransactionMode.Manual)]
+    public sealed class ShowPaneCommand : IExternalCommand
+    {
+        public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
+        {
+            return Buttons.Run(nameof(ShowPaneCommand), commandData.Application);
+        }
+    }
+
+    // R494. Show pane stays on with no project open and in a family document, the pane belongs to the session
+    public sealed class AlwaysAvailable : IExternalCommandAvailability
+    {
+        public bool IsCommandAvailable(UIApplication applicationData, CategorySet selectedCategories)
+        {
+            return true;
+        }
+    }
+
     // The buttons stay grey with no project open
     public sealed class ProjectAvailability : IExternalCommandAvailability
     {

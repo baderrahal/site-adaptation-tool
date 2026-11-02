@@ -887,11 +887,11 @@ namespace SiteAdaptation.AddIn.Pane
         internal void Show(StepStatus status, bool next)
         {
             Chip = status.Kind;
-            ChipTip = status.Kind == StepKind.Issues ? TextTemplate.Fill(PaneText.DoneWithIssues, TextTemplate.Count(status.Value)) : null;
+            ChipTip = status.Kind == StepKind.Issues ? Common.CountText.Issues(TextTemplate.Fill(PaneText.DoneWithIssues, TextTemplate.Count(status.Value))) : null;
             switch (status.Kind)
             {
                 case StepKind.Done: ChipText = PaneText.Done; break;
-                case StepKind.Issues: ChipText = TextTemplate.Fill(PaneText.Issues, TextTemplate.Count(status.Value)); break;
+                case StepKind.Issues: ChipText = Common.CountText.Issues(TextTemplate.Fill(PaneText.Issues, TextTemplate.Count(status.Value))); break;
                 case StepKind.Ready: ChipText = PaneText.Ready; break;
                 case StepKind.NeedsStep: ChipText = TextTemplate.Fill(PaneText.NeedsStep, status.Value); break;
                 case StepKind.NeedsSettings: ChipText = PaneText.NeedsSettings; break;

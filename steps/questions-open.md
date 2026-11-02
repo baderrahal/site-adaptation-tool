@@ -20,7 +20,7 @@ Q284 Villa mode row the boards drop. Q285 Name the Rules row shows. Q286 Approve
 Q288 Scan picks in the settings at version 1. Q289 Board rows the scan does not read. Q290 Curbs and road surface left out of scan. Q291 Where the line Current files is shown. Q293 Approve the three drafts of SCAN-UI. Q294 Rules chosen in Set up site, when used. Q295 Test host runs skip the scan. Q300 Plots with no cluster proposal. Q301 The build takes the door level pick. Q302 Door level row under the past job. Q305 Hide Confirmed under the past job.
 Q306 A neighbourhood picked after the first read. Q307 What the report Summary shows after a run.
 Q326 Shared origin at the plot box centre. Q327 Elevation of the shared origin from CAD. Q329 The rule that picks the control points.
-Q331 Plot is no link parameter of the keys. Q332 FFL bound but never written. Q333 Categories beyond the link instances. Q334 An xlsx read inside Revit. Q336 Link parameter group is Text not Data. Q337 Swap back in the same model unproven. Q338 Input guard counts Revit .slog files. Q361 FFL rule far from keys without overrides. Q362 Chosen limits of the zone compare. Q363 Plot 2302 and two IMD FFL plots. Q370 Approve the road surface window draft. Q371 Seven non road files still offered. Q372 A road pick in the pane, when it is kept. Q373 New project does not start under rev6. Q374 The stop looks at the zone, not the neighbourhood.
+Q331 Plot is no link parameter of the keys. Q332 FFL bound but never written. Q333 Categories beyond the link instances. Q334 An xlsx read inside Revit. Q336 Link parameter group is Text not Data. Q337 Swap back in the same model unproven. Q338 Input guard counts Revit .slog files. Q361 FFL rule far from keys without overrides. Q362 Chosen limits of the zone compare. Q363 Plot 2302 and two IMD FFL plots. Q370 Approve the road surface window draft. Q371 Seven non road files still offered. Q372 A road pick in the pane, when it is kept. Q373 New project does not start under rev6. Q374 The stop looks at the zone, not the neighbourhood. Q380 The save dialog and the input folder write time. Q381 The crash on Browse For Folder. Q382 Ctrl+Z of button 1 keeps step Done. Q383 A tick on a held step reruns steps.
 
 Q149. M14, the boundary wall of an irregular plot (Round FOLD, docs/design/15-manual-rules.md). The canvas text reads "boundary wall 200 mm inside the plot limit". The Rev 06 manual, 2.8.A, p. 20 (PDF 23), reads "the boundary wall external face will be identical to the plot limit, and the 200mm will be positioned fully inside the plot", the outer face on the limit and the 200 mm wall thickness inside it. The canvas text is kept until Bader answers. It does not block, M14 is checked by 8 Walls in 5d.
 - Recommended: the PDF reading, the outer face of the wall on the plot limit and its 200 mm inside the plot, and the canvas text written so.
@@ -411,6 +411,14 @@ Q359. A C10 side wall beside a VL6 (R480, round FIX-2NOV-A2). R480 holds 229 of 
 - Recommended: leave them, 12 edges are listed and the wall is short.
 - Other: a span for a C10 beside a VL6, a rule measured on 12 edges.
 
+Q382. Ctrl+Z of button 1 keeps step Done (Lane B FIX-2NOV-B, breaker of Q158, R366). A real press of button 1, then Ctrl+Z with the config unchanged. The entity and the model go back. session.Runs of button 1 keeps the hash now and site.json on disk still matches, so step 1 shows Done and 2 to 8 go on with site.json at the undone position (READ PaneViewModel.cs, PaneSessions.cs, not run in Revit). Older than Q158.
+- Recommended: on an undo of a tool transaction the pane drops the session run of that button, so it reads the entity, and step 1 shows Ready.
+- Other: leave it, the pane reads right again after a reopen.
+
+Q383. A tick on a held step reruns steps (Lane B FIX-2NOV-B, Q158, R374). A Current tick changed on a step 1 that holds, then Apply, is now recorded so it survives a reopen. The record has a later time, so steps 2 to 8 go back to run again (RAN test R374_q158_recording_a_tick...), though a tick is an input of none of them (SEARCHED). A rules file change does need 4 to 8 again.
+- Recommended: keep as built, it is rare and the steps run again in seconds up to step 5, no rule of R366 changes.
+- Other: the record of a tick keeps the old time, a change in PaneRunState.RunOf and SetUpRun.
+
 Q365. The side of a key wall (R478, keyRules.wallLine, round FIX-2NOV-A2). The reads of the keys hold no side for a wall drawn on a face, so the compare and keyRules.wallLine (0.9208) both take the side nearer the plot edge. A centre on the far side would read up to 200 mm less than it stands, 330 mm for an Upsand wall (review 1). That the centre is on the edge is therefore a best case, not proven. The rows that reach a match only this way: tool on key 956, key on tool 705, of 2,466 (breaker 1). A real answer needs Wall.Flipped from the key read.
 - Recommended: read the wall flip and orientation from one key in a Revit read of Phase 6 and settle it there.
 - Other: accept the best case.
@@ -648,6 +656,14 @@ Q333. Categories beyond the link instances (Lane D FIX-1NOV-D, R461). The task b
 Q334. An xlsx read inside Revit (Lane D FIX-1NOV-D, R462). R350 kept every xlsx read in the worker. Buttons 1 and 7 run inside Revit and need the sheet with no worker start, so ParameterBook of Common reads its plain xlsx parts with no OpenXml, held to XlsxSheet of the worker by a test on the sheet of the repo and on inline strings.
 - Recommended: as built, for the parameter sheet alone.
 - Other: a worker command reads the sheet for buttons 1 and 7.
+
+Q380. The save dialog and the input folder write time (R495, Lane B CHECK-2NOV). C:\SA-demo\inputs got a new write time at 18:41:24 when that path was typed into Export of What the tool read. Refused, 0 files, the same 44 by SHA-256. A Windows save dialog can make a test file to check the folder can be written, and neither save dialog class offers a public setting to stop it (READ, the Win32 note on OFN_NOTESTFILECREATE). Not measured on this dialog, so UNKNOWN.
+- Recommended: leave it. No file changed and the tool refuses the write. Test it on a scratch folder if a D19 record ever fails on it.
+- Other: drive the dialog on a scratch folder now and show if it touches the folder.
+
+Q381. The crash on Browse For Folder (Lane B CHECK-2NOV, part 11 of the sheet). Revit crashed once, 16 s after OK on the Prototypes row, explorerframe.dll_unloaded, 0xc0000005, after a script's keys picked Desktop\Pictures. Bader asked for three tries by hand, which no session can do.
+- Recommended: Bader's three tries, part 20 of the sheet. Fix only if it comes back.
+- Other: leave it as seen once.
 
 Q370. Approve the road surface window draft (Lane D FIX-2NOV-D, R492). No board holds the window Road surfaces, steps/ui-shots/road-surfaces.png. It uses the SA tokens, its labels are marked CHOSEN, DRAFT. Against docs/design/12-ui-spec.md it has no SA.Band header and no How to use band, only a help line. A saved name the folder no longer holds sits at the bottom as Missing, unticked. The button is grey before a Start from is chosen, and under the past job.
 - Recommended: Approve it as built, a small picker needs no band.

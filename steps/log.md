@@ -2,6 +2,63 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Lane B FIX-2NOV-B Q158, 2026-11-02, button 1 with nothing different marks the step, R374, Lane B on the laptop
+
+Goal:
+- Bader's answer of Q158: a run of button 1 where nothing differs counts as Done, and the dead end of part 4 of steps/check-2nov.md goes
+
+Done:
+- Apply is on when nothing differs, one plain line says so, a press sets no element and records the step in the Settings entity
+- site.json is written when missing and also when it disagrees with the model, wider than the answer, CHOSEN: breaker found a stale file went green
+- Callers: SetUpRun.StepHolds by Confirm, SiteFileAgrees and SameFacts by StepHolds and Apply, SameSetup by StepHolds, ReadingLastRun by SetUpSiteBody,
+  DocumentSession.LastRun by PaneViewModel.LastRun and SetUpSiteBody, StepRun.FromSettings by DocumentSession.LastRun
+
+Checked:
+- Review 1: CHANGES NEEDED, 3 REAL fixed. Breaker 1: 3 REAL fixed. Second breaker pass on the fix: see the PR
+- Gate: see the PR. Not run in Revit, the hand run of task 4 checks part 4 again
+
+Remains:
+- Q382 and Q383. The hand run of task 4
+
+Known bugs:
+- Ctrl+Z of a real press of button 1 leaves step 1 Done (Q382)
+
+Next:
+- Install main, refresh C:\SA-demo\config, the hand run of task 4
+
+Your turn:
+- Q382 Ctrl+Z of button 1 keeps step Done. Q383 A tick on a held step reruns steps. 165 open, steps/questions-open.md
+
+## Lane C FIX-2NOV-C-CHECK, 2026-11-02, the Lane C items of steps/check-2nov.md
+
+Goal:
+- Bader's priority before the speed fixes: the pane, 4 Check, the Save As, the read problems line, the crash, the sheet faults
+
+Done:
+- R494: a project open brings the pane back, a ribbon button Show pane, a family or a link does not bring it back
+- R495: 4 Check sorts by any column, a Field list and a Find box, a hidden row keeps its Use. Plural by count, 1 plot, 1 override, 1 issue
+- Save As of What the tool read owned by its window. The read problems line says named colours only when all are, else counts entries
+- Sheet: parts 3, 4, 5, 7 corrected, 17 to 20 new, Lane A's R483 steps, question list rebuilt
+
+Checked:
+- Revit, RAN: close to Home and reopen brings the pane back, X then Show pane brings it back. 217 on the Road Layout are 156 DIC and 61 RAL entries (RAN, layers.json)
+- Review 1 with the UI checklist: CHANGES NEEDED, the REAL findings fixed. Tests of the review fixes were written with the fix, not seen failing first, except the ones named in the PR
+
+Remains:
+- Not run in Revit: 4 Check sort and filter on NBH 012, the Save As, Show pane on Home and in a family document. Parts 17 to 19 of the sheet are their first check
+- The crash: not reproduced, no session can try by hand, part 20 for Bader (Q381)
+- The first Revit pass pressed Always Load on 4 add-in prompts by Lane B's driver, whether Revit keeps that is UNKNOWN, the registry was not read
+
+Known bugs:
+- None new
+
+Next:
+- SPEED-2NOV-C
+
+Your turn:
+- Opened Q380 The save dialog and the input folder write time. Q381 The crash on Browse For Folder. Closed none.
+- 163 open, steps/questions-open.md
+
 ## Lane B FIX-2NOV-B task 3, 2026-11-02, step 5 accepts the known overlap, R459, Lane B on the laptop
 
 Goal:

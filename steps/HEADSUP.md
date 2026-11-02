@@ -11,10 +11,9 @@
 
 ### Lane B, C and D
 
-- Lane B FIX-2NOV-B, 23:48, branch fix/2nov-b-q158: R459 merged, PR 146. Helper fixes the Q158 faults since 23:30. Then breaker again, gate, PR, hand run of task 4. Lock free, nothing blocks.
-- Lane C, branch docs/2nov-c-params: the other 12 bound parameters listed Keep No with a Note in config/shared_parameters.xlsx. Then SPEED-2NOV-C on speed/2nov-c, R449 pushed, helpers on R447 and R448. Blocked: none
+- Lane B FIX-2NOV-B, 23:55, branch fix/2nov-b-q158: Q158 fixes done, main merged. Second breaker pass and gate running, then PR, then the hand run of task 4. Lock free, nothing blocks.
+- Lane C FIX-2NOV-C-CHECK, branch fix/2nov-c-check: R494 pane, R495 Check sort and filter, Save As owner, sheet parts 17 to 20. SPEED-2NOV-C paused on speed/2nov-c. Blocked: none
 - Lane D FIX-2NOV-D, 2 Nov, branch fix/2nov-d: no Revit, no window lock. Several road surfaces in order (Q364, Q256), R490 to R493, Q370 up. Editing NewProjectDialog and the pane road row, lane-c told.
-  Now: the gate, the PR, merge when green. Then MASS-2NOV-D. Blocked: none
 
 Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane D FIX-2NOV-D, 2 Nov 2026.
 
