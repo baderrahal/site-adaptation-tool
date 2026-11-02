@@ -64,6 +64,9 @@ namespace SiteAdaptation.Common.PlaceVillas
         public double LimitMm { get; set; }
         public bool Flagged { get; set; }
         public string Why { get; set; }
+
+        // R477, Q277. The block round the base when it is of another type than the unit of the plot, which is told apart and not flagged
+        public string OtherType { get; set; }
     }
 
     // R453. The house outlines of a footprint read, with the line that tells why there are none when the read came before R453 and holds
@@ -72,13 +75,35 @@ namespace SiteAdaptation.Common.PlaceVillas
     {
         public const string NoRings = "the footprint read has no house outlines, run 2 Read data again";
 
+        // R477. What a row says for a block the read gives no name, the name of no block a unit can match
+        public const string NoBlockName = "no block name";
+
+        private readonly Dictionary<double[][], string> blockNames = new Dictionary<double[][], string>();
+
         public string Missing { get; set; }
+
+        public void Add(double[][] outline, string block)
+        {
+            Add(outline);
+            blockNames[outline] = block;
+        }
+
+        // The name of the block an outline was drawn in, each outline being one array of the read, null for an outline added with none
+        public string BlockOf(double[][] outline)
+        {
+            return blockNames.TryGetValue(outline, out string block) ? block : null;
+        }
     }
 
     public sealed class FootprintSummary
     {
         public string Prototype { get; set; }
         public int Plots { get; set; }
+
+        // R477. The kinds of the plots, the gap and the count over the limit being of those of the same type only
+        public int SameType { get; set; }
+        public int OtherType { get; set; }
+        public int NoOutline { get; set; }
         public double? LargestGapMm { get; set; }
         public int OverLimit { get; set; }
     }
@@ -86,8 +111,10 @@ namespace SiteAdaptation.Common.PlaceVillas
     public static class FootprintCheck
     {
         // The footprint of a plot is the villa block of R300 whose outline holds the middle of the placed base, CHOSEN since a plot row
-        // names no block and the blocks are listed by block name only. Where two hold it the nearer middle wins
-        public static FootprintRow Row(string plot, IReadOnlyList<double[]> placedBase, IEnumerable<double[][]> blocks, LightModeConfig config, string prototype = null)
+        // names no block and the blocks are listed by block name only. Where two hold it the nearer middle wins. R477, Q277. Only a block
+        // of the type of the unit is held to the limit, the master plan drew another house in a block of another type. An outline with no
+        // block name, which no read gives, has no type to tell and is held as in R404
+        public static FootprintRow Row(string plot, IReadOnlyList<double[]> placedBase, IEnumerable<double[][]> blocks, LightModeConfig config, string prototype = null, string unit = null)
         {
             double[] middle = Middle(placedBase);
             double[][] block = blocks.Where(outline => outline.Length >= 3 && RingMath.Holds(outline, middle))
@@ -97,6 +124,15 @@ namespace SiteAdaptation.Common.PlaceVillas
                 return new FootprintRow { Plot = plot, Prototype = prototype, LimitMm = config.FootprintLimitMm, Flagged = true, Why = "no villa block or house outline of the footprint holds the middle of the base" };
             }
             double distance = JsonOut.Round3(OutlineDistance.HausdorffMm(placedBase, block, config.FootprintSampleStepMm));
+            string name = (blocks as FootprintOutlines)?.BlockOf(block);
+            if (name != null && !SameType(name, unit))
+            {
+                return new FootprintRow
+                {
+                    Plot = plot, Prototype = prototype, DistanceMm = distance, LimitMm = config.FootprintLimitMm, OtherType = name,
+                    Why = "the block " + name + " round the base is another type than the unit " + (unit ?? "(none in the plan)") + ", not held to the limit (Q277)",
+                };
+            }
             bool over = distance > config.FootprintLimitMm;
             return new FootprintRow
             {
@@ -105,10 +141,25 @@ namespace SiteAdaptation.Common.PlaceVillas
             };
         }
 
+        // R477. The type of a block is the part of its name after the last underscore, so a name with none is of no type
+        private static bool SameType(string block, string unit)
+        {
+            int underscore = block.LastIndexOf('_');
+            return underscore >= 0 && string.Equals(block.Substring(underscore + 1), unit, StringComparison.OrdinalIgnoreCase);
+        }
+
         // Every outline of the footprint read of button 2 (read_villaBlocks.json), by SiteClusters.BlocksByName as the build reads it
         public static List<double[][]> FromRead(JObject villaBlocksRead)
         {
-            return SiteClusters.BlocksByName(villaBlocksRead?["blocks"] as JArray ?? new JArray()).SelectMany(group => group.Value).ToList();
+            var outlines = new FootprintOutlines();
+            foreach (KeyValuePair<string, List<double[][]>> group in SiteClusters.BlocksByName(villaBlocksRead?["blocks"] as JArray ?? new JArray()))
+            {
+                foreach (double[][] outline in group.Value)
+                {
+                    outlines.Add(outline, group.Key == SiteClusters.NoName ? FootprintOutlines.NoBlockName : group.Key);
+                }
+            }
+            return outlines;
         }
 
         // R453, Q276. The house outlines of each footprint block, the rings the read joined on houseLayer of at least houseMinAreaM2, in
@@ -137,27 +188,42 @@ namespace SiteAdaptation.Common.PlaceVillas
                     List<double[]> points = FaceRings.Clean((ring["points"] as JArray ?? new JArray()).Select(point => new[] { (double)point[0], (double)point[1] }));
                     if (points.Count >= 3 && Math.Abs(RingMath.Area(points)) >= config.HouseMinAreaM2.Value)
                     {
-                        houses.Add(points.ToArray());
+                        houses.Add(points.ToArray(), (string)block["name"] ?? FootprintOutlines.NoBlockName);
                     }
                 }
             }
             return houses;
         }
 
-        // R453. Per prototype the plots measured, the largest gap and the count over the limit, in the order of the file name
+        // R477. A row held to the limit, its block of the type of the unit
+        private static bool Held(FootprintRow row)
+        {
+            return row.DistanceMm.HasValue && row.OtherType == null;
+        }
+
+        // R453, R477. Per prototype the plots, those of each kind, and of those of the same type the largest gap and the count over the
+        // limit, in the order of the file name. The gap to another type says nothing of the base, so it stays in its row only
         public static List<FootprintSummary> Summary(IEnumerable<FootprintRow> rows)
         {
             return rows.GroupBy(row => row.Prototype ?? "", StringComparer.OrdinalIgnoreCase).OrderBy(group => group.Key, StringComparer.Ordinal).Select(group => new FootprintSummary
             {
-                Prototype = group.Key, Plots = group.Count(), LargestGapMm = group.Max(row => row.DistanceMm), OverLimit = group.Count(row => row.Flagged),
+                Prototype = group.Key, Plots = group.Count(), SameType = group.Count(Held), OtherType = group.Count(row => row.OtherType != null), NoOutline = group.Count(row => !row.DistanceMm.HasValue),
+                LargestGapMm = group.Where(Held).Max(row => row.DistanceMm), OverLimit = group.Count(row => Held(row) && row.Flagged),
             }).ToList();
         }
 
         public static IEnumerable<string> SummaryLines(IEnumerable<FootprintRow> rows)
         {
-            return Summary(rows).Select(item => "prototype " + item.Prototype + ": largest gap to the house outline "
-                + (item.LargestGapMm.HasValue ? item.LargestGapMm.Value.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + " mm" : "not measured")
-                + ", " + item.OverLimit + " of " + item.Plots + " plots over the limit (R453)");
+            return Summary(rows).Select(item => "prototype " + item.Prototype + ": "
+                + (item.LargestGapMm.HasValue ? "largest gap to the house outline " + item.LargestGapMm.Value.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + " mm, " + item.OverLimit + " of " + item.SameType + " plots of the same type over the limit" : "no plot of the same type")
+                + ", " + item.OtherType + " of another type (Q277), " + item.NoOutline + " with no outline (R453, R477)");
+        }
+
+        // R477. The part of the run line for the plots measured
+        public static string RunCounts(IReadOnlyCollection<FootprintRow> rows)
+        {
+            return ", over the footprint limit " + rows.Count(row => Held(row) && row.Flagged) + " of " + rows.Count(Held) + " of the same type, "
+                + rows.Count(row => row.OtherType != null) + " of another type (Q277), " + rows.Count(row => !row.DistanceMm.HasValue) + " with no outline";
         }
 
         // masses holds the base of each mass file by its prototype, so a base taken from the slab is a row of its own (R451, Q279)
@@ -167,13 +233,18 @@ namespace SiteAdaptation.Common.PlaceVillas
             return new JObject
             {
                 ["format"] = "site-adaptation-footprint",
+                ["counts"] = new JObject
+                {
+                    ["sameType"] = all.Count(Held), ["overLimit"] = all.Count(row => Held(row) && row.Flagged), ["otherType"] = all.Count(row => row.OtherType != null), ["noOutline"] = all.Count(row => !row.DistanceMm.HasValue),
+                },
                 ["rows"] = new JArray(all.Select(row => new JObject
                 {
-                    ["plot"] = row.Plot, ["prototype"] = row.Prototype, ["distanceMm"] = row.DistanceMm, ["limitMm"] = row.LimitMm, ["flagged"] = row.Flagged, ["why"] = row.Why,
+                    ["plot"] = row.Plot, ["prototype"] = row.Prototype, ["distanceMm"] = row.DistanceMm, ["limitMm"] = row.LimitMm, ["flagged"] = row.Flagged, ["otherType"] = row.OtherType, ["why"] = row.Why,
                 })),
                 ["prototypes"] = new JArray(Summary(all).Select(item => new JObject
                 {
-                    ["prototype"] = item.Prototype, ["plots"] = item.Plots, ["largestGapMm"] = item.LargestGapMm, ["overLimit"] = item.OverLimit,
+                    ["prototype"] = item.Prototype, ["plots"] = item.Plots, ["sameType"] = item.SameType, ["otherType"] = item.OtherType, ["noOutline"] = item.NoOutline,
+                    ["largestGapMm"] = item.LargestGapMm, ["overLimit"] = item.OverLimit,
                 })),
                 ["masses"] = new JArray((masses ?? Enumerable.Empty<KeyValuePair<string, MassBase>>()).Where(item => item.Value != null).OrderBy(item => item.Key, StringComparer.Ordinal)
                     .Select(item => new JObject
