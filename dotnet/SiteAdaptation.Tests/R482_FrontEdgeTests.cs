@@ -254,8 +254,8 @@ namespace SiteAdaptation.Tests
         [Fact]
         public void R482_the_check_table_shows_the_rule_and_the_past_in_words()
         {
-            // No plain words yet, docs/design/14-ui-labels.md holds none for the field, so the table shows the code name and the value as the list writes it
-            Assert.Equal("parsons frontEdge", CheckShown.RuleName("parsons frontEdge"));
+            // The rule column names the rule the row departs from, the front sets the link rotation by keyRules.linkRotation, and the past is the value as the list writes it
+            Assert.Equal(CheckShownText.LinkRotation, CheckShown.RuleName("parsons frontEdge"));
             Assert.Contains("3", CheckShown.Past(Named(3)));
             JObject config = JObject.Parse(File.ReadAllText(WorkerRunTests.RepoConfig()));
             Assert.Equal("Position", (string)config["checkRows"]["fields"]["frontEdge"]["check"]);

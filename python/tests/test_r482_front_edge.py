@@ -210,7 +210,8 @@ def test_r482_the_check_table_and_the_report_know_the_field():
 
 
 def test_r482_each_line_of_the_list_is_a_hand_edit_whose_plot_holds_no_gap_of_the_old_front():
-    data = json.loads((project_profile.ROOT / "config" / "overrides" / "roshn-makkah.json").read_text(encoding="utf-8"))
+    settings = project_profile.load_settings()
+    data = json.loads((project_profile.ROOT / "config" / "overrides" / project_profile.profile_path(settings).name).read_text(encoding="utf-8"))
     lines = [item for item in data["overrides"] if item["field"] == "frontEdge"]
     plots = {item["plot"] for item in lines}
     assert len(plots) == len(lines) > 0
