@@ -874,14 +874,21 @@ namespace SiteAdaptation.Common
                         JToken keo = (rules["typologies"]?[unit] as JObject)?["keo_file"];
                         string yardUnit = groups.OfType<JObject>().Any(group => (string)group["unit"] == unit) ? unit : keo != null && keo.Type == JTokenType.String && ((string)keo).Length > 0 ? (string)keo : unit;
                         JObject group = FloorOutlines.OutlineFor(groups, yardUnit, (bool)mirrored, FloorOutlines.WidthKey(item.Frame.Length, step));
+                        // R475. Cut by the ramp the plot ends with, on the open edge of Q116 after a turn
+                        List<List<double[]>> cut = null;
                         if (group != null)
                         {
                             double[] origin = insert.Select(value => Rounding.Fixed(value, 3)).ToArray();
-                            made["yardZ"] = fflWritten.Value - below.Value;
-                            made["yardOutline"] = ((JArray)group["loops"]).Select(loop => FloorOutlines.ToWorld((JArray)loop, origin, (double)rotation.Written, (bool)mirrored)).ToList();
-                            found[number].YardType = group["type"]?.Type == JTokenType.String ? (string)group["type"] : null;
+                            cut = FloorOutlines.YardInPlot(((JArray)group["loops"]).Select(loop => FloorOutlines.ToWorld((JArray)loop, origin, (double)rotation.Written, (bool)mirrored)).ToList(),
+                                item.Face?.Ring, ramp ? outline : null);
+                            if (cut.Count > 0)
+                            {
+                                made["yardZ"] = fflWritten.Value - below.Value;
+                                made["yardOutline"] = cut;
+                                found[number].YardType = group["type"]?.Type == JTokenType.String ? (string)group["type"] : null;
+                            }
                         }
-                        noYard = group == null;
+                        noYard = group == null || cut.Count == 0;
                     }
                 }
                 Tuple<List<string>, JObject> outcome = outcomes.Plot(number, written, lacks, list, later, profileName);

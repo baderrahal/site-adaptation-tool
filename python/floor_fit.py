@@ -15,6 +15,7 @@ import sys
 from collections import Counter, defaultdict
 from pathlib import Path
 
+import pyclipr
 import shapely
 from shapely.geometry import Point, Polygon
 from shapely.ops import unary_union
@@ -41,6 +42,8 @@ LEVEL_BANDS = (("within5mm", 0.005), ("within30mm", 0.030))
 DENSIFY = 0.05
 EPSILON = 1e-9
 KINDS = ("generic", "yard")
+# R475. The line of a plot whose fitted yard outline the cut leaves empty, FloorOutlines.YardCutEmpty of the C#
+YARD_CUT_EMPTY = "the cut of R475 leaves the fitted yard outline empty"
 NOTE = ("Measured from the {job} past job, not a rule of the client, written by python/floor_fit.py --write and never by hand (R135, R136). "
         "outlines: per floor kind one group per unit, mirror flag and plot width, the width being the front edge of the baseplan face (R122) rounded to cadLinks.floorWidthStepM. "
         "loops are in the axes of the link, x along its X axis and y along its Y axis from its origin, so the outline is placed by the insert, rotation and mirror flag of the link. "
@@ -275,6 +278,56 @@ def outline_for(data, kind, unit, mirrored, width):
         if group["unit"] == unit and group["mirrored"] == mirrored and abs(group["width"] - width) < EPSILON:
             return group
     return None
+
+
+def grid_rings(loops):
+    """R475. Rings in whole mm, on the 3 decimals the plan writes by R385, a ring of under 3 points left out."""
+    return [[[round(common.r3(x) * 1000), round(common.r3(y) * 1000)] for x, y, *_ in loop] for loop in loops if len(loop) >= 3]
+
+
+def clip_rings(kind, subject, other=None):
+    """R475. One run of the clipper by even-odd fill on rings in whole mm, a collinear vertex left out as FloorOutlines.ClipRings leaves it."""
+    if not subject:
+        return []
+    clipper = pyclipr.Clipper()
+    # The rings are whole mm already and the default of pyclipr scales by 1000
+    clipper.scaleFactor = 1.0
+    clipper.preserveCollinear = False
+    clipper.addPaths(subject, pyclipr.Subject)
+    if other:
+        clipper.addPaths(other, pyclipr.Clip)
+    return [[[int(x), int(y)] for x, y in ring.tolist()] for ring in clipper.execute(kind, pyclipr.FillRule.EvenOdd)]
+
+
+def doubled_area(rings):
+    """R475. Twice the area of rings in whole mm, a hole of the clipper counted negative, an exact integer."""
+    return sum(ring[at - 1][0] * point[1] - point[0] * ring[at - 1][1] for ring in rings for at, point in enumerate(ring))
+
+
+def fixed_rings(rings):
+    """R475. The one order of the two languages: each ring from its smallest (x, y), the winding of the clipper kept, outer rings anticlockwise
+    and holes clockwise, outer rings first, each kind sorted."""
+    outer, holes = [], []
+    for ring in rings:
+        start = ring.index(min(ring))
+        (outer if doubled_area([ring]) > 0 else holes).append(ring[start:] + ring[:start])
+    return sorted(outer) + sorted(holes)
+
+
+def yard_in_plot(loops, face_ring, ramp_ring):
+    """R475. The even-odd yard loops cut to the face and by the ramp on the grid of 1 mm, each by what the plot has, in metres as whole mm / 1000.0
+    in the order of fixed_rings. No loops when the cut leaves nothing. A yard the cut leaves its own area on the grid is the given loops themselves."""
+    whole = clip_rings(pyclipr.Union, grid_rings(loops))
+    cut = whole
+    if face_ring:
+        cut = clip_rings(pyclipr.Intersection, cut, grid_rings([face_ring]))
+    if ramp_ring:
+        cut = clip_rings(pyclipr.Difference, cut, grid_rings([ramp_ring]))
+    if not cut:
+        return []
+    if doubled_area(cut) == doubled_area(whole):
+        return loops
+    return [[[x / 1000.0, y / 1000.0] for x, y in ring] for ring in fixed_rings(cut)]
 
 
 def width_step(settings):
