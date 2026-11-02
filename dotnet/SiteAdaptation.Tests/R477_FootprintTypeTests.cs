@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using Newtonsoft.Json.Linq;
 using SiteAdaptation.Common;
+using SiteAdaptation.Common.CheckTable;
 using SiteAdaptation.Common.Flow;
 using SiteAdaptation.Common.PlaceVillas;
 using SiteAdaptation.Common.Settings;
@@ -71,11 +72,11 @@ namespace SiteAdaptation.Tests
         }
 
         // The base lies shifted east of its house by the given metres, so the gap of the check is that shift
-        private static FootprintRow RowOf(string block, string unit, double shiftM = 0.0, string prototype = "x.rvt")
+        private static FootprintRow RowOf(string block, string unit, double shiftM = 0.0, string prototype = "x.rvt", string keoFile = null)
         {
             var read = new JObject { ["blocks"] = new JArray(ReadBlock(block, Shape)) };
             LightModeConfig config = Config();
-            return FootprintCheck.Row("101", Strip(shiftM, 0, 8 + shiftM, 15), FootprintCheck.FromRead(read, config), config, prototype, unit);
+            return FootprintCheck.Row("101", Strip(shiftM, 0, 8 + shiftM, 15), FootprintCheck.FromRead(read, config), config, prototype, unit, keoFile);
         }
 
         [Fact]
@@ -236,6 +237,11 @@ namespace SiteAdaptation.Tests
 
         private PlaceVillasRun Make(JObject read, params PlanPlot[] plots)
         {
+            return Make(read, new Dictionary<string, string>(), plots);
+        }
+
+        private PlaceVillasRun Make(JObject read, IReadOnlyDictionary<string, string> keoFiles, params PlanPlot[] plots)
+        {
             var plan = new PlanFile
             {
                 Format = PlanFile.FormatName, FormatVersion = PlanFile.Version, Neighbourhood = "012",
@@ -247,7 +253,7 @@ namespace SiteAdaptation.Tests
             {
                 Plan = plan, PlanPath = Path.Combine(work, "plan_012.json"), Config = config, Mode = VillaModes.Masses, Profile = "parsons2024Rev6",
                 ParameterGuids = new Dictionary<string, string> { [LinkFields.PlotNumber] = FakeVillas.PlotGuid },
-                Footprint = FootprintCheck.FromRead(read, config),
+                Footprint = FootprintCheck.FromRead(read, config), KeoFiles = keoFiles,
             };
             return new PlaceVillasRun(new FakeVillas(), load, context => new ShapeCache(context.WorkFolder, new FixedShape(), path => new string('a', 64)), path => new string('a', 64), lines => true);
         }
@@ -300,6 +306,84 @@ namespace SiteAdaptation.Tests
             var read = new JObject { ["blocks"] = new JArray(ReadBlock("Villa_VL4", Strip(1100, 2000, 1108, 2015))) };
             string counts = Make(read, Plot("101", 1100.5, null, FileOfVl4)).Body().Preview(Context()).Counts;
             Assert.Contains(", over the footprint limit 0 of 1 of the same type, 0 of another type (Q277), 0 with no outline", counts);
+        }
+
+        [Fact]
+        public void R479_a_unit_goes_through_its_keo_file_before_the_compare_so_a_th1_im_in_a_th1_block_is_the_same_type()
+        {
+            FootprintRow row = RowOf("Villa_TH1", "TH1-IM", 0.63, keoFile: "TH1");
+            Assert.Null(row.OtherType);
+            Assert.False(row.Flagged);
+            Assert.Equal(630.0, row.DistanceMm.Value, 3);
+            Assert.True(RowOf("Villa_TH1", "TH1-IM", 1.3, keoFile: "TH1").Flagged);
+        }
+
+        [Fact]
+        public void R479_a_unit_with_no_keo_file_compares_by_its_own_name_as_before()
+        {
+            Assert.Equal("Villa_TH1", RowOf("Villa_TH1", "TH1-IM", 0.63).OtherType);
+            Assert.Null(RowOf("Villa_TH1", "TH1", 0.63).OtherType);
+        }
+
+        [Theory]
+        [InlineData("Duplex_DP4", true)]
+        [InlineData("Villa_VD4", true)]
+        [InlineData("Duplex_DP2", false)]
+        public void R479_a_unit_with_a_keo_file_is_the_same_type_in_a_block_of_that_file_or_of_its_own_name_and_no_other(string block, bool same)
+        {
+            Assert.Equal(same ? null : block, RowOf(block, "VD4", 0.63, keoFile: "DP4").OtherType);
+        }
+
+        [Fact]
+        public void R479_the_keo_files_are_read_from_typologies_of_the_rules_and_a_rules_file_with_none_gives_none()
+        {
+            Dictionary<string, string> real = FootprintCheck.KeoFiles(JObject.Parse(File.ReadAllText(BuildStepTests.RepoRules())));
+            Assert.Equal("TH1", real["TH1-IM"]);
+            Assert.Equal("TH1", real["th1-im"]);
+            Dictionary<string, string> made = FootprintCheck.KeoFiles(JObject.Parse("{ 'typologies': { 'A1': { 'keo_file': 'B1' }, 'A2': { }, 'A3': { 'keo_file': '' }, 'A4': { 'keo_file': 1 } } }"));
+            Assert.Equal(new[] { "A1" }, made.Keys.ToArray());
+            Assert.Empty(FootprintCheck.KeoFiles(new JObject()));
+            Assert.Empty(FootprintCheck.KeoFiles(null));
+        }
+
+        [Fact]
+        public void R479_the_run_takes_the_keo_file_of_the_unit_of_the_plan()
+        {
+            var read = new JObject { ["blocks"] = new JArray(ReadBlock("Villa_TH1", Strip(1100, 2000, 1108, 2015))) };
+            string before = Make(read, Plot("101", 1100.63, "TH1-IM")).Body().Preview(Context()).Counts;
+            Assert.Contains(", over the footprint limit 0 of 0 of the same type, 1 of another type (Q277), 0 with no outline", before);
+            string after = Make(read, new Dictionary<string, string> { ["TH1-IM"] = "TH1" }, Plot("101", 1100.63, "TH1-IM")).Body().Preview(Context()).Counts;
+            Assert.Contains(", over the footprint limit 0 of 1 of the same type, 0 of another type (Q277), 0 with no outline", after);
+        }
+
+        [Fact]
+        public void R479_the_loader_takes_the_keo_files_from_the_rules_file_the_run_of_4_check_built_the_plan_on()
+        {
+            string runId = "R4-20261102-090000";
+            string folder = Path.Combine(work, CheckRun.FolderPrefix + runId);
+            Directory.CreateDirectory(folder);
+            string planPath = Path.Combine(folder, CheckRun.PlanName("012"));
+            File.WriteAllText(planPath, Newtonsoft.Json.JsonConvert.SerializeObject(new PlanFile
+            {
+                Format = PlanFile.FormatName, FormatVersion = PlanFile.Version, Neighbourhood = "012",
+                SurveyPoint = new PlanSurveyPoint { Position = new[] { 0.0, 0.0, 0.0 }, SharedPosition = new[] { 1000.0, 2000.0, 0.0 } },
+                AngleToTrueNorthDeg = 0, PrototypeFolder = prototypes, Plots = new List<PlanPlot>(),
+            }));
+            File.WriteAllText(Path.Combine(folder, CheckRun.RecordFile), CheckRun.Record(runId, new Dictionary<string, string> { [planPath] = FileHash.Sha256(planPath) }).ToString());
+            string rules = Path.Combine(work, "rules.json");
+            File.WriteAllText(rules, new JObject { ["typologies"] = new JObject { ["TH1-IM"] = new JObject { ["keo_file"] = "TH1" } } }.ToString());
+            new WorkerRequest
+            {
+                FormatVersion = WorkerRequest.CurrentFormatVersion, RunId = runId, Command = "build", LevelProfile = "parsons2024Rev6", OutputFolder = folder,
+                Inputs = new List<WorkerFile> { new WorkerFile { Role = CheckRun.Rules, Path = rules, Sha256 = FileHash.Sha256(rules) } },
+            }.Write(folder);
+            string config = Path.Combine(work, "project.json");
+            JToken addin = JObject.Parse(File.ReadAllText(Path.Combine(ThemeGateTests.RepoRoot(), "config", "project.json")))["addin"];
+            File.WriteAllText(config, new JObject { ["addin"] = new JObject { ["lightMode"] = addin["lightMode"], ["parameterSheet"] = Path.Combine(ThemeGateTests.RepoRoot(), "config", "shared_parameters.xlsx") } }.ToString());
+
+            VillaInputs inputs = VillaLoad.Load(Context(), "012", config, null, "p", null);
+
+            Assert.Equal("TH1", inputs.KeoFiles["TH1-IM"]);
         }
 
         [Fact]
