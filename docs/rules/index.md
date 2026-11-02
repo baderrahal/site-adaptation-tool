@@ -400,6 +400,7 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R477 Footprint check by same type.
 - R478 Wall compare by wall centre.
 - R479 One villa type by prototype file.
+- R480 C10 side wall by hand.
 
 ## 11-scanner-r420-up.md
 
