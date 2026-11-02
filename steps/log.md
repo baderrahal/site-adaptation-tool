@@ -17,7 +17,7 @@ Checked:
 - One surface on the 5 zones: IMD, IME, IMF, IMG and the whole project exit 2 with the message and no plan, IMC exit 0, it holds all its plots. The C# worker on IMD the same line on net48 and net8.0
 - Parity: 13 steps, net48 and net8.0, whole project and the 7 keys, past job and rev6, 32 runs, 2 more on the old key, 34 runs, 442 lines, 0 failures. 62 inputs the same by SHA-256
 - Review 1 and breaker 1 found 5 REAL faults, fixed with tests: the pick outside the input hash, a surface not taken offered, the stop blaming a surface for a plot with no front, a surface left out stopping 4, a pick surviving Start from. Review 2 APPROVE on what it reached, 25 calls
-- GATE_LINE
+- Gate: dotnet 2,077 on net48 and 1,810 on net8.0 passed. Pytest 2,371 passed, 1 skipped, 1 failed: test_r401_q109, the status block after Q256 closed. Written by rule_status.py, that file and 2 more then 75 passed, the full pytest not run again after that one line, CI ran it
 
 Remains:
 - 7 non road files still offered (Q371). A new project does not reach rev6 by any window (Q373), so the road pick is grey on the shipped config. No Revit run of the window
