@@ -202,6 +202,14 @@ def revit_counts(counts):
     return plots
 
 
+def element_id(plots, number, kind):
+    """R483: the Element id cell of a plot and kind from the ids of the counts file, the id, the ids joined in order, None with none."""
+    ids = sorted(set((((plots or {}).get(number) or {}).get("ids") or {}).get(kind) or []))
+    if not ids:
+        return None
+    return ids[0] if len(ids) == 1 else ", ".join(str(item) for item in ids)
+
+
 def counts_box(placed, written, mock, revit=None, manual=NO_MANUAL_BLOCK):
     """The box Counts agree across outputs: Revit the totals the add-in read or not placed yet, Excel the rows of the Placed sheet, and one Issues
     row per item whose plan, Revit and Excel counts differ on any two, a text count compared with none."""
@@ -261,9 +269,9 @@ def expected(inputs, profile_name, mock):
         walls = [wall for wall in plan.get("walls") or [] if wall.get("plot") in names]
         placed = []
         for plot in mine_written:
-            placed.append([plot["plot"], LINK, (plot.get("unit") or {}).get("value"), (plot.get("mirrored") or {}).get("value"), None])
+            placed.append([plot["plot"], LINK, (plot.get("unit") or {}).get("value"), (plot.get("mirrored") or {}).get("value"), element_id(revit, plot["plot"], LINK)])
             for kind, floor in (plot.get("floors") or {}).items():
-                placed.append([plot["plot"], kind, ((floor or {}).get("type") or {}).get("value"), None, None])
+                placed.append([plot["plot"], kind, ((floor or {}).get("type") or {}).get("value"), None, element_id(revit, plot["plot"], kind)])
         skipped = []
         for item in mine_missing:
             lacks = item.get("missing") or []

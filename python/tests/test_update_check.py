@@ -115,6 +115,19 @@ def test_r402_an_edited_copy_lists_each_change_its_rule_check_the_tiles_and_the_
     assert found["lacks"] == []
 
 
+def test_r483_a_filled_element_id_lists_nothing(tmp_path):
+    report = tmp_path / "012_Report.xlsx"
+    write_report(report)
+    book = openpyxl.load_workbook(report)
+    for row in range(2, book["Placed"].max_row + 1):
+        book["Placed"].cell(row=row, column=5).value = 5000 + row
+    book.save(report)
+    found = check.result([check.read_book(report)], PLAN, SHA, RULES, PROFILE, None, "u1")
+    assert found["refusal"] is None
+    assert found["ignored"] == []
+    assert found["changes"] == []
+
+
 def test_r402_apply_saves_each_ticked_change_as_an_override_that_gives_back_its_cell(books):
     found = check.result(books, PLAN, SHA, RULES, PROFILE, OVERRIDES, "u1", tick="all")
     assert found["plots"] == ["101", "102", "103"] and found["notApplied"] == []

@@ -285,6 +285,19 @@ def test_r381_the_revit_counts_fill_the_revit_column_and_a_mismatch_of_any_two_i
         build(tmp_path, revit={"format": "another"})
 
 
+def test_r483_the_placed_sheet_is_held_against_the_ids_of_the_counts_file(tmp_path):
+    floors = {"generic": 1, "yard": 0, "ramp": 2}
+    revit = {"format": "siteAdaptationRevitCounts", "formatVersion": 1, "levelRun": None,
+             "plots": {"101": {"links": 1, "floors": floors, "level": False, "ids": {"link": [5001], "generic": [5002], "ramp": [5004, 5003]}}}}
+    paths, mock, want = build(tmp_path, revit=revit)
+    placed = {(row[0], row[1]): row[4] for row in want["books"]["012"]["sheets"]["Placed"]}
+    assert placed[("101", "link")] == 5001
+    assert placed[("101", "generic")] == 5002
+    assert placed[("101", "ramp")] == "5003, 5004"
+    assert placed[("102", "link")] is None
+    assert check.element_id(None, "101", "link") is None
+
+
 def test_r365_settings_with_no_block_addin_report_are_refused(made, tmp_path):
     paths, mock, want = made
     bare = dict(CONFIG)
