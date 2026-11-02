@@ -2,6 +2,33 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Lane B FIX-2NOV-B Q158, 2026-11-02, button 1 with nothing different marks the step, R374, Lane B on the laptop
+
+Goal:
+- Bader's answer of Q158: a run of button 1 where nothing differs counts as Done, and the dead end of part 4 of steps/check-2nov.md goes
+
+Done:
+- Apply is on when nothing differs, one plain line says so, a press sets no element and records the step in the Settings entity
+- site.json is written when missing and also when it disagrees with the model, wider than the answer, CHOSEN: breaker found a stale file went green
+- Callers: SetUpRun.StepHolds by Confirm, SiteFileAgrees and SameFacts by StepHolds and Apply, SameSetup by StepHolds, ReadingLastRun by SetUpSiteBody,
+  DocumentSession.LastRun by PaneViewModel.LastRun and SetUpSiteBody, StepRun.FromSettings by DocumentSession.LastRun
+
+Checked:
+- Review 1: CHANGES NEEDED, 3 REAL fixed. Breaker 1: 3 REAL fixed. Second breaker pass: 0 faults of the fix, 1 REAL older gap added to Q382, 3 LATENT
+- Gate: see the PR. Not run in Revit, the hand run of task 4 checks part 4 again
+
+Remains:
+- Q382 and Q383. The hand run of task 4
+
+Known bugs:
+- Ctrl+Z of a real press of button 1 leaves step 1 Done (Q382)
+
+Next:
+- Install main, refresh C:\SA-demo\config, the hand run of task 4
+
+Your turn:
+- Q382 Ctrl+Z of button 1 keeps step Done. Q383 A tick on a held step reruns steps. 165 open, steps/questions-open.md
+
 ## Lane C FIX-2NOV-C-CHECK, 2026-11-02, the Lane C items of steps/check-2nov.md
 
 Goal:

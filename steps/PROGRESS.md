@@ -51,7 +51,7 @@ shown. Q293 Approve the three drafts of SCAN-UI. Q294 Rules chosen in Set up sit
 proposal. Q301 The build takes the door level pick. Q302 Door level row under the past job. Q305 Hide Confirmed under the past job.
 Opened in FIX-1NOV-D, Lane D: Q330 Group of the key link parameters unread. Q331 Plot is no link parameter of the keys. Q332 FFL bound but never written.
 Q333 to Q335. Closed: Q155. D2: Q336, closed Q330. D3: Q337 to Q339, closed Q275. 6B-DATA: Q360 to Q363. FIX-2NOV-D: Q370 to Q374, closed Q256, Q364.
-Answers of 2 Nov: 20 closed, see steps/log.md. 163 open, steps/questions-open.md. Q286, Q293: steps/ui-shots/drafts-for-bader.md. Asks: steps/waiting-on-others.md.
+Answers of 2 Nov: 20 closed, see steps/log.md. 165 open, steps/questions-open.md. Q286, Q293: steps/ui-shots/drafts-for-bader.md. Asks: steps/waiting-on-others.md.
 
 ## Next three steps
 

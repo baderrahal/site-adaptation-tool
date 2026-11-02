@@ -520,6 +520,19 @@ No real input reaches these: the plot table of the demo holds whole numbers and 
 - R479: a build with no 4 Check request gives no keo_file map, the footprint check compares by the own name with no line.
 - Breaker 1, a mirror edit in Update from report on a C10 now moves its wall gaps, the apply line names no button 8. No real edit yet. A number in a type name such as BW 1800 is held out by the digit limits now. Near span rests on one length class, all side edges are 25 m but 2965.
 
+## Q158 review and breaker, 2 Nov 2026
+
+- A press on a step with DoneWithIssues writes 0 issues over the earlier record, so the step reads Done. Whether button 1 gives warnings on a real model is UNKNOWN.
+- A sheet with no GUID for Plot gives a Waiting line and a press makes the step Done with 0 issues. R461 puts Plot in the sheet.
+- A level outside the position file, moved by hand, stays old in site.json. floors.levels names only Level 1 and Level 2.
+- An entity the reader refuses, as from a newer build, is overwritten by a press with the settings of the pane, as a real run already did.
+- A check point over the pass limit with nothing differing rolls back at the read back with its reason, and the window gives no warning before the press. A model set by the tool matches exactly.
+- While the pane has no input hash yet it shows Ready and the flow has hashed, so a press in that moment can hold and cancel. It lasts until the hash returns, not measured.
+- An extra field added to site.json by hand counts as disagreeing and the file is written again.
+- A level type with no base parameter gives a null in the facts, the file parses back as a null of another token type, so each press commits and steps 2 to 8 go back (RAN the compare). A Revit level type has that parameter.
+- A level added or moved by hand, of no use to the build, fails the compare, so one press commits and steps 2 to 8 run again. Loud, no wrong number.
+- A rules path that differs only by case commits once, then holds.
+
 ## R459 review 1 and breaker 1, 2 Nov 2026
 
 - An AfterCommit that throws, or a move of floors_<NBH>_accepted.json that fails, comes after the warnings left the model. The line says the failure, the next step 5 raises none for floors left alone, so chip and sheet stay short. Needs a disk or lock failure.
