@@ -14,6 +14,9 @@ namespace SiteAdaptation.AddIn.Pane
     // on. No Revit type, so a test fills it without Revit
     public sealed class PaneRunState : IRunState
     {
+        // R492. The name of the input of step 2 that holds the road order under rev6, a key of the hashes the user never sees, as a value is never absent
+        public const string RoadOrderInput = "Road surface order";
+
         private readonly PaneViewModel model;
         private readonly Func<string> root;
         private readonly Func<string, string> readText;
@@ -80,7 +83,7 @@ namespace SiteAdaptation.AddIn.Pane
                 string order = RoadSurfaceChoices.OrderText(ConfigOf(settings.ConfigFile), settings.Project.RoadSurfaces);
                 if (order != null)
                 {
-                    inputs.Add(RunInput.OfText(PaneText.RoadOrder, order));
+                    inputs.Add(RunInput.OfText(RoadOrderInput, order));
                 }
             }
             if (button == 4)

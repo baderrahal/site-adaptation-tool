@@ -212,7 +212,7 @@ namespace SiteAdaptation.Tests
                 Assert.Equal(4, state.MissingStep(9));
                 Assert.Equal(3, state.MissingStep(4));
                 Assert.Equal("Needs step 4", model.Steps[8].ChipText);
-                Assert.Contains(PaneRunState.InputsOf(settings, 2), input => input.Name == PaneText.RoadOrder && input.Text == "Job__B\nJob__A");
+                Assert.Contains(PaneRunState.InputsOf(settings, 2), input => input.Name == PaneRunState.RoadOrderInput && input.Text == "Job__B\nJob__A");
             }
             finally
             {
