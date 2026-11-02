@@ -2,6 +2,30 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Lane C sheet, 2026-11-02, Lane A's checks on Bader's sheet
+
+Goal:
+- Put Lane A's steps of FIX-2NOV-A on steps/bader-fix-1nov.md
+
+Done:
+- Parts 14 to 16 written, the question list rebuilt with Q351, Q353 to Q356, Q360 to Q364
+- Added to Lane A's steps: a named copy of the start model, button 6 before 7, and what to do if 7 says footprint not measured (CHOSEN, READ PlaceVillasRun.cs)
+
+Checked:
+- READ OutlineDistance.cs for the run line, steps/log.md for the counts. RAN the list script, its count against steps/questions-open.md
+
+Remains:
+- Parts 14 to 16 have not run by hand. Run at 7 again after Apply has not run
+
+Known bugs:
+- None new
+
+Next:
+- Bader's sheet
+
+Your turn:
+- None opened or closed. 154 open, steps/questions-open.md
+
 ## FIX-2NOV-A, 2026-11-02, the yards, the plots of Review data and the footprint check, Lane A on the laptop
 
 Goal:
