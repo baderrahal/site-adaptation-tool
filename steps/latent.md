@@ -499,3 +499,12 @@ No real input reaches these: the plot table of the demo holds whole numbers and 
 
 - zone_compare.py checks only the plan of --rev6-plan: a rev6 plan handed by hand as --without-overrides would pass under that title. The 5 zones hand the past job plans.
 - check_rev6 shows a plan is rev6, not that it holds no override list, so a rev6 build with a list would read as no override list. The rev6 builds of the round name no list.
+
+## FIX-2NOV-A, review 1 and breaker 1
+
+- Review 1, the step floors cuts a yard by the ramp corners of a plot with no ramp type, the build does not. Only the native2022 profile reaches it, Q050 keeps it off.
+- Review 1, a yard the cut empties with its level also missing gets another line in Python and C#. Breaker 1: 0 yards of the whole project are emptied.
+- Review 1, FloorPlacer.EdgeNoise 1e-6 is a constant beside designValues.floors.shortestEdgeM. Clipper2 2.0.0 and pyclipr's 2.0.1 are one patch apart, parity held on real plots.
+- Review 1, ReviewTable.cs and ReadDataRun.cs each hold a rule of which plots are units. Install-TestHost.ps1 gives the watcher Common with no Clipper2Lib, it does not reach the cut.
+- Breaker 1, review_012.json keeps 42 checks of plots R476 leaves out, all OK, a Wrong on one could not be cleared. No real Wrong.
+- Breaker 1, R477: no unit or no block name reads as other type and passes. Every real plan plot has a unit, the read names every block.
