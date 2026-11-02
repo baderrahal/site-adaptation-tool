@@ -238,6 +238,9 @@
     "waitMinutes": 5,
     "staleHours": 2,
     "minFreeGB": 2.0,
+    "revitSlots": 2,
+    "revitSlotsMinTotalGB": 32,
+    "maxWindows": 3,
     "windowProcesses": ["acad", "accoreconsole", "Revit"],
     "snapshot": {
       "dataBook": "{workRoot}\\data_book",

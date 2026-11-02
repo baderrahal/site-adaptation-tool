@@ -5,6 +5,10 @@ siteBuild.windowProcesses may run and free memory must be at least siteBuild.min
 round waits siteBuild.waitMinutes and looks again, and every wait is logged. A lock older than siteBuild.staleHours with no
 window process is logged and deleted. The lock holds the round name and the time, it is made only when nothing holds it, and
 it is deleted as soon as the window command ends, also when that command fails.
+
+R449. A machine of at least siteBuild.revitSlotsMinTotalGB holds siteBuild.revitSlots slots, the lock file itself and one file per
+further slot. A window then opens beside another while a slot is free and the windows that run plus the slots held stay under
+siteBuild.maxWindows. A block with no slot keys, or a smaller machine, keeps the one slot and the one window of R200.
 """
 import argparse
 import csv
@@ -21,6 +25,9 @@ from pathlib import Path
 import project_profile
 
 
+SLOT_VARIABLE = "SITE_ADAPTATION_WINDOW_SLOT"
+
+
 class LockError(Exception):
     """The lock could not be taken or given back. No window was opened."""
 
@@ -32,8 +39,8 @@ def settings_block(settings):
     return block
 
 
-def free_gb():
-    """Free physical memory in GB, as GlobalMemoryStatusEx gives it."""
+def memory_status():
+    """Physical memory as GlobalMemoryStatusEx gives it."""
 
     class Status(ctypes.Structure):
         _fields_ = [("length", ctypes.c_ulong), ("load", ctypes.c_ulong), ("totalPhys", ctypes.c_ulonglong), ("availPhys", ctypes.c_ulonglong),
@@ -44,7 +51,17 @@ def free_gb():
     status.length = ctypes.sizeof(Status)
     if not ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(status)):
         raise OSError("GlobalMemoryStatusEx failed")
-    return status.availPhys / 1024 ** 3
+    return status
+
+
+def free_gb():
+    """Free physical memory in GB."""
+    return memory_status().availPhys / 1024 ** 3
+
+
+def total_gb():
+    """All physical memory of the machine in GB."""
+    return memory_status().totalPhys / 1024 ** 3
 
 
 def running(names):
@@ -61,8 +78,9 @@ def now_utc():
 class Lock:
     """The window lock of one round. now, sleep, free and processes are passed in so a test runs it with no window."""
 
-    def __init__(self, block, round_name, log_path, now=now_utc, sleep=time.sleep, free=free_gb, processes=running):
-        self.path = Path(block["lock"])
+    def __init__(self, block, round_name, log_path, now=now_utc, sleep=time.sleep, free=free_gb, processes=running, total=total_gb):
+        self.base = Path(block["lock"])
+        self.path = self.base
         self.round = round_name
         self.wait = float(block["waitMinutes"])
         self.stale = float(block["staleHours"])
@@ -71,6 +89,15 @@ class Lock:
         self.log_path = Path(log_path)
         self.now, self.sleep, self.free, self.processes = now, sleep, free, processes
         self.token = None
+        self.slot = None
+        # R449. A block with no slot keys asks nothing of the machine, as the lock of a Civil 3D window does
+        wanted = int(block.get("revitSlots", 1))
+        self.slots = wanted if wanted > 1 and total() >= float(block["revitSlotsMinTotalGB"]) else 1
+        self.max_windows = int(block["maxWindows"]) if self.slots > 1 else 1
+
+    def slot_path(self, slot):
+        """Slot 1 is the lock file of R200, so a lane on the old script and this one see each other."""
+        return self.base if slot == 1 else self.base.with_name("%s-%d%s" % (self.base.stem, slot, self.base.suffix))
 
     def log(self, event, **fields):
         self.log_path.parent.mkdir(parents=True, exist_ok=True)
@@ -79,35 +106,45 @@ class Lock:
             handle.write(json.dumps(line, ensure_ascii=False) + "\n")
         return line
 
-    def holder(self):
+    def holder(self, path=None):
         """The lock as written, or a stand-in with no time when it does not read."""
         try:
-            return json.loads(self.path.read_text(encoding="utf-8"))
+            return json.loads((path or self.path).read_text(encoding="utf-8"))
         except (OSError, ValueError):
             return {"round": None, "utc": None}
 
-    def age_hours(self, holder):
+    def age_hours(self, holder, path=None):
         try:
             made = datetime.fromisoformat(holder["utc"])
         except (TypeError, ValueError, KeyError):
-            made = datetime.fromtimestamp(self.path.stat().st_mtime, timezone.utc)
+            made = datetime.fromtimestamp((path or self.path).stat().st_mtime, timezone.utc)
         return (self.now() - made).total_seconds() / 3600.0
 
     def look(self):
         """Why a window may not open now, or None, and what was seen."""
-        seen = {"freeGB": round(self.free(), 2), "processes": self.processes(self.names), "lock": self.path.exists()}
-        if seen["lock"]:
-            holder = self.holder()
-            seen["lockRound"], seen["lockAgeHours"] = holder.get("round"), round(self.age_hours(holder), 2)
+        seen = {"freeGB": round(self.free(), 2), "processes": self.processes(self.names), "lock": self.base.exists()}
+        held = []
+        free_slots = []
+        for slot in range(1, self.slots + 1):
+            path = self.slot_path(slot)
+            if not path.exists():
+                free_slots.append(slot)
+                continue
+            holder = self.holder(path)
+            seen["lockRound"], seen["lockAgeHours"] = holder.get("round"), round(self.age_hours(holder, path), 2)
             if seen["lockAgeHours"] > self.stale and not seen["processes"]:
                 self.log("staleLockDeleted", **seen)
-                self.path.unlink()
+                path.unlink()
                 return self.look()
-            return "the lock is held by " + str(holder.get("round")), seen
-        if seen["processes"]:
+            held.append(holder.get("round"))
+        if not free_slots:
+            return "the lock is held by " + ", ".join(str(name) for name in held), seen
+        # A slot just taken may not show its window yet, so a window and its slot both count and the limit is never passed
+        if len(seen["processes"]) + len(held) >= self.max_windows:
             return "a window process runs: " + ", ".join(sorted({item["name"] for item in seen["processes"]})), seen
         if seen["freeGB"] < self.floor:
             return "free memory %.2f GB is under the floor of %.2f GB" % (seen["freeGB"], self.floor), seen
+        seen["slot"] = free_slots[0]
         return None, seen
 
     def acquire(self, label, max_wait_minutes):
@@ -118,11 +155,13 @@ class Lock:
             if why is None:
                 self.token = os.urandom(8).hex()
                 try:
-                    with open(self.path, "x", encoding="utf-8") as handle:
+                    with open(self.slot_path(seen["slot"]), "x", encoding="utf-8") as handle:
                         json.dump({"round": self.round, "utc": self.now().isoformat(timespec="seconds"), "label": label, "token": self.token, "pid": os.getpid()}, handle)
                 except FileExistsError:
                     self.token = None
                     continue
+                self.slot = seen["slot"]
+                self.path = self.slot_path(self.slot)
                 self.log("lockTaken", label=label, **seen)
                 return seen
             if (self.now() - start) > timedelta(minutes=max_wait_minutes):
@@ -145,6 +184,8 @@ class Lock:
 def run(lock, label, command, max_wait_minutes):
     """R200. Takes the lock, runs the window command, gives the lock back however the command ends."""
     lock.acquire(label, max_wait_minutes)
+    # R449. The listener takes its job folders from the slot it holds, so the command is told it
+    os.environ[SLOT_VARIABLE] = str(lock.slot)
     started = time.monotonic()
     code = None
     try:
