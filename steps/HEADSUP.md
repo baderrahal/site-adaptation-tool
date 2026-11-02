@@ -11,7 +11,7 @@
 
 ### Lane B, C and D
 
-- Lane B CHECK-2NOV, 19:35, branch check/2nov-b: parts 2 to 11 and 13 run, Revit closed, lock released 19:26 to Lane C. Now verifying the fails, then steps/check-2nov.md, the PR, then FIX-2NOV-B.
+- Lane B CHECK-2NOV, 19:51, branch check/2nov-b: steps/check-2nov.md written, items sent to A, C, D. Gate held for Lane C's timing until 20:15, then PR. Then FIX-2NOV-B, reading the step 5 code now.
 - Lane C, branch docs/2nov-c-params: the other 12 bound parameters listed Keep No with a Note in config/shared_parameters.xlsx. Then SPEED-2NOV-C on speed/2nov-c, R449 pushed, helpers on R447 and R448. Blocked: none
 - Lane D 6B-DATA-REV6, 2 Nov, branch feat/6b-data-rev6: no Revit, no window lock. 5 TU zones under rev6, levels equal the past rules, config copies outside git. Opened Q364.
   Now: the PR, merge when green. Blocked: none
