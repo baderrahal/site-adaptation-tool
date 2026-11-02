@@ -10,6 +10,8 @@ import pytest
 ROOT = Path(__file__).resolve().parents[2]
 LICENCES = ROOT / "docs" / "licences.md"
 ALLOWED = {"MIT", "Apache-2.0", "BSD-2-Clause", "BSD-3-Clause"}
+# Q352 (Bader). The one package of another licence, by name, the yard cut of R475
+ALLOWED_BY_NAME = {"Clipper2": "BSL-1.0"}
 
 
 def table(text, heading):
@@ -67,7 +69,7 @@ def test_r342_every_package_reference_of_the_solution_is_listed_with_its_version
 def test_r342_every_dotnet_package_listed_has_an_allowed_licence_and_says_where_it_ships_and_how_it_was_checked():
     rows = table(LICENCES.read_text(encoding="utf-8"), ".NET packages")
     assert len(rows) >= 20
-    wrong = [(row["Package"], row["Licence"]) for row in rows if row["Licence"] not in ALLOWED]
+    wrong = [(row["Package"], row["Licence"]) for row in rows if row["Licence"] not in ALLOWED and ALLOWED_BY_NAME.get(row["Package"]) != row["Licence"]]
     assert wrong == []
     for row in rows:
         assert row["Ships with"], row["Package"]
@@ -78,7 +80,7 @@ def test_r342_a_package_that_ships_inside_revit_or_in_the_worker_is_never_one_wi
     rows = table(LICENCES.read_text(encoding="utf-8"), ".NET packages")
     shipped = [row for row in rows if re.search(r"\b(add-in|worker)\b", row["Ships with"])]
     assert {row["Package"] for row in shipped} >= {"ACadSharp", "Newtonsoft.Json", "PdfPig", "DocumentFormat.OpenXml"}
-    assert all(row["Licence"] in ALLOWED for row in shipped)
+    assert all(row["Licence"] in ALLOWED or ALLOWED_BY_NAME.get(row["Package"]) == row["Licence"] for row in shipped)
 
 
 def test_r342_every_requirement_is_listed_with_its_version():

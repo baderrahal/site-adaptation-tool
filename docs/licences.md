@@ -16,6 +16,7 @@ Ships with says where the DLL goes: add-in (loaded inside Revit), worker (CadRea
 | Package | Version | Licence | Ships with | Asset a net48 project takes | Checked |
 |---|---|---|---|---|---|
 | ACadSharp | 3.8.0 | MIT | worker, tools | lib/net48, needs System.Memory 4.6.3 | READ acadsharp.nuspec, RAN |
+| Clipper2 | 2.0.0 | BSL-1.0 | add-in folder, worker, tools, the yard cut of R475, allowed by name (Q352) | lib/netstandard2.0, needs no package | READ License.txt in the package, Boost Software License 1.0, SEARCHED https://api.nuget.org/v3-flatcontainer/clipper2/2.0.0/clipper2.nuspec |
 | Newtonsoft.Json | 13.0.1 | MIT | worker, tools. The add-in ships no copy: Common pins 13.0.1 since Phase 4a (R346) and builds against it, and inside Revit the copy of Revit, 13.0.1, serves Common and the add-in (below). 13.0.3 until Phase 4a | lib/net45, lib/netstandard2.0 for Common | READ newtonsoft.json.nuspec of 13.0.1, RAN |
 | PdfPig | 0.1.16 | Apache-2.0 | worker since Phase 4d, the reader of the location plan (R351) | lib/net471, needs Microsoft.Bcl.HashCode 6.0.0 and System.Memory 4.6.0 | SEARCHED https://api.nuget.org/v3-flatcontainer/pdfpig/0.1.16/pdfpig.nuspec, READ pdfpig.nuspec in the cache, license expression Apache-2.0, RAN |
 | DocumentFormat.OpenXml | 3.5.1 | MIT | worker since Phase 4c, the xlsx reader of the DLUS and sales workbooks (R350) | lib/net46, needs DocumentFormat.OpenXml.Framework 3.5.1 | READ documentformat.openxml.nuspec of 3.5.1, license expression MIT, RAN |
@@ -97,6 +98,7 @@ Python stays in the repo as the checker and the data book builder only, it never
 | pdfplumber | 0.11.7 | MIT License | requirements.txt | READ .venv\Lib\site-packages\pdfplumber-0.11.7.dist-info\METADATA, the classifier |
 | openpyxl | 3.1.5 | MIT | requirements.txt | READ openpyxl-3.1.5.dist-info\METADATA |
 | pytest | 8.4.2 | MIT | requirements.txt | READ pytest-8.4.2.dist-info\METADATA |
+| pyclipr | 0.1.8 | Boost Software License - Version 1.0 - August 17th, 2003 | requirements.txt, the yard cut of R475, allowed by name (Q352) | READ pyclipr-0.1.8.dist-info\METADATA, the title line of its License field, it wraps Clipper2 2.0.1 |
 | shapely | 2.2.0 | BSD-3-Clause | requirements.txt | READ shapely-2.2.0.dist-info\METADATA, the wheel also bundles GEOS under LGPLv2.1, licenses\LICENSE_GEOS (Q076) |
 | numpy | 2.5.4 | BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0 | requirements.txt | READ numpy-2.5.4.dist-info\METADATA |
 | pdfminer.six | 20250506 | MIT | pdfplumber | READ pdfminer_six-20250506.dist-info\METADATA |

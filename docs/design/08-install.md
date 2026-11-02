@@ -6,6 +6,7 @@ Install (R370 planned):
 - The manifest: AddIn Type Application, Name Site Adaptation, FullClassName SiteAdaptation.AddIn.App, an AddInId of its own fixed in the repo, VendorId SITEADAPT and VendorDescription Site Adaptation Tool, as the three manifests of today (READ).
 - No admin rights: every path is under %APPDATA% of the user. Never the registry: the script reads no CodeSigning key and writes none (R106), unlike the optional report of Install-TestHost.ps1. Revit asks once whether to load the unsigned add-in, Bader answers it by hand, the watcher answers Load Once in a test window (R108), whose list of the tool's add-ins gains the new manifest.
 - One Common: Revit loads one SiteAdaptation.Common.dll for every add-in of the tool, the first it meets, so the script installs Common into every folder of the tool from the same build and checks one SHA-256 across them, as Install-TestHost.ps1 does today (READ).
+- Clipper2Lib.dll, the yard cut of R475, is copied beside Common in the add-in folder, the worker folder and the reader and placer folders of the test host (Q352).
 - Inside Revit the add-in registers an AssemblyResolve handler first thing in OnStartup that serves only the assemblies of its own folder of the same or a higher version, and only to a request of the tool's assemblies or with no requester, never to another add-in (RAN in the host simulation of docs/licences.md). Newtonsoft.Json comes from Revit's own copy by the redirect of Revit.exe.config (READ).
 
 Unattended runs for Phase 6 (R384 planned):
