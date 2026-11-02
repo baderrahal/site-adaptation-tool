@@ -50,8 +50,7 @@ Opened in SCAN-UI, Lane C: Q288 Scan picks in the settings at version 1. Q289 Bo
 shown. Q293 Approve the three drafts of SCAN-UI. Q294 Rules chosen in Set up site, when used. Q295 Test host runs skip the scan. Q300 Plots with no cluster
 proposal. Q301 The build takes the door level pick. Q302 Door level row under the past job. Q305 Hide Confirmed under the past job.
 Opened in FIX-1NOV-D, Lane D: Q330 Group of the key link parameters unread. Q331 Plot is no link parameter of the keys. Q332 FFL bound but never written.
-Q333 to Q335. Closed: Q155. Opened in D2: Q336 Link parameter group is Text not Data. Closed in D2: Q330, by Bader's prompt.
-Opened in D3: Q337 to Q339, titles in the log. Closed in D3: Q275, by Bader's prompt.
+Q333 to Q335. Closed: Q155. Opened in D2: Q336 Link parameter group is Text not Data. Closed in D2: Q330, by Bader's prompt. D3: opened Q337 to Q339, titles in the log, closed Q275.
 Closed in FIX-1NOV-C and FIX-2NOV-C: Q280, Q195, by Bader's prompt. 164 questions open, full text and the recommended answers: steps/questions-open.md. Asks: steps/waiting-on-others.md.
 
 ## Next three steps
