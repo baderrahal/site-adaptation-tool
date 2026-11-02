@@ -4,10 +4,10 @@
 
 ### Lane A
 
-- Lane: A, round FIX-2NOV-A3, branch fix/2nov-a3. Time: 2026-11-03 01:20. Blocked: none
-- Done: R414 off at 43 of 82, R481, R482, review 1, breaker 1 and 2, parity 32 runs 0 failures
-- Now: gate on aa15d7d green, the PR
-- Next: FIX-3NOV-A, Q373 and Q371, tells lane-c before NewProjectDialog
+- Lane: A, round FIX-3NOV-A, branch fix/3nov-a. Time: 2026-11-03 02:10. Blocked: none
+- Done: FIX-2NOV-A3 merged PR 149, the plan and contract. Q371, Q373 closed by Bader
+- Now: a helper builds R484 project mode and R485 notRoad
+- Next: proof on 5 TU zones, review and breaker, parity, Revit run under a lock slot, the PR
 
 ### Lane B, C and D
 
