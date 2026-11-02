@@ -1,0 +1,84 @@
+<Window x:Class="SiteAdaptation.AddIn.NewProject.RoadSurfacesWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:np="clr-namespace:SiteAdaptation.AddIn.NewProject"
+        Title="{x:Static np:RoadSurfacesText.Title}" Width="{DynamicResource SA.Size.AskWidth}" MaxHeight="{DynamicResource SA.Size.DialogMaxHeight}"
+        SizeToContent="Height" ResizeMode="NoResize" ShowInTaskbar="False" WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource SA.Surface}">
+  <!-- R492, a DRAFT: no board holds this window, so it takes the style of New project. Every colour, size and font by Theme.xaml, every text
+       in docs/design/14-ui-labels.md under New project -->
+  <Window.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="/SiteAdaptation.AddIn;component/Theme/Theme.xaml" />
+      </ResourceDictionary.MergedDictionaries>
+      <BooleanToVisibilityConverter x:Key="Shown" />
+
+      <Style x:Key="HelpText" TargetType="TextBlock" BasedOn="{StaticResource SA.Type.Small}">
+        <Setter Property="Foreground" Value="{StaticResource SA.TextMuted}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+      </Style>
+
+      <DataTemplate x:Key="SurfaceRow" DataType="{x:Type np:RoadSurfaceRowViewModel}">
+        <Border Padding="{StaticResource SA.Pad.Cell}" BorderBrush="{StaticResource SA.Border}" BorderThickness="{StaticResource SA.Line.Under}"
+                MouseLeftButtonUp="OnRow" ToolTip="{Binding Stem}">
+          <Border.Style>
+            <Style TargetType="Border">
+              <Setter Property="Background" Value="Transparent" />
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                  <Setter Property="Background" Value="{StaticResource SA.Selected}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Missing}" Value="True">
+                  <Setter Property="Background" Value="{StaticResource SA.WarnGround}" />
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </Border.Style>
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <CheckBox Style="{StaticResource SA.Pane.Check}" Content="{Binding Short}" IsChecked="{Binding IsTicked}" IsEnabled="{Binding CanTick}" />
+            <TextBlock Grid.Column="1" Style="{StaticResource SA.Type.Small}" FontWeight="{StaticResource SA.Type.Label.Weight}" Foreground="{StaticResource SA.Warn}"
+                       VerticalAlignment="Center" Text="{x:Static np:NewProjectText.Missing}" Visibility="{Binding Missing, Converter={StaticResource Shown}}" />
+          </Grid>
+        </Border>
+      </DataTemplate>
+    </ResourceDictionary>
+  </Window.Resources>
+
+  <DockPanel Background="{StaticResource SA.Surface}">
+    <Border DockPanel.Dock="Bottom" Background="{StaticResource SA.Panel}" BorderBrush="{StaticResource SA.Border}" BorderThickness="{StaticResource SA.Line.Over}" Padding="{StaticResource SA.Pad.Foot}">
+      <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+        <Button Style="{StaticResource SA.Button.Base}" Height="{StaticResource SA.Size.MainButton}" Content="{x:Static np:NewProjectText.Cancel}" Click="OnCancel" />
+        <Button Style="{StaticResource SA.Button.Primary}" Margin="{StaticResource SA.Gap.Left8}" Content="{x:Static np:RoadSurfacesText.Use}" IsEnabled="{Binding CanUse}" Click="OnUse" />
+      </StackPanel>
+    </Border>
+
+    <StackPanel Margin="{StaticResource SA.Pad.Side}">
+      <TextBlock Style="{StaticResource SA.Type.Section}" Foreground="{StaticResource SA.Heading}" Text="{x:Static np:RoadSurfacesText.Title}" />
+      <TextBlock Style="{StaticResource HelpText}" Margin="{StaticResource SA.Gap.Top4}" Text="{x:Static np:RoadSurfacesText.Help}" />
+      <TextBlock Style="{StaticResource SA.Type.Body}" Margin="{StaticResource SA.Gap.Top8}" TextWrapping="Wrap" Text="{x:Static np:RoadSurfacesText.NoFiles}"
+                 Visibility="{Binding NoFiles, Converter={StaticResource Shown}}" />
+      <Grid Margin="{StaticResource SA.Gap.Top8}">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <ScrollViewer MaxHeight="{StaticResource SA.Size.ScanList}" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+          <ItemsControl ItemsSource="{Binding Rows}" ItemTemplate="{StaticResource SurfaceRow}" />
+        </ScrollViewer>
+        <StackPanel Grid.Column="1" Margin="{StaticResource SA.Gap.Left8}">
+          <Button Style="{StaticResource SA.Button.Base}" Content="{x:Static np:RoadSurfacesText.Up}" IsEnabled="{Binding CanMoveUp}" Click="OnUp" />
+          <Button Style="{StaticResource SA.Button.Base}" Margin="{StaticResource SA.Gap.Top8}" Content="{x:Static np:RoadSurfacesText.Down}" IsEnabled="{Binding CanMoveDown}" Click="OnDown" />
+        </StackPanel>
+      </Grid>
+      <TextBlock Style="{StaticResource HelpText}" Margin="{StaticResource SA.Gap.Top8}" Foreground="{StaticResource SA.Warn}" Text="{Binding MissingLine}"
+                 Visibility="{Binding MissingShown, Converter={StaticResource Shown}}" />
+      <TextBlock Style="{StaticResource HelpText}" Margin="{StaticResource SA.Gap.Top8}" Text="{x:Static np:RoadSurfacesText.NeedTick}"
+                 Visibility="{Binding NeedTickShown, Converter={StaticResource Shown}}" />
+    </StackPanel>
+  </DockPanel>
+</Window>

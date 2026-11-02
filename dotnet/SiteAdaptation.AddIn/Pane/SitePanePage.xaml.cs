@@ -17,6 +17,11 @@ namespace SiteAdaptation.AddIn.Pane
             DataContext = model;
         }
 
+        private void OnPickSurfaces(object sender, RoutedEventArgs e)
+        {
+            model.PickSurfaces();
+        }
+
         private void OnBrowse(object sender, RoutedEventArgs e)
         {
             if ((sender as FrameworkElement)?.DataContext is FileRowViewModel row)

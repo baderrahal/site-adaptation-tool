@@ -28,6 +28,10 @@ namespace SiteAdaptation.Common
         // Q214. The Prototypes folder of the pane a build takes, null takes the folder of pastJob in config (R357)
         public string PrototypeFolder { get; set; }
 
+        // R492. The road surfaces picked in Set up, in order, under rev6 in place of designBasis.roadLevel for the read and the build. Null is left
+        // out of the JSON, so a request of the past job stays byte-equal, and the past job ignores any value
+        public List<string> RoadSurfaces { get; set; }
+
         public WorkerScope Scope { get; set; }
         public string OutputFolder { get; set; }
 

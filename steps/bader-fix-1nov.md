@@ -233,7 +233,7 @@ Look for: Revit still open after each try. If it crashes, note which try and whi
 
 ## Questions for Bader
 
-Every open question of steps/questions-open.md on 2 Nov, after PR 144, 160 open, by topic, the oldest first, each with its recommended answer. [demo] and [new project] mark the ones a demo or a new project meets first. The full text is in steps/questions-open.md.
+Every open question of steps/questions-open.md on 2 Nov, after PR 145, 163 open, by topic, the oldest first, each with its recommended answer. [demo] and [new project] mark the ones a demo or a new project meets first. The full text is in steps/questions-open.md.
 
 First for a demo or a new project: Q286, Q293, Q356.
 
@@ -253,7 +253,6 @@ First for a demo or a new project: Q286, Q293, Q356.
 - Q233 Slope limit at 3 or 4 decimals. Recommended: keep the raw value at 3 decimals.
 - Q234 Read step road levels under Rev 6. Recommended: leave the read as it is, it reads, the build chooses.
 - Q255 The override list under rev6. Recommended: a rev6 build applies no override of a past job, only the hand edits of the team (byHand), each override left with why.
-- Q256 The one road surface covers a quarter of ROSHN. Recommended: keep the one surface, a new project names its one finished road surface, ROSHN runs roshnPastJob (Q224).
 - Q260 Outline change of a placed floor. Recommended: In 5, delete the tagged floor and place it again inside the transaction, listing the old UniqueId.
 - Q262 Level Excel and the read back values. Recommended: The Levels sheet reads levels_<run id>.json and shows the level read back beside the plan.
 - Q263 Levels count still at its level. Recommended: RevitCountsReader takes levels_<run id>.json of the last committed run of 6 and counts a plot only while its tagged floors stand within 1 mm of it.
@@ -267,7 +266,6 @@ First for a demo or a new project: Q286, Q293, Q356.
 - Q354 Yards of a model already built. Recommended: keep it, build NBH 012 again from a new model to take the cut.
 - Q356 The off axis warning of a cut yard [demo]. Recommended: step 5 accepts this warning too and counts it, in Lane B's item L2NOV-1.
 - Q361 FFL rule far from keys without overrides. Recommended: Mark the level rules weak, keep ROSHN Makkah on the list, and compare rev6 on the same keys as the next data step.
-- Q364 One named road surface and several zones. Recommended: Keep one surface for now and make a run that writes no plot, or leaves out most, stop with a plain message naming the surface. Answer Q256 with this count in view.
 
 ### Walls
 
@@ -420,6 +418,11 @@ First for a demo or a new project: Q286, Q293, Q356.
 - Q293 Approve the three drafts of SCAN-UI [demo]. Recommended: approve the three as drawn, the labels in docs/design/14-ui-labels.md.
 - Q294 Rules chosen in Set up site, when used. Recommended: keep it so, the window says the choice is saved with the setup.
 - Q306 A neighbourhood picked after the first read. Recommended: button 2 takes the project key as button 1 does, since the pick does not change what is read.
+- Q370 Approve the road surface window draft. Recommended: Approve it as built, a small picker needs no band.
+- Q371 Seven non road files still offered. Recommended: A list designBasis.roadLevel.notRoad in config, read under rev6 only, the window leaves its names out and a build refuses them.
+- Q372 A road pick in the pane, when it is kept. Recommended: Keep it as a Browse, one rule for the pane rows.
+- Q373 New project does not start under rev6. Recommended: A project mode in the settings, set by Start from: Empty project takes newProjectMode, a saved project keeps its own. A round of its own, every reader of the mode takes it, as the road pick does.
+- Q374 The stop looks at the zone, not the neighbourhood. Recommended: Keep the zone as Bader set it.
 
 ### Test host and runs
 
