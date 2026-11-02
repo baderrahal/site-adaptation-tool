@@ -13,7 +13,7 @@
 
 - Lane B Task 6 (FIX-1NOV-B), 02:30, branch fix/1nov-b-task6: both passes done, Revit closed, lock free, main with PR 130 merged in, keeping both sides.
   Now: the gate on the merged tree, then merge PR 131. Then Lane D D3 on my word
-- Lane C, branch docs/2nov-c-params: the other 12 bound parameters listed Keep No with a Note in config/shared_parameters.xlsx. Then SPEED-2NOV-C on speed/2nov-c, R449 pushed, helpers on R447 and R448. Blocked: none
+- Lane C SPEED-2NOV-C, branch speed/2nov-c: R447, R448, R449 on the branch, not merged. Before run done, steps/investigations/speed-2nov.md. Fixes of review 1 and breaker 1 going on, then the listener first in Revit. Blocked: none
 - Lane D 6B-DATA-REV6, 2 Nov, branch feat/6b-data-rev6: no Revit, no window lock. 5 TU zones under rev6, levels equal the past rules, config copies outside git. Opened Q364.
   Now: the PR, merge when green. Blocked: none
 
