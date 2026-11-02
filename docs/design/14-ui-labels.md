@@ -325,6 +325,8 @@ Built in Lane B 5c. The title, band, buttons, chips, columns and side box are th
 - `All fields` CHOSEN, the first item of the field list, every row (R495)
 - `Find plot or note` CHOSEN, the label of the find box, a number finds plots and other text finds whole words of the note (R495)
 - `Showing <n> of <n> rows` CHOSEN, under the chips while the chips, the field or the find box hide a row (R495)
+- `Accepted at step 5` CHOSEN, the chip with the count of warnings step 5 took without showing them (R459), it lists no row
+- `<n> plots follow every rule`
 - `No past job was given, so Plot cut shows no rows and no plot is counted as following every rule on Plot cut.` CHOSEN, the one line of Q117 when the run has no past job
 - `Plot`
 - `NBH`

@@ -12,6 +12,16 @@ namespace SiteAdaptation.Common
             return count.ToString("N0", CultureInfo.InvariantCulture) + (count == 1 ? " plot" : " plots");
         }
 
+        public static string Overrides(string text)
+        {
+            return Singular(text, "override");
+        }
+
+        public static string Issues(string text)
+        {
+            return Singular(text, "issue");
+        }
+
         // A text filled from a template of the plural, so a template stays one label. 11 and 2,001 keep theirs
         public static string Singular(string text, string noun)
         {

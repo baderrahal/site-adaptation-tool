@@ -257,7 +257,7 @@ namespace SiteAdaptation.Tests
         }
 
         private WorkerAnswer Run(JObject plan, out int code, out string planPath, string profile = "parsons2024Rev6", string id = "rx1", JObject config = null,
-            JObject rules = null, JObject summary = null, JObject revitCounts = null)
+            JObject rules = null, JObject summary = null, JObject revitCounts = null, string accepted = null)
         {
             planPath = Write("plan_all.json", plan.ToString());
             var inputs = new List<WorkerFile>
@@ -273,6 +273,10 @@ namespace SiteAdaptation.Tests
             if (revitCounts != null)
             {
                 inputs.Add(Input(ReportWorkbook.RevitCountsRole, Write("revit_counts.json", revitCounts.ToString())));
+            }
+            if (accepted != null)
+            {
+                inputs.Add(Input(ReportWorkbook.AcceptedWarningsRole, Write("floors_012_accepted.json", accepted)));
             }
             var request = new WorkerRequest
             {
@@ -306,11 +310,50 @@ namespace SiteAdaptation.Tests
             return border.LeftBorder?.Style?.Value == BorderStyleValues.Thin && border.BottomBorder?.Style?.Value == BorderStyleValues.Thin;
         }
 
+        private static string AcceptedFile(string nbh)
+        {
+            return Common.Flow.AcceptedWarningFile.Text("5_1", nbh, new[]
+            {
+                new Common.Flow.AcceptedWarning { Text = "Highlighted floors overlap.", Plot = "VD4-101", FirstType = "Generic 150mm", SecondType = "yard", FirstId = "a", SecondId = "b" },
+                new Common.Flow.AcceptedWarning { Text = "Highlighted floors overlap.", Plot = "VD4-101", FirstType = "Generic 150mm", SecondType = "Ramps 2%", FirstId = "a", SecondId = "c" },
+            });
+        }
+
+        [Fact]
+        public void R459_the_report_lists_each_accepted_warning_on_its_own_sheet_of_its_nbh_and_the_issues_do_not_count_them()
+        {
+            WorkerAnswer plain = Run(MadePlan(), out int code, out string plan);
+            Assert.True(code == 0, "exit " + code + ": " + plain.Message);
+            LevelExcelTests.Book before = LevelExcelTests.Book.Read(Path.Combine(folder, "out", "012_Report.xlsx"));
+            Assert.Equal(new[] { "Plot", "First floor type", "Second floor type", "Warning" }, before.Row("Accepted warnings", 1).Cast<string>().ToArray());
+            Assert.Single(before.Sheets["Accepted warnings"]);
+            int issues = before.Sheets["Issues"].Count;
+
+            WorkerAnswer answer = Run(MadePlan(), out code, out plan, id: "rx2", accepted: AcceptedFile("012"));
+            Assert.True(code == 0, "exit " + code + ": " + answer.Message);
+            LevelExcelTests.Book book = LevelExcelTests.Book.Read(Path.Combine(folder, "out", "012_Report.xlsx"));
+            Assert.Equal(3, book.Sheets["Accepted warnings"].Count);
+            Assert.Equal(new object[] { "VD4-101", "Generic 150mm", "yard", "Highlighted floors overlap." }, book.Row("Accepted warnings", 2).ToArray());
+            Assert.Equal(new object[] { "VD4-101", "Generic 150mm", "Ramps 2%", "Highlighted floors overlap." }, book.Row("Accepted warnings", 3).ToArray());
+            Assert.Equal(issues, book.Sheets["Issues"].Count);
+            // The other NBH of the plan lists none of them, the file names its NBH
+            Assert.Single(LevelExcelTests.Book.Read(Path.Combine(folder, "out", "013_Report.xlsx")).Sheets["Accepted warnings"]);
+            Assert.Equal(2, answer.Counts["report rows Accepted warnings"]);
+        }
+
+        [Fact]
+        public void R459_a_file_that_is_not_of_its_form_stops_the_report_by_name()
+        {
+            WorkerAnswer answer = Run(MadePlan(), out int code, out string plan, accepted: "{\"format\": \"other\"}");
+            Assert.NotEqual(0, code);
+            Assert.Contains("R459", answer.Message);
+        }
+
         [Fact]
         public void R365_the_report_excel_holds_the_sheets_of_7_6_with_assumed_after_overrides_and_settings_last_in_a_valid_package()
         {
             LevelExcelTests.Book book = RunBook(out WorkerAnswer answer, out string plan);
-            Assert.Equal(new[] { "Summary", "Placed", "Skipped", "Overrides", "Assumed", "Issues", "Rules", "Settings" }, book.Names.ToArray());
+            Assert.Equal(new[] { "Summary", "Placed", "Skipped", "Overrides", "Assumed", "Issues", "Accepted warnings", "Rules", "Settings" }, book.Names.ToArray());
             using (SpreadsheetDocument document = SpreadsheetDocument.Open(Path.Combine(folder, "out", "012_Report.xlsx"), false))
             {
                 Assert.Empty(new OpenXmlValidator().Validate(document).Select(error => error.Description));

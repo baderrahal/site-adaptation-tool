@@ -106,6 +106,15 @@ namespace SiteAdaptation.Common.CheckTable
             };
         }
 
+        // R459. The count step 5 left for the scope, after every other chip, none while step 5 left no file. No row and no chip sum takes it
+        public static void AddAccepted(CheckTableView view, int? accepted)
+        {
+            if (accepted != null)
+            {
+                view.Counts = view.Counts.Concat(new[] { new KeyValuePair<string, int>(CheckTableState.AcceptedChip, accepted.Value) }).ToList();
+            }
+        }
+
         // R330, R376. The Use the list holds under the skip of each row that opens on Skip, and the line the side box shows under Why, as
         // the table shows Skip and hides the Rule or Past the entry keeps under it. A row of no entry holds Rule. A row whose entry the list
         // no longer holds, or holds twice, gets none, as Save refuses it then
