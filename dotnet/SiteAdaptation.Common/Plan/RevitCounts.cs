@@ -56,6 +56,36 @@ namespace SiteAdaptation.Common
             return new JObject { ["format"] = Format, ["formatVersion"] = 1, ["levelRun"] = levelRun, ["plots"] = made };
         }
 
+        // R483. The counts with the element id of each link and floor by plot and kind, so a row of the sheet Placed can be traced to its element.
+        // Read from the model at report time, so an id always names what stands now
+        public static JObject FromElements(IReadOnlyCollection<KeyValuePair<long, PlacedTag>> elements, ICollection<string> levelPlots, string levelRun)
+        {
+            JObject counts = FromTags(elements.Select(element => element.Value), levelPlots, levelRun);
+            foreach (var kind in elements.Where(element => element.Value.Key.Kind == PlacedKinds.Link || SiteCoordinates.FloorKinds.Contains(element.Value.Key.Kind))
+                .GroupBy(element => new { element.Value.Key.Plot, element.Value.Key.Kind }))
+            {
+                var plot = (JObject)counts["plots"][kind.Key.Plot];
+                if (!(plot["ids"] is JObject ids))
+                {
+                    plot["ids"] = ids = new JObject();
+                }
+                ids[kind.Key.Kind] = new JArray(kind.Select(element => element.Key).Distinct().OrderBy(id => id));
+            }
+            return counts;
+        }
+
+        // R483. The cell Element id of a plot and kind: the id, the ids joined where a person copied an element, null where the model holds none
+        // or the counts hold no ids
+        public static object ElementId(JObject counts, string plot, string kind)
+        {
+            List<long> ids = (counts?["plots"]?[plot]?["ids"]?[kind] as JArray)?.Select(id => (long)id).ToList();
+            if (ids == null || ids.Count == 0)
+            {
+                return null;
+            }
+            return ids.Count == 1 ? (object)ids[0] : string.Join(ReportExcelText.ListJoin, ids);
+        }
+
         // Null when the file is a counts file of this form, else why the request is refused
         public static string Refusal(JObject counts)
         {

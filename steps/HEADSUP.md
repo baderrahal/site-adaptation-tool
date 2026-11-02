@@ -4,10 +4,10 @@
 
 ### Lane A
 
-- Lane: A, round FIX-2NOV-A2, branch fix/2nov-a2. Time: 2026-11-02 18:00. Blocked: none
-- Done: R478, R479, R480, review 1, breaker 1, gate on ae8369b, parity 32 runs 0 failures
+- Lane: A, item of CHECK-2NOV, branch fix/2nov-a-placed-ids. Time: 2026-11-02 21:30. Blocked: none
+- Done: R483 Element id of Placed, review 1, breaker 1, gate on 8e611bb
 - Now: the PR
-- Next: merge when green, tell lane-c, then queued FIX-2NOV-A3
+- Next: back to FIX-2NOV-A3 on fix/2nov-a3, helpers done
 
 ### Lane B, C and D
 
