@@ -4,7 +4,7 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 
 ## State
 
-- Lane D 6B-DATA 2 Nov: 7 zones against their keys, no Revit, R469. D3: Links on NBH 012, 336 real links, R467, R468. D2: R466 (Q336). FIX-1NOV-D: R460 to R465. 4j-1, 4j-1b: R420 to R429
+- Lane D 6B-DATA, REV6 2 Nov: 5 TU zones under rev6, levels equal the past rules, R469. D3: Links on NBH 012, R467, R468. D2: R466 (Q336). FIX-1NOV-D: R460 to R465. 4j-1, 4j-1b: R420 to R429
 - Lane A 4i, 4j-2, FIX-1NOV-A and A2, one PR each (D20): R407 to R416, R470 joints behind join false, R471 rows, R472 Update plan, R473, R474 picks
 - Lane B FIX-1NOV-B on 2026-11-01: masses as linked files (R450 to R453), coordinates from CAD (R454 to R456), proven in Revit on NBH 012
 - Lane B Task 6 on 2026-11-02: the demo by hand, Dry run off 1 to 9 on NBH 012, Dry run on stops at 4 (Q195), R457, steps/demo-check.md
@@ -50,11 +50,11 @@ Opened in SCAN-UI, Lane C: Q288 Scan picks in the settings at version 1. Q289 Bo
 shown. Q293 Approve the three drafts of SCAN-UI. Q294 Rules chosen in Set up site, when used. Q295 Test host runs skip the scan. Q300 Plots with no cluster
 proposal. Q301 The build takes the door level pick. Q302 Door level row under the past job. Q305 Hide Confirmed under the past job.
 Opened in FIX-1NOV-D, Lane D: Q330 Group of the key link parameters unread. Q331 Plot is no link parameter of the keys. Q332 FFL bound but never written.
-Q333 to Q335. Closed: Q155. Opened in D2: Q336 Link parameter group is Text not Data. Closed in D2: Q330, by Bader's prompt. D3: Q337 to Q339, closed Q275. 6B-DATA: Q360 to Q363, in the log.
-Answers of 2 Nov: 20 closed, see steps/log.md. 148 open, steps/questions-open.md. Q286, Q293: steps/ui-shots/drafts-for-bader.md. Asks: steps/waiting-on-others.md.
+Q333 to Q335. Closed: Q155. Opened in D2: Q336 Link parameter group is Text not Data. Closed in D2: Q330, by Bader's prompt. D3: Q337 to Q339, closed Q275. 6B-DATA: Q360 to Q364, in the log.
+Answers of 2 Nov: 20 closed, see steps/log.md. 149 open, steps/questions-open.md. Q286, Q293: steps/ui-shots/drafts-for-bader.md. Asks: steps/waiting-on-others.md.
 
 ## Next three steps
 
-1. Bader's answers. Lane D: Q243 to Q258, Q331 to Q339, Q360 to Q363. Lane A: Q340, Q341, Q345 to Q349, Q303, Q304, Q259
+1. Bader's answers. Lane D: Q243 to Q258, Q331 to Q339, Q360 to Q364. Lane A: Q340, Q341, Q345 to Q349, Q303, Q304, Q259
 2. Bader answers Q277, then the Revit half of Phase 6b
 3. Bader answers Q255 of 4i, Q284 to Q287 of Lane C, then Part 2 after Bader's check of Part 1
