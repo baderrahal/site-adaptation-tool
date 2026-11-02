@@ -687,7 +687,16 @@ def need_roads(groups, landxml, scratch):
         raise project_profile.ProfileError("the levels of %s are measured on the road a build gives, give --landxml and --scratch (R339)" % ", ".join(sorted(groups)))
 
 
-def site_context(rows, book, number_of, faces, roads, shapes, sales, profile, settings, block, surfaces=(), snap=0.0, extra=None):
+def front_edges_of(path):
+    """R482. The value of each override frontEdge the list at path holds by plot, of a source a build applies or not, an entry marked use rule left out. None with no list,
+    so a run measures its gaps on the front the build takes and never writes again the gap of a front the list has moved."""
+    if path is None or not Path(path).is_file():
+        return {}
+    data = json.loads(Path(path).read_text(encoding="utf-8"))
+    return {str(item["plot"]): item["value"] for item in data.get("overrides") or () if item.get("field") == plan_rules.FRONT_EDGE and override_source.use_of(item) != "rule"}
+
+
+def site_context(rows, book, number_of, faces, roads, shapes, sales, profile, settings, block, surfaces=(), snap=0.0, extra=None, edges=None):
     """R271, R354. The context of every row of past_all.csv from the site as a build sees it: the front of every unit plot of plots.csv
     with a face, the clusters of the footprint blocks over every unit plot alone since Q089, their sides by the
     faces of every plot, the side neighbours, the side road, the row pairs and the villas between cluster units. A plot no key holds,
@@ -702,7 +711,7 @@ def site_context(rows, book, number_of, faces, roads, shapes, sales, profile, se
     # A face with two plan numbers, such as 476|477, is no plot of its own and leaves its cluster
     clusters = [cluster for cluster in ({**cluster, "plots": [plot for plot in cluster["plots"] if plot.isdigit()]} for cluster in clusters) if len(cluster["plots"]) > 1]
     corner = settings.get("siteBuild")["corner"]
-    front = plan_from_book.fronts(site, book, faces, roads, cad_links.front_limits(profile, settings.get("analysis")), list(surfaces), snap, profile, corner, sales)
+    front = plan_from_book.fronts(site, book, faces, roads, cad_links.front_limits(profile, settings.get("analysis")), list(surfaces), snap, profile, corner, sales, edges)
     frames = {number: item["frame"] for number, item in front.items()}
     roles = cad_links.cluster_roles(clusters, 0, faces, frames)
     neighbours = side_neighbours(units, faces, frames, block["sideShare"], profile.get("plot.long_side") / 1000.0)
@@ -947,7 +956,8 @@ def run_args(args):
         road_surfaces = plan_from_book.load_roads([Path(args.landxml) / (name + ".xml") for name in level_road_names(built_levels, profile, settings)], args.scratch)
         snap = plan_rules.road_snap(settings.get("siteBuild"))
     site_extra = {}
-    items, clusters, front, numbers, tree = site_context(rows, book, number_of, faces, roads, shapes, sales, profile, settings, block, road_surfaces, snap, site_extra)
+    items, clusters, front, numbers, tree = site_context(rows, book, number_of, faces, roads, shapes, sales, profile, settings, block, road_surfaces, snap, site_extra,
+                                                         front_edges_of(args.keep_from or args.overrides))
     levels = {group: {"lp": plan_rules.level_profile(profile, name), "roles": site_extra["roles"], "partners": site_extra["partners"],
                       "site": {plot: {"front": found["front"], "depth": found.get("depth"), "unit": found.get("unit")} for plot, found in front.items()}}
               for group, name in built_levels.items()}

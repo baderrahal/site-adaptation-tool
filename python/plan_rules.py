@@ -27,6 +27,8 @@ import project_profile
 FIELDS = ("mirrored", "rampType", "entryM", "heightM", "rampFrontM")
 # R337. The override fields a build by keyRules applies besides FIELDS, the link parameters by their field "parameter <name>"
 KEY_FIELDS = ("insert", "rotationDeg", "steps")
+# R482. The override field that names the front of a plot by the number of an edge of its ring
+FRONT_EDGE = "frontEdge"
 PARAMETER = "parameter "
 # R337. The candidates of majority.py a build can give: the hand factors, the factors of a parameter table, its formulas and levels
 HAND_FACTORS = ("all", "blockMirror", "clusterSide", "openEnd", "roadSide", "blockMirrorOpenEnd", "blockMirrorRoadSide", "rowPairSide",
@@ -518,6 +520,11 @@ def load_overrides(path, sources, fields=FIELDS, groups=None, name=None, lp=None
         raise project_profile.ProfileError("%d plots hold two overrides of one field: %s. Narrow the list with --override-model or edit it by hand (R280)"
                                            % (len(twice), " | ".join(twice[:10])))
     return Overrides(found, skip, ruled)
+
+
+def front_edges(overrides):
+    """R482. The value of each override frontEdge of a build by plot, read before the first front of the build is taken."""
+    return {plot: fields[FRONT_EDGE] for plot, fields in overrides.items() if FRONT_EDGE in fields}
 
 
 def whole_number(value):
