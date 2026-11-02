@@ -13,12 +13,11 @@
 
 - Lane B Task 6 (FIX-1NOV-B), 02:30, branch fix/1nov-b-task6: both passes done, Revit closed, lock free, main with PR 130 merged in, keeping both sides.
   Now: the gate on the merged tree, then merge PR 131. Then Lane D D3 on my word
-- Lane C FIX-2NOV-C, 04:01, branch fix/2nov-c: R446 built, review fix in, tests green. Now: the gate, PR. Q195 closed, Q308 keeps only the stray file. Part 11 of
-  steps/bader-fix-1nov.md when fix/1nov-d3 merges. Blocked: none
+- Lane C, branch fix/2nov-c-part11: part 11 of steps/bader-fix-1nov.md filled, Q337 to Q339 in its list. Nothing queued after this PR. Blocked: none
 - Lane D D3, 04:45, branch fix/1nov-d3: Revit runs done, lock released. 13 prototypes in 2024, NBH 012 with 336 real links, 0.000 mm against the masses, masses back.
   Now: records, gate, PR. Q275 closed, opened Q337 to Q339. Blocked: none
 
-Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane C FIX-1NOV-C, 2 Nov 2026.
+Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane C part 11, 2 Nov 2026.
 
 ## Repo map
 
@@ -39,11 +38,11 @@ Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane
 - Lane A FIX-1NOV-A2, PR 130 (R472 to R474): button 2 takes the scan picks (Q292), Update from report finds the plan of 4 Check by its run log (Q278)
 - Lane B Task 6, PR 131 (R457): the demo by hand, two passes, steps/demo-check.md, a neighbourhood kept when the list refills
 - Lane C FIX-2NOV-C (R446): Review data Close and ask, no idle button, Run complete in the pane, the export refused in the input folder, Dry run off before 4 Check
-- Pending, not on main: fix/1nov-d3 (Links mode)
+- Lane D D3, PR 134 (R467, R468): Links mode proven by the test host on NBH 012, Q275 closed. Through the pane the Prototypes row names the link folder (part 11)
 
 ## New rules
 
-- R444 to R446 (Lane C). R450 to R456 (Lane B). R460 to R466 (Lane D). R457 (Lane B). R470 to R474 (Lane A). Id on a branch: R468 (D3)
+- R444 to R446 (Lane C). R450 to R456 (Lane B). R460 to R466 (Lane D). R457 (Lane B). R470 to R474 (Lane A). R467, R468 (D3)
 
 ## Wiring
 
@@ -58,11 +57,10 @@ Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane
 ## Open risks
 
 - R445 has not run in Revit: the window from an external event, the commit and the undo. R446 neither. Parts 10 and 13 of steps/bader-fix-1nov.md check them
-- C:\SA-demo\config lacks the keys of today, a config with no floors.rampJoint stops the build (part 2 of the sheet). Links waits on Q275.
+- C:\SA-demo\config lacks the keys of today, a config with no floors.rampJoint stops the build (part 2 of the sheet).
 - Lane D: no villa type source reaches the strong share on ROSHN (Q254). Lane A: joints wait on Q340, Q341, R414 8 of 82 (Q303, Q304)
 - The Parsons shutdown notice runs with higher rights, no session can press Postpone, only Bader. The ASK table of steps/cleanup-1nov.md waits for Bader
 
 ## Next
 
-- Lane D: merge fix/1nov-d3, send Lane C its steps, then Lane C fills part 11 of the sheet. Lane C: part 11 after D3
-- Bader: the steps of steps/bader-fix-1nov.md, the 162 questions at its end, the ASK table of steps/cleanup-1nov.md. Then Part 2 after his check of Part 1
+- Bader: the steps of steps/bader-fix-1nov.md, the 164 questions at its end, the ASK table of steps/cleanup-1nov.md. Then Part 2 after his check of Part 1

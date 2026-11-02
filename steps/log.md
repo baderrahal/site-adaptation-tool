@@ -2,6 +2,30 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Lane C part 11, 2026-11-02, Links mode on Bader's sheet
+
+Goal:
+- Fill part 11 of steps/bader-fix-1nov.md from Lane D's steps, after PR 134
+
+Done:
+- Part 11 written, question list rebuilt with Q337 to Q339, HEADSUP refreshed
+- Corrected from Lane D's steps: the key is villaModeDefault, the row Prototypes of the pane prevails over pastJob.upgradedPrototypeFolder, each pass takes a fresh copy of SA-demo-start.rvt (CHOSEN, Lane D ran from the template)
+
+Checked:
+- READ CheckRun.cs and BuildSteps.PrototypeFolder for the folder. RAN rvt_info.py on the C10 file of both folders: format 2021 in C:\SA-demo\inputs\Prototypes, 2024 in prototypes_2024. RAN a count of 13 .rvt in prototypes_2024
+
+Remains:
+- Part 11 has not run through the pane, only Lane D's test host runs. Mass file remake at step 11 read from MassFiles.State, not run, its time through the pane not measured. Starting from a copy of SA-demo-start.rvt UNKNOWN, Lane D's runs started from the template
+
+Known bugs:
+- None new
+
+Next:
+- Bader's sheet
+
+Your turn:
+- None opened or closed. 164 open, steps/questions-open.md
+
 ## Lane D D3, 2026-11-02, Links mode on the real prototypes (Q275)
 
 Goal:
