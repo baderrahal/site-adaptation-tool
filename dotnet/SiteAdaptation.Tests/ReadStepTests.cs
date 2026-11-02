@@ -650,6 +650,35 @@ namespace SiteAdaptation.Tests
             Assert.False(File.Exists(Path.Combine(folder, "out", "read_roadSurfaces.json")));
         }
 
+        // R492. Under rev6 the read takes the surfaces of designBasis.roadLevel in their order or the pick of the request, under the past job those of
+        // siteBuild.roadSurfaces whatever the request picks
+        [Fact]
+        public void R492_the_worker_read_under_rev6_takes_the_named_order_or_the_pick_and_the_past_job_ignores_the_pick()
+        {
+            List<string> roads = WriteRoads();
+            var inputs = new List<WorkerFile> { Input("roadSurface:A__Road", roads[0]), Input("roadSurface:B__Ground", roads[1]) };
+            string Order(WorkerAnswer answer) => string.Join(" ", JObject.Parse(File.ReadAllText(Path.Combine(folder, "out", "read_roadSurfaces.json")))["order"].Select(name => (string)name));
+            Action<JObject> rev6 = item =>
+            {
+                item["designBasis"]["mode"] = DesignBasis.Rev6;
+                item["designBasis"]["roadLevel"]["surfaces"] = new JArray("B__Ground", "A__Road");
+            };
+
+            WorkerRequest named = Request("g1", inputs.Concat(new[] { Input("config", Config(rev6)) }).ToList(), ReadSteps.Surfaces);
+            Assert.Equal("B__Ground A__Road", Order(Run(named, 0)));
+            WorkerRequest picked = Request("g2", inputs.Concat(new[] { Input("config", Config(rev6)) }).ToList(), ReadSteps.Surfaces);
+            picked.RoadSurfaces = new List<string> { "A__Road", "B__Ground" };
+            Assert.Equal("A__Road B__Ground", Order(Run(picked, 0)));
+            // A list that leaves out a road input of the request is refused by name
+            WorkerRequest less = Request("g3", inputs.Concat(new[] { Input("config", Config(rev6)) }).ToList(), ReadSteps.Surfaces);
+            less.RoadSurfaces = new List<string> { "A__Road" };
+            Assert.Contains("are not those of designBasis.roadLevel or the pick of Set up: not in config roadSurface:B__Ground", Run(less, 2).Message);
+
+            WorkerRequest past = Request("g4", inputs.Concat(new[] { Input("config", Config()) }).ToList(), ReadSteps.Surfaces);
+            past.RoadSurfaces = new List<string> { "B__Ground", "A__Road" };
+            Assert.Equal("A__Road B__Ground", Order(Run(past, 0)));
+        }
+
         [Fact]
         public void R349_r344_a_corner_exactly_at_the_snap_is_covered_and_one_past_it_takes_no_road_sideways()
         {

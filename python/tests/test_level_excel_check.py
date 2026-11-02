@@ -145,6 +145,14 @@ def test_r364_the_build_id_is_held_against_the_run_stamp_of_the_plan(made):
     assert check.expected(inputs_of(paths), "parsons2024Rev6", mock)["books"]["012"]["settings"]["Plan build id"] == "build_7"
 
 
+def test_r490_the_road_surface_order_of_the_level_excel_is_that_of_design_basis_under_rev6_and_site_build_under_the_past_job(made):
+    paths, mock, want = made
+    past = want["books"]["012"]["settings"]["Road surface order"]
+    assert "Made Up" not in past
+    paths["config"].write_text(json.dumps(dict(CONFIG, designBasis={"mode": "rev6", "roadLevel": {"surfaces": ["Made Up B", "Made Up A"]}})), encoding="utf-8")
+    assert check.expected(inputs_of(paths), "parsons2024Rev6", mock)["books"]["012"]["settings"]["Road surface order"] == "Made Up B, Made Up A"
+
+
 def test_r364_workbooks_as_the_worker_lays_them_out_hold_every_check(made, tmp_path):
     _, mock, want = made
     write_folder(tmp_path / "out", want, mock)
