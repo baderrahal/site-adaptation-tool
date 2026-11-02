@@ -518,3 +518,4 @@ No real input reaches these: the plot table of the demo holds whole numbers and 
 
 - R480: two C10 on one edge leave open from the first start to the last end, 0 such edges on the 5 keys. An edge shorter than its span end stays whole, the lengths are 25 and 28 m.
 - R479: a build with no 4 Check request gives no keo_file map, the footprint check compares by the own name with no line.
+- Breaker 1, a mirror edit in Update from report on a C10 now moves its wall gaps, the apply line names no button 8. No real edit yet. A number in a type name such as BW 1800 is held out by the digit limits now. Near span rests on one length class, all side edges are 25 m but 2965.
