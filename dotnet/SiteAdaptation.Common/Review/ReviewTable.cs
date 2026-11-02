@@ -25,6 +25,13 @@ namespace SiteAdaptation.Common.Review
                 {
                     continue;
                 }
+                // R476. A plot with no official number and no villa type is land, open space or a school, which 4 Check does not build. Breaker 1 of
+                // FIX-2NOV-A: five NBHs hold villa types with no official number, so the number alone would empty them. A table with no field
+                // officialNumber, as the made up tables of the tests, keeps every row
+                if (face.Property("officialNumber") != null && Text(face["officialNumber"]) == null && Text(face["typologyRev9"]) == null)
+                {
+                    continue;
+                }
                 string label = Text(face["baseplanLabel"]) ?? entry.Name;
                 string number = Text(face["locationPlanNumber"]) ?? Text(face["officialNumber"]);
                 if (number == null)

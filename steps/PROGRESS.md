@@ -5,7 +5,7 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 ## State
 
 - Lane D 6B-DATA, REV6 2 Nov: 5 TU zones under rev6, levels equal the past rules, R469. D3: Links on NBH 012, R467, R468. D2: R466 (Q336). FIX-1NOV-D: R460 to R465. 4j-1, 4j-1b: R420 to R429
-- Lane A 4i, 4j-2, FIX-1NOV-A and A2, one PR each (D20): R407 to R416, R470 joints behind join false, R471 rows, R472 Update plan, R473, R474 picks
+- Lane A 4i to FIX-2NOV-A, one PR each: R407 to R416, R470 to R474, R475 yard in its plot, R476 Review 337 of NBH 012, R477 footprint by same type
 - Lane B FIX-1NOV-B on 2026-11-01: masses as linked files (R450 to R453), coordinates from CAD (R454 to R456), proven in Revit on NBH 012
 - Lane B Task 6 on 2026-11-02: the demo by hand, Dry run off 1 to 9 on NBH 012, Dry run on stops at 4 (Q195), R457, steps/demo-check.md
 - Lane B 6a on 31 Oct: NBH 012 through 1 to 9 from a new project, no click. 5d, PR 113: 5, 6, 8, 7 at the FFL. 5c, PR 111: 2, 3, 4, 7
@@ -27,7 +27,7 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 
 - Scan: a large drawing past scan.pairTimeCapS is scanned in part, a notRead row lists it (Q258). No villa type source at the strong share (Q254)
 - Full text at 73b8c42: steps/history/progress-addin-4e.md. Bugs no real input reaches: steps/latent.md (Q095)
-- Footprint by house outline: 291 of 336 plots of NBH 012 sit in a block of another unit type (Q277)
+- Footprint by house outline: 271 of 336 plots of NBH 012 sit in a block of another unit type (Q277, R477)
 - The wall rule keyRules.wallOpen is weak, 2,539 of 3,427 walls hold on the keys, 0.7409 (Q115, Q266)
 - Q063: the whole NBH 03 image runs past the 30 minute step, I25 did not respond at 10,732 MiB private memory
 - R310 logs free memory in every window with no stop at the floor. In 2a it fell to 0.53 to 1.42 GiB per read window, cause UNKNOWN
@@ -44,17 +44,17 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 Opened in 4i, Lane A: Q224 to Q242, Q255, Q256. In 4j-2: Q259, Q299, Q303, Q304, titles in steps/questions-open.md. Closed in both: none.
 Opened in Task 6, Lane B: Q306, Q307, Q308, Q309, Q324, titles in steps/questions-open.md and the top entry of steps/log.md. Closed: none.
 Opened in FIX-1NOV-A, Lane A: Q340 The level of a joint an override moves. Q341 Back corners two ramps share. Q343 Passing joint rows in the check chips.
-Q344 Joints at the edge of a build. Closed: Q342 by Bader's prompt. A2: opened Q345 to Q349, titles in the log, closed Q278, Q292.
+Q344 Joints at the edge of a build. Closed: Q342. A2: opened Q345 to Q349, closed Q278, Q292. 2NOV-A: opened Q351, Q353 to Q356, closed Q350, Q352.
 Opened in FIX-1NOV-B, Lane B: Q320 to Q323, Q325 to Q329, titles in steps/questions-open.md and the top entry of steps/log.md. Closed: Q276.
 Opened in SCAN-UI, Lane C: Q288 Scan picks in the settings at version 1. Q289 Board rows the scan does not read. Q290 Curbs and road surface left out of scan. Q291 Where the line Current files is
 shown. Q293 Approve the three drafts of SCAN-UI. Q294 Rules chosen in Set up site, when used. Q295 Test host runs skip the scan. Q300 Plots with no cluster
 proposal. Q301 The build takes the door level pick. Q302 Door level row under the past job. Q305 Hide Confirmed under the past job.
 Opened in FIX-1NOV-D, Lane D: Q330 Group of the key link parameters unread. Q331 Plot is no link parameter of the keys. Q332 FFL bound but never written.
 Q333 to Q335. Closed: Q155. Opened in D2: Q336 Link parameter group is Text not Data. Closed in D2: Q330, by Bader's prompt. D3: Q337 to Q339, closed Q275. 6B-DATA: Q360 to Q364, in the log.
-Answers of 2 Nov: 20 closed, see steps/log.md. 149 open, steps/questions-open.md. Q286, Q293: steps/ui-shots/drafts-for-bader.md. Asks: steps/waiting-on-others.md.
+Answers of 2 Nov: 20 closed, see steps/log.md. 154 open, steps/questions-open.md. Q286, Q293: steps/ui-shots/drafts-for-bader.md. Asks: steps/waiting-on-others.md.
 
 ## Next three steps
 
-1. Bader's answers. Lane D: Q243 to Q258, Q331 to Q339, Q360 to Q364. Lane A: Q340, Q341, Q345 to Q349, Q303, Q304, Q259
+1. Bader's answers. Lane D: Q243 to Q258, Q331 to Q339, Q360 to Q364. Lane A: Q340, Q341, Q345 to Q349, Q351, Q353 to Q356, Q303, Q304, Q259
 2. Bader answers Q277, then the Revit half of Phase 6b
 3. Bader answers Q255 of 4i, Q284 to Q287 of Lane C, then Part 2 after Bader's check of Part 1

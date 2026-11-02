@@ -315,6 +315,9 @@ namespace SiteAdaptation.Common
                         found.Add(Lack("floors.yard", NoOutline + fit.Unit + (mirrored ? " mirrored" : " not mirrored") + " on a plot " + SheetRows.PyRepr(fit.Width) + " m wide"));
                         continue;
                     }
+                    // R475. A fitted outline and no yard after the overrides is a yard the cut left empty, by the ramp the plot ends with and not that of the step floors
+                    found.Add(Lack("floors.yard", FloorOutlines.YardCutEmpty));
+                    continue;
                 }
                 found.AddRange(rule.Select(lack => (JObject)lack.DeepClone()));
             }

@@ -395,6 +395,9 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R472 Update finds the plan of 4 Check.
 - R473 Read takes the saved picks.
 - R474 Read log names each source.
+- R475 Yard stays inside its plot.
+- R476 Review lists the plots of Check.
+- R477 Footprint check by same type.
 
 ## 11-scanner-r420-up.md
 

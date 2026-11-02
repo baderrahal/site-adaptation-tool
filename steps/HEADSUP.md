@@ -4,10 +4,10 @@
 
 ### Lane A
 
-- Lane: A, round FIX-1NOV-A2, branch fix/1nov-a2. Time: 2026-11-02 02:05. Blocked: none
-- Done: R472, R473, R474, proofs on copies, review 1, breaker 1 and 2 fixed. Gate on 25c84c7 green, parity 32 runs 0 failures, past job plans byte-equal
-- Now: the PR of FIX-1NOV-A2
-- Next: merge when green, tell lane-c the steps of parts 8 and 9. Questions Q345 to Q349
+- Lane: A, round FIX-2NOV-A, branch fix/2nov-a. Time: 2026-11-02 15:00. Blocked: none
+- Done: R475, R476, R477, Revit run of 1 to 5, gate, parity 32 runs 0 failures
+- Now: the PR
+- Next: merge when green, tell lane-c and lane-b, then queued FIX-2NOV-A2
 
 ### Lane B, C and D
 

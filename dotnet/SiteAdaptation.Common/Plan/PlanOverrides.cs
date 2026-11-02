@@ -51,6 +51,9 @@ namespace SiteAdaptation.Common
         // R365. The type of the yard outline the plan places, which floorTypes of the plan summary counts
         public string YardType { get; set; }
 
+        // R475, Q350. The cut changed the yard outline, so floors.yard.outline takes the source FloorOutlines.YardCutSource
+        public bool YardCut { get; set; }
+
         // R408. Under rev6 the slope of El @ Entry and the front corners after the overrides of a plot with El @ Entry, a skip plot as well,
         // for the list of the slopes outside the manual
         public double? Slope { get; set; }
@@ -874,14 +877,22 @@ namespace SiteAdaptation.Common
                         JToken keo = (rules["typologies"]?[unit] as JObject)?["keo_file"];
                         string yardUnit = groups.OfType<JObject>().Any(group => (string)group["unit"] == unit) ? unit : keo != null && keo.Type == JTokenType.String && ((string)keo).Length > 0 ? (string)keo : unit;
                         JObject group = FloorOutlines.OutlineFor(groups, yardUnit, (bool)mirrored, FloorOutlines.WidthKey(item.Frame.Length, step));
+                        // R475. Cut by the ramp the plot ends with, on the open edge of Q116 after a turn
+                        List<List<double[]>> cut = null;
                         if (group != null)
                         {
                             double[] origin = insert.Select(value => Rounding.Fixed(value, 3)).ToArray();
-                            made["yardZ"] = fflWritten.Value - below.Value;
-                            made["yardOutline"] = ((JArray)group["loops"]).Select(loop => FloorOutlines.ToWorld((JArray)loop, origin, (double)rotation.Written, (bool)mirrored)).ToList();
-                            found[number].YardType = group["type"]?.Type == JTokenType.String ? (string)group["type"] : null;
+                            List<List<double[]>> fitted = ((JArray)group["loops"]).Select(loop => FloorOutlines.ToWorld((JArray)loop, origin, (double)rotation.Written, (bool)mirrored)).ToList();
+                            cut = FloorOutlines.YardInPlot(fitted, item.Face?.Ring, ramp ? outline : null);
+                            found[number].YardCut = !ReferenceEquals(cut, fitted);
+                            if (cut.Count > 0)
+                            {
+                                made["yardZ"] = fflWritten.Value - below.Value;
+                                made["yardOutline"] = cut;
+                                found[number].YardType = group["type"]?.Type == JTokenType.String ? (string)group["type"] : null;
+                            }
                         }
-                        noYard = group == null;
+                        noYard = group == null || cut.Count == 0;
                     }
                 }
                 Tuple<List<string>, JObject> outcome = outcomes.Plot(number, written, lacks, list, later, profileName);
