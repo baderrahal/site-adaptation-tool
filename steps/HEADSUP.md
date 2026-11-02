@@ -13,8 +13,8 @@
 
 - Lane B FIX-2NOV-B, 00:19, branch fix/2nov-b-q158: second breaker pass clean, gate running, then PR, then the hand run of task 4. Lock free, nothing blocks.
 - Lane C FIX-2NOV-C-CHECK, branch fix/2nov-c-check: R494 pane, R495 Check sort and filter, Save As owner, sheet parts 17 to 20. SPEED-2NOV-C paused on speed/2nov-c. Blocked: none
-- Lane D MASS-2NOV-D, 3 Nov, branch mass/2nov-d: the mass outline by the outer wall faces (Q321, Q279), R500 to R505, Q380 up. Probe of the 13 prototypes done, steps/investigations/mass-outline.md.
-  Now: the ring builder, no Revit until its proof. Blocked: none
+- Lane D MASS-2NOV-D, 3 Nov, branch mass/2nov-d: the mass outline by the outer wall faces (Q321, Q279), R500 to R504, Q390 up. Probe of the 13 prototypes done, steps/investigations/mass-outline.md.
+  Now: ring builder joined, 12 of 13 close offline. Review 1 and breaker 1 running. The Revit proof waits on Lane B's lock. Blocked: none
 
 Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane D MASS-2NOV-D, 3 Nov 2026.
 
