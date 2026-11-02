@@ -2,6 +2,29 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Lane C parameters, 2026-11-02, the other 12 bound parameters on the sheet
+
+Goal:
+- Bader's task: list the other 12 bound shared parameters in config/shared_parameters.xlsx with Keep No and a Note
+
+Done:
+- 12 rows of Keep No with a Note, a new column Note, the 11 kept rows unchanged. Set up site now says 11 parameters, 12 left out
+- R461 and part 6 of steps/bader-fix-1nov.md say so
+
+Checked:
+- 22 bound in the read KC2, less the 10 link parameters on the sheet, 12 (RAN, read by script from testhost_KC2_parameters.json). Readers: ParameterBook, XlsxSheet and parameter_sheet.py give the same 11 and 12 (RAN)
+
+Remains:
+- The 12 come from the IMC key alone, the other 6 keys were not read for group and spec (UNKNOWN)
+
+Known bugs:
+- None new
+
+Next:
+- SPEED-2NOV-C
+
+Your turn:
+- None opened or closed. 154 open, steps/questions-open.md
 ## FIX-2NOV-A2, 2026-11-02, the walls against the keys and TH1-IM, Lane A on the laptop
 
 Goal:

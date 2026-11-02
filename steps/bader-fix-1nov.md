@@ -68,7 +68,7 @@ Look for: in step 2 the right column says the Road Layout "states UTM84-37N, EPS
 3. Manage, Project Parameters.
 4. After 7 Place villas of part 4, select a placed villa and read Properties.
 
-Look for: 11 rows with the columns Parameter, GUID, Data type, Group, Category, Filled by, Sample value, Keep. The Group column reads Text for the 10 link rows and Data for Plot (fix/1nov-d2, PR 129, Q336). Project Parameters lists the same 11 names, the 9 RRE_ZZ_SP_ link parameters, CASE, and Plot on Floors. RRE_ZZ_SP_RVT-Name reads "plot | code | steps | colour | option", for example "2441 | VD2 | 1 | XX | XX", and RRE_ZZ_SP_Prototype-FFL is empty.
+Look for: 23 rows with the columns Parameter, GUID, Data type, Group, Category, Filled by, Sample value, Keep, Note. 11 rows read Keep Yes, there the Group column reads Text for the 10 link rows and Data for Plot (fix/1nov-d2, PR 129, Q336). 12 rows read Keep No, each with a Note, and Set up site says "11 parameters, 12 left out". Project Parameters lists the same 11 names, the 9 RRE_ZZ_SP_ link parameters, CASE, and Plot on Floors. RRE_ZZ_SP_RVT-Name reads "plot | code | steps | colour | option", for example "2441 | VD2 | 1 | XX | XX", and RRE_ZZ_SP_Prototype-FFL is empty.
 
 ## 7. No curb is built (Lane A, PR 128)
 
