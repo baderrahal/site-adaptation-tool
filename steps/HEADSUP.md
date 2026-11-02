@@ -6,7 +6,7 @@
 
 - Lane: A, round FIX-2NOV-A3, branch fix/2nov-a3. Time: 2026-11-03 01:20. Blocked: none
 - Done: R414 off at 43 of 82, R481, R482, review 1, breaker 1 and 2, parity 32 runs 0 failures
-- Now: final gate, then the PR
+- Now: gate on aa15d7d green, the PR
 - Next: FIX-3NOV-A, Q373 and Q371, tells lane-c before NewProjectDialog
 
 ### Lane B, C and D

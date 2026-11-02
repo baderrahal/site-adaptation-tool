@@ -15,10 +15,10 @@ Done:
 Checked:
 - R414 on the 5 TU keys, RAN: clusters 8 to 43 of 82, key splits 0 to 3 of 41, key whole 40 of 41. On 37 of the 41 key splits the whole cluster already fits, no wall is tried
 - Second route, RAN: 82 of 82 marks equal. Q304 holds on 13 of 13 uneven key splits
-- Plan against main f11994b line, past job, RAN: 2,518 to 2,524 written, only the 6 new and 470 differ. Missing 236 to 233. Walls 5,999 to 6,029, ends MEASURED weak 0 to 1,528, UNKNOWN 5,999 to 4,501, ends values equal
+- Plan against main 69775f8, past job, RAN: 2,518 to 2,524 written, only the 6 new and 470 differ. Missing 236 to 233. Walls 5,999 to 6,029, ends MEASURED weak 0 to 1,528, UNKNOWN 5,999 to 4,501, ends values equal
 - Notched plots against key, RAN: rotation and insert within holds on 6, FFL, entry and steps equal on 5, second way 48 match 0 mismatch. 1553 is SE, levels left out
 - Parity on c91c1fa, RAN: 13 steps, net48 and net8.0, whole project and 7 keys, past job and rev6, 32 runs, 416 step lines, 0 failures
-- GATELINE
+- Gate on aa15d7d, RAN: pytest 2,448 passed 1 skipped, net48 2,218, net8.0 1,933, 0 failed
 - Review 1: no code fault. Breaker 1: 3 REAL on R482, fixed. Breaker 2: stale outline and steps lines, the hand in the set, fixed, slope of 1172 is Q375
 
 Remains:
