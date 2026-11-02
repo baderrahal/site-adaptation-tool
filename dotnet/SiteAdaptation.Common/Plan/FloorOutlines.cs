@@ -26,6 +26,9 @@ namespace SiteAdaptation.Common
         // R475. floor_fit.YARD_CUT_EMPTY, the line of a plot whose fitted yard outline the cut leaves empty
         public const string YardCutEmpty = "the cut of R475 leaves the fitted yard outline empty";
 
+        // R475. floor_fit.SHORT_EDGE_MM, two steps of the grid of the cut, so no edge it writes can read under the 1 mm of floors.shortestEdgeM in double
+        private const long ShortEdgeMm = 2;
+
         // floor_fit.EPSILON, the width of a fitted outline a plot takes
         private const double Epsilon = 1e-9;
 
@@ -254,8 +257,29 @@ namespace SiteAdaptation.Common
             return first.Count.CompareTo(second.Count);
         }
 
-        // R475. floor_fit.fixed_rings: the one order of the two languages, each ring from its smallest (x, y), the winding of the clipper kept, outer
-        // rings anticlockwise and holes clockwise, outer rings first, each kind sorted
+        // R475. floor_fit.without_short_edges: a ring in whole mm with each vertex under ShortEdgeMm from the last one kept left out, the last against the
+        // first as well, the first always kept. A yard vertex within a mm of the face or the ramp leaves an edge of 1 mm, which floors.shortestEdgeM refuses
+        // when its double reads a hair under, so a cut plan would lose the floor at the placer
+        private static Path64 WithoutShortEdges(Path64 ring)
+        {
+            bool Near(Point64 first, Point64 second) => (first.X - second.X) * (first.X - second.X) + (first.Y - second.Y) * (first.Y - second.Y) < ShortEdgeMm * ShortEdgeMm;
+            var kept = new Path64 { ring[0] };
+            foreach (Point64 point in ring.Skip(1))
+            {
+                if (!Near(point, kept[kept.Count - 1]))
+                {
+                    kept.Add(point);
+                }
+            }
+            while (kept.Count > 1 && Near(kept[kept.Count - 1], kept[0]))
+            {
+                kept.RemoveAt(kept.Count - 1);
+            }
+            return kept;
+        }
+
+        // R475. floor_fit.fixed_rings: the one order of the two languages, each ring from its smallest (x, y) and with no short edge, a ring of under 3
+        // vertices then left out, the winding of the clipper kept, outer rings anticlockwise and holes clockwise, outer rings first, each kind sorted
         private static List<Path64> FixedRings(Paths64 rings)
         {
             var outer = new List<Path64>();
@@ -273,7 +297,11 @@ namespace SiteAdaptation.Common
                 var placed = new Path64();
                 placed.AddRange(ring.Skip(start));
                 placed.AddRange(ring.Take(start));
-                (DoubledArea(new[] { ring }) > 0 ? outer : holes).Add(placed);
+                Path64 kept = WithoutShortEdges(placed);
+                if (kept.Count >= 3)
+                {
+                    (DoubledArea(new[] { ring }) > 0 ? outer : holes).Add(kept);
+                }
             }
             outer.Sort(RingOrder);
             holes.Sort(RingOrder);

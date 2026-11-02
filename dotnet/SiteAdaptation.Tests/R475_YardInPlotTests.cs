@@ -61,6 +61,14 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
+        public void R475_a_cut_writes_no_edge_under_2_mm()
+        {
+            // A step of 1 mm beside the face edge, and a last vertex 1.4 mm from the first
+            Assert.Equal("5,10 19.999,10 20,20 5,20", Text(FloorOutlines.YardInPlot(Rings("5,10 19.999,10 19.999,9.999 25,9.999 25,20 5,20"), Face, Ramp)));
+            Assert.Equal("5,10 20,10 20,20 5,20", Text(FloorOutlines.YardInPlot(Rings("5,10 25,10 25,20 5,20 5.001,10.001"), Face, Ramp)));
+        }
+
+        [Fact]
         public void R475_a_yard_inside_is_returned_as_it_was_given_byte_for_byte()
         {
             // Off the grid, wound clockwise, a collinear vertex and not from its smallest corner: nothing of it changes

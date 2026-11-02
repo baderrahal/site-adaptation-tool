@@ -47,7 +47,8 @@ def metadata_licence(name):
     if meta.get("License-Expression"):
         return meta["License-Expression"].strip()
     if meta.get("License") and meta["License"].strip() not in ("", "UNKNOWN"):
-        return meta["License"].strip()
+        # pyclipr of R475 holds the whole licence text here, a table row takes its title line
+        return meta["License"].strip().splitlines()[0].strip()
     classifiers = [value.split("::")[-1].strip() for value in meta.get_all("Classifier") or [] if value.startswith("License ::")]
     return classifiers[-1] if classifiers else None
 

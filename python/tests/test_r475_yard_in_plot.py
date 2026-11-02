@@ -37,6 +37,14 @@ def test_r475_a_yard_of_two_loops_keeps_both_rings_sorted_by_first_vertex():
     assert plan_from_book.yard_in_plot(loops, FACE, RAMP) == [[[2.0, 10.0], [6.0, 10.0], [6.0, 12.0], [2.0, 12.0]], [[15.0, 10.0], [20.0, 10.0], [20.0, 12.0], [15.0, 12.0]]]
 
 
+def test_r475_a_cut_writes_no_edge_under_2_mm():
+    # A step of 1 mm beside the face edge, and a last vertex 1.4 mm from the first
+    step = [[5.0, 10.0], [19.999, 10.0], [19.999, 9.999], [25.0, 9.999], [25.0, 20.0], [5.0, 20.0]]
+    assert plan_from_book.yard_in_plot([step], FACE, RAMP) == [[[5.0, 10.0], [19.999, 10.0], [20.0, 20.0], [5.0, 20.0]]]
+    last = [[5.0, 10.0], [25.0, 10.0], [25.0, 20.0], [5.0, 20.0], [5.001, 10.001]]
+    assert plan_from_book.yard_in_plot([last], FACE, RAMP) == [[[5.0, 10.0], [20.0, 10.0], [20.0, 20.0], [5.0, 20.0]]]
+
+
 def test_r475_a_yard_inside_is_returned_as_it_was_given_byte_for_byte():
     # Off the grid, wound clockwise, a collinear vertex and not from its smallest corner: nothing of it changes
     loops = [[[10.00012, 10.00049], [10.00012, 20.1], [15.0, 20.1], [18.1234, 20.1], [18.1234, 10.00049]]]

@@ -44,6 +44,8 @@ EPSILON = 1e-9
 KINDS = ("generic", "yard")
 # R475. The line of a plot whose fitted yard outline the cut leaves empty, FloorOutlines.YardCutEmpty of the C#
 YARD_CUT_EMPTY = "the cut of R475 leaves the fitted yard outline empty"
+# R475. Two steps of the grid of the cut, so no edge it writes can read under the 1 mm of floors.shortestEdgeM in double
+SHORT_EDGE_MM = 2
 NOTE = ("Measured from the {job} past job, not a rule of the client, written by python/floor_fit.py --write and never by hand (R135, R136). "
         "outlines: per floor kind one group per unit, mirror flag and plot width, the width being the front edge of the baseplan face (R122) rounded to cadLinks.floorWidthStepM. "
         "loops are in the axes of the link, x along its X axis and y along its Y axis from its origin, so the outline is placed by the insert, rotation and mirror flag of the link. "
@@ -304,13 +306,29 @@ def doubled_area(rings):
     return sum(ring[at - 1][0] * point[1] - point[0] * ring[at - 1][1] for ring in rings for at, point in enumerate(ring))
 
 
+def without_short_edges(ring):
+    """R475. A ring in whole mm with each vertex under SHORT_EDGE_MM from the last one kept left out, the last against the first as well, the first
+    always kept. A yard vertex within a mm of the face or the ramp leaves an edge of 1 mm, which floors.shortestEdgeM refuses when its double reads a
+    hair under, so a cut plan would lose the floor at the placer."""
+    near = lambda first, second: (first[0] - second[0]) ** 2 + (first[1] - second[1]) ** 2 < SHORT_EDGE_MM ** 2
+    kept = [ring[0]]
+    for point in ring[1:]:
+        if not near(point, kept[-1]):
+            kept.append(point)
+    while len(kept) > 1 and near(kept[-1], kept[0]):
+        kept.pop()
+    return kept
+
+
 def fixed_rings(rings):
-    """R475. The one order of the two languages: each ring from its smallest (x, y), the winding of the clipper kept, outer rings anticlockwise
-    and holes clockwise, outer rings first, each kind sorted."""
+    """R475. The one order of the two languages: each ring from its smallest (x, y) and with no short edge, a ring of under 3 vertices then left out,
+    the winding of the clipper kept, outer rings anticlockwise and holes clockwise, outer rings first, each kind sorted."""
     outer, holes = [], []
     for ring in rings:
         start = ring.index(min(ring))
-        (outer if doubled_area([ring]) > 0 else holes).append(ring[start:] + ring[:start])
+        kept = without_short_edges(ring[start:] + ring[:start])
+        if len(kept) >= 3:
+            (outer if doubled_area([ring]) > 0 else holes).append(kept)
     return sorted(outer) + sorted(holes)
 
 
