@@ -15,7 +15,7 @@ Done:
 Checked:
 - Worst wall of a plot within 10 mm, RAN on the 7 zones, tool on key: TU 471 to 1,232 of 1,759, all 653 to 1,344 of 2,466. Key on tool: TU 670 to 1,129, all 813 to 1,269. With R480 by the same compare tool on key 1,339, over 300 mm 54 to 63, as the compare tests wall ends only and a whole wall over an open span ends on a corner
 - C10 side edges against the key, RAN by shapely on the written ends: 229 equal of 250, the 21 the measure lists. Plot fields beside walls and yards equal to main
-- Past job against main, RAN: the 7 keys and the whole project differ only in the wall and status steps that follow the walls, the 18 villa rows of the compare aside
+- Past job against main, RAN: the 7 keys and the whole project differ only in the step walls and the walls of the plan
 - Parity, RAN: 13 steps, net48 and net8.0, whole project and the 7 keys, past job and rev6, 32 runs, 416 step lines, 0 failures, on 23779c7, the changes after it are the compare and the footprint check, in no step
 - Gate, RAN on ae8369b: pytest 2,327 passed, 1 skipped. C# net48 1,998, net8.0 1,753, 0 failed. Review 1 CHANGES NEEDED, breaker 1: 3 REAL fixed (end overshoot, keo_file, R480 tests), the side of a wall and the SE keys are questions
 
