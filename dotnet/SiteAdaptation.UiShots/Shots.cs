@@ -41,7 +41,11 @@ namespace SiteAdaptation.UiShots
         public const string HowItWorks = "how-it-works";
         public const string ScanResults = "scan-results";
         public const string RoadSurfaces = "road-surfaces";
-        public static readonly string[] Windows = { RibbonIcons, Pane, PaneFirstOpen, SetUpSite, ReviewData, Rules, CheckTable, UpdateFromReport, NewProject, HowItWorks, ScanResults, RoadSurfaces };
+        public static readonly string[] Windows = { RibbonIcons, Pane, PaneFirstOpen, SetUpSite, ReviewData, Rules, CheckTable, UpdateFromReport, NewProject, HowItWorks, ScanResults };
+
+        // R492. Drawn by the command line and Render, not in Windows: UiShotTests counts 11 windows and holds each of them to the sizes of the spec,
+        // so the window Road surfaces joins Windows once Bader approves its draft and that test follows
+        public static readonly string[] Drafts = { RoadSurfaces };
 
         private const double Dpi = 96.0;
 
@@ -69,7 +73,7 @@ namespace SiteAdaptation.UiShots
         {
             Directory.CreateDirectory(folder);
             var written = new List<string>();
-            foreach (string window in Windows)
+            foreach (string window in Windows.Concat(Drafts))
             {
                 string path = Path.Combine(folder, window + ".png");
                 File.WriteAllBytes(path, Png(Render(window)));
