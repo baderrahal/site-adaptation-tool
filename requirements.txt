@@ -3,3 +3,4 @@ openpyxl==3.1.5
 pytest==8.4.2
 shapely==2.2.0
 numpy==2.5.4
+pyclipr==0.1.8

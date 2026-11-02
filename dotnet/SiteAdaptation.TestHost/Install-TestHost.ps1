@@ -60,8 +60,8 @@ $readerFolder = Join-Path $addins 'SiteAdaptation'
 $placerFolder = Join-Path $addins 'SiteAdaptationPlacer'
 $hostFolder = Join-Path $addins 'SiteAdaptationTestHost'
 
-Install-Folder $reader $readerFolder @('RevitPrototypeReader.dll', 'RevitPrototypeReader.pdb', 'SiteAdaptation.Common.dll', 'SiteAdaptation.Common.pdb', 'Newtonsoft.Json.dll')
-Install-Folder $placer $placerFolder @('SiteAdaptation.Placer.dll', 'SiteAdaptation.Placer.pdb', 'SiteAdaptation.Common.dll', 'SiteAdaptation.Common.pdb', 'Newtonsoft.Json.dll')
+Install-Folder $reader $readerFolder @('RevitPrototypeReader.dll', 'RevitPrototypeReader.pdb', 'SiteAdaptation.Common.dll', 'SiteAdaptation.Common.pdb', 'Clipper2Lib.dll', 'Newtonsoft.Json.dll')
+Install-Folder $placer $placerFolder @('SiteAdaptation.Placer.dll', 'SiteAdaptation.Placer.pdb', 'SiteAdaptation.Common.dll', 'SiteAdaptation.Common.pdb', 'Clipper2Lib.dll', 'Newtonsoft.Json.dll')
 # The test host folder holds the test host only. It loads the placer, the reader and Common from their own folders
 Install-Folder $host_ $hostFolder @('SiteAdaptation.TestHost.dll', 'SiteAdaptation.TestHost.pdb')
 # The dialog watcher of R108 is a program and not an add-in. Revit reads manifests in the Addins root only, so this folder is never loaded

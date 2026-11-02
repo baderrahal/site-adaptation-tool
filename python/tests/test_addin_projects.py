@@ -37,7 +37,8 @@ def test_r346_common_is_netstandard2_0_with_newtonsoft_json_13_0_1_its_one_runti
     assert properties.get("TargetFramework") == "netstandard2.0"
     assert "TargetFrameworks" not in properties
     # Q079. The runtime graph package of the restore is pinned to its first MIT version, build only, so nothing of it flows on
-    assert packages == [("Newtonsoft.Json", "13.0.1", ""), ("Microsoft.NETCore.Platforms", "3.1.0", "all")]
+    # R475. The clipper of the yard is the second runtime package
+    assert packages == [("Newtonsoft.Json", "13.0.1", ""), ("Clipper2", "2.0.0", ""), ("Microsoft.NETCore.Platforms", "3.1.0", "all")]
     assert references == []
 
 
