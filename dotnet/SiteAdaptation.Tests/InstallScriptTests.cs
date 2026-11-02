@@ -83,10 +83,11 @@ namespace SiteAdaptation.Tests
             };
             using (Process process = Process.Start(info))
             {
+                // Both at once: under a long worktree path the error of a refused install passes the 4 KB of its pipe, and pwsh blocks on it while stdout is read
+                var error = process.StandardError.ReadToEndAsync();
                 string output = process.StandardOutput.ReadToEnd();
-                string error = process.StandardError.ReadToEnd();
                 Assert.True(process.WaitForExit(60000), "pwsh did not end in 60 s");
-                return Tuple.Create(process.ExitCode, output + error);
+                return Tuple.Create(process.ExitCode, output + error.Result);
             }
         }
 
