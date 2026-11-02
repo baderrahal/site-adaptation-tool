@@ -529,9 +529,8 @@ namespace SiteAdaptation.Common
                     var wall = new JObject { ["plot"] = number, ["edge"] = edges[index].DeepClone() };
                     foreach (string field in Walls.Fields)
                     {
-                        // R416. The ends of a wall the step moved inside an irregular plot carry the source of the move
-                        JToken inside = (item["lineInsideM"] as JArray)?[index];
-                        string source = field == "plots" ? Walls.PlotsSource : field == "ends" ? Walls.EndsSource(inside == null || inside.Type == JTokenType.Null ? (double?)null : (double)inside) : Walls.Source;
+                        // R416, R481. The ends carry the source the step names, of the move inside an irregular plot or of the span of keyRules.wallOpen
+                        string source = field == "plots" ? Walls.PlotsSource : field == "ends" ? (string)(item["endsSource"] as JArray)?[index] ?? Walls.Source : Walls.Source;
                         var value = new JObject { ["value"] = item[field][index].DeepClone(), ["source"] = source };
                         value["status"] = status[field]?["status"]?.DeepClone();
                         value["statusFrom"] = status[field]?["statusFrom"]?.DeepClone();
