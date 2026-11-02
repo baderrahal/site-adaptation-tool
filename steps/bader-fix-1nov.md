@@ -2,7 +2,7 @@
 
 The checks of the four rounds of 1 Nov 2026, FIX-1NOV-A, B, C and D, on Revit 2024. One action per step. Each part ends with what to look for.
 
-Merged to main: fix/1nov-d (PR 126), fix/1nov-b (PR 127), fix/1nov-a (PR 128), fix/1nov-d2 (PR 129), fix/1nov-a2 (PR 130), fix/1nov-b-task6 (PR 131), fix/1nov-c (this sheet). Pending when this sheet was written, 2 Nov: fix/1nov-d3. A pending round's part says so, skip it until its PR is merged.
+Merged to main: fix/1nov-d (PR 126), fix/1nov-b (PR 127), fix/1nov-a (PR 128), fix/1nov-d2 (PR 129), fix/1nov-a2 (PR 130), fix/1nov-b-task6 (PR 131), fix/1nov-c (PR 132), fix/2nov-c (PR 133), fix/1nov-d3 (PR 134), and this update of the sheet. Nothing of these rounds is pending.
 
 ## 1. Pull, build and install
 
@@ -19,7 +19,7 @@ dotnet build dotnet\SiteAdaptation.sln -c Release
 C:\Users\p003653k\Tools\pwsh\pwsh.exe -File dotnet\SiteAdaptation.AddIn\Install-SiteAdaptation.ps1 -NoBuild
 ```
 
-Look for: git pull ends on the merge of fix/1nov-c. The build ends with "0 Error(s)". The install shows no red line and ends with two lines, "Manifest ... SiteAdaptationAddIn_Revit2024.addin names ..." and "one SiteAdaptation.Common.dll in ... folders of the tool, SHA-256 ...". If it says "Revit 2024 is running", close Revit and run the last line again.
+Look for: git pull ends on the merge of fix/2nov-c-part11. The build ends with "0 Error(s)". The install shows no red line and ends with two lines, "Manifest ... SiteAdaptationAddIn_Revit2024.addin names ..." and "one SiteAdaptation.Common.dll in ... folders of the tool, SHA-256 ...". If it says "Revit 2024 is running", close Revit and run the last line again.
 
 ## 2. The model and the config
 
@@ -111,9 +111,27 @@ Look for: at step 5, Changes found 2, one row FFL with its rule check and one ro
 
 Look for: New project opens as before, its foot shows no line about a model. After step 4 the pane shows the config, rules and inputs of the saved project with no button run, the setup came back from the model. The undo list of Revit holds "Site Adaptation: Save setup". After step 5 the pane shows the setup from before that Save setup, the same as the model holds.
 
-## 11. Links mode (Lane D, fix/1nov-d3)
+## 11. Links mode (Lane D, PR 134, R467, R468)
 
-Pending: this part comes with fix/1nov-d3, not merged when this sheet was written. Skip it until fix/1nov-d3 is on main, then read the Lane D line of steps/HEADSUP.md of the merged branch.
+Lane D ran this through the test host only, so this is the first run through the pane. Lane D's run took its folder from the config copy, the pane takes it from its Prototypes row, so step 5 is needed here.
+
+1. Open the config you run from (part 2) in VS Code.
+2. Set addin.lightMode.linkFolder to "prototypes". Leave addin.lightMode.villaModeDefault at "masses".
+3. Set pastJob.upgradedPrototypeFolder to "C:\\Users\\p003653k\\Documents\\SiteAdaptation\\prototypes_2024" and save the file. Write the double backslashes as shown.
+4. Copy C:\SA-demo\SA-demo-start.rvt to C:\SA-demo\SA-links.rvt and open the copy in Revit 2024.
+5. In the pane, on the row Prototypes, press Browse and pick C:\Users\p003653k\Documents\SiteAdaptation\prototypes_2024.
+6. Run 1 to 9 on Neighbourhood 012 with Villa mode Masses, as steps/demo-fill.md says. At 7 Place villas press Run, then Apply.
+7. Manage, Manage Links, tab Revit, and read the Saved Path column.
+8. Save the model and close it.
+9. In the config set addin.lightMode.linkFolder back to "masses" and save the file.
+10. Copy C:\SA-demo\SA-demo-start.rvt to C:\SA-demo\SA-masses.rvt and open the copy.
+11. Pick the same Prototypes folder as in step 5, then run 1 to 7. At 7 press Run, then Apply.
+12. Manage, Manage Links, tab Revit, and read the Saved Path column.
+13. In the config put pastJob.upgradedPrototypeFolder back to "00_Revit Models\\Zone 02\\ARC\\Prototypes_2024" and save the file. For any later part, pick C:\SA-demo\inputs\Prototypes on the row Prototypes again.
+
+Look for: at step 6 button 7 places 336 links with no upgrade wait, 84 seconds and about 6 GB of private memory in Lane D's run. At step 7, 13 files, all from prototypes_2024. At step 12, 13 files from Documents\SiteAdaptation\masses and 336 links. At step 11 button 7 makes the 13 mass files again if they were last made from another Prototypes folder, as part 4 makes them from the demo folder (READ MassFiles.State, not run). How long is not measured through the pane: Lane B's first runs took 2 to 3 minutes per file (Q322), Lane D's test host run took 90 s for all 13 with two extra files in its spec. Lane D's last run made them from prototypes_2024, so with no part 4 before this part no remake should come.
+
+If at step 6 Revit starts upgrading files, step 5 did not take: the folder of the demo holds Revit 2021 files, stop and tell Lane D (Q339). Reloading the masses inside one model is not proven (Q337), so each pass takes its own copy. Neither Lane D run started from a copy of SA-demo-start.rvt, they started from the template, so whether a copy behaves the same is UNKNOWN (CHOSEN by Lane C, as part 2 uses copies). A remake with the demo folder on the row may write .slog files beside C:\SA-demo\inputs\Prototypes, as it did for the 2024 copies (not run on that folder, Q338).
 
 ## 12. The demo check (Lane B, PR 131)
 
@@ -141,9 +159,9 @@ Look for: at step 2 the ask "Save your review?" with Save, Don't save and Cancel
 
 ## Questions for Bader
 
-Every open question of steps/questions-open.md on the merge of fix/1nov-c, 162 open, by topic, the oldest first, each with its recommended answer. [demo] and [new project] mark the ones a demo or a new project meets first. The full text is in steps/questions-open.md.
+Every open question of steps/questions-open.md on the merge of fix/1nov-d3, 164 open, by topic, the oldest first, each with its recommended answer. [demo] and [new project] mark the ones a demo or a new project meets first. The full text is in steps/questions-open.md.
 
-First for a demo or a new project: Q187, Q201, Q202, Q224, Q227, Q237, Q243, Q254, Q275, Q281, Q282, Q286, Q293, Q296, Q308, Q309, Q320, Q322, Q324, Q325, Q328, Q335.
+First for a demo or a new project: Q187, Q201, Q202, Q224, Q227, Q237, Q243, Q254, Q281, Q282, Q286, Q293, Q296, Q308, Q309, Q320, Q322, Q324, Q325, Q328, Q335, Q339.
 
 ### Levels, ramps and floors
 
@@ -211,12 +229,13 @@ First for a demo or a new project: Q187, Q201, Q202, Q224, Q227, Q237, Q243, Q25
 - Q206 The base boundary of a prototype. Recommended: the outer loop of the floor of the lowest level by default, the element named in config, and the Revit run after 5c measures every candidate of the 13 prototypes against the CAD villa block of the same code and keeps the one closest on most.
 - Q270 Where a prototype set upgrades now. Recommended: The set target goes under the work root as prototypes_2024\<discipline>, STR to prototypes_2024\STR.
 - Q271 Python build takes the pane folder. Recommended: plan_from_book.py takes a --prototypes folder for parity runs, the config folder by default.
-- Q275 First log step limit of an upgrade job [demo]. Recommended: An upgrade job takes a first log step limit of its own in config, 20 minutes, as an image job has its own in Q154, and the C10 file of the probe is deleted and made again.
 - Q277 Footprint block names unlike the unit. Recommended: Keep choosing the block by position as R404 does now, never by its name.
 - Q279 Mass base, slab edge or outer wall face. Recommended: Keep the slab edge as the base, it is read on all 13 and exact, and measure the wall face as a second figure where the walls close.
 - Q320 Keep the solids path of light mode [demo]. Recommended: keep linkFolder solids as the fallback until the Revit run places the 13 mass files and reloads one, then remove it in a later round.
 - Q321 Mass base from walls, third attempt stopped. Recommended: keep the built rule with the flag, a prober counts the location line and the yard walls of the 13 prototypes, then Bader picks: exact corners by line intersections, or the slab for all.
 - Q322 Mass files made inside button 7 [demo]. Recommended: a separate pane command Make mass files with a loader and a count, run once per prototype set, button 7 only places, the test host step limit for it from config.
+- Q337 Swap back in the same model unproven. Recommended: Answer Q323 as it recommends, then run the swap back on the D3L model once.
+- Q339 A 2021 file in the link folder [new project]. Recommended: Button 7 reads the format of each file first with no Revit open and refuses a 2021 file by its name, pointing to the upgrade step.
 
 ### Coordinates and site position
 
@@ -339,3 +358,4 @@ First for a demo or a new project: Q187, Q201, Q202, Q224, Q227, Q237, Q243, Q25
 - Q222 The NBH 03 image of Q063 was not run. Recommended: Bader names the area and the level.
 - Q223 The test host gives up after one refused raise of its phase event. Recommended: retry a refused raise on the next tick, a test host change in 5d.
 - Q323 A keyCopy run refused by its guard. Recommended: copy the key under the name the job opens and let the guard skip that one file, with a test, in the next Lane B round.
+- Q338 Input guard counts Revit .slog files. Recommended: The guard skips the _backup folders of a prototypes input under the work root only, an input root still fails on any change, and the reason goes into the run file.

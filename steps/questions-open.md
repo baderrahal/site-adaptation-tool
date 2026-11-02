@@ -658,6 +658,7 @@ Q338. Input guard counts Revit .slog files (Lane D D3, D19, R384). A buttons run
 - Other: Keep the guard as it is and read exit 1 by hand on such a run.
 
 Q339. A 2021 file in the link folder (Lane D D3, R450, Q275). Button 7 gives no warning for a Revit 2021 file in the link folder, Revit would upgrade it during the link load (READ, not run). One upgrade took 286 to 368 s in its own window (RAN, 13), so 13 such files could pass the 20 minute step limit of a test host run. D3 linked 2024 files only, and whether the loader shows that wait is UNKNOWN.
+- Lane C, 2 Nov: through the pane the row Prototypes names the folder, ahead of config (READ CheckRun.cs, CheckTableBody.cs). C:\SA-demo\inputs\Prototypes holds format 2021 (RAN rvt_info.py, the C10 file, 1 of 13), so linkFolder prototypes with that row would link 2021 files. Part 11 of the sheet picks prototypes_2024 on the row.
 - Recommended: Button 7 reads the format of each file first with no Revit open and refuses a 2021 file by its name, pointing to the upgrade step.
 - Other: Leave it, the 2024 copies are the folder config names.
 
