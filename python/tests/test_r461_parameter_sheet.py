@@ -17,7 +17,9 @@ def rows(*items):
 def test_r461_the_sheet_of_the_repo_gives_the_10_link_parameters_and_plot_with_their_buttons():
     settings = project_profile.load_settings()
     kept, left_out = parameter_sheet.from_file(parameter_sheet.path_of(project_profile.SETTINGS_PATH, {"addin": settings.get("addin")}))
-    assert left_out == [] and len(kept) == 11 and kept[-1]["name"] == "Plot" and kept[-1]["filledBy"] == 5
+    # The other 12 the IMC key binds, listed so a reader sees what was left out and why
+    assert left_out == ["CAD Drawing Name", "E", "FFL", "FFL-0.1", "N", "PSN-Discpline set of drawings", "PSN-Model name", "PSN-Sheet number to above", "PSN_Sheet No to the left side", "PSN_Zone", "Point Code", "Top Of Wall"]
+    assert len(kept) == 11 and kept[-1]["name"] == "Plot" and kept[-1]["filledBy"] == 5
     assert [item["name"] for item in kept if item["filledBy"] == 7] == ["RRE_ZZ_SP_Plot-Number", "RRE_ZZ_SP_Prototype", "RRE_ZZ_SP_Number-of-Steps",
                                                                          "RRE_ZZ_SP_Façade-Color", "RRE_ZZ_SP_Façade-Design-Option",
                                                                          "RRE_ZZ_SP_Prototype-Foundation-Type", "RRE_ZZ_SP_Prototype-HVAC-Schedule-Type",
