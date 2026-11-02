@@ -2,6 +2,42 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Lane D 6B-DATA-REV6, 2026-11-02, what a new project gets on the 5 TU zones, no Revit
+
+Goal:
+- Rerun the zone compare in rev6 with no override list, beside the past job, and say how close a new project gets
+
+Done:
+- zone_compare.py takes --rev6-plan, 3 tests (R469). steps/investigations/6b-data-rev6.md. No civil entry file in the data book, so road level plus slope on every plot
+- As the config stands rev6 writes only IMC, 324 of 1,791 key plots. Beyond the prompt, a config copy per zone names its largest surface (CHOSEN): 1,657 written
+- Over limit on the plots written, rev6 and past job rules equal:
+- IMC, 324 plots written of 324: FFL 230, entry 162, ramp level 140, steps 0
+- IMD, 400 of 403: FFL 238, entry 197, ramp level 173, steps 0
+- IME, 316 of 320: FFL 171, entry 126, ramp level 110, steps 0
+- IMF, 438 of 476: FFL 272, entry 211, ramp level 128, steps 9
+- IMG, 179 of 268: FFL 81, entry 73, ramp level 58, steps 0
+- In plain words: FFL within 5 mm on 29 to 55 percent per zone, within 100 mm on 92 to 99. El @ Entry 47 to 60 and 92 to 100. Steps the same on 1,595 of 1,657. The gaps are scatter, the median near zero except IMC at -20 mm, no steady offset
+
+Checked:
+- By a script outside git, plain json and math, with no function of zone_compare.py (RAN): every status of the rev6 plans worked out again, 16,570 the same, 0 differ. The 50 random plots read again from the raw plans, 250 cells the same, 0 differ. The plans of the past job and the keys are those of steps/investigations/6b-data.md, checked there.
+- The IMC plan really is rev6: it holds the proposal field and summary.noDoorLevel, no yard floors, 23 walls differ in their ends, 92 coordinates. Levels equal on 1,657 of 1,657, ramp corners too
+- 62 inputs the same by SHA-256, the repo config unchanged, each config copy differs by mode and surface only
+- Reviewer APPROVE, 2 latent. Claim-checker: no claim wrong, 3 wordings fixed
+- Gate: dotnet 1,939 and 1,694 passed. Pytest 2,289 passed, 1 failed: test_r62 did not list zone_compare.py among the files that name the mode, added, and its one line changed. Then test_project_profile, test_zone_compare and test_records: 38 passed
+
+Remains:
+- Which surface a new project of many phases names (Q364, Q256). The cluster proposals were not compared. Q070 clouds El @ Entry on IMC and IMD
+
+Known bugs:
+- None new in the tool. A rev6 run that writes no plot ends with exit 0 (Q364)
+
+Next:
+- The Revit half of 6b. Q339 as answered, to build
+
+Your turn:
+- Opened: Q364 One named road surface and several zones
+- 149 open, steps/questions-open.md
+
 ## Lane D 6B-DATA, 2026-11-02, each zone against its past model, no Revit
 
 Goal:

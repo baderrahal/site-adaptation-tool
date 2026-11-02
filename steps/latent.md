@@ -494,3 +494,8 @@ No real input reaches these: the plot table of the demo holds whole numbers and 
 
 - zone_compare.py stops the whole zone on a ramp corner list with no points, max and min of nothing. No plan of the 7 zones holds one.
 - zone_compare.py reads each field through plan_compare.value_of, which swallows a missing key, so a renamed plan field would show only as toolNone counts. The 7 zones show none.
+
+## Lane D 6B-DATA-REV6, R469, review
+
+- zone_compare.py checks only the plan of --rev6-plan: a rev6 plan handed by hand as --without-overrides would pass under that title. The 5 zones hand the past job plans.
+- check_rev6 shows a plan is rev6, not that it holds no override list, so a rev6 build with a list would read as no override list. The rev6 builds of the round name no list.
