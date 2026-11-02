@@ -2,6 +2,37 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## FIX-2NOV-A2, 2026-11-02, the walls against the keys and TH1-IM, Lane A on the laptop
+
+Goal:
+- Bader's FIX-2NOV-A2 from section 4 of steps/investigations/6b-data.md: wall lines about 100 mm off the keys, walls on one side only, the villa type on 18 plots
+
+Done:
+- Q360: no tool line changes. Key walls on a centre code stand within 10 mm of the tool line on 1,791 of 1,865, on a face code half their thickness off. R478 Wall compare by wall centre in zone_compare, best side only, as the reads hold no side (Q365)
+- Walls one side: R480 C10 side wall by hand, 229 of 250 C10 side edges now equal the key, the rest questions: 77 garden walls (Q259), 26 structural walls of the SE keys and 37 back edges (Q358), 12 beside a VL6 (Q359), the SE keys' near span (Q366)
+- R479 One villa type by prototype file: 12 of 18 TH1-IM plots match. The 6 are ima 1667, 1668, 1859, 1860, imb 2176, 2177, ARC in the tool, STR in the key, one villa. The footprint check takes the unit of the linked file
+
+Checked:
+- Worst wall of a plot within 10 mm, RAN on the 7 zones, tool on key: TU 471 to 1,232 of 1,759, all 653 to 1,344 of 2,466. Key on tool: TU 670 to 1,129, all 813 to 1,269. With R480 by the same compare tool on key 1,339, over 300 mm 54 to 63, as the compare tests wall ends only and a whole wall over an open span ends on a corner
+- C10 side edges against the key, RAN by shapely on the written ends: 229 equal of 250, the 21 the measure lists. Plot fields beside walls and yards equal to main
+- Past job against main, RAN: the 7 keys and the whole project differ only in the step walls and the walls of the plan
+- Parity, RAN: 13 steps, net48 and net8.0, whole project and the 7 keys, past job and rev6, 32 runs, 416 step lines, 0 failures, on 23779c7, the changes after it are the compare and the footprint check, in no step
+- Gate, RAN on ae8369b: pytest 2,327 passed, 1 skipped. C# net48 1,998, net8.0 1,753, 0 failed. Review 1 CHANGES NEEDED, breaker 1: 3 REAL fixed (end overshoot, keo_file, R480 tests), the side of a wall and the SE keys are questions
+
+Remains:
+- Reading Wall.Flipped from a key settles Q365. Not run in Revit, R480 walls of two parts are placed by the same code as wallOpen parts
+
+Known bugs:
+- A breaker helper's kill loop may have ended 4 grep processes of another session at 16:49, told to the lanes
+
+Next:
+- Queued FIX-2NOV-A3: the split test, walls.ends, notched plot fronts. Bader answers Q357, Q358, Q359, Q365, Q366
+
+Your turn:
+- Opened Q357 Key walls with the face on the line. Q358 Walls only the keys hold. Q359 A C10 side wall beside a VL6. Q365 The side of a key wall. Q366 C10 side walls of the SE keys.
+  Closed Q360 Wall ends about 100 mm off the keys
+- 158 questions open, full text: steps/questions-open.md
+
 ## Lane C sheet, 2026-11-02, Lane A's checks on Bader's sheet
 
 Goal:
