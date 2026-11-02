@@ -7,9 +7,11 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Media;
+using SiteAdaptation.AddIn.Pane;
 using SiteAdaptation.AddIn.SetUpSite;
 using SiteAdaptation.Common.Settings;
 using SiteAdaptation.Common.SetUp;
+using SiteAdaptation.Common.Steps;
 using SiteAdaptation.UiShots;
 using Xunit;
 
@@ -75,12 +77,43 @@ namespace SiteAdaptation.Tests
             SetUpSiteView stopped = Shots.SampleSetUpView(true, true);
             stopped.NothingDiffers = true;
             stopped.Stops = new List<string> { "a stop" };
-            Assert.False(new SetUpSiteViewModel(stopped).CanApply);
+            var grey = new SetUpSiteViewModel(stopped);
+            Assert.False(grey.CanApply);
+            // The promise of Apply shows only beside an Apply that is on
+            Assert.Equal(SetUpSiteText.NothingDiffersPlain, grey.NothingLine);
+            Assert.Equal("Nothing differs, the model stays as it is.", SetUpSiteText.NothingDiffersPlain);
 
             SetUpSiteView notTicked = Shots.SampleSetUpView(true, true);
             notTicked.NothingDiffers = true;
             notTicked.CurrentFiles = new List<CurrentFileRow> { new CurrentFileRow { Site = true, Current = false, Input = "baseplan" } };
-            Assert.False(new SetUpSiteViewModel(notTicked).CanApply);
+            var unticked = new SetUpSiteViewModel(notTicked);
+            Assert.False(unticked.CanApply);
+            Assert.Equal(SetUpSiteText.NothingDiffersPlain, unticked.NothingLine);
+            var changed = new List<string>();
+            unticked.PropertyChanged += (sender, args) => changed.Add(args.PropertyName);
+            unticked.CurrentFiles[0].Current = true;
+            Assert.True(unticked.CanApply);
+            Assert.Equal(SetUpSiteText.NothingDiffers, unticked.NothingLine);
+            Assert.Contains(nameof(SetUpSiteViewModel.NothingLine), changed);
+        }
+
+        // B2 of Q158: the run the pane reads, the one of the session first and else the last run of the settings, which a press of button 1 takes too
+        [Fact]
+        public void R374_q158_the_session_gives_the_last_run_the_pane_and_a_press_read()
+        {
+            var session = new DocumentSession("s1", @"C:\Models\Site.rvt", "Site.rvt");
+            Assert.Null(session.LastRun(1));
+
+            session.Settings.Project.LastRuns["1"] = new ButtonRun { Time = "2026-10-29T08:00:00.000Z", Mode = RunModes.Direct, Scope = new SettingsScope(), InputHashes = new SortedDictionary<string, string>(StringComparer.Ordinal), Counts = new SortedDictionary<string, int>(StringComparer.Ordinal), Issues = new List<string>() };
+            Assert.Equal(new DateTime(2026, 10, 29, 8, 0, 0, DateTimeKind.Utc), session.LastRun(1).TimeUtc);
+
+            var run = new StepRun(new DateTime(2026, 11, 1, 8, 0, 0, DateTimeKind.Utc), "h", new SettingsScope(), 0, null);
+            session.Runs[1] = run;
+            Assert.Same(run, session.LastRun(1));
+
+            session.Runs.Remove(1);
+            session.Settings.Project.LastRuns["1"].Time = "no time";
+            Assert.Null(session.LastRun(1));
         }
 
         // Breaker pass 2 of 5b: what waits, Plot on Q156, shows beside the line, so nothing differs never reads as a model complete
@@ -97,8 +130,8 @@ namespace SiteAdaptation.Tests
             Assert.False(new SetUpSiteViewModel(Shots.SampleSetUpView(true, true)).WaitingShown);
         }
 
-        // Breaker pass 2 of 5b: a view holds for the slope it was made with, another slope asks for a dry run before Apply and before
-        // the line nothing differs is believed, so no Apply ends with nothing done and nothing said
+        // Breaker pass 2 of 5b: a view holds for the slope it was made with. Another slope turns Apply and the line nothing differs off until a dry
+        // run gives a view for that slope, so a press never takes a slope the view did not measure
         [Fact]
         public void R374_a_slope_picked_after_the_view_turns_apply_and_nothing_differs_off_until_a_dry_run()
         {

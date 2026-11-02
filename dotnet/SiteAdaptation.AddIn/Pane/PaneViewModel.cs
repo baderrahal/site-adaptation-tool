@@ -598,25 +598,9 @@ namespace SiteAdaptation.AddIn.Pane
             return steps;
         }
 
-        // A last run of the settings that does not read is no run, R367 refused it already when the time is no ISO text
         private StepRun LastRun(int step)
         {
-            if (document.Runs.TryGetValue(step, out StepRun run))
-            {
-                return run;
-            }
-            if (!document.Settings.Project.LastRuns.TryGetValue(step.ToString(CultureInfo.InvariantCulture), out ButtonRun last) || last == null)
-            {
-                return null;
-            }
-            try
-            {
-                return StepRun.From(last, null);
-            }
-            catch (FormatException)
-            {
-                return null;
-            }
+            return document.LastRun(step);
         }
 
         private void RefreshHelp()

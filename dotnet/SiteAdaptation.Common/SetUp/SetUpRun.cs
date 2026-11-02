@@ -44,6 +44,7 @@ namespace SiteAdaptation.Common.SetUp
         private SetUpTarget target;
         private string readBack;
         private Func<RunContext, CoordinateRead> readCad;
+        private Func<StepRun> readLastRun;
         private CadSite cad;
 
         // settingsInput is the name of the input of the Settings file in the pane, sheetInput that of the parameter sheet, null when the
@@ -65,6 +66,14 @@ namespace SiteAdaptation.Common.SetUp
             settingsNow = settings ?? throw new ArgumentNullException(nameof(settings));
             store = new SettingsStore(entity);
             clock = utcNow ?? throw new ArgumentNullException(nameof(utcNow));
+            return this;
+        }
+
+        // Q158. The last run of step 1 as the pane reads it for the session, the one a press holds to, so a press never cancels while the pane
+        // shows the step not holding. Unset takes the last run of the entity
+        public SetUpRun ReadingLastRun(Func<StepRun> lastRun)
+        {
+            readLastRun = lastRun;
             return this;
         }
 
@@ -159,10 +168,11 @@ namespace SiteAdaptation.Common.SetUp
             return SetUpPlanner.Changes(document.Read(), target).Any || !StepHolds(context);
         }
 
-        // Q158. The entity holds the last run of this button on the hash of its inputs now and site.json is there. With no store nothing is known
+        // Q158. The step holds by StepStates on the run the pane reads and the hash now, the entity holds the ticks and rules file of the window, so a
+        // press loses nothing on a reopen, and site.json holds the facts of the model. With no store or no entity there is nothing to hold to
         private bool StepHolds(RunContext context)
         {
-            if (store == null || !File.Exists(Path.Combine(context.WorkFolder, SiteFile)))
+            if (store == null)
             {
                 return false;
             }
@@ -175,9 +185,66 @@ namespace SiteAdaptation.Common.SetUp
             {
                 return false;
             }
-            ButtonRun last = null;
-            held?.LastRuns.TryGetValue(context.Button.ToString(CultureInfo.InvariantCulture), out last);
-            return last != null && StepHash.Combine(last.InputHashes) == StepHash.Combine(context.InputHashes);
+            StepRun run = held == null ? null : readLastRun != null ? readLastRun() : StepRun.FromSettings(held, context.Button);
+            if (run == null)
+            {
+                return false;
+            }
+            var steps = new Dictionary<int, StepNow> { [context.Button] = new StepNow(run, StepHash.Combine(context.InputHashes), StepHash.OnDisk(run.Outputs.Keys)) };
+            StepStateKind line = StepStates.Of(true, new SettingsScope(), steps)[context.Button - 1].Kind;
+            return (line == StepStateKind.Done || line == StepStateKind.DoneWithIssues) && SameSetup(held, settingsNow())
+                && SiteFileAgrees(Path.Combine(context.WorkFolder, SiteFile), document.Read());
+        }
+
+        private static bool SameSetup(ProjectSettings held, ProjectSettings now)
+        {
+            return string.Equals(held.RulesFile ?? "", now.RulesFile ?? "", StringComparison.Ordinal)
+                && (held.CurrentFiles ?? new List<string>()).SequenceEqual(now.CurrentFiles ?? new List<string>(), StringComparer.Ordinal);
+        }
+
+        // Q158, CHOSEN by the main session: a file left from another state of the model would give the build a wrong survey point, angle and levels,
+        // so a press holds site.json to the facts of the model, in the tolerance of the diff, whatever its run id. A file that does not read disagrees
+        public static bool SiteFileAgrees(string path, SiteState now)
+        {
+            if (!File.Exists(path))
+            {
+                return false;
+            }
+            JObject file;
+            try
+            {
+                file = JObject.Parse(WorkFiles.ReadText(path));
+            }
+            catch (Exception failure) when (failure is Newtonsoft.Json.JsonException || failure is IOException || failure is UnauthorizedAccessException)
+            {
+                return false;
+            }
+            JObject facts = SiteJson(now, null);
+            facts["runId"] = file["runId"]?.DeepClone();
+            return SameFacts(file, facts, null);
+        }
+
+        private static bool SameFacts(JToken have, JToken want, string name)
+        {
+            if (want is JObject wanted)
+            {
+                return have is JObject held && held.Count == wanted.Count && wanted.Properties().All(item => held[item.Name] != null && SameFacts(held[item.Name], item.Value, item.Name));
+            }
+            if (want is JArray list)
+            {
+                return have is JArray items && items.Count == list.Count && list.Select((item, at) => SameFacts(items[at], item, name)).All(same => same);
+            }
+            if (want.Type == JTokenType.Float || want.Type == JTokenType.Integer)
+            {
+                if (have == null || (have.Type != JTokenType.Float && have.Type != JTokenType.Integer))
+                {
+                    return false;
+                }
+                double gap = Math.Abs((double)have - (double)want);
+                // Written so a value that is no number never counts as the same
+                return name == "angleDeg" || name == "angleToTrueNorthDeg" ? gap <= SetUpPlanner.SameDeg : gap * 1000.0 <= SetUpPlanner.SameMm;
+            }
+            return JToken.DeepEquals(have, want);
         }
 
         // 03a The shared parameter file: shared_<run id>.txt in the work folder with the group and the definitions of the sheet, the
@@ -271,8 +338,8 @@ namespace SiteAdaptation.Common.SetUp
                 readBack = string.Join(", ", differs);
                 return issues;
             }
-            // Q158. With nothing set the facts of the file are those of the model, so it is written only when missing
-            if (changes.Any || !File.Exists(Path.Combine(context.WorkFolder, SiteFile)))
+            // Q158. With nothing set a file that holds the facts of the model stays as it is, one missing or off them is written again
+            if (changes.Any || !SiteFileAgrees(Path.Combine(context.WorkFolder, SiteFile), after))
             {
                 context.WriteText(SiteFile, SiteJson(after, context.RunId).ToString(Newtonsoft.Json.Formatting.Indented));
             }

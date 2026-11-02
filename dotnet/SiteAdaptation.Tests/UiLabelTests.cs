@@ -178,7 +178,7 @@ namespace SiteAdaptation.Tests
             // in the work folder, as Update from report finds the plan of 4 Check by its run log (R472). Lane C FIX-1NOV-C added 2 of New
             // project, the no model line and the TaskDialog of a Save setup that rolls back (R445). FIX-2NOV-C added 13: 6 of the Close and
             // the ask of Review data, 6 of the pane, Run complete and Dry run before 4 Check, 1 of the refused export (R446). FIX-2NOV-D added 18 of the road surface pick: 13 of New project and its window, 5 of the pane (R492)
-            Assert.Equal(243, chosen);
+            Assert.Equal(244, chosen);
             Assert.True(matched > 100, matched.ToString());
         }
 

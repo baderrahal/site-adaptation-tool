@@ -29,6 +29,7 @@ namespace SiteAdaptation.AddIn
             var run = new SetUpRun(new RevitSiteDocument(document, application.Application), dialog, new NoTags(),
                 WorkFiles.ReadText, PaneText.Settings, PaneText.SharedParameters)
                 .Recording(() => session.Settings.Project, new SettingsEntity(document), () => DateTime.UtcNow)
+                .ReadingLastRun(() => session.LastRun(1))
                 .ReadingCad(context => CoordinateRequest.Run(context, ReadDataBody.Inputs(session.Settings), ReadDataBody.Roles, PaneText.Settings,
                     new WorkerDocument { Path = session.Path, SessionId = session.SessionId }, Report.ReportWorkerClient.Run));
             return run.Body();

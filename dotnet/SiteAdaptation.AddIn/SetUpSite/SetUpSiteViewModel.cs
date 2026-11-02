@@ -50,7 +50,8 @@ namespace SiteAdaptation.AddIn.SetUpSite
         // The view holds for the slope it was made with. Another slope asks for a dry run, which Common makes for that slope
         private bool SameSlope => Math.Abs(view.RampSlope - SelectedSlope) < 1e-9;
 
-        public string NothingLine => NothingShown ? SetUpSiteText.NothingDiffers : "";
+        // Reviewer of Q158: the promise of Apply shows only beside an Apply that is on
+        public string NothingLine => !NothingShown ? "" : CanApply ? SetUpSiteText.NothingDiffers : SetUpSiteText.NothingDiffersPlain;
 
         public string PassLine { get; private set; }
 
@@ -154,6 +155,7 @@ namespace SiteAdaptation.AddIn.SetUpSite
             ticks[input] = current;
             Changed(nameof(SiteTicked));
             Changed(nameof(CanApply));
+            Changed(nameof(NothingLine));
         }
 
         // Keeps the slope the user chose across the view that a dry run or a sheet gives back
@@ -181,6 +183,7 @@ namespace SiteAdaptation.AddIn.SetUpSite
         {
             dryRunSlope = slope;
             Changed(nameof(CanApply));
+            Changed(nameof(NothingLine));
         }
 
         public void ClearProblem()
