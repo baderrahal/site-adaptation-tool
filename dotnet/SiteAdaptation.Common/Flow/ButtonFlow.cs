@@ -281,6 +281,14 @@ namespace SiteAdaptation.Common.Flow
                     return new RunOutcome(RunEnd.RolledBack, RunTexts.ChangedNothing(context.Label, reason), null);
                 }
                 issues.AddRange(transaction.Warnings);
+                try
+                {
+                    body.AfterCommit?.Invoke(context);
+                }
+                catch (Exception failure)
+                {
+                    issues.Add("after the commit: " + failure.Message);
+                }
             }
 
             var moved = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);

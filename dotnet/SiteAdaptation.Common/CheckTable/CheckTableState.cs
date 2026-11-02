@@ -11,6 +11,8 @@ namespace SiteAdaptation.Common.CheckTable
     {
         public const string AllChip = "All";
         public const string AssumedChip = "Assumed";
+        // R459. A count of step 5, so it names the step and lists no row, as Assumed lists none
+        public const string AcceptedChip = "Accepted at step 5";
 
         private readonly CheckTableView view;
         private readonly Dictionary<int, string> now = new Dictionary<int, string>();

@@ -17,6 +17,10 @@ namespace SiteAdaptation.Common.Floors
         private readonly IFloorDocument document;
         private readonly Func<RunContext, FloorInputs> load;
 
+        // R459. Set by Apply when the transaction took the list, for the file only the commit can fill
+        private string acceptedNbh;
+        private HashSet<string> standingBefore;
+
         public FloorsRun(IFloorDocument document, Func<RunContext, FloorInputs> load)
         {
             this.document = document;
@@ -25,13 +29,19 @@ namespace SiteAdaptation.Common.Floors
 
         public ButtonBody Body()
         {
-            return new ButtonBody { Preview = Preview, Apply = Apply };
+            return new ButtonBody { Preview = Preview, Apply = Apply, AfterCommit = RecordAccepted };
         }
 
         // floors_<NBH>.json in the work folder, the record of the last real run of 5
         public static string RecordName(string nbh)
         {
             return "floors_" + nbh + ".json";
+        }
+
+        // R459. floors_<NBH>_accepted.json in the work folder, what step 5 accepted so far
+        public static string AcceptedName(string nbh)
+        {
+            return "floors_" + nbh + "_accepted.json";
         }
 
         public static HashSet<string> Placed(JObject record)
@@ -77,6 +87,11 @@ namespace SiteAdaptation.Common.Floors
         {
             Decision decision = Decide(context);
             FloorInputs inputs = decision.Inputs;
+            if (context.AcceptKnownWarnings(inputs.KnownWarnings))
+            {
+                acceptedNbh = inputs.Plan.Neighbourhood ?? "all";
+                standingBefore = new HashSet<string>(decision.View.Elements.Select(element => element.UniqueId), StringComparer.Ordinal);
+            }
             var issues = new List<string>(decision.Listed);
             var ids = new List<KeyValuePair<Step, string>>();
             var standing = new List<string>();
@@ -142,6 +157,18 @@ namespace SiteAdaptation.Common.Floors
             };
             context.WriteText(RecordName(inputs.Plan.Neighbourhood ?? "all"), record.ToString(Newtonsoft.Json.Formatting.Indented));
             return issues;
+        }
+
+        // R459. A floor deleted by hand since an earlier run takes its pairs off the list
+        private void RecordAccepted(RunContext context)
+        {
+            if (acceptedNbh == null)
+            {
+                return;
+            }
+            string name = AcceptedName(acceptedNbh);
+            List<AcceptedWarning> earlier = AcceptedWarningFile.Load(System.IO.Path.Combine(context.WorkFolder, name)) ?? new List<AcceptedWarning>();
+            context.WriteText(name, AcceptedWarningFile.Text(context.RunId, acceptedNbh, AcceptedWarningFile.Merge(earlier, context.AcceptedWarnings, standingBefore)));
         }
 
         private Decision Decide(RunContext context)

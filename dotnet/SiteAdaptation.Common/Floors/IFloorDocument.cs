@@ -78,6 +78,9 @@ namespace SiteAdaptation.Common.Floors
 
         // The UniqueIds the user set to the plan
         public ICollection<string> SetToPlan { get; set; } = new HashSet<string>(StringComparer.Ordinal);
+
+        // R459. The warnings the transaction of the run takes without showing them, null for none
+        public Flow.KnownWarningList KnownWarnings { get; set; }
     }
 
     // R379. What one run of button 6 reads: the floors of button 5 and what the worker command levelExcel takes

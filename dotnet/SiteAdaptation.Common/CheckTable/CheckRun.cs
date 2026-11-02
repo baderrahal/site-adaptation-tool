@@ -410,6 +410,8 @@ namespace SiteAdaptation.Common.CheckTable
             JObject list = JObject.Parse(WorkFiles.ReadText(plan.OverridesPath));
             CheckTableBuild.UnderSkip(view.Rows, list, (config["majority"]?["overrideDefaultSources"] as JArray ?? new JArray()).Select(item => (string)item).ToList());
             view.Info = Info(plan, step, list, levelProfile);
+            // R459. 4 runs before 5, so a first pass has no file and no chip
+            CheckTableBuild.AddAccepted(view, plan.Nbh == null ? null : AcceptedWarningFile.Load(Path.Combine(context.WorkFolder, Floors.FloorsRun.AcceptedName(plan.Nbh)))?.Count);
             view.DoorLevel = DoorLevelPick.Of(config, plan.ConfigPath, LevelsStep(request.StepsFolder), DoorPick?.Invoke());
             return view;
         }
