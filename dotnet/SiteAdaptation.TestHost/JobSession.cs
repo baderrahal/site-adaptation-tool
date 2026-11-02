@@ -20,7 +20,6 @@ namespace SiteAdaptation.TestHost
         public const string PlacerFolderName = "SiteAdaptationPlacer";
         public const string ReaderFolderName = "SiteAdaptation";
         private const double ExitMinutes = 5;
-        private static readonly HashSet<string> RollBackSteps = new HashSet<string>(StringComparer.Ordinal) { "removePrototypeType", "realRun", "deleteFloors", "realRun2", "coordinates", "levels", "floorTypes", "parameters", "image" };
 
         private readonly UIControlledApplication application;
         private readonly TestHostJob job;
@@ -30,8 +29,8 @@ namespace SiteAdaptation.TestHost
         private readonly TestHostRunner runner;
         private readonly DateTime deadlineUtc;
         private readonly string beatPath;
-        private readonly Dictionary<string, LinkOpening> openings = new Dictionary<string, LinkOpening>(StringComparer.OrdinalIgnoreCase);
         private readonly RunGate gate = new RunGate();
+        private readonly JobEvents events;
         private TestHostWatchdog watchdog;
         private AddinRunSession addinRun;
         private Document document;
@@ -61,6 +60,7 @@ namespace SiteAdaptation.TestHost
             log.Assemblies["common"] = typeof(Common.Placer).Assembly.Location;
             log.Assemblies["addinsFolder"] = addinsFolder;
             runner = new TestHostRunner(log, value => JsonOut.Write(logPath, value), () => DateTime.UtcNow);
+            events = new JobEvents(runner);
             // R104, Lane B 5b. The heartbeat the freeze guard of the run script reads, beside the log and named as it is
             beatPath = TestHostGuard.OutputPath(documents, job.Code, TestHostGuard.IsUpgrade(job) ? "upgrade_heartbeat" : "heartbeat");
             deadlineUtc = log.StartedUtc.AddMinutes(TestHostGuard.TotalMinutesOf(job));
@@ -148,10 +148,10 @@ namespace SiteAdaptation.TestHost
             runner.Record(value => value.Notes.Add(designRefused ?? "the design values of R405 from " + (job.DesignConfig ?? "no config named by the job")));
             runner.Record(value => value.Notes.Add("Revit " + application.ControlledApplication.VersionBuild + ", the test host is waiting for the first Idling event"));
             watchdog = new TestHostWatchdog(runner, deadlineUtc, () => DateTime.UtcNow, Kill, TimeSpan.FromSeconds(10), Beat);
-            application.DialogBoxShowing += OnDialog;
-            application.ControlledApplication.FailuresProcessing += OnFailures;
-            application.ControlledApplication.LinkedResourceOpening += OnLinkOpening;
-            application.ControlledApplication.LinkedResourceOpened += OnLinkOpened;
+            application.DialogBoxShowing += events.OnDialog;
+            application.ControlledApplication.FailuresProcessing += events.OnFailures;
+            application.ControlledApplication.LinkedResourceOpening += events.OnLinkOpening;
+            application.ControlledApplication.LinkedResourceOpened += events.OnLinkOpened;
             // QL20. One Idling handler per job, added here in OnStartup and never removed, since Revit refuses a handler added in its
             // own event. The add-in run spans several idle times and runs its phases in an ExternalEvent made here too
             addinRun = job.Kind == TestHostGuard.AddinRunKind ? new AddinRunSession(application, job, documents, runner, Exit) : null;
@@ -325,97 +325,6 @@ namespace SiteAdaptation.TestHost
             }
             yield return new JobStep { Name = "close", LimitMinutes = 5, Always = true, Action = () => steps.Close(document) };
             yield return new JobStep { Name = "jobFile", LimitMinutes = 1, Always = true, Action = () => File.Exists(jobPath) ? "a new job file is waiting, it is left for its own session" : "the job file is gone" };
-        }
-
-        private void OnDialog(object sender, DialogBoxShowingEventArgs e)
-        {
-            var task = e as TaskDialogShowingEventArgs;
-            var box = e as MessageBoxShowingEventArgs;
-            string kind = task != null ? "taskDialog" : box != null ? "messageBox" : "dialogBox";
-            string message = task != null ? task.Message : box != null ? box.Message : null;
-            int? answer = DialogAnswers.Answer(kind, e.DialogId, message, code => e.OverrideResult(code));
-            var entry = new DialogEntry
-            {
-                Utc = DateTime.UtcNow,
-                Kind = kind,
-                DialogId = e.DialogId,
-                Message = message,
-                Answer = answer,
-                Accepted = answer.HasValue,
-                Step = runner.CurrentStep,
-            };
-            runner.Record(value => value.Dialogs.Add(entry));
-        }
-
-        // Warnings are logged and dismissed, an error is logged and rolls its transaction back with no box
-        private void OnFailures(object sender, FailuresProcessingEventArgs e)
-        {
-            FailuresAccessor accessor = e.GetFailuresAccessor();
-            IList<FailureMessageAccessor> messages = accessor.GetFailureMessages();
-            if (messages.Count == 0)
-            {
-                return;
-            }
-            bool error = false;
-            var lines = new List<string>();
-            foreach (FailureMessageAccessor message in messages)
-            {
-                FailureSeverity severity = message.GetSeverity();
-                lines.Add((runner.CurrentStep ?? "none") + ": " + severity + ": " + message.GetDescriptionText());
-                if (severity == FailureSeverity.Warning)
-                {
-                    accessor.DeleteWarning(message);
-                }
-                else
-                {
-                    error = true;
-                }
-            }
-            // Only the transactions of the test host roll back here. An error of Revit itself, in an open or a link load, is left to Revit
-            if (error && RollBackSteps.Contains(runner.CurrentStep ?? ""))
-            {
-                FailureHandlingOptions options = accessor.GetFailureHandlingOptions();
-                options.SetClearAfterRollback(true);
-                accessor.SetFailureHandlingOptions(options);
-                e.SetProcessingResult(FailureProcessingResult.ProceedWithRollBack);
-                lines.Add("rolled back");
-            }
-            else if (error)
-            {
-                lines.Add("left to Revit, not a transaction of the test host");
-            }
-            else
-            {
-                e.SetProcessingResult(FailureProcessingResult.Continue);
-            }
-            runner.Record(value => value.Failures.AddRange(lines));
-        }
-
-        private void OnLinkOpening(object sender, LinkedResourceOpeningEventArgs e)
-        {
-            var entry = new LinkOpening { Path = e.LinkedResourcePathName, OpeningUtc = DateTime.UtcNow, Step = runner.CurrentStep };
-            runner.Record(value =>
-            {
-                value.LinkOpenings.Add(entry);
-                openings[entry.Path ?? ""] = entry;
-            });
-        }
-
-        private void OnLinkOpened(object sender, LinkedResourceOpenedEventArgs e)
-        {
-            DateTime now = DateTime.UtcNow;
-            runner.Record(value =>
-            {
-                LinkOpening entry;
-                if (!openings.TryGetValue(e.LinkedResourcePathName ?? "", out entry))
-                {
-                    entry = new LinkOpening { Path = e.LinkedResourcePathName, OpeningUtc = now, Step = runner.CurrentStep };
-                    value.LinkOpenings.Add(entry);
-                }
-                entry.OpenedUtc = now;
-                entry.Seconds = Math.Round((now - entry.OpeningUtc).TotalSeconds, 1);
-                openings.Remove(e.LinkedResourcePathName ?? "");
-            });
         }
     }
 }

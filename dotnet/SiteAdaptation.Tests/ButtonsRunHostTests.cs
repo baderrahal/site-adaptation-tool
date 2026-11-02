@@ -318,7 +318,8 @@ namespace SiteAdaptation.Tests
             Assert.Contains("JsonOut.Write(Path.Combine(folder, ButtonsRun.ResultFile), result);", host);
             // The windows and the run state of the add-in are put back at the end of the run
             Assert.Contains("Put(AddinRunNames.Buttons, AddinRunNames.State, stateBefore);", host);
-            Assert.Contains("DialogAnswers.Answer(kind, e.DialogId, message, code => e.OverrideResult(code));", jobSession);
+            Assert.Contains("application.DialogBoxShowing += events.OnDialog;", jobSession);
+            Assert.Contains("DialogAnswers.Answer(kind, e.DialogId, message, code => e.OverrideResult(code));", Text("dotnet", "SiteAdaptation.TestHost", "JobEvents.cs"));
         }
 
         [Fact]

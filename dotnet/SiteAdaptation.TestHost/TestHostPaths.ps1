@@ -55,6 +55,17 @@ function Get-ToolAddIns([string]$Repo, [string]$Addins) {
     }
 }
 
+# Revit.exe of the Revit 2024 install folder, found by its own version and not guessed
+function Get-Revit2024Exe {
+    $found = @(Get-ChildItem (Join-Path $env:ProgramFiles 'Autodesk') -Directory | ForEach-Object { Join-Path $_.FullName 'Revit.exe' } |
+        Where-Object { Test-Path $_ } | Where-Object { $v = (Get-Item $_).VersionInfo
+            $v.ProductName -eq 'Autodesk Revit' -and $v.ProductMajorPart -eq 24 })
+    if ($found.Count -ne 1) {
+        throw "Found $($found.Count) Revit.exe files of version 24, one is needed: $($found -join ', ')"
+    }
+    $found[0]
+}
+
 # Lane B 5b. A probe of one Revit fact runs through the test host as every Revit start does, so the watcher is up before Revit.
 # Its manifest is given from the folder the run starts in and is read here, the code is the file name of the manifest
 function Get-ProbeAddIn([string]$Manifest) {

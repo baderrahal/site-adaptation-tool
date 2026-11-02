@@ -31,6 +31,7 @@ namespace SiteAdaptation.TestHost
     // folder before its answer, the pane after 1 and at the end, the ribbon, New project and How it works at the end (ButtonShots)
     internal sealed class ButtonsRunHost
     {
+        public const string OpenStep = "open";
         private const BindingFlags Any = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance;
         // What a worker end may take past the time limit of its worker, for the exit and the ExternalEvent. A tool timing
         private const double WaitMarginSeconds = 60;
@@ -98,6 +99,20 @@ namespace SiteAdaptation.TestHost
 
         public bool Done { get; private set; }
 
+        // R448. The document of the job, for the listener that closes it and stays open
+        public Document Model
+        {
+            get { return document; }
+        }
+
+        // R448. Past its limit no step is left but the write, which puts the add-in back. A worker that still runs is not waited for
+        public void Stop()
+        {
+            stopped = true;
+            waiting = null;
+            WaitSeconds = null;
+        }
+
         private string Settings
         {
             get { return Path.Combine(folder, "config", "project.json"); }
@@ -130,7 +145,7 @@ namespace SiteAdaptation.TestHost
             WaitSeconds = null;
             if (document == null && !stopped)
             {
-                yield return Step("open", 10, Open);
+                yield return Step(OpenStep, 10, Open);
             }
             if (waiting != null)
             {
