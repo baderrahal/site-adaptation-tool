@@ -20,6 +20,9 @@ namespace SiteAdaptation.Common
         // Revit refuses a curve shorter than about 0.8 mm, so a shorter edge is a plan error found before any change
         public static double ShortestEdge => DesignValues.Current.FloorShortestEdgeM;
 
+        // R475. A micron, under any step of the 3 decimals of a plan and over the noise of a difference of two doubles at site coordinates
+        private const double EdgeNoise = 1e-6;
+
         internal sealed class Candidate
         {
             public string Plot;
@@ -399,7 +402,8 @@ namespace SiteAdaptation.Common
                 {
                     double[] start = Internal(loop.Points[edge], offset, z);
                     double[] end = Internal(loop.Points[(edge + 1) % count], offset, z);
-                    if (Math.Sqrt(Math.Pow(end[0] - start[0], 2) + Math.Pow(end[1] - start[1], 2)) < ShortestEdge)
+                    // R475. The cut of a yard writes edges of one step of its 1 mm grid, which read a hair under 1 mm in double far from the origin
+                    if (Math.Sqrt(Math.Pow(end[0] - start[0], 2) + Math.Pow(end[1] - start[1], 2)) < ShortestEdge - EdgeNoise)
                     {
                         return "an outline edge is shorter than 1 mm";
                     }

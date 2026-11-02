@@ -489,3 +489,33 @@ No real input reaches these: the plot table of the demo holds whole numbers and 
 - The R467 and R468 tests hold the text of the host and the script, the usual style for the test host. No test reaches the catch or the value of savedAfter. The runs D3L and D3S do reach the save.
 - result saved of Write now seldom appears, since R468 saves first. Nothing reads it.
 - The two R405 tests of AddInTests.cs set and read DesignValues.Current outside the alone collection, while other tests call UseConfigOf. No failure seen there.
+
+## Lane D 6B-DATA, R469, review
+
+- zone_compare.py stops the whole zone on a ramp corner list with no points, max and min of nothing. No plan of the 7 zones holds one.
+- zone_compare.py reads each field through plan_compare.value_of, which swallows a missing key, so a renamed plan field would show only as toolNone counts. The 7 zones show none.
+
+## Lane D 6B-DATA-REV6, R469, review
+
+- zone_compare.py checks only the plan of --rev6-plan: a rev6 plan handed by hand as --without-overrides would pass under that title. The 5 zones hand the past job plans.
+- check_rev6 shows a plan is rev6, not that it holds no override list, so a rev6 build with a list would read as no override list. The rev6 builds of the round name no list.
+
+## FIX-2NOV-A, review 1 and breaker 1
+
+- Review 1, the step floors cuts a yard by the ramp corners of a plot with no ramp type, the build does not. Only the native2022 profile reaches it, Q050 keeps it off.
+- Review 1, a yard the cut empties with its level also missing gets another line in Python and C#. Breaker 1: 0 yards of the whole project are emptied.
+- Review 1, FloorPlacer.EdgeNoise 1e-6 is a constant beside designValues.floors.shortestEdgeM. Clipper2 2.0.0 and pyclipr's 2.0.1 are one patch apart, parity held on real plots.
+- Review 1, ReviewTable.cs and ReadDataRun.cs each hold a rule of which plots are units. Install-TestHost.ps1 gives the watcher Common with no Clipper2Lib, it does not reach the cut.
+- Breaker 1, review_012.json keeps 42 checks of plots R476 leaves out, all OK, a Wrong on one could not be cleared. No real Wrong.
+- Breaker 1, R477: no unit or no block name reads as other type and passes. Every real plan plot has a unit, the read names every block.
+- Breaker 2, the Assumed row Q350 is 68 yards short: a yard with a link override reads from override, RECOMMENDED, with no R475 in its detail. Its level is right.
+- Breaker 2, a yard cut reads RECOMMENDED by Q350, now closed, as Q053 and Q057 do, so Assumed names a closed question.
+- Breaker 2, the rows R476 keeps on 01A, 02, 021, 022, 03 no pane path shows, the pick list holds 012 and 013, 11 of them hold many numbers (Q355).
+- Breaker 2, a new DLL with a config of before FIX-2NOV-A reads a cut yard UNKNOWN, as with any config not refreshed (Q309).
+- Yards still reach neighbours by under 2 mm of rounding on slanted edges, 286 and 86 pairs over 1 cm2 on NBH 012, so overlap warnings across plots remain (L2NOV-1).
+
+## FIX-2NOV-A2, the helper's notes
+
+- R480: two C10 on one edge leave open from the first start to the last end, 0 such edges on the 5 keys. An edge shorter than its span end stays whole, the lengths are 25 and 28 m.
+- R479: a build with no 4 Check request gives no keo_file map, the footprint check compares by the own name with no line.
+- Breaker 1, a mirror edit in Update from report on a C10 now moves its wall gaps, the apply line names no button 8. No real edit yet. A number in a type name such as BW 1800 is held out by the digit limits now. Near span rests on one length class, all side edges are 25 m but 2965.

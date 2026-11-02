@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using Clipper2Lib;
 using Newtonsoft.Json.Linq;
 
 namespace SiteAdaptation.Common
@@ -21,6 +22,12 @@ namespace SiteAdaptation.Common
 
         // plan_from_book.NO_BAND, the lack of a ramp whose slope no band of the ramp types holds, under rev6
         public const string NoBand = "no ramp type for a slope of {0} percent in the bands of rampTypes (R408)";
+
+        // R475. floor_fit.YARD_CUT_EMPTY, the line of a plot whose fitted yard outline the cut leaves empty
+        public const string YardCutEmpty = "the cut of R475 leaves the fitted yard outline empty";
+
+        // R475, Q350. floor_fit.YARD_CUT, the source of a yard outline the cut changed, so it no longer reads the status of the fit
+        public const string YardCutSource = "yardCut";
 
         // floor_fit.EPSILON, the width of a fitted outline a plot takes
         private const double Epsilon = 1e-9;
@@ -187,6 +194,121 @@ namespace SiteAdaptation.Common
             }).ToList();
         }
 
+        // R475. floor_fit.grid_rings: rings in whole mm, on the 3 decimals the plan writes by R385, a ring of under 3 points left out
+        private static Paths64 GridRings(IEnumerable<IList<double[]>> loops)
+        {
+            var rings = new Paths64();
+            foreach (IList<double[]> loop in loops.Where(loop => loop.Count >= 3))
+            {
+                var ring = new Path64();
+                foreach (double[] point in loop)
+                {
+                    ring.Add(new Point64((long)Rounding.Fixed(Rounding.Fixed(point[0], 3) * 1000, 0), (long)Rounding.Fixed(Rounding.Fixed(point[1], 3) * 1000, 0)));
+                }
+                rings.Add(ring);
+            }
+            return rings;
+        }
+
+        // R475. floor_fit.clip_rings: one run of the clipper by even-odd fill on rings in whole mm, a collinear vertex left out
+        private static Paths64 ClipRings(ClipType kind, Paths64 subject, Paths64 other)
+        {
+            var found = new Paths64();
+            if (subject.Count == 0)
+            {
+                return found;
+            }
+            var clipper = new Clipper64 { PreserveCollinear = false };
+            clipper.AddSubject(subject);
+            if (other != null && other.Count > 0)
+            {
+                clipper.AddClip(other);
+            }
+            clipper.Execute(kind, FillRule.EvenOdd, found);
+            return found;
+        }
+
+        // R475. floor_fit.doubled_area: twice the area of rings in whole mm, a hole of the clipper counted negative. Each ring from its own first
+        // vertex, since a product of two coordinates in mm can pass a long and the size of a plot cannot
+        private static long DoubledArea(IEnumerable<Path64> rings)
+        {
+            long sum = 0;
+            foreach (Path64 ring in rings)
+            {
+                for (int at = 1; at < ring.Count - 1; at++)
+                {
+                    sum += (ring[at].X - ring[0].X) * (ring[at + 1].Y - ring[0].Y) - (ring[at + 1].X - ring[0].X) * (ring[at].Y - ring[0].Y);
+                }
+            }
+            return sum;
+        }
+
+        // R475. The compare of two rings as Python compares two lists, vertex by vertex, x then y, a ring that ends first before the longer one
+        private static int RingOrder(Path64 first, Path64 second)
+        {
+            for (int at = 0; at < Math.Min(first.Count, second.Count); at++)
+            {
+                int order = first[at].X != second[at].X ? first[at].X.CompareTo(second[at].X) : first[at].Y.CompareTo(second[at].Y);
+                if (order != 0)
+                {
+                    return order;
+                }
+            }
+            return first.Count.CompareTo(second.Count);
+        }
+
+        // R475. floor_fit.fixed_rings: the one order of the two languages, each ring from its smallest (x, y), the winding of the clipper kept, outer
+        // rings anticlockwise and holes clockwise, outer rings first, each kind sorted
+        private static List<Path64> FixedRings(Paths64 rings)
+        {
+            var outer = new List<Path64>();
+            var holes = new List<Path64>();
+            foreach (Path64 ring in rings)
+            {
+                int start = 0;
+                for (int at = 1; at < ring.Count; at++)
+                {
+                    if (ring[at].X < ring[start].X || (ring[at].X == ring[start].X && ring[at].Y < ring[start].Y))
+                    {
+                        start = at;
+                    }
+                }
+                var placed = new Path64();
+                placed.AddRange(ring.Skip(start));
+                placed.AddRange(ring.Take(start));
+                (DoubledArea(new[] { ring }) > 0 ? outer : holes).Add(placed);
+            }
+            outer.Sort(RingOrder);
+            holes.Sort(RingOrder);
+            return outer.Concat(holes).ToList();
+        }
+
+        // R475. plan_from_book.yard_in_plot: the even-odd yard loops cut to the face and by the ramp on the grid of 1 mm, each by what the plot has, in
+        // metres as whole mm / 1000.0 in the order of FixedRings. No loops when the cut leaves nothing. A yard the cut leaves its own area on the grid is
+        // the given loops themselves
+        public static List<List<double[]>> YardInPlot(List<List<double[]>> loops, double[][] face, double[][] ramp)
+        {
+            Paths64 whole = ClipRings(ClipType.Union, GridRings(loops), null);
+            Paths64 cut = whole;
+            if (face != null && face.Length > 0)
+            {
+                cut = ClipRings(ClipType.Intersection, cut, GridRings(new IList<double[]>[] { face }));
+            }
+            if (ramp != null && ramp.Length > 0)
+            {
+                cut = ClipRings(ClipType.Difference, cut, GridRings(new IList<double[]>[] { ramp }));
+            }
+            if (cut.Count == 0)
+            {
+                return new List<List<double[]>>();
+            }
+            if (DoubledArea(cut) == DoubledArea(whole))
+            {
+                return loops;
+            }
+            return FixedRings(cut).Select(ring => ring.Select(point => new[] { point.X / 1000.0, point.Y / 1000.0 }).ToList()).ToList();
+        }
+
         // plan_rules.key_yard: the depth under the FFL keyRules.yard gives a zone, null for no yard
         public static double? YardDepth(JObject keyRules, string zone)
         {
@@ -313,8 +435,17 @@ namespace SiteAdaptation.Common
                     {
                         double[] origin = insert.Select(value => Rounding.Fixed(value, 3)).ToArray();
                         double rotation = (double)((StepValue)link["rotationDeg"]).Written;
-                        made["yardType"] = group["type"]?.DeepClone();
-                        made["yardOutline"] = ((JArray)group["loops"]).Select(loop => ToWorld((JArray)loop, origin, rotation, mirrored)).ToList();
+                        // R475. The yard in its plot, by the ramp of the rule, as no override has moved it yet
+                        List<List<double[]>> cut = YardInPlot(((JArray)group["loops"]).Select(loop => ToWorld((JArray)loop, origin, rotation, mirrored)).ToList(), item.Face?.Ring, item.Corners);
+                        if (cut.Count > 0)
+                        {
+                            made["yardType"] = group["type"]?.DeepClone();
+                            made["yardOutline"] = cut;
+                        }
+                        else
+                        {
+                            lacks.Add(Lack("floors.yard", YardCutEmpty));
+                        }
                     }
                 }
                 JToken rampClass = keyRules["rampSlope"]["table"][unit];

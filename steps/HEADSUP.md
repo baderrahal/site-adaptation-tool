@@ -4,20 +4,19 @@
 
 ### Lane A
 
-- Lane: A, round FIX-1NOV-A2, branch fix/1nov-a2. Time: 2026-11-02 02:05. Blocked: none
-- Done: R472, R473, R474, proofs on copies, review 1, breaker 1 and 2 fixed. Gate on 25c84c7 green, parity 32 runs 0 failures, past job plans byte-equal
-- Now: the PR of FIX-1NOV-A2
-- Next: merge when green, tell lane-c the steps of parts 8 and 9. Questions Q345 to Q349
+- Lane: A, round FIX-2NOV-A2, branch fix/2nov-a2. Time: 2026-11-02 18:00. Blocked: none
+- Done: R478, R479, R480, review 1, breaker 1, gate on ae8369b, parity 32 runs 0 failures
+- Now: the PR
+- Next: merge when green, tell lane-c, then queued FIX-2NOV-A3
 
 ### Lane B, C and D
 
 - Lane B CHECK-2NOV, 19:35, branch check/2nov-b: parts 2 to 11 and 13 run, Revit closed, lock released 19:26 to Lane C. Now verifying the fails, then steps/check-2nov.md, the PR, then FIX-2NOV-B.
-  Next: parts 5 to 13 after gap done. Run files in lane_b_check. Blocked: Lane A's gap, about 30 minutes
-- Lane C, branch fix/2nov-c-part11: part 11 of steps/bader-fix-1nov.md filled, Q337 to Q339 in its list. Nothing queued after this PR. Blocked: none
-- Lane D D3, 04:45, branch fix/1nov-d3: Revit runs done, lock released. 13 prototypes in 2024, NBH 012 with 336 real links, 0.000 mm against the masses, masses back.
-  Now: records, gate, PR. Q275 closed, opened Q337 to Q339. Blocked: none
+- Lane C, branch docs/2nov-c-params: the other 12 bound parameters listed Keep No with a Note in config/shared_parameters.xlsx. Then SPEED-2NOV-C on speed/2nov-c, R449 pushed, helpers on R447 and R448. Blocked: none
+- Lane D 6B-DATA-REV6, 2 Nov, branch feat/6b-data-rev6: no Revit, no window lock. 5 TU zones under rev6, levels equal the past rules, config copies outside git. Opened Q364.
+  Now: the PR, merge when green. Blocked: none
 
-Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane C part 11, 2 Nov 2026.
+Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane C parameters, 2 Nov 2026.
 
 ## Repo map
 
@@ -63,4 +62,4 @@ Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane
 
 ## Next
 
-- Bader: the steps of steps/bader-fix-1nov.md, the 164 questions at its end, the ASK table of steps/cleanup-1nov.md. Then Part 2 after his check of Part 1
+- Bader: the steps of steps/bader-fix-1nov.md, the 144 questions at its end, of them Q286 and Q293 after steps/ui-shots/drafts-for-bader.md. Then Part 2 after his check of Part 1

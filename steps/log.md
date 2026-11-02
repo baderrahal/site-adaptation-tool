@@ -2,6 +2,218 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Lane C parameters, 2026-11-02, the other 12 bound parameters on the sheet
+
+Goal:
+- Bader's task: list the other 12 bound shared parameters in config/shared_parameters.xlsx with Keep No and a Note
+
+Done:
+- 12 rows of Keep No with a Note, a new column Note, the 11 kept rows unchanged. Set up site now says 11 parameters, 12 left out
+- R461 and part 6 of steps/bader-fix-1nov.md say so
+
+Checked:
+- 22 bound in the read KC2, less the 10 link parameters on the sheet, 12 (RAN, read by script from testhost_KC2_parameters.json). Readers: ParameterBook, XlsxSheet and parameter_sheet.py give the same 11 and 12 (RAN)
+
+Remains:
+- The 12 come from the IMC key alone, the other 6 keys were not read for group and spec (UNKNOWN)
+
+Known bugs:
+- None new
+
+Next:
+- SPEED-2NOV-C
+
+Your turn:
+- None opened or closed. 154 open, steps/questions-open.md
+## FIX-2NOV-A2, 2026-11-02, the walls against the keys and TH1-IM, Lane A on the laptop
+
+Goal:
+- Bader's FIX-2NOV-A2 from section 4 of steps/investigations/6b-data.md: wall lines about 100 mm off the keys, walls on one side only, the villa type on 18 plots
+
+Done:
+- Q360: no tool line changes. Key walls on a centre code stand within 10 mm of the tool line on 1,791 of 1,865, on a face code half their thickness off. R478 Wall compare by wall centre in zone_compare, best side only, as the reads hold no side (Q365)
+- Walls one side: R480 C10 side wall by hand, 229 of 250 C10 side edges now equal the key, the rest questions: 77 garden walls (Q259), 26 structural walls of the SE keys and 37 back edges (Q358), 12 beside a VL6 (Q359), the SE keys' near span (Q366)
+- R479 One villa type by prototype file: 12 of 18 TH1-IM plots match. The 6 are ima 1667, 1668, 1859, 1860, imb 2176, 2177, ARC in the tool, STR in the key, one villa. The footprint check takes the unit of the linked file
+
+Checked:
+- Worst wall of a plot within 10 mm, RAN on the 7 zones, tool on key: TU 471 to 1,232 of 1,759, all 653 to 1,344 of 2,466. Key on tool: TU 670 to 1,129, all 813 to 1,269. With R480 by the same compare tool on key 1,339, over 300 mm 54 to 63, as the compare tests wall ends only and a whole wall over an open span ends on a corner
+- C10 side edges against the key, RAN by shapely on the written ends: 229 equal of 250, the 21 the measure lists. Plot fields beside walls and yards equal to main
+- Past job against main, RAN: the 7 keys and the whole project differ only in the step walls and the walls of the plan
+- Parity, RAN: 13 steps, net48 and net8.0, whole project and the 7 keys, past job and rev6, 32 runs, 416 step lines, 0 failures, on 23779c7, the changes after it are the compare and the footprint check, in no step
+- Gate, RAN on ae8369b: pytest 2,327 passed, 1 skipped. C# net48 1,998, net8.0 1,753, 0 failed. Review 1 CHANGES NEEDED, breaker 1: 3 REAL fixed (end overshoot, keo_file, R480 tests), the side of a wall and the SE keys are questions
+
+Remains:
+- Reading Wall.Flipped from a key settles Q365. Not run in Revit, R480 walls of two parts are placed by the same code as wallOpen parts
+
+Known bugs:
+- A breaker helper's kill loop may have ended 4 grep processes of another session at 16:49, told to the lanes
+
+Next:
+- Queued FIX-2NOV-A3: the split test, walls.ends, notched plot fronts. Bader answers Q357, Q358, Q359, Q365, Q366
+
+Your turn:
+- Opened Q357 Key walls with the face on the line. Q358 Walls only the keys hold. Q359 A C10 side wall beside a VL6. Q365 The side of a key wall. Q366 C10 side walls of the SE keys.
+  Closed Q360 Wall ends about 100 mm off the keys
+- 158 questions open, full text: steps/questions-open.md
+
+## Lane C sheet, 2026-11-02, Lane A's checks on Bader's sheet
+
+Goal:
+- Put Lane A's steps of FIX-2NOV-A on steps/bader-fix-1nov.md
+
+Done:
+- Parts 14 to 16 written, the question list rebuilt with Q351, Q353 to Q356, Q360 to Q364
+- Added to Lane A's steps: a named copy of the start model, button 6 before 7, and what to do if 7 says footprint not measured (CHOSEN, READ PlaceVillasRun.cs)
+
+Checked:
+- READ OutlineDistance.cs for the run line, steps/log.md for the counts. RAN the list script, its count against steps/questions-open.md
+
+Remains:
+- Parts 14 to 16 have not run by hand. Run at 7 again after Apply has not run
+
+Known bugs:
+- None new
+
+Next:
+- Bader's sheet
+
+Your turn:
+- None opened or closed. 154 open, steps/questions-open.md
+
+## FIX-2NOV-A, 2026-11-02, the yards, the plots of Review data and the footprint check, Lane A on the laptop
+
+Goal:
+- Bader's FIX-2NOV-A, from Lane B's hand run: floors that overlap, 379 plots against 337, all masses flagged over the footprint limit
+
+Done:
+- R475 Yard stays inside its plot: each yard cut to its plot and its ramp by Clipper2 and pyclipr on the mm grid, a cut yard reads yardCut, RECOMMENDED. Bader chose plan faults only (Q350): generic floors keep the whole plot, as in the past models, so overlaps inside a plot stay. BSL-1.0 allowed by name (Q352)
+- R476 Review lists the plots of Check: the 42 are land, open space, sports, mixed use, a masjid, schools, with no official number and no villa type
+- R477 Footprint check by same type: a block of another type is listed apart (Q277), same type held to 1,200 mm (Q351). The check compared each mass with a house the master plan drew, of another type on 271 of 336 plots, and even the same type stands 147 to 1,121 mm off
+- Cause of the 70 m2 yards: a link override moved the yard with the link (2543, 2546, 2008, 2005, 865), a width group fitted on one wider plot (1761, 1737)
+
+Checked:
+- Floor pairs by a 3D count at 150 mm, RAN: NBH 012 1,356 to 1,082, whole project 9,386 to 7,409. Yard area past its plot NBH 012 187.25 to 0.87 m2, whole project 589.46 to 5.31 m2, largest 70.01 to 0.02 m2
+- Revit run A2NV of buttons 1 to 5 on a new NBH 012 model, RAN on e94077f: 1,003 floors placed, 0 refused, overlap warnings 1,402 to 1,131, 42 off axis (Q356). The source yardCut came after it, no outline changed since. No yard read back from the model
+- R476 on the real table, RAN: NBH 012 379 to 337 rows, 013 466 to 410. R477 on the last hand run, RAN by C# and a second script: flagged 336 to 8, all 8 no outline, 57 same type 0 over, 271 other
+- Past job against main, RAN: the 7 keys and the whole project differ only in yard fields (outline, status, and on 4 plots the rule step), Python and C# 2,199 yards equal
+- Parity, RAN: 13 steps, net48 and net8.0, whole project and the 7 keys, past job and rev6, 32 runs, 416 step lines, 0 failures, on c57fd1b
+- Gate, RAN on c57fd1b: pytest 2,307 passed, 1 skipped. C# net48 1,979, net8.0 1,734, 0 failed. Review 1 APPROVE, breaker 1 and 2: 2 REAL fixed, the rest questions and latent lines
+
+Remains:
+- Step 5 accepts the overlap warning: Lane B's item L2NOV-1. Other type plots are not held (Q353). A built model keeps its old yards (Q354), build again from a new model
+
+Known bugs:
+- A Wrong on 2312 of NBH 012 never reaches Check (Q355). Mass checks of TH1-IM in the next round (Q238)
+
+Next:
+- Queued FIX-2NOV-A2: wall lines (Q360), walls one side, TH1-IM. Bader answers Q351, Q353 to Q356
+
+Your turn:
+- Opened Q351 The limit of the footprint check. Q353 The footprint check on other type plots. Q354 Yards of a model already built. Q355 A Wrong on a plot of two numbers. Q356 The off axis warning of a cut yard.
+  Closed Q350 Floors edge to edge. Q352 A Boost licence package
+- 154 questions open, full text: steps/questions-open.md
+
+## Lane D 6B-DATA-REV6, 2026-11-02, what a new project gets on the 5 TU zones, no Revit
+
+Goal:
+- Rerun the zone compare in rev6 with no override list, beside the past job, and say how close a new project gets
+
+Done:
+- zone_compare.py takes --rev6-plan, 3 tests (R469). steps/investigations/6b-data-rev6.md. No civil entry file in the data book, so road level plus slope on every plot
+- As the config stands rev6 writes only IMC, 324 of 1,791 key plots. Beyond the prompt, a config copy per zone names its largest surface (CHOSEN): 1,657 written
+- Over limit on the plots written, rev6 and past job rules equal:
+- IMC, 324 plots written of 324: FFL 230, entry 162, ramp level 140, steps 0
+- IMD, 400 of 403: FFL 238, entry 197, ramp level 173, steps 0
+- IME, 316 of 320: FFL 171, entry 126, ramp level 110, steps 0
+- IMF, 438 of 476: FFL 272, entry 211, ramp level 128, steps 9
+- IMG, 179 of 268: FFL 81, entry 73, ramp level 58, steps 0
+- In plain words: FFL within 5 mm on 29 to 55 percent per zone, within 100 mm on 92 to 99. El @ Entry 47 to 60 and 92 to 100. Steps the same on 1,595 of 1,657. The gaps are scatter, the median near zero except IMC at -20 mm, no steady offset
+
+Checked:
+- By a script outside git, plain json and math, with no function of zone_compare.py (RAN): every status of the rev6 plans worked out again, 16,570 the same, 0 differ. The 50 random plots read again from the raw plans, 250 cells the same, 0 differ. The plans of the past job and the keys are those of steps/investigations/6b-data.md, checked there.
+- The IMC plan really is rev6: it holds the proposal field and summary.noDoorLevel, no yard floors, 23 walls differ in their ends, 92 coordinates. Levels equal on 1,657 of 1,657, ramp corners too
+- 62 inputs the same by SHA-256, the repo config unchanged, each config copy differs by mode and surface only
+- Reviewer APPROVE, 2 latent. Claim-checker: no claim wrong, 3 wordings fixed
+- Gate: dotnet 1,939 and 1,694 passed. Pytest 2,289 passed, 1 failed: test_r62 did not list zone_compare.py among the files that name the mode, added, and its one line changed. Then test_project_profile, test_zone_compare and test_records: 38 passed
+
+Remains:
+- Which surface a new project of many phases names (Q364, Q256). The cluster proposals were not compared. Q070 clouds El @ Entry on IMC and IMD
+
+Known bugs:
+- None new in the tool. A rev6 run that writes no plot ends with exit 0 (Q364)
+
+Next:
+- The Revit half of 6b. Q339 as answered, to build
+
+Your turn:
+- Opened: Q364 One named road surface and several zones
+- 149 open, steps/questions-open.md
+
+## Lane D 6B-DATA, 2026-11-02, each zone against its past model, no Revit
+
+Goal:
+- For every zone compare the plan of the tool with the past site model, from the data book and the key reads only
+
+Done:
+- python/zone_compare.py and its 19 tests (R469). steps/investigations/6b-data.md with the tables, worst 10 and 10 random plots per zone
+- Every zone has reads, none left out. Over limit per zone, with the list, then by the rules alone:
+- IMA (SE), 419 plots: walls 7 and 15. By the rules mirror 8, rotation 8. No level reference
+- IMB (SE), 288 plots: walls 9 and 19. By the rules mirror 3, rotation 3. No level reference
+- IMC (TU), 324 plots: entry 113, ramp level 43, walls 9 and 36. By the rules FFL 230, entry 162, mirror 12
+- IMD (TU), 400 plots: FFL 2, entry 145, ramp level 53, walls 11 and 44. By the rules FFL 238, entry 197, mirror 2
+- IME (TU), 316 plots: ramp level 130, walls 4 and 12. By the rules FFL 171, entry 126, mirror 8
+- IMF (TU), 462 plots: ramp level 183, walls 9 and 21. By the rules FFL 282, entry 222, mirror 2
+- IMG (TU), 257 plots: ramp level 100, walls 5 and 20. By the rules FFL 122, entry 112, mirror 21
+
+Checked:
+- Second method, plain json and math: every status of all zones the same, 0 differ. 70 random plots against the raw K read, 70 the same. Key plan against past_all.csv: only the El @ Entry of the schedules and 2 IMD FFL plots differ, 260 rows in conflicts.csv
+- 64 inputs the same by SHA-256 before and after, the 7 copies the same as key_copies.json
+- Reviewer one pass, its findings fixed or latent. Claim-checker: 2 figures corrected, the wall share and the mirror total
+- Gate on the merged tree: dotnet 1,939 and 1,694 passed. Pytest full run 31 failed and 3 errors, nearly all process start failures 0xC0000142 under the load of the lanes, and the log over its cap. The four files alone: 115 passed, 1 failed, the log size, fixed by moving four old entries to steps/history. Then test_records and test_zone_compare: 25 passed
+
+Remains:
+- The 6b shares of steps/01_next.md still need their Revit runs. Insert position was not asked for and not compared. Rev6 not compared (Q361)
+- The Lane D worktree lost its git entry on 2 Nov: only its own entry restored by hand, no prune. Lane C helper entries show the same stripped form, cause UNKNOWN
+
+Known bugs:
+- None new in the tool. Faults of zone_compare.py itself, each fixed with a test: a rounded limit in its report, the plots of a build with no list, and a plan with no wall read as a match, which no real plot reaches. Two latent in steps/latent.md
+
+Next:
+- The Revit half of 6b. Q339 as answered, to build
+
+Your turn:
+- Opened: Q360 Wall ends about 100 mm off the keys. Q361 FFL rule far from keys without overrides. Q362 Chosen limits of the zone compare. Q363 Plot 2302 and two IMD FFL plots
+- 148 open, steps/questions-open.md
+
+## Lane C answers, 2026-11-02, Bader's answers of 09:20
+
+Goal:
+- Record Bader's answers, send each lane its own, show the drafts of Q286 and Q293, move the folders he accepted
+
+Done:
+- 20 questions moved to steps/questions-closed.md, each lane told by one message
+- Q350 is not added here: Lane A closed it on fix/2nov-a, not yet on main, and adds the overlap clause of today to its row
+- steps/ui-shots/drafts-for-bader.md: 7 drafts beside the Revit shots. The Revit shots hold real coordinates, so they stay in the work root, the page links them
+- 4 folders moved to C:\_cleanup-1nov, 40 now, none deleted
+- rule_status.py --write on the answers: 10 values of Q224, Q227, Q243, Q325, Q328 go from RECOMMENDED to CHOSEN by Bader, status lines only. The first gate failed on the stale block (RAN, test_r401_q109), three answer rows now name their key so the tool does not fall back to another source
+
+Checked:
+- 164 open before, 144 after, of them Q286 and Q293 waiting, as Bader's 142 others (RAN). Lane A and Lane B folders still read their branches after the moves (RAN). Every shot of the page is on disk (RAN)
+
+Remains:
+- No Revit shot of Door level from: ROSHN runs roshnPastJob and the row shows under rev6 only (R443). Revit shot of the first open pane is from 5a, 29 Oct. The Review data shot is older than PR 132 and PR 133
+- The 20 answers are recorded, not built. The owning lanes build what they call for
+
+Known bugs:
+- None new
+
+Next:
+- Bader's look at the drafts
+
+Your turn:
+- Closed: Q187 Prefill of a new project from config, J16. Q201 Data book files on a PC with no Python. Q202 The schedule folder in config. Q224 The mode the ROSHN config runs. Q227 Civil file format and plot match. Q237 Folder of the Rev 9 workbooks. Q243 Layer pairs for plot outlines in the scan. Q254 The order and share of villa type sources. Q281 Board rows against the nine pane inputs. Q282 Where the project name is kept. Q296 A saved project holds no drawing path. Q308 The stray export in the demo inputs. Q309 Refresh the demo config and add-in. Q320 Keep the solids path of light mode. Q322 Mass files made inside button 7. Q324 The Revit warning box at step 5. Q325 A file that states no coordinate system. Q328 Default source of the site position. Q335 A parameter sheet picked in the pane. Q339 A 2021 file in the link folder
+- 144 open, steps/questions-open.md
+
 ## Lane C part 11, 2026-11-02, Links mode on Bader's sheet
 
 Goal:
@@ -1034,178 +1246,12 @@ Q076 Python checker licences. Q077 The worker beside Revit. Q078 Rounding half a
 Q085 Plot as a shared parameter. Q086 Check point limits against the keys. Q087 Hand entries in addin.sharedParameters.
 Q114 Fields following the Q017 hand of 2302. Q115 Wall extent along an edge. Q116 Ramp and wall of 18 turned plots. Q118 Follow every rule leaves out moved plots.
 
-## Round ADDIN 4g1, 2026-10-27, Q098, Q099 and the status of each plotted value
-
-Goal:
-- Q098 to Q104 as Bader answered, the status of every rule value and of each plotted value
-
-Done:
-- PR 69: Q098 to Q104 closed, 4g split into 4g1 and 4g2, the chip and sheet Assumed in 7.7 of the mock
-- PR 70: Q098 hand alone table for a cluster unit with no cluster table, Q099 linkName from RRE_ZZ_SP_RVT-Name, Q105
-- PR 71: R401 the status block by python/rule_status.py, steps/investigations/status-review.md, Q106
-- PR 72: R401 the status of each plotted value, the summary of step 15 and the parity step status, Q107. PR 73 these records
-
-Checked:
-- Gate green and the three checks passed before each merge (RAN)
-- Parity, whole project and 7 keys, net48 and net8.0: PR 70 128 of 128 lines, PR 72 144 of 144, 0 failures. The proof of PR 70 0 unexplained (RAN)
-- Block: 595 values, Bader 3, MEASURED 50, DOCUMENT 273, RECOMMENDED 11, Code 16, UNKNOWN 242, equal by second_check.ps1 (RAN)
-- Plan: 105,861 values, 20,026 differ from a build with no override, all with the override status (RAN)
-- One pass of the two checkers on PR 69 and 70, two on PR 71 and 72, REAL fixed with tests, LATENT in steps/latent.md
-
-Remains:
-- The 5 DP2 plots still get no hand (Q105). Every written plot holds an assumed value. Bader's review list: status-review.md, 41 rows
-
-Known bugs:
-- A whole build peaks at 3,262 MiB on net8.0, 1,012 before the status step, the plan 26.2 MB from 15.5 (Q107)
-
-Next:
-- 4g2: R362 to R365, Bader pastes steps/START.md
-
-Your turn:
-Full text and the recommended answers by ID: steps/questions-open.md.
-
-Q001 El @ Entry rule. Q002 Ramp type by Rev 9 code. Q003 Villa mirror by block flag. Q004 Setback from the DLUS front. Q005 Front level snapped to the road. Q006 Back corners parallel.
-Q007 Generic floor on the whole face. Q008 Units, a baseplan with 01b. Q009 Typology_Rev9 for codes with no schedule. Q010 Sales Land Width. Q012 FFL split by units. Q013 CASE second letter as built.
-Q015 Yard depth under the floor top. Q016 Plots 2311 and 2312 by baseplan. Q017 IMC 2301, 2302 and IMG 544 as VD4. Q018 58 past ramps listed. Q019 Schedule FFL. Q020 Keep the north stop.
-Q021 Parallel windows over 8 GB free. Q022 TEST copies in Zone 02 ARC. Q023 Delete the empty 15a folder. Q024 Curb and ROW from the R94 edge. Q025 13 PDF refusals listed.
-Q026 Two curbs of one drawing. Q027 Two DP4 labels in one face. Q029 Location plan number per face. Q030 The 01b sales rows. Q031 Rev 9 faces, 97 differ. Q032 1.4 FFL parameter as design level.
-Q033 Lone DT3 on a VL3 face. Q036 TBD for DLUS, accommodation for sales. Q037 Corner fronts by the Orientation side. Q038 Native ramp fronts over the subgrade. Q039 Footprint test as third check.
-Q041 Rows 2290 to 2299 as overrides. Q042 Lone duplex hand by row pairs. Q051 Rev 01 values of steps and ramps. Q052 Weak rules held through their overrides. Q053 The override list, native and byHand.
-Q054 R260 of DATA-5 and R261 to R282. Q055 1.4 ELl@Entry typed off its ramp. Q056 Native models for hands, fronts, ramps only. Q057 Ramp front fall with no direction.
-Q058 Old 20221206 prototypes and their hands. Q059 NBH 03 build on native2022. Q062 Rev 9 attribute values of the probe. Q063 Whole NBH 03 image past 30 minutes.
-Q064 Watcher through the job, withdrawn. Q065 zone2 IMC file, the floor scenario master. Q066 No Parsons TU model of Zone 1. Q068 Project position of button 1. Q069 A remade key copy by its hashes.
-Q070 El @ Entry with no schedule. Q071 Walls, base, centre and top rule. Q072 Side road of a villa, three edges. Q074 Steps of the base and risers. Q075 Native entries with no value.
-Q076 Python checker licences. Q077 The worker beside Revit. Q078 Rounding half away from zero. Q079 Microsoft.NETCore.Platforms pinned to 3.1.0. Q082 Road level of 33 key plots.
-Q085 Plot as a shared parameter. Q086 Check point limits against the keys. Q087 Hand entries in addin.sharedParameters. Q105 Row pair of 5 DP2 cluster units.
-Q106 Step values of the schedules as DOCUMENT. Q107 Status detail of values built from others.
-
-## Round AUDIT-RULES, 2026-10-27, AI MAX version 4 and the status of every rule value
-
-Goal:
-- The skill refresh and record upkeep, then the status of every rule value, no logic change
-
-Done:
-- PR 67: .claude/skills/ai-max is version 4, the 33 log entries before REC moved byte for byte to steps/history/log-before-rec.md, STATE first in PROGRESS
-- PR 68: steps/investigations/rule-status-audit.md, Q100 to Q103
-
-Checked:
-- Log move: SHA-256 108cc030... on the cut and the new file, the old log equal to the kept part plus it, Q, R of 2 or 3 digits and PR ids 303, 213, 40 both sides (RAN)
-- Audit by steps/investigations/rule-status-scripts/audit.py: 316 rules, 128 process, 591 values, Bader 3, MEASURED 35, RECOMMENDED 9, Code 16, UNKNOWN 528 (RAN)
-- second_check.ps1 equal. Reviews found statuses by text match, Code by absence and marks not read, fixed in the script. Code sweep 120 rows (RAN)
-
-Remains:
-- No output shows assumed values per plot (Q102). R366 not built. The statuses rest on text matching (Q104)
-
-Known bugs:
-- Two relative links of the moved log, history/round-2.md and round-3.md, do not resolve from steps/history/, kept byte for byte
-
-Next:
-- 4g: Bader pastes steps/START.md into a fresh session
-
-Your turn:
-Full text and the recommended answers by ID: steps/questions-open.md.
-
-Q001 El @ Entry rule. Q002 Ramp type by Rev 9 code. Q003 Villa mirror by block flag. Q004 Setback from the DLUS front. Q005 Front level snapped to the road. Q006 Back corners parallel.
-Q007 Generic floor on the whole face. Q008 Units, a baseplan with 01b. Q009 Typology_Rev9 for codes with no schedule. Q010 Sales Land Width. Q012 FFL split by units. Q013 CASE second letter as built.
-Q015 Yard depth under the floor top. Q016 Plots 2311 and 2312 by baseplan. Q017 IMC 2301, 2302 and IMG 544 as VD4. Q018 58 past ramps listed. Q019 Schedule FFL. Q020 Keep the north stop.
-Q021 Parallel windows over 8 GB free. Q022 TEST copies in Zone 02 ARC. Q023 Delete the empty 15a folder. Q024 Curb and ROW from the R94 edge. Q025 13 PDF refusals listed.
-Q026 Two curbs of one drawing. Q027 Two DP4 labels in one face. Q029 Location plan number per face. Q030 The 01b sales rows. Q031 Rev 9 faces, 97 differ. Q032 1.4 FFL parameter as design level.
-Q033 Lone DT3 on a VL3 face. Q036 TBD for DLUS, accommodation for sales. Q037 Corner fronts by the Orientation side. Q038 Native ramp fronts over the subgrade. Q039 Footprint test as third check.
-Q041 Rows 2290 to 2299 as overrides. Q042 Lone duplex hand by row pairs. Q051 Rev 01 values of steps and ramps. Q052 Weak rules held through their overrides. Q053 The override list, native and byHand.
-Q054 R260 of DATA-5 and R261 to R282. Q055 1.4 ELl@Entry typed off its ramp. Q056 Native models for hands, fronts, ramps only. Q057 Ramp front fall with no direction.
-Q058 Old 20221206 prototypes and their hands. Q059 NBH 03 build on native2022. Q062 Rev 9 attribute values of the probe. Q063 Whole NBH 03 image past 30 minutes.
-Q064 Watcher through the job, withdrawn. Q065 zone2 IMC file, the floor scenario master. Q066 No Parsons TU model of Zone 1. Q068 Project position of button 1. Q069 A remade key copy by its hashes.
-Q070 El @ Entry with no schedule. Q071 Walls, base, centre and top rule. Q072 Side road of a villa, three edges. Q074 Steps of the base and risers. Q075 Native entries with no value.
-Q076 Python checker licences. Q077 The worker beside Revit. Q078 Rounding half away from zero. Q079 Microsoft.NETCore.Platforms pinned to 3.1.0. Q082 Road level of 33 key plots.
-Q085 Plot as a shared parameter. Q086 Check point limits against the keys. Q087 Hand entries in addin.sharedParameters. Q098 Hand of 5 DP2 plots in DP4 clusters.
-Q099 Link Name of a build. Q100 Status of values from client documents. Q101 Level profile fields with no share. Q102 Show the assumed values per plot. Q103 Design values in code, not in config.
-Q104 Audit statuses rest on text matching.
-
-## Round ADDIN 4f, 2026-10-27, Q089 and steps 8, 10, 12 and 13 in C#
-
-Goal:
-- Q089 as Bader answered it, then R358 to R361 with parity on the real data, the records of Bader's brief and addition
-
-Done:
-- PR 61 and 62 records: CLAUDE.md, Q089, paths to docs/design/, START.md step 7, usage.md. PR 63 Q089: the build on the footprint clusters alone
-- PR 64 R359 levels and R358 floors, PR 65 R360 overrides and R361 parameters, PR 66 these records
-
-Checked:
-- Q089: 0 unexplained on all 7 keys, levels 0 at pass, 1 mm and 5 mm, the control route equal to main by SHA-256 (RAN, q089_none.txt, q089_snap.txt)
-- Parity net48 and net8.0, whole project and 7 keys: 96 and 128 runs, 0 one unit cases, 0 failures (RAN, p4f_ and p4fb_parity_build)
-- Second methods 0 mismatches, proof 0 unexplained, 7 plans byte equal (RAN). Gate: pytest 1825 passed 1 skipped, dotnet 811 and 785 (RAN, p4f_end_gate_python, p4fb_gate_test)
-- Reviews: REAL fixed with tests or records, LATENT in steps/latent.md, at most 2 passes per PR
-
-Remains:
-- Not in 4f: heightOffset and floor z need the site file of button 1, roadAtFrontM with R364, the past_all.csv rebuild of R385
-- Skill refresh skipped, ai-max.skill came to Downloads at 16:35, after the check, PR 1 of AUDIT-RULES. Usage rules of version 4 not followed: round-addin.md, 4f
-
-Known bugs:
-- 5 DP2 plots get no hand since Q089 (Q098), a build writes no linkName (Q099), steps/PROGRESS.md open bugs
-
-Next:
-- 4g: Bader pastes steps/START.md into a fresh session
-
-Your turn:
-Full text and the recommended answers by ID: steps/questions-open.md.
-
-Q001 El @ Entry rule. Q002 Ramp type by Rev 9 code. Q003 Villa mirror by block flag. Q004 Setback from the DLUS front. Q005 Front level snapped to the road. Q006 Back corners parallel.
-Q007 Generic floor on the whole face. Q008 Units, a baseplan with 01b. Q009 Typology_Rev9 for codes with no schedule. Q010 Sales Land Width. Q012 FFL split by units. Q013 CASE second letter as built.
-Q015 Yard depth under the floor top. Q016 Plots 2311 and 2312 by baseplan. Q017 IMC 2301, 2302 and IMG 544 as VD4. Q018 58 past ramps listed. Q019 Schedule FFL. Q020 Keep the north stop.
-Q021 Parallel windows over 8 GB free. Q022 TEST copies in Zone 02 ARC. Q023 Delete the empty 15a folder. Q024 Curb and ROW from the R94 edge. Q025 13 PDF refusals listed.
-Q026 Two curbs of one drawing. Q027 Two DP4 labels in one face. Q029 Location plan number per face. Q030 The 01b sales rows. Q031 Rev 9 faces, 97 differ. Q032 1.4 FFL parameter as design level.
-Q033 Lone DT3 on a VL3 face. Q036 TBD for DLUS, accommodation for sales. Q037 Corner fronts by the Orientation side. Q038 Native ramp fronts over the subgrade. Q039 Footprint test as third check.
-Q041 Rows 2290 to 2299 as overrides. Q042 Lone duplex hand by row pairs. Q051 Rev 01 values of steps and ramps. Q052 Weak rules held through their overrides. Q053 The override list, native and byHand.
-Q054 R260 of DATA-5 and R261 to R282. Q055 1.4 ELl@Entry typed off its ramp. Q056 Native models for hands, fronts, ramps only. Q057 Ramp front fall with no direction.
-Q058 Old 20221206 prototypes and their hands. Q059 NBH 03 build on native2022. Q062 Rev 9 attribute values of the probe. Q063 Whole NBH 03 image past 30 minutes.
-Q064 Watcher through the job, withdrawn. Q065 zone2 IMC file, the floor scenario master. Q066 No Parsons TU model of Zone 1. Q068 Project position of button 1. Q069 A remade key copy by its hashes.
-Q070 El @ Entry with no schedule. Q071 Walls, base, centre and top rule. Q072 Side road of a villa, three edges. Q074 Steps of the base and risers. Q075 Native entries with no value.
-Q076 Python checker licences. Q077 The worker beside Revit. Q078 Rounding half away from zero. Q079 Microsoft.NETCore.Platforms pinned to 3.1.0. Q082 Road level of 33 key plots.
-Q085 Plot as a shared parameter. Q086 Check point limits against the keys. Q087 Hand entries in addin.sharedParameters. Q098 Hand of 5 DP2 plots in DP4 clusters.
-Q099 Link Name of a build.
-
-## Round REC, 2026-10-27, the records diet and Q095 to Q097
-
-Goal:
-- Small start reads, no record over 100 KB, nothing lost, token use measured, Q095 to Q097 in the rules, the plan of Part 1. No logic change
-
-Done:
-- PR 56 rules in 7 parts with an index, R400 an 8th, usage.md. PR 57 design in 11 parts, round-addin.md 0a to 4e in 15 history files
-- PR 58 questions-open.md, Q095 to Q097 closed, Q088 to Q094 in latent.md. PR 59 CLAUDE.md 29,428 to 9,462 bytes, repo-map.md, agents
-- PR 60: R400 with test_r400_record_sizes, steps/01_next.md, steps/START.md, PROGRESS 21,479 to 5,419 bytes, CLAUDE.md 9,552 (RAN, wc)
-
-Checked:
-- Gate on main at 73b8c42: pytest 1,792 passed 1 skipped, build 0 errors 2 warnings, dotnet test 763 net8.0 and 789 net48 (RAN, gate_main.txt)
-- Gate at the end: pytest 1,798 passed 1 skipped, 6 tests new in the round, build 0 errors 2 warnings, dotnet test 763 and 789 (RAN, gate_pr5.txt)
-- Every split, copy, moved line and section equal, 0 of 346 R and 94 Q ids lost, two routes (RAN, split_proof.txt, second_route.txt)
-- Reviews: REAL findings fixed or open bugs, LATENT in latent.md, wrong claims fixed (READ, steps/runs/rec/reviews.txt)
-
-Remains:
-- ADDIN 4f to 6 by steps/01_next.md, one session per phase
-
-Known bugs:
-- steps/PROGRESS.md open bugs and steps/latent.md (READ)
-
-Next:
-- 4f: Bader pastes steps/START.md into a fresh session
-
-Your turn:
-Full text and the recommended answers by ID: steps/questions-open.md.
-Q001 El @ Entry rule. Q002 Ramp type by Rev 9 code. Q003 Villa mirror by block flag. Q004 Setback from the DLUS front. Q005 Front level snapped to the road. Q006 Back corners parallel.
-Q007 Generic floor on the whole face. Q008 Units, a baseplan with 01b. Q009 Typology_Rev9 for codes with no schedule. Q010 Sales Land Width. Q012 FFL split by units. Q013 CASE second letter as built.
-Q015 Yard depth under the floor top. Q016 Plots 2311 and 2312 by baseplan. Q017 IMC 2301, 2302 and IMG 544 as VD4. Q018 58 past ramps listed. Q019 Schedule FFL. Q020 Keep the north stop.
-Q021 Parallel windows over 8 GB free. Q022 TEST copies in Zone 02 ARC. Q023 Delete the empty 15a folder. Q024 Curb and ROW from the R94 edge. Q025 13 PDF refusals listed.
-Q026 Two curbs of one drawing. Q027 Two DP4 labels in one face. Q029 Location plan number per face. Q030 The 01b sales rows. Q031 Rev 9 faces, 97 differ. Q032 1.4 FFL parameter as design level.
-Q033 Lone DT3 on a VL3 face. Q036 TBD for DLUS, accommodation for sales. Q037 Corner fronts by the Orientation side. Q038 Native ramp fronts over the subgrade. Q039 Footprint test as third check.
-Q041 Rows 2290 to 2299 as overrides. Q042 Lone duplex hand by row pairs. Q051 Rev 01 values of steps and ramps. Q052 Weak rules held through their overrides. Q053 The override list, native and byHand.
-Q054 R260 of DATA-5 and R261 to R282. Q055 1.4 ELl@Entry typed off its ramp. Q056 Native models for hands, fronts, ramps only. Q057 Ramp front fall with no direction.
-Q058 Old 20221206 prototypes and their hands. Q059 NBH 03 build on native2022. Q062 Rev 9 attribute values of the probe. Q063 Whole NBH 03 image past 30 minutes.
-Q064 Watcher through the job, withdrawn. Q065 zone2 IMC file, the floor scenario master. Q066 No Parsons TU model of Zone 1. Q068 Project position of button 1. Q069 A remade key copy by its hashes.
-Q070 El @ Entry with no schedule. Q071 Walls, base, centre and top rule. Q072 Side road of a villa, three edges. Q074 Steps of the base and risers. Q075 Native entries with no value.
-Q076 Python checker licences. Q077 The worker beside Revit. Q078 Rounding half away from zero. Q079 Microsoft.NETCore.Platforms pinned to 3.1.0. Q082 Road level of 33 key plots.
-Q085 Plot as a shared parameter. Q086 Check point limits against the keys. Q087 Hand entries in addin.sharedParameters.
-
 ## Older rounds
+
+- Round ADDIN 4g1, 2026-10-27, Q098, Q099 and the status of each plotted value: steps/history/log-addin-4f-4g1.md line 5
+- Round AUDIT-RULES, 2026-10-27, AI MAX version 4 and the status of every rule value: steps/history/log-addin-4f-4g1.md line 50
+- Round ADDIN 4f, 2026-10-27, Q089 and steps 8, 10, 12 and 13 in C#: steps/history/log-addin-4f-4g1.md line 92
+- Round REC, 2026-10-27, the records diet and Q095 to Q097: steps/history/log-addin-4f-4g1.md line 135
 
 One line per entry before Round REC, each moved byte for byte to the line named.
 

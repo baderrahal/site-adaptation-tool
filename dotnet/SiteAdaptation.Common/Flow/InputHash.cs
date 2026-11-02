@@ -20,6 +20,7 @@ namespace SiteAdaptation.Common.Flow
         {
             string root = Path.GetFullPath(folder);
             var lines = Directory.GetFiles(root, "*", SearchOption.AllDirectories)
+                .Where(path => !IsRevitWorksharingLog(path))
                 .Select(path => new FileInfo(path))
                 .Select(file => file.FullName.Substring(root.Length).TrimStart(Path.DirectorySeparatorChar).ToLowerInvariant()
                     + "|" + file.Length.ToString(CultureInfo.InvariantCulture)
@@ -30,6 +31,16 @@ namespace SiteAdaptation.Common.Flow
                 byte[] hash = sha.ComputeHash(Encoding.UTF8.GetBytes(string.Join("\n", lines)));
                 return string.Concat(hash.Select(item => item.ToString("x2", CultureInfo.InvariantCulture)));
             }
+        }
+
+        // R458. Revit writes <model>_backup\<model>.slog when it opens a workshared prototype to read it, so making the masses would
+        // make every later step look stale though no input changed. Any other file of that folder still counts
+        private static bool IsRevitWorksharingLog(string path)
+        {
+            string folder = Path.GetFileName(Path.GetDirectoryName(path));
+            return string.Equals(Path.GetExtension(path), ".slog", StringComparison.OrdinalIgnoreCase)
+                && folder != null
+                && folder.EndsWith("_backup", StringComparison.OrdinalIgnoreCase);
         }
     }
 

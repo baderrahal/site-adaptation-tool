@@ -311,13 +311,14 @@ MADE_CONFIG_BLOCK = {"floors.types.generic": {"status": "UNKNOWN", "why": "made 
 # Since Q107 the steps and the fields of the steps read steps.riser_added and each heightOffset the elevation of its level, which the made
 # block lacks or no entry maps, so they are UNKNOWN as the worst, and since Q113 a field an override touched names it at any value. Since
 # Q120 the mirror flag of 4 leaves the plotValue of its yard DOCUMENT
+# R475. The turn of plot 2 puts its yard outside its plot, so the cut leaves two yards of three
 MADE_COUNTS = ("floors.generic.heightOffset:UNKNOWN=6 floors.generic.level:UNKNOWN=6 floors.generic.levelElevation:UNKNOWN=6 "
                "floors.generic.outline:UNKNOWN=6 floors.generic.plotValue:DOCUMENT=6 floors.generic.type:UNKNOWN=6 "
                "floors.generic.z:UNKNOWN=6 floors.ramp.corners:UNKNOWN=6 floors.ramp.heightOffset:UNKNOWN=6 floors.ramp.level:UNKNOWN=6 "
                "floors.ramp.levelElevation:UNKNOWN=6 floors.ramp.outline:UNKNOWN=6 floors.ramp.plotValue:DOCUMENT=6 "
                "floors.ramp.slopePercent:CHOSEN by Code=6 floors.ramp.type:CHOSEN by Code=5 floors.ramp.type:RECOMMENDED=1 "
-               "floors.yard.heightOffset:UNKNOWN=3 floors.yard.level:UNKNOWN=3 floors.yard.levelElevation:UNKNOWN=3 "
-               "floors.yard.outline:UNKNOWN=3 floors.yard.plotValue:DOCUMENT=3 floors.yard.type:UNKNOWN=3 floors.yard.z:UNKNOWN=3 "
+               "floors.yard.heightOffset:UNKNOWN=2 floors.yard.level:UNKNOWN=2 floors.yard.levelElevation:UNKNOWN=2 "
+               "floors.yard.outline:UNKNOWN=2 floors.yard.plotValue:DOCUMENT=2 floors.yard.type:UNKNOWN=2 floors.yard.z:UNKNOWN=2 "
                "insert:MEASURED strong=3 insert:RECOMMENDED=3 levels.entry:MEASURED weak=5 levels.entry:RECOMMENDED=1 "
                "levels.ffl:RECOMMENDED=1 levels.ffl:UNKNOWN=5 levels.height:MEASURED weak=4 levels.height:RECOMMENDED=2 "
                "levels.roadAtFrontM:UNKNOWN=6 levels.ssl:UNKNOWN=6 levels.steps:RECOMMENDED=1 levels.steps:UNKNOWN=5 linkName:RECOMMENDED=2 linkName:UNKNOWN=4 "
