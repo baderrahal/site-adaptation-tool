@@ -214,9 +214,9 @@ namespace SiteAdaptation.Common.PlaceVillas
 
         public static IEnumerable<string> SummaryLines(IEnumerable<FootprintRow> rows)
         {
-            return Summary(rows).Select(item => "prototype " + item.Prototype + ": largest gap to the house outline "
-                + (item.LargestGapMm.HasValue ? item.LargestGapMm.Value.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + " mm" : "no plot of the same type")
-                + ", " + item.OverLimit + " of " + item.SameType + " plots of the same type over the limit, " + item.OtherType + " of another type (Q277), " + item.NoOutline + " with no outline (R453, R477)");
+            return Summary(rows).Select(item => "prototype " + item.Prototype + ": "
+                + (item.LargestGapMm.HasValue ? "largest gap to the house outline " + item.LargestGapMm.Value.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + " mm, " + item.OverLimit + " of " + item.SameType + " plots of the same type over the limit" : "no plot of the same type")
+                + ", " + item.OtherType + " of another type (Q277), " + item.NoOutline + " with no outline (R453, R477)");
         }
 
         // R477. The part of the run line for the plots measured

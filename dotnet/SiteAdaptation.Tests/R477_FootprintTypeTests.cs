@@ -210,7 +210,7 @@ namespace SiteAdaptation.Tests
 
             List<string> lines = FootprintCheck.SummaryLines(rows).ToList();
             Assert.Contains("prototype A.rvt: largest gap to the house outline 1300 mm, 1 of 2 plots of the same type over the limit, 1 of another type (Q277), 1 with no outline (R453, R477)", lines);
-            Assert.Contains("prototype B.rvt: largest gap to the house outline no plot of the same type, 0 of 0 plots of the same type over the limit, 1 of another type (Q277), 0 with no outline (R453, R477)", lines);
+            Assert.Contains("prototype B.rvt: no plot of the same type, 1 of another type (Q277), 0 with no outline (R453, R477)", lines);
         }
 
         private PlanPlot Plot(string number, double east, string unit, string prototype = "VD4.rvt")
