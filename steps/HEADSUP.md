@@ -15,7 +15,7 @@
   Now: the gate on the merged tree, then merge PR 131. Then Lane D D3 on my word
 - Lane C, branch docs/2nov-c-sheet-a: parts 14 to 16 of steps/bader-fix-1nov.md from Lane A's steps, question list rebuilt with Q351 to Q364. Nothing queued after this PR. Blocked: none
 - Lane D FIX-2NOV-D, 2 Nov, branch fix/2nov-d: no Revit, no window lock. Several road surfaces in order (Q364, Q256), R490 to R493, Q370 up. Editing NewProjectDialog and the pane road row, lane-c told.
-  Now: baseline past job plans, logic and window helpers running. Blocked: none
+  Now: logic and window joined on main with PR 142, proof, parity, review 1 and breaker 1 running. Blocked: none
 
 Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane D FIX-2NOV-D, 2 Nov 2026.
 
