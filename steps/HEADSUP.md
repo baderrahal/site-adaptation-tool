@@ -11,7 +11,7 @@
 
 ### Lane B, C and D
 
-- Lane B FIX-2NOV-B, 21:28, branch fix/2nov-b: Q158 and Q367 closed. Helper builds R459 and the Q158 fix since 20:45, no Revit, lock free. Next gate, review, breaker, PR, then the hand run of task 4.
+- Lane B FIX-2NOV-B, 21:43, branch fix/2nov-b: R459 built, review, breaker and gate running. Then its PR, then Q158 in a second PR, then the hand run of task 4. No Revit yet, lock free.
 - Lane C, branch docs/2nov-c-params: the other 12 bound parameters listed Keep No with a Note in config/shared_parameters.xlsx. Then SPEED-2NOV-C on speed/2nov-c, R449 pushed, helpers on R447 and R448. Blocked: none
 - Lane D 6B-DATA-REV6, 2 Nov, branch feat/6b-data-rev6: no Revit, no window lock. 5 TU zones under rev6, levels equal the past rules, config copies outside git. Opened Q364.
   Now: the PR, merge when green. Blocked: none
