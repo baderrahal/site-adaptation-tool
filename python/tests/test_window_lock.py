@@ -1,5 +1,6 @@
 import json
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
 import pytest
 
@@ -213,7 +214,86 @@ def test_r449_a_stale_slot_two_is_deleted_with_no_window(tmp_path):
 def test_r449_the_command_is_told_its_slot(tmp_path, monkeypatch):
     lock, _ = slots(tmp_path)
     told = {}
-    monkeypatch.delenv(wl.SLOT_VARIABLE, raising=False)
+    monkeypatch.setenv(wl.SLOT_VARIABLE, "none")
     monkeypatch.setattr(wl.subprocess, "call", lambda command: told.setdefault("slot", wl.os.environ[wl.SLOT_VARIABLE]) and 0)
     wl.run(lock, "a", ["x"], 1)
     assert told["slot"] == "1"
+
+
+def stale(tmp_path, name="window.lock", **fields):
+    clock = Clock()
+    written = {"round": "old", "utc": (clock.at - timedelta(hours=3)).isoformat(), **fields}
+    (tmp_path / name).write_text(json.dumps(written), encoding="utf-8")
+    return clock, written
+
+
+def stale_lock(tmp_path, clock, alive=lambda pid: False):
+    settings = {"lock": str(tmp_path / "window.lock"), "waitMinutes": 5, "staleHours": 2, "minFreeGB": 2.0, "windowProcesses": ["Revit"],
+                "revitSlots": 2, "revitSlotsMinTotalGB": 32, "maxWindows": 3}
+    return wl.Lock(settings, "S", tmp_path / "logs" / "windows.jsonl", now=clock.now, sleep=clock.sleep, free=lambda: 5.0, processes=lambda names: [],
+                   total=lambda: 64.0, alive=alive)
+
+
+def test_r449_an_old_slot_whose_holder_still_lives_is_never_stale(tmp_path):
+    clock, _ = stale(tmp_path, pid=41)
+    lock = stale_lock(tmp_path, clock, alive=lambda pid: pid == 41)
+    assert lock.look()[1]["slot"] == 2
+    assert (tmp_path / "window.lock").exists()
+
+
+def test_r449_an_old_slot_whose_holder_is_gone_is_stale(tmp_path):
+    clock, _ = stale(tmp_path, pid=41)
+    assert stale_lock(tmp_path, clock).look()[1]["slot"] == 1
+    assert not (tmp_path / "window.lock").exists()
+
+
+def test_r449_a_lane_that_took_the_stale_slot_first_keeps_it(tmp_path):
+    clock, judged = stale(tmp_path, token="old")
+    lock = stale_lock(tmp_path, clock)
+    theirs = {"round": "A", "utc": clock.at.isoformat(), "token": "theirs"}
+    (tmp_path / "window.lock").write_text(json.dumps(theirs), encoding="utf-8")
+    assert lock.remove_stale(tmp_path / "window.lock", judged) is False
+    assert json.loads((tmp_path / "window.lock").read_text(encoding="utf-8"))["token"] == "theirs"
+    assert [path.name for path in tmp_path.glob("*.stale-*")] == []
+
+
+def test_r449_a_slot_released_between_the_look_and_the_read_counts_as_free(tmp_path, monkeypatch):
+    lock, _ = slots(tmp_path)
+    (tmp_path / "window.lock").write_text("{}", encoding="utf-8")
+    real = lock.age_hours
+
+    def gone(holder, path=None):
+        (tmp_path / "window.lock").unlink()
+        return real(holder, path)
+
+    monkeypatch.setattr(lock, "age_hours", gone)
+    assert lock.look()[1]["slot"] == 1
+
+
+def test_r449_a_release_another_lane_reads_is_tried_again_and_never_loses_the_exit_code(tmp_path, monkeypatch):
+    lock, _ = slots(tmp_path)
+    monkeypatch.setattr(wl.subprocess, "call", lambda command: 7)
+    real = Path.unlink
+    tries = []
+
+    def busy(self, *args, **kwargs):
+        tries.append(self)
+        if len(tries) < 3:
+            raise PermissionError("in use")
+        return real(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "unlink", busy)
+    assert wl.run(lock, "a", ["x"], 1) == 7
+    assert not (tmp_path / "window.lock").exists()
+
+
+def test_r449_a_release_that_never_gets_the_file_logs_it_and_keeps_the_exit_code(tmp_path, monkeypatch):
+    lock, _ = slots(tmp_path)
+    monkeypatch.setattr(wl.subprocess, "call", lambda command: 7)
+
+    def busy(self, *args, **kwargs):
+        raise PermissionError("in use")
+
+    monkeypatch.setattr(Path, "unlink", busy)
+    assert wl.run(lock, "a", ["x"], 1) == 7
+    assert "lockNotDeleted" in [event["event"] for event in events(lock)]

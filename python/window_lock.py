@@ -26,6 +26,9 @@ import project_profile
 
 
 SLOT_VARIABLE = "SITE_ADAPTATION_WINDOW_SLOT"
+# A tool timing: how often and how long a release waits for a lane that reads the file
+RELEASE_TRIES = 5
+RELEASE_WAIT_SECONDS = 1
 
 
 class LockError(Exception):
@@ -71,6 +74,12 @@ def running(names):
     return [{"name": row[0], "pid": int(row[1])} for row in csv.reader(io.StringIO(text)) if len(row) > 1 and row[0].lower() in wanted]
 
 
+def process_alive(pid):
+    """True while a process of that id runs, from tasklist."""
+    text = subprocess.run(["tasklist", "/FI", "PID eq %d" % pid, "/FO", "CSV", "/NH"], capture_output=True, text=True, check=True).stdout
+    return any(len(row) > 1 and row[1] == str(pid) for row in csv.reader(io.StringIO(text)))
+
+
 def now_utc():
     return datetime.now(timezone.utc)
 
@@ -78,7 +87,7 @@ def now_utc():
 class Lock:
     """The window lock of one round. now, sleep, free and processes are passed in so a test runs it with no window."""
 
-    def __init__(self, block, round_name, log_path, now=now_utc, sleep=time.sleep, free=free_gb, processes=running, total=total_gb):
+    def __init__(self, block, round_name, log_path, now=now_utc, sleep=time.sleep, free=free_gb, processes=running, total=total_gb, alive=process_alive):
         self.base = Path(block["lock"])
         self.path = self.base
         self.round = round_name
@@ -88,6 +97,7 @@ class Lock:
         self.names = list(block["windowProcesses"])
         self.log_path = Path(log_path)
         self.now, self.sleep, self.free, self.processes = now, sleep, free, processes
+        self.alive = alive
         self.token = None
         self.slot = None
         # R449. A block with no slot keys asks nothing of the machine, as the lock of a Civil 3D window does
@@ -98,6 +108,26 @@ class Lock:
     def slot_path(self, slot):
         """Slot 1 is the lock file of R200, so a lane on the old script and this one see each other."""
         return self.base if slot == 1 else self.base.with_name("%s-%d%s" % (self.base.stem, slot, self.base.suffix))
+
+    def remove_stale(self, path, judged):
+        """Takes a stale slot away by one move, so of two lanes only one gets it, and gives back a lock a lane made in between."""
+        moved = path.with_name("%s.stale-%s" % (path.name, os.urandom(4).hex()))
+        try:
+            os.rename(path, moved)
+        except OSError:
+            return False
+        if self.holder(moved).get("token") != judged.get("token"):
+            try:
+                os.rename(moved, path)
+            except OSError:
+                self.log("lockLost", path=str(moved))
+            return False
+        moved.unlink()
+        return True
+
+    def holder_lives(self, holder):
+        """R449. A listener outlives staleHours as its normal state, and its window may be gone for a moment before its holder ends."""
+        return isinstance(holder.get("pid"), int) and self.alive(holder["pid"])
 
     def log(self, event, **fields):
         self.log_path.parent.mkdir(parents=True, exist_ok=True)
@@ -131,10 +161,15 @@ class Lock:
                 free_slots.append(slot)
                 continue
             holder = self.holder(path)
-            seen["lockRound"], seen["lockAgeHours"] = holder.get("round"), round(self.age_hours(holder, path), 2)
-            if seen["lockAgeHours"] > self.stale and not seen["processes"]:
+            try:
+                seen["lockRound"], seen["lockAgeHours"] = holder.get("round"), round(self.age_hours(holder, path), 2)
+            except FileNotFoundError:
+                # Its holder released it between the look and the read
+                free_slots.append(slot)
+                continue
+            if seen["lockAgeHours"] > self.stale and not seen["processes"] and not self.holder_lives(holder):
                 self.log("staleLockDeleted", **seen)
-                path.unlink()
+                self.remove_stale(path, holder)
                 return self.look()
             held.append(holder.get("round"))
         if not free_slots:
@@ -174,8 +209,17 @@ class Lock:
         """Deletes the lock when it is this round's, logs it either way."""
         holder = self.holder()
         if self.path.exists() and holder.get("token") == self.token and self.token is not None:
-            self.path.unlink()
-            self.log("lockDeleted", label=label, freeGB=round(self.free(), 2))
+            # Another lane may be reading the file for a moment, and this runs in a finally, so it never takes the exit code with it
+            for attempt in range(RELEASE_TRIES):
+                try:
+                    self.path.unlink()
+                    self.log("lockDeleted", label=label, freeGB=round(self.free(), 2))
+                    break
+                except PermissionError as error:
+                    if attempt == RELEASE_TRIES - 1:
+                        self.log("lockNotDeleted", label=label, why=str(error))
+                    else:
+                        self.sleep(RELEASE_WAIT_SECONDS)
         else:
             self.log("lockNotOurs", label=label, holder=holder.get("round"))
         self.token = None
