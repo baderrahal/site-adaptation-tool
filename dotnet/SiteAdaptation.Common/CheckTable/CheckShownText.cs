@@ -11,7 +11,6 @@ namespace SiteAdaptation.Common.CheckTable
         public const string RampType = "Ramp type by the rule";
         public const string LinkOrigin = "Link origin by the rule";
         public const string LinkRotation = "Link rotation by the rule";
-        public const string FrontEdge = "Front edge by the rule";
         public const string YardOutline = "Yard outline by the rule";
         public const string RampOutline = "Ramp outline by the rule";
         public const string GenericFloor = "Generic floor by the rule";
@@ -33,7 +32,6 @@ namespace SiteAdaptation.Common.CheckTable
         public const string Along = "along the front <n> m, into the plot <n> m";
         public const string DegreesAbove = "<n> degrees above the rule";
         public const string DegreesBelow = "<n> degrees below the rule";
-        public const string FrontEdgePast = "edge <n> of the plot";
         public const string Mirrored = "Mirrored";
         public const string NotMirrored = "Not mirrored";
 

@@ -177,8 +177,8 @@ def test_r482_the_rules_of_a_build_see_the_override_before_they_walk_the_row(mon
     assert {taken["6"]["left"], taken["6"]["right"]} == {NOTCHED[5], NOTCHED[0]}
 
 
-def test_r482_the_list_loads_the_field_and_a_build_by_keyrules_may_name_it():
-    assert plan_rules.FRONT_EDGE == "frontEdge" and plan_rules.FRONT_EDGE in plan_rules.KEY_FIELDS
+def test_r482_the_list_gives_the_edges_of_its_plots():
+    assert plan_rules.FRONT_EDGE == "frontEdge"
     assert plan_rules.front_edges({"6": {"frontEdge": {"edge": 2}, "heightM": {"gapToRuleM": 0.1}}, "5": {"heightM": {"gapToRuleM": 0.1}}}) == FRONT
     assert plan_rules.front_edges({}) == {}
 
