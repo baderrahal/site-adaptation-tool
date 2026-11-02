@@ -46,10 +46,14 @@ namespace SiteAdaptation.AddIn.ScanResults
             return Path.GetDirectoryName(Path.GetDirectoryName(scanJsonPath));
         }
 
+        // The open window of What the tool read, so its Save As blocks it and a second Export opens no second dialog. Revit has no
+        // WPF application to give the dialog an owner by itself
+        internal static System.Windows.Window ExportOwner { get; set; }
+
         private static string PickExport(string workFolder)
         {
             var dialog = new SaveFileDialog { InitialDirectory = workFolder, DefaultExt = TemplateBook.Extension, AddExtension = true, OverwritePrompt = false, FileName = ScanResultsText.Title + TemplateBook.Extension };
-            return dialog.ShowDialog() == true ? dialog.FileName : null;
+            return dialog.ShowDialog(ExportOwner) == true ? dialog.FileName : null;
         }
     }
 }

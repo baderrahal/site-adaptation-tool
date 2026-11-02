@@ -16,6 +16,9 @@ namespace SiteAdaptation.Common.SetUp
 
         // The problems CadExtractor met reading the drawing, so a drawing read in part shows it in its line
         public int Problems { get; set; }
+
+        // Of those, the entries of a colour book that hold no line and no position
+        public int ColourProblems { get; set; }
     }
 
     public enum SystemAgreement
@@ -129,13 +132,29 @@ namespace SiteAdaptation.Common.SetUp
     {
         private const string EpsgPrefix = "EPSG:";
 
+        // A person must not wonder if the position is wrong, and only named colours are known to leave it alone. The count holds every
+        // error of the CAD reader, which may also be a line or the very record of the position
+        private static string ProblemsLine(StatedSystem file)
+        {
+            if (file.Problems <= 0)
+            {
+                return "";
+            }
+            if (file.ColourProblems == file.Problems)
+            {
+                return ", the reader skipped " + Code(file.Problems) + " named colours of this drawing, the position does not use them";
+            }
+            string colours = file.ColourProblems > 0 ? ", " + Code(file.ColourProblems) + " of them named colours" : "";
+            return ", the reader could not read " + Code(file.Problems) + " entries of this drawing" + colours;
+        }
+
         public static SystemsCheck Agree(IReadOnlyList<StatedSystem> files, CoordinateSettings settings)
         {
             var check = new SystemsCheck();
             var stated = new List<KeyValuePair<string, int>>();
             foreach (StatedSystem file in files)
             {
-                string problems = file.Problems > 0 ? ", " + Code(file.Problems) + " read problems" : "";
+                string problems = ProblemsLine(file);
                 if (string.IsNullOrWhiteSpace(file.Name))
                 {
                     check.Lines.Add(file.File + " states no coordinate system" + problems);
