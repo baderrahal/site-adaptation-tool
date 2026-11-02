@@ -293,6 +293,8 @@ namespace SiteAdaptation.AddIn.NewProject
             {
                 if (value != null && Set(ref start, value))
                 {
+                    // R492. A pick made for the project before would hide the list of the chosen one
+                    surfaces = null;
                     CheckedOk = false;
                     Refresh();
                 }

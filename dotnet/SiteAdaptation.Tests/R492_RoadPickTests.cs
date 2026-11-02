@@ -323,6 +323,42 @@ namespace SiteAdaptation.Tests
             Assert.False(json.IsMatch(xaml));
         }
 
+        // Fix 5 of the review of FIX-2NOV-D. A change of Start from clears the pick of the row, so the list of the chosen project shows
+        [Fact]
+        public void R492_changing_start_from_clears_the_pick_of_the_row_and_the_list_of_the_chosen_project_shows()
+        {
+            const string Saved = "saved cfg";
+            var settings = new ProjectSettings { ConfigFile = Config, RoadSurfaces = new List<string> { "J1__Collector" } };
+            var starts = new[] { new SavedStart("Job A", Path.Combine(folder, "Job A.json"), PreSetting.Export(new ProjectSettings { ConfigFile = Saved })) };
+            Func<string, string> read = path => path == Saved ? Text(true, "J1__Access") : Text(true, "J1__Spine");
+            var model = new NewProjectViewModel(settings, "Site", starts, null, (path, isFolder) => true, null, read, null, true, (inFolder, effective) => new[] { "J1__Service" });
+            SetupRowViewModel row = model.Rows.Single(item => item.Row.Id == SetupRows.RoadLevels);
+            Assert.Equal("Road surfaces in order (1): Collector", row.SurfacesLine);
+            model.PickSurfaces();
+            Assert.Equal("Road surfaces in order (1): Service", row.SurfacesLine);
+
+            model.Start = model.Starts[1];
+            Assert.Equal("Road surfaces in order (1): Access", row.SurfacesLine);
+
+            // A pick made after the choice stays and goes with Save setup
+            model.PickSurfaces();
+            Assert.Equal("Road surfaces in order (1): Service", row.SurfacesLine);
+            model.Save();
+            Assert.Equal(new[] { "J1__Service" }, model.Result.RoadSurfaces);
+        }
+
+        [Fact]
+        public void R492_save_setup_after_a_new_start_from_holds_no_pick_of_the_project_before()
+        {
+            const string Saved = "saved cfg";
+            var settings = new ProjectSettings { ConfigFile = Config, RoadSurfaces = new List<string> { "J1__Collector" } };
+            var starts = new[] { new SavedStart("Job A", Path.Combine(folder, "Job A.json"), PreSetting.Export(new ProjectSettings { ConfigFile = Saved })) };
+            var model = new NewProjectViewModel(settings, "Site", starts, null, (path, isFolder) => true, null, path => Text(true, "J1__Access"), null, true, (inFolder, effective) => null);
+            model.Start = model.Starts[1];
+            model.Save();
+            Assert.Null(model.Result.RoadSurfaces);
+        }
+
         private static NewProjectViewModel NewProject(ProjectSettings settings, Func<string, string> read, SurfacePicker picker)
         {
             return new NewProjectViewModel(settings, "Site", new SavedStart[0], null, (path, isFolder) => true, null, read, null, true, picker);

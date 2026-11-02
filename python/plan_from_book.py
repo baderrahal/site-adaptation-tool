@@ -1837,7 +1837,7 @@ def run_build(args):
         if design_basis.is_rev6(basis):
             skipped = set(plan["summary"]["skipped"])
             stop = design_basis.no_road_stop(basis, [number for number in cover["plots"] if number not in skipped and trace["front"][number]["unit"] is not None],
-                                             plan["summary"]["plotsWithNoRoadLevel"], rows)
+                                             design_basis.road_gaps(plan["summary"]["noRoadLevel"]), rows)
             if stop:
                 # The step files of this run are complete, so they stay for the parity of a config with one surface, only the plan is not written
                 done = True

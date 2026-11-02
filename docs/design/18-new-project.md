@@ -84,12 +84,14 @@ R492 Road surfaces picked in Set up. A new project picks its road surfaces from 
 
 - On the row Road levels of New project, and on the row Road surface of the pane, the button Pick surfaces sits next to Browse. One line under the row gives the count and the short names in order. A short name is the part of the file name after the double underscore.
 - The window Road surfaces holds one list, a tick box and the short name on each row. Ticked rows stand first in their order, the rest below in sorted order. Up and Down move the selected ticked row and are grey at the ends and on an unticked row. Use these picks keeps the order, Cancel keeps what was there. With no tick Use is grey and one line says to tick one.
+- The window does not offer a file that siteBuild.roadFolder.notTaken of config says is no road, as ground or grading (R490). A saved pick naming one is refused with its reason by 2 Read data.
+- A change of Start from in New project clears the pick of the row, so the line and the window show the list of the chosen project. A pick made after it stays. A saved project with no pick clears the pick when it is imported, its settings replace those of the project.
 - The window opens on the effective order, the saved pick, else the list of the saved project. A name of the pick that the folder no longer holds stays in the list marked Missing and unticked, with one line naming it. A change of folder does not clear the pick.
 - Under the past job a build does not read the pick, so the button is grey and its tooltip says the saved project takes its road surfaces from its past job. With no saved project chosen it is grey and says to pick one.
 
 ### Settings
 
-ProjectSettings.RoadSurfaces, a list of file names with no extension, null while never picked, so a file written before it reads as before. SetupSave.Apply lays it over the settings when the draft holds one. RoadSurfaceChoices of Common gives the files of a folder, the effective order and whether the design basis is rev6.
+ProjectSettings.RoadSurfaces, a list of file names with no extension, null while never picked, so a file written before it reads as before. SetupSave.Apply lays it over the settings when the draft holds one. RoadSurfaceChoices of Common gives the files of a folder a road surface may be, the effective order and whether the design basis is rev6. Under rev6 a new pick or order runs step 2 and the chain after it again, as a Browse does (R492).
 
 ### Wiring
 

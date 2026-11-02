@@ -125,6 +125,7 @@ namespace SiteAdaptation.Common.CheckTable
             plan.RoadSurfaces = RoadSurfaceChoices.ForRequest(config, picked);
             var roads = new Dictionary<string, WorkerFile>(StringComparer.Ordinal);
             var readRoads = new HashSet<string>(StringComparer.Ordinal);
+            var listed = new HashSet<string>(RoadSurfaceChoices.Named(config, picked).Select(name => WorkerRunner.RoadSurfaceRole + name), StringComparer.Ordinal);
             foreach (JObject input in ((JArray)record["inputs"] ?? new JArray()).OfType<JObject>())
             {
                 string path = (string)input["path"], role = (string)input["role"];
@@ -132,6 +133,11 @@ namespace SiteAdaptation.Common.CheckTable
                 if (road)
                 {
                     readRoads.Add(role);
+                }
+                // R492. A surface the list left out is no input of this build, so a change of its file stops nothing under rev6
+                if (road && rev6 && !listed.Contains(role))
+                {
+                    continue;
                 }
                 if (path == null || !File.Exists(path) || !string.Equals(FileHash.Sha256(path), (string)input["sha256"], StringComparison.OrdinalIgnoreCase))
                 {

@@ -38,6 +38,9 @@ namespace SiteAdaptation.Common
         public const string BadSurfaces = "designBasis.roadLevel.surfaces must be a list in order, not empty, of non empty unique texts (R490)";
         public const string BadPick = "the road surfaces of the request must be a list in order, not empty, of non empty unique texts (R492)";
 
+        // The config the basis was read from, for the reasons of siteBuild.roadFolder.notTaken a pick is held to
+        private JObject read;
+
         // R493. The name of a plot whose zone column is blank, the sentence of a zone that stops a build and the end of the message, by which 4 Check knows it
         private const string NoZone = "no zone";
         public const string NoRoadEnd = "(R493)";
@@ -170,7 +173,7 @@ namespace SiteAdaptation.Common
         public static DesignBasis Of(JObject settings, Func<string> civilPath)
         {
             JObject block = Block(settings);
-            var basis = new DesignBasis { Mode = ModeOf(settings) };
+            var basis = new DesignBasis { Mode = ModeOf(settings), read = settings };
             if (!basis.IsRev6)
             {
                 return basis;
@@ -215,6 +218,14 @@ namespace SiteAdaptation.Common
             }
             JObject road = block["roadLevel"] as JObject ?? new JObject();
             basis.Surfaces = SurfacesOf(road);
+            foreach (string name in basis.Surfaces)
+            {
+                string why = Settings.RoadSurfaceChoices.NotTakenWhy(settings, name);
+                if (why != null)
+                {
+                    throw Refuse("designBasis.roadLevel.surfaces names " + name + ", which is no road surface: " + why + " (R490)");
+                }
+            }
             basis.NoRoadStopShare = StopShareOf(road);
             JToken propose = block["clusters"]?["propose"];
             if (propose == null || propose.Type != JTokenType.Boolean)
@@ -282,12 +293,21 @@ namespace SiteAdaptation.Common
             {
                 throw Refuse(BadPick);
             }
+            foreach (string name in picked)
+            {
+                string why = Settings.RoadSurfaceChoices.NotTakenWhy(read, name);
+                if (why != null)
+                {
+                    throw Refuse("the road surfaces of the request name " + name + ", which is no road surface: " + why + " (R492)");
+                }
+            }
             Surfaces = picked.ToList();
         }
 
         // design_basis.no_road_stop: under rev6 the message that stops a build, one sentence per zone in zone order whose share of its reached unit plots
-        // with no road level lies above NoRoadStopShare, else null. Exactly at the share does not stop, a few plots stay listed in the summary
-        public string NoRoadStop(IEnumerable<string> reached, IEnumerable<string> noLevel, IReadOnlyDictionary<string, Dictionary<string, string>> rows)
+        // that have a front and lack a road level at a corner, the gaps, lies above NoRoadStopShare, else null. Exactly at the share does not stop, a few
+        // plots stay listed in the summary, and so does a plot with no front, which no road surface can mend
+        public string NoRoadStop(IEnumerable<string> reached, IEnumerable<string> gaps, IReadOnlyDictionary<string, Dictionary<string, string>> rows)
         {
             if (!IsRev6)
             {
@@ -309,7 +329,7 @@ namespace SiteAdaptation.Common
                 plots.TryGetValue(zone, out int count);
                 plots[zone] = count + 1;
             }
-            var lacking = noLevel.GroupBy(ZoneOf, StringComparer.Ordinal).ToDictionary(group => group.Key, group => group.Count(), StringComparer.Ordinal);
+            var lacking = gaps.GroupBy(ZoneOf, StringComparer.Ordinal).ToDictionary(group => group.Key, group => group.Count(), StringComparer.Ordinal);
             string names = string.Join(", ", Surfaces.Select(ReadSettings.RoadName));
             List<string> lines = plots.Where(zone => lacking.ContainsKey(zone.Key) && (double)lacking[zone.Key] / zone.Value > NoRoadStopShare)
                 .Select(zone => zone.Key + ": " + lacking[zone.Key].ToString(CultureInfo.InvariantCulture) + " of " + zone.Value.ToString(CultureInfo.InvariantCulture)
@@ -326,7 +346,7 @@ namespace SiteAdaptation.Common
         // R493. The one issue of a run under rev6 below the limit with the plots it leaves with no road level, null for none
         public static string NoRoadLine(IReadOnlyCollection<string> noLevel)
         {
-            return noLevel.Count == 0 ? null : noLevel.Count.ToString(CultureInfo.InvariantCulture) + " plots have no road level on the road surfaces named and are listed in the plan: " + string.Join(", ", noLevel) + " " + NoRoadEnd;
+            return noLevel.Count == 0 ? null : noLevel.Count.ToString(CultureInfo.InvariantCulture) + " plots have no road level and are listed in the plan: " + string.Join(", ", noLevel) + " " + NoRoadEnd;
         }
 
         // design_basis.split_of: test true or false, units a whole number of 2 or more and walls a list of walls after a unit inside the cluster

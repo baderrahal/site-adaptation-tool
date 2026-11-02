@@ -179,7 +179,7 @@ namespace SiteAdaptation.Common.ReadData
         // R474. sources names per value kind the source read and from where, and each conflict pick applied
         private static JObject Recorded(string runId, ReadPlan plan, IReadOnlyDictionary<string, string> outputs, JObject counts, IReadOnlyList<string> issues, JObject picks)
         {
-            return new JObject
+            var record = new JObject
             {
                 ["format"] = RecordFormat, ["runId"] = runId,
                 ["inputs"] = new JArray(plan.Inputs.Select(input => new JObject { ["role"] = input.Role, ["path"] = input.Path, ["bytes"] = input.Bytes, ["sha256"] = input.Sha256 })),
@@ -189,6 +189,12 @@ namespace SiteAdaptation.Common.ReadData
                 ["issues"] = new JArray(issues),
                 ["sources"] = ReadPicks.Sources(picks),
             };
+            // R492. The road order of a read under rev6, none in the record of the past job
+            if (plan.RoadOrder != null)
+            {
+                record["roadOrder"] = plan.RoadOrder;
+            }
+            return record;
         }
 
         // The scope of R366 held against the whole plot table of the read. A stop keeps the read for the next run and the step as it was
@@ -248,6 +254,11 @@ namespace SiteAdaptation.Common.ReadData
             }
             var listed = ((JArray)record["inputs"] ?? new JArray()).Select(input => (string)input["role"] + "|" + (string)input["sha256"]).OrderBy(item => item, StringComparer.Ordinal);
             if (!listed.SequenceEqual(plan.Inputs.Select(input => input.Role + "|" + input.Sha256).OrderBy(item => item, StringComparer.Ordinal)))
+            {
+                return null;
+            }
+            // R492. The same files in another road order are another read
+            if ((string)record["roadOrder"] != plan.RoadOrder)
             {
                 return null;
             }

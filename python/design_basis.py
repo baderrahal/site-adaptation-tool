@@ -124,9 +124,26 @@ def road_block(block):
     return road if isinstance(road, dict) else {}
 
 
-def surfaces_of(block):
-    """R490. designBasis.roadLevel.surfaces, the road surfaces of a build under rev6 in order, non empty and unique texts. The one surface of an old
-    config reads as a list of one, both keys together, no value or a bad value refused by name."""
+def not_taken_why(site_build, name):
+    """R490. The reason of siteBuild.roadFolder.notTaken that names this surface by its short name, as a whole name, None for none. Those reasons are the
+    one list of R344 of what is no road, read in the Roads folder, so no list of names stands in code."""
+    reasons = ((site_build or {}).get("roadFolder") or {}).get("notTaken")
+    whole = re.compile(r"(?<!\w)" + re.escape(name.rpartition("__")[2] or name) + r"(?!\w)")
+    return next((reason for reason in (reasons.values() if isinstance(reasons, dict) else ()) if isinstance(reason, str) and whole.search(reason)), None)
+
+
+def surfaces_of(block, site_build):
+    """R490. designBasis.roadLevel.surfaces, the road surfaces of a build under rev6 in order, non empty and unique texts, each no surface
+    siteBuild.roadFolder.notTaken names. The one surface of an old config reads as a list of one, both keys together, no value or a bad value refused by name."""
+    surfaces = named_surfaces(block)
+    for name in surfaces:
+        why = not_taken_why(site_build, name)
+        if why is not None:
+            refuse("designBasis.roadLevel.surfaces names %s, which is no road surface: %s (R490)" % (name, why))
+    return surfaces
+
+
+def named_surfaces(block):
     road = road_block(block)
     if "surface" in road and "surfaces" in road:
         refuse(BOTH_SURFACES)
@@ -196,7 +213,7 @@ def basis_of(settings):
     if mode != REV6:
         return {"mode": mode}
     check_yard(block)
-    return {"mode": mode, "door": door_of(block), "surfaces": surfaces_of(block), "noRoadStopShare": stop_share_of(block), "propose": propose_of(block),
+    return {"mode": mode, "door": door_of(block), "surfaces": surfaces_of(block, settings.values.get("siteBuild")), "noRoadStopShare": stop_share_of(block), "propose": propose_of(block),
             "split": split_of(block)}
 
 
@@ -222,7 +239,7 @@ def road_names(basis):
 def road_order(settings):
     """R490. The road surfaces of the values of a config under rev6 in their order, None under the past job, for a reader that builds nothing."""
     block = settings.get("designBasis") or {}
-    return surfaces_of(block) if block.get("mode") == REV6 else None
+    return surfaces_of(block, settings.get("siteBuild")) if block.get("mode") == REV6 else None
 
 
 def check_surfaces(basis, folder):
@@ -232,8 +249,14 @@ def check_surfaces(basis, folder):
             refuse("designBasis.roadLevel.surfaces names %s, which is no surface of the inputs, the landxml folder holds no %s.xml (R490)" % (name, name))
 
 
-def no_road_stop(basis, reached, no_level, rows):
-    """R493. Under rev6 the message that stops a build, one sentence per zone in zone order whose share of its reached unit plots with no road level
+def road_gaps(no_road):
+    """R493. The plots of summary.noRoadLevel that have a front and lack a road level at a corner. A plot with no front has no corner to lack a road at,
+    so it is no missing surface, it stays in the summary."""
+    return [entry["plot"] for entry in no_road if entry["corners"]]
+
+
+def no_road_stop(basis, reached, gaps, rows):
+    """R493. Under rev6 the message that stops a build, one sentence per zone in zone order whose share of its reached unit plots that are gaps (road_gaps)
     lies above noRoadStopShare, else None. A zone mostly off the named surfaces means a missing surface, a few plots stay listed in the summary. The
     zone is the zone column of the plot table, blank reads as no zone. Exactly at the share does not stop."""
     if not is_rev6(basis):
@@ -242,7 +265,7 @@ def no_road_stop(basis, reached, no_level, rows):
     def zone_of(number):
         return (rows.get(number, {}).get("zone") or "").strip() or NO_ZONE
 
-    plots, lacking = Counter(zone_of(number) for number in reached), Counter(zone_of(number) for number in no_level)
+    plots, lacking = Counter(zone_of(number) for number in reached), Counter(zone_of(number) for number in gaps)
     names = ", ".join(name.rpartition("__")[2] or name for name in basis["surfaces"])
     lines = [NO_ROAD_ZONE % (zone, lacking[zone], plots[zone], names) for zone in sorted(plots) if lacking[zone] / plots[zone] > basis["noRoadStopShare"]]
     return " ".join(lines) + NO_ROAD_END if lines else None

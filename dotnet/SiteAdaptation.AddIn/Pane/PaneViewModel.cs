@@ -580,7 +580,7 @@ namespace SiteAdaptation.AddIn.Pane
                 bool missing = false;
                 foreach (RunInput input in PaneRunState.InputsOf(document.Settings, step))
                 {
-                    string hash = string.IsNullOrEmpty(input.Path) ? null : KnownHash(input.Path, input.IsFolder);
+                    string hash = input.Text != null ? InputHash.Of(input) : string.IsNullOrEmpty(input.Path) ? null : KnownHash(input.Path, input.IsFolder);
                     missing |= hash == null;
                     now[input.Name] = hash;
                 }

@@ -40,7 +40,7 @@ namespace SiteAdaptation.Common.Steps
                 {
                     throw new ArgumentException("the input " + input.Name + " is given twice", nameof(inputs));
                 }
-                if (string.IsNullOrEmpty(input.Path) || (input.IsFolder ? !Directory.Exists(input.Path) : !File.Exists(input.Path)))
+                if (input.Text == null && (string.IsNullOrEmpty(input.Path) || (input.IsFolder ? !Directory.Exists(input.Path) : !File.Exists(input.Path))))
                 {
                     missing = true;
                     hashes[input.Name] = null;

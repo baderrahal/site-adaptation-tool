@@ -72,10 +72,8 @@ namespace SiteAdaptation.Common.Settings
             {
                 into.ScanPicks = read.ScanPicks;
             }
-            if (read.RoadSurfaces != null)
-            {
-                into.RoadSurfaces = read.RoadSurfaces;
-            }
+            // R492. The settings of the pre-setting replace those of the project, so one with no pick clears the pick and the list of its config shows
+            into.RoadSurfaces = read.RoadSurfaces;
             foreach (string name in Inputs)
             {
                 if (read.Inputs.TryGetValue(name, out SettingsInput input))

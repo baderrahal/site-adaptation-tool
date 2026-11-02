@@ -106,6 +106,29 @@ def test_r490_the_level_excel_check_takes_the_order_of_the_config_under_rev6_and
     assert design_basis.road_order({}) is None
 
 
+NOT_TAKEN = "Made Up Ground, Other Grading and More cover the corners but are ground"
+
+
+def not_taken_settings(**road):
+    settings = road_settings(**road)
+    settings.values["siteBuild"]["roadFolder"]["notTaken"] = {"ground": NOT_TAKEN, "other": "a made up reason of no surface"}
+    return settings
+
+
+def test_r490_a_list_naming_a_not_taken_surface_is_refused_with_its_reason_and_the_past_job_reads_none_of_it():
+    name = "Made Up Job__Other Grading"
+    assert refusal(not_taken_settings(surfaces=[FIRST, name])) == "designBasis.roadLevel.surfaces names %s, which is no road surface: %s (R490)" % (name, NOT_TAKEN)
+    # A longer name is another surface, the reason holds the whole name or nothing
+    assert design_basis.basis_of(not_taken_settings(surfaces=["Made Up Job__Other Gradings"]))["surfaces"] == ["Made Up Job__Other Gradings"]
+    past = not_taken_settings(surfaces=[name])
+    past.values["designBasis"]["mode"] = PAST_JOB
+    assert design_basis.basis_of(past) == {"mode": PAST_JOB}
+
+
+def test_r490_the_list_of_the_repo_config_passes_under_rev6():
+    assert len(design_basis.basis_of(basis_settings(mode="rev6"))["surfaces"]) == 6
+
+
 # R491
 
 
@@ -198,15 +221,15 @@ def parity_name(step):
     return plan_from_book.parity.step_name(step, "python")
 
 
-def stop_main(monkeypatch, tmp_path, settings, no_level):
+def stop_main(monkeypatch, tmp_path, settings, no_level, corners=("left",)):
     """main on the stubbed inputs of test_round_addin.run_book under settings, each step a marker file so the steps left are seen, plot 1 a unit
-    plot and no_level the plots with no road level, the plans written given back."""
+    plot and no_level the plots with no road level, each lacking corners, the plans written given back."""
     planned = []
 
     def plan_built(*args, **named):
         monkeypatch.setattr(plan_from_book.plan_from_past, "write_plan", lambda out, plan: planned.append(out))
         named["trace"].update(front={"1": {"unit": "DP2"}}, snap=0.005)
-        return {"summary": dict(SUMMARY, skipped=[], plotsWithNoRoadLevel=no_level)}
+        return {"summary": dict(SUMMARY, skipped=[], plotsWithNoRoadLevel=no_level, noRoadLevel=[{"plot": plot, "corners": list(corners), "tried": [], "reason": "made up"} for plot in no_level])}
 
     def marker(step):
         (tmp_path / "steps" / parity_name(step)).write_text("made up", encoding="utf-8")
@@ -230,6 +253,18 @@ def test_r493_main_ends_with_code_2_and_the_message_the_steps_stay_complete_and_
     assert capsys.readouterr().err.strip() == ("plan_from_book: no zone: 1 of 1 plots have no road level on the road surfaces named (Road A). "
                                                "What to do: add the road surface of this zone in Set up. (R493)")
     assert steps == sorted(parity_name(step) for step in plan_from_book.PARITY_STEPS)
+
+
+def test_r493_a_unit_plot_with_no_front_is_no_missing_surface_main_writes_the_plan(monkeypatch, tmp_path, capsys):
+    code, _, planned = stop_main(monkeypatch, tmp_path, road_settings(surfaces=[FIRST], noRoadStopShare=0.1), ["1"], corners=())
+    assert code == 0 and len(planned) == 1
+    assert "R493" not in capsys.readouterr().err
+
+
+def test_r493_the_stop_counts_only_the_plots_that_have_a_front_and_lack_a_road_level_at_a_corner(monkeypatch):
+    no_front = plan_from_book.no_road_level("7", {"corners": None}, [], 0.005)
+    lacking = plan_from_book.no_road_level("8", {"corners": [[0.0, 0.0], [1.0, 0.0]], "surfaces": ("Road A", None)}, [("Road A", None)], 0.005)
+    assert design_basis.road_gaps([no_front, lacking]) == ["8"]
 
 
 def test_r493_main_below_the_limit_writes_the_plan(monkeypatch, tmp_path):

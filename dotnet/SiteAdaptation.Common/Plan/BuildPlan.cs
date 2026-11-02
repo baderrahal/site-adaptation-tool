@@ -122,8 +122,10 @@ namespace SiteAdaptation.Common
             }
             JObject overrides = PlotsOf(steps, PlanOverrides.StepName);
             List<string> reached = Reached(overrides, overrides.Properties().Select(item => item.Name));
-            List<string> noLevel = NoLevel(PlotsOf(steps, Fronts.StepName), reached);
-            string stop = basis.NoRoadStop(reached, noLevel, inputs.Rows);
+            JObject fronts = PlotsOf(steps, Fronts.StepName);
+            List<string> noLevel = NoLevel(fronts, reached);
+            // A plot with no front has no corner to lack a road at, so it is no missing surface, it stays in summary.noRoadLevel
+            string stop = basis.NoRoadStop(reached, noLevel.Where(number => (Side(fronts, number, "written")["noRoadLevel"]?["corners"] as JArray)?.Count > 0), inputs.Rows);
             if (stop != null)
             {
                 throw new InvalidDataException(stop);

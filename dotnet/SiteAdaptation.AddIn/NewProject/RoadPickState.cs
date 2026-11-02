@@ -21,8 +21,11 @@ namespace SiteAdaptation.AddIn.NewProject
     // effective order, the pick else the list of the saved project. No Revit type, so a test drives it with a text reader
     public sealed class RoadPickState
     {
-        private RoadPickState(RoadPickWhy why, string folder, IReadOnlyList<string> effective)
+        private readonly JObject config;
+
+        private RoadPickState(RoadPickWhy why, string folder, IReadOnlyList<string> effective, JObject config = null)
         {
+            this.config = config;
             Why = why;
             Folder = folder;
             Effective = effective;
@@ -54,13 +57,13 @@ namespace SiteAdaptation.AddIn.NewProject
             }
             settings.Inputs.TryGetValue(InputNames.RoadSurface, out SettingsInput input);
             IReadOnlyList<string> effective = RoadSurfaceChoices.Named(config, settings.RoadSurfaces).Select(Stem).ToList();
-            return new RoadPickState(RoadSurfaceChoices.IsRev6(config) ? RoadPickWhy.Ready : RoadPickWhy.PastJob, input?.Path, effective);
+            return new RoadPickState(RoadSurfaceChoices.IsRev6(config) ? RoadPickWhy.Ready : RoadPickWhy.PastJob, input?.Path, effective, config);
         }
 
-        // The files of the folder, as stems
+        // The files of the folder a road surface may be, as stems, a name siteBuild.roadFolder.notTaken refuses is not offered
         public IReadOnlyList<string> InFolder()
         {
-            return string.IsNullOrEmpty(Folder) ? new string[0] : RoadSurfaceChoices.InFolder(Folder).Select(Stem).ToList();
+            return string.IsNullOrEmpty(Folder) ? new string[0] : RoadSurfaceChoices.InFolder(Folder, config).Select(Stem).ToList();
         }
 
         // The name a build gives the surface, the part after the last double underscore of the file name

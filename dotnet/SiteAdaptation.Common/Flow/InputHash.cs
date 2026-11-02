@@ -13,7 +13,16 @@ namespace SiteAdaptation.Common.Flow
     {
         public static string Of(RunInput input)
         {
-            return input.IsFolder ? OfFolder(input.Path) : FileHash.Sha256(input.Path);
+            return input.Text != null ? OfText(input.Text) : input.IsFolder ? OfFolder(input.Path) : FileHash.Sha256(input.Path);
+        }
+
+        private static string OfText(string text)
+        {
+            using (var sha = SHA256.Create())
+            {
+                byte[] hash = sha.ComputeHash(Encoding.UTF8.GetBytes(text));
+                return string.Concat(hash.Select(item => item.ToString("x2", CultureInfo.InvariantCulture)));
+            }
         }
 
         public static string OfFolder(string folder)

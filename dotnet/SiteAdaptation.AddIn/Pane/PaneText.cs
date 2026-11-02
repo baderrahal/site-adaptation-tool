@@ -50,6 +50,9 @@ namespace SiteAdaptation.AddIn.Pane
         public const string VillaBlocks = "Villa blocks";
         public const string Curbs = "Curbs";
         public const string RoadSurface = "Road surface";
+
+        // R492. The input of step 2 that holds the road order under rev6, a value of no file, so a new pick runs step 2 again
+        public const string RoadOrder = "Road surface order";
         public const string DlusAndSales = "DLUS and sales";
         public const string PlotNumbers = "Plot numbers";
         public const string DlusTitle = "DLUS schedule";

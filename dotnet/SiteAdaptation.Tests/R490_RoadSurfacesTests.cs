@@ -9,6 +9,7 @@ using SiteAdaptation.Common.CheckTable;
 using SiteAdaptation.Common.Flow;
 using SiteAdaptation.Common.ReadData;
 using SiteAdaptation.Common.Settings;
+using SiteAdaptation.Common.Steps;
 using Xunit;
 
 namespace SiteAdaptation.Tests
@@ -287,9 +288,6 @@ namespace SiteAdaptation.Tests
             var into = new ProjectSettings { RoadSurfaces = new List<string> { First } };
             PreSetting.Import(exported, into);
             Assert.Equal(new[] { Second }, into.RoadSurfaces);
-            var keeps = new ProjectSettings { RoadSurfaces = new List<string> { First } };
-            PreSetting.Import(PreSetting.Export(new ProjectSettings()), keeps);
-            Assert.Equal(new[] { First }, keeps.RoadSurfaces);
 
             ProjectSettings saved = SetupSave.Apply(new SetupDraft { RoadSurfaces = new[] { Second, First } }, job);
             Assert.Equal(new[] { Second, First }, saved.RoadSurfaces);
@@ -307,9 +305,15 @@ namespace SiteAdaptation.Tests
             Write(Path.Combine(folder, "A road.xml"), "x");
             Write(Path.Combine(folder, "other.dwg"), "x");
             Write(Path.Combine(folder, "other.xmlx"), "x");
-            Assert.Equal(new[] { "A road", "b road" }, RoadSurfaceChoices.InFolder(folder));
-            Assert.Empty(RoadSurfaceChoices.InFolder(null));
-            Assert.Empty(RoadSurfaceChoices.InFolder(Path.Combine(root, "none")));
+            Assert.Equal(new[] { "A road", "b road" }, RoadSurfaceChoices.InFolder(folder, null));
+            Assert.Empty(RoadSurfaceChoices.InFolder(null, null));
+            Assert.Empty(RoadSurfaceChoices.InFolder(Path.Combine(root, "none"), null));
+            // A name siteBuild.roadFolder.notTaken refuses is not offered, its reason holds the whole name
+            JObject notTaken = JObject.Parse("{ 'siteBuild': { 'roadFolder': { 'notTaken': { 'ground': 'A road and more are ground' } } } }");
+            Assert.Equal(new[] { "b road" }, RoadSurfaceChoices.InFolder(folder, notTaken));
+            Assert.Equal("A road and more are ground", RoadSurfaceChoices.NotTakenWhy(notTaken, "Job__A road"));
+            Assert.Null(RoadSurfaceChoices.NotTakenWhy(notTaken, "Job__A roads"));
+            Assert.Null(RoadSurfaceChoices.NotTakenWhy(null, "Job__A road"));
 
             JObject list = JObject.Parse("{ 'designBasis': { 'mode': 'rev6', 'roadLevel': { 'surfaces': ['x', 'y'] } } }");
             JObject one = JObject.Parse("{ 'designBasis': { 'mode': 'other', 'roadLevel': { 'surface': 'x' } } }");
@@ -694,7 +698,7 @@ namespace SiteAdaptation.Tests
                 WorkerRequest below = PlanRequest(steps, "s2", part, config => config["designBasis"]["roadLevel"]["noRoadStopShare"] = 0.5);
                 Assert.True(RunWorker(below) == 0, Answer(below).Message);
                 Assert.True(File.Exists(Path.Combine(below.OutputFolder, BuildPlan.FileName(null))));
-                Assert.Equal("2 plots have no road level on the road surfaces named and are listed in the plan: 5, 6 (R493)", Assert.Single(Answer(below).Issues, DesignBasis.IsNoRoad));
+                Assert.Equal("2 plots have no road level and are listed in the plan: 5, 6 (R493)", Assert.Single(Answer(below).Issues, DesignBasis.IsNoRoad));
 
                 WorkerRequest covered = PlanRequest(steps, "s3", new[] { Tuple.Create(First, -60.0, 200.0, 10.0) }, config => config["designBasis"]["roadLevel"]["noRoadStopShare"] = 0.1);
                 Assert.True(RunWorker(covered) == 0, Answer(covered).Message);
@@ -729,12 +733,200 @@ namespace SiteAdaptation.Tests
             Assert.Equal(Stop, stop.Message);
 
             string line = DesignBasis.NoRoadLine(new[] { "5", "6" });
-            Assert.Equal("2 plots have no road level on the road surfaces named and are listed in the plan: 5, 6 (R493)", line);
+            Assert.Equal("2 plots have no road level and are listed in the plan: 5, 6 (R493)", line);
             Assert.Null(DesignBasis.NoRoadLine(new string[0]));
             var below = new Builder { Answer = new WorkerAnswer { Status = WorkerExit.Status(WorkerExit.Done), Issues = new List<string> { "another issue", line }, Outputs = new List<WorkerFile>() } };
             RunSummary summary = Check(below, null, true).Body().Preview(CheckContext(files, "4_20261102-000002-000", dry));
             Assert.Contains(line, summary.PerPlot);
             Assert.DoesNotContain("another issue", summary.PerPlot);
+        }
+
+        // Review 1 and breaker 1 of FIX-2NOV-D
+
+        // Fix 1. The effective order under rev6 is in the hash of the read, the past job hash stays the hash of its roles and steps alone
+        [Fact]
+        public void R492_swapping_two_surfaces_gives_a_new_read_folder_and_the_hash_of_the_past_job_stays_byte_the_same()
+        {
+            string work = Path.Combine(root, "SiteAdaptation", "site_0123abcd");
+            List<RunInput> pane = ReadPane(work, DesignBasis.Rev6, First, Second);
+            ReadPlan named = ReadInputs.Make(pane, ReadRoles, work);
+            ReadPlan swapped = ReadInputs.Make(pane, ReadRoles, work, new[] { Second, First });
+            Assert.NotEqual(ReadDataRun.FolderOf(work, named), ReadDataRun.FolderOf(work, swapped));
+            Assert.Equal(named.Hash, ReadInputs.Make(pane, ReadRoles, work, new[] { First, Second }).Hash);
+
+            List<RunInput> past = ReadPane(work, PastMode(), First, Second);
+            ReadPlan plain = ReadInputs.Make(past, ReadRoles, work);
+            var hashes = plain.Inputs.ToDictionary(input => input.Role, input => input.Sha256, StringComparer.Ordinal);
+            hashes["steps"] = string.Join(",", plain.Steps);
+            Assert.Equal(StepHash.Combine(hashes), plain.Hash);
+            Assert.Equal(plain.Hash, ReadInputs.Make(past, ReadRoles, work, new[] { Second }).Hash);
+        }
+
+        [Fact]
+        public void R492_the_read_run_writes_a_swapped_pick_into_a_new_folder()
+        {
+            string work = Path.Combine(root, "SiteAdaptation", "site_0123abcd");
+            string Folder(IReadOnlyList<string> pick)
+            {
+                List<RunInput> pane = ReadPane(work, DesignBasis.Rev6, First, Second);
+                var worker = new HeldWorker();
+                var run = new ReadDataRun(ReadRoles, worker, new WorkerDocument { Path = @"C:\Models\site.rvt", SessionId = "s1" }, () => new SettingsScope(), () => new ProjectSettings()) { RoadPick = () => pick };
+                run.Body().Start(new RunContext(2, "2 Read data", "2_20261102-000001-001", work, null, true, pane, new Dictionary<string, string>()), later => { });
+                return Assert.Single(worker.Requests).OutputFolder;
+            }
+
+            Assert.NotEqual(Folder(new[] { First, Second }), Folder(new[] { Second, First }));
+        }
+
+        [Fact]
+        public void R492_a_read_of_another_road_order_is_not_reused_and_one_of_the_same_order_or_of_the_past_job_is()
+        {
+            string work = Path.Combine(root, "SiteAdaptation", "site_0123abcd");
+            string folder = Path.Combine(root, "read");
+            void Record(ReadPlan plan, string order)
+            {
+                var record = new JObject
+                {
+                    ["format"] = ReadDataRun.RecordFormat, ["runId"] = "R2-1", ["outputs"] = new JArray(),
+                    ["inputs"] = new JArray(plan.Inputs.Select(input => new JObject { ["role"] = input.Role, ["path"] = input.Path, ["sha256"] = input.Sha256 })),
+                };
+                if (order != null)
+                {
+                    record["roadOrder"] = order;
+                }
+                Write(Path.Combine(folder, ReadDataRun.RecordFile), record.ToString());
+            }
+
+            ReadPlan swapped = ReadInputs.Make(ReadPane(work, DesignBasis.Rev6, First, Second), ReadRoles, work, new[] { Second, First });
+            Record(swapped, First + "\n" + Second);
+            Assert.Null(ReadDataRun.Reusable(folder, swapped));
+            Record(swapped, Second + "\n" + First);
+            Assert.NotNull(ReadDataRun.Reusable(folder, swapped));
+            ReadPlan past = ReadInputs.Make(ReadPane(work, PastMode(), First, Second), ReadRoles, work);
+            Record(past, null);
+            Assert.NotNull(ReadDataRun.Reusable(folder, past));
+        }
+
+        // Fix 2. A surface siteBuild.roadFolder.notTaken names is no road surface
+
+        private const string Ground = "Made Up Ground, Other Grading and More cover the corners but are ground";
+
+        private static JObject WithNotTaken(JObject config)
+        {
+            config["siteBuild"]["roadFolder"]["notTaken"] = new JObject { ["ground"] = Ground, ["other"] = "a made up reason of no surface" };
+            return config;
+        }
+
+        [Fact]
+        public void R490_a_list_naming_a_not_taken_surface_is_refused_with_its_reason_and_the_past_job_reads_none_of_it()
+        {
+            JObject config = WithNotTaken(RoadConfig(new JObject { ["surfaces"] = new JArray(First, "Made Up Job__Other Grading") }));
+            Assert.Equal("designBasis.roadLevel.surfaces names Made Up Job__Other Grading, which is no road surface: " + Ground + " (R490)",
+                Assert.Throws<InvalidDataException>(() => DesignBasis.Of(config, () => null)).Message);
+            // A longer name is another surface, the reason holds the whole name or nothing
+            config = WithNotTaken(RoadConfig(new JObject { ["surfaces"] = new JArray("Made Up Job__Other Gradings") }));
+            Assert.Single(DesignBasis.Of(config, () => null).Surfaces);
+            config = WithNotTaken(RoadConfig(new JObject { ["surfaces"] = new JArray("Made Up Job__Other Grading") }));
+            config["designBasis"]["mode"] = PastMode();
+            Assert.Null(DesignBasis.Of(config, () => null).Surfaces);
+        }
+
+        [Fact]
+        public void R490_the_list_of_the_repo_config_passes_under_rev6()
+        {
+            JObject config = JObject.Parse(File.ReadAllText(WorkerRunTests.RepoConfig()));
+            config["designBasis"]["mode"] = DesignBasis.Rev6;
+            Assert.Equal(6, DesignBasis.Of(config, () => null).Surfaces.Count);
+        }
+
+        [Fact]
+        public void R492_a_pick_naming_a_not_taken_surface_is_refused_with_its_reason_in_the_read_and_the_build()
+        {
+            string work = Path.Combine(root, "SiteAdaptation", "site_0123abcd");
+            List<RunInput> pane = ReadPane(work, DesignBasis.Rev6, First);
+            string configPath = pane[0].Path;
+            File.WriteAllText(configPath, WithNotTaken(JObject.Parse(File.ReadAllText(configPath))).ToString());
+            Write(Path.Combine(root, "input", "roads", "Made Up Job__Other Grading.xml"), "<LandXML/>");
+            Assert.Equal("Road surface: Made Up Job__Other Grading is no road surface: " + Ground + " (R492)",
+                Assert.Single(ReadInputs.Make(pane, ReadRoles, work, new[] { First, "Made Up Job__Other Grading" }).Stops));
+
+            DesignBasis basis = DesignBasis.Of(WithNotTaken(RoadConfig(new JObject { ["surfaces"] = new JArray(First) })), () => null);
+            Assert.Equal("the road surfaces of the request name Made Up Job__Other Grading, which is no road surface: " + Ground + " (R492)",
+                Assert.Throws<InvalidDataException>(() => basis.TakePick(new[] { "Made Up Job__Other Grading" })).Message);
+        }
+
+        // Fix 3. A unit plot with no face or no front is no missing surface: it stays listed, the share counts it only below the line
+
+        private static void AddPlotWithNoFace(WorkerRequest request)
+        {
+            WorkerFile plots = request.Inputs.Single(input => input.Role == "plotsCsv"), labels = request.Inputs.Single(input => input.Role == "labels");
+            File.AppendAllText(plots.Path, "7,7,DP2,,no,Zone 2\n");
+            File.AppendAllText(labels.Path, "clientCode,7,012\n");
+            plots.Sha256 = FileHash.Sha256(plots.Path);
+            labels.Sha256 = FileHash.Sha256(labels.Path);
+        }
+
+        [Fact]
+        public void R493_a_unit_plot_with_no_front_does_not_count_above_the_line_and_stays_in_no_road_level()
+        {
+            using (var steps = new LevelFloorStepTests())
+            {
+                WorkerRequest covered = PlanRequest(steps, "f1", new[] { Tuple.Create(First, -60.0, 200.0, 10.0) }, config => config["designBasis"]["roadLevel"]["noRoadStopShare"] = 0.1);
+                AddPlotWithNoFace(covered);
+                Assert.True(RunWorker(covered) == 0, Answer(covered).Message);
+                JObject plan = JObject.Parse(File.ReadAllText(Path.Combine(covered.OutputFolder, BuildPlan.FileName(null))));
+                JToken listed = Assert.Single((JArray)plan["summary"]["noRoadLevel"]);
+                Assert.Equal("7", (string)listed["plot"]);
+                Assert.Empty((JArray)listed["corners"]);
+                Assert.Equal("1 plots have no road level and are listed in the plan: 7 (R493)", Assert.Single(Answer(covered).Issues, DesignBasis.IsNoRoad));
+
+                // Plots 5 and 6 lack a road at a corner, plot 7 has no front: 2 above the line, the 7 reached plots below it
+                WorkerRequest part = PlanRequest(steps, "f2", new[] { Tuple.Create(First, -60.0, 50.0, 10.0) }, config => config["designBasis"]["roadLevel"]["noRoadStopShare"] = 0.1);
+                AddPlotWithNoFace(part);
+                Assert.Equal(WorkerExit.Refused, RunWorker(part));
+                Assert.Equal("Zone 2: 2 of 7 plots have no road level on the road surfaces named (Road A). What to do: add the road surface of this zone in Set up. (R493)", Answer(part).Message);
+            }
+        }
+
+        // Fix 4. A road role the effective list left out is no input of the build, so its change stops nothing, under the past job it still does
+
+        [Fact]
+        public void R492_a_surface_the_list_left_out_stops_4_check_no_more_when_it_changes_and_one_of_the_list_still_does()
+        {
+            CheckFiles files = CheckSite(DesignBasis.Rev6, First, Second);
+            File.WriteAllText(Path.Combine(root, "roads", Third + ".xml"), "<LandXML changed=\"yes\"/>");
+            var builder = new Builder();
+            RunLater end = null;
+            Check(builder, null).Body().Start(CheckContext(files, "R4-7"), later => end = later);
+            Assert.Null(end.Failure);
+            Assert.Equal(new[] { First, Second }, RoadRoles(Assert.Single(builder.Requests).Inputs.Select(input => input.Role)));
+
+            File.WriteAllText(Path.Combine(root, "roads", First + ".xml"), "<LandXML changed=\"yes\"/>");
+            Assert.Contains("changed since: " + First + ".xml", Assert.Throws<InvalidDataException>(() => Check(new Builder(), null).Body().Preview(CheckContext(files, "R4-8"))).Message);
+        }
+
+        [Fact]
+        public void R492_under_the_past_job_every_road_surface_of_the_read_that_changes_still_stops_4_check()
+        {
+            CheckFiles files = CheckSite(PastMode(), First);
+            File.WriteAllText(Path.Combine(root, "roads", Third + ".xml"), "<LandXML changed=\"yes\"/>");
+            Assert.Contains("changed since: " + Third + ".xml", Assert.Throws<InvalidDataException>(() => Check(new Builder(), null).Body().Preview(CheckContext(files, "R4-9"))).Message);
+        }
+
+        // Fix 5. A pre-setting replaces the settings: one with no pick clears the pick, its bytes under the past job stay
+
+        [Fact]
+        public void R492_a_pre_setting_with_no_pick_clears_the_pick_and_a_project_with_none_keeps_its_bytes()
+        {
+            var into = new ProjectSettings { RoadSurfaces = new List<string> { First } };
+            PreSetting.Import(PreSetting.Export(new ProjectSettings()), into);
+            Assert.Null(into.RoadSurfaces);
+
+            var none = new ProjectSettings { ConfigFile = "made up.json", LevelProfile = "made up" };
+            string before = PreSetting.Export(none);
+            PreSetting.Import(before, none);
+            Assert.Equal(before, PreSetting.Export(none));
+            Assert.DoesNotContain("roadSurfaces", SettingsJson.Write(none));
         }
 
         [Fact]
