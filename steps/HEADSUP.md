@@ -11,7 +11,7 @@
 
 ### Lane B, C and D
 
-- Lane B CHECK-2NOV, 19:19, branch check/2nov-b: part 13 runs, lock label part13, since 18:06, lost 8 min to a driver wait at 18:56, not a tool fault. Next part 12, verify the fails, then FIX-2NOV-B.
+- Lane B CHECK-2NOV, 19:35, branch check/2nov-b: parts 2 to 11 and 13 run, Revit closed, lock released 19:26 to Lane C. Now verifying the fails, then steps/check-2nov.md, the PR, then FIX-2NOV-B.
   Next: parts 5 to 13 after gap done. Run files in lane_b_check. Blocked: Lane A's gap, about 30 minutes
 - Lane C, branch fix/2nov-c-part11: part 11 of steps/bader-fix-1nov.md filled, Q337 to Q339 in its list. Nothing queued after this PR. Blocked: none
 - Lane D D3, 04:45, branch fix/1nov-d3: Revit runs done, lock released. 13 prototypes in 2024, NBH 012 with 336 real links, 0.000 mm against the masses, masses back.
