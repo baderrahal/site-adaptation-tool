@@ -3,6 +3,7 @@ using System.Linq;
 using Autodesk.Revit.DB;
 using Newtonsoft.Json.Linq;
 using SiteAdaptation.Common;
+using SiteAdaptation.Common.Tags;
 
 namespace SiteAdaptation.AddIn.Revit
 {
@@ -14,8 +15,8 @@ namespace SiteAdaptation.AddIn.Revit
     {
         public static JObject Read(Document document, ICollection<string> levelPlots, string levelRun)
         {
-            var tags = new PlacedTagStore(document).Collect().Select(pair => pair.Value);
-            return RevitCounts.FromTags(tags, levelPlots, levelRun);
+            var elements = new PlacedTagStore(document).Collect().Select(pair => new KeyValuePair<long, PlacedTag>(pair.Key.Id.Value, pair.Value)).ToList();
+            return RevitCounts.FromElements(elements, levelPlots, levelRun);
         }
     }
 }

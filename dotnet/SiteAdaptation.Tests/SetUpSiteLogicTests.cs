@@ -178,7 +178,8 @@ namespace SiteAdaptation.Tests
 
             Assert.Equal("shared_parameters.xlsx", sheet.Sheet);
             Assert.Equal(11, sheet.Parameters.Count);
-            Assert.Empty(sheet.LeftOut);
+            // The other 12 the IMC key binds, listed so a reader sees what was left out and why
+            Assert.Equal(new[] { "CAD Drawing Name", "E", "FFL", "FFL-0.1", "N", "PSN-Discpline set of drawings", "PSN-Model name", "PSN-Sheet number to above", "PSN_Sheet No to the left side", "PSN_Zone", "Point Code", "Top Of Wall" }, sheet.LeftOut);
             Assert.Equal(new[] { "RRE_ZZ_SP_Plot-Number", "RRE_ZZ_SP_Prototype", "RRE_ZZ_SP_Number-of-Steps", "RRE_ZZ_SP_Façade-Color", "RRE_ZZ_SP_Façade-Design-Option",
                 "RRE_ZZ_SP_Prototype-Foundation-Type", "RRE_ZZ_SP_Prototype-HVAC-Schedule-Type", "RRE_ZZ_SP_RVT-Name", "CASE", "RRE_ZZ_SP_Prototype-FFL", "Plot" }, sheet.Parameters.Select(item => item.Name));
             Assert.All(sheet.Parameters, item => Assert.True(Guid.TryParseExact(item.Guid, "D", out _), item.Name));
@@ -192,7 +193,7 @@ namespace SiteAdaptation.Tests
             Assert.Null(sheet.Parameters.Single(item => item.Name == Placer.FflParameter).FilledBy);
             Assert.Equal(9, sheet.GuidsFilledBy(ParameterSheet.PlaceVillasButton).Count);
             Assert.Equal(new[] { "Detail Items", "RVT Links" }, sheet.Parameters.First(item => item.Name == "CASE").Categories);
-            Assert.Equal("From the parameter sheet: shared_parameters.xlsx, 11 parameters", SetUpTexts.FromSheet(sheet.Source));
+            Assert.Equal("From the parameter sheet: shared_parameters.xlsx, 11 parameters, 12 left out", SetUpTexts.FromSheet(sheet.Source));
             SetUpSiteView view = SetUpPlanner.View(Template(), Target(), null);
             Assert.Empty(view.Waiting);
             Assert.Empty(view.Stops);

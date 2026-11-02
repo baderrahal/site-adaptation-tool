@@ -378,6 +378,7 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R452 Masses placed as linked files.
 - R453 Footprint check by house outline.
 - R457 Neighbourhood list from the read.
+- R458 Revit slog leaves step hash.
 
 ## 10-addin-r407-up.md
 
@@ -403,6 +404,7 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R480 C10 side wall by hand.
 - R481 Parted walls read weak measured.
 - R482 Front edge by override.
+- R483 Placed names its element.
 
 ## 11-scanner-r420-up.md
 

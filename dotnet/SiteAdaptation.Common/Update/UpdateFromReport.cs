@@ -384,7 +384,8 @@ namespace SiteAdaptation.Common.Update
         }
 
         // The sheet Placed of the report Excel (R365): plot and kind the key, on a row of kind link the villa type and the mirror flag
-        // editable, the type of a floor, the mirror of a floor and the element id not editable
+        // editable, the type of a floor and the mirror of a floor not editable. The element id is never read: the report fills it (R483), so a
+        // filled cell says nothing of an edit
         private static string ReadPlaced(UpdateBook book, Context made)
         {
             UpdateSheet sheet = book.Sheet(ReportExcelText.PlacedSheet);
@@ -398,7 +399,7 @@ namespace SiteAdaptation.Common.Update
             {
                 return Fill(UpdateText.NoHeader, book.FileName, string.Join(", ", columns), sheet.Name);
             }
-            int type = Array.IndexOf(columns, ReportExcelText.Type), mirror = Array.IndexOf(columns, ReportExcelText.Mirror), element = Array.IndexOf(columns, ReportExcelText.ElementId);
+            int type = Array.IndexOf(columns, ReportExcelText.Type), mirror = Array.IndexOf(columns, ReportExcelText.Mirror);
             var seen = new HashSet<string>();
             for (int index = header + 1; index < sheet.Rows.Count; index++)
             {
@@ -418,10 +419,6 @@ namespace SiteAdaptation.Common.Update
                     string why = !first ? "a second row of the plot and kind" : planned == null ? made.WhyNot(plot) : "no kind of the plot in the plan";
                     Ignore(made, book, sheet, index, plot, ReportExcelText.Kind, null, kind, why);
                     continue;
-                }
-                if (Cell(row, element) != null)
-                {
-                    Ignore(made, book, sheet, index, plot, ReportExcelText.ElementId, null, Cell(row, element), "not editable");
                 }
                 if (floor != null)
                 {
