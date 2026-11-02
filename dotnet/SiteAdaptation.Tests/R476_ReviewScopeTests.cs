@@ -21,6 +21,15 @@ namespace SiteAdaptation.Tests
             Assert.Equal(new[] { "2289" }, ReviewTable.Rows(table, "012", null, null, null).Select(row => row.CadLabel));
         }
 
+        // Breaker 1 of FIX-2NOV-A: on five NBHs of the real table a plot holds a villa type and no official number yet
+        [Fact]
+        public void R476_a_plot_with_a_villa_type_and_no_official_number_stays()
+        {
+            JObject plot = Plot("9", "9", null, "VL4");
+            plot["typologyRev9"] = "VL4";
+            Assert.Single(ReviewTable.Rows(new JObject { ["9"] = plot }, "012", null, null, null));
+        }
+
         [Fact]
         public void R476_a_table_with_no_field_official_number_keeps_every_row()
         {
