@@ -8,7 +8,7 @@
 - Part 4 second run, Lane B, needs your answer to Q158: after a config edit step 1 says "Nothing differs, Apply changes nothing.", Apply stays grey, Cancel leaves steps 2 to 8 waiting. A dead end, the way on is not known.
 - Part 7, sheet fault, Lane C: the Floor list holds the 5 types of config and 8 others. Their names are not in config, they look like the start model's, this was not read from the start model. No curb type, as the sheet asks.
 - Part 10, Lane C: close to Home and reopen in the same Revit session and the pane does not come back, with no button to open it. Only a new Revit session brings it back. Avoid this live.
-- Part 11 crash, cause unknown, seen once: Revit crashed 16 s after OK on Browse For Folder, in explorerframe.dll, after the script's keys picked Desktop\Pictures. Nothing lost. The script may have played a part.
+- Part 11 crash, Lane C, cause unknown, seen once: Revit crashed 16 s after OK on Browse For Folder, in explorerframe.dll, after the script's keys picked Desktop\Pictures. Nothing lost. The script may have played a part.
 - Part 11 pane, Lane B, fixed by R458, not run again in Revit: after button 7 remade masses, the pane went back to Run 4 Check. Revit writes 13 .slog files in the _backup folders of prototypes_2024 and these changed the folder hash. Unit test only until a remake runs.
 
 ## Build and scope
