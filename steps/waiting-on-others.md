@@ -79,3 +79,9 @@ The placeholders of the window New project (docs/design/18-new-project.md). Each
 | Skip of unconfirmed clusters | Lane B | Buttons 5 to 8 skip each plot in clusterUnconfirmed of review_<NBH>.json (ReviewFile.ClusterUnconfirmed) with the reason ClusterConfirm.NotConfirmedReason (R442, Q300) | Buttons 5 to 8 place every plot as before |
 | The build takes the door level pick | Lane A | The build of 4 Check takes doorLevelSource of the settings over config and the civil file as a worker input (R443, Q301) | The build reads designBasis.doorLevel of config |
 | Road Layout in the scan | Lane D, 4j-1b | A scan of the curbs drawing within the time of button 2 (Q250, Q290) | Button 2 leaves curbs and road surface out of the scan |
+
+## Lane B asks of round FIX-2NOV-A
+
+| Ask | Who | What | Now |
+|---|---|---|---|
+| L2NOV-1 Step 5 takes the overlap warnings | Lane B, next item | Step 5 accepts the known warning Highlighted floors overlap in its transaction and counts it in the log and report, so no box stops a run (Q324, Q350) | Not built. After R475 about 740 pairs of NBH 012 still warn by a 3D count |
