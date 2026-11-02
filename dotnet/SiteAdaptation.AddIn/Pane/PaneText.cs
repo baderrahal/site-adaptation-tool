@@ -6,6 +6,7 @@ namespace SiteAdaptation.AddIn.Pane
     {
         public const string Title = "Site Adaptation";
         public const string NotSaved = "not saved";
+        public const string ShowRefused = "Revit would not show the pane now. Open a project and try again.";
 
         public const string NextLabel = "Next step";
         public const string RunButton = "Run <n> <name>";

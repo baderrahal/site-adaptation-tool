@@ -20,7 +20,15 @@ namespace SiteAdaptation.AddIn.ScanResults
                 new WindowInteropHelper(window).Owner = owner;
             }
             session.Finished += () => window.Close();
-            window.ShowDialog();
+            ScanGate.ExportOwner = window;
+            try
+            {
+                window.ShowDialog();
+            }
+            finally
+            {
+                ScanGate.ExportOwner = null;
+            }
             return session.Answer;
         }
     }

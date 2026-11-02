@@ -32,7 +32,22 @@ namespace SiteAdaptation.AddIn
             {
                 return Rules(application);
             }
+            if (commandName == nameof(Commands.ShowPaneCommand))
+            {
+                return ShowPane(application);
+            }
             return Run(RibbonLayout.ButtonOf(commandName), application);
+        }
+
+        // R494. No flow, no step and no model change. A pane Revit will not show is told in one line and the button ends as done
+        private static Result ShowPane(UIApplication application)
+        {
+            string refused = Pane.PaneFirstShow.ByHand(() => PaneHost.Current != null && PaneHost.Current.ShowByHand(application));
+            if (refused != null)
+            {
+                TaskDialog.Show(RibbonLayout.Tab, refused);
+            }
+            return Result.Succeeded;
         }
 
         // R403. The window changes no model element, so it takes no flow, no step and no saved project, only the rules file the pane
@@ -116,7 +131,7 @@ namespace SiteAdaptation.AddIn
                 ReviewData.ReviewDataBody.Nbh = () => session?.Settings?.Scope?.Kind == Common.Settings.ScopeKinds.Nbh ? session.Settings.Scope.Nbh : null;
                 return ReviewData.ReviewDataBody.For(application.MainWindowHandle);
             };
-            Func<ButtonBody> checkTable = () => CheckTable.CheckTableBody.For(PaneHost.Current.Sessions.Seen(document, document.PathName, document.Title), application.MainWindowHandle);
+            Func<ButtonBody> checkTable = () => CheckTable.CheckTableBody.For(PaneHost.Current.Sessions.Seen(document, document.PathName, document.Title), application.MainWindowHandle, () => RevitCountsReader.FloorIds(document));
             // Null until the pane sets the load, so this class names the Revit side only here, where Revit types are at home
             Func<ButtonBody> placeVillas = PlaceVillas.PlaceVillasBody.IsSet ? (Func<ButtonBody>)(() => PlaceVillas.PlaceVillasBody.For(application)) : null;
             // R378, R379. Made on the settings of the session of the document, so the test host runs each step by Run as the ribbon does

@@ -88,6 +88,10 @@ namespace SiteAdaptation.Common.Flow
         public Func<RunContext, IReadOnlyList<string>> Apply { get; set; }
         public Func<RunContext, string> ReadBack { get; set; }
 
+        // R459. Runs once the transaction committed and before the files move, for an output only the commit can tell. The model has
+        // committed, so a failure here is an issue of the run and rolls nothing back. Null for none
+        public Action<RunContext> AfterCommit { get; set; }
+
         // The message of a real run once it committed and moved its files, what it saved, null for none
         public Func<RunContext, string> Done { get; set; }
 

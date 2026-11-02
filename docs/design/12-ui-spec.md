@@ -54,11 +54,12 @@ Bader, 28 Oct 2026, for 5a and every later phase that touches a window.
 9 Report: M5 5h22v22H5z | M5 11h22 | M9 23v-5h3v5zM14.5 23v-8h3v8zM20 23v-6h3v6z fill SA.IconAccent no stroke | M8 23h16 (32 only)
 Site Adaptation Rules: M3 7c4-2 9-2 13 1v19c-4-3-9-3-13-1z | M29 7c-4-2-9-2-13 1v19c4-3 9-3 13-1z | M21 5v9l2.5-1.8l2.5 1.8V5z fill SA.IconAccent no stroke
 Update from report: M17 27H5V5h16v9 | M5 11h16M11 5v22 (16 px: M5 11h16) | M29 22.5a6 6 0 1 1 -2-4.5 stroke SA.IconAccent 2.5 | M27.5 14v4.5H23 stroke SA.IconAccent 2.5
+Show pane: M4 6h24v20H4z | M19 6v20 | M21.5 9h4v14h-4z fill SA.IconAccent no stroke
 ```
 
 ### 7.1 Ribbon
 
-Ribbon tab "Site Adaptation" with four panels in this order (Bader 28 Oct 2026, docs/design/13-workflow-changes.md): Setup (1 Set up site, 2 Read data, 3 Review data, 4 Check), Rules (Site Adaptation Rules), Build (5 Floors and ramps, 6 Levels, 7 Place villas, 8 Walls), Output (9 Report, Update from report). Large buttons, the icons above.
+Ribbon tab "Site Adaptation" with five panels in this order (Bader 28 Oct 2026 and 2 Nov 2026, docs/design/13-workflow-changes.md): Setup (1 Set up site, 2 Read data, 3 Review data, 4 Check), Rules (Site Adaptation Rules), Build (5 Floors and ramps, 6 Levels, 7 Place villas, 8 Walls), Output (9 Report, Update from report), Pane (Show pane). Large buttons, the icons above.
 
 ### 7.2 Pane
 

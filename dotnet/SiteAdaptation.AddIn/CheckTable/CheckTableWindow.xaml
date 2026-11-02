@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:th="clr-namespace:SiteAdaptation.AddIn.Theme"
         xmlns:chk="clr-namespace:SiteAdaptation.AddIn.CheckTable"
+        xmlns:cc="clr-namespace:SiteAdaptation.Common.CheckTable;assembly=SiteAdaptation.Common"
         Title="{Binding Title}" Width="{DynamicResource SA.Size.DialogWidth}" MaxHeight="{DynamicResource SA.Size.DialogMaxHeight}"
         SizeToContent="Height" ResizeMode="NoResize" ShowInTaskbar="False" WindowStartupLocation="CenterOwner"
         Background="{DynamicResource SA.Surface}">
@@ -23,6 +24,39 @@
       <Style x:Key="HeadText" TargetType="TextBlock" BasedOn="{StaticResource SA.Type.Label}">
         <Setter Property="Foreground" Value="{StaticResource SA.TextMuted}" />
         <Setter Property="VerticalAlignment" Value="Center" />
+      </Style>
+      <!-- R495. A header that sorts its column on a click, with the arrow of Marks beside it -->
+      <Style x:Key="HeadSort" TargetType="Button">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="Template">
+          <Setter.Value>
+            <ControlTemplate TargetType="Button">
+              <TextBlock Style="{StaticResource HeadText}" Text="{TemplateBinding Content}" />
+            </ControlTemplate>
+          </Setter.Value>
+        </Setter>
+      </Style>
+      <Style x:Key="SortArrow" TargetType="Path">
+        <Setter Property="Fill" Value="{StaticResource SA.TextMuted}" />
+        <Setter Property="Width" Value="{StaticResource SA.Size.SortArrowWidth}" />
+        <Setter Property="Height" Value="{StaticResource SA.Size.SortArrowHeight}" />
+        <Setter Property="Margin" Value="{StaticResource SA.Gap.Left8}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Visibility" Value="Collapsed" />
+        <Style.Triggers>
+          <Trigger Property="Tag" Value="{x:Static cc:CheckSort.Up}">
+            <Setter Property="Data" Value="{StaticResource SA.Mark.SortUp}" />
+            <Setter Property="Visibility" Value="Visible" />
+          </Trigger>
+          <Trigger Property="Tag" Value="{x:Static cc:CheckSort.Down}">
+            <Setter Property="Data" Value="{StaticResource SA.Mark.SortDown}" />
+            <Setter Property="Visibility" Value="Visible" />
+          </Trigger>
+        </Style.Triggers>
       </Style>
       <Style x:Key="SideValue" TargetType="TextBlock" BasedOn="{StaticResource SA.Type.Body}">
         <Setter Property="TextWrapping" Value="Wrap" />
@@ -217,6 +251,15 @@
         </StackPanel>
         <TextBlock Style="{StaticResource SA.Pane.Help}" Text="{Binding DoorHelp}" Visibility="{Binding DoorHelpShown, Converter={StaticResource Shown}}" />
       </StackPanel>
+      <!-- R495. The rows of one field, and the rows whose plot or note holds the text -->
+      <StackPanel Orientation="Horizontal" Margin="{StaticResource SA.Gap.Bottom8}">
+        <TextBlock Style="{StaticResource HeadText}" Margin="{StaticResource SA.Gap.Right8}" Text="{x:Static chk:CheckTableText.FieldLabel}" />
+        <ComboBox Style="{StaticResource SA.Pane.Combo}" Width="{StaticResource SA.Size.FindBox}" ItemsSource="{Binding FieldOptions}" DisplayMemberPath="Text"
+                  SelectedValuePath="Field" SelectedValue="{Binding FieldPick, Mode=TwoWay}" />
+        <TextBlock Style="{StaticResource HeadText}" Margin="{StaticResource SA.Gap.Left16}" Text="{x:Static chk:CheckTableText.FindLabel}" />
+        <TextBox Style="{StaticResource SA.Pane.Entry}" Margin="{StaticResource SA.Gap.Left8}" Width="{StaticResource SA.Size.FindBox}"
+                 Text="{Binding Find, UpdateSourceTrigger=PropertyChanged}" />
+      </StackPanel>
       <Grid>
         <Grid.ColumnDefinitions>
           <ColumnDefinition Width="*" />
@@ -235,6 +278,8 @@
           <TextBlock Style="{StaticResource SA.Type.Body}" Foreground="{StaticResource SA.Ok}" VerticalAlignment="Center" Text="{Binding FollowLine}" />
         </StackPanel>
       </Grid>
+      <TextBlock Style="{StaticResource SA.Type.Small}" Foreground="{StaticResource SA.TextMuted}" Margin="{StaticResource SA.Gap.Top8}" Text="{Binding ShowingLine}"
+                 Visibility="{Binding ShowingShown, Converter={StaticResource Shown}}" />
       <TextBlock Style="{StaticResource SA.Type.Small}" Foreground="{StaticResource SA.Warn}" Margin="{StaticResource SA.Gap.Top8}" Text="{Binding NotSavedText}"
                  Visibility="{Binding NotSavedShown, Converter={StaticResource Shown}}" />
       <Border Margin="{StaticResource SA.Gap.Top12}" Padding="{StaticResource SA.Pad.Cell}" BorderBrush="{StaticResource SA.BorderStrong}" BorderThickness="{StaticResource SA.Line.Under}">
@@ -251,19 +296,47 @@
             <ColumnDefinition Width="{StaticResource SA.Grid.CheckUse}" />
             <ColumnDefinition x:Name="Gutter" Width="0" />
           </Grid.ColumnDefinitions>
-          <TextBlock Style="{StaticResource HeadText}" Text="{x:Static chk:CheckTableText.Plot}" />
-          <TextBlock Grid.Column="1" Style="{StaticResource HeadText}" Text="{x:Static chk:CheckTableText.Nbh}" />
-          <TextBlock Grid.Column="2" Style="{StaticResource HeadText}" Text="{x:Static chk:CheckTableText.Unit}" />
-          <TextBlock Grid.Column="3" Style="{StaticResource HeadText}" Text="{x:Static chk:CheckTableText.Check}" />
-          <TextBlock Grid.Column="4" Style="{StaticResource HeadText}" Text="{x:Static chk:CheckTableText.ToolValue}" />
-          <TextBlock Grid.Column="5" Style="{StaticResource HeadText}" Text="{x:Static chk:CheckTableText.PastJob}" />
-          <TextBlock Grid.Column="6" Style="{StaticResource HeadText}" Text="{x:Static chk:CheckTableText.Rule}" />
-          <TextBlock Grid.Column="7" Style="{StaticResource HeadText}" Text="{x:Static chk:CheckTableText.ManualRule}" />
-          <TextBlock Grid.Column="8" Style="{StaticResource HeadText}" Text="{x:Static chk:CheckTableText.Use}" />
+          <StackPanel Orientation="Horizontal">
+            <Button Style="{StaticResource HeadSort}" Tag="{x:Static cc:CheckColumn.Plot}" Click="OnSort" Content="{x:Static chk:CheckTableText.Plot}" />
+            <Path Style="{StaticResource SortArrow}" Tag="{Binding Marks[plot]}" />
+          </StackPanel>
+          <StackPanel Grid.Column="1" Orientation="Horizontal">
+            <Button Style="{StaticResource HeadSort}" Tag="{x:Static cc:CheckColumn.Nbh}" Click="OnSort" Content="{x:Static chk:CheckTableText.Nbh}" />
+            <Path Style="{StaticResource SortArrow}" Tag="{Binding Marks[nbh]}" />
+          </StackPanel>
+          <StackPanel Grid.Column="2" Orientation="Horizontal">
+            <Button Style="{StaticResource HeadSort}" Tag="{x:Static cc:CheckColumn.Unit}" Click="OnSort" Content="{x:Static chk:CheckTableText.Unit}" />
+            <Path Style="{StaticResource SortArrow}" Tag="{Binding Marks[unit]}" />
+          </StackPanel>
+          <StackPanel Grid.Column="3" Orientation="Horizontal">
+            <Button Style="{StaticResource HeadSort}" Tag="{x:Static cc:CheckColumn.Check}" Click="OnSort" Content="{x:Static chk:CheckTableText.Check}" />
+            <Path Style="{StaticResource SortArrow}" Tag="{Binding Marks[check]}" />
+          </StackPanel>
+          <StackPanel Grid.Column="4" Orientation="Horizontal">
+            <Button Style="{StaticResource HeadSort}" Tag="{x:Static cc:CheckColumn.Tool}" Click="OnSort" Content="{x:Static chk:CheckTableText.ToolValue}" />
+            <Path Style="{StaticResource SortArrow}" Tag="{Binding Marks[tool]}" />
+          </StackPanel>
+          <StackPanel Grid.Column="5" Orientation="Horizontal">
+            <Button Style="{StaticResource HeadSort}" Tag="{x:Static cc:CheckColumn.Past}" Click="OnSort" Content="{x:Static chk:CheckTableText.PastJob}" />
+            <Path Style="{StaticResource SortArrow}" Tag="{Binding Marks[past]}" />
+          </StackPanel>
+          <StackPanel Grid.Column="6" Orientation="Horizontal">
+            <Button Style="{StaticResource HeadSort}" Tag="{x:Static cc:CheckColumn.Rule}" Click="OnSort" Content="{x:Static chk:CheckTableText.Rule}" />
+            <Path Style="{StaticResource SortArrow}" Tag="{Binding Marks[rule]}" />
+          </StackPanel>
+          <StackPanel Grid.Column="7" Orientation="Horizontal">
+            <Button Style="{StaticResource HeadSort}" Tag="{x:Static cc:CheckColumn.Manual}" Click="OnSort" Content="{x:Static chk:CheckTableText.ManualRule}" />
+            <Path Style="{StaticResource SortArrow}" Tag="{Binding Marks[manual]}" />
+          </StackPanel>
+          <StackPanel Grid.Column="8" Orientation="Horizontal">
+            <Button Style="{StaticResource HeadSort}" Tag="{x:Static cc:CheckColumn.Use}" Click="OnSort" Content="{x:Static chk:CheckTableText.Use}" />
+            <Path Style="{StaticResource SortArrow}" Tag="{Binding Marks[use]}" />
+          </StackPanel>
         </Grid>
       </Border>
       <ListBox ItemsSource="{Binding Rows}" SelectedItem="{Binding Selected, Mode=TwoWay}" ItemTemplate="{StaticResource CheckRow}" ItemContainerStyle="{StaticResource RowBox}"
                Style="{StaticResource SA.Table.List}" th:TableGutter.Column="{x:Reference Gutter}" MaxHeight="{StaticResource SA.Size.CheckList}"
+               VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" ScrollViewer.CanContentScroll="True"
                ScrollViewer.HorizontalScrollBarVisibility="Disabled" />
     </StackPanel>
   </DockPanel>

@@ -22,6 +22,8 @@ namespace CadReader
         public const string SummaryRole = "summary";
         // R381, Q124: the counts the add-in read from the model at report time, RevitCounts of Common
         public const string RevitCountsRole = "revitCounts";
+        // R459. What step 5 accepted, an input only when step 5 left the file
+        public const string AcceptedWarningsRole = "acceptedWarnings";
 
         public static void Command(WorkerContext run)
         {
@@ -47,6 +49,16 @@ namespace CadReader
                     throw run.Refusal(notCounts);
                 }
             }
+            JObject accepted = null;
+            if (request.Inputs.Any(item => item.Role == AcceptedWarningsRole))
+            {
+                accepted = PyJson.Parse(WorkFiles.ReadText(run.Input(AcceptedWarningsRole))) as JObject;
+                string notAccepted = SiteAdaptation.Common.Flow.AcceptedWarningFile.Refusal(accepted);
+                if (notAccepted != null)
+                {
+                    throw run.Refusal(notAccepted);
+                }
+            }
             string overridesPath = run.Input(OverridesRole);
             var inputs = new ReportInputs
             {
@@ -62,6 +74,7 @@ namespace CadReader
                 Summary = PyJson.Parse(WorkFiles.ReadText(run.Input(SummaryRole))) as JObject,
                 PlotRows = CsvRows.Read(run.Input("plotsCsv"), "locationPlanNumber", "zone", "nbhId", "typologyRev9"),
                 RevitCounts = revitCounts,
+                AcceptedWarnings = accepted,
                 RunId = request.RunId,
                 Profile = request.LevelProfile,
                 Now = DateTime.UtcNow,

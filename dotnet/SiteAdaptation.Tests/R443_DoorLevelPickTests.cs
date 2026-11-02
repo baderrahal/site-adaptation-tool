@@ -59,7 +59,7 @@ namespace SiteAdaptation.Tests
 
             Assert.Equal(new[] { DesignBasis.CivilFile, DesignBasis.RoadPlusSlope }, pick.Choices.Select(choice => choice.Source));
             Assert.Equal(new[] { 1, 2 }, pick.Choices.Select(choice => choice.Plots));
-            Assert.Equal(new[] { "Civil entry file (1 plots)", "Road level plus slope (2 plots)" }, pick.Choices.Select(choice => choice.Label));
+            Assert.Equal(new[] { "Civil entry file (1 plot)", "Road level plus slope (2 plots)" }, pick.Choices.Select(choice => choice.Label));
             Assert.All(pick.Choices, choice => Assert.True(choice.Enabled));
             Assert.False(pick.CivilGrey);
             Assert.Null(pick.Help);

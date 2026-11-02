@@ -9,6 +9,20 @@ namespace SiteAdaptation.AddIn.Pane
     {
         private bool done;
 
+        // R494. A document that opens or is created arms the show again. Bader found the pane did not return after Close to Home and
+        // a reopen in one session, and the user who hid it and opens another project wants it back
+        public void Rearm()
+        {
+            done = false;
+        }
+
+        // R494. The button Show pane. Null when Revit showed the pane, else the line to tell. show is true when Revit showed it and
+        // false when it refused, the caller catches the ApplicationException of Revit
+        public static string ByHand(Func<bool> show)
+        {
+            return show() ? null : PaneText.ShowRefused;
+        }
+
         // True when the pane is to be shown now: the first project view of the session and the pane not shown. isShown is asked only
         // then
         public bool Due(bool projectView, Func<bool> isShown)

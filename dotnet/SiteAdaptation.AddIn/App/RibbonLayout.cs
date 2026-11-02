@@ -10,6 +10,8 @@ namespace SiteAdaptation.AddIn
     {
         public const string Tab = "Site Adaptation";
         public const string AvailabilityClass = "SiteAdaptation.AddIn.Commands.ProjectAvailability";
+        // R494. Show pane works with no project open, so Revit does not grey it
+        public const string AlwaysAvailableClass = "SiteAdaptation.AddIn.Commands.AlwaysAvailable";
 
         public static readonly IReadOnlyList<RibbonPanelSpec> Panels = new[]
         {
@@ -35,6 +37,10 @@ namespace SiteAdaptation.AddIn
             {
                 new RibbonButtonSpec(9, "9 Report", "ReportCommand"),
                 new RibbonButtonSpec("Update from report", "UpdateFromReportCommand"),
+            }),
+            new RibbonPanelSpec("Pane", new[]
+            {
+                new RibbonButtonSpec("Show pane", "ShowPaneCommand", false),
             }),
         };
 
@@ -109,6 +115,15 @@ namespace SiteAdaptation.AddIn
             CommandClass = CommandNamespace + commandName;
             Key = string.Concat(label.Split(' ').Select(word => char.ToUpperInvariant(word[0]) + word.Substring(1)));
         }
+
+        // R494. A button with no number that needs no project open
+        public RibbonButtonSpec(string label, string commandName, bool needsProject) : this(label, commandName)
+        {
+            NeedsProject = needsProject;
+        }
+
+        // False only for Show pane
+        public bool NeedsProject { get; } = true;
 
         // 0 for a button with no number
         public int Number { get; }
