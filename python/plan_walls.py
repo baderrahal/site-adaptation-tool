@@ -6,7 +6,8 @@ those faces end, so each part is one wall on the plots it divides, placed once f
 of the plot numbers. The base is the yard level, the FFL less yardBelowFflM of the level profile, of the higher or the lower plot of keyRules.wallBase,
 and the top the FFL of the plot of keyRules.wallTop plus rev6.boundary_wall_top_above_ffl, weak until Q071 is answered. The garden walls have
 no measured rule, so a build places none (conflict 8 of docs/design/10-rule-ids.md). Where a wall starts and ends along its edge no key rule
-measures, so the ends of a wall carry UNKNOWN through valueStatus. Since Q115 keyRules.wallOpen clusterPairSpan leaves open the part of an edge
+measures, so the ends of a wall carry UNKNOWN through valueStatus. Since R480 keyRules.wallSideOpen leaves open a span of each side edge of a written unit it holds,
+by the hand of the plot. Since Q115 keyRules.wallOpen clusterPairSpan leaves open the part of an edge
 two written units of one footprint cluster share that the keys leave open for their pair of units, the party wall of the two villas, measured
 from the end of the edge at the front of R355 of the plot, a weak rule on the keys.
 
