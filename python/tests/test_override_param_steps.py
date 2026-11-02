@@ -70,7 +70,9 @@ def test_r360_r364_the_values_after_the_overrides_are_those_the_plan_writes_by_t
     two = plan["2"]["insert"]["value"]
     assert made["4"]["mirrored"] is False and entries["4"]["written"]["insert"] == [common.r3(two[0] + 24.0), two[1]] and entries["4"]["written"]["rotationDeg"] == 0.0
     assert entries["4"]["written"]["rampType"] == "Flat Ramps"
-    assert entries["4"]["written"]["yardOutline"] == [[[common.r3(two[0] + 24.0 + x), common.r3(two[1] + y)] for x, y in YARD["loops"][0]]]
+    # R475. The cut stops the yard of its link at the back of the ramp of 5.52 m
+    assert entries["4"]["written"]["yardOutline"] == [[[common.r3(two[0] + 24.0 + 1.0), 5.52], [common.r3(two[0] + 24.0 + 5.0), 5.52], [common.r3(two[0] + 24.0 + 5.0), common.r3(two[1] + 6.0)],
+                                                       [common.r3(two[0] + 24.0 + 1.0), common.r3(two[1] + 6.0)]]]
     rule = plan_from_past.point(built["links"]["5"]["insert"])
     assert made["5"]["insert"] == [rule[0] + 0.3, rule[1] - 0.2] and entries["5"]["written"]["steps"] == 4
     # A gap that turns the link past 0 is written by plan_rotation of the rule plus the gap, the raw value left as it is

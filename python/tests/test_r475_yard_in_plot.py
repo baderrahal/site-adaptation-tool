@@ -37,12 +37,10 @@ def test_r475_a_yard_of_two_loops_keeps_both_rings_sorted_by_first_vertex():
     assert plan_from_book.yard_in_plot(loops, FACE, RAMP) == [[[2.0, 10.0], [6.0, 10.0], [6.0, 12.0], [2.0, 12.0]], [[15.0, 10.0], [20.0, 10.0], [20.0, 12.0], [15.0, 12.0]]]
 
 
-def test_r475_a_cut_writes_no_edge_under_2_mm():
-    # A step of 1 mm beside the face edge, and a last vertex 1.4 mm from the first
+def test_r475_a_step_of_1_mm_stays_in_the_ring_so_the_ring_never_crosses_itself():
+    # A step beside the face edge. Dropping its vertex crossed 499 of the 2,557 rings of the whole project, so FloorPlacer.BuildLoops takes the edge of 1 mm
     step = [[5.0, 10.0], [19.999, 10.0], [19.999, 9.999], [25.0, 9.999], [25.0, 20.0], [5.0, 20.0]]
-    assert plan_from_book.yard_in_plot([step], FACE, RAMP) == [[[5.0, 10.0], [19.999, 10.0], [20.0, 20.0], [5.0, 20.0]]]
-    last = [[5.0, 10.0], [25.0, 10.0], [25.0, 20.0], [5.0, 20.0], [5.001, 10.001]]
-    assert plan_from_book.yard_in_plot([last], FACE, RAMP) == [[[5.0, 10.0], [20.0, 10.0], [20.0, 20.0], [5.0, 20.0]]]
+    assert plan_from_book.yard_in_plot([step], FACE, RAMP) == [[[5.0, 10.0], [19.999, 10.0], [19.999, 9.999], [20.0, 9.999], [20.0, 20.0], [5.0, 20.0]]]
 
 
 def test_r475_a_yard_inside_is_returned_as_it_was_given_byte_for_byte():

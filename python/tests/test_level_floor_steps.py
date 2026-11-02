@@ -29,7 +29,8 @@ YARD_LINE = ("the step floors of the parity harness takes the yard outlines of k
 # A made up yard outline of DP2 not mirrored on a 12 m plot, in the link frame
 YARD = {"unit": "DP2", "mirrored": False, "width": 12.0, "type": "Yard made up", "loops": [[[1.0, 2.0], [5.0, 2.0], [5.0, 6.0], [1.0, 6.0]]]}
 # A made up yard outline of TH1, which TH1-IM takes as its keo_file, holding none of its own
-YARD_TH1 = {"unit": "TH1", "mirrored": False, "width": 12.0, "type": "Yard TH1 made up", "loops": [[[2.0, 3.0], [6.0, 3.0], [6.0, 7.0]]]}
+# R475. On the plot of the link of TH1 and behind its ramp, so the cut leaves it as it is
+YARD_TH1 = {"unit": "TH1", "mirrored": False, "width": 12.0, "type": "Yard TH1 made up", "loops": [[[12.0, 13.0], [16.0, 13.0], [16.0, 17.0]]]}
 
 
 def made_rules(split=None):
@@ -183,7 +184,8 @@ def test_r358_parity_floors_the_ramp_generic_and_yard_outlines_and_the_ramp_type
     # 5 is not mirrored: the yard outline of DP2 on a 12 m plot in the link frame, placed by the link as the plan writes it
     assert links["5"]["mirrored"] is False and floors["5"]["yardDepth"] == 0.1 and floors["5"]["yardUnit"] == "DP2" and floors["5"]["yardWidth"] == 12.0
     insert = plan_from_past.point(links["5"]["insert"])
-    assert floors["5"]["yardType"] == "Yard made up" and floors["5"]["yardOutline"] == [[[insert[0] + x, insert[1] + y] for x, y in YARD["loops"][0]]]
+    # R475. The outline runs from 2 m behind the link, onto the ramp of 5.52 m, so the cut stops it at the back of the ramp
+    assert floors["5"]["yardType"] == "Yard made up" and floors["5"]["yardOutline"] == [[[insert[0] + 1.0, 5.52], [insert[0] + 5.0, 5.52], [insert[0] + 5.0, insert[1] + 6.0], [insert[0] + 1.0, insert[1] + 6.0]]]
     # 4 is mirrored and no outline is fitted for DP2 mirrored, so it lacks the yard with why
     assert links["4"]["mirrored"] is True and floors["4"]["yardOutline"] is None
     assert floors["4"]["lacks"] == [{"key": "floors.yard", "why": "no fitted outline for DP2 mirrored on a plot 12.0 m wide"}]

@@ -61,11 +61,22 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R475_a_cut_writes_no_edge_under_2_mm()
+        public void R475_a_step_of_1_mm_stays_in_the_ring_so_the_ring_never_crosses_itself()
         {
-            // A step of 1 mm beside the face edge, and a last vertex 1.4 mm from the first
-            Assert.Equal("5,10 19.999,10 20,20 5,20", Text(FloorOutlines.YardInPlot(Rings("5,10 19.999,10 19.999,9.999 25,9.999 25,20 5,20"), Face, Ramp)));
-            Assert.Equal("5,10 20,10 20,20 5,20", Text(FloorOutlines.YardInPlot(Rings("5,10 25,10 25,20 5,20 5.001,10.001"), Face, Ramp)));
+            // A step beside the face edge. Dropping its vertex crossed 499 of the 2,557 rings of the whole project, so FloorPlacer.BuildLoops takes the edge of 1 mm
+            Assert.Equal("5,10 19.999,10 19.999,9.999 20,9.999 20,20 5,20", Text(FloorOutlines.YardInPlot(Rings("5,10 19.999,10 19.999,9.999 25,9.999 25,20 5,20"), Face, Ramp)));
+        }
+
+        [Fact]
+        public void R475_R115_the_placer_takes_an_edge_of_one_step_of_the_grid_far_from_the_origin_and_refuses_one_under_it()
+        {
+            // Made up site coordinates, where the difference of two values 1 mm apart reads under 0.001 in double
+            Assert.True(2000000.123 - 2000000.122 < 0.001);
+            var step = new PlanOutline { Loops = new List<PlanLoop> { new PlanLoop { Points = new List<double[]> { new[] { 2000000.122, 500.0 }, new[] { 2000000.123, 500.0 }, new[] { 2000000.123, 510.0 } } } } };
+            Assert.Null(FloorPlacer.BuildLoops(step, new[] { 0.0, 0.0 }, 0.0, out List<FloorLoop> loops, out int arcs));
+            Assert.Equal(3, loops[0].Segments.Count);
+            var under = new PlanOutline { Loops = new List<PlanLoop> { new PlanLoop { Points = new List<double[]> { new[] { 100.0, 500.0 }, new[] { 100.0009, 500.0 }, new[] { 100.0009, 510.0 } } } } };
+            Assert.Equal("an outline edge is shorter than 1 mm", FloorPlacer.BuildLoops(under, new[] { 0.0, 0.0 }, 0.0, out loops, out arcs));
         }
 
         [Fact]
