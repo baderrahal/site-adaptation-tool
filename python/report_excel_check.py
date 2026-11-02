@@ -536,7 +536,7 @@ def main(argv=None):
     parser.add_argument("--config", default=str(project_profile.SETTINGS_PATH))
     parser.add_argument("--profile", default="parsons2024Rev6")
     parser.add_argument("--revit-counts", help="the counts the add-in read from the model, the input revitCounts of the request when it gives one (R381)")
-    parser.add_argument("--accepted-warnings", help="the file step 5 left, floors_<NBH>_accepted.json, the input acceptedWarnings of the request when it gives one (R459)")
+    parser.add_argument("--accepted-warnings", help="the input acceptedWarnings of the request, when it gives one, the pairs of step 5 whose floors stood at report time (R459)")
     parser.add_argument("--run-id", help="the run id of the reportExcel request, held against Settings when given")
     parser.add_argument("--xlsx-folder", help="the folder of the report Excel files the worker wrote of this plan, left out to check the plan side alone")
     parser.add_argument("--out", required=True, help="the report, outside the repo")

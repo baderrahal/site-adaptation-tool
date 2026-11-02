@@ -133,6 +133,42 @@ namespace SiteAdaptation.Tests
             Assert.Equal(new object[] { "VD4-101", "Generic 150mm", "yard", "Highlighted floors overlap." }, book.Row("Accepted warnings", 2).ToArray());
         }
 
+        // Finding 1 of breaker 1: so the book does not contradict its own model counts, and the file of step 5 stays, its hash is in the record of 5
+        [Fact]
+        public void R459_the_report_lists_only_the_pairs_whose_two_floors_stand_and_leaves_the_file_of_step_5()
+        {
+            CheckRunLog();
+            string file = Path.Combine(work, SiteAdaptation.Common.Floors.FloorsRun.AcceptedName("012"));
+            File.WriteAllText(file, AcceptedWarningFile.Text("5_1", "012", new[]
+            {
+                new AcceptedWarning { Text = "Highlighted floors overlap.", Plot = "101", FirstType = "Generic 150mm", SecondType = "yard", FirstId = "a", SecondId = "b" },
+                new AcceptedWarning { Text = "Highlighted floors overlap.", Plot = "101", FirstType = "Generic 150mm", SecondType = "Ramps 2%", FirstId = "a", SecondId = "gone" },
+            }));
+            string before = FileHash.Sha256(file);
+            var asked = new List<WorkerRequest>();
+            Func<WorkerRequest, string, WorkerAnswer> worker = (request, folder) =>
+            {
+                asked.Add(request);
+                int code = WorkerRunner.Run(request.Write(folder), WorkerReads.Commands(), () => 90000.0, () => 0.0);
+                WorkerAnswer answer = WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, request.RunId));
+                Assert.True(code == 0, "exit " + code + ": " + answer.Message);
+                return answer;
+            };
+            standing = () => new List<string> { "a", "b" };
+            Model model;
+            State state;
+            RunOutcome outcome = Run(false, true, worker, out model, out state);
+
+            Assert.True(outcome.End == RunEnd.Committed, outcome.End + " " + outcome.Message);
+            WorkerFile input = asked.Single().Inputs.Single(item => item.Role == ReportRun.AcceptedWarningsRole);
+            Assert.NotEqual(file, input.Path);
+            Assert.Equal(FileHash.Sha256(input.Path), input.Sha256);
+            Assert.Equal(before, FileHash.Sha256(file));
+            LevelExcelTests.Book book = LevelExcelTests.Book.Read(Path.Combine(work, "012_Report.xlsx"));
+            Assert.Equal(2, book.Sheets["Accepted warnings"].Count);
+            Assert.Equal(new object[] { "101", "Generic 150mm", "yard", "Highlighted floors overlap." }, book.Row("Accepted warnings", 2).ToArray());
+        }
+
         // The request goes to the worker command itself, so a role it does not take or a count file it refuses fails here. The Revit column of the
         // workbook read back, the first after the item as ReportExcelTests reads it, holds the counts the stand in of the model gave for the plots the
         // run log of 6 lists
@@ -313,6 +349,8 @@ namespace SiteAdaptation.Tests
             };
         }
 
+        private Func<ICollection<string>> standing;
+
         private RunOutcome Run(bool dryFirst, bool apply, Func<WorkerRequest, string, WorkerAnswer> worker, out Model model, out State state,
             Func<ICollection<string>, string, JObject> counts = null)
         {
@@ -323,7 +361,7 @@ namespace SiteAdaptation.Tests
             Func<ICollection<string>, string, JObject> counts = null)
         {
             var run = new ReportRun("Settings", WorkFiles.ReadText, counts ?? ((plots, levelRun) => RevitCounts.FromTags(new PlacedTag[0], plots, levelRun)), worker,
-                new WorkerDocument { Path = @"C:\Models\Site.rvt", SessionId = "s" });
+                new WorkerDocument { Path = @"C:\Models\Site.rvt", SessionId = "s" }) { StandingFloors = standing };
             model = new Model();
             state = new State { Work = work, Config = config, DryFirst = dryFirst };
             var flow = new ButtonFlow(state, model, confirm, InputHash.Of, () => RunId);

@@ -162,10 +162,11 @@ namespace SiteAdaptation.Tests
         {
             JObject config = JObject.Parse(File.ReadAllText(RepoConfig()));
             KnownWarningList list = KnownWarningList.OfFloors(config);
-            KnownWarning entry = Assert.Single(list.Entries);
-            Assert.Equal(Overlap, entry.Text);
-            Assert.True(entry.SamePlot);
-            Assert.Equal(new[] { "generic|yard", "generic|ramp", "ramp|yard" }, entry.RolePairs.Select(pair => pair[0] + "|" + pair[1]).ToArray());
+            JObject entry = (JObject)Assert.Single(config["floors"]["knownWarnings"]["entries"]);
+            Assert.Equal(Overlap, (string)entry["text"]);
+            Assert.True((bool)entry["samePlot"]);
+            Assert.Equal(new[] { "generic|yard", "generic|ramp", "ramp|yard" }, entry["rolePairs"].Select(pair => (string)pair[0] + "|" + (string)pair[1]).ToArray());
+            Assert.True(list.Knows(Overlap));
             Assert.Equal("Plot", list.PlotParameter);
             foreach (string ramp in ((JArray)config["floors"]["types"]["ramp"]).Select(item => (string)item))
             {
@@ -243,11 +244,11 @@ namespace SiteAdaptation.Tests
             return new ButtonFlow(new State { Work = work }, model, new Yes(), input => "", () => RunId).Run(5, "5 Floors and ramps", body, @"C:\Models\Site.rvt");
         }
 
-        private FloorsRun Floors(FakeFloors document, KnownWarningList list)
+        private FloorsRun Floors(FakeFloors document, KnownWarningList list, PlanFile plan = null)
         {
             return new FloorsRun(document, context => new FloorInputs
             {
-                Plan = FloorPlans.Plan(FloorPlans.Plot("101")), PlanPath = Path.Combine(work, "plan_012.json"), Profile = "parsons2024Rev6",
+                Plan = plan ?? FloorPlans.Plan(FloorPlans.Plot("101")), PlanPath = Path.Combine(work, "plan_012.json"), Profile = "parsons2024Rev6",
                 LastPlaced = new HashSet<string>(StringComparer.Ordinal), KnownWarnings = list,
             });
         }
@@ -272,7 +273,8 @@ namespace SiteAdaptation.Tests
             RunOutcome outcome = Run(model, Floors(document, list).Body());
 
             Assert.True(outcome.End == RunEnd.Committed, outcome.End + " " + outcome.Message);
-            Assert.Same(list, model.Given);
+            Assert.True(model.Given.Knows(Overlap));
+            Assert.Equal("Plot", model.Given.PlotParameter);
             // No message of its own, a message is a TaskDialog and no box stops step 5
             Assert.Null(outcome.Message);
             Assert.Contains("Some other warning.", outcome.Record.Issues);
@@ -351,6 +353,135 @@ namespace SiteAdaptation.Tests
             Assert.True(outcome.End == RunEnd.Committed, outcome.End + " " + outcome.Message);
             AcceptedWarning kept = Assert.Single(AcceptedWarningFile.Load(AcceptedPath()));
             Assert.Equal(ids[1], kept.SecondId);
+        }
+
+        // Finding 3 of breaker 1: the export of Revit pads the words, and whether GetDescriptionText does is unknown
+        [Fact]
+        public void R459_the_words_are_compared_trimmed_on_both_sides_and_otherwise_exact()
+        {
+            KnownWarningList list = List();
+            WarningElement[] pair = { Floor(Generic, "VD4-101"), Floor(Yard, "VD4-101") };
+            Assert.True(list.Knows("  " + Overlap + " "));
+            AcceptedWarning accepted = list.Decide(" " + Overlap + "  ", pair);
+            Assert.Equal(Overlap, accepted.Text);
+
+            KnownWarningList padded = KnownWarningList.OfFloors(JObject.Parse(Config().ToString().Replace(Overlap, "  " + Overlap + " ")));
+            Assert.True(padded.Knows(Overlap));
+            Assert.NotNull(padded.Decide(Overlap, pair));
+
+            Assert.False(list.Knows(Overlap + " And more"));
+            Assert.Null(list.Decide(Overlap + " And more", pair));
+            Assert.Null(list.Decide("Highlighted floors", pair));
+        }
+
+        private FakeFloors.Floor Find(FakeFloors document, string kind)
+        {
+            return document.Items.Single(floor => floor.Tag.Key.Kind == kind);
+        }
+
+        private static PlanFile MovedPlan(double level)
+        {
+            PlanFile plan = FloorPlans.Plan(FloorPlans.Plot("101"));
+            plan.Plots[0].Floors.Generic.Z.Value = level;
+            return plan;
+        }
+
+        // Finding 2 of breaker 1: if a moved floor still overlaps, Revit raises it and it is accepted again
+        [Fact]
+        public void R459_a_floor_this_run_moves_takes_its_earlier_pairs_off_and_a_pair_raised_again_is_on_the_list()
+        {
+            var document = new FakeFloors();
+            Run(new KnownModel(), Floors(document, List()).Body());
+            string generic = Find(document, Common.Tags.PlacedKinds.Generic).UniqueId, yard = Find(document, Common.Tags.PlacedKinds.Yard).UniqueId, ramp = Find(document, Common.Tags.PlacedKinds.Ramp).UniqueId;
+            File.WriteAllText(AcceptedPath(), AcceptedWarningFile.Text("5_0", "012", new[] { Accepted(generic, yard), Accepted(generic, ramp), Accepted(ramp, yard) }));
+
+            RunOutcome outcome = Run(new KnownModel(), Floors(document, List(), MovedPlan(10.75)).Body());
+
+            Assert.True(outcome.End == RunEnd.Committed, outcome.End + " " + outcome.Message);
+            Assert.Equal(new[] { ramp + "|" + yard }, AcceptedWarningFile.Load(AcceptedPath()).Select(item => item.FirstId + "|" + item.SecondId).ToArray());
+
+            outcome = Run(new KnownModel { ToAccept = { Accepted(generic, yard) } }, Floors(document, List(), MovedPlan(10.9)).Body());
+
+            Assert.True(outcome.End == RunEnd.Committed, outcome.End + " " + outcome.Message);
+            Assert.Equal(new[] { generic + "|" + yard, ramp + "|" + yard }, AcceptedWarningFile.Load(AcceptedPath()).Select(item => item.FirstId + "|" + item.SecondId).OrderBy(item => item == generic + "|" + yard ? 0 : 1).ToArray());
+        }
+
+        // Finding 4 of breaker 1: Q324 and Q350 ask the count in the log, not an issue and no box
+        [Fact]
+        public void R459_a_real_run_writes_the_count_in_its_run_log_and_no_list_writes_no_log()
+        {
+            var model = new KnownModel { ToAccept = { Accepted("f1", "f2"), Accepted("f1", "f3") } };
+            RunOutcome outcome = Run(model, Floors(new FakeFloors(), List()).Body());
+
+            Assert.True(outcome.End == RunEnd.Committed, outcome.End + " " + outcome.Message);
+            Common.Report.ReportRun.RunLog log = Common.Report.ReportRun.RunLog.Last(work, 5, WorkFiles.ReadText);
+            Assert.Equal(RunId, log.RunId);
+            Assert.Equal(2, (int)log.Json["acceptedWarnings"]);
+            Assert.Equal("2 known warnings accepted by this run, 2 on the list of the NBH", (string)log.Json["line"]);
+            Assert.Equal(FileHash.Sha256(log.Path), outcome.Record.Outputs[log.Path]);
+            Assert.Null(outcome.Message);
+            Assert.DoesNotContain(outcome.Record.Issues, issue => issue.Contains("known warnings"));
+
+            File.Delete(log.Path);
+            Run(new KnownModel(), Floors(new FakeFloors(), null).Body());
+            Assert.Null(Common.Report.ReportRun.RunLog.Last(work, 5, WorkFiles.ReadText));
+        }
+
+        // Findings 6 and 7 of breaker 1: BuildPlan writes a yard by the unit of its fit, so a TH1-IM plot holds two spellings. The plan says which
+        // plot each value is, so no text of a plot value is parsed
+        private static PlanFile TwoSpellings()
+        {
+            PlanFile plan = FloorPlans.Plan(FloorPlans.Plot("101"), FloorPlans.Plot("102"));
+            foreach (PlanPlot plot in plan.Plots)
+            {
+                plot.Floors.Generic.PlotValue.Value = "TH1-IM-" + plot.Plot;
+                plot.Floors.Ramp.PlotValue.Value = "TH1-IM-" + plot.Plot;
+                plot.Floors.Yard.PlotValue.Value = "TH1-" + plot.Plot;
+            }
+            return plan;
+        }
+
+        [Fact]
+        public void R459_both_spellings_of_one_plot_are_one_plot_by_the_plan_and_the_list_names_its_number()
+        {
+            var model = new KnownModel();
+            RunOutcome outcome = Run(model, Floors(new FakeFloors(), List(), TwoSpellings()).Body());
+            Assert.True(outcome.End == RunEnd.Committed, outcome.End + " " + outcome.Message);
+
+            AcceptedWarning accepted = model.Given.Decide(Overlap, new[] { Floor(Generic, "TH1-IM-101", "a"), Floor(Yard, "TH1-101", "b") });
+            Assert.Equal("101", accepted.Plot);
+            accepted = model.Given.Decide(Overlap, new[] { Floor(Yard, "TH1-101", "a"), Floor(Ramp, "TH1-IM-101", "b") });
+            Assert.Equal("101", accepted.Plot);
+            Assert.Equal("102", model.Given.Decide(Overlap, new[] { Floor(Generic, "TH1-IM-102", "a"), Floor(Ramp, "TH1-IM-102", "b") }).Plot);
+        }
+
+        [Fact]
+        public void R459_two_real_numbers_still_show_in_either_spelling_and_a_value_of_no_plan_plot_is_never_taken_for_another()
+        {
+            var model = new KnownModel();
+            Run(model, Floors(new FakeFloors(), List(), TwoSpellings()).Body());
+            KnownWarningList given = model.Given;
+
+            Assert.Null(given.Decide(Overlap, new[] { Floor(Generic, "TH1-IM-101", "a"), Floor(Yard, "TH1-102", "b") }));
+            Assert.Null(given.Decide(Overlap, new[] { Floor(Generic, "TH1-IM-101", "a"), Floor(Ramp, "TH1-IM-102", "b") }));
+            Assert.Null(given.Decide(Overlap, new[] { Floor(Ramp, "TH1-IM-102", "a"), Floor(Yard, "TH1-101", "b") }));
+            // A kind with the value of another kind is no value of the plan
+            Assert.Null(given.Decide(Overlap, new[] { Floor(Generic, "TH1-101", "a"), Floor(Yard, "TH1-101x", "b") }));
+            // Values the plan does not hold are held as they are, the same text one plot and two spellings not
+            Assert.Equal("TH1-999", given.Decide(Overlap, new[] { Floor(Generic, "TH1-999", "a"), Floor(Yard, "TH1-999", "b") }).Plot);
+            Assert.Null(given.Decide(Overlap, new[] { Floor(Generic, "TH1-IM-999", "a"), Floor(Yard, "TH1-999", "b") }));
+            Assert.Null(given.Decide(Overlap, new[] { Floor(Generic, "TH1-IM-101", "a"), Floor(Yard, "TH1-999", "b") }));
+            // A value the plan knows and one it does not are never one plot
+            Assert.Null(given.Decide(Overlap, new[] { Floor(Generic, "101", "a"), Floor(Yard, "TH1-101", "b") }));
+            // With no plan the two spellings show, no text is parsed
+            Assert.Null(List().Decide(Overlap, new[] { Floor(Generic, "TH1-IM-101", "a"), Floor(Yard, "TH1-101", "b") }));
+        }
+
+        [Fact]
+        public void R459_only_pairs_whose_two_floors_stand_are_counted()
+        {
+            List<AcceptedWarning> standing = AcceptedWarningFile.Standing(new[] { Accepted("f1", "f2"), Accepted("f1", "gone"), Accepted("gone", "f2") }, new HashSet<string> { "f1", "f2" });
+            Assert.Equal(new[] { "f1|f2" }, standing.Select(item => item.FirstId + "|" + item.SecondId).ToArray());
         }
 
         [Fact]

@@ -101,7 +101,7 @@ namespace SiteAdaptation.Tests
                 ["knownWarnings"] = new JObject { ["entries"] = new JArray(new JObject { ["text"] = "Overlap.", ["samePlot"] = true, ["rolePairs"] = JArray.Parse("[[\"generic\", \"yard\"]]") }) },
             };
             File.WriteAllText(config, settings.ToString());
-            Assert.Equal("Overlap.", Assert.Single(FloorLoad.Floors(Context(5), Nbh).KnownWarnings.Entries).Text);
+            Assert.True(FloorLoad.Floors(Context(5), Nbh).KnownWarnings.Knows("Overlap."));
 
             settings["floors"]["knownWarnings"] = new JObject { ["entries"] = 1 };
             File.WriteAllText(config, settings.ToString());

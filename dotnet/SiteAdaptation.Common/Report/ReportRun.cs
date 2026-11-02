@@ -60,6 +60,9 @@ namespace SiteAdaptation.Common.Report
             this.document = document;
         }
 
+        // R459. The ids of the floors the document holds now, so the sheet does not contradict the counts of the same model. Unset lists every pair
+        public Func<ICollection<string>> StandingFloors { get; set; }
+
         public ButtonBody Body()
         {
             return new ButtonBody { Preview = Preview, Outside = Outside, Apply = Apply };
@@ -131,6 +134,7 @@ namespace SiteAdaptation.Common.Report
                 }
             }
 
+            ICollection<string> floors = StandingFloors?.Invoke();
             string stage = Path.Combine(context.WorkFolder, "report_" + context.RunId);
             try
             {
@@ -140,8 +144,8 @@ namespace SiteAdaptation.Common.Report
                     var inputs = new List<WorkerFile> { Input("config", configPath), Input("rules", rulesPath) };
                     inputs.AddRange(check.Files(nbh));
                     inputs.Add(Input(RevitCountsRole, countsPath));
-                    string accepted = Path.Combine(context.WorkFolder, Floors.FloorsRun.AcceptedName(nbh));
-                    if (File.Exists(accepted))
+                    string accepted = AcceptedFile(context, nbh, floors);
+                    if (accepted != null)
                     {
                         inputs.Add(Input(AcceptedWarningsRole, accepted));
                     }
@@ -179,6 +183,24 @@ namespace SiteAdaptation.Common.Report
                 }
             }
             return null;
+        }
+
+        // R459. A copy with the pairs that stand beside the counts of this run, as the file of step 5 stays with the hash its run recorded. A file
+        // that does not read goes as it is, for the worker to refuse by name
+        private static string AcceptedFile(RunContext context, string nbh, ICollection<string> floors)
+        {
+            string file = Path.Combine(context.WorkFolder, Floors.FloorsRun.AcceptedName(nbh));
+            if (!File.Exists(file))
+            {
+                return null;
+            }
+            List<AcceptedWarning> accepted = floors == null ? null : AcceptedWarningFile.Load(file);
+            if (accepted == null)
+            {
+                return file;
+            }
+            string standing = Path.Combine(context.WorkFolder, "accepted_warnings_" + context.RunId + "_" + nbh + ".json");
+            return WorkFiles.WriteText(standing, context.RunId, AcceptedWarningFile.Text(context.RunId, nbh, AcceptedWarningFile.Standing(accepted, floors)));
         }
 
         // The earlier report of each name is copied to its earlier folder, by a temporary name, before the flow replaces it with the new one, so

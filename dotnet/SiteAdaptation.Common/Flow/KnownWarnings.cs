@@ -48,6 +48,15 @@ namespace SiteAdaptation.Common.Flow
     {
         private readonly List<KnownWarning> entries;
         private readonly Dictionary<string, string> roleOfType;
+        private readonly Func<string, string, string> plotNumberOf;
+
+        private KnownWarningList(List<KnownWarning> entries, string plotParameter, Dictionary<string, string> roleOfType, Func<string, string, string> plotNumberOf)
+        {
+            this.entries = entries;
+            PlotParameter = plotParameter;
+            this.roleOfType = roleOfType;
+            this.plotNumberOf = plotNumberOf;
+        }
 
         public KnownWarningList(IEnumerable<KnownWarning> entries, string plotParameter, IReadOnlyDictionary<string, IReadOnlyList<string>> typesOfRole)
         {
@@ -64,8 +73,6 @@ namespace SiteAdaptation.Common.Flow
         }
 
         public string PlotParameter { get; }
-
-        public IReadOnlyList<KnownWarning> Entries => entries;
 
         // The block floors.knownWarnings of config, null when config holds none, so every warning shows
         public static KnownWarningList OfFloors(JObject config)
@@ -120,14 +127,23 @@ namespace SiteAdaptation.Common.Flow
                 .ToDictionary(role => role.Name, role => (IReadOnlyList<string>)role.Value.Select(type => (string)type).ToList()));
         }
 
+        // The same list with what the plan of the run says of a plot value: the role and the value give its plot number, null for a value the
+        // plan does not hold. One plot may hold two spellings, a TH1-IM plot TH1-IM-<n> and TH1-<n>, and the plan knows each, so no text is parsed
+        public KnownWarningList WithPlotNumbers(Func<string, string, string> numberOf)
+        {
+            return new KnownWarningList(entries, PlotParameter, roleOfType, numberOf);
+        }
+
         // True when an entry names these words, so the Revit side reads the elements of that warning only
         public bool Knows(string text)
         {
-            return entries.Any(entry => string.Equals(entry.Text, text, StringComparison.Ordinal));
+            return entries.Any(entry => SameWords(entry.Text, text));
         }
 
         // The warning as accepted, or null when it shows. Only the exact words, exactly two elements, each with a plot value and the type of
-        // a role, in a pair the entry names, and one plot value when the entry asks it. Everything else shows, as Revit would show it
+        // a role, in a pair the entry names, and one plot when the entry asks it. Everything else shows, as Revit would show it. Two elements
+        // are one plot by the number the plan gives both, or by one text when the plan knows neither. A value the plan knows and one it does
+        // not are never one plot, so no compare can take two plots for one
         public AcceptedWarning Decide(string text, IReadOnlyList<WarningElement> elements)
         {
             if (elements == null || elements.Count != 2)
@@ -139,21 +155,30 @@ namespace SiteAdaptation.Common.Flow
             {
                 return null;
             }
-            foreach (KnownWarning entry in entries.Where(item => string.Equals(item.Text, text, StringComparison.Ordinal) && (!item.SamePlot || one == two)))
+            string numberOne = plotNumberOf?.Invoke(roleOne, one), numberTwo = plotNumberOf?.Invoke(roleTwo, two);
+            bool samePlot = numberOne != null || numberTwo != null ? numberOne == numberTwo : one == two;
+            string words = text.Trim();
+            foreach (KnownWarning entry in entries.Where(item => SameWords(item.Text, text) && (!item.SamePlot || samePlot)))
             {
                 foreach (string[] pair in entry.RolePairs)
                 {
                     if (pair[0] == roleOne && pair[1] == roleTwo)
                     {
-                        return Accepted(text, elements[0], elements[1], one, two);
+                        return Accepted(words, elements[0], elements[1], numberOne ?? one, numberTwo ?? two);
                     }
                     if (pair[0] == roleTwo && pair[1] == roleOne)
                     {
-                        return Accepted(text, elements[1], elements[0], two, one);
+                        return Accepted(words, elements[1], elements[0], numberTwo ?? two, numberOne ?? one);
                     }
                 }
             }
             return null;
+        }
+
+        // The export of Revit pads the words with spaces, and whether GetDescriptionText does is unknown. Else exact, never a part of the words
+        private static bool SameWords(string one, string two)
+        {
+            return string.Equals(one?.Trim(), two?.Trim(), StringComparison.Ordinal);
         }
 
         private static string PlotOf(WarningElement element)
@@ -231,7 +256,7 @@ namespace SiteAdaptation.Common.Flow
         public static List<AcceptedWarning> Merge(IEnumerable<AcceptedWarning> earlier, IEnumerable<AcceptedWarning> now, ICollection<string> standing)
         {
             var pairs = new Dictionary<string, AcceptedWarning>(StringComparer.Ordinal);
-            foreach (AcceptedWarning item in earlier.Where(item => standing.Contains(item.FirstId) && standing.Contains(item.SecondId)).Concat(now))
+            foreach (AcceptedWarning item in Standing(earlier, standing).Concat(now))
             {
                 pairs[Key(item)] = item;
             }
@@ -246,6 +271,12 @@ namespace SiteAdaptation.Common.Flow
         }
 
         // Null when the file is of this form, else why not
+        // The pairs whose two floors stand, what 4 Check and 9 Report count, so a floor gone by Ctrl+Z or by hand since the run counts no more
+        public static List<AcceptedWarning> Standing(IEnumerable<AcceptedWarning> accepted, ICollection<string> floors)
+        {
+            return accepted.Where(item => floors.Contains(item.FirstId) && floors.Contains(item.SecondId)).ToList();
+        }
+
         public static string Refusal(JObject file)
         {
             const string not = "the accepted warnings file is not of the form of R459";

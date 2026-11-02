@@ -293,6 +293,37 @@ namespace SiteAdaptation.Tests
             Assert.DoesNotContain(view.Rows, row => row.Check == CheckTableState.AcceptedChip);
         }
 
+        // Finding 1 of breaker 1: a floor gone by Ctrl+Z or by hand since step 5 is no longer counted, and the file of step 5 stays
+        [Fact]
+        public void R459_a_run_of_4_counts_only_the_pairs_whose_two_floors_stand_in_the_document_now()
+        {
+            var table = new Table();
+            var builder = new Builder();
+            string file = Path.Combine(work, SiteAdaptation.Common.Floors.FloorsRun.AcceptedName("012"));
+            File.WriteAllText(file, AcceptedWarningFile.Text("5_1", "012", new[]
+            {
+                new AcceptedWarning { Text = "t", Plot = "p", FirstType = "a", SecondType = "b", FirstId = "1", SecondId = "2" },
+                new AcceptedWarning { Text = "t", Plot = "p", FirstType = "a", SecondType = "b", FirstId = "1", SecondId = "3" },
+            }));
+            string before = FileHash.Sha256(file);
+            ICollection<string> floors = new List<string> { "1", "2" };
+            var run = new CheckRun(Roles, builder, (path, folder, request) => builder.Run(request), new WorkerDocument(), Nbh, table, null, null) { StandingFloors = () => floors };
+            ButtonBody body = run.Body();
+
+            body.Preview(Context("R4-459c", Path.Combine(work, "dry", "R4-459c")));
+            Assert.Equal(new KeyValuePair<string, int>(CheckTableState.AcceptedChip, 1), table.Shown.Last().Counts.Last());
+
+            floors = new List<string>();
+            body.Preview(Context("R4-459d", Path.Combine(work, "dry", "R4-459d")));
+            Assert.Equal(new KeyValuePair<string, int>(CheckTableState.AcceptedChip, 0), table.Shown.Last().Counts.Last());
+
+            // A document the reader cannot read gives no count rather than a count it cannot hold
+            floors = null;
+            body.Preview(Context("R4-459e", Path.Combine(work, "dry", "R4-459e")));
+            Assert.DoesNotContain(table.Shown.Last().Counts, item => item.Key == CheckTableState.AcceptedChip);
+            Assert.Equal(before, FileHash.Sha256(file));
+        }
+
         [Fact]
         public void R376_the_dry_run_builds_into_the_dry_folder_and_greys_save_overrides()
         {

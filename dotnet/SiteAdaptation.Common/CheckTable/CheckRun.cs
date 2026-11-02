@@ -65,6 +65,9 @@ namespace SiteAdaptation.Common.CheckTable
             this.levelProfile = levelProfile;
         }
 
+        // R459. The ids of the floors the document holds now, null when it cannot be read. Unset counts every pair of the file
+        public Func<ICollection<string>> StandingFloors { get; set; }
+
         // R443. DoorLevelSource of the pane settings, read for the row Door level from of the window. Null where no pane gives one
         public Func<string> DoorPick { get; set; }
 
@@ -411,9 +414,21 @@ namespace SiteAdaptation.Common.CheckTable
             CheckTableBuild.UnderSkip(view.Rows, list, (config["majority"]?["overrideDefaultSources"] as JArray ?? new JArray()).Select(item => (string)item).ToList());
             view.Info = Info(plan, step, list, levelProfile);
             // R459. 4 runs before 5, so a first pass has no file and no chip
-            CheckTableBuild.AddAccepted(view, plan.Nbh == null ? null : AcceptedWarningFile.Load(Path.Combine(context.WorkFolder, Floors.FloorsRun.AcceptedName(plan.Nbh)))?.Count);
+            CheckTableBuild.AddAccepted(view, AcceptedCount(context, plan));
             view.DoorLevel = DoorLevelPick.Of(config, plan.ConfigPath, LevelsStep(request.StepsFolder), DoorPick?.Invoke());
             return view;
+        }
+
+        // R459. The pairs step 5 left for the NBH whose two floors stand now, null for no count. A worker answer comes in the API context of Revit
+        private int? AcceptedCount(RunContext context, CheckPlan plan)
+        {
+            List<AcceptedWarning> accepted = plan.Nbh == null ? null : AcceptedWarningFile.Load(Path.Combine(context.WorkFolder, Floors.FloorsRun.AcceptedName(plan.Nbh)));
+            if (accepted == null || StandingFloors == null)
+            {
+                return accepted?.Count;
+            }
+            ICollection<string> floors = StandingFloors();
+            return floors == null ? (int?)null : AcceptedWarningFile.Standing(accepted, floors).Count;
         }
 
         // R443. The step levels the build of the run wrote, with doorSource per plot (R408), null when it wrote none

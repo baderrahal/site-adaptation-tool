@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Autodesk.Revit.DB;
@@ -17,6 +18,16 @@ namespace SiteAdaptation.AddIn.Revit
         {
             var elements = new PlacedTagStore(document).Collect().Select(pair => new KeyValuePair<long, PlacedTag>(pair.Key.Id.Value, pair.Value)).ToList();
             return RevitCounts.FromElements(elements, levelPlots, levelRun);
+        }
+
+        // R459. The ids of the floors the document holds now, what 4 Check and 9 Report hold the accepted warnings against. Null for a closed document
+        public static ICollection<string> FloorIds(Document document)
+        {
+            if (document == null || !document.IsValidObject)
+            {
+                return null;
+            }
+            return new HashSet<string>(new FilteredElementCollector(document).OfClass(typeof(Floor)).Select(floor => floor.UniqueId), StringComparer.Ordinal);
         }
     }
 }
