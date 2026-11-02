@@ -4,10 +4,9 @@
 
 ### Lane A
 
-- Lane: A, round FIX-1NOV-A2, branch fix/1nov-a2. Time: 2026-11-02 02:05. Blocked: none
-- Done: R472, R473, R474, proofs on copies, review 1, breaker 1 and 2 fixed. Gate on 25c84c7 green, parity 32 runs 0 failures, past job plans byte-equal
-- Now: the PR of FIX-1NOV-A2
-- Next: merge when green, tell lane-c the steps of parts 8 and 9. Questions Q345 to Q349
+- Lane: A, round FIX-2NOV-A, branch fix/2nov-a. Time: 2026-11-02 03:20. Blocked: none
+- Now: R475 yards and R477 footprint by helpers, R476 Review scope by the main session. Causes measured, Q350 closed by Bader: generic floors stay
+- Next: gate, parity, before and after counts, review and breaker, the PR, tell lane-c. Ids R475 to R477, Q351
 
 ### Lane B, C and D
 
