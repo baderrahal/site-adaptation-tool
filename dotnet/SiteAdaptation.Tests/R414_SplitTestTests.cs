@@ -66,12 +66,12 @@ namespace SiteAdaptation.Tests
             }), () => civil);
         }
 
-        // split_test on a made up cluster of four DP2 units with El @ Entry levels in row order and a slope of 1 percent each, or slopes
-        private static Tuple<Dictionary<string, List<string>>, Dictionary<string, string>> MadeSplit(double[] levels, double[] slopes = null)
+        // split_test on a made up cluster of four DP2 units with El @ Entry levels in row order and the road at front of each, none when left out
+        private static Tuple<Dictionary<string, List<string>>, Dictionary<string, string>> MadeSplit(double[] levels, double?[] roads = null)
         {
             JObject rules = LevelFloorStepTests.MadeRules();
             var entries = Cluster.Select((plot, index) => new { plot, index }).ToDictionary(item => item.plot,
-                item => new EntryLevel { Unit = "DP2", Raw = levels[item.index], Rule = levels[item.index], Slope = slopes == null ? 1.0 : slopes[item.index] });
+                item => new EntryLevel { Unit = "DP2", Raw = levels[item.index], Rule = levels[item.index], Slope = 1.0, Road = roads?[item.index] });
             var roles = Cluster.ToDictionary(plot => plot, plot => new ClusterRole { Plots = Cluster.ToList() });
             return KeyLevels.SplitTest(entries, roles, Basis(), BuildRules.KeyRules(rules, null, "levels"), rules, BuildRules.LevelProfile(rules, null));
         }
@@ -102,8 +102,8 @@ namespace SiteAdaptation.Tests
         [Fact]
         public void R414_a_cluster_no_split_fits_stays_whole_as_no_fit()
         {
-            Assert.Equal("2:2,3,4,5:noFit 3:2,3,4,5:noFit 4:2,3,4,5:noFit 5:2,3,4,5:noFit", Text(MadeSplit(new[] { Low, Low, Mid, High }, new[] { 1.0, 1.0, 1.0, 2.5 })));
-            Assert.Equal("noFit", MadeSplit(new[] { Low, Low, High, Low + 1.02 }).Item2["2"]);
+            // Q303 took the slope out of the test, so this case holds steps alone
+            Assert.Equal("2:2,3,4,5:noFit 3:2,3,4,5:noFit 4:2,3,4,5:noFit 5:2,3,4,5:noFit", Text(MadeSplit(new[] { Low, Low, High, Low + 1.02 })));
         }
 
         [Fact]
@@ -115,9 +115,10 @@ namespace SiteAdaptation.Tests
             double unrounded = DesignBasis.SlopeOf(raw, front, depth);
             double roundedFirst = DesignBasis.SlopeOf(Rounding.Fixed(raw, 4), front, depth);
             Assert.Equal(new[] { 0.5, 0.499 }, new[] { Rounding.Fixed(unrounded, 3), Rounding.Fixed(roundedFirst, 3) });
-            Assert.Equal("none", MadeSplit(new[] { Low, Low, Low, Low }, Enumerable.Repeat(unrounded, 4).ToArray()).Item2["2"]);
-            Assert.Equal("noFit", MadeSplit(new[] { Low, Low, Low, Low }, Enumerable.Repeat(roundedFirst, 4).ToArray()).Item2["2"]);
-            Assert.Equal("none", MadeSplit(new[] { Low, Low, Low, Low }, new[] { 0.5, 0.5, 2.0, 2.0 }).Item2["2"]);
+            // Q303. The slope is no longer in the split test, the report by OutsideManual holds it as before
+            JObject limits = new JObject { ["front_min"] = 0.5, ["front_max"] = 2.0 };
+            Assert.False(DesignBasis.OutsideManual(unrounded, limits));
+            Assert.True(DesignBasis.OutsideManual(roundedFirst, limits));
         }
 
         [Fact]
@@ -135,12 +136,78 @@ namespace SiteAdaptation.Tests
             }
         }
 
+        [Fact]
+        public void R414_Q304_a_row_rising_to_its_last_unit_counts_the_walls_from_there_and_the_lone_unit_stands_at_the_low_end()
+        {
+            // After unit 3 from the high road end is after unit 1 in row order, named from the first unit as split_pattern names it
+            Assert.Equal("2:2:walls 1 3:3,4,5:walls 1 4:3,4,5:walls 1 5:3,4,5:walls 1", Text(MadeSplit(new[] { Low, Mid, Mid, High }, new double?[] { 10.0, 10.1, 10.2, 10.3 })));
+        }
+
+        [Fact]
+        public void R414_Q304_a_row_falling_from_its_first_unit_counts_the_walls_from_there_and_the_lone_unit_stands_at_the_low_end()
+        {
+            Assert.Equal("2:2,3,4:walls 3 3:2,3,4:walls 3 4:2,3,4:walls 3 5:5:walls 3", Text(MadeSplit(new[] { High, Mid, Mid, Low }, new double?[] { 10.3, 10.2, 10.1, 10.0 })));
+        }
+
+        [Fact]
+        public void R414_Q304_the_second_wall_counts_from_the_high_road_end_too_and_the_middle_is_the_middle_either_way()
+        {
+            Assert.Equal("2:2,3:middle 3:2,3:middle 4:4,5:middle 5:4,5:middle", Text(MadeSplit(new[] { Low, Low, High, High }, new double?[] { 10.0, 10.1, 10.2, 10.3 })));
+        }
+
+        [Fact]
+        public void R414_Q304_a_tie_or_no_road_counts_the_walls_from_the_first_unit()
+        {
+            const string three = "2:2,3,4:walls 3 3:2,3,4:walls 3 4:2,3,4:walls 3 5:5:walls 3";
+            double[] levels = { Low, Mid, Mid, High };
+            Assert.Equal(three, Text(MadeSplit(levels, new double?[] { 10.0, 10.1, 10.2, 10.0 })));
+            // A rise under the 4 decimals the plan writes the road at is a tie
+            Assert.Equal(three, Text(MadeSplit(levels, new double?[] { 10.0, 10.1, 10.2, 10.00001 })));
+            Assert.Equal(three, Text(MadeSplit(levels)));
+            Assert.Equal(three, Text(MadeSplit(levels, new double?[] { null, 10.1, 10.2, 10.3 })));
+            Assert.Equal(three, Text(MadeSplit(levels, new double?[] { 10.0, 10.1, 10.2, null })));
+        }
+
         // The made up civil file: plot 2 at 0.5 percent over its road of 10.18 m, plot 5 near 2 percent over 10.54 m, 0.4424 m apart
-        private string Civil()
+        private string Civil(string levels = "1,10.1\n2,10.2076\n3,10.3276\n4,10.4476\n5,10.65\n6,10.7\n")
         {
             string path = Path.Combine(folder, "civil.csv");
-            File.WriteAllText(path, "Plot No.,El @ Entry\n1,10.1\n2,10.2076\n3,10.3276\n4,10.4476\n5,10.65\n6,10.7\n");
+            File.WriteAllText(path, "Plot No.,El @ Entry\n" + levels);
             return path;
+        }
+
+        // The plots of the cluster the list of a build with no override holds, each with its slope at 3 decimals
+        private static string Outside(LevelFloorStepTests.Made made)
+        {
+            JArray listed = DesignBasis.OutsideList(made.Levels.Keys, made.Build.Entries.ToDictionary(item => item.Key, item => item.Value.Slope), (JObject)LevelFloorStepTests.MadeRules()["slopes_percent"]);
+            return string.Join(" ", listed.Where(item => Cluster.Contains((string)item["plot"])).Select(item => (string)item["plot"] + ":" + ((double)item["slopePercent"]).ToString("0.000", System.Globalization.CultureInfo.InvariantCulture)));
+        }
+
+        [Fact]
+        public void R414_Q303_a_slope_outside_the_limits_no_longer_stops_a_fit_and_stays_reported_for_each_unit_of_the_cluster()
+        {
+            // Roads of the row 10.18, 10.30, 10.42, 10.54 over a ramp of 5.52 m: 3.08 percent on plots 2 to 4 and 3.623 percent on plot 5, all over
+            // front_max. Plot 2 lies 0.59 m under the FFL of the cluster, 3 steps, so the cluster stays whole
+            string civil = Civil("1,10.1\n2,10.35\n3,10.47\n4,10.59\n5,10.74\n6,10.7\n");
+            LevelFloorStepTests.Made made = LevelFloorStepTests.MadeBuild(basis: Basis(civil: civil), bands: Bands(), clusters: Four());
+            Assert.All(Cluster, plot => Assert.Equal("none", (string)made.Levels[plot]["splitTest"]));
+            Assert.Equal("2,3,4,5", string.Join(",", (List<string>)made.Levels["2"]["piece"]));
+            Assert.Equal("3 3 2 1", string.Join(" ", Cluster.Select(plot => ((JToken)made.Levels[plot]["steps"]).ToString())));
+            Assert.Equal("2:3.080 3:3.080 4:3.080 5:3.623", Outside(made));
+        }
+
+        [Fact]
+        public void R414_Q303_the_steps_stop_a_fit_where_every_slope_is_inside_the_limits()
+        {
+            // Civil holds every slope of the cluster inside the limits and plot 2 at 4 steps when whole, so the steps alone split it
+            LevelFloorStepTests.Made split = LevelFloorStepTests.MadeBuild(basis: Basis(civil: Civil()), bands: Bands(), clusters: Four());
+            Assert.Equal("walls 1", (string)split.Levels["2"]["splitTest"]);
+            Assert.Equal("", Outside(split));
+            // At 1 percent each plot 2 lies 0.56 m under the FFL of the cluster, 3 steps, so the same row stays whole
+            string civil = Civil("1,10.1\n2,10.2352\n3,10.3552\n4,10.4752\n5,10.5952\n6,10.7\n");
+            LevelFloorStepTests.Made whole = LevelFloorStepTests.MadeBuild(basis: Basis(civil: civil), bands: Bands(), clusters: Four());
+            Assert.Equal("none", (string)whole.Levels["2"]["splitTest"]);
+            Assert.Equal("", Outside(whole));
         }
 
         private static JArray Bands()
@@ -163,13 +230,14 @@ namespace SiteAdaptation.Tests
         {
             string civil = Civil();
             LevelFloorStepTests.Made made = LevelFloorStepTests.MadeBuild(basis: Basis(civil: civil), bands: Bands(), clusters: Four());
-            Assert.All(Cluster, plot => Assert.Equal("walls 3", (string)made.Levels[plot]["splitTest"]));
-            Assert.Equal("2,3,4", string.Join(",", (List<string>)made.Levels["2"]["piece"]));
-            Assert.Equal("5", string.Join(",", (List<string>)made.Levels["5"]["piece"]));
+            // Q304 changes this case: the road of the made up row rises to plot 5, so the first wall cuts after plot 2 and not after plot 4
+            Assert.All(Cluster, plot => Assert.Equal("walls 1", (string)made.Levels[plot]["splitTest"]));
+            Assert.Equal("2", string.Join(",", (List<string>)made.Levels["2"]["piece"]));
+            Assert.Equal("3,4,5", string.Join(",", (List<string>)made.Levels["5"]["piece"]));
             Assert.Null(made.Levels["1"]["splitTest"]);
             Assert.Null(made.Levels["6"]["splitTest"]);
             Assert.Null(made.Levels["7"]["splitTest"]);
-            Assert.Equal(Rounding.Fixed(10.4476 + 0.2, 3), made.Build.Rows["2"].Ffl);
+            Assert.Equal(Rounding.Fixed(10.2076 + 0.2, 3), made.Build.Rows["2"].Ffl);
             Assert.Equal(Rounding.Fixed(10.65 + 0.2, 3), made.Build.Rows["5"].Ffl);
             Assert.Equal(0.5, Rounding.Fixed((double)made.Levels["2"]["slopePercent"], 3));
         }

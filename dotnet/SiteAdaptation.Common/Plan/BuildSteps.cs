@@ -366,6 +366,10 @@ namespace SiteAdaptation.Common
                 BuildRules.KeyRules(site.Rules, request.LevelProfile, string.Join(", ", Names));
                 // F3. The settings a build reads as numbers, as rule_inputs of Python holds them before any step is written
                 BuildRules.NumberSettings(site.Settings, Path.GetFileName(run.Input("config")));
+                // R482. The list of a request that names it before the first front, as rule_inputs reads it, an override frontEdge sets the front of its plot in every step
+                OverrideList named = request.Inputs.Any(item => item.Role == "overrides")
+                    ? PlanOverrides.Load(run.Input("overrides"), site.Settings, levelProfile, BuildRules.ProfileName(site.Rules, request.LevelProfile), Path.GetFileName(run.Input("config"))) : null;
+                Dictionary<string, JToken> frontEdges = named?.FrontEdges();
                 if (asked.Contains(SiteClusters.StepName))
                 {
                     run.Counts["clusters of the build"] = site.Clusters.Count;
@@ -379,7 +383,7 @@ namespace SiteAdaptation.Common
                     double[] limits = Fronts.Limits(site.Rules, site.Settings, site.RulesName);
                     double roadEdgeM = BuildFace.Number(site.Settings["siteBuild"]["corner"]["roadEdgeM"]);
                     Dictionary<string, FrontItem> fronts = Fronts.Of(site.Numbers, site.Rows, site.Faces, site.Roads, limits,
-                        (x, y) => TinSurface.RoadLevel(surfaces, x, y, snap), site.Rules, roadEdgeM, site.Sales, site.RulesName);
+                        (x, y) => TinSurface.RoadLevel(surfaces, x, y, snap), site.Rules, roadEdgeM, site.Sales, site.RulesName, frontEdges);
                     run.Counts["fronts with a frame"] = fronts.Values.Count(item => item.Frame != null);
                     run.Counts["fronts with no road level of a unit plot"] = fronts.Values.Count(item => item.Unit != null && item.Front == null);
                     made[Fronts.StepName] = Fronts.Step(site.Numbers, fronts, surfaces.Select(surface => surface.Name).ToList(), snap);
@@ -397,7 +401,7 @@ namespace SiteAdaptation.Common
                     List<string> framed = site.Numbers.Concat(site.Units).Concat(site.Clusters.Where(cluster => cluster.Plots.Any(wanted.Contains)).SelectMany(cluster => cluster.Plots)).Distinct().ToList();
                     // R357. The front of each plot by the corner rule of R226 as rule_inputs takes it, with no road level
                     Dictionary<string, FrontItem> fronts = Fronts.Of(framed, site.Rows, site.Faces, site.Roads, Fronts.Limits(site.Rules, site.Settings, site.RulesName),
-                        (x, y) => new KeyValuePair<double?, string>(null, null), site.Rules, roadEdgeM, site.Sales, site.RulesName);
+                        (x, y) => new KeyValuePair<double?, string>(null, null), site.Rules, roadEdgeM, site.Sales, site.RulesName, frontEdges);
                     JObject key = BuildRules.KeyRules(site.Rules, request.LevelProfile, string.Join(", ", Names));
                     // Q105. The file of each code tells the cluster units of the table of hand alone whose row pair the hand walks
                     Dictionary<string, string> files = linked ? site.Files() : null;
@@ -434,7 +438,7 @@ namespace SiteAdaptation.Common
                         if (afterOverrides)
                         {
                             // R360, R386. The override list as plan_rules.load_overrides loads it, its skip plots plots of plots.csv, before any step file
-                            list = PlanOverrides.Load(run.Input("overrides"), site.Settings, levelProfile, profileName, Path.GetFileName(run.Input("config")));
+                            list = named ?? PlanOverrides.Load(run.Input("overrides"), site.Settings, levelProfile, profileName, Path.GetFileName(run.Input("config")));
                             PlanOverrides.SkipPlotsKnown(list.Skip, site.Rows, "the skip list of the override list: ");
                             // R362. The wall rules of the keys, a rule no build places walls by refused before any step file, as plan_from_book.build refuses it
                             wallRules = Walls.Rules(key, levelProfile, profileName, site.Rules, site.RulesName, site.Settings["keyPlans"]?["wallEdgeM"]);
@@ -447,7 +451,7 @@ namespace SiteAdaptation.Common
                         // R408. The bands of the ramp types of the floor file, the type of the slope of El @ Entry under rev6
                         JArray bands = basis.IsRev6 ? DesignBasis.Bands(PyMath.ReadJson(run.Input(BandsRole), BandsRole) as JObject) : null;
                         LevelBuild build = KeyLevels.Of(site.Numbers, site.Rows, site.Clusters, context, members => Fronts.Of(members, site.Rows, site.Faces, site.Roads, limits,
-                            (x, y) => TinSurface.RoadLevel(surfaces, x, y, snap), site.Rules, roadEdgeM, site.Sales, site.RulesName), site.Rules, key, levelProfile, profileName, basis, bands);
+                            (x, y) => TinSurface.RoadLevel(surfaces, x, y, snap), site.Rules, roadEdgeM, site.Sales, site.RulesName, frontEdges), site.Rules, key, levelProfile, profileName, basis, bands);
                         run.Counts["plots with El @ Entry"] = build.Entries.Count;
                         run.Counts["row partners"] = build.Partners.Count;
                         if (asked.Contains(KeyLevels.StepName))

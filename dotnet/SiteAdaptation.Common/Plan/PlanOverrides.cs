@@ -26,6 +26,12 @@ namespace SiteAdaptation.Common
 
         public Dictionary<string, Dictionary<string, string>> Ruled { get; }
 
+        // R482. plan_rules.front_edges: the value of each override frontEdge by plot, read before the first front of the build is taken
+        public Dictionary<string, JToken> FrontEdges()
+        {
+            return Found.Where(item => item.Value[PlanOverrides.FrontEdge] != null).ToDictionary(item => item.Key, item => item.Value[PlanOverrides.FrontEdge]);
+        }
+
         // The overrides of one plot by field, none for a plot the list does not hold
         public JObject Of(string plot)
         {
@@ -70,6 +76,10 @@ namespace SiteAdaptation.Common
     public static class PlanOverrides
     {
         public const string StepName = "overrides";
+
+        // R482. plan_rules.FRONT_EDGE, the override field that names the front of a plot by the number of an edge of its ring, and why a build leaves it on a plot with no ring
+        public const string FrontEdge = "frontEdge";
+        public const string NoFaceEdge = "the plot has no face, so no ring holds the edge (R482)";
 
         // plan_from_book.NO_GAP, LEFT and plan_rules.USE_RULE, the lines a build leaves an override with
         public const string NoGap = "the override holds no gap to the rule";
@@ -574,6 +584,21 @@ namespace SiteAdaptation.Common
             // R470. The road levels of the front pair of each ramp before a rampFrontM gap, the level a joint holds
             var roads = new Dictionary<string, double[]>();
             var outcomes = new Outcomes();
+            foreach (string number in numbers)
+            {
+                // R482. Taken above with the front of the plot, the first override of a plot in the order the build applied them
+                if (list.Of(number)[FrontEdge] != null)
+                {
+                    if (!linkFronts.TryGetValue(number, out FrontItem front) || front.Face == null)
+                    {
+                        outcomes.Leave(number, FrontEdge, NoFaceEdge);
+                    }
+                    else
+                    {
+                        outcomes.Applied(number, FrontEdge);
+                    }
+                }
+            }
             // The hand of each plot after a mirror flag override, the link of R356 on it
             var turned = new Dictionary<string, Dictionary<string, object>>();
             foreach (string number in numbers)

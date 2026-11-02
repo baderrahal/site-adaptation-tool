@@ -28,11 +28,13 @@ import project_profile
 import value_status
 
 FIELDS = ("plots", "ends", "base", "top")
-STEP_FIELDS = ("unit", "written", "edges", "plots", "ends", "base", "top", "levelPlots", "status", "irregular", "lineInsideM")
+STEP_FIELDS = ("unit", "written", "edges", "plots", "ends", "base", "top", "levelPlots", "status", "irregular", "lineInsideM", "endsSource")
 SOURCE = "keyRules"
 PLOTS_SOURCE = "locationPlan"
 # R416. The source of the ends of a wall moved inside an irregular plot, its line by Manual Rev 06 2.8.A and no longer keyRules.wallLine
 INSIDE_SOURCE = "manualInside"
+# R481, Q265. The source of the ends of a wall keyRules.wallOpen parted, measured weak by that rule, where every other wall stays UNKNOWN on its ends
+OPEN_SOURCE = "wallOpen"
 # The override of the list that turns a link, plan_from_book.moved_link
 ROTATION = "rotationDeg"
 # The candidates of key_rules.wall_base_candidates and wall_top_candidates, True for the higher plot of the wall
@@ -316,18 +318,26 @@ def edge_walls(plot, edge, a, b, others, written, ffls, rules, turned=False, kin
             continue
         base, top = pick(writers, ffls, rules["higherBase"]), pick(writers, ffls, rules["higherTop"])
         # R480. An edge of a pair the table of Q115 holds keeps that rule
-        gap = opening(plot, owners, written, a, b, length, rules, kin, own_front) or side_opening(owners, a, b, length, near, sides)
+        opened = opening(plot, owners, written, a, b, length, rules, kin, own_front)
+        gap = opened or side_opening(owners, a, b, length, near, sides)
+        # R481. Only the span of keyRules.wallOpen counts, a part of the side span of R480 keeps the old source, and a span clear of this part parts nothing
+        parted = opened is not None and not clear_of(start, end, opened)
         for low, high in pieces(start, end, gap, near):
             first = [a[0], a[1]] if low == 0.0 else [a[0] + ux * low, a[1] + uy * low]
             last = [b[0], b[1]] if high == length else [a[0] + ux * high, a[1] + uy * high]
             found.append({"plot": plot, "edge": edge, "plots": owners, "ends": [first, last], "base": ffls[base] - rules["depth"], "top": ffls[top] + rules["rise"],
-                          "basePlot": base, "topPlot": top, "turned": [other for other in owners if other in moved]})
+                          "basePlot": base, "topPlot": top, "turned": [other for other in owners if other in moved], "parted": parted})
     return found
+
+
+def clear_of(start, end, gap):
+    """Q115. True for an open gap that lies wholly outside the part start to end."""
+    return gap[1] <= start or gap[0] >= end
 
 
 def pieces(start, end, gap, near):
     """Q115. The part start to end less the open gap, each piece left longer than near, the whole part when there is no gap."""
-    if gap is None or gap[1] <= start or gap[0] >= end:
+    if gap is None or clear_of(start, end, gap):
         return [(start, end)]
     found = []
     if gap[0] - start > near:
@@ -489,7 +499,8 @@ def mitre(found, before, rings, tolerance, near):
 
 def entry(wall):
     """The wall as the plan writes it, each value with its source, the plot and edge it runs along and the plots of its base and top."""
-    sources = {"plots": PLOTS_SOURCE, "ends": INSIDE_SOURCE if wall.get("lineInsideM") else SOURCE, "base": SOURCE, "top": SOURCE}
+    ends = INSIDE_SOURCE if wall.get("lineInsideM") else OPEN_SOURCE if wall.get("parted") else SOURCE
+    sources = {"plots": PLOTS_SOURCE, "ends": ends, "base": SOURCE, "top": SOURCE}
     return {"plot": wall["plot"], "edge": wall["edge"], **{field: {"value": wall[field], "source": sources[field]} for field in FIELDS},
             "basePlot": wall["basePlot"], "topPlot": wall["topPlot"]}
 
@@ -528,7 +539,8 @@ def summary(items, details):
 def step(numbers, rows, trace):
     """R362. The step walls of the parity harness: per plot of the scope the walls the plan places from it, their edges, plots, ends, base and
     top, the plots of the base and top and the status of each value, and the table statusFrom of their details. R415, R416: under the Rev 6
-    mode irregular for a plot with a face and lineInsideM the move of each wall inside a plot, both null under the past job."""
+    mode irregular for a plot with a face and lineInsideM the move of each wall inside a plot, both null under the past job. R481: endsSource the
+    source of the ends of each wall, under either mode."""
     built, items, details = trace.get("built") or {}, trace.get("walls") or [], trace.get("statusFrom") or {}
     irregulars, lines = trace.get("irregular"), trace.get("wallLines")
     by_plot, line_of, used, found = {}, {}, set(), {}
@@ -545,5 +557,5 @@ def step(numbers, rows, trace):
                          "levelPlots": [[item["basePlot"], item["topPlot"]] for item in mine],
                          "status": [{field: {"status": item[field]["status"], "statusFrom": item[field]["statusFrom"]} for field in FIELDS} for item in mine],
                          "irregular": None if irregulars is None else irregulars.get(number),
-                         "lineInsideM": None if lines is None else line_of.get(number, [])}
+                         "lineInsideM": None if lines is None else line_of.get(number, []), "endsSource": [item["ends"]["source"] for item in mine]}
     return found, {"statusFrom": {key: details[key] for key in sorted(used)}}

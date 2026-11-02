@@ -37,7 +37,7 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 - The reader angleToTrueNorthDeg has 3 decimals and is not brought into 0 to 360, the placer takes 0 only
 - 4 yards that stand only by a mirror override read a status stronger than their evidence (Q163)
 - The tab title of the ribbon sits behind the overflow mark at 1536 logical px (Q146). 4 Check dry run has no worker start (Q195)
-- New project stays on the past job, the road pick grey (Q373). Under rev6 the past overrides apply (Q255). R414 off, 8 of 82 (Q303, Q304). No R417 (Q259)
+- New project stays on the past job, the road pick grey (Q373). Under rev6 the past overrides apply (Q255). R414 off, 43 of 82. No R417 (Q259)
 
 ## Bader's turn
 
@@ -51,7 +51,7 @@ shown. Q293 Approve the three drafts of SCAN-UI. Q294 Rules chosen in Set up sit
 proposal. Q301 The build takes the door level pick. Q302 Door level row under the past job. Q305 Hide Confirmed under the past job.
 Opened in FIX-1NOV-D, Lane D: Q330 Group of the key link parameters unread. Q331 Plot is no link parameter of the keys. Q332 FFL bound but never written.
 Q333 to Q335. Closed: Q155. D2: Q336, closed Q330. D3: Q337 to Q339, closed Q275. 6B-DATA: Q360 to Q363. FIX-2NOV-D: Q370 to Q374, closed Q256, Q364.
-Answers of 2 Nov: 20 closed, see steps/log.md. 165 open, steps/questions-open.md. Q286, Q293: steps/ui-shots/drafts-for-bader.md. Asks: steps/waiting-on-others.md.
+A3: closed Q265, Q299, Q303, Q304, new Q375, Q376. 2 Nov: 20 closed, steps/log.md. 162 open, steps/questions-open.md. Q286, Q293: steps/ui-shots/drafts-for-bader.md. Asks: steps/waiting-on-others.md.
 
 ## Next three steps
 
