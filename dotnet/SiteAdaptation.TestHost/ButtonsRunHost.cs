@@ -168,7 +168,9 @@ namespace SiteAdaptation.TestHost
                 fresh.Close(false);
                 made = "made from the template and opened";
             }
+            Stopwatch opening = Stopwatch.StartNew();
             document = ui.OpenAndActivateDocument(job.Model).Document;
+            RunTiming.BeforeRun(null, opening.Elapsed.TotalSeconds);
             config = JObject.Parse(File.ReadAllText(Settings));
             DesignValues.UseConfigOf(config);
             stateBefore = Get(AddinRunNames.Buttons, AddinRunNames.State);

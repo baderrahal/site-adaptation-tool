@@ -7,6 +7,7 @@ using Autodesk.Revit.DB;
 using SiteAdaptation.Common;
 using SiteAdaptation.Common.PlaceVillas;
 using SiteAdaptation.Common.Tags;
+using SiteAdaptation.Common.Flow;
 
 namespace SiteAdaptation.AddIn.Revit
 {
@@ -184,13 +185,13 @@ namespace SiteAdaptation.AddIn.Revit
 
         public PlacedTransform ReadBackLink(string uniqueId)
         {
-            document.Regenerate();
+            RunTiming.Measure(RunTiming.ModelRefresh, document.Regenerate);
             return document.GetElement(uniqueId) is RevitLinkInstance instance ? Transform(instance) : null;
         }
 
         public IReadOnlyList<double[]> ReadBackBase(string uniqueId)
         {
-            document.Regenerate();
+            RunTiming.Measure(RunTiming.ModelRefresh, document.Regenerate);
             return document.GetElement(uniqueId) is DirectShape shape ? BaseOf(shape) : null;
         }
 

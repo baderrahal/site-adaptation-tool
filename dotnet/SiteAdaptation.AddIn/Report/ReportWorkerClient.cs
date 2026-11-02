@@ -3,6 +3,7 @@ using System.IO;
 using System.Reflection;
 using System.Threading;
 using SiteAdaptation.Common;
+using SiteAdaptation.Common.Flow;
 
 namespace SiteAdaptation.AddIn.Report
 {
@@ -26,7 +27,8 @@ namespace SiteAdaptation.AddIn.Report
             {
                 using (WorkerLaunch.Start(WorkerLaunch.WorkerStart(exe, requestFile), workFolder, request, ended => { answer = ended; done.Set(); }))
                 {
-                    done.Wait();
+                    // R447. The wait of a worker inside a step is no Revit time
+                    RunTiming.Measure(RunTiming.WorkerWait, done.Wait);
                 }
             }
             if (answer == null || answer.Status != WorkerExit.Status(WorkerExit.Done))

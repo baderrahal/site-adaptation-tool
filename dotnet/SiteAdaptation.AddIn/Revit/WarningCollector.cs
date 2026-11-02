@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Autodesk.Revit.DB;
+using SiteAdaptation.Common.Flow;
 
 namespace SiteAdaptation.AddIn.Revit
 {
@@ -11,6 +12,11 @@ namespace SiteAdaptation.AddIn.Revit
         public readonly List<string> Errors = new List<string>();
 
         public FailureProcessingResult PreprocessFailures(FailuresAccessor accessor)
+        {
+            return RunTiming.Measure(RunTiming.Warnings, () => Collect(accessor));
+        }
+
+        private FailureProcessingResult Collect(FailuresAccessor accessor)
         {
             bool error = false;
             foreach (FailureMessageAccessor message in accessor.GetFailureMessages())

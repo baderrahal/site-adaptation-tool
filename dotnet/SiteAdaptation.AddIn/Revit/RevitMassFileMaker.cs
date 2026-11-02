@@ -6,6 +6,7 @@ using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
 using SiteAdaptation.Common;
 using SiteAdaptation.Common.PlaceVillas;
+using SiteAdaptation.Common.Flow;
 
 namespace SiteAdaptation.AddIn.Revit
 {
@@ -54,7 +55,7 @@ namespace SiteAdaptation.AddIn.Revit
                         throw new InvalidOperationException("the mass of " + Path.GetFileName(massPath) + " did not commit, " + status + ", no mass file was saved (R450)");
                     }
                 }
-                mass.SaveAs(massPath, new SaveAsOptions { OverwriteExistingFile = true });
+                RunTiming.Measure(RunTiming.Saving, () => mass.SaveAs(massPath, new SaveAsOptions { OverwriteExistingFile = true }));
             }
             finally
             {
