@@ -612,7 +612,7 @@ namespace SiteAdaptation.UiShots
 
         public string ConfigSheet(string configFile)
         {
-            return "Parameter sheet.xlsx";
+            return null;
         }
 
         public SheetRead ReadSheet(string path)

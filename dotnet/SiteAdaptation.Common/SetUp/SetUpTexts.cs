@@ -95,6 +95,12 @@ namespace SiteAdaptation.Common.SetUp
             return string.Join(" ", taken.Select(each => "Removes the " + each.Key + " binding of " + string.Join(", ", each.Value) + "."));
         }
 
+        // R506. The messages of the sheet end on a rule id for the log, a window shows no code name
+        public static string NoRuleId(string text)
+        {
+            return text == null ? string.Empty : System.Text.RegularExpressions.Regex.Replace(text, @"\s*\(R\d+\)$", string.Empty);
+        }
+
         // R507. A sheet from before the rule, it would bind the row on Floors again
         public static string VillaRowOnFloors(string sheet, string name)
         {

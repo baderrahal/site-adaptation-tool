@@ -544,18 +544,12 @@ namespace SiteAdaptation.AddIn.Pane
             row.Hint = read?.Line ?? string.Empty;
             string config = string.IsNullOrEmpty(chosen) ? path : probe.ConfigSheet(document.Settings.ConfigFile);
             bool other = row.Found && !string.IsNullOrEmpty(chosen) && !string.IsNullOrEmpty(config) && !string.Equals(Path.GetFullPath(chosen), Path.GetFullPath(config), StringComparison.OrdinalIgnoreCase);
-            string note = read?.Refused ?? (other ? SetUpTexts.OtherSheet(Path.GetFileName(chosen), Path.GetFileName(config)) : read?.Warning);
-            row.ShowNote(NoRuleId(note));
+            string note = read?.Refused ?? (other ? Common.SetUp.SetUpTexts.OtherSheet(Path.GetFileName(chosen), Path.GetFileName(config)) : read?.Warning);
+            row.ShowNote(Common.SetUp.SetUpTexts.NoRuleId(note));
             if (read?.Refused != null)
             {
                 row.Show(true, false, row.FileName, row.ToolTip);
             }
-        }
-
-        // The messages of the sheet end on a rule id for the log, a window shows no code name
-        private static string NoRuleId(string text)
-        {
-            return text == null ? string.Empty : System.Text.RegularExpressions.Regex.Replace(text, @"\s*\(R\d+\)$", string.Empty);
         }
 
         private void RefreshRow(FileRowViewModel row, string[] paths)
