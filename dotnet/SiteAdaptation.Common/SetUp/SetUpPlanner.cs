@@ -106,7 +106,7 @@ namespace SiteAdaptation.Common.SetUp
                 {
                     stops.Add(SetUpTexts.FloorsOwn(item.Name, ParameterSheet.FloorsButton));
                 }
-                if (item.FilledBy == ParameterSheet.PlaceVillasButton && item.Categories.Contains(ParameterSheet.FloorCategory))
+                if (item.Name != target.PlotParameter && item.FilledBy == ParameterSheet.PlaceVillasButton && item.Categories.Contains(ParameterSheet.FloorCategory))
                 {
                     stops.Add(SetUpTexts.VillaRowOnFloors(item.Name, ParameterSheet.FloorCategory));
                 }

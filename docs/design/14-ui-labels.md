@@ -698,3 +698,6 @@ The loader of every button of Lane C DEMO-FIX (R444), a DRAFT with no board. It 
 - `Running outside Revit. The pane shows the step when it ends.` CHOSEN, the line while 2 Read data or 4 Check runs in the worker (R375)
 - `Elapsed <n>` CHOSEN, the clock in minutes and seconds
 - `Hide` CHOSEN, shown only while the step runs outside Revit, it closes the loader and changes nothing in the run
+- `<n> parameters, <n> left out` CHOSEN, Bader's words, the line under the pane row Shared parameters (R506)
+- `Removes the <category> binding of <names>.` CHOSEN, in the row Shared parameters of Set up site on a model set up before R507 (R508)
+- `The parameter sheet binds <name> on Floors. Shared parameters are for the villa links only, so use the sheet of this version (R507)` CHOSEN, a stop of Set up site (R507)
