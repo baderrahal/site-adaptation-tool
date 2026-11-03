@@ -9,6 +9,24 @@ namespace SiteAdaptation.Common.SetUp
         // True gives the badge "Existing site file", false "Empty project found"
         public bool ExistingSite { get; set; }
 
+        // R510. The plain line of a model with no site coordinates, null on one that holds them
+        public string NoCoordinatesLine { get; set; }
+
+        // R510. The place a blank model holds, named as what the template gave, null when there is none or the model holds coordinates
+        public string TemplatePlaceLine { get; set; }
+
+        // R512. Why the check against the position file did not run, null when it ran or is not asked
+        public string CheckLine { get; set; }
+
+        // R513. Why no source gives usable coordinates, one line, null when one does
+        public string NoSourceLine { get; set; }
+
+        // R514. cad, positionFile or typed, null while no usable source is chosen. The window words its intro and its check table by it and asks for the site drawing only under CAD
+        public string PositionSource { get; set; }
+
+        // R512. CAD beside the position file, empty unless both are there
+        public List<SourceRow> SourceRows { get; set; } = new List<SourceRow>();
+
         // The signs the badge stands on, one text each, empty on an empty project
         public List<string> Signs { get; set; } = new List<string>();
 
@@ -72,6 +90,9 @@ namespace SiteAdaptation.Common.SetUp
 
         // Browse of the row Shared parameters with the path of the sheet chosen, the view read again on it
         public System.Func<string, SetUpSiteView> SheetChosen { get; set; }
+
+        // R513. Use CAD, Pick position file or Use typed values, the view read again on the source chosen
+        public System.Func<SiteSourcePick, SetUpSiteView> SourceChosen { get; set; }
     }
 
     public sealed class SetUpSiteAnswer

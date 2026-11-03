@@ -129,6 +129,30 @@ def test_r412_an_input_that_is_not_there_is_missing_and_one_that_cannot_be_read_
     assert new_project_check.text_of(report).count("missing.") == 2
 
 
+def test_r511_the_new_project_check_reads_the_source_the_project_holds(tmp_path):
+    """The source the project holds decides, not the default of a new project in config, so a past job with its position file still gets the line. The same cases as the C#."""
+    work, root, config = build(tmp_path)
+    (work / "pos.json").unlink()
+    settings = json.loads((config / "project.json").read_text(encoding="utf-8"))
+    settings["coordinates"] = {"source": "positionFile", "newProjectSource": "cad"}
+    (config / "project.json").write_text(json.dumps(settings), encoding="utf-8")
+
+    def position_of(source, file=None):
+        report = new_project_check.check(config / "project.json", config / "rules.json", config / "prototype_offsets.json", work, root, coordinate_source=source, position_file=file)[0]
+        return {each["input"]: (each["status"], each["text"]) for each in report["lines"]}["position file"]
+
+    assert position_of(None)[0] == "missing"
+    assert position_of("positionFile")[0] == "missing"
+    assert position_of("cad") == ("ok", "not asked, this project takes its position from CAD")
+    assert position_of("typed") == ("ok", "not asked, this project takes its position from typed values")
+
+    settings["coordinates"]["source"] = "cad"
+    (config / "project.json").write_text(json.dumps(settings), encoding="utf-8")
+    assert position_of(None)[0] == "ok"
+    assert position_of("positionFile")[0] == "missing"
+    assert position_of("positionFile", str(work / "gone.json"))[1] == "gone.json is not there"
+
+
 def test_r412_a_position_file_with_a_missing_point_or_level_does_not_fit_and_names_what_is_wrong(tmp_path):
     work, root, config = build(tmp_path)
     found = json.loads((work / "pos.json").read_text())

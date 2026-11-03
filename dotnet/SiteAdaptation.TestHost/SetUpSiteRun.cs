@@ -129,13 +129,13 @@ namespace SiteAdaptation.TestHost
             }
             previous = document;
             entry["before"] = Facts(document);
-            var first = new AnswerWindow();
+            var first = new AnswerWindow { Pick = job.SiteSource };
             var state = new RunState(folder, label, Settings);
             entry["firstResult"] = Button(state, first);
             entry["first"] = first.Seen;
             entry["firstCommitted"] = state.Commits;
             entry["after"] = Facts(document);
-            var second = new AnswerWindow();
+            var second = new AnswerWindow { Pick = job.SiteSource };
             var again = new RunState(folder, label, Settings);
             entry["secondResult"] = Button(again, second);
             entry["second"] = second.Seen;
@@ -222,8 +222,16 @@ namespace SiteAdaptation.TestHost
 
             public int Stops { get; private set; }
 
+            // R513. The source of the job, taken as a click of the window takes it
+            public SiteSourcePick Pick { get; set; }
+
             public SetUpSiteAnswer Show(SetUpSiteView view, SetUpSiteCallbacks callbacks)
             {
+                if (Pick != null)
+                {
+                    Seen["before"] = JObject.FromObject(view);
+                    view = callbacks.SourceChosen(Pick);
+                }
                 Seen["shown"] = JObject.FromObject(view);
                 Stops = view.Stops.Count;
                 if (Stops > 0)

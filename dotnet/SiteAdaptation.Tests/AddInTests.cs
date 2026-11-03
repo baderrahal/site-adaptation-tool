@@ -157,7 +157,7 @@ namespace SiteAdaptation.Tests
         {
             string buttons = File.ReadAllText(Path.Combine(ThemeGateTests.RepoRoot(), "dotnet", "SiteAdaptation.AddIn", "Commands", "Buttons.cs"));
             Assert.Contains("if (commandName == nameof(Commands.SiteAdaptationRulesCommand))", buttons);
-            Assert.Contains("RulesWindow.RulesWindowBody.Show(application.MainWindowHandle, session?.Settings?.RulesFile)", buttons);
+            Assert.Contains("RulesWindow.RulesWindowBody.Show(owner, session.Settings.RulesFile)", buttons);
             Assert.Contains("catch (FileNotFoundException", buttons);
             Assert.Contains("catch (InvalidDataException", buttons);
         }

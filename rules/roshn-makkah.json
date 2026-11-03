@@ -986,7 +986,11 @@
       "coordinates.controlPointLimitMm": {"status": "RECOMMENDED", "question": "Q329", "where": "coordinates.note"},
       "coordinates.utmEastM": {"status": "CHOSEN by Code", "where": "coordinates.note"},
       "coordinates.utmNorthM": {"status": "CHOSEN by Code", "where": "coordinates.note"},
-      "coordinates.utmSouthNorthM": {"status": "CHOSEN by Code", "where": "coordinates.note"}
+      "coordinates.utmSouthNorthM": {"status": "CHOSEN by Code", "where": "coordinates.note"},
+      "coordinates.newProjectSource": {"status": "RECOMMENDED", "question": "Q415", "where": "coordinates.note"},
+      "coordinates.noCoordinatesLimitMm": {"status": "CHOSEN by Code", "where": "coordinates.note"},
+      "coordinates.noCoordinatesLimitDeg": {"status": "CHOSEN by Code", "where": "coordinates.note"},
+      "coordinates.typedOffBoxLimitM": {"status": "CHOSEN by Code", "where": "coordinates.note"}
     }
   }
 }

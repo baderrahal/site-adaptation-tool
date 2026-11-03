@@ -9,9 +9,11 @@ namespace SiteAdaptation.AddIn.SetUpSite
     {
         private readonly SetUpSiteCallbacks callbacks;
         private readonly Func<string> pickSheet;
+        private readonly Func<string> pickPosition;
 
-        public SetUpSiteSession(SetUpSiteView view, SetUpSiteCallbacks callbacks, Func<string> pickSheet)
+        public SetUpSiteSession(SetUpSiteView view, SetUpSiteCallbacks callbacks, Func<string> pickSheet, Func<string> pickPosition = null)
         {
+            this.pickPosition = pickPosition;
             Model = new SetUpSiteViewModel(view);
             this.callbacks = callbacks ?? new SetUpSiteCallbacks();
             this.pickSheet = pickSheet;
@@ -51,6 +53,43 @@ namespace SiteAdaptation.AddIn.SetUpSite
             if (Run(() => callbacks.SheetChosen(path), slope))
             {
                 Model.ChosenSheet = path;
+            }
+        }
+
+        // R513. The three ways to the site position, each read again by Common
+        public void UseCad()
+        {
+            Choose(new SiteSourcePick { Source = SiteSources.Cad });
+        }
+
+        public void PickPosition()
+        {
+            string path = pickPosition?.Invoke();
+            if (!string.IsNullOrEmpty(path))
+            {
+                Choose(new SiteSourcePick { Source = SiteSources.PositionFile, PositionFile = path });
+            }
+        }
+
+        public void UseTyped()
+        {
+            Model.ClearProblem();
+            if (Model.TypedValues(out double east, out double north, out double angle))
+            {
+                Choose(new SiteSourcePick { Source = SiteSources.Typed, EastM = east, NorthM = north, AngleDeg = angle });
+            }
+            else
+            {
+                Model.Fail(SetUpTexts.TypedNotNumbers);
+            }
+        }
+
+        private void Choose(SiteSourcePick pick)
+        {
+            if (callbacks.SourceChosen != null)
+            {
+                double slope = Model.SelectedSlope;
+                Run(() => callbacks.SourceChosen(pick), slope);
             }
         }
 

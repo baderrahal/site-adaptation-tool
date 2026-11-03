@@ -29,6 +29,9 @@ namespace SiteAdaptation.AddIn.Update
 
         private string configPath;
         private string rulesPath;
+
+        // R541. The rules file the settings of the document name
+        public Func<string> RulesFile { get; set; }
         private JObject rules;
         private string profile;
         private string overridesPath;
@@ -72,7 +75,9 @@ namespace SiteAdaptation.AddIn.Update
             configPath = settings.Path;
             JObject config = Json(configPath, "the settings file");
             string name = config["profile"]?.Type == JTokenType.String ? (string)config["profile"] : throw new InvalidDataException("config names no rules profile, profile (R277)");
-            rulesPath = Path.IsPathRooted(name) ? name : Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(Path.GetFullPath(configPath))), name);
+            // R541. The rules copy of the project when the settings name one, the file 4 Check built by
+            rulesPath = RulesFile?.Invoke();
+            rulesPath = !string.IsNullOrEmpty(rulesPath) ? rulesPath : Path.IsPathRooted(name) ? name : Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(Path.GetFullPath(configPath))), name);
             rules = Json(rulesPath, "the rules profile");
             profile = rules["levelProfiles"]?["default"]?.Type == JTokenType.String ? (string)rules["levelProfiles"]["default"] : throw new InvalidDataException("the rules profile names no levelProfiles.default (R277)");
             overridesPath = OverridesPath(configPath, rulesPath);
