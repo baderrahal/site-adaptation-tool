@@ -515,7 +515,7 @@ def override_step(numbers, rows, trace, hands, files, rules, profile, step):
                 origin, turn = plan_from_past.point(made["insert"]), plan_from_past.plan_rotation(made["rotationDeg"])
                 # R475. Cut by the ramp the plot ends with, on the open edge of Q116 after a turn
                 cut = yard_in_plot([[list(point) for point in floor_fit.to_world(loop, origin, turn, mirrored)] for loop in group["loops"]],
-                                   floor_fit.pulled_ring(face_ring(item["face"]), trace.get("pull")), ramp_corners)
+                                   floor_fit.pulled_ring(face_ring(item["face"]), trace.get("pull")), ramp_corners if kind is not None else None)
                 if cut:
                     made.update(yardZ=ffl - below, yardOutline=cut)
         written = plot["entry"]

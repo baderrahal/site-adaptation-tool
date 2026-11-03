@@ -459,7 +459,7 @@ namespace SiteAdaptation.Common
                         // R408. The bands of the ramp types of the floor file, the type of the slope of El @ Entry under rev6
                         JArray bands = basis.IsRev6 ? DesignBasis.Bands(PyMath.ReadJson(run.Input(BandsRole), BandsRole) as JObject) : null;
                         LevelBuild build = KeyLevels.Of(site.Numbers, site.Rows, site.Clusters, context, members => Fronts.Of(members, site.Rows, site.Faces, site.Roads, limits,
-                            (x, y) => TinSurface.RoadLevel(surfaces, x, y, snap), site.Rules, roadEdgeM, site.Sales, site.RulesName, frontEdges), site.Rules, key, levelProfile, profileName, basis, bands);
+                            (x, y) => TinSurface.RoadLevel(surfaces, x, y, snap), site.Rules, roadEdgeM, site.Sales, site.RulesName, frontEdges), site.Rules, key, levelProfile, profileName, basis, bands, site.Settings);
                         run.Counts["plots with El @ Entry"] = build.Entries.Count;
                         run.Counts["row partners"] = build.Partners.Count;
                         if (asked.Contains(KeyLevels.StepName))

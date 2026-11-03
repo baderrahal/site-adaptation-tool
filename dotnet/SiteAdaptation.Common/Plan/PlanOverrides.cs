@@ -84,6 +84,7 @@ namespace SiteAdaptation.Common
         // plan_from_book.NO_GAP, LEFT and plan_rules.USE_RULE, the lines a build leaves an override with
         public const string NoGap = "the override holds no gap to the rule";
         // plan_from_book.OPEN_EDGE_GAP, Q116. The rampFront gap holds the road of the front of R355, not of the open edge of a turned plot
+        public const string JointLeft = "a shared ramp corner holds one level, the road at front plus the slope of the joint (R516)";
         public const string OpenEdgeGap = "measured on the front of R355, the ramp moved to the open edge (Q116)";
         public const string UseRule = "use rule, the override list marks the entry to follow the rule (R386)";
         private const string ParameterWord = "parameter ";
@@ -583,9 +584,9 @@ namespace SiteAdaptation.Common
             List<string> later = LaterFields(config, levelProfile);
             HashSet<string> laterParameters = KeyLevels.LaterParameters(config, levelProfile);
             List<string> facade = ((config["majority"]?["linkNameFacade"] as JArray) ?? new JArray()).Select(Text).ToList();
-            double? near = FloorOutlines.JointNear(config, "config");
-            // R470. The road levels of the front pair of each ramp before a rampFrontM gap, the level a joint holds
+            // R470. The road levels and the rule outline of each ramp before a rampFrontM gap and the pull, what a joint holds and groups by
             var roads = new Dictionary<string, double[]>();
+            var ruleOutlines = new Dictionary<string, double[][]>();
             var outcomes = new Outcomes();
             foreach (string number in numbers)
             {
@@ -642,7 +643,8 @@ namespace SiteAdaptation.Common
                 {
                     // R364. The unrounded mean of the two front corners, which no override moves
                     made["roadAtFront"] = KeyLevels.RoadAtFront(item.Front);
-                    JToken gap = GapOf(mine["entryM"]);
+                    // R516. The door level of a shared back corner is the joint's, the override is left with why
+                    JToken gap = build.JointBack.Contains(number) ? null : GapOf(mine["entryM"]);
                     if (gap != null)
                     {
                         made["entry"] = entry.Rule + BuildFace.Number(gap);
@@ -655,7 +657,7 @@ namespace SiteAdaptation.Common
                         entryWritten = entry.Rule;
                         if (mine.Property("entryM") != null)
                         {
-                            outcomes.Leave(number, "entryM", NoGap);
+                            outcomes.Leave(number, "entryM", build.JointBack.Contains(number) ? JointLeft : NoGap);
                         }
                     }
                     if (build.Rev6)
@@ -854,6 +856,11 @@ namespace SiteAdaptation.Common
                     {
                         outcomes.Leave(number, "rampFrontM", OpenEdgeGap);
                     }
+                    else if (build.JointShared.Contains(number) && mine.Property("rampFrontM") != null)
+                    {
+                        // R516. A shared corner holds the road level, so the ramp stays a plane on the road
+                        outcomes.Leave(number, "rampFrontM", JointLeft);
+                    }
                     else if (gap != null)
                     {
                         front = front.Select(z => z + BuildFace.Number(gap)).ToArray();
@@ -884,7 +891,8 @@ namespace SiteAdaptation.Common
                     {
                         made["rampZ"] = FloorOutlines.RampHeights(front, entryWritten.Value);
                         made["rampType"] = kind.DeepClone();
-                        made["rampOutline"] = outline;
+                        made["rampOutline"] = FloorOutlines.PulledRing(outline, build.Pull);
+                        ruleOutlines[number] = outline;
                     }
                     foreach (string field in moved)
                     {
@@ -911,7 +919,7 @@ namespace SiteAdaptation.Common
                         {
                             double[] origin = insert.Select(value => Rounding.Fixed(value, 3)).ToArray();
                             List<List<double[]>> fitted = ((JArray)group["loops"]).Select(loop => FloorOutlines.ToWorld((JArray)loop, origin, (double)rotation.Written, (bool)mirrored)).ToList();
-                            cut = FloorOutlines.YardInPlot(fitted, item.Face?.Ring, ramp ? outline : null);
+                            cut = FloorOutlines.YardInPlot(fitted, item.Face == null ? null : FloorOutlines.PulledRing(item.Face.Ring, build.Pull), ramp ? outline : null);
                             found[number].YardCut = !ReferenceEquals(cut, fitted);
                             if (cut.Count > 0)
                             {
@@ -937,8 +945,8 @@ namespace SiteAdaptation.Common
             }
             // R470. A front corner ramps of two or more written plots share takes the road of the first, which BuildPlan writes through rampZ
             var ramps = numbers.Where(number => found[number].Overrides["rampZ"] != null)
-                .Select(number => Tuple.Create(number, (double[][])found[number].Overrides["rampOutline"], (double[])found[number].Overrides["rampZ"], roads[number])).ToList();
-            foreach (KeyValuePair<string, double[]> joined in near == null ? new Dictionary<string, double[]>() : FloorOutlines.JointLevels(ramps, near.Value))
+                .Select(number => Tuple.Create(number, ruleOutlines[number], (double[])found[number].Overrides["rampZ"], roads[number])).ToList();
+            foreach (KeyValuePair<string, double[]> joined in build.Joint == null ? new Dictionary<string, double[]>() : FloorOutlines.JointLevels(ramps, build.Joint.Near, build.Joint.Back))
             {
                 found[joined.Key].Overrides["rampZ"] = joined.Value;
             }

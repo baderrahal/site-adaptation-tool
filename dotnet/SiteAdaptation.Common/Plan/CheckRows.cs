@@ -61,7 +61,7 @@ namespace SiteAdaptation.Common
         private const string JointField = "rampJoint";
         private const string JointFrom = "joint";
         private const string JointRule = "R471";
-        public const string NoJoint = "floors.rampJoint of the settings holds no length nearM above 0 and passGapM of 0 or more (R471)";
+        public const string NoJoint = "floors.rampJoint of the settings holds no length checkNearM above 0 and passGapM of 0 or more (R471)";
         public const string NoBlock = "the settings hold no block checkRows, the check rows of R363 take their check types and the form of Past from it";
 
         private static string Text(JToken value)
@@ -176,11 +176,11 @@ namespace SiteAdaptation.Common
             return found;
         }
 
-        // check_rows.joint_limits: nearM and passGapM of floors.rampJoint, refused unless nearM is a length above 0 and passGapM one of 0 or more
+        // R471, R518. check_rows.joint_limits: checkNearM and passGapM of floors.rampJoint, refused unless checkNearM is a length above 0 and passGapM one of 0 or more
         public static Tuple<double, double> JointLimits(JObject config)
         {
             JToken block = config["floors"]?["rampJoint"];
-            JToken near = block?["nearM"], pass = block?["passGapM"];
+            JToken near = block?["checkNearM"], pass = block?["passGapM"];
             bool Length(JToken value) => value != null && (value.Type == JTokenType.Integer || value.Type == JTokenType.Float);
             if (!Length(near) || !Length(pass) || (double)near <= 0 || (double)pass < 0)
             {

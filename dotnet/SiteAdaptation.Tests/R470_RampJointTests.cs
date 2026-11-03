@@ -114,7 +114,8 @@ namespace SiteAdaptation.Tests
         public void R470_near_is_read_from_config_floors_ramp_joint_and_a_bad_one_refused()
         {
             JObject config = JObject.Parse(File.ReadAllText(WorkerRunTests.RepoConfig()));
-            // Bader chose join false until Q340 is answered, so the build of config joins no corner
+            config["floors"]["rampJoint"]["nearM"] = Near;
+            config["floors"]["rampJoint"]["join"] = false;
             Assert.Null(FloorOutlines.JointNear(config, "project.json"));
             foreach (JToken bad in new JToken[] { JValue.CreateNull(), "true", 1 })
             {
@@ -142,7 +143,7 @@ namespace SiteAdaptation.Tests
         public void R470_with_join_false_the_step_overrides_keep_the_ramp_front_override_at_every_corner()
         {
             var list = new OverrideList(new Dictionary<string, JObject> { ["2"] = JObject.Parse("{\"rampFrontM\": {\"gapToRuleM\": 0.05}}") });
-            Dictionary<string, PlotPlan> plans = OverrideParameterStepTests.Build(list).Plans;
+            Dictionary<string, PlotPlan> plans = OverrideParameterStepTests.Build(list, basis: DesignBasis.Of(JObject.Parse(File.ReadAllText(WorkerRunTests.RepoConfig())), () => null), changeConfig: config => config["floors"]["rampJoint"]["join"] = false).Plans;
             // The 5 cm gap of 2 stands at both its front corners and the shared corner of 1 stays at the road, as before R470
             Assert.Equal(new[] { 10.17, 10.29 }, ((double[])plans["2"].Overrides["rampZ"]).Take(2).Select(z => Rounding.Fixed(z, 3)).ToArray());
             Assert.Equal(10.12, Rounding.Fixed(((double[])plans["1"].Overrides["rampZ"])[1], 3));
@@ -152,7 +153,13 @@ namespace SiteAdaptation.Tests
         public void R470_the_step_overrides_keep_the_front_joints_at_the_road_a_ramp_front_override_moved()
         {
             var list = new OverrideList(new Dictionary<string, JObject> { ["2"] = JObject.Parse("{\"rampFrontM\": {\"gapToRuleM\": 0.05}}") });
-            OverrideParameterStepTests.Built built = OverrideParameterStepTests.Build(list, changeConfig: config => config["floors"]["rampJoint"]["join"] = true);
+            OverrideParameterStepTests.Built built = OverrideParameterStepTests.Build(list, basis: DesignBasis.Of(JObject.Parse(File.ReadAllText(WorkerRunTests.RepoConfig())), () => null), changeConfig: config =>
+            {
+                config["floors"]["rampJoint"]["join"] = true;
+                config["floors"]["rampJoint"]["nearM"] = Near;
+                config["floors"]["rampJoint"]["joinBack"] = false;
+                config["floors"]["rampJoint"]["modes"] = new JArray("rev6", "roshnPastJob");
+            });
             Dictionary<string, PlotPlan> plans = built.Plans;
             double[] one = (double[])plans["1"].Overrides["rampZ"], two = (double[])plans["2"].Overrides["rampZ"], three = (double[])plans["3"].Overrides["rampZ"];
             // Both front corners of 2 are shared, at x 12 with 1 and at x 24 with 3, so they stay at the road and its 5 cm gap moves neither
