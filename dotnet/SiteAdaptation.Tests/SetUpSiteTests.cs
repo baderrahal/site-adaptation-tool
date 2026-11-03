@@ -29,6 +29,58 @@ namespace SiteAdaptation.Tests
             return view;
         }
 
+        // R510, R513. The three ways to a site position, handed to Common with no click, and the plain lines of the view shown as they are
+        [Fact]
+        public void R513_the_session_hands_each_source_to_common_and_a_stop_keeps_apply_off()
+        {
+            var picks = new List<SiteSourcePick>();
+            SetUpSiteView blank = Shots.SampleSetUpView(true, true);
+            blank.NoCoordinatesLine = "This model has no site coordinates.";
+            blank.NoCadLine = "The pane names no baseplan drawing, so the tool has no coordinates from CAD.";
+            blank.Stops = new List<string> { blank.NoCadLine };
+            string file = null;
+            var session = new SetUpSiteSession(blank, new SetUpSiteCallbacks
+            {
+                SourceChosen = pick =>
+                {
+                    picks.Add(pick);
+                    return Shots.SampleSetUpView(true, true);
+                },
+            }, () => null, () => file);
+
+            Assert.True(session.Model.NoCoordinatesShown);
+            Assert.True(session.Model.NoCadShown);
+            Assert.False(session.Model.CanApply);
+
+            session.PickPosition();
+            Assert.Empty(picks);
+
+            session.Model.TypedEast = "not a number";
+            session.UseTyped();
+            Assert.Empty(picks);
+            Assert.Contains(SetUpTexts.TypedNotNumbers, session.Model.StopsLine);
+
+            session.Model.TypedEast = "300100.5";
+            session.Model.TypedNorth = "2400200.25";
+            session.Model.TypedAngle = "2.5";
+            session.UseTyped();
+            Assert.Equal(SiteSources.Typed, picks[0].Source);
+            Assert.Equal(300100.5, picks[0].EastM);
+            Assert.Equal(2400200.25, picks[0].NorthM);
+            Assert.Equal(2.5, picks[0].AngleDeg);
+            Assert.DoesNotContain(SetUpTexts.TypedNotNumbers, session.Model.StopsLine);
+            Assert.False(session.Model.NoCadShown);
+            Assert.Equal("300100.5", session.Model.TypedEast);
+
+            file = @"C:\Sample\position.json";
+            session.PickPosition();
+            Assert.Equal(SiteSources.PositionFile, picks[1].Source);
+            Assert.Equal(file, picks[1].PositionFile);
+
+            session.UseCad();
+            Assert.Equal(SiteSources.Cad, picks[2].Source);
+        }
+
         [Fact]
         public void R373_the_view_model_shows_the_badge_the_signs_the_count_and_the_pass_line_of_the_view()
         {

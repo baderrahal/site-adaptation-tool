@@ -24,6 +24,21 @@ namespace SiteAdaptation.AddIn.SetUpSite
             session.Browse();
         }
 
+        private void OnUseCad(object sender, RoutedEventArgs e)
+        {
+            session.UseCad();
+        }
+
+        private void OnPickPosition(object sender, RoutedEventArgs e)
+        {
+            session.PickPosition();
+        }
+
+        private void OnUseTyped(object sender, RoutedEventArgs e)
+        {
+            session.UseTyped();
+        }
+
         private void OnApply(object sender, RoutedEventArgs e)
         {
             session.Apply();

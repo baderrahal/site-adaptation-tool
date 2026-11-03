@@ -43,6 +43,13 @@ namespace SiteAdaptation.Common.Settings
         // R484. The project mode, one of designBasis.modes of config, null in a file written before it, which reads designBasis.mode of config. Save setup
         // of New project writes it, every worker request carries it and it is laid over the config where a run loads it (ProjectModes)
         public string ProjectMode { get; set; }
+
+        // R511, R513. The site source of button 1, cad, positionFile or typed, null in a file written before it and on a saved past job, which read coordinates.source of config.
+        // Empty project sets it from coordinates.newProjectSource. Typed values stay in the model, this file holds no coordinate
+        public string CoordinateSource { get; set; }
+
+        // R513. The position file picked in the window, null while addin.position.file of config stands
+        public string PositionFile { get; set; }
     }
 
     public sealed class SettingsInput

@@ -19,6 +19,7 @@ namespace SiteAdaptation.Common.SetUp
         public const string SiteFile = "site.json";
         public const string SiteFormat = "site-adaptation-site-facts";
         public const int SiteFormatVersion = 1;
+        public const string PositionSourceKey = "positionSource";
 
         // docs/design/06-settings.md, the schema of the Settings entity on ProjectInformation, a sign of an existing site file
         public const string SettingsSchema = "SiteAdaptation_Settings";
@@ -36,7 +37,7 @@ namespace SiteAdaptation.Common.SetUp
 
         private JObject config;
         private JObject rules;
-        private JObject position;
+        private SiteChoice site;
         private ParameterSheet sheet;
         private string configSheet;
         private string otherSheet;
@@ -45,7 +46,6 @@ namespace SiteAdaptation.Common.SetUp
         private string readBack;
         private Func<RunContext, CoordinateRead> readCad;
         private Func<StepRun> readLastRun;
-        private CadSite cad;
 
         // settingsInput is the name of the input of the Settings file in the pane, sheetInput that of the parameter sheet, null when the
         // pane gives none
@@ -110,8 +110,8 @@ namespace SiteAdaptation.Common.SetUp
             // The paths of config are relative to the repo root, the folder above the one config is in (its note)
             string rulesPath = Path.IsPathRooted(profile) ? profile : Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(Path.GetFullPath(settings.Path))), profile);
             rules = Json(rulesPath, "the rules profile");
-            position = Json(PositionSettings.From(config).File, "the position file");
-            cad = SiteFromCad.Load(config, context, readCad);
+            site = new SiteChoice(config, readCad, path => Json(path, "the position file"), settingsNow?.Invoke());
+            site.Start(context, document.Read());
             slope = RampSlopes.Default(rules, null);
             // R461. The parameter sheet addin.parameterSheet of config names, the one every button reads. A sheet the pane names that is
             // another file stops the run, so button 1 never binds GUIDs button 7 does not write by
@@ -143,6 +143,13 @@ namespace SiteAdaptation.Common.SetUp
                     otherSheet = SameSheet(path) ? null : path;
                     return View = Viewed(View.DryRunDone ? (Func<double[], double[]>)DryShared : null);
                 },
+                // R513. Another source asks for a new dry run, the check points of the last one held another position
+                SourceChosen = pick =>
+                {
+                    site.Choose(context, pick);
+                    target = Make();
+                    return View = Viewed(null);
+                },
             };
             SetUpSiteAnswer answer = dialog.Show(View, callbacks);
             if (answer == null || !answer.Apply)
@@ -163,6 +170,8 @@ namespace SiteAdaptation.Common.SetUp
             {
                 throw new InvalidOperationException(string.Join(". ", stops));
             }
+            // R511, R513. Held so the next press stays on this source and never moves the model back to what config gives
+            site.Hold(settingsNow?.Invoke());
             // Q158. With nothing to set the run still marks step 1 done, so the steps after it go on after a config edit. A step that holds
             // already records nothing, since a later record would make the steps after it run again (R366). The window said the line
             return SetUpPlanner.Changes(document.Read(), target).Any || !StepHolds(context);
@@ -204,7 +213,7 @@ namespace SiteAdaptation.Common.SetUp
 
         // Q158, CHOSEN by the main session: a file left from another state of the model would give the build a wrong survey point, angle and levels,
         // so a press holds site.json to the facts of the model, in the tolerance of the diff, whatever its run id. A file that does not read disagrees
-        public static bool SiteFileAgrees(string path, SiteState now)
+        public static bool SiteFileAgrees(string path, SiteState now, string source = null)
         {
             if (!File.Exists(path))
             {
@@ -221,6 +230,12 @@ namespace SiteAdaptation.Common.SetUp
             }
             JObject facts = SiteJson(now, null);
             facts["runId"] = file["runId"]?.DeepClone();
+            // R514. The source is held only when the caller names one, a file of before the key agrees on the facts alone
+            JToken written = source != null ? new JValue(source) : file[PositionSourceKey]?.DeepClone();
+            if (written != null)
+            {
+                facts[PositionSourceKey] = written;
+            }
             return SameFacts(file, facts, null);
         }
 
@@ -339,9 +354,9 @@ namespace SiteAdaptation.Common.SetUp
                 return issues;
             }
             // Q158. With nothing set a file that holds the facts of the model stays as it is, one missing or off them is written again
-            if (changes.Any || !SiteFileAgrees(Path.Combine(context.WorkFolder, SiteFile), after))
+            if (changes.Any || !SiteFileAgrees(Path.Combine(context.WorkFolder, SiteFile), after, target.PositionSource))
             {
-                context.WriteText(SiteFile, SiteJson(after, context.RunId).ToString(Newtonsoft.Json.Formatting.Indented));
+                context.WriteText(SiteFile, SiteJson(after, context.RunId, target.PositionSource).ToString(Newtonsoft.Json.Formatting.Indented));
             }
             if (store == null)
             {
@@ -362,10 +377,10 @@ namespace SiteAdaptation.Common.SetUp
             return run;
         }
 
-        // R311. The site facts read back from the document, in the shape plan_from_book.py takes by --site
-        public static JObject SiteJson(SiteState after, string runId)
+        // R311. The site facts read back from the document, in the shape plan_from_book.py takes by --site. R514: the source under a key of its own, so the pane can read it
+        public static JObject SiteJson(SiteState after, string runId, string source = null)
         {
-            return new JObject
+            JObject facts = new JObject
             {
                 ["format"] = SiteFormat, ["formatVersion"] = SiteFormatVersion, ["runId"] = runId,
                 ["projectPosition"] = new JObject { ["eastM"] = after.Position.EastM, ["northM"] = after.Position.NorthM, ["elevationM"] = after.Position.ElevationM, ["angleDeg"] = after.Position.AngleDeg },
@@ -375,6 +390,11 @@ namespace SiteAdaptation.Common.SetUp
                 ["levels"] = new JArray(after.Levels.Select(level => new JObject { ["name"] = level.Name, ["elevationM"] = level.ElevationM, ["projectElevationM"] = level.ProjectElevationM, ["elevationBase"] = level.Base })),
                 ["units"] = new JObject { ["system"] = after.Units.System, ["length"] = after.Units.Length, ["lengthAccuracy"] = after.Units.LengthAccuracy, ["area"] = after.Units.Area, ["angle"] = after.Units.Angle, ["slope"] = after.Units.Slope },
             };
+            if (source != null)
+            {
+                facts[PositionSourceKey] = source;
+            }
+            return facts;
         }
 
         private double[] DryShared(double[] internalM)
@@ -384,7 +404,7 @@ namespace SiteAdaptation.Common.SetUp
 
         private SetUpTarget Make()
         {
-            return SetUpTarget.From(config, rules, null, position, slope, sheet, cad);
+            return SetUpTarget.From(config, rules, null, site.Position, slope, sheet, site.Cad, site.Problem, site.PickedFile);
         }
 
         private bool SameSheet(string path)
@@ -397,6 +417,7 @@ namespace SiteAdaptation.Common.SetUp
         {
             SetUpSiteView view = SetUpPlanner.View(document.Read(), target, dry);
             view.Stops = SheetStops(view.Stops);
+            view.SourceRows = site.Rows();
             return view;
         }
 

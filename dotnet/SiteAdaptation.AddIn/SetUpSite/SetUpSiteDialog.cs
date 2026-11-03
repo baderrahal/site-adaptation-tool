@@ -18,7 +18,7 @@ namespace SiteAdaptation.AddIn.SetUpSite
 
         public SetUpSiteAnswer Show(SetUpSiteView view, SetUpSiteCallbacks callbacks)
         {
-            var session = new SetUpSiteSession(view, callbacks, PickSheet);
+            var session = new SetUpSiteSession(view, callbacks, PickSheet, PickSheet);
             var window = new SetUpSiteWindow(session);
             if (owner != IntPtr.Zero)
             {

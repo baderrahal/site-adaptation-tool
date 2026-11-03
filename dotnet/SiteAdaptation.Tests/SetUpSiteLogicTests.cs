@@ -14,7 +14,7 @@ namespace SiteAdaptation.Tests
 {
     // R373, R374, R383. Button 1 Set up site in Common with a fake document, on net48 and net8.0. The config and the rules profile are
     // the repo's own, the position file is made here of numbers of no real site, so no real coordinate or level is in the tests
-    public sealed class SetUpSiteLogicTests : IDisposable
+    public sealed partial class SetUpSiteLogicTests : IDisposable
     {
         private const string Settings = "Settings";
         private const string RunId = "1_20261029-140000-000";
@@ -1263,9 +1263,17 @@ namespace SiteAdaptation.Tests
             // A sheet picked by Browse, given to the run as the window does
             public string Browse { get; set; }
 
+            // R513. A source picked in the window before the dry run, given to the run as the window does
+            public SiteSourcePick Pick { get; set; }
+
             public SetUpSiteAnswer Show(SetUpSiteView view, SetUpSiteCallbacks callbacks)
             {
                 Shown.Add(view);
+                if (Pick != null)
+                {
+                    view = callbacks.SourceChosen(Pick);
+                    Shown.Add(view);
+                }
                 Summaries.Add(view.NothingDiffers ? SetUpTexts.NothingDiffers : "");
                 double slope = view.RampSlope;
                 if (DryRunSlope.HasValue)

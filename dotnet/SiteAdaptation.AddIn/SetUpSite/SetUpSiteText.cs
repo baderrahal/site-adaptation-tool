@@ -47,6 +47,23 @@ namespace SiteAdaptation.AddIn.SetUpSite
         public const string SiteDrawing = "Site drawing";
         public const string Rules = "Rules";
 
+        // R510 to R513, the section Position source and the section CAD and position file
+        public const string PositionFrom = "Position from";
+        public const string SourceTitle = "Position source";
+        public const string SourceHelp = "Use CAD, pick a position file or type Easting, Northing and Angle. Apply stays off until a source works.";
+        public const string UseCad = "Use CAD";
+        public const string PickPosition = "Pick position file";
+        public const string Easting = "Easting";
+        public const string Northing = "Northing";
+        public const string Angle = "Angle";
+        public const string UseTyped = "Use typed values";
+        public const string CompareTitle = "CAD and position file";
+        public const string CompareHelp = "Only the source above is set. CAD takes the centre of the plots as origin and the file has an origin of its own, so Easting and Northing differ by that choice. File origin to the plots is what tells the two are in one frame.";
+        public const string CompareValue = "Value";
+        public const string CompareCad = "CAD";
+        public const string CompareFile = "Position file";
+        public const string CompareDifference = "Difference";
+
         // Each file of the setup by its input, the names of the pane rows
         public static readonly IReadOnlyDictionary<string, string> InputLabels = new Dictionary<string, string>
         {
@@ -56,6 +73,6 @@ namespace SiteAdaptation.AddIn.SetUpSite
 
         // The rows of the two tables in the order of the mock, a row of another label stands after them
         public static readonly string[] NowOrder = { SurveyPoint, ProjectBasePoint, Levels, FloorAndWallTypes, SharedParameters, Units };
-        public static readonly string[] WillOrder = { CoordinateSystem, SurveyPoint, AngleToTrueNorth, Levels, FloorTypes, RampSlope, WallTypes, SharedParameters, Units };
+        public static readonly string[] WillOrder = { PositionFrom, CoordinateSystem, SurveyPoint, AngleToTrueNorth, Levels, FloorTypes, RampSlope, WallTypes, SharedParameters, Units };
     }
 }

@@ -38,10 +38,24 @@ namespace SiteAdaptation.Common.SetUp
 
         // R454 to R456. The site of the CAD inputs when coordinates.source is cad, null when the position file gives the position
         public CadSite Cad { get; set; }
+
+        // R514. cad, positionFile or typed, null while no usable source is chosen
+        public string PositionSource { get; set; }
+
+        // R513. Why CAD gives no coordinates, and with it true when the target holds no site at all, so nothing of the position is planned and the window asks
+        public string CadProblem { get; set; }
+        public bool NoSite { get; set; }
+
+        // R514. The name of the position file, for the row Position from
+        public string PositionFileName { get; set; }
+
+        // R510. The limits of a blank model, null for a config of before the keys
+        public BlankLimits BlankLimits { get; set; }
         public List<ControlPoint> ControlPoints { get; set; } = new List<ControlPoint>();
 
         // config, the rules profile and the position file as button 1 reads them, with the slope chosen in the dialog
-        public static SetUpTarget From(JObject config, JObject rules, string levelProfile, JObject position, double rampSlope, ParameterSheet parameters, CadSite cad = null)
+        // R511, R513. Under CAD or a typed site the position file is only a check, so the levels and units come from keyRules.site, what the worker holds the file against
+        public static SetUpTarget From(JObject config, JObject rules, string levelProfile, JObject position, double rampSlope, ParameterSheet parameters, CadSite cad = null, string cadProblem = null, string positionFile = null)
         {
             PositionSettings settings = PositionSettings.From(config);
             JObject floors = config["floors"] as JObject ?? throw new InvalidDataException("config holds no floors block, the floor types of button 1 (R112)");
@@ -63,6 +77,9 @@ namespace SiteAdaptation.Common.SetUp
                 WallTypes = SetUpDefaults.WallTypes(config),
                 PassLimitMm = settings.RevitCheckPointLimitMm,
                 GapDecimals = settings.GapDecimals,
+                CadProblem = cadProblem,
+                BlankLimits = SiteSources.Limits(config),
+                PositionFileName = Path.GetFileName(positionFile ?? settings.File),
             };
             foreach (string name in SiteCoordinates.FloorKinds.SelectMany(kind => Names(types[kind])).Concat(new[] { target.RampType }))
             {
@@ -75,9 +92,28 @@ namespace SiteAdaptation.Common.SetUp
             {
                 throw new InvalidDataException("floors.types.generic of config names no floor type (R112)");
             }
-            ReadPosition(target, position, SetUpDefaults.SiteUnits(config));
+            if (cad != null || (position == null && cadProblem != null))
+            {
+                ReadRules(target, rules, levelProfile, SetUpDefaults.SiteUnits(config), settings.Key, cad == null ? 0.0 : cad.SurveyInternal[2]);
+            }
+            else
+            {
+                ReadPosition(target, position, SetUpDefaults.SiteUnits(config));
+                target.PositionSource = SiteSources.PositionFile;
+            }
+            if (cad == null && position == null && cadProblem != null)
+            {
+                var origin = new[] { 0.0, 0.0, 0.0 };
+                target.NoSite = true;
+                target.Position = new SitePosition { EastM = 0.0, NorthM = 0.0, ElevationM = 0.0, AngleDeg = 0.0 };
+                target.SurveyInternal = origin;
+                target.SurveyShared = origin;
+                target.BaseInternal = origin;
+                target.BaseShared = origin;
+            }
             if (cad != null)
             {
+                target.PositionSource = cad.Source;
                 target.Cad = cad;
                 target.Position = cad.Position;
                 target.SurveyInternal = cad.SurveyInternal;
@@ -90,8 +126,38 @@ namespace SiteAdaptation.Common.SetUp
             return target;
         }
 
+        // R511. keyRules.site of the level profile: the names, the base, the steps over the lowest level, which stands at 0 on the base as in the position file of the keys, and
+        // the length accuracy of the reference key of majority.siteReference, whose position file a past job takes
+        private static void ReadRules(SetUpTarget target, JObject rules, string levelProfile, Dictionary<string, string> units, string key, double baseHeightM)
+        {
+            JObject site = ProjectPositionFile.SiteRules(rules, levelProfile);
+            List<string> names = Names(site["levels"]);
+            if (names.Count == 0)
+            {
+                throw new InvalidDataException("keyRules.site of the rules profile holds no levels, the levels of button 1 under CAD (R511)");
+            }
+            target.Levels = names.Select((name, at) =>
+            {
+                double step = at == 0 ? 0.0 : Rule((site["levelStepsM"] as JObject)?[name], "levelStepsM." + name);
+                return new PositionLevel { Name = name, ElevationM = step, ProjectElevationM = step + baseHeightM };
+            }).ToList();
+            target.LevelBase = site["levelBase"]?.Type == JTokenType.String ? (string)site["levelBase"] : throw new InvalidDataException("keyRules.site of the rules profile holds no levelBase (R511)");
+            JObject held = site["units"] as JObject;
+            string length = held?["length"]?.Type == JTokenType.String ? (string)held["length"] : throw new InvalidDataException("keyRules.site of the rules profile holds no units.length (R511)");
+            target.Units = new UnitState
+            {
+                System = (string)held["system"], Length = length, LengthAccuracy = Rule((site["lengthAccuracy"] as JObject)?[key], "lengthAccuracy." + key),
+                Area = units["area"], Angle = units["angle"], Slope = units["slope"],
+            };
+        }
+
+        private static double Rule(JToken value, string what)
+        {
+            return value != null && (value.Type == JTokenType.Float || value.Type == JTokenType.Integer) ? value.Value<double>() : throw new InvalidDataException("keyRules.site of the rules profile holds no number " + what + " (R511)");
+        }
+
         // The position file as the worker writes it, ProjectPositionFile.Written (R353)
-        private static void ReadPosition(SetUpTarget target, JObject file, Dictionary<string, string> units)
+        internal static void ReadPosition(SetUpTarget target, JObject file, Dictionary<string, string> units)
         {
             if (file == null || (string)file["format"] != ProjectPositionFile.Format || file["formatVersion"]?.Type != JTokenType.Integer || (int)file["formatVersion"] != ProjectPositionFile.FormatVersion)
             {

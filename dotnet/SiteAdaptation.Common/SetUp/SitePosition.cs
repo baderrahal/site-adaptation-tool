@@ -32,6 +32,12 @@ namespace SiteAdaptation.Common.SetUp
         public SystemsCheck Systems { get; set; } = new SystemsCheck();
         public List<ControlPoint> ControlPoints { get; set; } = new List<ControlPoint>();
         public double ControlPointLimitMm { get; set; }
+
+        // R514. cad, or typed for the site R513 builds from typed values
+        public string Source { get; set; } = SiteSources.Cad;
+
+        // R512. The box of the plot outlines, least east, most east, least north, most north, null on a typed site
+        public double[] PlotBox { get; set; }
     }
 
     // R455. The site position from CAD. The shared origin is the centre of the box of every plot outline, rounded to
@@ -49,20 +55,28 @@ namespace SiteAdaptation.Common.SetUp
             }
             double east = Round((vertices.Min(vertex => vertex[0]) + vertices.Max(vertex => vertex[0])) / 2, settings.OriginRoundM);
             double north = Round((vertices.Min(vertex => vertex[1]) + vertices.Max(vertex => vertex[1])) / 2, settings.OriginRoundM);
+            CadSite site = At(east, north, settings.AngleToTrueNorthDeg, settings, epsg);
+            site.PlotBox = new[] { vertices.Min(vertex => vertex[0]), vertices.Max(vertex => vertex[0]), vertices.Min(vertex => vertex[1]), vertices.Max(vertex => vertex[1]) };
+            return site;
+        }
+
+        // R455, R513. A site whose internal origin stands at this east and north, whichever source gave them
+        public static CadSite At(double east, double north, double angle, CoordinateSettings settings, int epsg)
+        {
             double[] at = UtmMath.ToLatLon(east, north, UtmMath.ZoneOf(epsg));
             var point = new[] { 0.0, 0.0, settings.OriginElevationM };
             var shared = new[] { east, north, settings.OriginElevationM };
             return new CadSite
             {
-                Position = new SitePosition { EastM = east, NorthM = north, ElevationM = 0.0, AngleDeg = settings.AngleToTrueNorthDeg },
+                Position = new SitePosition { EastM = east, NorthM = north, ElevationM = 0.0, AngleDeg = angle },
                 SurveyInternal = point, SurveyShared = shared, BaseInternal = (double[])point.Clone(), BaseShared = (double[])shared.Clone(),
                 LatitudeDeg = at[0], LongitudeDeg = at[1], PositionName = settings.PositionName, PlaceName = settings.PlaceName, Epsg = epsg,
             };
         }
 
         // R454 to R456 for button 1: null when config keeps the position file, coordinates.source positionFile or no block coordinates,
-        // else the CAD read, its coordinate systems held together, the site and the control points
-        public static CadSite Load(JObject config, RunContext context, Func<RunContext, CoordinateRead> read)
+        // else the CAD read, its coordinate systems held together, the site and the control points. R511: chosen, the source of this press, stands over coordinates.source
+        public static CadSite Load(JObject config, RunContext context, Func<RunContext, CoordinateRead> read, string chosen = null)
         {
             if (config["coordinates"] == null)
             {
@@ -70,7 +84,7 @@ namespace SiteAdaptation.Common.SetUp
             }
             // Under positionFile no key of the block is read, so a slip in a key of the CAD source never stops button 1
             JToken source = config["coordinates"]["source"];
-            if (source != null && source.Type == JTokenType.String && (string)source == CoordinateSettings.FromPositionFile)
+            if (chosen == CoordinateSettings.FromPositionFile || (chosen == null && source != null && source.Type == JTokenType.String && (string)source == CoordinateSettings.FromPositionFile))
             {
                 return null;
             }
@@ -193,7 +207,7 @@ namespace SiteAdaptation.Common.SetUp
             WorkerRequest request = Make(inputs, roles, configPath, context.RunId + "-crs", output, document, AddinConfig.Load(configPath).WorkerTimeLimitS(Command), projectMode);
             if (request.Inputs.All(input => input.Role != BaseplanRole))
             {
-                throw new InvalidOperationException("coordinates.source is cad and the pane names no baseplan drawing (R455)");
+                throw new NoBaseplanException();
             }
             WorkerAnswer answer = worker(request, context.WorkFolder);
             if (answer == null || answer.Status != WorkerExit.Status(WorkerExit.Done))

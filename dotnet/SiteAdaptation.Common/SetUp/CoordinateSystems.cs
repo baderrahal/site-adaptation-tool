@@ -215,6 +215,18 @@ namespace SiteAdaptation.Common.SetUp
                 + " m north. The baseplan is likely in drawing coordinates or another system, so button 1 takes no site position from it";
         }
 
+        // R513. The same range for a typed site, null when it lies inside, else the plain line of the refusal
+        public static string TypedOutside(double east, double north, CoordinateSettings settings, int epsg)
+        {
+            UtmZone zone = UtmMath.ZoneOf(epsg);
+            double[] northRange = zone.North ? settings.UtmNorthM : settings.UtmSouthNorthM;
+            if (east >= settings.UtmEastM[0] && east <= settings.UtmEastM[1] && north >= northRange[0] && north <= northRange[1])
+            {
+                return null;
+            }
+            return "These values lie outside the range of UTM zone " + Code(zone.Number) + (zone.North ? " north" : " south") + " of EPSG " + Code(epsg) + ", " + Metres(settings.UtmEastM) + " m east and " + Metres(northRange) + " m north.";
+        }
+
         private static string Metres(double[] range)
         {
             return range[0].ToString("0", CultureInfo.InvariantCulture) + " to " + range[1].ToString("0", CultureInfo.InvariantCulture);

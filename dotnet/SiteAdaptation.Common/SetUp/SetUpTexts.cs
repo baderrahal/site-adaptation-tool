@@ -22,6 +22,20 @@ namespace SiteAdaptation.Common.SetUp
         public const string RampSlope = "Ramp slope";
         public const string RampSlopeLine = "Default 0.5%. Choices 0.5%, 1%, 2%, then 3% to 15%";
         public const string WallTypes = "Wall types";
+        public const string PositionFrom = "Position from";
+        public const string FromCad = "CAD, the plot outlines of the baseplan";
+        public const string FromTyped = "Typed in this window";
+        public const string NoSourceYet = "Not chosen yet, pick a source above";
+        public const string NoCoordinates = "This model has no site coordinates.";
+        public const string TypedNotNumbers = "Easting, Northing and Angle must be numbers, in metres and degrees.";
+        public const string Easting = "Easting";
+        public const string Northing = "Northing";
+        public const string Elevation = "Elevation";
+        public const string Angle = "Angle";
+        public const string FileOriginToPlots = "File origin to the plots";
+        public const string PlotBox = "box of the plots";
+        public const string InsidePlots = "inside the box";
+        public const string OutsidePlots = "outside the box";
 
         public const string SignSettings = "the Settings entity SiteAdaptation_Settings";
         public const string SignPosition = "a project position other than zero";
@@ -37,6 +51,28 @@ namespace SiteAdaptation.Common.SetUp
         public static string ControlPoint(int number, string plot)
         {
             return "Control point " + number.ToString(CultureInfo.InvariantCulture) + ", plot " + (plot ?? "no number");
+        }
+
+        // R510. A template always holds a place, so the window says what it is and never shows it as the site
+        public static string TemplatePlace(string place)
+        {
+            return "The place " + place + " comes from the Revit template, it is not the site.";
+        }
+
+        // R514. The row Position from
+        public static string PositionFromText(SetUpTarget target)
+        {
+            switch (target.PositionSource)
+            {
+                case SiteSources.Cad:
+                    return FromCad;
+                case SiteSources.Typed:
+                    return FromTyped;
+                case SiteSources.PositionFile:
+                    return "Position file " + target.PositionFileName;
+                default:
+                    return NoSourceYet;
+            }
         }
 
         public static string NotOnDisk(string what, string path)

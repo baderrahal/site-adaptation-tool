@@ -30,6 +30,45 @@ namespace SiteAdaptation.AddIn.SetUpSite
 
         public string Badge { get; private set; }
 
+        // R510. The line of a model with no site coordinates, as Common gives it
+        public string NoCoordinatesLine => view.NoCoordinatesLine ?? "";
+
+        public bool NoCoordinatesShown => NoCoordinatesLine.Length > 0;
+
+        // R510. The place of the template, named as that
+        public string TemplatePlaceLine => view.TemplatePlaceLine ?? "";
+
+        public bool TemplatePlaceShown => TemplatePlaceLine.Length > 0;
+
+        // R513. Why CAD gives no usable coordinates, as Common gives it
+        public string NoCadLine => view.NoCadLine ?? "";
+
+        public bool NoCadShown => NoCadLine.Length > 0;
+
+        // R512
+        public IReadOnlyList<SourceRow> SourceRows => view.SourceRows;
+
+        public bool SourceRowsShown => view.SourceRows.Count > 0;
+
+        // R513. The three boxes as typed, kept across the views the buttons give back
+        public string TypedEast { get; set; } = "";
+
+        public string TypedNorth { get; set; } = "";
+
+        public string TypedAngle { get; set; } = "";
+
+        public bool TypedValues(out double east, out double north, out double angle)
+        {
+            north = 0.0;
+            angle = 0.0;
+            return Number(TypedEast, out east) && Number(TypedNorth, out north) && Number(TypedAngle, out angle);
+        }
+
+        private static bool Number(string text, out double value)
+        {
+            return double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value) && !double.IsNaN(value) && !double.IsInfinity(value);
+        }
+
         public string SignsLine { get; private set; }
 
         public bool SignsShown => SignsLine.Length > 0;
