@@ -249,6 +249,39 @@ namespace SiteAdaptation.Tests
             }
         }
 
+        // The same made up site three ways: the mode by the request, by a config copy, and the past job. The first two equal plot by plot, the third is another build
+        [Fact]
+        public void R484_a_build_by_the_mode_of_the_request_equals_a_build_of_a_config_copy_under_rev6()
+        {
+            using (var steps = new LevelFloorStepTests())
+            {
+                string Build(string runId, string mode, bool copy)
+                {
+                    WorkerRequest request = steps.Request(runId, "fronts", "levels", "floors");
+                    string floors = Path.Combine(Path.GetDirectoryName(WorkerRunTests.RepoConfig()), "floor_outlines.json");
+                    request.Inputs.Add(new WorkerFile { Role = BuildSteps.BandsRole, Path = floors, Sha256 = FileHash.Sha256(floors) });
+                    if (copy)
+                    {
+                        WorkerFile settings = request.Inputs.Single(input => input.Role == "config");
+                        JObject config = JObject.Parse(File.ReadAllText(settings.Path));
+                        config["designBasis"]["mode"] = DesignBasis.Rev6;
+                        File.WriteAllText(settings.Path, config.ToString());
+                        settings.Sha256 = FileHash.Sha256(settings.Path);
+                    }
+                    request.ProjectMode = mode;
+                    int exit = WorkerRunner.Run(request.Write(request.OutputFolder), WorkerCommands.Default(), () => 9000.0);
+                    Assert.True(exit == 0, WorkerAnswer.Read(WorkerFiles.AnswerPath(request.OutputFolder, runId)).Message);
+                    return string.Join("\n", new[] { "fronts", "levels", "floors" }.Select(step => JObject.Parse(File.ReadAllText(Path.Combine(request.StepsFolder, "step_" + step + "_csharp.json")))["plots"].ToString()));
+                }
+
+                string past = Build("e1", null, false);
+                string byRequest = Build("e2", DesignBasis.Rev6, false);
+                string byCopy = Build("e3", null, true);
+                Assert.Equal(byCopy, byRequest);
+                Assert.NotEqual(past, byRequest);
+            }
+        }
+
         [Fact]
         public void R484_a_request_with_no_mode_builds_the_past_job_of_the_shipped_config()
         {
