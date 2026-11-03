@@ -44,6 +44,10 @@ namespace SiteAdaptation.Tests
         {
             Assert.Equal(string.Empty, Row(Pane((path, done) => done(2024), 2024)).Note);
             Assert.False(Row(Pane((path, done) => done(2024), 2024)).HasNote);
+            // Review 1, the colour pair of docs/design/12-ui-spec.md: SA.Warn stands on SA.WarnGround
+            string page = File.ReadAllText(Path.Combine(ThemeGateTests.RepoRoot(), "dotnet", "SiteAdaptation.AddIn", "Pane", "SitePanePage.xaml"));
+            int note = page.IndexOf("Text=\"{Binding Note}\"", StringComparison.Ordinal);
+            Assert.True(page.LastIndexOf("SA.WarnGround", note, StringComparison.Ordinal) > page.LastIndexOf("HasNote", note, StringComparison.Ordinal));
             Assert.Equal(string.Empty, Row(Pane((path, done) => done(2025), 2024)).Note);
         }
 

@@ -68,7 +68,9 @@
               <ColumnDefinition Width="{StaticResource SA.Grid.Mark}" />
               <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
-            <TextBlock Grid.Column="1" Style="{StaticResource SA.Pane.Help}" Margin="{StaticResource SA.Gap.Row}" Foreground="{StaticResource SA.Warn}" TextWrapping="Wrap" Text="{Binding Note}" />
+            <Border Grid.Column="1" Margin="{StaticResource SA.Gap.Row}" Background="{StaticResource SA.WarnGround}" Padding="{StaticResource SA.Pad.Box}">
+              <TextBlock Style="{StaticResource SA.Pane.Help}" Foreground="{StaticResource SA.Warn}" TextWrapping="Wrap" Text="{Binding Note}" />
+            </Border>
           </Grid>
         </StackPanel>
       </DataTemplate>

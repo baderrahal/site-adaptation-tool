@@ -925,6 +925,35 @@ namespace SiteAdaptation.Tests
             Assert.Contains("$session | Add-Member", File.ReadAllText(HostFile("ListenerPaths.ps1")));
         }
 
+        // Review 1. The watchdog looks every 10 s while Revit stays inside the call, so a step past its limit would fill the log
+        [Fact]
+        public void R448_a_step_past_its_limit_in_a_revit_that_stays_open_is_noted_once()
+        {
+            var log = new TestHostLog { StartedUtc = Start };
+            var runner = new TestHostRunner(log, value => { }, () => now) { RevitStaysOpen = true };
+            var whys = new List<string>();
+
+            runner.Run(new[]
+            {
+                new JobStep
+                {
+                    Name = "button5",
+                    LimitMinutes = 1,
+                    Action = () =>
+                    {
+                        for (int look = 2; look < 5; look++)
+                        {
+                            whys.Add(runner.Overrun(now.AddMinutes(look), Start.AddHours(1)));
+                        }
+                        return "done";
+                    },
+                },
+            });
+
+            Assert.Equal(3, whys.Count(why => why == "step button5 ran over its limit of 1 minutes"));
+            Assert.Single(log.Notes);
+        }
+
         // R497. SPB2 and SPMM ended as changed inputs only for the log Revit writes beside a prototype it opens
         [Theory]
         [InlineData(@"C:\Work\prototypes_2024\A_backup\A.slog", true)]

@@ -592,3 +592,14 @@ Round SPEED-2NOV-C, review 1 and breaker 1 of R447, R448, R449, 3 Nov 2026:
 - InsideRoot of the listener compares text only: forward slashes, a parent step, the long prefix and an 8.3 name pass it (RAN). IsPlainFullPath and CheckPlace stop them for a model. prototypeLoops and junctions as in or out folders are hand-made holes.
 - Revit does not wait for Civil 3D on the slot side, Civil 3D waits for Revit. python/c3d_probe.json names a lock of another machine, so no Civil 3D run takes it today.
 - A new process with the pid of a hard killed listener reads as a listener already there, until that process ends.
+
+Round SPEED-2NOV-C, review 1 of the delta, 3 Nov 2026:
+- A step past its limit that returns later overwrites its timeout line with ok in the job log. The result file keeps timeout.
+- A result file removed by hand during the second marks stops the queue until Revit restarts. No script removes it.
+- A heartbeat file held open makes that look of the listener skip its work, retried each second.
+- The second marks of a job past its limit can repeat the D19 line in the error.
+- A steps entry of buttons_result.json that is no JSON object would throw out of the look each second, ButtonsRunHost writes objects only.
+- RevitFormat.cs is a port of python/rvt_info.py with no parity test. Two small drifts in how it reads the Format key, neither on a real prototype read.
+- Three copies of the input root list: Start-RevitListener.ps1, Get-RunInputRoots, Run-TestHost.ps1. They agree today.
+- Timing labels only: the second Decide runs under villaMassFiles, a wait on the load dialog is billed to the step before.
+- The pane lists the Prototypes folder twice per refresh. RevitFormat walks a long chain only on a corrupt file.
