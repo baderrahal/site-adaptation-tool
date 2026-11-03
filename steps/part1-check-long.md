@@ -21,13 +21,15 @@ Do not chase these. Each has a question in steps/questions-open.md.
 | Report Summary reads not run yet for 1 Set up site and 3 Review data | 012_Report.xlsx | Q307 |
 | What the tool read shows 4 value rows where the board shows 6 | 2 Read data | Q289 |
 | New project shows Start from Empty project when reopened on a saved setup | New project | Q400 |
-| Road surface: Browse is cut at the pane edge and the name landxml never shows | Pane | Q403 |
+| On this PC a new project still takes its schedules from inputRoot, another PC needs the inputs of this job | New project | Q379 |
+| Update from report on a new project: an empty override list holds no entry for a change | Update from report | Q394 |
+| A project mode held in memory is lost on a reopen | New project | Q395 |
+| A first Past on a plot of a native key on a new project | 4 Check | Q396 |
+| Save As of a new project keeps one override list | New project | Q397 |
+| 443 hairline floor overlaps of two neighbouring plots at step 5 | 5 Floors and ramps | Q398 |
 | Road surfaces window could not be opened: Pick surfaces is grey under a past job, so no Revit run has seen it | Pane, New project | Q403 |
-| The band of 1 Set up site reads the Settings entity SiteAdaptation_Settings | 1 Set up site | Q404 |
 | Rules has no Export to Excel button, hidden on purpose since R444 | Rules | Q405 |
-| The Plot column of Conflicts shows the CAD label, not Plot No. Plot No 2291 has CAD label 2281, and another plot has Plot No 2281 | 2 Read data | Q406 |
 | 12 plots differ from the past schedule on FFL, up to 187 mm, and plot 2312 is blank | Level Excel | Q401, Q402 |
-| Update from report showed nothing after a report was picked, in the one try of this round. Its filled state is not seen by this round. Lane B ran the same flow in CHECK-2NOV | Update from report | Q408 |
 | A file dialog can take over a minute to appear or close, its inside black meanwhile. Wait, do not press again | Every Browse | none, seen once per dialog in this round, cause UNKNOWN |
 
 The 4 masses questions Q390 to Q393 are about the wall ring, they change no step below.
@@ -70,6 +72,18 @@ copy C:\SA-demo\SA-demo-start.rvt C:\Users\p003653k\Documents\SiteAdaptation\che
 9. Press Save setup.
 
 Look for (this round): Check files reads 3 of 4 files ready, Villa levels reads Comes later, Parameter sheet reads Missing with the box The tool stops here, and that stops nothing. The window closes on Save setup and the pane band reads Next step, Set up site.
+
+### A new project with no past job (PR 156)
+
+Lane A says the Empty project and Pick surfaces steps are not seen in Revit yet.
+
+1. Save a copy of a model with no setup under a new name. Open it.
+2. Press Open New project. At Start from pick Empty project.
+3. Look for the line New project rules, Rev 06 under the combo, Pick surfaces active, Parameter sheet Found.
+4. Press Pick surfaces. Look for: the 7 grading files are not listed.
+5. Pick the surfaces and files. Look for 4 of 4 files ready, then press Save setup.
+6. Run buttons 1 to 4. Look for: 4 Check reads 0 overrides and profile parsons2024Rev6.
+7. On a model with a saved project instead, look for: the line reads ROSHN past job and Pick surfaces is grey.
 
 ### The rest of the input rows of the pane (PR 90, 92, 151)
 

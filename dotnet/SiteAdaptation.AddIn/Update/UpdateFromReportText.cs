@@ -10,6 +10,7 @@ namespace SiteAdaptation.AddIn.Update
         public const string Browse = "Browse";
 
         public const string ChangesFound = "Changes found";
+        public const string NoChanges = "No changes found in this Excel.";
         public const string FollowTheRules = "Follow the rules";
         public const string BreakAManualRule = "Break a manual rule";
         public const string NotEditableIgnored = "Not editable ignored";
