@@ -45,12 +45,12 @@ namespace SiteAdaptation.Common.Settings
                 {
                     next.Inputs[InputNames.ParameterSheet] = sheet;
                 }
-                // R484. Written, so a later Save setup with Start from on Empty project keeps the mode of the saved project
+                // R484. A saved project with none reads the mode of its config, written so the project keeps it
                 next.ProjectMode = next.ProjectMode ?? ProjectModes.SavedMode(ProjectModes.ReadConfig(next.ConfigFile, readText));
             }
             else
             {
-                ProjectModes.TakeNewProject(next, readText);
+                ProjectModes.TakeNewProject(current?.ConfigFile, next, readText);
             }
             foreach (KeyValuePair<string, string> pick in draft.Picks)
             {

@@ -160,11 +160,45 @@ namespace SiteAdaptation.Tests
             return path => path == "cfg" ? config.ToString() : null;
         }
 
+        // A settings JSON of a Save or a Use saved of before the project mode, as the model holds it
+        private const string OlderSave = "{ \"formatVersion\": 1, \"configFile\": \"cfg\", \"rulesFile\": \"rules\", \"inputs\": { \"baseplan\": { \"path\": \"b.dwg\" } } }";
+
         [Fact]
-        public void R484_empty_project_gets_rev6_on_a_past_job_config()
+        public void R484_save_setup_on_empty_of_a_project_that_names_a_config_and_holds_no_mode_stays_on_the_mode_of_its_config()
         {
-            ProjectSettings saved = SetupSave.Apply(new SetupDraft(), new ProjectSettings { ConfigFile = "cfg" }, Reader(Made("pastMade")));
-            Assert.Equal(DesignBasis.Rev6, saved.ProjectMode);
+            ProjectSettings saved = SetupSave.Apply(new SetupDraft(), SettingsJson.Read(OlderSave), Reader(Made("pastMade")));
+            Assert.Null(saved.ProjectMode);
+            Assert.Equal("cfg", saved.ConfigFile);
+            Assert.DoesNotContain("projectMode", SettingsJson.Write(saved));
+        }
+
+        [Fact]
+        public void R484_use_saved_of_an_older_save_then_a_plain_save_setup_stays_on_the_mode_of_its_config()
+        {
+            var job = new ProjectSettings();
+            PreSetting.Import(PreSetting.Export(new ProjectSettings { ConfigFile = "cfg" }), job);
+            Assert.Null(job.ProjectMode);
+            Assert.Null(SetupSave.Apply(new SetupDraft(), job, Reader(Made("pastMade"))).ProjectMode);
+        }
+
+        [Fact]
+        public void R484_a_project_takes_the_new_project_mode_only_when_the_settings_before_the_save_name_no_config()
+        {
+            var fresh = new ProjectSettings { ConfigFile = "cfg" };
+            ProjectModes.TakeNewProject(null, fresh, Reader(Made("pastMade")));
+            Assert.Equal(DesignBasis.Rev6, fresh.ProjectMode);
+
+            var named = new ProjectSettings { ConfigFile = "cfg" };
+            ProjectModes.TakeNewProject("cfg", named, Reader(Made("pastMade")));
+            Assert.Null(named.ProjectMode);
+
+            var holds = new ProjectSettings { ConfigFile = "cfg", ProjectMode = "pastMade" };
+            ProjectModes.TakeNewProject(null, holds, Reader(Made("pastMade")));
+            Assert.Equal("pastMade", holds.ProjectMode);
+
+            var bad = new ProjectSettings { ConfigFile = "cfg" };
+            ProjectModes.TakeNewProject(null, bad, Reader(Made("pastMade", "manual7")));
+            Assert.Null(bad.ProjectMode);
         }
 
         [Fact]
@@ -197,18 +231,9 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R484_save_setup_on_empty_leaves_an_old_project_that_ran_on_the_mode_of_config()
-        {
-            var job = new ProjectSettings { ConfigFile = "cfg" };
-            job.LastRuns["2"] = new ButtonRun { Time = "2026-11-01T00:00:00Z" };
-            Assert.Null(SetupSave.Apply(new SetupDraft(), job, Reader(Made("pastMade"))).ProjectMode);
-        }
-
-        [Fact]
         public void R484_a_new_project_mode_outside_the_modes_falls_back_on_the_mode_of_config_and_never_stops_the_window()
         {
             Assert.Null(ProjectModes.NewProject(Made("pastMade", "manual7")));
-            Assert.Null(SetupSave.Apply(new SetupDraft(), new ProjectSettings { ConfigFile = "cfg" }, Reader(Made("pastMade", "manual7"))).ProjectMode);
         }
 
         [Fact]
@@ -306,6 +331,130 @@ namespace SiteAdaptation.Tests
             }
         }
 
+        // The request CheckRun really makes, run by the real worker build: the runner the add-in starts, on made up files in the folders of a project
+
+        private sealed class RealWorker : IWorkerStart
+        {
+            public WorkerRequest Request { get; private set; }
+            public int Exit { get; private set; }
+
+            public void Start(string requestPath, string workFolder, WorkerRequest request, Action<WorkerAnswer> ended)
+            {
+                Request = request;
+                Exit = WorkerRunner.Run(requestPath, WorkerCommands.Default(), () => 9000.0);
+                ended(WorkerAnswer.Read(WorkerFiles.AnswerPath(workFolder, request.RunId)));
+            }
+        }
+
+        private sealed class NoTable : ICheckTableDialog
+        {
+            public CheckTableAnswer Show(CheckTableView view, CheckTableCallbacks callbacks)
+            {
+                return new CheckTableAnswer();
+            }
+        }
+
+        private string CopyTo(string path, params string[] parts)
+        {
+            string target = Path.Combine(new[] { root }.Concat(parts).ToArray());
+            Directory.CreateDirectory(Path.GetDirectoryName(target));
+            File.Copy(path, target, true);
+            return target;
+        }
+
+        private string WriteTo(string text, params string[] parts)
+        {
+            string target = Path.Combine(new[] { root }.Concat(parts).ToArray());
+            Directory.CreateDirectory(Path.GetDirectoryName(target));
+            File.WriteAllText(target, text);
+            return target;
+        }
+
+        // The project of button 4 on the made up site of LevelFloorStepTests, the shipped config with no edit of its mode, and 4 Check run on it
+        private RealWorker RunCheck(LevelFloorStepTests steps, string runId, string mode, out RunLater end)
+        {
+            WorkerRequest seed = steps.Request("seed", BuildPlan.Steps);
+            string Seeded(string role) => seed.Inputs.Single(input => input.Role == role).Path;
+            string shipped = Path.GetDirectoryName(WorkerRunTests.RepoConfig());
+            string config = CopyTo(Seeded("config"), "repo", "config", "project.json");
+            CopyTo(Path.Combine(shipped, "floor_outlines.json"), "repo", "config", "floor_outlines.json");
+            CopyTo(Path.Combine(shipped, "prototype_offsets.json"), "repo", "config", "prototype_offsets.json");
+            string rules = CopyTo(Seeded("rules"), "repo", "rules", "made-up.json");
+            WriteTo(new JObject { ["overrides"] = new JArray(new JObject { ["plot"] = "3", ["field"] = "heightM", ["value"] = JObject.Parse("{\"gapToRuleM\": 0.1}"), ["source"] = "parsons", ["model"] = "a.rvt", ["key"] = "imc" }) }.ToString(), "repo", "config", "overrides", "made-up.json");
+            string prototypes = Path.GetDirectoryName(seed.Inputs.First(input => input.Role.StartsWith(BuildSteps.PrototypeRole, StringComparison.Ordinal)).Path);
+            string work = Path.Combine(root, "work");
+            JObject values = JObject.Parse(File.ReadAllText(config));
+            var levels = new JObject();
+            foreach (string kind in new[] { "generic", "yard", "ramp" })
+            {
+                levels[(string)values["floors"]["levels"][kind]] = 0.0;
+            }
+            WriteTo(new JObject { ["levels"] = levels, ["surveyPoint"] = JObject.Parse("{ 'position': [0, 0, 0], 'sharedPosition': [0, 0, 0] }"), ["angleToTrueNorthDeg"] = 0.0 }.ToString(), "work", Common.SetUp.SetUpRun.SiteFile);
+            string read = ReadDataRun.FolderPrefix + "0123";
+            foreach (KeyValuePair<string, string> file in CheckRun.ReadFiles)
+            {
+                CopyTo(Seeded(file.Key), "work", read, file.Value);
+            }
+            WriteTo("{ \"plots\": [] }", "work", read, ReadDataRun.PlotTableFile);
+            var listed = new List<Tuple<string, string>> { Tuple.Create("config", config), Tuple.Create("plotsCsv", Seeded("plotsCsv")), Tuple.Create("labels", Seeded("labels")) };
+            listed.AddRange(seed.Inputs.Where(input => input.Role.StartsWith(WorkerRunner.RoadSurfaceRole, StringComparison.Ordinal)).Select(input => Tuple.Create(input.Role, input.Path)));
+            WriteTo(new JObject
+            {
+                ["format"] = ReadDataRun.RecordFormat, ["runId"] = "R2-1",
+                ["inputs"] = new JArray(listed.Select(item => new JObject { ["role"] = item.Item1, ["path"] = item.Item2, ["sha256"] = FileHash.Sha256(item.Item2) })),
+            }.ToString(), "work", read, ReadDataRun.RecordFile);
+
+            var worker = new RealWorker();
+            var roles = new Dictionary<string, string> { ["Settings"] = CheckRun.Config, ["Rules"] = CheckRun.Rules, ["Prototypes"] = CheckRun.Prototypes };
+            var run = new CheckRun(roles, worker, null, new WorkerDocument { Path = @"C:\Projects\a.rvt", SessionId = "s1" }, () => new SettingsScope(), new NoTable(), null, null) { ModePick = () => mode };
+            var pane = new[] { new RunInput("Settings", config, false), new RunInput("Rules", rules, false), new RunInput("Prototypes", prototypes, true) };
+            RunLater ended = null;
+            run.Body().Start(new RunContext(4, "4 Check", runId, work, null, true, pane, new Dictionary<string, string>()), later => ended = later);
+            end = ended;
+            return worker;
+        }
+
+        private static string AnswerOf(RealWorker worker)
+        {
+            return WorkerAnswer.Read(WorkerFiles.AnswerPath(worker.Request.OutputFolder, worker.Request.RunId)).Message;
+        }
+
+        [Fact]
+        public void R484_R408_button_4_under_the_project_mode_rev6_builds_through_the_real_worker_with_the_floor_file_of_the_request()
+        {
+            using (var steps = new LevelFloorStepTests())
+            {
+                RunLater end;
+                RealWorker worker = RunCheck(steps, "4_real-rev6", DesignBasis.Rev6, out end);
+                Assert.True(worker.Exit == 0, "exit " + worker.Exit + ": " + AnswerOf(worker));
+                Assert.Null(end.Failure);
+                WorkerFile floors = Assert.Single(worker.Request.Inputs, input => input.Role == BuildSteps.BandsRole);
+                Assert.Equal(Path.Combine(root, "repo", "config", "floor_outlines.json"), floors.Path);
+                Assert.Equal(FileHash.Sha256(floors.Path), floors.Sha256);
+                Assert.True(File.Exists(Path.Combine(worker.Request.OutputFolder, BuildPlan.FileName(null))));
+                JObject levels = JObject.Parse(File.ReadAllText(Path.Combine(worker.Request.StepsFolder, "step_levels_csharp.json")));
+                Assert.Equal(DesignBasis.Rev6, (string)levels[RunStamp.Key]["designBasis"]);
+                Assert.Contains(levels[RunStamp.Key]["inputs"], input => (string)input["role"] == BuildSteps.BandsRole);
+            }
+        }
+
+        [Fact]
+        public void R484_R408_button_4_of_the_past_job_names_no_floor_file_in_its_request_or_its_stamps()
+        {
+            using (var steps = new LevelFloorStepTests())
+            {
+                RunLater end;
+                RealWorker worker = RunCheck(steps, "4_real-past", null, out end);
+                Assert.True(worker.Exit == 0, "exit " + worker.Exit + ": " + AnswerOf(worker));
+                Assert.Null(end.Failure);
+                Assert.DoesNotContain(worker.Request.Inputs, input => input.Role == BuildSteps.BandsRole);
+                Assert.DoesNotContain("projectMode", worker.Request.ToJson());
+                JObject levels = JObject.Parse(File.ReadAllText(Path.Combine(worker.Request.StepsFolder, "step_levels_csharp.json")));
+                Assert.Equal(PastMode(), (string)levels[RunStamp.Key]["designBasis"]);
+                Assert.DoesNotContain(levels[RunStamp.Key]["inputs"], input => (string)input["role"] == BuildSteps.BandsRole);
+            }
+        }
+
         [Fact]
         public void R484_update_from_report_and_the_position_read_carry_the_mode_in_their_requests()
         {
@@ -374,13 +523,17 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R484_start_from_empty_shows_the_rev6_line_and_the_pick_active_once_a_config_is_known()
+        public void R484_a_project_with_a_config_and_no_mode_shows_its_config_mode_and_a_save_leaves_it_there()
         {
-            NewProjectViewModel model = Window(new ProjectSettings { ConfigFile = "cfg" }, new SavedStart[0], path => Config("pastMade"));
-            Assert.Equal("New project rules, Rev 06", model.ModeLine);
-            Assert.True(RoadRow(model).SurfacesEnabled);
-            model.Save();
-            Assert.Equal(DesignBasis.Rev6, model.Result.ProjectMode);
+            NewProjectViewModel past = Window(new ProjectSettings { ConfigFile = "cfg" }, new SavedStart[0], path => Config("pastMade"));
+            Assert.Equal("ROSHN past job", past.ModeLine);
+            Assert.False(RoadRow(past).SurfacesEnabled);
+            past.Save();
+            Assert.Null(past.Result.ProjectMode);
+
+            NewProjectViewModel rev6 = Window(new ProjectSettings { ConfigFile = "cfg" }, new SavedStart[0], path => Config(DesignBasis.Rev6));
+            Assert.Equal("New project rules, Rev 06", rev6.ModeLine);
+            Assert.True(RoadRow(rev6).SurfacesEnabled);
         }
 
         [Fact]
@@ -419,23 +572,14 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R484_the_first_config_picked_in_the_pane_gives_a_new_project_its_mode_and_the_pick()
+        public void R484_a_config_picked_in_the_pane_sets_no_mode_only_save_setup_writes_it()
         {
             var document = new DocumentSession("s", Path.Combine(Path.GetTempPath(), "x.rvt"), "x");
             var model = new PaneViewModel(new NoProbe()) { ReadText = path => Config("pastMade") };
             model.Load(document);
             model.PickConfig("cfg");
-            Assert.Equal(DesignBasis.Rev6, document.Settings.Project.ProjectMode);
-            Assert.Equal(RoadPickWhy.Ready, RoadPickState.Of(document.Settings.Project, model.ReadText).Why);
-        }
-
-        [Fact]
-        public void R484_a_project_that_ran_keeps_the_mode_of_config_when_a_config_is_picked_in_the_pane()
-        {
-            var project = new ProjectSettings { ConfigFile = "cfg" };
-            project.LastRuns["2"] = new ButtonRun { Time = "2026-11-01T00:00:00Z" };
-            ProjectModes.TakeNewProject(project, path => Config("pastMade"));
-            Assert.Null(project.ProjectMode);
+            Assert.Null(document.Settings.Project.ProjectMode);
+            Assert.Equal(RoadPickWhy.PastJob, RoadPickState.Of(document.Settings.Project, model.ReadText).Why);
         }
 
         [Fact]

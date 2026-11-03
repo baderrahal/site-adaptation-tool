@@ -222,8 +222,6 @@ namespace SiteAdaptation.AddIn.Pane
         public void PickConfig(string path)
         {
             Settings.ConfigFile = path;
-            // R484. The first config of a project that holds no mode and never ran, so a Save setup before this pick does not leave it on the mode of config
-            ProjectModes.TakeNewProject(Settings.Project, ReadText);
             RefreshAll();
         }
 

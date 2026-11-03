@@ -71,13 +71,13 @@ namespace SiteAdaptation.Common.Settings
             return mode != null && mode.Type == JTokenType.String && block["modes"] is JArray modes && modes.Any(item => item.Type == JTokenType.String && (string)item == (string)mode) ? (string)mode : null;
         }
 
-        // A project that holds no mode and never ran takes the mode of a new project once its config is known, from Empty project of New project
-        // and from the first pick of a Settings file in the pane. One that ran stays on the mode of config, so an old model is not moved by a Save setup
-        public static void TakeNewProject(ProjectSettings project, Func<string, string> readText)
+        // Empty project of New project. A project takes the mode of a new project only when the settings before this Save name no config file. One that names
+        // a config and holds no mode stays on the mode of its config, so a plain Save setup of an older project never moves it
+        public static void TakeNewProject(string configBefore, ProjectSettings next, Func<string, string> readText)
         {
-            if (project.ProjectMode == null && project.LastRuns.Count == 0)
+            if (next.ProjectMode == null && string.IsNullOrEmpty(configBefore))
             {
-                project.ProjectMode = NewProject(ReadConfig(project.ConfigFile, readText));
+                next.ProjectMode = NewProject(ReadConfig(next.ConfigFile, readText));
             }
         }
     }

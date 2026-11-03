@@ -39,7 +39,8 @@ namespace SiteAdaptation.Common.CheckTable
         private static readonly string[] ReadRoles = { "config", "plotsCsv", "labels" };
 
         // The files beside config the build reads by name (docs/design/06-settings.md section 6)
-        private static readonly string[] BesideConfig = { "floor_outlines.json", "prototype_offsets.json" };
+        private const string FloorFile = "floor_outlines.json";
+        private static readonly string[] BesideConfig = { FloorFile, "prototype_offsets.json" };
 
         private readonly IReadOnlyDictionary<string, string> roles;
         private readonly IWorkerStart worker;
@@ -231,6 +232,13 @@ namespace SiteAdaptation.Common.CheckTable
                 {
                     plan.Stops.Add(name + " is not beside the settings file");
                 }
+            }
+            // R408. Under rev6 the build reads the ramp bands of the floor file by this role, plan_from_book.BANDS_ROLE. The past job reads none, so its
+            // request and the stamps of its outputs stay byte the same
+            string floorFile = Path.Combine(Path.GetDirectoryName(plan.ConfigPath), FloorFile);
+            if (rev6 && File.Exists(floorFile))
+            {
+                Add(plan, BuildSteps.BandsRole, floorFile, null);
             }
             if (!File.Exists(Path.Combine(context.WorkFolder, SetUpRun.SiteFile)))
             {
