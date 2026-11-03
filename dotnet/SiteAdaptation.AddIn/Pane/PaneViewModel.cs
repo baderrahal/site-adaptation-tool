@@ -731,8 +731,16 @@ namespace SiteAdaptation.AddIn.Pane
             Set(ref levelProfile, chosen, nameof(LevelProfile));
         }
 
+        // R543. Step 1 names the source of the last run, read from site.json of the work folder of this model
+        private void RefreshStepOne()
+        {
+            string folder = document != null && document.HasPath ? WorkFolderOf?.Invoke(document.Path) : null;
+            Steps[0].Line = PaneText.StepOneLine(folder == null ? null : ReadText(Path.Combine(folder, Common.SetUp.SetUpRun.SiteFile)));
+        }
+
         private void RefreshSteps()
         {
+            RefreshStepOne();
             int next = StepPlan.Next(statuses);
             bool shown = document != null && document.HasPath;
             foreach (StepRowViewModel step in Steps)
@@ -766,7 +774,7 @@ namespace SiteAdaptation.AddIn.Pane
             }
             BoxLabel = PaneText.NextLabel;
             BoxName = next == 0 ? string.Empty : StepName(next);
-            BoxLine = next == 0 ? string.Empty : PaneText.StepLines[next - 1] + ". " + (DryRun ? (next == NoDryRunStep ? PaneText.DryRunNoStep4 : PaneText.DryRunOn) : PaneText.DryRunOff);
+            BoxLine = next == 0 ? string.Empty : Steps[next - 1].Line + ". " + (DryRun ? (next == NoDryRunStep ? PaneText.DryRunNoStep4 : PaneText.DryRunOn) : PaneText.DryRunOff);
             BoxButton = next == 0 ? string.Empty : TextTemplate.Fill(PaneText.RunButton, next, StepName(next));
             BoxButtonShown = next != 0;
         }
@@ -967,12 +975,13 @@ namespace SiteAdaptation.AddIn.Pane
         private MarkKind mark;
         private bool runnable;
         private string rowTip;
+        private string line;
 
         public StepRowViewModel(int number, string name, string line, Action<int> run = null)
         {
             Number = number;
             Name = name;
-            Line = line;
+            this.line = line;
             // R444. A done step runs again, the next step runs, a step that waits does nothing and its chip says what it needs
             RunCommand = new PaneCommand(() =>
             {
@@ -992,7 +1001,7 @@ namespace SiteAdaptation.AddIn.Pane
 
         public int Number { get; }
         public string Name { get; }
-        public string Line { get; }
+        public string Line { get { return line; } set { Set(ref line, value); } }
 
         // R540. The key of the row in the help file and its one line on hover
         public string HelpKey => Common.Help.HelpBook.StepKey(Number);

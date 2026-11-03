@@ -189,7 +189,8 @@ namespace SiteAdaptation.Tests
             // and the folder of the override list (Q397)
             // R510 to R514 added 14: the row Position from, the section Position source and the section CAD and position file of Set up site
             // COORD-3NOV-A review added 11: the words that follow the source, the title of the file dialog, the rows Place and Typed origin to the plots, the help of Current files
-            Assert.Equal(319, chosen);
+            // R542 added 13, the Report file name section of New project, R543 added 4, the step 1 lines
+            Assert.Equal(336, chosen);
             Assert.True(matched > 100, matched.ToString());
         }
 

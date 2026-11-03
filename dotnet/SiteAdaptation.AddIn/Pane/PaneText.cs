@@ -73,7 +73,10 @@ namespace SiteAdaptation.AddIn.Pane
         public const string Size = "<n> MiB";
         public const string SizeAndHash = "<n> MiB <n>";
 
-        public const string StepLine1 = "Coordinates, levels and types from CAD";
+        public const string StepLine1 = "Coordinates, levels and types, set in step 1";
+        public const string StepLine1Cad = "Coordinates from the CAD baseplan, levels and units from the rules, types from config";
+        public const string StepLine1File = "Coordinates, levels and units from the position file, types from config";
+        public const string StepLine1Typed = "Coordinates typed by the user, levels and units from the rules, types from config";
         public const string StepLine2 = "Reads the drawings and schedules";
         public const string StepLine3 = "The team checks what was read";
         public const string StepLine4 = "Compares the rules with the past job";
@@ -92,6 +95,16 @@ namespace SiteAdaptation.AddIn.Pane
 
         // The steps after 4 folded into one row on first open, as "Floors and ramps to 9 Report"
         public const string FoldedSteps = "<name> to <n> <name>";
+
+        // R543. What site.json says the last step 1 did, the plain line until it ran
+        public static string StepOneLine(string siteText)
+        {
+            string source = Common.SetUp.SiteSources.Written(siteText);
+            return source == Common.SetUp.SiteSources.Cad ? StepLine1Cad
+                : source == Common.SetUp.SiteSources.PositionFile ? StepLine1File
+                : source == Common.SetUp.SiteSources.Typed ? StepLine1Typed
+                : StepLine1;
+        }
 
         public static readonly string[] StepLines = { StepLine1, StepLine2, StepLine3, StepLine4, StepLine5, StepLine6, StepLine7, StepLine8, StepLine9 };
     }

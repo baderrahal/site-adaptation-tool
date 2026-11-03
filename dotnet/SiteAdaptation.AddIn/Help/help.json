@@ -22,7 +22,6 @@
     "Boxes: No site drawing in the setup, pick the Baseplan in the pane first. Nothing differs: Apply only marks the step done."
    ],
    "limits": [
-    "Q415 The pane says from CAD, the position comes from the file.",
     "Q336 Group of the link parameters.",
     "Q379 Another PC needs its own inputs."
    ]
@@ -193,10 +192,10 @@
    ],
    "before": "Step 4. Steps 5 to 8 give it the counts, so run them first.",
    "click": [
-    "Run 9 Report, then Apply. Then Open folder, open <NBH>_Report.xlsx."
+    "Run 9 Report, then Apply. Then Open folder, open the report Excel."
    ],
    "limits": [
-    "Q307 Summary shows [file name].rvt and other gaps, Placed holds no wall rows, and the pane counts differ from Summary.",
+    "Q451 The Issues column of Summary differs from sheet Issues.",
     "Q385 Accepted warnings return after a save."
    ]
   },

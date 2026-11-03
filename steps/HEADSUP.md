@@ -11,8 +11,8 @@
 
 ### Lane B, C and D
 
-- Lane B 02:05, 4 Nov, branch check/lane-b-6b: 6b found NBH 02, 03, 01A, 021, 022 stop at button 2, no official number. R557 fixes it, second install after ZC, LD, ND, KD end. New: ReadDataRun.UnitNumber by ScopePlots and DrawingFacts, TestHostJob.NoTemplate by ButtonsRunHost.Open and Run-TestHost.ps1. Slot 1 held. Blocked: none
-- Lane C, 4 Nov 01:20, branch feat/rules-3nov-c: HELP and RULES built, RULES PR going up (R541, Q419, Q440). New callers: RuleValues by RuleValuesViewModel, PaneHost.OpenRuleValues by Buttons.Rules. Revit pass not done, screen locked. Next: pane texts of Lanes A, B, D. Lock free. Blocked: none
+- Lane B 03:10, 4 Nov, branch check/lane-b-6b: 6b first batch ran, R557 lets 5 more NBHs build. Now: second install, 5 zones and R508 press, then the HELP window pass in Revit. New: ReadDataRun.UnitNumber by ScopePlots and DrawingFacts, TestHostJob.NoTemplate by ButtonsRunHost.Open and Run-TestHost.ps1. Blocked: none
+- Lane C, 4 Nov 03:05, Lane done. PR 160 to 163, 167, 170, 172 merged. Left: Revit test of R541, Road topography tick after topo/3nov-d, i help not seen in Revit, Browse not measured. For Bader: Q440, Q419, Q415, Q414, Q416 to Q418. Lock free
 - Lane D MASS-3NOV-D, 4 Nov 00:20, branch mass/3nov-d: Revit checks done, lock free. Over 1 mm 45 to 0 on NBH 012. Now: gate, the PR. Next: TOPO-3NOV-D on topo/3nov-d. Ids R530 to R539, R570 to R579, Q470 to Q479. Blocked: none
   New callers: MassCut.Apply by MassFileSet.Make. MassFileConfig.PartyLineOf by MassFileSet.Make. MassBase.UncutAreaM2, NotCut by MassFiles.Sidecar, Check.
 
