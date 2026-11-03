@@ -382,7 +382,8 @@ Built in Lane B 5c. The title, band, buttons, chips, columns and side box are th
 - `<n> m above the rule` CHOSEN, Past job column, side box and Choose line for a past value of {"gapToRuleM": n} above 0, the list keeps the value as it is
 - `<n> m below the rule` CHOSEN, Past job column, side box and Choose line for a past value of {"gapToRuleM": n} below 0, the list keeps the value as it is
 - `on the rule` CHOSEN, Past job column, side box and Choose line for a gap of 0, the list keeps the value as it is
-- `edge <n> of the plot outline` CHOSEN, Q376, Past job column, side box and Choose line for a front edge {"edge": n} of R482, n as the list holds it
+- `, in <n>` CHOSEN, Q397, end of the line under the title of 4 Check, the folder of the override list
+- `edge <n> of the plot outline` CHOSEN, Q376, Past job column, side box and Choose line for a front edge {"edge": n} of R482, counted from 1 as Review data shows it, the list holds n from 0
 - `along the front <n> m, into the plot <n> m` CHOSEN, Past job column, side box and Choose line for a position gap {"gapToRuleM": [x, y]}, signs kept, the list keeps the value as it is
 - `<n> degrees above the rule` CHOSEN, Past job column, side box and Choose line for a rotation gap {"gapToRuleDeg": n} above 0, the list keeps the value as it is
 - `<n> degrees below the rule` CHOSEN, Past job column, side box and Choose line for a rotation gap {"gapToRuleDeg": n} below 0, the list keeps the value as it is

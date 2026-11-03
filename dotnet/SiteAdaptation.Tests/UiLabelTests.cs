@@ -186,7 +186,7 @@ namespace SiteAdaptation.Tests
             // FIX-3NOV-A added 3: the copy stop now has a line to do, and the unread set a stop and a line to do (R486)
             // R505 added 1, the end of the found text of a file with external references
             // KNOWN-3NOV-A added 2: Front edge by hand and the past value of a front edge (R482, Q376)
-            Assert.Equal(268, chosen);
+            Assert.Equal(269, chosen);
             Assert.True(matched > 100, matched.ToString());
         }
 

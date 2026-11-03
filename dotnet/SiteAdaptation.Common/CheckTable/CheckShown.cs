@@ -104,7 +104,8 @@ namespace SiteAdaptation.Common.CheckTable
                 }
                 if (IsNumber(gap["edge"]))
                 {
-                    return ReplaceFirst(CheckShownText.EdgeOfOutline, Number(gap["edge"]));
+                    // Counted from 1 as Review data shows it (ReviewTable), the list holds it from 0
+                    return ReplaceFirst(CheckShownText.EdgeOfOutline, Number(new JValue(gap["edge"].Value<long>() + 1)));
                 }
             }
             return CheckTableState.Text(value);

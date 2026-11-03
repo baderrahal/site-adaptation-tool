@@ -257,7 +257,7 @@ namespace SiteAdaptation.Tests
             Assert.Equal("{\"edge\":2}", Text(list.FrontEdges()["6"]));
         }
 
-        private const string TextOfEdge3 = "edge 3 of the plot outline";
+        private const string TextOfEdge3 = "edge 4 of the plot outline";
 
         [Fact]
         public void R482_the_check_table_shows_the_rule_and_the_past_in_words()

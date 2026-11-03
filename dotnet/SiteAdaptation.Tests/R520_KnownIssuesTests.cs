@@ -154,7 +154,7 @@ namespace SiteAdaptation.Tests
         public void R482_a_front_edge_override_reads_front_edge_by_hand_and_edge_n_of_the_plot_outline()
         {
             Assert.Equal("Front edge by hand", CheckShown.RuleName("parsons frontEdge"));
-            Assert.Equal("edge 3 of the plot outline", CheckShown.Past(JToken.Parse("{\"edge\":3}")));
+            Assert.Equal("edge 4 of the plot outline", CheckShown.Past(JToken.Parse("{\"edge\":3}")));
         }
     }
 }
