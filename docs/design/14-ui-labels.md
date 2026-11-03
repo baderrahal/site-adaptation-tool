@@ -118,6 +118,7 @@ The five panels and their buttons of 7.1 of docs/design/12-ui-spec.md, Bader's c
 - `No road surface is picked.` CHOSEN, DRAFT, the line under the row when the order is empty (R492)
 - `The saved project takes its road surfaces from its past job, so this pick is not used.` CHOSEN, DRAFT, the tooltip of the grey button under the past job (R492)
 - `Pick a saved project under Start from first.` CHOSEN, DRAFT, the tooltip of the grey button while no saved project is chosen (R492)
+- `These files are Revit <n> and upgrade on each use, use the <n> copies. A remake from them takes 20 to 41 minutes.` CHOSEN, by Bader, the line under the row Prototypes when the oldest file is older than the running Revit, the first <n> is the format read, the second the running Revit (R496)
 
 ### Button messages
 

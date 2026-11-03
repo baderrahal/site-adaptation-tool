@@ -625,7 +625,7 @@ namespace SiteAdaptation.Tests
             string app = RepoText("dotnet", "SiteAdaptation.TestHost", "TestHostApp.cs");
             string session = RepoText("dotnet", "SiteAdaptation.TestHost", "JobSession.cs");
             string run = RepoText("dotnet", "SiteAdaptation.TestHost", "AddinRunSession.cs");
-            var added = new System.Text.RegularExpressions.Regex(@"\.\w+\s*\+=\s*On\w+");
+            var added = new System.Text.RegularExpressions.Regex(@"\.\w+\s*\+=\s*(events\.)?On\w+");
 
             Assert.Contains("Wake(application, token, jobPath);", Between(app, "public Result OnStartup(", "public Result OnShutdown("));
             Assert.Contains("JobSession.Start(application, token, jobPath, addinsFolder);", app);

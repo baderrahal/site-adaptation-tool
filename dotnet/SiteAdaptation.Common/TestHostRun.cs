@@ -81,6 +81,10 @@ namespace SiteAdaptation.Common
         private readonly Func<DateTime> clock;
         private TestHostStep current;
 
+        // R448. A listener keeps its Revit behind a job past its limit
+        public bool RevitStaysOpen { get; set; }
+        private bool overrunNoted;
+
         public TestHostRunner(TestHostLog log, Action<TestHostLog> save, Func<DateTime> clock)
         {
             this.log = log;
@@ -180,6 +184,10 @@ namespace SiteAdaptation.Common
                 }
                 else if (nowUtc > jobDeadlineUtc && current == null && log.FinishedUtc.HasValue)
                 {
+                    if (RevitStaysOpen)
+                    {
+                        return null;
+                    }
                     // The job ended, only the exit of Revit is late, so the result of the job stays
                     log.Notes.Add("Revit did not exit in time after the job, the test host stopped Revit");
                     Save();
@@ -202,7 +210,13 @@ namespace SiteAdaptation.Common
                 }
                 log.Result = "timeout";
                 log.FinishedUtc = nowUtc;
-                log.Notes.Add(why + ", the test host stopped Revit");
+                // The watchdog goes on looking while a Revit that stays open is inside the call
+                if (RevitStaysOpen && overrunNoted)
+                {
+                    return why;
+                }
+                overrunNoted = true;
+                log.Notes.Add(why + (RevitStaysOpen ? ", Revit stays open" : ", the test host stopped Revit"));
                 Save();
                 return why;
             }

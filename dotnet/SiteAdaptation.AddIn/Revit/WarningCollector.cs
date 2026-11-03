@@ -18,6 +18,11 @@ namespace SiteAdaptation.AddIn.Revit
 
         public FailureProcessingResult PreprocessFailures(FailuresAccessor accessor)
         {
+            return RunTiming.Measure(RunTiming.Warnings, () => Collect(accessor));
+        }
+
+        private FailureProcessingResult Collect(FailuresAccessor accessor)
+        {
             bool error = false;
             foreach (FailureMessageAccessor message in accessor.GetFailureMessages())
             {

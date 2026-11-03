@@ -2,6 +2,37 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Lane C SPEED-2NOV-C, 2026-11-03, Revit runs faster for all lanes
+
+Goal:
+- Timing first, a Revit listener, two slots, fixes only where the time goes, the same model after
+
+Done:
+- R447 run_timing per button and step. R448 the listener in the test host, job folder, one line to send. R449 two Revit slots, 65,221 MB here
+- R496 the pane warns on Revit 2021 prototypes. R497 a Revit .slog of a backup folder leaves the input check outside the input roots, a new file under one fails the run
+- Button 7 split: the 57 s were 6 stale masses, 52.3 s, 8.7 s each, once per change, 0 s else. The file is Lane D's, untouched
+- No change for warnings 0.1 s, the model refresh of button 5 (both calls needed), transactions, joins, links: steps/investigations/speed-2nov.md
+
+Checked:
+- Revit, RAN: whole run 6.8 minutes own run, 2.0 minutes second listener job. Timed buttons 232.6 and 305.5 s against 110.2 s, first job 184.2 s
+- Model, RAN against SPB3: floors, place, walls, footprint 0 differences, levels and accepted differ only in element ids, plan body equal. Second method, the Levels workbook: 8,298 of 8,302 cells equal, 4 run stamps
+- Real inputs 276, changed 0 on SPM1, SPM2, SPM4
+- Parity, RAN: 13 steps, net48 and net8.0, whole project and the 7 keys, past job and rev6, 416 reports, 0 failures, 16 of 16 plans byte-equal to main
+- Review 1, breaker 1 on 3329b5a and on the delta, REAL fixed. Test-first slipped on the first review's R496 only, said in the PR
+
+Remains:
+- Listener not run in Revit: a throw inside Revit, past limit and back, killed, hung, findings exit 5, slot 2. R497 and the pane line of R496 in the real pane not seen in Revit
+
+Known bugs:
+- None new. Lines in steps/latent.md
+
+Next:
+- Lanes send jobs through the listener, one add-in build per machine
+
+Your turn:
+- Opened none. Closed none.
+- 164 open, steps/questions-open.md
+
 ## Lane B FIX-2NOV-B task 4, 2026-11-03, the hand run of main on NBH 012, Lane B on the laptop
 
 Goal:

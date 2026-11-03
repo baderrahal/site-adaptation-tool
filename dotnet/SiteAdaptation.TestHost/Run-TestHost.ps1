@@ -26,7 +26,9 @@ param(
     # R104, Lane B 5b. The freeze guard: no first log step, no heartbeat, Revit not responding
     [int]$FirstStepMinutes = 5,
     [int]$HeartbeatMinutes = 10,
-    [int]$NotRespondingMinutes = 5
+    [int]$NotRespondingMinutes = 5,
+    # R448. Makes the run folder and writes the job to this file for Send-RevitJob.ps1, no Revit starts here
+    [string]$ListenerJobOut
 )
 
 $ErrorActionPreference = 'Stop'
@@ -85,6 +87,9 @@ if ($RoundSpec) {
 if (-not $DryStart -and -not $Code) {
     throw 'Give -Code, or -DryStart for a start with no job.'
 }
+if ($ListenerJobOut -and -not ($round -and $round.kind -eq 'addinRun' -and $round.buttons)) {
+    throw '-ListenerJobOut goes with a -RoundSpec of kind addinRun with buttons.'
+}
 if ($NewUpgradeFolder -and -not $Upgrade) {
     throw '-NewUpgradeFolder goes with -Upgrade only.'
 }
@@ -142,14 +147,7 @@ if (-not (Test-Path $watcherExe)) {
     throw "The dialog watcher is not installed at $watcherExe. Run Install-TestHost.ps1 first."
 }
 
-# Revit.exe of the Revit 2024 install folder, found by its own version and not guessed
-$found = @(Get-ChildItem (Join-Path $env:ProgramFiles 'Autodesk') -Directory | ForEach-Object { Join-Path $_.FullName 'Revit.exe' } |
-    Where-Object { Test-Path $_ } | Where-Object { $v = (Get-Item $_).VersionInfo
-        $v.ProductName -eq 'Autodesk Revit' -and $v.ProductMajorPart -eq 24 })
-if ($found.Count -ne 1) {
-    throw "Found $($found.Count) Revit.exe files of version 24, one is needed: $($found -join ', ')"
-}
-$revit = $found[0]
+$revit = Get-Revit2024Exe
 
 # The four add-ins of this tool by their AddInId and name in the repo manifests and the DLLs as the install scripts put them.
 # Only a box that names one of these DLLs gets Load Once, the watcher stops Revit on any other box of the tool
@@ -177,24 +175,6 @@ $roundJob = $null
 $setUpSource = $null
 $buttonsInputs = $null
 $buttonsBefore = $null
-
-# Lane B 5c (R384). The real files a buttons run reads in place: each input of the pane settings, every file of a folder input, the
-# template and the key copy. Each is held by its size, write time and SHA-256 before and after the run (D19)
-function Get-ButtonsInputs($paths) {
-    $files = [Collections.Generic.List[string]]::new()
-    foreach ($path in @($paths | Where-Object { $_ })) {
-        if (Test-Path -LiteralPath $path -PathType Container) {
-            Get-ChildItem -LiteralPath $path -File -Recurse | ForEach-Object { $files.Add($_.FullName) }
-        }
-        elseif (Test-Path -LiteralPath $path -PathType Leaf) {
-            $files.Add((Get-Item -LiteralPath $path).FullName)
-        }
-        else {
-            throw "A real input of the buttons run is not there: $path"
-        }
-    }
-    return @($files | Sort-Object -Unique)
-}
 
 function Get-InputHashes($files) {
     $hashes = [ordered]@{}
@@ -382,7 +362,7 @@ if ($round) {
                 if ($round.villaLinkFolder) {
                     $settingsCopy.addin.lightMode.linkFolder = [string]$round.villaLinkFolder
                 }
-                $buttonsInputs = Get-ButtonsInputs $buttonsSources
+                $buttonsInputs = Get-ButtonsInputs $buttonsSources (Get-RunInputRoots -Config $config)
                 $buttonsBefore = Get-InputHashes $buttonsInputs
                 if ($round.keyCopy) {
                     Copy-Item -LiteralPath ([string]$round.keyCopy) -Destination $copy
@@ -575,11 +555,14 @@ if (-not $DryStart -and -not $round) {
 
 # Outputs of an earlier run of this name are moved aside, so a run that writes nothing cannot pass on old files
 # A place run leaves the upgrade outputs of its code alone. A run named <code>_upgrade, an upgrade or a site upgrade, moves its own
-$old = @(Get-ChildItem $docs -Filter ('testhost_' + $name + '_*.json*') | Where-Object { $name -ne $Code -or $_.Name -notlike ('testhost_' + $Code + '_upgrade_*') })
-if ($old.Count -gt 0) {
-    $aside = Join-Path $docs ('testhost_old\' + $name + '_' + $stamp)
-    New-Item -ItemType Directory -Force $aside | Out-Null
-    $old | Move-Item -Destination $aside
+# R448. A job for a listener writes none of these, its files go to the out folder by run id, and they may be those of a live run of this code
+if (-not $ListenerJobOut) {
+    $old = @(Get-ChildItem $docs -Filter ('testhost_' + $name + '_*.json*') | Where-Object { $name -ne $Code -or $_.Name -notlike ('testhost_' + $Code + '_upgrade_*') })
+    if ($old.Count -gt 0) {
+        $aside = Join-Path $docs ('testhost_old\' + $name + '_' + $stamp)
+        New-Item -ItemType Directory -Force $aside | Out-Null
+        $old | Move-Item -Destination $aside
+    }
 }
 
 $start = Get-Date
@@ -671,6 +654,14 @@ try {
         }
         # R466. Every job names the config of the repo for the design values of R405, an addinRun takes the copy of its run folder over it
         $job.designConfig = Join-Path $repo 'config\project.json'
+        # R448. The job goes to the Revit that is open, it holds its config and the real inputs it marks before and after (D19)
+        if ($ListenerJobOut) {
+            $job.config = Join-Path $runFolder 'config\project.json'
+            $job.inputs = [string[]]@($buttonsInputs)
+            $job.inputSources = [string[]]@($buttonsSources)
+            $job | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $ListenerJobOut -Encoding utf8
+            return
+        }
         $job | ConvertTo-Json -Depth 5 | Set-Content -Path $jobPath -Encoding utf8
         # The token goes to the Revit process alone, this console never holds it
         $info.Environment['SITEADAPTATION_TESTHOST_TOKEN'] = $token
@@ -942,6 +933,7 @@ if (-not $DryStart) {
         if ($buttonsInputs) {
             $buttonsAfter = Get-InputHashes $buttonsInputs
             $buttonsChanged = @($buttonsInputs | Where-Object { $buttonsAfter[$_] -ne $buttonsBefore[$_] } | ForEach-Object { Split-Path $_ -Leaf })
+            $buttonsChanged += @(Get-NewInputFiles -Sources $buttonsSources -Before $buttonsInputs -InputRoots (Get-RunInputRoots -Config $config) | ForEach-Object { (Split-Path $_ -Leaf) + ' (new)' })
             "Real inputs of the buttons run: $($buttonsInputs.Count), unchanged $($buttonsInputs.Count - $buttonsChanged.Count)"
             if ($buttonsChanged.Count -gt 0) {
                 $stopReason = 'a real input of the buttons run changed (D19): ' + ($buttonsChanged -join ', ')

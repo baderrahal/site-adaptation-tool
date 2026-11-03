@@ -166,7 +166,12 @@
     "imageMarginMinutes": 10,
     "sampleSeconds": 5,
     "cimTimeoutSeconds": 2,
-    "helperProcesses": ["RevitWorker", "sqlservr", "CefSharp.BrowserSubprocess", "AdskLicensingAgent"]
+    "helperProcesses": ["RevitWorker", "sqlservr", "CefSharp.BrowserSubprocess", "AdskLicensingAgent"],
+    "listener": {
+      "note": "R448, developers only. The job folders in-<slot> and out-<slot> of the Revit listener lie under root, the slot comes from the window lock. inputRoots are refused for a model or a config of a job, on top of inputRoot.",
+      "root": "C:\\SA-revit-jobs",
+      "inputRoots": ["C:\\02-Site Adaptation", "C:\\10- ROSHEN MECCA"]
+    }
   },
   "answerKeys": {
     "folder": "Revit All Zones\\2024",
@@ -252,6 +257,9 @@
     "waitMinutes": 5,
     "staleHours": 2,
     "minFreeGB": 2.0,
+    "revitSlots": 2,
+    "revitSlotsMinTotalGB": 32,
+    "maxWindows": 3,
     "windowProcesses": ["acad", "accoreconsole", "Revit"],
     "snapshot": {
       "dataBook": "{workRoot}\\data_book",

@@ -14,14 +14,16 @@ namespace SiteAdaptation.Common.Flow
         private readonly IConfirm confirm;
         private readonly Func<RunInput, string> hash;
         private readonly Func<string> newRunId;
+        private readonly RunTiming timing;
 
-        public ButtonFlow(IRunState state, IModel model, IConfirm confirm, Func<RunInput, string> hash, Func<string> newRunId)
+        public ButtonFlow(IRunState state, IModel model, IConfirm confirm, Func<RunInput, string> hash, Func<string> newRunId, RunTiming timing = null)
         {
             this.state = state;
             this.model = model;
             this.confirm = confirm;
             this.hash = hash;
             this.newRunId = newRunId;
+            this.timing = timing;
         }
 
         // The label is the one of the ribbon, such as "7 Place villas", given by the add-in
@@ -34,6 +36,31 @@ namespace SiteAdaptation.Common.Flow
         // once. The flow does not tell the state of that end, the caller does, on the document of the run, which may no longer be
         // the active one when the end comes (docs/design/02-folders.md, Revit does not wait)
         public RunOutcome Run(int number, string label, ButtonBody body, string documentPath, Action<RunOutcome> ended)
+        {
+            using (timing?.Enter())
+            {
+                try
+                {
+                    RunOutcome outcome = Flowed(number, label, body, documentPath, ended);
+                    if (outcome.End == RunEnd.Started)
+                    {
+                        timing?.WriteSoFar();
+                    }
+                    else
+                    {
+                        timing?.Finish(outcome.End.ToString());
+                    }
+                    return outcome;
+                }
+                catch
+                {
+                    timing?.Finish(RunTiming.Threw);
+                    throw;
+                }
+            }
+        }
+
+        private RunOutcome Flowed(int number, string label, ButtonBody body, string documentPath, Action<RunOutcome> ended)
         {
             if (body.NotBuilt != null)
             {
@@ -62,6 +89,8 @@ namespace SiteAdaptation.Common.Flow
 
             string work = state.WorkFolder(documentPath);
             string runId = newRunId();
+            timing?.Begin(number, label, runId, work);
+            timing?.NextStep(RunTiming.HashesStep, RunTiming.Reading);
             Dictionary<string, string> hashes;
             try
             {
@@ -74,6 +103,7 @@ namespace SiteAdaptation.Common.Flow
             bool dryRun = state.DryRunFirst;
             var preview = new RunContext(number, label, runId, work, dryRun ? Path.Combine(work, "dry", runId) : null, dryRun, inputs, hashes);
             RunSummary summary;
+            timing?.NextStep(RunTiming.PreviewStep, RunTiming.Reading);
             try
             {
                 summary = body.Preview(preview) ?? new RunSummary(null, null);
@@ -88,6 +118,7 @@ namespace SiteAdaptation.Common.Flow
                 summary = MoveDryOutputs(preview, summary);
             }
             bool apply;
+            timing?.NextStep(RunTiming.ConfirmStep);
             try
             {
                 apply = body.Confirm != null ? body.Confirm(preview, summary) : confirm.Apply(label, summary, dryRun);
@@ -102,6 +133,7 @@ namespace SiteAdaptation.Common.Flow
             }
             if (dryRun)
             {
+                timing?.NextStep(RunTiming.HashesAgainStep, RunTiming.Reading);
                 absent = Absent(label, inputs);
                 if (absent != null)
                 {
@@ -122,22 +154,26 @@ namespace SiteAdaptation.Common.Flow
                     return Stop(RunTexts.ChangedSinceDryRun(label, changed));
                 }
             }
-            var real = new RunContext(number, label, runId, work, null, true, inputs, hashes);
+            var real = new RunContext(number, label, runId, work, null, true, inputs, hashes) { Timing = timing };
             return body.Start != null ? Later(body, real, ended) : Real(body, real);
         }
 
         // R375. A body with no model element opens no transaction. Its end is taken once, a failure is the whole message of the stop
         // and records nothing, a done end records the run with the outputs the work wrote on their names
-        private static RunOutcome Later(ButtonBody body, RunContext context, Action<RunOutcome> ended)
+        private RunOutcome Later(ButtonBody body, RunContext context, Action<RunOutcome> ended)
         {
             int taken = 0;
+            timing?.NextStep(RunTiming.WorkerStartStep);
             Action<RunLater> end = later =>
             {
                 if (System.Threading.Interlocked.Exchange(ref taken, 1) == 1)
                 {
                     return;
                 }
-                ended(Ended(context, later));
+                RunOutcome outcome = Ended(context, later);
+                // Before the end is told, since the caller shows its dialog there and the wait of a user is no time of the run
+                timing?.Finish(outcome.End.ToString());
+                ended(outcome);
             };
             try
             {
@@ -151,6 +187,7 @@ namespace SiteAdaptation.Common.Flow
                 }
                 return Stop(RunTexts.ChangedNothing(context.Label, RunTexts.Failed(failure.Message)));
             }
+            timing?.NextStep(RunTiming.WorkerStep, RunTiming.WorkerWait);
             return new RunOutcome(RunEnd.Started, null, null);
         }
 
@@ -212,6 +249,10 @@ namespace SiteAdaptation.Common.Flow
         private RunOutcome Real(ButtonBody body, RunContext context)
         {
             IDisposable outside;
+            if (body.Outside != null)
+            {
+                timing?.NextStep(RunTiming.OutsideStep);
+            }
             try
             {
                 outside = body.Outside == null ? null : body.Outside(context);
@@ -227,6 +268,10 @@ namespace SiteAdaptation.Common.Flow
             }
             finally
             {
+                if (outside != null)
+                {
+                    timing?.NextStep(RunTiming.OutsideEndStep);
+                }
                 outside?.Dispose();
             }
         }
@@ -234,6 +279,7 @@ namespace SiteAdaptation.Common.Flow
         private RunOutcome Transacted(ButtonBody body, RunContext context)
         {
             var issues = new List<string>();
+            timing?.NextStep(RunTiming.ApplyStep);
             IModelTransaction started;
             try
             {
@@ -250,6 +296,7 @@ namespace SiteAdaptation.Common.Flow
                 {
                     context.Transaction = transaction;
                     issues.AddRange(body.Apply(context) ?? new string[0]);
+                    timing?.NextStep(RunTiming.ReadBackStep, RunTiming.Reading);
                     string difference = body.ReadBack == null ? null : body.ReadBack(context);
                     if (difference != null)
                     {
@@ -260,6 +307,7 @@ namespace SiteAdaptation.Common.Flow
                 {
                     reason = RunTexts.Failed(failure.Message);
                 }
+                timing?.NextStep(RunTiming.CommitStep);
                 if (reason == null)
                 {
                     try
@@ -291,6 +339,7 @@ namespace SiteAdaptation.Common.Flow
                 }
             }
 
+            timing?.NextStep(RunTiming.OutputsStep);
             var moved = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             var failed = new List<string>();
             foreach (KeyValuePair<string, string> output in context.Outputs)

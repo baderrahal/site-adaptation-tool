@@ -6,6 +6,7 @@ using Autodesk.Revit.DB;
 using Autodesk.Revit.DB.ExtensibleStorage;
 using SiteAdaptation.Common;
 using SiteAdaptation.Common.SetUp;
+using SiteAdaptation.Common.Flow;
 
 namespace SiteAdaptation.AddIn.Revit
 {
@@ -118,7 +119,7 @@ namespace SiteAdaptation.AddIn.Revit
             {
                 SitePosition at = target.Position;
                 document.ActiveProjectLocation.SetProjectPosition(XYZ.Zero, new ProjectPosition(UnitMath.MetresToFeet(at.EastM.Value), UnitMath.MetresToFeet(at.NorthM.Value), UnitMath.MetresToFeet(at.ElevationM.Value), UnitMath.DegreesToRadians(at.AngleDeg.Value)));
-                document.Regenerate();
+                RunTiming.Measure(RunTiming.ModelRefresh, document.Regenerate);
             }
             if (changes.SurveyPoint)
             {
@@ -128,7 +129,7 @@ namespace SiteAdaptation.AddIn.Revit
                 {
                     survey.Clipped = false;
                     ElementTransformUtils.MoveElement(document, survey.Id, Feet(target.SurveyInternal) - survey.Position);
-                    document.Regenerate();
+                    RunTiming.Measure(RunTiming.ModelRefresh, document.Regenerate);
                 }
                 finally
                 {
@@ -139,7 +140,7 @@ namespace SiteAdaptation.AddIn.Revit
             {
                 BasePoint projectBase = BasePoint.GetProjectBasePoint(document);
                 ElementTransformUtils.MoveElement(document, projectBase.Id, Feet(target.BaseInternal) - projectBase.Position);
-                document.Regenerate();
+                RunTiming.Measure(RunTiming.ModelRefresh, document.Regenerate);
             }
         }
 
@@ -163,7 +164,7 @@ namespace SiteAdaptation.AddIn.Revit
             {
                 document.ActiveProjectLocation = named;
             }
-            document.Regenerate();
+            RunTiming.Measure(RunTiming.ModelRefresh, document.Regenerate);
         }
 
         // SiteLocation takes radians. A place name null leaves the one of the document
@@ -203,13 +204,13 @@ namespace SiteAdaptation.AddIn.Revit
                         throw new InvalidOperationException("Revit did not set the Elevation Base of the level type " + document.GetElement(typeId).Name);
                     }
                 }
-                document.Regenerate();
+                RunTiming.Measure(RunTiming.ModelRefresh, document.Regenerate);
             }
             foreach (PositionLevel level in changes.Levels)
             {
                 levels.First(have => have.Name == level.Name).Elevation = UnitMath.MetresToFeet(level.ElevationM);
             }
-            document.Regenerate();
+            RunTiming.Measure(RunTiming.ModelRefresh, document.Regenerate);
         }
 
         // By name as copies, the generic type first so the other floor types copy it, as R212 does

@@ -94,6 +94,8 @@ namespace SiteAdaptation.TestHost
         public void Start(UIApplication start)
         {
             ui = start;
+            // R447. The first tick is where Revit has finished starting, so the first run of the job holds that time
+            Common.Flow.RunTiming.BeforeRun((DateTime.Now - System.Diagnostics.Process.GetCurrentProcess().StartTime).TotalSeconds, null);
             // R405. The folder of Revit has no config/project.json above it, so the job takes the config copy of its run folder, else
             // that of the repo above the test host, before the first write of its result. A config it cannot read is a note of the result
             string designValues = DesignValues.UseConfigFile(AddinRunFiles.Config(folder, Path.GetDirectoryName(typeof(AddinRunSession).Assembly.Location)));
