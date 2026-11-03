@@ -36,7 +36,7 @@ NO_CHECK = "checkRows.%s names no check for %s (R363)"
 NO_STATUS_RULE = "valueStatus holds no status for the field and its source (R401)"
 DECIDED = "majority.decidedByQuestion."
 JOINT_FIELD, JOINT_FROM, JOINT_RULE = "rampJoint", "joint", "R471"
-NO_JOINT = "floors.rampJoint of the settings holds no length nearM above 0 and passGapM of 0 or more (R471)"
+NO_JOINT = "floors.rampJoint of the settings holds no length checkNearM above 0 and passGapM of 0 or more (R471)"
 
 
 def list_entries(data, sources, models=None):
@@ -89,9 +89,9 @@ def ramp_corners(plan):
 
 
 def joint_limits(settings):
-    """R471. nearM and passGapM of floors.rampJoint, refused unless nearM is a length above 0 and passGapM one of 0 or more."""
+    """R471, R518. checkNearM and passGapM of floors.rampJoint, refused unless checkNearM is a length above 0 and passGapM one of 0 or more."""
     block = (settings.get("floors") or {}).get("rampJoint") or {}
-    limits = tuple(block.get(name) for name in ("nearM", "passGapM"))
+    limits = tuple(block.get(name) for name in ("checkNearM", "passGapM"))
     if any(isinstance(value, bool) or not isinstance(value, (int, float)) for value in limits) or limits[0] <= 0 or limits[1] < 0:
         raise project_profile.ProfileError(NO_JOINT)
     return limits
