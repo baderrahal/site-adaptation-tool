@@ -98,7 +98,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R515_shared_ramps_names_the_plots_of_a_shared_front_and_of_a_shared_back()
+        public void R515_shared_backs_names_the_plots_of_a_shared_back_corner()
         {
             var joint = new JointRule { Near = Near, Back = true, Slope = 0.5 };
             var front = new Dictionary<string, FrontItem>
@@ -106,15 +106,12 @@ namespace SiteAdaptation.Tests
                 ["1"] = new FrontItem { Unit = "A", Front = new[] { 1.0, 1.1 }, Corners = Left }, ["2"] = new FrontItem { Unit = "A", Front = new[] { 1.1, 1.2 }, Corners = Right },
                 ["9"] = new FrontItem { Unit = "A", Front = new[] { 1.0, 1.1 }, Corners = Far }, ["8"] = new FrontItem(),
             };
-            Tuple<HashSet<string>, HashSet<string>> found = FloorOutlines.SharedRamps(front, joint);
-            Assert.Equal(new[] { "1", "2" }, found.Item1.OrderBy(item => item, StringComparer.Ordinal));
-            Assert.Equal(new[] { "1", "2" }, found.Item2.OrderBy(item => item, StringComparer.Ordinal));
+            Assert.Equal(new[] { "1", "2" }, FloorOutlines.SharedBacks(front, joint).OrderBy(item => item, StringComparer.Ordinal));
             // A ramp that shares only its front corner: the back pair apart
             double[][] skew = { new[] { 12.0, 0.0 }, new[] { 24.0, 0.0 }, new[] { 24.0, 5.52 }, new[] { 12.5, 5.52 } };
-            found = FloorOutlines.SharedRamps(new Dictionary<string, FrontItem> { ["1"] = front["1"], ["2"] = new FrontItem { Unit = "A", Front = new[] { 1.1, 1.2 }, Corners = skew } }, joint);
-            Assert.Equal(2, found.Item1.Count);
-            Assert.Empty(found.Item2);
-            Assert.Empty(FloorOutlines.SharedRamps(front, null).Item1);
+            Assert.Empty(FloorOutlines.SharedBacks(new Dictionary<string, FrontItem> { ["1"] = front["1"], ["2"] = new FrontItem { Unit = "A", Front = new[] { 1.1, 1.2 }, Corners = skew } }, joint));
+            Assert.Empty(FloorOutlines.SharedBacks(front, null));
+            Assert.Empty(FloorOutlines.SharedBacks(front, new JointRule { Near = Near, Back = false, Slope = 0.5 }));
         }
 
         private static double[] Levels(OverrideParameterStepTests.Built built, string number)
@@ -138,24 +135,12 @@ namespace SiteAdaptation.Tests
             }
         }
 
-        [Fact]
-        public void R515_under_rev6_a_two_percent_unit_in_a_row_takes_the_slope_of_the_joint_and_its_door_level_type_and_ffl_follow()
+        private static DesignBasis Rev6Basis()
         {
             JObject settings = JObject.Parse(File.ReadAllText(WorkerRunTests.RepoConfig()));
             settings["designBasis"]["mode"] = "rev6";
-            settings["designBasis"]["doorLevel"]["slopePercent"] = JObject.Parse("{\"default\": 0.5, \"DP2\": 2.0}");
-            DesignBasis rev6 = DesignBasis.Of(settings, () => null);
-            var list = new OverrideList(new Dictionary<string, JObject>());
-            OverrideParameterStepTests.Built built = OverrideParameterStepTests.Build(list, basis: rev6, bands: Bands(), changeConfig: Joined);
-            // 5, a DP2 at 2 percent by the door level block, shares its back corners with 4 and 6, so it takes 0.5 percent, the slope of the joint in config
-            Assert.Equal(0.5, (double)built.Plans["5"].Overrides["slopePercent"], 9);
-            Assert.Equal("Ramps 0.5%", (string)(JToken)built.Plans["5"].Overrides["rampType"]);
-            double[] four = Levels(built, "4"), five = Levels(built, "5"), six = Levels(built, "6");
-            Assert.Equal(four[2], five[3]);
-            Assert.Equal(five[2], six[3]);
-            // With the joint off the same unit holds its 2 percent and its back corners keep their own levels
-            OverrideParameterStepTests.Built apart = OverrideParameterStepTests.Build(list, basis: rev6, bands: Bands());
-            Assert.Equal(2.0, (double)apart.Plans["5"].Overrides["slopePercent"], 9);
+            settings["designBasis"]["doorLevel"]["slopePercent"] = JObject.Parse("{\"default\": 0.5, \"VD2\": 2.0}");
+            return DesignBasis.Of(settings, () => null);
         }
 
         private static JArray Bands()
@@ -164,20 +149,59 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R516_an_entry_and_a_front_override_of_a_shared_ramp_are_left_with_why()
+        public void R515_under_rev6_a_two_percent_unit_in_a_row_takes_the_slope_of_the_joint_and_its_door_level_type_and_ffl_follow()
         {
-            DesignBasis past = DesignBasis.Of(JObject.Parse(File.ReadAllText(WorkerRunTests.RepoConfig())), () => null);
-            OverrideParameterStepTests.Built plain = OverrideParameterStepTests.Build(new OverrideList(new Dictionary<string, JObject>()), basis: past, changeConfig: Joined);
+            var list = new OverrideList(new Dictionary<string, JObject>());
+            OverrideParameterStepTests.Built built = OverrideParameterStepTests.Build(list, basis: Rev6Basis(), bands: Bands(), changeConfig: Joined);
+            // 1, a VD2 at 2 percent by the door level block, shares its back corner with 2, so it takes 0.5 percent, the slope of the joint in config
+            Assert.Equal(0.5, (double)built.Plans["1"].Overrides["slopePercent"], 9);
+            Assert.Equal("Ramps 0.5%", (string)(JToken)built.Plans["1"].Overrides["rampType"]);
+            Assert.Equal(Levels(built, "1")[2], Levels(built, "2")[3]);
+            // With the joint off the same unit holds its 2 percent and its back corners stand apart
+            OverrideParameterStepTests.Built apart = OverrideParameterStepTests.Build(list, basis: Rev6Basis(), bands: Bands());
+            Assert.Equal(2.0, (double)apart.Plans["1"].Overrides["slopePercent"], 9);
+            Assert.True(Math.Abs(Levels(apart, "1")[2] - Levels(apart, "2")[3]) > 0.05);
+        }
+
+        [Fact]
+        public void R515_R517_R518_the_joint_with_the_pull_holds_one_level_at_each_pulled_corner_and_the_rows_pass()
+        {
+            var list = new OverrideList(new Dictionary<string, JObject>());
+            OverrideParameterStepTests.Built built = OverrideParameterStepTests.Build(list, basis: Rev6Basis(), bands: Bands(), changeConfig: Joined, pull: 0.002);
+            Assert.Equal(Near, built.Build.Joint.Near);
+            Dictionary<string, double[][]> corners = CheckRows.RampCorners(built.Plans);
+            // The corners stand pulled, 4 mm apart across each shared edge, and hold one level
+            Assert.Equal(11.998, corners["1"][1][0]);
+            Assert.Equal(12.002, corners["2"][0][0]);
+            Assert.Equal(corners["1"][1][2], corners["2"][0][2]);
+            Assert.Equal(corners["2"][1][2], corners["3"][0][2]);
+            Assert.Equal(corners["1"][2][2], corners["2"][3][2]);
+            Assert.Equal(corners["2"][2][2], corners["3"][3][2]);
+            Dictionary<string, List<JObject>> rows = CheckRows.JointRows(new[] { "1", "2", "3" }, corners, new Dictionary<string, CheckPlot>(), (JObject)built.Config["checkRows"], CheckRows.JointLimits(built.Config));
+            Assert.Equal(new[] { 2, 4, 4 }, new[] { "1", "2", "3" }.Select(number => rows[number].Count));
+            Assert.All(rows.Values.SelectMany(made => made), row =>
+            {
+                Assert.Equal(0.0, (double)row["toolValue"]);
+                Assert.Contains(", Pass,", (string)row["why"]);
+            });
+        }
+
+        [Fact]
+        public void R516_an_entry_of_the_list_turns_the_joint_off_for_the_build()
+        {
             var list = new OverrideList(new Dictionary<string, JObject> { ["2"] = JObject.Parse("{\"rampFrontM\": {\"gapToRuleM\": 0.05}, \"entryM\": {\"gapToRuleM\": 0.2}}") });
-            OverrideParameterStepTests.Built built = OverrideParameterStepTests.Build(list, basis: past, changeConfig: Joined);
+            OverrideParameterStepTests.Built built = OverrideParameterStepTests.Build(list, basis: Rev6Basis(), bands: Bands(), changeConfig: Joined);
+            OverrideParameterStepTests.Built off = OverrideParameterStepTests.Build(list, basis: Rev6Basis(), bands: Bands());
+            Assert.Null(built.Build.Joint);
+            Assert.Empty(built.Build.JointBack);
             foreach (string number in new[] { "1", "2", "3" })
             {
-                Assert.Equal(Levels(plain, number), Levels(built, number));
+                Assert.Equal(Levels(off, number), Levels(built, number));
             }
-            Assert.Equal(plain.Plans["2"].Overrides["entry"], built.Plans["2"].Overrides["entry"]);
-            JToken left = JToken.FromObject(built.Plans["2"].Overrides["notApplied"]);
-            Assert.Equal(PlanOverrides.JointLeft, (string)left["entryM"]);
-            Assert.Equal(PlanOverrides.JointLeft, (string)left["rampFrontM"]);
+            Assert.Equal(off.Plans["2"].Overrides["entry"], built.Plans["2"].Overrides["entry"]);
+            Assert.Equal(2.0, (double)built.Plans["1"].Overrides["slopePercent"], 9);
+            Assert.Contains("entryM", (List<string>)built.Plans["2"].Overrides["applied"]);
+            Assert.Contains("rampFrontM", (List<string>)built.Plans["2"].Overrides["applied"]);
         }
     }
 }

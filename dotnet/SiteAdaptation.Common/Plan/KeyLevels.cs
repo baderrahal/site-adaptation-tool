@@ -52,14 +52,15 @@ namespace SiteAdaptation.Common
 
     public sealed class LevelBuild
     {
-        // R515, R516. The joint rule of the mode, null with none, the plots whose rule ramp shares a corner and a back corner with another plot, and R517 the pull of the floors
+        // R515, R516. The joint rule of the mode and list, null with none, the plots whose rule ramp shares a back corner with another plot, and R517 the pull of the floors and
+        // how far a corner may move by it
         public JointRule Joint { get; set; }
-
-        public HashSet<string> JointShared { get; set; } = new HashSet<string>();
 
         public HashSet<string> JointBack { get; set; } = new HashSet<string>();
 
         public double Pull { get; set; }
+
+        public double Mitre { get; set; } = double.PositiveInfinity;
 
         public Dictionary<string, string> Partners { get; set; }
 
@@ -413,7 +414,7 @@ namespace SiteAdaptation.Common
         // plan_from_book.build: the plots of the clusters of the scope, the scope and the row partner of each plot of the scope, by their numbers,
         // their fronts with the road levels, El @ Entry of each with a road level at both front corners and the levels by key_level_rows
         public static LevelBuild Of(IReadOnlyList<string> numbers, IReadOnlyDictionary<string, Dictionary<string, string>> rows, IEnumerable<SiteCluster> clusters, HandContext context,
-            Func<IEnumerable<string>, Dictionary<string, FrontItem>> frontsOf, JObject rules, JObject keyRules, JObject levelProfile, string profileName, DesignBasis basis = null, JArray bands = null, JObject config = null)
+            Func<IEnumerable<string>, Dictionary<string, FrontItem>> frontsOf, JObject rules, JObject keyRules, JObject levelProfile, string profileName, DesignBasis basis = null, JArray bands = null, JObject config = null, bool listEmpty = true)
         {
             bool rev6 = basis != null && basis.IsRev6;
             if (keyRules["ffl"] == null)
@@ -427,9 +428,9 @@ namespace SiteAdaptation.Common
             members.UnionWith(numbers.Where(partners.ContainsKey).Select(number => partners[number]));
             List<string> ordered = members.OrderBy(number => number, PyMath.SortKey).ToList();
             Dictionary<string, FrontItem> fronts = frontsOf(ordered);
-            // R515, R516. The joint rule of the mode, and the plots whose rule ramp shares a corner and a back corner with another plot, known before any level
-            JointRule joint = config == null ? null : FloorOutlines.JointRuleOf(config, "config", basis?.Mode);
-            Tuple<HashSet<string>, HashSet<string>> sharedRamps = FloorOutlines.SharedRamps(fronts, joint);
+            // R515, R516. The joint rule of the mode and list, and the plots whose rule ramp shares a back corner with another plot, known before any level
+            JointRule joint = config == null ? null : FloorOutlines.JointRuleOf(config, "config", basis?.Mode, listEmpty);
+            HashSet<string> sharedBacks = FloorOutlines.SharedBacks(fronts, joint);
             var entries = new Dictionary<string, EntryLevel>();
             var noDoorWhy = new Dictionary<string, string>();
             var noDoor = new JArray();
@@ -442,7 +443,7 @@ namespace SiteAdaptation.Common
                     if (rev6)
                     {
                         // R408. El @ Entry the input, from the civil file or the road at front plus the slope of the unit, the slope the result
-                        Tuple<double?, string> door = basis.DoorEntry(number, item.Unit, item.Front, item.Depth.Value, sharedRamps.Item2.Contains(number) ? joint.Slope : (double?)null);
+                        Tuple<double?, string> door = basis.DoorEntry(number, item.Unit, item.Front, item.Depth.Value, sharedBacks.Contains(number) ? joint.Slope : (double?)null);
                         if (!door.Item1.HasValue)
                         {
                             noDoorWhy[number] = door.Item2;
@@ -455,7 +456,7 @@ namespace SiteAdaptation.Common
                         raw = door.Item1.Value;
                         slope = DesignBasis.SlopeOf(raw, item.Front, item.Depth.Value);
                     }
-                    else if (sharedRamps.Item2.Contains(number))
+                    else if (sharedBacks.Contains(number))
                     {
                         // R515. The door level of a shared back corner under a mode of the joint
                         raw = DesignBasis.RoadPlusSlopeOf(item.Front, joint.Slope, item.Depth.Value);
@@ -495,8 +496,8 @@ namespace SiteAdaptation.Common
                     levels[entry.Key] = new LevelRow { Piece = piece, Top = top.Value, Ffl = Rounding.Fixed(top.Value, 3), SplitTest = marks.TryGetValue(entry.Key, out string mark) ? mark : null };
                 }
             }
-            var made = new LevelBuild { Partners = partners, Members = ordered, Fronts = fronts, Entries = entries, Rows = levels, Basis = basis, Bands = bands, Joint = joint, JointShared = sharedRamps.Item1,
-                JointBack = sharedRamps.Item2, Pull = config == null ? 0 : FloorOutlines.PlotPull(config, "config") };
+            var made = new LevelBuild { Partners = partners, Members = ordered, Fronts = fronts, Entries = entries, Rows = levels, Basis = basis, Bands = bands, Joint = joint, JointBack = sharedBacks,
+                Pull = config == null ? 0 : FloorOutlines.PlotPull(config, "config"), Mitre = config == null ? double.PositiveInfinity : FloorOutlines.PullMitre(config, "config") };
             if (rev6)
             {
                 // R408. The plots of the scope with no El @ Entry and why, as plan_from_book.build lists them

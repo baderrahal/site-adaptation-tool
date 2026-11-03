@@ -58,9 +58,25 @@ namespace SiteAdaptation.Common
             return BuildFace.Number(pull);
         }
 
+        // R517. floor_fit.pull_mitre: floors.plotPull.maxMitreM of config, how far a corner may move by the pull, a length above 0, no limit with no block plotPull
+        public static double PullMitre(JObject config, string configName)
+        {
+            if (config["floors"]?["plotPull"] == null)
+            {
+                return double.PositiveInfinity;
+            }
+            JToken mitre = config["floors"]["plotPull"]["maxMitreM"];
+            if (mitre == null || (mitre.Type != JTokenType.Integer && mitre.Type != JTokenType.Float) || BuildFace.Number(mitre) <= 0)
+            {
+                throw new InvalidDataException(configName + " floors.plotPull.maxMitreM must be a length above 0 (R517)");
+            }
+            return BuildFace.Number(mitre);
+        }
+
         // R517. floor_fit.pulled_ring: a ring of points moved inside by pull, each edge parallel to its own at pull, the mitre of each corner by the two inward normals beside it,
-        // in the order given. A ring with an edge of no length or two edges that fold back on one another gives no mitre and stays as given, as does a pull of 0
-        public static double[][] PulledRing(IList<double[]> ring, double pull)
+        // in the order given. A corner whose two edges fold back on one another or whose mitre runs past mitre stays where it is, a near spike would move far from a small pull.
+        // A ring with an edge of no length stays as given, as does a pull of 0
+        public static double[][] PulledRing(IList<double[]> ring, double pull, double mitre = double.PositiveInfinity)
         {
             double[][] given = ring.Select(point => new[] { point[0], point[1] }).ToArray();
             if (pull == 0 || given.Length < 3)
@@ -93,16 +109,19 @@ namespace SiteAdaptation.Common
                 double fold = 1.0 + first[0] * second[0] + first[1] * second[1];
                 if (fold <= MitreFold)
                 {
-                    return given;
+                    moved[at] = given[at];
+                    continue;
                 }
-                moved[at] = new[] { given[at][0] + pull * (first[0] + second[0]) / fold, given[at][1] + pull * (first[1] + second[1]) / fold };
+                double x = pull * (first[0] + second[0]) / fold, y = pull * (first[1] + second[1]) / fold;
+                moved[at] = x * x + y * y > mitre * mitre ? given[at] : new[] { given[at][0] + x, given[at][1] + y };
             }
             return moved;
         }
 
-        // R515. plan_from_book.joint_rule: the joint rule of a build of mode, null with no joint: near of floors.rampJoint (R470), back with joinBack, the back corners joined as well,
-        // and slope, slopePercent, what a door level of a plot with a shared back corner takes. Off under a mode modes does not name, as the past job proof breaks with it
-        public static JointRule JointRuleOf(JObject config, string configName, string mode)
+        // R515, R516. plan_from_book.joint_rule: the joint rule of a build of mode, null with no joint: near of floors.rampJoint (R470), back with joinBack, the back corners joined as
+        // well, and slope, slopePercent, what a door level of a plot with a shared back corner takes. Off under a mode modes does not name, as the past job proof breaks with it,
+        // and off with any entry in the applied list, so no override meets a joint and a build with a list is the one of no joint
+        public static JointRule JointRuleOf(JObject config, string configName, string mode, bool listEmpty = true)
         {
             double? near = JointNear(config, configName);
             // A saved project with a copy of config from before this round holds join false and none of the keys below, and builds as it did
@@ -127,7 +146,7 @@ namespace SiteAdaptation.Common
             {
                 throw new InvalidDataException(configName + " floors.rampJoint.slopePercent must be a number of 0 or more (R515)");
             }
-            return mode != null && modes.Any(item => (string)item == mode) ? new JointRule { Near = near.Value, Back = (bool)back, Slope = BuildFace.Number(slope) } : null;
+            return listEmpty && mode != null && modes.Any(item => (string)item == mode) ? new JointRule { Near = near.Value, Back = (bool)back, Slope = BuildFace.Number(slope) } : null;
         }
 
         // R470. plan_from_book.joint_near: floors.rampJoint.nearM of config, a length above 0, null while floors.rampJoint.join is false (Q340)
@@ -209,15 +228,13 @@ namespace SiteAdaptation.Common
             return groups.Values.Where(members => members.Select(at => corners[at].Item1).Distinct().Count() >= 2).ToList();
         }
 
-        // R515, R516. plan_from_book.shared_ramps: the plots of the rule ramps of fronts that share a corner with a ramp of another plot and those that share a back corner, under
-        // joint with back only
-        public static Tuple<HashSet<string>, HashSet<string>> SharedRamps(IReadOnlyDictionary<string, FrontItem> fronts, JointRule joint)
+        // R515. plan_from_book.shared_backs: the plots of the rule ramps of fronts that share a back corner with a ramp of another plot, under joint with back only
+        public static HashSet<string> SharedBacks(IReadOnlyDictionary<string, FrontItem> fronts, JointRule joint)
         {
-            var shared = new HashSet<string>();
             var back = new HashSet<string>();
             if (joint == null || !joint.Back)
             {
-                return Tuple.Create(shared, back);
+                return back;
             }
             var corners = new List<Tuple<string, int, double, double>>();
             foreach (KeyValuePair<string, FrontItem> item in fronts)
@@ -232,16 +249,12 @@ namespace SiteAdaptation.Common
             }
             foreach (List<int> members in CornerJoints(corners, joint.Near))
             {
-                foreach (int at in members)
+                foreach (int at in members.Where(at => corners[at].Item2 >= 2))
                 {
-                    shared.Add(corners[at].Item1);
-                    if (corners[at].Item2 >= 2)
-                    {
-                        back.Add(corners[at].Item1);
-                    }
+                    back.Add(corners[at].Item1);
                 }
             }
-            return Tuple.Create(shared, back);
+            return back;
         }
 
         // R470, R515. plan_from_book.joint_levels: ramps by plot, the plan corners, their raw levels and the road levels of the front pair before any
@@ -527,11 +540,11 @@ namespace SiteAdaptation.Common
                 links.TryGetValue(number, out Dictionary<string, object> link);
                 if (item?.Face != null)
                 {
-                    made["generic"] = new List<double[][]> { PulledRing(item.Face.Ring, build.Pull) };
+                    made["generic"] = new List<double[][]> { PulledRing(item.Face.Ring, build.Pull, build.Mitre) };
                 }
                 if (item?.Corners != null)
                 {
-                    made["rampOutline"] = PulledRing(item.Corners, build.Pull);
+                    made["rampOutline"] = PulledRing(item.Corners, build.Pull, build.Mitre);
                 }
                 if (item?.Front != null && entry != null)
                 {
@@ -571,7 +584,7 @@ namespace SiteAdaptation.Common
                         double[] origin = insert.Select(value => Rounding.Fixed(value, 3)).ToArray();
                         double rotation = (double)((StepValue)link["rotationDeg"]).Written;
                         // R475. The yard in its plot, by the ramp of the rule, as no override has moved it yet
-                        List<List<double[]>> cut = YardInPlot(((JArray)group["loops"]).Select(loop => ToWorld((JArray)loop, origin, rotation, mirrored)).ToList(), item.Face == null ? null : PulledRing(item.Face.Ring, build.Pull), item.Corners);
+                        List<List<double[]>> cut = YardInPlot(((JArray)group["loops"]).Select(loop => ToWorld((JArray)loop, origin, rotation, mirrored)).ToList(), item.Face == null ? null : PulledRing(item.Face.Ring, build.Pull, build.Mitre), item.Corners);
                         if (cut.Count > 0)
                         {
                             made["yardType"] = group["type"]?.DeepClone();

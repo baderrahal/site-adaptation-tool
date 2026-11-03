@@ -12,6 +12,7 @@ namespace SiteAdaptation.Tests
     public sealed class R517_FloorsPulledTests
     {
         private const double Pull = 0.002;
+        private const double Mitre = 0.01;
 
         private static void Near(double[][] expected, double[][] found)
         {
@@ -85,6 +86,40 @@ namespace SiteAdaptation.Tests
             }
             Assert.Null(FloorOutlines.JointRuleOf(config, "project.json", "rev6"));
             Assert.Equal(0.01, CheckRows.JointLimits(config).Item1);
+        }
+
+        [Fact]
+        public void R517_a_mitre_past_the_limit_keeps_its_corner_and_the_others_pull()
+        {
+            // A near spike at (10, 0): the two edges meet at under a tenth of a degree, the mitre of a 2 mm pull would run far past the ring
+            double[][] spike = { new[] { 0.0, 0.0 }, new[] { 10.0, 0.0 }, new[] { 0.0, 0.01 } };
+            double[][] moved = FloorOutlines.PulledRing(spike, Pull, Mitre);
+            Assert.Equal(new[] { 10.0, 0.0 }, moved[1]);
+            Assert.Equal(Pull, moved[0][0], 10);
+            // With no limit the same corner runs metres away, what the limit stops
+            double[] far = FloorOutlines.PulledRing(spike, Pull)[1];
+            Assert.True(System.Math.Sqrt((far[0] - 10.0) * (far[0] - 10.0) + far[1] * far[1]) > 3.0);
+            // A square corner has a mitre of 2.83 mm, inside 10 mm and past 2 mm
+            double[][] ring = { new[] { 0.0, 0.0 }, new[] { 12.0, 0.0 }, new[] { 12.0, 5.52 }, new[] { 0.0, 5.52 } };
+            Assert.Equal(Pull, FloorOutlines.PulledRing(ring, Pull, Mitre)[0][0], 10);
+            Near(ring, FloorOutlines.PulledRing(ring, Pull, 0.002));
+            // Two edges that fold back exactly give no mitre at all, the corner stays with no division by 0
+            Assert.Equal(new[] { 10.0, 0.0 }, FloorOutlines.PulledRing(new[] { new[] { 0.0, 0.0 }, new[] { 10.0, 0.0 }, new[] { 0.0, 0.0 }, new[] { 0.0, 5.0 } }, Pull, Mitre)[1]);
+        }
+
+        [Fact]
+        public void R517_the_mitre_limit_is_read_from_config_and_a_bad_one_refused()
+        {
+            JObject config = JObject.Parse(File.ReadAllText(WorkerRunTests.RepoConfig()));
+            Assert.Equal(Mitre, FloorOutlines.PullMitre(config, "project.json"));
+            foreach (JToken bad in new JToken[] { 0, -0.001, "0.01", true, JValue.CreateNull() })
+            {
+                var refused = (JObject)config.DeepClone();
+                refused["floors"]["plotPull"]["maxMitreM"] = bad;
+                Assert.Contains("floors.plotPull.maxMitreM", Assert.Throws<InvalidDataException>(() => FloorOutlines.PullMitre(refused, "project.json")).Message);
+            }
+            ((JObject)config["floors"]).Remove("plotPull");
+            Assert.Equal(double.PositiveInfinity, FloorOutlines.PullMitre(config, "project.json"));
         }
 
         [Fact]

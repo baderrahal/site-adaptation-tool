@@ -99,7 +99,7 @@ namespace SiteAdaptation.Tests
             Func<double, double, KeyValuePair<double?, string>> level = (x, y) => dry.Any(plot => x > 12.0 * (int.Parse(plot) - 1) + 1e-9 && x <= 12.0 * int.Parse(plot) + 1e-9)
                 || (backDry && y > 20.0) ? new KeyValuePair<double?, string>(null, null) : new KeyValuePair<double?, string>(10.0 + x / 100.0, "road");
             LevelBuild build = KeyLevels.Of(scope, rows, clusters, context, members => Fronts.Of(members, rows, faces, roads, limits, level, rules, roadEdgeM, sales), rules, key, profile,
-                "parsons2024Rev6", basis, bands, config);
+                "parsons2024Rev6", basis, bands, config, list.Found.Count == 0);
             return new Built
             {
                 Plans = PlanOverrides.Of(scope, rows, build, fronts, context, hands, key, profile, rules, config, files, list, "parsons2024Rev6", 0.5, "the rules profile", level),

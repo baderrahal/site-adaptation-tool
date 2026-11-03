@@ -46,7 +46,7 @@ KINDS = ("generic", "yard")
 YARD_CUT_EMPTY = "the cut of R475 leaves the fitted yard outline empty"
 # R475, Q350. The source of a yard outline the cut changed, so it no longer reads the status of the fit. FloorOutlines.YardCutSource of the C#
 YARD_CUT = "yardCut"
-# R517. One plus the cosine of the turn at a corner, under it two edges fold back on one another and give no mitre
+# R517. One plus the cosine of the turn at a corner, under it two edges fold back on one another and give no mitre to divide by
 MITRE_FOLD = 1e-9
 NOTE = ("Measured from the {job} past job, not a rule of the client, written by python/floor_fit.py --write and never by hand (R135, R136). "
         "outlines: per floor kind one group per unit, mirror flag and plot width, the width being the front edge of the baseplan face (R122) rounded to cadLinks.floorWidthStepM. "
@@ -329,9 +329,20 @@ def plot_pull(settings):
     return pull
 
 
-def pulled_ring(ring, pull):
+def pull_mitre(settings):
+    """R517. floors.plotPull.maxMitreM of the project settings, how far a corner may move by the pull, a length above 0, None with no block plotPull."""
+    if "plotPull" not in settings.get("floors"):
+        return None
+    mitre = settings.get("floors.plotPull.maxMitreM")
+    if not plan_from_past.is_number(mitre) or mitre <= 0:
+        raise project_profile.ProfileError(settings.path.name + " floors.plotPull.maxMitreM must be a length above 0 (R517)")
+    return mitre
+
+
+def pulled_ring(ring, pull, mitre=None):
     """R517. A ring of points moved inside by pull, each edge parallel to its own at pull, the mitre of each corner by the two inward normals beside it, in the order given.
-    A ring with an edge of no length or two edges that fold back on one another gives no mitre and stays as given, as does a pull of 0."""
+    A corner whose two edges fold back on one another or whose mitre runs past mitre stays where it is, a near spike would move far from a small pull. A ring with an edge of
+    no length stays as given, as does a pull of 0."""
     if not pull or len(ring) < 3:
         return [tuple(point[:2]) for point in ring]
     area = sum(ring[at - 1][0] * ring[at][1] - ring[at][0] * ring[at - 1][1] for at in range(len(ring)))
@@ -348,8 +359,10 @@ def pulled_ring(ring, pull):
         first, second = normals[at - 1], normals[at]
         fold = 1.0 + first[0] * second[0] + first[1] * second[1]
         if fold <= MITRE_FOLD:
-            return [tuple(point[:2]) for point in ring]
-        moved.append((ring[at][0] + pull * (first[0] + second[0]) / fold, ring[at][1] + pull * (first[1] + second[1]) / fold))
+            moved.append(tuple(ring[at][:2]))
+            continue
+        dx, dy = pull * (first[0] + second[0]) / fold, pull * (first[1] + second[1]) / fold
+        moved.append(tuple(ring[at][:2]) if mitre is not None and dx * dx + dy * dy > mitre * mitre else (ring[at][0] + dx, ring[at][1] + dy))
     return moved
 
 
