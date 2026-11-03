@@ -415,7 +415,7 @@ Q385. Accepted warnings return after a save (Lane B FIX-2NOV-B task 4, R459, Q32
 - Recommended: keep as built and close Q324 as answered in part: the box is smaller, the sheet says press OK, and the count stands in the report. Answer Q356 for the off axis alone.
 - Other: accept the two plot overlaps too, so no box comes for an overlap, against the answer of Q367.
 
-Q386. Override list changes leave steps Done (Lane B FIX-3NOV-B, breaker of R498, R366). steps 4 to 9 hash the config file and their inputs, not the override list, road_surfaces.json or cad_layers.json, though docs/design/03a-buttons-shared-and-1.md line 20 names them as hashed inputs (READ PaneRunState.InputsOf). So Update from report, a hand edit of config/overrides/roshn-makkah.json or a Save in 4 Check leaves the rows Done for a plan the list no longer gives. Older inside a session, R498 carries it over a reopen, which used to force the chain again. The same gap lets an undo of a press of 3 or 4 bring back the run before while the files it changed stay. Not fixed because step 4 itself writes the list, so a plain added input would leave step 4 never Done.
+Q386. Override list changes leave steps Done (Lane B FIX-3NOV-B, R366). Steps 4 to 9 hash no override list, road_surfaces.json or cad_layers.json, though docs/design/03a-buttons-shared-and-1.md line 20 names them (READ PaneRunState.InputsOf). So Update from report, a hand edit or a Save in 4 Check leaves rows Done for a plan the list no longer gives, R498 carries it over a reopen. An undo of a press of 3 or 4 brings back the run before while the files stay. Step 4 itself writes the list, so a plain added input leaves it never Done.
 - Recommended: hash these files as an input of steps 5 to 9 and of step 4, taking step 4's hash at its end, so a change after it sends the chain back to step 4. A separate round, with Lane A, since it moves when a build reruns.
 - Other: keep it as built and say so on the check sheet: after a change of the list press 4 again.
 
@@ -755,14 +755,14 @@ Q410. Rule column shows R471 on joint rows (Lane C 6C-3NOV-C, review 1, Lane A r
 - Recommended: Lane A adds the plain name Ramp joint by the rule.
 - Other: Leave the id.
 
-Q411. Floor parameters bound but never filled (Lane B dry run, R461, R465, Lane D). On the floors of NBH 012 RRE_ZZ_SP_Plot-Number, RRE_ZZ_SP_Prototype and the two Facade rows are empty (READ, Properties of 3 floors of plot 2291), though config/shared_parameters.xlsx names Floors for them and Filled by 7 Place villas. Button 7 writes villas only (R465).
+Q411. Floor parameters bound but never filled (Lane B dry run, R465, Lane D). On floors RRE_ZZ_SP_Plot-Number, Prototype and the two Facade rows are empty (READ, 3 floors of plot 2291). config/shared_parameters.xlsx names Floors for them, Filled by 7 Place villas, button 7 writes villas only.
 - Recommended: correct the sheet to say villas fill them and floors stay empty, unless the past models hold values on floors, which Lane D reads first.
 - Other: button 5 writes them on each floor.
 
-Q412. Level 1 is empty after the build (Lane B dry run). After 1 to 9 the floor plan Level 1 shows only the elevation marks, also after a zoom to fit (READ, shots). The floors stand high above Level 1, so its view range leaves them out. A presenter must open a 3D view.
+Q412. Level 1 is empty after the build (Lane B dry run). Floor plan Level 1 shows only the elevation marks, also after a zoom to fit (READ, shots). The floors stand above its view range.
 - Recommended: button 1 or 5 sets the view range of the plan, or opens a 3D view at the end of the run.
 - Other: leave it, the demo script opens the 3D view.
 
-Q413. Input picks lost before a real run (Lane B dry run, R367). Picks in the pane stay in memory until a real run writes them. A model saved after five Browse picks and before step 1, then reopened, shows them gone: step 1 runs, step 2 stops on 2 Read data needs Villa blocks, the file is not chosen (RAN). The save gives no sign. By R367 as written.
+Q413. Input picks lost before a real run (Lane B dry run, R367). A model saved after five Browse picks and before step 1, then reopened, loses them: step 2 stops on needs Villa blocks, the file is not chosen (RAN). The save gives no sign.
 - Recommended: a Browse pick in the pane writes the setup at once as Save setup does (R445), in its own small transaction.
 - Other: keep R367, the pane says the picks are not saved until step 1 runs.
