@@ -12,7 +12,7 @@
 ### Lane B, C and D
 
 - Lane B STOPPED 15:50, 3 Nov, for Bader's dry run, resume after 19:00. Lock released 15:49, Revit closed, no helper or background run. Dry run GO, steps/dryrun-3nov.md. Q384, Q382 merged PR 154, overlaps merged PR 155. Next: task 4 undo in Revit, then 6b, specs in lane_b_check\p6b.
-- Lane C, 3 Nov 19:50, branch check/6c-rest: resumed, PR 160 merged, the rest of 6c, then known issues, HELP-3NOV-C, RULES-3NOV-C. No new function in this PR. I own the pane file tonight, send me text changes. Blocked: none
+- Lane C, 3 Nov, branch fix/known-3nov-c: PR 160, 161 merged, known issues PR going up, next HELP-3NOV-C, then RULES-3NOV-C. Ids R540 to R549, Q416 to Q419, Q440 to Q449. New: NoChangesShown, NoChangesLine, by UpdateFromReportWindow.xaml. I own the pane file tonight. Blocked: none
 - Lane D MASS-2NOV-D, 3 Nov, branch mass/2nov-d: the mass outline by the outer wall faces, R500 to R504, closed Q279, Q321, opened Q390 to Q393. Revit proof done, lock free.
   Now: the PR, merge when green. Nothing queued after it. Blocked: none
 

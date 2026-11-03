@@ -255,6 +255,28 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
+        public void R505_pick_surfaces_stands_on_its_own_line_so_browse_is_whole()
+        {
+            int row = Pane.IndexOf("x:Key=\"FileRow\"", StringComparison.Ordinal);
+            int browse = Pane.IndexOf("Click=\"OnBrowse\"", row, StringComparison.Ordinal);
+            int line = Pane.IndexOf("{Binding SurfacesLine}", row, StringComparison.Ordinal);
+            int pick = Pane.IndexOf("Click=\"OnPickSurfaces\"", row, StringComparison.Ordinal);
+            Assert.True(browse > 0 && browse < line && line < pick, "Browse, then the line, then Pick surfaces");
+        }
+
+        [Fact]
+        public void R505_plain_words_where_a_code_name_or_a_wrong_name_showed()
+        {
+            Assert.Contains("ColumnPlot = \"CAD label\"", Addin("ScanResults", "ScanResultsText.cs"));
+            Assert.Contains("StepLine8 = \"Boundary walls\"", Addin("Pane", "PaneText.cs"));
+            Assert.Contains("\"Boundary walls, corner plots included\"", Addin("HowItWorks", "HowItWorksText.cs"));
+            Assert.Contains("NoChanges = \"No changes found in this Excel.\"", Addin("Update", "UpdateFromReportText.cs"));
+            Assert.Contains("{Binding NoChangesLine}", Addin("Update", "UpdateFromReportWindow.xaml"));
+            Assert.Equal("Ramp joint by the rule", SiteAdaptation.Common.CheckTable.CheckShown.RuleName("R471"));
+            Assert.DoesNotContain("SiteAdaptation_Settings", SiteAdaptation.Common.SetUp.SetUpTexts.SignSettings);
+        }
+
+        [Fact]
         public void R505_a_file_with_only_xref_checks_reads_and_says_how_many_references_were_not_read()
         {
             var settings = new SiteAdaptation.Common.Settings.ProjectSettings();
