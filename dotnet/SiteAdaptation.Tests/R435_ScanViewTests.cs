@@ -69,7 +69,7 @@ namespace SiteAdaptation.Tests
                 },
                 ["rows"] = rows,
                 ["conflicts"] = found,
-                ["checks"] = new JArray { new JObject { ["what"] = "notRead", ["source"] = "feet.dwg|xref base", ["plot"] = "", ["value"] = "external reference" } },
+                ["checks"] = new JArray { new JObject { ["what"] = "notRead", ["source"] = "feet.dwg|depth limit", ["plot"] = "", ["value"] = "1" } },
                 ["plots"] = new JArray(Enumerable.Range(1, 5).Select(number => new JObject { ["plot"] = number.ToString() })),
             };
         }

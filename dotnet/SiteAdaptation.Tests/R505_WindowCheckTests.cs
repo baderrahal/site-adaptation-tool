@@ -1,13 +1,14 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
 using Xunit;
 
 namespace SiteAdaptation.Tests
 {
-    // R498. The windows of Lane C against the boards of docs/design/boards. These tests read the XAML text only, so they run on
+    // R505. The windows of Lane C against the boards of docs/design/boards. These tests read the XAML text only, so they run on
     // net48 and on net8.0. The colour and the size of each token are held by the theme gate, here only which element takes which token
-    public sealed class R498_WindowCheckTests
+    public sealed class R505_WindowCheckTests
     {
         internal static readonly System.Collections.Generic.Dictionary<string, string> BoardColours = new System.Collections.Generic.Dictionary<string, string>(StringComparer.Ordinal)
         {
@@ -51,7 +52,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R498_the_base_and_the_primary_button_react_to_the_mouse_and_a_disabled_one_wins()
+        public void R505_the_base_and_the_primary_button_react_to_the_mouse_and_a_disabled_one_wins()
         {
             string theme = Theme;
             foreach (string key in new[] { "SA.Button.Base", "SA.Button.Primary" })
@@ -65,7 +66,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R498_the_warn_boxes_take_the_warn_border_token()
+        public void R505_the_warn_boxes_take_the_warn_border_token()
         {
             Assert.Contains("x:Key=\"SA.WarnBorder\" Color=\"#E8D08A\"", Theme);
             foreach (string file in new[] { "ScanResults/ScanResultsWindow.xaml", "NewProject/NewProjectWindow.xaml" })
@@ -78,21 +79,21 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R498_the_conflicts_count_has_its_own_colour()
+        public void R505_the_conflicts_count_has_its_own_colour()
         {
             Assert.Contains("x:Key=\"SA.ConflictCount\" Color=\"#FFD580\"", Theme);
             Assert.Matches("Foreground=\"\\{StaticResource SA.ConflictCount\\}\"[^>]*Text=\"\\{Binding ConflictCount\\}\"", Addin("ScanResults", "ScanResultsWindow.xaml"));
         }
 
         [Fact]
-        public void R498_each_pane_section_but_the_first_has_a_line_above()
+        public void R505_each_pane_section_but_the_first_has_a_line_above()
         {
             Assert.Equal(3, Regex.Matches(Pane, "<Border BorderBrush=\"\\{StaticResource SA.Border\\}\" BorderThickness=\"\\{StaticResource SA.Line.Over\\}\"").Count);
             Assert.Contains("x:Key=\"SA.Line.Over\"", Theme);
         }
 
         [Fact]
-        public void R498_a_found_row_mark_in_the_pane_is_a_green_disc_with_a_white_tick_at_18()
+        public void R505_a_found_row_mark_in_the_pane_is_a_green_disc_with_a_white_tick_at_18()
         {
             string theme = Theme;
             Assert.Matches("x:Key=\"SA.Size.PaneMark\">18<", theme);
@@ -104,7 +105,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R498_a_missing_row_mark_in_the_pane_is_an_amber_ring_with_an_amber_sign()
+        public void R505_a_missing_row_mark_in_the_pane_is_an_amber_ring_with_an_amber_sign()
         {
             string rowMark = RowMark();
             Assert.Contains("SA.Mark.PaneMissingRing", rowMark);
@@ -113,7 +114,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R498_the_box_line_and_the_start_line_are_in_the_text_colour()
+        public void R505_the_box_line_and_the_start_line_are_in_the_text_colour()
         {
             string pane = Pane;
             Assert.Matches("Style=\"\\{StaticResource SA.Pane.Help\\}\" Foreground=\"\\{StaticResource SA.Text\\}\" Text=\"\\{Binding BoxLine\\}\"", pane);
@@ -121,7 +122,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R498_step_names_are_medium_the_next_one_semibold_and_the_chip_semibold()
+        public void R505_step_names_are_medium_the_next_one_semibold_and_the_chip_semibold()
         {
             string theme = Theme;
             string pane = Pane;
@@ -132,19 +133,19 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R498_the_dry_run_box_has_a_border_of_one_pixel()
+        public void R505_the_dry_run_box_has_a_border_of_one_pixel()
         {
             Assert.Matches("<Border Margin=\"\\{StaticResource SA.Gap.Top8\\}\" Background=\"\\{StaticResource SA.Panel\\}\" BorderBrush=\"\\{StaticResource SA.Border\\}\" BorderThickness=\"\\{StaticResource SA.Line.All\\}\"", Pane);
         }
 
         [Fact]
-        public void R498_a_link_in_a_line_of_text_is_semibold()
+        public void R505_a_link_in_a_line_of_text_is_semibold()
         {
             Assert.Matches("(?s)x:Key=\"SA.Pane.Link\".*?FontWeight\" Value=\"\\{StaticResource SA.Type.Label.Weight\\}\"", Theme);
         }
 
         [Fact]
-        public void R498_on_first_open_the_steps_have_grey_names_and_a_plain_status()
+        public void R505_on_first_open_the_steps_have_grey_names_and_a_plain_status()
         {
             string pane = Pane;
             Assert.Contains("x:Key=\"SA.StepWaitName\" Color=\"#6B7682\"", Theme);
@@ -153,7 +154,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R498_the_band_line_of_new_project_and_how_it_works_has_the_max_width_of_its_board()
+        public void R505_the_band_line_of_new_project_and_how_it_works_has_the_max_width_of_its_board()
         {
             string theme = Theme;
             Assert.Matches("x:Key=\"SA.Size.NewProjectLine\">640<", theme);
@@ -163,13 +164,91 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R498_a_missing_mark_of_new_project_is_an_amber_sign_at_14_with_no_disc()
+        public void R505_a_missing_mark_of_new_project_is_an_amber_sign_at_14_with_no_disc()
         {
             string xaml = Addin("NewProject", "NewProjectWindow.xaml");
             Assert.Matches("x:Key=\"SA.Size.StatusMark\">14<", Theme);
             Assert.Contains("SA.Mark.StatusMissing", xaml);
             int at = xaml.IndexOf("IsMissing", StringComparison.Ordinal);
             Assert.DoesNotContain("Fill=\"{StaticResource SA.Warn}\"", xaml.Substring(at, 600));
+        }
+
+        [Fact]
+        public void R505_the_selected_text_of_a_combo_clears_the_arrow_and_ends_with_an_ellipsis()
+        {
+            string theme = Theme;
+            Assert.Matches("x:Key=\"SA.Pad.Combo\">8,0,24,0<", theme);
+            string combo = Style(theme, "SA.Pane.Combo");
+            Assert.Contains("<ContentPresenter IsHitTestVisible=\"False\" Margin=\"{StaticResource SA.Pad.Combo}\"", combo);
+            Assert.Matches("(?s)<ContentPresenter.Resources>.*TextTrimming\" Value=\"CharacterEllipsis\"", combo);
+        }
+
+        [Fact]
+        public void R505_team_check_of_review_data_keeps_not_checked_whole()
+        {
+            Assert.Matches("x:Key=\"SA.Grid.ReviewMirror\">72<", Theme);
+            string xaml = Addin("ReviewData", "ReviewDataWindow.xaml");
+            Assert.Equal(2, Regex.Matches(xaml, "SA.Grid.ReviewMirror").Count);
+            int chip = xaml.IndexOf("Text=\"{Binding Check}\"", StringComparison.Ordinal);
+            Assert.Contains("Property=\"Margin\" Value=\"{StaticResource SA.Gap.None}\"", xaml.Substring(chip, 400));
+        }
+
+        [Fact]
+        public void R505_the_tool_value_column_of_the_check_table_has_a_width_of_its_own_in_the_head_and_the_rows()
+        {
+            string theme = Theme;
+            Assert.Matches("x:Key=\"SA.Grid.CheckTool\">120<", theme);
+            Assert.Matches("x:Key=\"SA.Grid.CheckNbh\">48<", theme);
+            Assert.Matches("x:Key=\"SA.Grid.CheckPlot\">64<", theme);
+            string xaml = Addin("CheckTable", "CheckTableWindow.xaml");
+            Assert.Equal(2, Regex.Matches(xaml, "<ColumnDefinition Width=\"\\{StaticResource SA.Grid.CheckTool\\}\" />").Count);
+            Assert.DoesNotContain("CheckType}\"/><ColumnDefinitionWidth=\"*\"", xaml.Replace(" ", "").Replace("\r", "").Replace("\n", ""));
+        }
+
+        [Fact]
+        public void R505_a_long_file_name_of_new_project_is_cut_by_the_text_with_an_ellipsis()
+        {
+            string xaml = Addin("NewProject", "NewProjectWindow.xaml");
+            Assert.DoesNotContain("<ColumnDefinition Width=\"Auto\" MaxWidth", xaml);
+            Assert.Matches("MaxWidth=\"\\{StaticResource SA.Size.SetupFileName\\}\"[^>]*TextTrimming=\"CharacterEllipsis\" Text=\"\\{Binding FileName\\}\" ToolTip=\"\\{Binding ToolTip\\}\"", Regex.Replace(xaml, "\\s+", " "));
+        }
+
+        private static string ScanWith(params string[] notRead)
+        {
+            var checks = new Newtonsoft.Json.Linq.JArray();
+            foreach (string source in notRead)
+            {
+                checks.Add(new Newtonsoft.Json.Linq.JObject { ["what"] = "notRead", ["source"] = source, ["plot"] = "", ["value"] = "x" });
+            }
+            return new Newtonsoft.Json.Linq.JObject
+            {
+                ["inputs"] = new Newtonsoft.Json.Linq.JArray { new Newtonsoft.Json.Linq.JObject { ["role"] = "scanCad:1", ["name"] = "site.dwg" } },
+                ["rows"] = new Newtonsoft.Json.Linq.JArray { new Newtonsoft.Json.Linq.JObject { ["kind"] = "cadLayer", ["source"] = "site.dwg|A", ["found"] = "4 closed outlines, 6 texts, 1 blocks" } },
+                ["checks"] = checks,
+                ["conflicts"] = new Newtonsoft.Json.Linq.JArray(),
+            }.ToString();
+        }
+
+        [Fact]
+        public void R505_a_file_with_only_xref_checks_reads_and_says_how_many_references_were_not_read()
+        {
+            var settings = new SiteAdaptation.Common.Settings.ProjectSettings();
+            var file = SiteAdaptation.Common.Scan.ScanView.Read(ScanWith("site.dwg|xref a", "site.dwg|xref b", "site.dwg|xref c"), settings).Files.Single();
+            Assert.Equal("Read", file.Status);
+            Assert.EndsWith("External references not read: 3.", file.Found);
+            Assert.StartsWith("1 layers, 4 closed outlines", file.Found);
+        }
+
+        [Fact]
+        public void R505_a_file_with_a_depth_limit_a_cycle_or_layer_pairs_check_stays_not_read()
+        {
+            var settings = new SiteAdaptation.Common.Settings.ProjectSettings();
+            foreach (string source in new[] { "site.dwg|depth limit", "site.dwg|cycle", "site.dwg|layer pairs" })
+            {
+                var file = SiteAdaptation.Common.Scan.ScanView.Read(ScanWith("site.dwg|xref a", source), settings).Files.Single();
+                Assert.Equal("Not read", file.Status);
+            }
+            Assert.DoesNotContain("External", SiteAdaptation.Common.Scan.ScanView.Read(ScanWith(), settings).Files.Single().Found);
         }
     }
 }

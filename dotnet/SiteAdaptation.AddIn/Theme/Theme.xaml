@@ -26,7 +26,7 @@
   <SolidColorBrush x:Key="SA.OkGround" Color="#E6F4EA" />
   <SolidColorBrush x:Key="SA.Warn" Color="#7A4B00" />
   <SolidColorBrush x:Key="SA.WarnGround" Color="#FFF4D6" />
-  <!-- R498, the colours the boards of Lane C hold that the spec has no name for -->
+  <!-- R505, the colours the boards of Lane C hold that the spec has no name for -->
   <SolidColorBrush x:Key="SA.WarnBorder" Color="#E8D08A" />
   <SolidColorBrush x:Key="SA.ConflictCount" Color="#FFD580" />
   <SolidColorBrush x:Key="SA.Found" Color="#0B7A3E" />
@@ -144,6 +144,9 @@
   <Thickness x:Key="SA.Gap.Top12">0,12,0,0</Thickness>
   <Thickness x:Key="SA.Gap.Row">0,4,0,4</Thickness>
   <Thickness x:Key="SA.Pad.Input">8,0,8,0</Thickness>
+  <!-- R505. The 24 on the right clears the arrow of the combo, so a long selected text ends before it -->
+  <Thickness x:Key="SA.Pad.Combo">8,0,24,0</Thickness>
+  <Thickness x:Key="SA.Gap.None">0,0,0,0</Thickness>
   <Thickness x:Key="SA.Gap.Right8">0,0,8,0</Thickness>
   <Thickness x:Key="SA.Gap.Left8">8,0,0,0</Thickness>
   <Thickness x:Key="SA.Gap.Left24">24,0,0,0</Thickness>
@@ -160,7 +163,7 @@
   <GridLength x:Key="SA.Grid.Label">124</GridLength>
   <GridLength x:Key="SA.Grid.StepMark">38</GridLength>
   <Geometry x:Key="SA.Mark.Found">M3 8.5l3.5 3.5l6.5-8</Geometry>
-  <!-- R498, the marks of the boards at 18 in the pane and 14 in New project -->
+  <!-- R505, the marks of the boards at 18 in the pane and 14 in New project -->
   <sys:Double x:Key="SA.Size.PaneMark">18</sys:Double>
   <sys:Double x:Key="SA.Size.StatusMark">14</sys:Double>
   <Geometry x:Key="SA.Mark.PaneDisc">M1 9a8 8 0 1 0 16 0a8 8 0 1 0 -16 0z</Geometry>
@@ -230,7 +233,7 @@
             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
           </Border>
           <ControlTemplate.Triggers>
-            <!-- R498. The hover of the board comes before the disabled look, so a disabled button keeps its grey -->
+            <!-- R505. The hover of the board comes before the disabled look, so a disabled button keeps its grey -->
             <Trigger Property="IsMouseOver" Value="True">
               <Setter TargetName="Box" Property="Background" Value="{StaticResource SA.ButtonHover}" />
               <Setter TargetName="Box" Property="BorderBrush" Value="{StaticResource SA.ButtonHoverBorder}" />
@@ -364,9 +367,15 @@
           <Grid>
             <ToggleButton Template="{StaticResource SA.Pane.ComboToggle}" Focusable="False" ClickMode="Press"
                           IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}" />
-            <ContentPresenter IsHitTestVisible="False" Margin="{StaticResource SA.Pad.Input}" HorizontalAlignment="Left" VerticalAlignment="Center"
+            <ContentPresenter IsHitTestVisible="False" Margin="{StaticResource SA.Pad.Combo}" HorizontalAlignment="Left" VerticalAlignment="Center"
                               Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
-                              ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}" />
+                              ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}">
+              <ContentPresenter.Resources>
+                <Style TargetType="TextBlock">
+                  <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                </Style>
+              </ContentPresenter.Resources>
+            </ContentPresenter>
             <Popup x:Name="PART_Popup" Placement="Bottom" Focusable="False" AllowsTransparency="True" IsOpen="{TemplateBinding IsDropDownOpen}">
               <Border MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}" MaxHeight="{TemplateBinding MaxDropDownHeight}"
                       Background="{StaticResource SA.Surface}" BorderBrush="{StaticResource SA.Border}" BorderThickness="{StaticResource SA.Line.All}"
@@ -614,7 +623,7 @@
   <GridLength x:Key="SA.Grid.ReviewPlot">72</GridLength>
   <GridLength x:Key="SA.Grid.ReviewLabel">88</GridLength>
   <GridLength x:Key="SA.Grid.ReviewType">112</GridLength>
-  <GridLength x:Key="SA.Grid.ReviewMirror">96</GridLength>
+  <GridLength x:Key="SA.Grid.ReviewMirror">72</GridLength>
   <GridLength x:Key="SA.Grid.ReviewCluster">112</GridLength>
   <GridLength x:Key="SA.Grid.ReviewArea">88</GridLength>
   <GridLength x:Key="SA.Grid.ReviewRoad">112</GridLength>
@@ -656,10 +665,11 @@
 
   <!-- R376, docs/design/07-mock.md 7.4. The columns of the check table are Code's choice, listed in steps/ui-shots/README.md. The two
        value columns take the rest of the width -->
-  <GridLength x:Key="SA.Grid.CheckPlot">72</GridLength>
-  <GridLength x:Key="SA.Grid.CheckNbh">56</GridLength>
+  <GridLength x:Key="SA.Grid.CheckPlot">64</GridLength>
+  <GridLength x:Key="SA.Grid.CheckNbh">48</GridLength>
   <GridLength x:Key="SA.Grid.CheckUnit">64</GridLength>
   <GridLength x:Key="SA.Grid.CheckType">96</GridLength>
+  <GridLength x:Key="SA.Grid.CheckTool">120</GridLength>
   <GridLength x:Key="SA.Grid.CheckRule">176</GridLength>
   <GridLength x:Key="SA.Grid.CheckManual">96</GridLength>
   <GridLength x:Key="SA.Grid.CheckUse">104</GridLength>

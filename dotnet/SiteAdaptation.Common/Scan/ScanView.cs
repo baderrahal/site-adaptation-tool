@@ -164,7 +164,11 @@ namespace SiteAdaptation.Common.Scan
                     : role.StartsWith("scanExcel", StringComparison.Ordinal) ? ScanViewText.Excel
                     : role.StartsWith("scanPdf", StringComparison.Ordinal) ? ScanViewText.Pdf
                     : role.StartsWith("prototype", StringComparison.Ordinal) ? ScanViewText.Prototype : role;
-                bool missed = checks.Any(check => Text(check["what"]) == "notRead" && FileOf(Text(check["source"])) == name);
+                // An external reference the explode does not follow leaves the file read, its sheet is the plots the file gives. A depth limit,
+                // a cycle or layer pairs left mean part of the file itself was not read
+                List<string> notRead = checks.Where(check => Text(check["what"]) == "notRead" && FileOf(Text(check["source"])) == name).Select(check => Text(check["source"])).ToList();
+                int xrefs = notRead.Count(source => source.Substring(name.Length).StartsWith("|xref", StringComparison.Ordinal));
+                bool missed = notRead.Count > xrefs;
                 var file = new ScanFileRow { Name = name, Kind = kind, Status = missed ? ScanViewText.NotRead : ScanViewText.Read };
                 if (kind == ScanViewText.Cad)
                 {
@@ -186,6 +190,10 @@ namespace SiteAdaptation.Common.Scan
                 {
                     int sources = rows.Count(row => Text(row["kind"]) == VillaTypeKind && FileOf(Text(row["source"])) == name);
                     file.Found = Fill(ScanViewText.FoundSources, Count(sources));
+                }
+                if (xrefs > 0)
+                {
+                    file.Found += " " + Fill(ScanViewText.XrefsNotRead, Count(xrefs));
                 }
                 data.Files.Add(file);
             }

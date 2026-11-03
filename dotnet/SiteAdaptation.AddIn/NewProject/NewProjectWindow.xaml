@@ -53,13 +53,13 @@
               <!-- A long file name is cut with an ellipsis, its full path in the tooltip, so Browse and Get template keep their place -->
               <Grid>
                 <Grid.ColumnDefinitions>
-                  <ColumnDefinition Width="Auto" MaxWidth="{StaticResource SA.Size.SetupFileName}" />
+                  <ColumnDefinition Width="Auto" />
                   <ColumnDefinition Width="Auto" />
                   <ColumnDefinition Width="Auto" />
                   <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
                 <TextBlock Style="{StaticResource SA.Type.Body}" Foreground="{StaticResource SA.TextMuted}" VerticalAlignment="Center" Margin="{StaticResource SA.Gap.Right8}"
-                           TextTrimming="CharacterEllipsis" Text="{Binding FileName}" ToolTip="{Binding ToolTip}" />
+                           MaxWidth="{StaticResource SA.Size.SetupFileName}" TextTrimming="CharacterEllipsis" Text="{Binding FileName}" ToolTip="{Binding ToolTip}" />
                 <Button Grid.Column="1" Style="{StaticResource SA.Button.Base}" Margin="{StaticResource SA.Gap.Right8}" Content="{x:Static np:NewProjectText.Browse}"
                         Visibility="{Binding CanBrowse, Converter={StaticResource Shown}}" Click="OnBrowse" />
                 <Button Grid.Column="2" Style="{StaticResource SA.Button.Base}" Content="{x:Static np:NewProjectText.GetTemplate}" Click="OnTemplate"
