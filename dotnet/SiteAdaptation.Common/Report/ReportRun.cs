@@ -247,7 +247,8 @@ namespace SiteAdaptation.Common.Report
             }
             var facts = new JObject
             {
-                ["model"] = string.IsNullOrEmpty(document?.Path) ? null : Path.GetFileName(document.Path),
+                // Path of Linux, where the gate runs too, parts a name at a slash only, the add-in hands a Windows path
+                ["model"] = string.IsNullOrEmpty(document?.Path) ? null : document.Path.Substring(document.Path.LastIndexOfAny(new[] { '\', '/' }) + 1),
                 ["toolVersion"] = ToolVersion(),
                 ["steps"] = steps,
                 ["runSeconds"] = RunSeconds(context.WorkFolder),
