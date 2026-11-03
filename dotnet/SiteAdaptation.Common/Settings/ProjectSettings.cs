@@ -58,6 +58,9 @@ namespace SiteAdaptation.Common.Settings
 
     public sealed class ButtonRun
     {
+        // R498. The key of Counts for the warnings Revit gave at the commit, which come too late to be written as issues in that transaction
+        public const string WarningsCount = "warnings";
+
         // ISO 8601 in UTC
         public string Time { get; set; }
         public string Mode { get; set; }

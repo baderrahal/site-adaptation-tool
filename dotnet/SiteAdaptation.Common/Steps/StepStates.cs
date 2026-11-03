@@ -74,7 +74,8 @@ namespace SiteAdaptation.Common.Steps
         public static StepRun From(ButtonRun run, IReadOnlyDictionary<string, string> outputs)
         {
             DateTime time = DateTime.Parse(run.Time, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal);
-            return new StepRun(time, StepHash.Combine(run.InputHashes), run.Scope, run.Issues.Count, outputs);
+            run.Counts.TryGetValue(ButtonRun.WarningsCount, out int warnings);
+            return new StepRun(time, StepHash.Combine(run.InputHashes), run.Scope, run.Issues.Count + warnings, outputs);
         }
     }
 
