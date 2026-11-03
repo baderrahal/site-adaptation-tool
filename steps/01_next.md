@@ -292,6 +292,6 @@ One phase per session (Q096). Two lanes run the phases (D10, D17): tools/run-lan
 
 ## FIX-3NOV-A, a new project runs rev6 and grading files are no roads
 
-- Status: running, Lane A, laptop, 2026-11-03, branch fix/3nov-a, one PR with code, tests and records (D20)
+- Status: done, Lane A, laptop, 2026-11-03, branch fix/3nov-a, one PR. R486, R487 added by Q377, Q378. The window fixes after 84e1e69 not seen in Revit
 - Task 1: list every reader of designBasis.mode. Task 2: R484 project mode in the settings. Task 3: one plain line under Start from, lane-c told before and after NewProjectDialog. Task 4: R485 notRoad with the 7 files
 - Task 5: Empty project reaches 4 Check under rev6 on the 5 TU zones, 1,759 of 1,791 as PR 145, the ROSHN saved project byte-equal to main. Task 6: one Revit run of New project, Save setup and buttons 1 to 4 on NBH 012 under a lock slot (R449)

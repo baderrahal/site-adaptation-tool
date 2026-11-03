@@ -99,3 +99,5 @@ ProjectSettings.RoadSurfaces, a list of file names with no extension, null while
 - New project keeps the order in the draft until Save setup (SetupDraft.RoadSurfaces), Cancel of the whole window keeps nothing. The pane keeps it in the settings in memory as a Browse does, and the next real run writes it into the model (R367).
 - CheckTableBody.DoorWired sets CheckRun.RoadPick and ReadDataBody.For sets ReadDataRun.RoadPick, each from ProjectSettings.RoadSurfaces of the pane settings.
 - Tests: dotnet/SiteAdaptation.Tests/R492_RoadPickTests.cs. The picture is road-surfaces of dotnet/SiteAdaptation.UiShots.
+
+FIX-3NOV-A: Empty project of settings that name no config takes the set the install ships, copied per model under the work root, with the rules of a new project and an empty override list (R484, R486, R487). A line under Start from names the mode.
