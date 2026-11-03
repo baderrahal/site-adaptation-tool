@@ -194,6 +194,35 @@ namespace SiteAdaptation.Tests
             Assert.Equal("Inputs opened: 8, none changed", text[text.Length - 2]);
         }
 
+        // R511. The source the project holds decides, not the default of a new project in config, so a past job with its position file still gets the line. The same cases in the Python
+        private CheckLine PositionOf(string source, string file = null)
+        {
+            return NewProjectCheck.Check(Path.Combine(config, "project.json"), Path.Combine(config, "rules.json"), Path.Combine(config, "prototype_offsets.json"), work, root, WorkerReads.CheckReaders(), source, file)
+                .Lines.Single(line => line.Input == "position file");
+        }
+
+        [Fact]
+        public void R511_the_new_project_check_reads_the_source_the_project_holds()
+        {
+            Build();
+            File.Delete(Path.Combine(work, "pos.json"));
+            JObject held = JObject.Parse(File.ReadAllText(Path.Combine(config, "project.json")));
+            held["coordinates"] = new JObject { ["source"] = "positionFile", ["newProjectSource"] = "cad" };
+            File.WriteAllText(Path.Combine(config, "project.json"), held.ToString());
+
+            Assert.Equal("missing", PositionOf(null).Status);
+            Assert.Equal("missing", PositionOf("positionFile").Status);
+            Assert.Equal("ok", PositionOf("cad").Status);
+            Assert.Equal("not asked, this project takes its position from CAD", PositionOf("cad").Text);
+            Assert.Equal("not asked, this project takes its position from typed values", PositionOf("typed").Text);
+
+            held["coordinates"]["source"] = "cad";
+            File.WriteAllText(Path.Combine(config, "project.json"), held.ToString());
+            Assert.Equal("ok", PositionOf(null).Status);
+            Assert.Equal("missing", PositionOf("positionFile").Status);
+            Assert.Equal("gone.json is not there", PositionOf("positionFile", Path.Combine(work, "gone.json")).Text);
+        }
+
         [Fact]
         public void R412_an_input_that_is_not_there_is_missing_and_one_that_cannot_be_read_does_not_fit()
         {
@@ -206,11 +235,6 @@ namespace SiteAdaptation.Tests
             File.Delete(Path.Combine(root, "protos", Prototype));
             Dictionary<string, CheckLine> got = Run().Lines.ToDictionary(line => line.Input);
             Assert.Equal(new[] { "missing", "pos.json is not there" }, new[] { got["position file"].Status, got["position file"].Text });
-            // R511. A new project takes its position from CAD, the same line as the Python of R412
-            JObject held = JObject.Parse(File.ReadAllText(Path.Combine(config, "project.json")));
-            held["coordinates"] = new JObject { ["newProjectSource"] = "cad" };
-            File.WriteAllText(Path.Combine(config, "project.json"), held.ToString());
-            Assert.Equal(new[] { "ok", "not asked, a new project takes its position from CAD" }, Run().Lines.Where(line => line.Input == "position file").Select(line => new[] { line.Status, line.Text }).Single());
             Assert.Equal(new[] { "does not fit", "prototype_offsets.json cannot be read as a JSON object" }, new[] { got["villa offsets"].Status, got["villa offsets"].Text });
             Assert.Equal(new[] { "does not fit", "a.xlsx cannot be read as a workbook" }, new[] { got["Excel dlus dataBook.rev9.dlus"].Status, got["Excel dlus dataBook.rev9.dlus"].Text });
             Assert.Equal(new[] { "missing", "s1.xlsx is not there" }, new[] { got["Schedule N1"].Status, got["Schedule N1"].Text });
@@ -300,8 +324,6 @@ namespace SiteAdaptation.Tests
                 }
             }
             merged["addin"]["position"]["file"] = Path.Combine(work, "pos.json");
-            // The made up project asks for its file, the test of R511 says it does not
-            ((JObject)merged["coordinates"]).Remove("newProjectSource");
             merged["addin"]["readData"]["dataBookFolder"] = Path.Combine(work, "data_book");
             merged["addin"]["workerTimeLimitS"] = JObject.Parse(File.ReadAllText(WorkerRunTests.RepoConfig()))["addin"]["workerTimeLimitS"];
             File.WriteAllText(Path.Combine(config, "project.json"), merged.ToString());

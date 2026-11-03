@@ -45,6 +45,9 @@ namespace SiteAdaptation.AddIn.SetUpSite
 
         public bool NoSourceShown => NoSourceLine.Length > 0;
 
+        // R441, R513. The help says what the gate does, it waits for the site drawing only while CAD is or may be the source
+        public string CurrentHelpLine => DrawingAsked ? SetUpSiteText.CurrentHelp : SetUpSiteText.CurrentHelpOther;
+
         // R512. Why the check against the position file did not run, as Common gives it
         public string CheckLine => view.CheckLine ?? "";
 
@@ -267,7 +270,9 @@ namespace SiteAdaptation.AddIn.SetUpSite
 
         private string StopsText()
         {
-            return string.Join(Environment.NewLine, view.Stops.Concat(problem.Length > 0 ? new[] { problem } : new string[0]));
+            // R513. Why no source works stands in the section Position source beside the ways out of it, so it is not said again here. It still keeps Apply off through view.Stops
+            IEnumerable<string> others = view.Stops.Where(stop => string.IsNullOrEmpty(view.NoSourceLine) || !view.NoSourceLine.Contains(stop));
+            return string.Join(Environment.NewLine, others.Concat(problem.Length > 0 ? new[] { problem } : new string[0]));
         }
 
         private List<SetUpRowViewModel> Ordered(List<SetUpRow> rows, string[] order, bool will)

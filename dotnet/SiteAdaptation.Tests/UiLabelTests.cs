@@ -188,8 +188,8 @@ namespace SiteAdaptation.Tests
             // KNOWN-3NOV-A added 2: Front edge by hand and the past value of a front edge (R482, Q376)
             // and the folder of the override list (Q397)
             // R510 to R514 added 14: the row Position from, the section Position source and the section CAD and position file of Set up site
-            // COORD-3NOV-A review added 10: the words that follow the source, the title of the file dialog, the rows Place and Typed origin to the plots
-            Assert.Equal(300, chosen);
+            // COORD-3NOV-A review added 11: the words that follow the source, the title of the file dialog, the rows Place and Typed origin to the plots, the help of Current files
+            Assert.Equal(301, chosen);
             Assert.True(matched > 100, matched.ToString());
         }
 

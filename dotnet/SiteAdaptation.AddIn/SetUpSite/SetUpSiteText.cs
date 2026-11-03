@@ -56,6 +56,7 @@ namespace SiteAdaptation.AddIn.SetUpSite
         public const string TypedToPlots = "Typed origin to the plots";
         public const string SourceTitle = "Position source";
         public const string SourceHelp = "Use CAD, pick a position file or type Easting, Northing and Angle. Apply stays off until a source works.";
+        public const string CurrentHelpOther = "Tick each file that is the current issue.";
         public const string CheckTitleCad = "Check points from CAD";
         public const string CheckTitleFile = "Check points from the position file";
         public const string CheckTitleTyped = "Check points from the typed values";
@@ -69,7 +70,7 @@ namespace SiteAdaptation.AddIn.SetUpSite
         public const string Angle = "Angle";
         public const string UseTyped = "Use typed values";
         public const string CompareTitle = "CAD and position file";
-        public const string CompareHelp = "Only the source above is set. CAD takes the centre of the plots as origin and the file has an origin of its own, so Easting and Northing differ by that choice. File origin to the plots is what tells the two are in one frame.";
+        public const string CompareHelp = "Only the source above is set. Easting and Northing differ by the choice of origin. File origin to the plots tells if both are in one frame.";
         public const string CompareValue = "Value";
         public const string CompareCad = "CAD";
         public const string CompareFile = "Position file";

@@ -45,6 +45,79 @@ namespace SiteAdaptation.Tests
             Assert.Equal(!opens, model.NoSiteShown);
         }
 
+        // The help of the section Current files says what the gate does, it waits for the site drawing only under CAD
+        [Theory]
+        [InlineData("cad", true)]
+        [InlineData(null, true)]
+        [InlineData("positionFile", false)]
+        [InlineData("typed", false)]
+        public void R513_the_help_of_current_files_names_the_site_drawing_only_while_the_gate_asks_for_it(string source, bool names)
+        {
+            SetUpSiteView view = Shots.SampleSetUpView(true, true);
+            view.PositionSource = source;
+            var model = new SetUpSiteViewModel(view);
+            Assert.StartsWith("Tick each file that is the current issue.", model.CurrentHelpLine);
+            Assert.Equal(names, model.CurrentHelpLine.Contains("site drawing"));
+        }
+
+        // The reason stands once, beside the ways out of it, and still keeps Apply off
+        [Fact]
+        public void R513_the_reason_of_no_source_shows_in_the_section_and_not_again_in_the_stops()
+        {
+            SetUpSiteView view = Shots.SampleNoSourceView();
+            var model = new SetUpSiteViewModel(view);
+            Assert.True(model.NoSourceShown);
+            Assert.False(model.StopsShown);
+            Assert.Equal("", model.StopsLine);
+            Assert.False(model.CanApply);
+
+            view.Stops.Add("Another stop");
+            model = new SetUpSiteViewModel(view);
+            Assert.Equal("Another stop", model.StopsLine);
+
+            // A conflict joins its stops into the one line, each of them already said
+            SetUpSiteView conflict = Shots.SampleSetUpView(true, true);
+            conflict.Stops = new List<string> { "First stop", "Second stop" };
+            conflict.NoSourceLine = "First stop. Second stop";
+            model = new SetUpSiteViewModel(conflict);
+            Assert.False(model.StopsShown);
+            Assert.False(model.CanApply);
+        }
+
+        // R512. setup-site.png, the last row of the section on one line and inside the part that shows
+        [Fact]
+        public void R512_the_last_row_of_cad_and_position_file_stands_on_one_line_inside_the_scroll_area()
+        {
+            OnSta(() =>
+            {
+                SetUpSiteWindow window = Shots.LaidOutSetUp(Shots.SampleSetUpView(true, true));
+                var body = (FrameworkElement)window.Content;
+                ScrollViewer scroll = Below<ScrollViewer>(body).First();
+                TextBlock row = Below<TextBlock>(body).Single(text => text.Text == SetUpTexts.FileOriginToPlots);
+                TextBlock line = Below<TextBlock>(body).First(text => text.Text == SetUpTexts.Northing);
+
+                Assert.Equal(line.ActualHeight, row.ActualHeight);
+                double bottom = row.TransformToAncestor(scroll).Transform(new Point(0, row.ActualHeight)).Y;
+                Assert.True(bottom <= scroll.ViewportHeight, bottom + " of " + scroll.ViewportHeight);
+            });
+        }
+
+        private static IEnumerable<T> Below<T>(DependencyObject parent) where T : DependencyObject
+        {
+            for (int at = 0; at < VisualTreeHelper.GetChildrenCount(parent); at++)
+            {
+                DependencyObject child = VisualTreeHelper.GetChild(parent, at);
+                if (child is T found)
+                {
+                    yield return found;
+                }
+                foreach (T deeper in Below<T>(child))
+                {
+                    yield return deeper;
+                }
+            }
+        }
+
         // Q422. The words of the window follow the source
         [Theory]
         [InlineData("cad", "from the CAD drawings", "Check points from CAD", "CAD")]

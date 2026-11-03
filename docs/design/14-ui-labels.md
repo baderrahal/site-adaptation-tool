@@ -201,6 +201,7 @@ An entry marked CHOSEN in 5a was worded in 5a PR 2 or PR 5, where docs/design/ g
 - `Sets the coordinates, levels and types of this model from the position file.` CHOSEN, Q422, the intro under the position file
 - `Sets the coordinates of this model from the values typed here, and its levels and types.` CHOSEN, Q422, the intro under typed values
 - `Sets the coordinates, levels and types of this model once a source is chosen.` CHOSEN, Q422, the intro with no source
+- `Tick each file that is the current issue.` CHOSEN, R513, the help of Current files when the source is a position file or typed values
 - `Check points from the position file` CHOSEN, Q422
 - `Check points from the typed values` CHOSEN, Q422
 - `Check points` CHOSEN, Q422
@@ -218,7 +219,7 @@ An entry marked CHOSEN in 5a was worded in 5a PR 2 or PR 5, where docs/design/ g
 - `Angle` CHOSEN, R513
 - `Use typed values` CHOSEN, R513
 - `CAD and position file` CHOSEN, R512
-- `Only the source above is set. CAD takes the centre of the plots as origin and the file has an origin of its own, so Easting and Northing differ by that choice. File origin to the plots is what tells the two are in one frame.` CHOSEN, R512
+- `Only the source above is set. Easting and Northing differ by the choice of origin. File origin to the plots tells if both are in one frame.` CHOSEN, R512
 - `Value` CHOSEN, R512
 - `Position file` CHOSEN, R512
 - `Difference` CHOSEN, R512
