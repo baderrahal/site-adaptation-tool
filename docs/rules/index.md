@@ -412,6 +412,8 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R485 Grading files are no roads.
 - R486 Empty project takes the shipped set.
 - R487 New project has no list.
+- R520 Start from reopens its project.
+- R521 Review numbers a two number plot.
 
 ## 11-scanner-r420-up.md
 
@@ -452,6 +454,7 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R496 Pane warns on old prototypes.
 - R497 Revit slog leaves input check.
 - R505 Windows match their boards.
+- R540 Help beside each step.
 
 ## 13-parameters-r460-up.md
 
@@ -474,6 +477,9 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R502 Corners by line intersection.
 - R503 Short edges merged, arcs kept.
 - R504 Ring accepted or slab flagged.
+- R506 Sheet in use shown.
+- R507 Shared parameters on links only.
+- R508 Old binding removed by button 1.
 
 ## 13-site-coords-r454-up.md
 

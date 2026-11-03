@@ -71,7 +71,7 @@ namespace SiteAdaptation.Common.Settings
     // the model. A row is found when every input it fills names a path the disk holds, as a file or, for a folder row, a folder
     public static class SetupCheck
     {
-        public static SetupCheckResult Run(ProjectSettings settings, Func<string, bool, bool> there)
+        public static SetupCheckResult Run(ProjectSettings settings, Func<string, bool, bool> there, Func<string, string> readText = null)
         {
             if (settings == null)
             {
@@ -90,11 +90,33 @@ namespace SiteAdaptation.Common.Settings
                     continue;
                 }
                 string[] paths = row.Inputs.Select(name => settings.Inputs.TryGetValue(name, out SettingsInput input) && input != null && !string.IsNullOrEmpty(input.Path) ? input.Path : null).ToArray();
+                // R506. Button 1 reads the sheet of config, so a project that chose none has that sheet
+                if (row.Id == SetupRows.ParameterSheet && paths[0] == null && readText != null)
+                {
+                    paths[0] = ConfigSheet(settings.ConfigFile, readText);
+                }
                 bool found = paths.All(path => path != null && there(path, row.Folder));
                 rows.Add(new SetupRowState(row, found ? SetupState.Found : SetupState.Missing, paths));
             }
             bool named = !string.IsNullOrEmpty(settings.ConfigFile);
             return new SetupCheckResult(rows, named && there(settings.ConfigFile, false), named);
+        }
+
+        // R506. The path of the parameter sheet the config file names, null when there is no config, it does not read or names none
+        public static string ConfigSheet(string configFile, Func<string, string> readText)
+        {
+            if (string.IsNullOrEmpty(configFile))
+            {
+                return null;
+            }
+            try
+            {
+                return SetUp.ParameterSheet.PathOf(configFile, Newtonsoft.Json.Linq.JObject.Parse(readText(configFile)));
+            }
+            catch (Exception failure) when (failure is System.IO.IOException || failure is UnauthorizedAccessException || failure is System.IO.InvalidDataException || failure is Newtonsoft.Json.JsonException || failure is ArgumentException || failure is NotSupportedException)
+            {
+                return null;
+            }
         }
     }
 }

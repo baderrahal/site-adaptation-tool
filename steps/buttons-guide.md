@@ -84,9 +84,8 @@ Boxes:
 
 **Limits today.**
 
-- Q400 It reopens on Empty project.
 - Q379 A new project on another PC needs the inputs of this job.
-- Q394 to Q397 Empty project with Update, modes, past values and Save As.
+- Q394, Q395, Q397 Empty project with Update, modes and Save As.
 - Q416 The road row reads optional, step 2 stops without it.
 - Q418 Empty project on a model with settings keeps its old rules.
 - The Shared parameters row reads Not chosen with an amber mark though button 1 finds the sheet (steps/dryrun-3nov.md).
@@ -122,7 +121,7 @@ Boxes:
 
 ## 1 Set up site
 
-**What it does.** Makes this model ready. It sets units, position, survey point, project base point, Level 1 and Level 2, floor types, wall types and the shared parameters. It sets only what differs. The position comes from a position file today, not from CAD, since coordinates.source reads positionFile in the settings (Q415).
+**What it does.** Makes this model ready. It sets units, position, survey point, project base point, Level 1 and Level 2, floor types, wall types and the shared parameters. It sets only what differs. The position comes from a position file today, not from CAD, as the settings say (Q415).
 
 **Files it needs.**
 
@@ -130,8 +129,8 @@ Boxes:
 |---|---|---|---|
 | project.json | Project settings | The setup | C:\SA-demo\config |
 | roshn-makkah.json | Rules and the site values | The setup | C:\SA-demo\rules |
-| position_parsons.json | Site position | Settings, addin.position.file | Inputs\position in the kit, Work root\round_addin\position in the shipped set |
-| shared_parameters.xlsx | 23 rows, 11 marked Keep | Settings, addin.parameterSheet | C:\SA-demo\config |
+| position_parsons.json | Site position | Settings | Inputs\position in the kit, Work root\round_addin\position in the shipped set |
+| shared_parameters.xlsx | 23 rows, 11 marked Keep | Settings | C:\SA-demo\config |
 
 **Before it.** New project. The Baseplan row picked.
 
@@ -325,7 +324,7 @@ Do not click anywhere while the Revit box is open. A press waits behind it and f
 
 ## 8 Walls
 
-**What it does.** Places the boundary walls of each plot in the scope. Garden walls are not placed, they have no measured rule (R362),. Dry run on NBH 012: 778 walls.
+**What it does.** Places the boundary walls of each plot in the scope. Garden walls are not placed, they have no measured rule. Dry run on NBH 012: 778 walls.
 
 **Files it needs.** plan_<NBH>.json of step 4 in the work folder. project.json for the BW wall pattern. The wall types of step 1.
 

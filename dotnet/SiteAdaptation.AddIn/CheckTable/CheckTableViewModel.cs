@@ -47,8 +47,18 @@ namespace SiteAdaptation.AddIn.CheckTable
 
         public bool ProfileShown => view.Info != null;
 
-        public string ProfileLine => view.Info == null ? "" : Common.CountText.Overrides(TextTemplate.Fill(CheckTableText.ProfileLine, view.Info.LevelProfile, view.Info.OverrideFile,
-            TextTemplate.Count(view.Info.Overrides), TextTemplate.Count(view.Info.OnNbh), view.Nbh));
+        public string ProfileLine => view.Info == null ? "" : Common.CountText.Overrides(TextTemplate.Fill(CheckTableText.ProfileLine, view.Info.LevelProfile, System.IO.Path.GetFileName(view.Info.OverrideFile),
+            TextTemplate.Count(view.Info.Overrides), TextTemplate.Count(view.Info.OnNbh), view.Nbh)) + FolderPart;
+
+        // The folder comes last since the line trims at its end and the counts must stay in sight (R486, Q397)
+        private string FolderPart
+        {
+            get
+            {
+                string folder = System.IO.Path.GetDirectoryName(view.Info.OverrideFile);
+                return string.IsNullOrEmpty(folder) ? "" : TextTemplate.Fill(CheckTableText.ProfileFolder, folder);
+            }
+        }
 
         public string FollowLine => view.FollowLine;
 
