@@ -318,7 +318,7 @@ namespace SiteAdaptation.Common.CheckTable
                     }
                 }
             }
-            return join == null && links == null ? null : new PastJob { KeyJoin = join, Links = links, OtherJobs = CheckTableBuild.OtherJobKeys(config) };
+            return join == null && links == null ? null : new PastJob { KeyJoin = join, Links = links };
         }
 
         // The links of the project document of a key read by the plot their plot parameter names, a plot two links name is left out

@@ -10,7 +10,7 @@ using Xunit;
 
 namespace SiteAdaptation.Tests
 {
-    // R520, R521, R522, round KNOWN-3NOV-A. Made up names, no real plot or level
+    // R520, R521, round KNOWN-3NOV-A. Made up names, no real plot or level
     public sealed class R520_KnownIssuesTests
     {
         private static SavedStart Saved(string name, ProjectSettings job)
@@ -61,6 +61,29 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
+        public void R521_a_mark_saved_under_the_old_number_stays_on_its_plot_and_is_saved_under_the_new()
+        {
+            IReadOnlyList<ReviewRow> rows = ReviewTable.Rows(new JObject { ["a"] = Face("216|2312", "2312") }, "012", null, null, null);
+            var saved = new[] { new ReviewCheck { Plot = "216|2312", Check = ReviewCheckValue.Ok } };
+
+            var state = new ReviewState(rows, saved, "run", "hash");
+
+            Assert.Equal(1, state.CheckedCount);
+            Assert.Equal(new[] { "2312" }, state.ToChecks().Select(check => check.Plot));
+        }
+
+        [Fact]
+        public void R521_a_mark_under_the_new_number_wins_over_one_under_the_old()
+        {
+            IReadOnlyList<ReviewRow> rows = ReviewTable.Rows(new JObject { ["a"] = Face("216|2312", "2312") }, "012", null, null, null);
+            var saved = new[] { new ReviewCheck { Plot = "216|2312", Check = ReviewCheckValue.Ok }, new ReviewCheck { Plot = "2312", Check = ReviewCheckValue.Wrong } };
+
+            var state = new ReviewState(rows, saved, "run", "hash");
+
+            Assert.Equal(new[] { ReviewCheckValue.Wrong }, state.ToChecks().Select(check => check.Check));
+        }
+
+        [Fact]
         public void R521_a_wrong_on_a_plot_of_two_numbers_reaches_check()
         {
             ReviewRow row = ReviewTable.Rows(new JObject { ["a"] = Face("216|2312", "2312") }, "012", null, null, null).Single();
@@ -88,66 +111,6 @@ namespace SiteAdaptation.Tests
         {
             const string row = "{ 'check': 'Hand', 'field': 'mirrored', 'from': 'missing', 'use': 'Rule', 'rule': null, 'toolValue': null, 'past': { 'writes': 'trueOrFalse', 'value': null, 'why': null }, 'why': 'no link' }";
             return R376_CheckTableTests.Wrapped(JObject.Parse("{ 'plots': { '1': { 'unit': 'VL4', 'nbh': '012', 'rows': [ " + row + " ] }, '2': { 'unit': 'VL4', 'nbh': '012', 'rows': [ " + row + " ] } }, 'tables': { 'assumed': { }, 'chips': { } } }"));
-        }
-
-        private static PastJob Keys(string first, string second)
-        {
-            return new PastJob
-            {
-                Links = new Dictionary<string, KeyLink>
-                {
-                    ["1"] = new KeyLink { Code = first, Model = "own.rvt", File = "P-ARC-VL4-A.rvt", Mirrored = true },
-                    ["2"] = new KeyLink { Code = second, Model = "other.rvt", File = "P-ARC-VL4-A.rvt", Mirrored = true },
-                },
-                OtherJobs = CheckTableBuild.OtherJobKeys(Config()),
-            };
-        }
-
-        [Fact]
-        public void R522_the_keys_of_a_job_the_build_does_not_apply_are_named_with_their_job()
-        {
-            Dictionary<string, string> keys = CheckTableBuild.OtherJobKeys(Config());
-            Assert.Equal(new[] { "n1", "n2" }, keys.Keys.OrderBy(key => key, StringComparer.Ordinal));
-            Assert.Equal("native", keys["n1"]);
-            Assert.Empty(CheckTableBuild.OtherJobKeys(new JObject()));
-        }
-
-        [Fact]
-        public void R522_past_stays_on_a_key_of_the_job_and_is_left_out_on_a_key_of_another_job()
-        {
-            CheckTableView view = CheckTableBuild.Compose("012", HandStep(), R376_CheckTableTests.Block(), null, Keys("p1", "n1"), null, true);
-            CheckRow own = view.Rows.Single(row => row.Plot == "1"), other = view.Rows.Single(row => row.Plot == "2");
-
-            Assert.True(own.PastOffered);
-            Assert.True((bool)own.PastValue);
-            Assert.False(other.PastOffered);
-            Assert.Equal(CheckTableBuild.OtherJob("n1", "native"), other.PastWhy);
-            Assert.Equal("n1", other.Key);
-            Assert.Throws<ArgumentException>(() => new CheckTableState(view).Set(other.Index, CheckUse.Past));
-        }
-
-        [Fact]
-        public void R522_a_key_in_no_group_stays_as_today()
-        {
-            CheckTableView view = CheckTableBuild.Compose("012", HandStep(), R376_CheckTableTests.Block(), null, Keys("p1", "unlisted"), null, true);
-            Assert.True(view.Rows.Single(row => row.Plot == "2").PastOffered);
-        }
-
-        [Fact]
-        public void R522_the_past_job_of_a_run_holds_the_keys_of_the_other_job()
-        {
-            string folder = Path.Combine(Path.GetTempPath(), "r522-" + Guid.NewGuid().ToString("N"));
-            Directory.CreateDirectory(folder);
-            try
-            {
-                File.WriteAllText(Path.Combine(folder, "join.json"), "{}");
-                PastJob past = CheckRun.Past(Path.Combine(folder, "join.json"), null, Config());
-                Assert.Equal("native", past.OtherJobs["n2"]);
-            }
-            finally
-            {
-                Directory.Delete(folder, true);
-            }
         }
 
         [Fact]

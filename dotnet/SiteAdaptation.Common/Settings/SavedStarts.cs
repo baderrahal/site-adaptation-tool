@@ -66,7 +66,7 @@ namespace SiteAdaptation.Common.Settings
         }
 
         // R520. The saved project a setup came from, the first that names the config, rules and level profile of the settings, as Import laid them. The settings
-        // hold no name of it, so a setup edited since reads none. No config came from none, which leaves Empty project and R486 as they are
+        // hold no name of it, so the window opens on that start while other values of the setup may have been edited since, which Save then keeps. No config came from none, which leaves Empty project and R486 as they are
         public static SavedStart CameFrom(ProjectSettings current, IReadOnlyList<SavedStart> starts)
         {
             if (current == null || string.IsNullOrEmpty(current.ConfigFile) || starts == null)

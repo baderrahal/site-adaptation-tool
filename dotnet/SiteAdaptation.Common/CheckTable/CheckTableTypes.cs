@@ -173,9 +173,6 @@ namespace SiteAdaptation.Common.CheckTable
 
         public IReadOnlyDictionary<string, KeyLink> Links { get; set; }
 
-        // R522. Each key of a job the build does not apply by its job, null where the run did not give them
-        public IReadOnlyDictionary<string, string> OtherJobs { get; set; }
-
         public bool Given => KeyJoin != null || Links != null;
     }
 }

@@ -48,6 +48,7 @@ namespace SiteAdaptation.Common.Review
                 var row = new ReviewRow
                 {
                     PlotNo = number,
+                    OldPlotNo = located != null && located != number ? located : null,
                     CadLabel = label,
                     Nbh = nbh,
                     VillaType = Text(face["typologyRev9"]),

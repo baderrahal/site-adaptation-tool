@@ -26,26 +26,6 @@ namespace SiteAdaptation.Common.CheckTable
             return "no answer key holds plot " + plot;
         }
 
-        // R522. The keys of majority.groups by their job, those of the jobs of majority.overrideDefaultSources left out, as PlanOverrides.Load applies those alone
-        public static Dictionary<string, string> OtherJobKeys(JObject config)
-        {
-            var found = new Dictionary<string, string>(StringComparer.Ordinal);
-            List<string> applied = (config["majority"]?["overrideDefaultSources"] as JArray ?? new JArray()).Select(item => (string)item).ToList();
-            foreach (JProperty group in (config["majority"]?["groups"] as JObject ?? new JObject()).Properties().Where(item => !applied.Contains(item.Name)))
-            {
-                foreach (JToken key in group.Value as JArray ?? new JArray())
-                {
-                    found[(string)key] = group.Name;
-                }
-            }
-            return found;
-        }
-
-        public static string OtherJob(string key, string job)
-        {
-            return "the key " + key + " is of the " + job + " job, this build does not apply that job, so Past would save and do nothing";
-        }
-
         public static string NoPastValue(string plot)
         {
             return "the past job gives no value for plot " + plot;
@@ -216,12 +196,6 @@ namespace SiteAdaptation.Common.CheckTable
             if (link == null)
             {
                 row.PastWhy = NoKey(number);
-                return row;
-            }
-            // R522. An entry of this key would load and apply nothing (R487), so Past stays grey with why
-            if (past.OtherJobs != null && past.OtherJobs.TryGetValue(link.Code, out string job))
-            {
-                row.PastWhy = OtherJob(link.Code, job);
                 return row;
             }
             row.PastValue = row.PastValue ?? KeyValue(link, row.Field, form);

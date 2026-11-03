@@ -132,7 +132,7 @@ namespace SiteAdaptation.AddIn.NewProject
         private StartChoice start;
 
         // R520. The choice of the saved project the setup came from, null for none. The settings hold it already, so Save setup does not import it over the picks
-        private readonly StartChoice cameFrom;
+        private StartChoice cameFrom;
         private readonly string savedHint;
         private string ready = string.Empty;
         private bool stopShown;
@@ -317,6 +317,8 @@ namespace SiteAdaptation.AddIn.NewProject
             {
                 if (value != null && Set(ref start, value))
                 {
+                    // R520. Only the start the window opened on is not imported again, a start a person picks is, also the same one picked back
+                    cameFrom = null;
                     // R492. A pick made for the project before would hide the list of the chosen one
                     surfaces = null;
                     CheckedOk = false;
