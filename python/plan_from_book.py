@@ -802,6 +802,8 @@ def moved_link(builder, frame, overrides, number, outcomes):
 
 # R337. Why a build leaves an override of a field it never places
 NO_GAP = "the override holds no gap to the rule"
+# R482. Why a build leaves an override frontEdge of a plot it has no ring for
+NO_FACE_EDGE = "the plot has no face, so no ring holds the edge (R482)"
 # Q116. key_levels measures rampFront against the road of the front of R355, which the open edge of a turned plot does not hold
 OPEN_EDGE_GAP = "measured on the front of R355, the ramp moved to the open edge (Q116)"
 LEFT = {"rampOutline": "an outline gap, a build places the ramp outline of R127", "yardOutline": "an outline gap, a build places the fitted yard outline",
@@ -881,7 +883,7 @@ def not_applied_why(records):
             for field, whys in sorted(found.items())}
 
 
-def key_levels(entries, key, roles, partners, rows, overrides, outcomes, numbers, front, profile, lp, basis=None, slopes=None):
+def key_levels(entries, key, roles, partners, rows, overrides, outcomes, numbers, front, profile, lp, basis=None):
     """R340. FFL, SSL, height and steps by the level rules of keyRules, as R339 measured them: one FFL per piece at its highest El @ Entry
     plus the base of that unit to the mm, then the heightM gap moves the FFL onto the key with its SSL, height and steps, and a steps
     override sets the steps. An override of a plot with no FFL is left with why. R414: under rev6 with designBasis.split.test the pieces
@@ -890,7 +892,8 @@ def key_levels(entries, key, roles, partners, rows, overrides, outcomes, numbers
     pieces = plan_rules.key_pieces(key, list(entries), roles, partners, units)
     marks = {}
     if design_basis.splits(basis):
-        found, marks = plan_rules.split_test(entries, slopes, roles, basis["split"], key, profile, lp)
+        roads = {number: plan_rules.road_at_front(item["front"]) for number, item in front.items() if item["front"] is not None}
+        found, marks = plan_rules.split_test(entries, roads, roles, basis["split"], key, profile, lp)
         pieces.update(found)
     level_rows = plan_rules.key_level_rows(entries, pieces, profile, lp, key)
     for number, mark in marks.items():
@@ -951,9 +954,11 @@ def level_values(builder, row):
         builder.entry["insert"]["value"][2] = row["ffl"]
 
 
-def fronts(numbers, rows, faces, roads, limits, surfaces, snap, profile, corner=None, sales=None):
+def fronts(numbers, rows, faces, roads, limits, surfaces, snap, profile, corner=None, sales=None, edges=None):
     """R209, R226. The frame, ramp outline and road level of each plot's front corners, with the surface that gave each level.
-    With corner settings and sales rows the frame comes from the corner rule, else from the R122 front."""
+    With corner settings and sales rows the frame comes from the corner rule, else from the R122 front. R482: edges, the override frontEdge
+    of a plot (plan_rules.front_edges), goes before both, rule frontEdge, on a plot with a face."""
+    edges = edges or {}
     tree = STRtree(roads)
     found = {}
     for number in numbers:
@@ -961,6 +966,8 @@ def fronts(numbers, rows, faces, roads, limits, surfaces, snap, profile, corner=
         rule = "nearestCurb"
         if face is None:
             frame = None
+        elif number in edges:
+            frame, rule = corner_front.named_frame(face, tree, number, edges[number]), plan_rules.FRONT_EDGE
         elif corner is not None and sales is not None:
             frame, rule = corner_front.corner_frame(face, tree, roads, limits, corner, sales.get(number))
         else:
@@ -1017,7 +1024,8 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
     # R340. The other unit of a row pair shares the FFL, so its El @ Entry is worked out as well
     members = sorted({plot for cluster in mine for plot in cluster["plots"]} | set(numbers) | {partners[number] for number in numbers if number in partners},
                      key=link_summary.sort_key)
-    front = fronts(members, rows, faces, roads, limits, surfaces, snap, profile, block.get("corner") if sales is not None else None, sales)
+    front = fronts(members, rows, faces, roads, limits, surfaces, snap, profile, block.get("corner") if sales is not None else None, sales,
+                   None if rules is None else plan_rules.front_edges(rules["overrides"]))
     if trace is not None:
         trace.update(front=front, snap=snap, surfaces=surfaces)
     frames = {number: item["frame"] for number, item in front.items()}
@@ -1030,6 +1038,13 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
     entries, slopes, finals, ends, no_door = {}, {}, {}, {}, []
     overrides = {} if rules is None else rules["overrides"]
     outcomes = Outcomes(overrides, numbers, [] if rules is None else rules.get("laterFields") or [], "the estimate of R209" if rules is None else rules["name"])
+    for number in numbers:
+        # R482. Taken above with the front of the plot, the first override of a plot in the order the build applied them
+        if plan_rules.FRONT_EDGE in overrides.get(number, {}):
+            if front[number]["face"] is None:
+                outcomes.left(number, plan_rules.FRONT_EDGE, NO_FACE_EDGE)
+            else:
+                outcomes.applied(number, plan_rules.FRONT_EDGE)
     in_build = set(numbers)
     # R386. The plots of the skip list of the override list are left out and listed in missing as skip, each a plot of plots.csv
     skip = getattr(overrides, "skip", {})
@@ -1078,7 +1093,7 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
     if rules is None:
         level_rows = plan_from_cad.plot_levels(profile, mine, entries)
     elif by_levels:
-        level_rows = key_levels(entries, key, roles, partners, rows, overrides, outcomes, numbers, front, profile, rules["levelProfile"], basis, slopes)
+        level_rows = key_levels(entries, key, roles, partners, rows, overrides, outcomes, numbers, front, profile, rules["levelProfile"], basis)
         if trace is not None:
             # R359. The El @ Entry and the levels of each plot with the FFL by the rule kept apart, for the step levels
             trace.update(entries=entries, levelRows=level_rows)
@@ -1618,6 +1633,32 @@ def alone_table_units(units, rows, roles, key, files, kind_of):
     return found
 
 
+def override_inputs(args, settings, name, lp, key, block):
+    """R280, R330. The overrides of the source models the arguments name and the sources they are of, none with no list named."""
+    if args.override_fields:
+        known = plan_rules.FIELDS + (plan_rules.KEY_FIELDS if key is not None else ())
+        wrong = [field for field in args.override_fields if field not in known and not (key is not None and field.startswith(plan_rules.PARAMETER))]
+        if wrong:
+            raise project_profile.ProfileError("--override-fields %s: a build of %s applies only %s%s (R280, R337)" % (
+                ", ".join(wrong), name, ", ".join(known), " and parameter <name>" if key is not None else ""))
+    # R337. A build by keyRules loads every field and counts the ones it can not place, the Round 17 build its five fields
+    fields = tuple(args.override_fields) if args.override_fields else plan_rules.FIELDS if key is None else None
+    # R280. An empty list name or a source with no list would build with no override as if none was asked for
+    if args.overrides is not None and not args.overrides.strip():
+        raise project_profile.ProfileError("--overrides names no file, give the override list in config/overrides (R280)")
+    named_sources, models = getattr(args, "override_source", None), getattr(args, "override_model", None) or []
+    if (named_sources or models) and args.overrides is None:
+        raise project_profile.ProfileError("--override-source and --override-model need --overrides, the override list their overrides come from (R280)")
+    if not args.overrides:
+        return {}, []
+    if named_sources is not None and not named_sources:
+        raise project_profile.ProfileError("--override-source names no source, name parsons or native or leave it out for the default of R330")
+    # R330. With no source named a build applies majority.overrideDefaultSources, parsons, so native overrides never apply by default
+    sources = list(named_sources) if named_sources else override_source.default_sources(settings)
+    # R280. Only the overrides of a source of the job of the level profile
+    return plan_rules.load_overrides(args.overrides, set(sources), fields, block["groups"], name, lp, set(models) or None), sources
+
+
 def rule_inputs(args, settings, profile, numbers, rows, faces, roads, sales, clusters=(), files=None, basis=None):
     """R277 to R280. The level profile, named or the default of R277, the hand rules, the open end of every plot and the overrides
     of the source models. R337: for a profile with keyRules also the side road, the pair of its row of units in no cluster (the
@@ -1637,7 +1678,9 @@ def rule_inputs(args, settings, profile, numbers, rows, faces, roads, sales, clu
         raise project_profile.ProfileError("keyRules.linkRotation of %s takes the front of R226, give --sales for the Orientation of a corner plot (R337)" % name)
     units = [number for number, row in rows.items() if row.get("typologyRev9") and number in faces]
     limits = cad_links.front_limits(profile, settings.get("analysis"))
-    front = fronts(sorted(set(numbers) | set(units)) if key is not None else numbers, rows, faces, roads, limits, [], 0.0, profile, corner, sales)
+    # R482. The list before the fronts, an override frontEdge sets the front the row of each plot is walked from
+    overrides, sources = override_inputs(args, settings, name, lp, key, block)
+    front = fronts(sorted(set(numbers) | set(units)) if key is not None else numbers, rows, faces, roads, limits, [], 0.0, profile, corner, sales, plan_rules.front_edges(overrides))
     frames = {number: item["frame"] for number, item in front.items()}
     neighbours = majority.side_neighbours(units, faces, frames, block["sideShare"], profile.get("plot.long_side") / 1000.0)
     open_ends = {}
@@ -1663,28 +1706,7 @@ def rule_inputs(args, settings, profile, numbers, rows, faces, roads, sales, clu
             found = dict(found, **{plot: walked[plot] for plot in free if plot in walked})
         pairs = {number: (found.get(number) or {}).get("side") for number in numbers}
         kinds = {number: majority.kind_of((rows.get(number) or {}).get("typologyRev9"), profile, block) for number in numbers}
-    if args.override_fields:
-        known = plan_rules.FIELDS + (plan_rules.KEY_FIELDS if key is not None else ())
-        wrong = [field for field in args.override_fields if field not in known and not (key is not None and field.startswith(plan_rules.PARAMETER))]
-        if wrong:
-            raise project_profile.ProfileError("--override-fields %s: a build of %s applies only %s%s (R280, R337)" % (
-                ", ".join(wrong), name, ", ".join(known), " and parameter <name>" if key is not None else ""))
-    # R337. A build by keyRules loads every field and counts the ones it can not place, the Round 17 build its five fields
-    fields = tuple(args.override_fields) if args.override_fields else plan_rules.FIELDS if key is None else None
-    # R280. An empty list name or a source with no list would build with no override as if none was asked for
-    if args.overrides is not None and not args.overrides.strip():
-        raise project_profile.ProfileError("--overrides names no file, give the override list in config/overrides (R280)")
-    named_sources, models = getattr(args, "override_source", None), getattr(args, "override_model", None) or []
-    if (named_sources or models) and args.overrides is None:
-        raise project_profile.ProfileError("--override-source and --override-model need --overrides, the override list their overrides come from (R280)")
-    overrides, sources = {}, []
-    if args.overrides:
-        if named_sources is not None and not named_sources:
-            raise project_profile.ProfileError("--override-source names no source, name parsons or native or leave it out for the default of R330")
-        # R330. With no source named a build applies majority.overrideDefaultSources, parsons, so native overrides never apply by default
-        sources = list(named_sources) if named_sources else override_source.default_sources(settings)
-        # R280. Only the overrides of a source of the job of the level profile
-        overrides = plan_rules.load_overrides(args.overrides, set(sources), fields, block["groups"], name, lp, set(models) or None)
+    models = getattr(args, "override_model", None) or []
     later = set((block.get("overrideKeep") or {}).get("laterFields", {}).get(lp.get("job")) or ())
     return {"name": name, "levelProfile": lp, "rounding": plan_rules.rounding_of(settings, name, key), "hands": profile.get("hands") or {}, "openEnds": open_ends, "overrides": overrides,
             "basis": design_basis.basis_of(settings) if basis is None else basis,

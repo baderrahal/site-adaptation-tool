@@ -249,7 +249,7 @@ def test_r343_past_writes_the_form_the_build_reads_for_every_check_and_every_ove
     assert [field for row, field in fields if row["Offered"] == "no" and field not in plan_from_book.LEFT and field != "none"] == []
     for row in rows:
         assert "[level]" not in row["Past writes"] and "[coordinate]" not in row["Past writes"]
-        if row["Check"].startswith(("Level", "Position")) and row["Offered"] == "yes" and row["Field"] != "steps":
+        if row["Check"].startswith(("Level", "Position")) and row["Offered"] == "yes" and row["Field"] not in ("steps", "frontEdge"):
             assert "gapToRule" in row["Past writes"], row["Check"]
 
 

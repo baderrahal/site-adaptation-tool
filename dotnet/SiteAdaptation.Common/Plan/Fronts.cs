@@ -418,6 +418,32 @@ namespace SiteAdaptation.Common
             return best;
         }
 
+        // R482. corner_front.edge_number: the edge an override frontEdge of a plot names of a ring of count edges, numbered from its first vertex in the order the build walks it. A value
+        // that is no {"edge": n} of a whole number, or a number no ring holds, is refused by name, never passed to the rule
+        public static int EdgeNumber(string plot, JToken value, int count)
+        {
+            JValue number = value is JObject named && named.Count == 1 ? named["edge"] as JValue : null;
+            if (number == null || number.Type != JTokenType.Integer)
+            {
+                throw new InvalidDataException("override frontEdge of plot " + plot + " holds " + PlanOverrides.Dumps(value) + ", its value is {\"edge\": n}, n a whole number (R482)");
+            }
+            // A number past a long is held as another type, and is no edge of any ring either
+            if (!(number.Value is long whole) || whole < 0 || whole >= count)
+            {
+                throw new InvalidDataException("override frontEdge of plot " + plot + " names edge " + PlanOverrides.Dumps(number) + ", the ring of its face holds edges 0 to " + (count - 1) + " (R482)");
+            }
+            return (int)whole;
+        }
+
+        // R482. corner_front.named_frame: the frame of the edge an override frontEdge names, built as the rule builds the frame of an edge it picks (FrameFor)
+        public static FrontFrame NamedFrame(BuildFace face, RoadLines roads, string plot, JToken value)
+        {
+            List<double[][]> edges = Edges(face).ToList();
+            double[][] edge = edges[EdgeNumber(plot, value, edges.Count)];
+            double[] middle = Middle(edge[0], edge[1]);
+            return FrameFor(new RoadEdge { First = edge[0], Second = edge[1], Length = PyMath.Dist(edge[0], edge[1]), Distance = roads.Distance(middle[0], middle[1]), Out = Outward(face, edge[0], edge[1]) });
+        }
+
         // corner_front.corner_frame: the frame and the rule that gave it
         public static KeyValuePair<FrontFrame, string> CornerFrame(BuildFace face, RoadLines roads, double[] limits, double roadEdgeM, JToken salesRow)
         {
@@ -436,9 +462,11 @@ namespace SiteAdaptation.Common
         }
 
         // plan_from_book.fronts: per plot its frame, by the corner rule when roadEdgeM and the sales rows are given, the ramp outline and the
-        // road levels of its two front corners by roadLevel, the level and the surface at a point, or no level and no surface
+        // road levels of its two front corners by roadLevel, the level and the surface at a point, or no level and no surface. R482: edges, the override frontEdge of a plot
+        // (OverrideList.FrontEdges), goes before the rule, rule frontEdge, on a plot with a face
         public static Dictionary<string, FrontItem> Of(IEnumerable<string> numbers, IReadOnlyDictionary<string, Dictionary<string, string>> rows, IReadOnlyDictionary<string, BuildFace> faces,
-            RoadLines roads, double[] limits, Func<double, double, KeyValuePair<double?, string>> roadLevel, JObject rules, double? roadEdgeM, JObject sales, string rulesName = "roshn-makkah.json")
+            RoadLines roads, double[] limits, Func<double, double, KeyValuePair<double?, string>> roadLevel, JObject rules, double? roadEdgeM, JObject sales, string rulesName = "roshn-makkah.json",
+            IReadOnlyDictionary<string, JToken> edges = null)
         {
             var found = new Dictionary<string, FrontItem>();
             foreach (string number in numbers)
@@ -449,6 +477,11 @@ namespace SiteAdaptation.Common
                 if (face == null)
                 {
                     frame = null;
+                }
+                else if (edges != null && edges.TryGetValue(number, out JToken named))
+                {
+                    frame = NamedFrame(face, roads, number, named);
+                    rule = PlanOverrides.FrontEdge;
                 }
                 else if (roadEdgeM.HasValue && sales != null)
                 {

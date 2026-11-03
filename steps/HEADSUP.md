@@ -4,10 +4,10 @@
 
 ### Lane A
 
-- Lane: A, item of CHECK-2NOV, branch fix/2nov-a-placed-ids. Time: 2026-11-02 21:30. Blocked: none
-- Done: R483 Element id of Placed, review 1, breaker 1, gate on 8e611bb
-- Now: the PR
-- Next: back to FIX-2NOV-A3 on fix/2nov-a3, helpers done
+- Lane: A, round FIX-2NOV-A3, branch fix/2nov-a3. Time: 2026-11-03 01:20. Blocked: none
+- Done: R414 off at 43 of 82, R481, R482, review 1, breaker 1 and 2, parity 32 runs 0 failures
+- Now: gate on aa15d7d green, the PR
+- Next: FIX-3NOV-A, Q373 and Q371, tells lane-c before NewProjectDialog
 
 ### Lane B, C and D
 
@@ -58,7 +58,7 @@ Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane
 
 - R445 has not run in Revit: the window from an external event, the commit and the undo. R446 neither. Parts 10 and 13 of steps/bader-fix-1nov.md check them
 - C:\SA-demo\config lacks the keys of today, a config with no floors.rampJoint stops the build (part 2 of the sheet).
-- Lane D: no villa type source reaches the strong share on ROSHN (Q254). Lane A: joints wait on Q340, Q341, R414 8 of 82 (Q303, Q304)
+- Lane D: no villa type source reaches the strong share on ROSHN (Q254). Lane A: joints wait on Q340, Q341, R414 43 of 82, stays off
 - The Parsons shutdown notice runs with higher rights, no session can press Postpone, only Bader. The ASK table of steps/cleanup-1nov.md waits for Bader
 
 ## Next

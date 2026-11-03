@@ -19,6 +19,9 @@ namespace SiteAdaptation.Common
 
         // R408. The ramp slope in percent: under rev6 the result of El @ Entry, under the past job the slope of the level profile
         public double Slope { get; set; }
+
+        // R414, Q304. The road at front the slope uses, for the high road end of a row, null for none
+        public double? Road { get; set; }
     }
 
     // R359. The levels of a plot by keyRules: the piece that shares its FFL, the highest El @ Entry plus base of the piece unrounded and
@@ -317,19 +320,18 @@ namespace SiteAdaptation.Common
             return count % 2 == 0 && wall == count / 2 ? "middle" : "walls " + wall.ToString(CultureInfo.InvariantCulture);
         }
 
-        // plan_rules.part_fits: every unit of the part holds its slope of the unrounded El @ Entry inside slopes_percent front_min to front_max as
-        // the plan writes it and its steps at most steps.front_max, on the FFL of the part less El @ Entry by the rule (manual 2.3.A, 2.4.A)
+        // plan_rules.part_fits, manual 2.4.A, Q303: every unit of the part holds its steps at most steps.front_max, on the FFL of the part less
+        // El @ Entry by the rule. The front yard slope is no part of it, a build reports it per unit (DesignBasis.OutsideManual, slopeOutsideManual)
         public static bool PartFits(IReadOnlyList<string> part, IReadOnlyDictionary<string, EntryLevel> entries, JObject keyRules, JObject rules, JObject levelProfile)
         {
             JObject baseRule = keyRules["baseHeight"] as JObject;
             double ffl = Rounding.Fixed(PieceTop(part.Select(plot => Tuple.Create((double?)entries[plot].Rule, entries[plot].Unit)), rules, baseRule).Value, 3);
-            JObject limits = (JObject)rules["slopes_percent"];
             double most = BuildFace.Number(rules["steps"]["front_max"]);
             foreach (string plot in part)
             {
                 EntryLevel entry = entries[plot];
                 JToken steps = StepsByRule((string)keyRules["steps"]["rule"], Rounding.Fixed(ffl - entry.Rule, 4), entry.Unit, rules, levelProfile, baseRule);
-                if (DesignBasis.OutsideManual(entry.Slope, limits) || steps == null || steps.Type == JTokenType.Null || BuildFace.Number(steps) > most)
+                if (steps == null || steps.Type == JTokenType.Null || BuildFace.Number(steps) > most)
                 {
                     return false;
                 }
@@ -337,8 +339,17 @@ namespace SiteAdaptation.Common
             return true;
         }
 
+        // plan_rules.row_wall, Q304: the wall in row order of a wall of split.walls, which count from the high road end of the row, so an uneven split
+        // leaves its lone unit at the low end. The road is held as the plan writes it at 4 decimals, a tie or no road counts from the first unit
+        public static int RowWall(int wall, IReadOnlyList<string> ordered, IReadOnlyDictionary<string, EntryLevel> entries)
+        {
+            double? first = entries[ordered[0]].Road, last = entries[ordered[ordered.Count - 1]].Road;
+            return !first.HasValue || !last.HasValue || Rounding.Fixed(last.Value, 4) <= Rounding.Fixed(first.Value, 4) ? wall : ordered.Count - wall;
+        }
+
         // plan_rules.split_test, manual 2.2.B: each cluster of designBasis.split.units whose plots all hold El @ Entry whole when every unit fits,
-        // else the first wall of split.walls where both parts fit, else whole as noFit, with the mark of each plot. Any other cluster is not tested
+        // else the first wall of split.walls, counted from the high road end (RowWall), where both parts fit, else whole as noFit, with the mark of
+        // each plot, always from the first unit as split_pattern names it. Any other cluster is not tested
         public static Tuple<Dictionary<string, List<string>>, Dictionary<string, string>> SplitTest(IReadOnlyDictionary<string, EntryLevel> entries,
             IReadOnlyDictionary<string, ClusterRole> roles, DesignBasis basis, JObject keyRules, JObject rules, JObject levelProfile)
         {
@@ -358,11 +369,12 @@ namespace SiteAdaptation.Common
                     mark = "noFit";
                     foreach (int wall in basis.SplitWalls)
                     {
-                        var cut = new List<List<string>> { ordered.Take(wall).ToList(), ordered.Skip(wall).ToList() };
+                        int at = RowWall(wall, ordered, entries);
+                        var cut = new List<List<string>> { ordered.Take(at).ToList(), ordered.Skip(at).ToList() };
                         if (cut.All(part => PartFits(part, entries, keyRules, rules, levelProfile)))
                         {
                             parts = cut;
-                            mark = WallName(wall, ordered.Count);
+                            mark = WallName(at, ordered.Count);
                             break;
                         }
                     }
@@ -426,7 +438,7 @@ namespace SiteAdaptation.Common
                         raw = EntryOf(item.Front, item.Unit, levelProfile, item.Depth.Value);
                         slope = SlopeOf(item.Unit, levelProfile);
                     }
-                    entries[number] = new EntryLevel { Unit = item.Unit, Raw = raw, Rule = Rounding.Fixed(raw, 4), Slope = slope };
+                    entries[number] = new EntryLevel { Unit = item.Unit, Raw = raw, Rule = Rounding.Fixed(raw, 4), Slope = slope, Road = RoadAtFront(item.Front) };
                 }
             }
             // The code of plots.csv as it stands, an empty one kept empty, as key_levels takes it for the split of a cluster

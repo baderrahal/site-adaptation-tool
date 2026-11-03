@@ -111,7 +111,7 @@ namespace SiteAdaptation.Tests
         {
             JObject block = Block();
             Assert.Equal("entryM Level gapToRuleM|heightM Level gapToRuleM|rampFrontM Level gapToRuleM|steps Level wholeNumber|rampFrontFallM Level |insert Position gapToRuleM|"
-                + "rotationDeg Position gapToRuleDeg|mirrored Hand trueOrFalse|rampType Floor slopeClass|genericFloor Floor |yardOutline Floor |rampOutline Floor |"
+                + "rotationDeg Position gapToRuleDeg|frontEdge Position edgeOfRing|mirrored Hand trueOrFalse|rampType Floor slopeClass|genericFloor Floor |yardOutline Floor |rampOutline Floor |"
                 + "rampJoint Floor |parameter RRE_ZZ_SP_Prototype-FFL Parameter gapToRuleM|parameter * Parameter text|prototypeFile Unit code ",
                 string.Join("|", ((JObject)block["fields"]).Properties().Select(item => item.Name + " " + (string)item.Value["check"] + " " + (string)item.Value["past"])));
             Assert.Equal("Plot cut|Floor|Hand|Unit code|Position|Level", string.Join("|", block["types"].Select(item => (string)item)));
