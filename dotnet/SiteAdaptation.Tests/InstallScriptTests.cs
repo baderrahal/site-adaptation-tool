@@ -6,6 +6,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using SiteAdaptation.Common;
+using SiteAdaptation.Common.Settings;
 using Xunit;
 
 namespace SiteAdaptation.Tests
@@ -58,6 +59,59 @@ namespace SiteAdaptation.Tests
         private const string NoRevit = "@()";
         private const string Revit2023 = "@([pscustomobject]@{ Path = 'C:\\Program Files\\Autodesk\\Revit 2023\\Revit.exe'; Major = 23 })";
         private const string Revit2024 = "@([pscustomobject]@{ Path = 'C:\\Program Files\\Autodesk\\Revit 2024\\Revit.exe'; Major = 24 })";
+
+        private string SetFolder => Path.Combine(addins, "SiteAdaptationAddIn", ShippedSet.FolderName);
+
+        // R486. The set a build reads, measured by the readers of the C#: CheckRun.BesideConfig, ReadInputs of addin.readData.cadLayers, ParameterSheet.PathOf of
+        // addin.parameterSheet, and the rules profile of the key profile. The rest of config has no C# reader
+        [Fact]
+        public void R486_the_install_ships_the_set_a_build_reads_in_its_layout_with_no_override_list_and_nothing_revit_loads()
+        {
+            Tuple<int, string> run = Install(NoRevit);
+            Assert.True(run.Item1 == 0, run.Item2);
+            string repo = ThemeGateTests.RepoRoot();
+            Newtonsoft.Json.Linq.JObject config = Newtonsoft.Json.Linq.JObject.Parse(File.ReadAllText(Path.Combine(repo, "config", "project.json")));
+            var wanted = new[]
+            {
+                "config/project.json", "config/floor_outlines.json", "config/prototype_offsets.json", "config/" + (string)config["addin"]["readData"]["cadLayers"],
+                (string)config["addin"]["parameterSheet"], (string)config["profile"],
+            }.Select(path => path.Replace('/', Path.DirectorySeparatorChar)).OrderBy(path => path, StringComparer.Ordinal).ToArray();
+            string[] landed = Directory.GetFiles(SetFolder, "*", SearchOption.AllDirectories).Select(path => path.Substring(SetFolder.Length + 1)).OrderBy(path => path, StringComparer.Ordinal).ToArray();
+            Assert.Equal(wanted, landed);
+            foreach (string path in landed)
+            {
+                Assert.Equal(FileHash.Sha256(Path.Combine(repo, path)), FileHash.Sha256(Path.Combine(SetFolder, path)));
+            }
+            Assert.DoesNotContain(landed, path => path.Contains("overrides"));
+            Assert.DoesNotContain(landed, path => new[] { ".dll", ".addin", ".exe" }.Contains(Path.GetExtension(path)));
+            // A second install holds the same set, a file taken off the list does not stay
+            File.WriteAllText(Path.Combine(SetFolder, "config", "old.json"), "{}");
+            Assert.Equal(0, Install(NoRevit).Item1);
+            Assert.False(File.Exists(Path.Combine(SetFolder, "config", "old.json")));
+        }
+
+        // R486, R487. The set the install really lands, copied for a new project, its Save setup, and 4 Check of the made up site through the real worker, no edit of any JSON
+        [Fact]
+        public void R486_R487_a_new_project_from_the_installed_set_reaches_a_plan_through_the_real_worker()
+        {
+            Assert.Equal(0, Install(NoRevit).Item1);
+            string workRoot = Path.Combine(root, "work root");
+            ProjectSet set = new ShippedSet(SetFolder, workRoot, "Site A", true).Take(File.ReadAllText);
+            ProjectSettings settings = SetupSave.Apply(new SetupDraft { NewSet = set }, new ProjectSettings(), File.ReadAllText);
+            Assert.Equal(DesignBasis.Rev6, settings.ProjectMode);
+            string before = FileHash.Sha256(settings.ConfigFile);
+            using (var steps = new LevelFloorStepTests())
+            {
+                WorkerRequest seed = steps.Request("seed", BuildPlan.Steps);
+                SiteAdaptation.Common.Flow.RunLater end;
+                R484_ProjectModeTests.RealWorker worker = R484_ProjectModeTests.CheckOn(Path.Combine(root, "site"), seed, settings.ConfigFile, settings.RulesFile, settings.LevelProfile, "4_set", settings.ProjectMode, out end);
+                Assert.True(worker.Exit == 0, "exit " + worker.Exit + ": " + WorkerAnswer.Read(WorkerFiles.AnswerPath(worker.Request.OutputFolder, worker.Request.RunId)).Message);
+                Assert.Null(end.Failure);
+                Assert.True(File.Exists(Path.Combine(worker.Request.OutputFolder, BuildPlan.FileName(null))));
+                Assert.Empty((Newtonsoft.Json.Linq.JArray)Newtonsoft.Json.Linq.JObject.Parse(File.ReadAllText(worker.Request.Inputs.Single(input => input.Role == "overrides").Path))["overrides"]);
+                Assert.Equal(before, FileHash.Sha256(settings.ConfigFile));
+            }
+        }
 
         private static string Checks()
         {
@@ -120,7 +174,7 @@ namespace SiteAdaptation.Tests
                 @"SiteAdaptationAddIn\Worker\Newtonsoft.Json.dll",
                 @"SiteAdaptationAddIn\Worker\SiteAdaptation.Common.dll",
                 @"SiteAdaptationAddIn\Worker\SiteAdaptation.Common.pdb",
-            }, Files(folder));
+            }, Files(folder).Where(path => !path.Contains(ShippedSet.FolderName)));
             Assert.Equal(FileHash.Sha256(Path.Combine(addInBuild, "SiteAdaptation.Common.dll")), FileHash.Sha256(Path.Combine(worker, "SiteAdaptation.Common.dll")));
 
             XElement repo = XDocument.Load(Path.Combine(ThemeGateTests.RepoRoot(), "dotnet", "SiteAdaptation.AddIn", "SiteAdaptationAddIn_Revit2024.addin")).Root.Element("AddIn");
@@ -151,7 +205,8 @@ namespace SiteAdaptation.Tests
 
             string folder = Path.Combine(addins, "SiteAdaptationAddIn");
             Assert.False(File.Exists(Path.Combine(folder, "Newtonsoft.Json.dll")));
-            Assert.Empty(Directory.GetFiles(addins, "*.json", SearchOption.AllDirectories));
+            // R486. Only the shipped set holds a JSON of the repo
+            Assert.Empty(Directory.GetFiles(addins, "*.json", SearchOption.AllDirectories).Where(path => !path.Contains(Path.DirectorySeparatorChar + ShippedSet.FolderName + Path.DirectorySeparatorChar)));
         }
 
         [WindowsFact]

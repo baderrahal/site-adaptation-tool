@@ -19,9 +19,11 @@ namespace SiteAdaptation.AddIn.NewProject
         {
             IReadOnlyList<SavedStart> starts = SavedStarts.List(SavedStarts.Folder(workRoot));
             DrawingFactsResult facts = Facts.Read(current?.ConfigFile, workFolder);
+            // R486. The set the install ships beside the add-in, a model with no work folder has no saved path
+            var shipped = new ShippedSet(Path.Combine(Path.GetDirectoryName(typeof(NewProjectDialog).Assembly.Location), ShippedSet.FolderName), workRoot, projectName, workFolder != null);
             var model = new NewProjectViewModel(current, projectName, starts, facts, There, picker, WorkFolder.ReadIfThere,
                 (path, settings) => ScanResults.ScanResultsDialog.Show(owner, path, settings, ScanResults.ScanGate.PickExportFor(path)), modelOpen,
-                (inFolder, effective) => RoadSurfacesDialog.Show(owner, inFolder, effective));
+                (inFolder, effective) => RoadSurfacesDialog.Show(owner, inFolder, effective), shipped);
             var window = new NewProjectWindow(model);
             if (owner != IntPtr.Zero)
             {

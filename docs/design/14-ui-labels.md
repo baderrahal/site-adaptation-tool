@@ -480,6 +480,9 @@ The window New project of Lane C NEWPROJ-UI, word for word from docs/design/boar
 - `Empty project`
 - `New project rules, Rev 06` CHOSEN, Bader's words of Q373, the one plain line under Start from when the project mode is rev6 (R484)
 - `ROSHN past job` CHOSEN, Bader's words of Q373, the same line under the past job (R484)
+- `Save the model first, the folder of a new project is named by it.` CHOSEN, the stop of Empty project on a model with no saved path (R486)
+- `The name of this model makes no folder name, save it under another name.` CHOSEN, the stop of Empty project on a name that makes no safe folder (R486)
+- `The project files were not copied: <name>` CHOSEN, the stop when the copy of the shipped set fails, <name> the reason (R486)
 - `<name> (saved)`
 - `<name> is kept as a saved start, not built in.`
 - `Files the tool needs`

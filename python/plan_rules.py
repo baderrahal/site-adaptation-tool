@@ -488,7 +488,8 @@ def load_overrides(path, sources, fields=FIELDS, groups=None, name=None, lp=None
     if lp is not None:
         check_override_jobs(name, lp, sources)
     chosen = [item for item in entries if item["source"] in sources and (models is None or item["model"] in models)]
-    missing = sorted(set(sources) - {item["source"] for item in chosen}) + sorted(set(models or ()) - {item["model"] for item in chosen})
+    # R487. A list with no entries is the list of a new project, nothing to apply. A list with entries none of a source is still refused
+    missing = (sorted(set(sources) - {item["source"] for item in chosen}) if entries else []) + sorted(set(models or ()) - {item["model"] for item in chosen})
     if missing:
         raise project_profile.ProfileError("the override list holds no override of %s among the sources %s (R280, R330)" % (", ".join(missing), ", ".join(sorted(sources))))
     # R280. An override with no value is no value to apply, a build refuses it, never writes it as the text None or counts it applied
