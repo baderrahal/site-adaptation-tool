@@ -171,7 +171,7 @@
             </Border>
           </StackPanel>
           <TextBlock Style="{StaticResource SA.Type.Body}" Foreground="{StaticResource SA.BandText}" Margin="{StaticResource SA.Gap.Top4}"
-                     Text="{x:Static set:SetUpSiteText.Intro}" />
+                     Text="{Binding IntroLine}" />
           <TextBlock Style="{StaticResource SA.Type.Small}" Foreground="{StaticResource SA.BandAccent}" Margin="{StaticResource SA.Gap.Top4}"
                      TextWrapping="Wrap" Text="{Binding SignsLine}" Visibility="{Binding SignsShown, Converter={StaticResource Shown}}" />
         </StackPanel>
@@ -192,7 +192,7 @@
           <!-- R441, step 0 gate: the files of the setup each with a tick Current, and the Rules dropdown. Apply waits for the site drawing -->
           <StackPanel Margin="{StaticResource SA.Gap.Bottom16}" Visibility="{Binding CurrentShown, Converter={StaticResource Shown}}">
             <TextBlock Style="{StaticResource SA.Pane.Section}" Text="{x:Static set:SetUpSiteText.CurrentTitle}" />
-            <TextBlock Style="{StaticResource SA.Pane.Help}" Text="{x:Static set:SetUpSiteText.CurrentHelp}" />
+            <TextBlock Style="{StaticResource SA.Pane.Help}" Text="{Binding CurrentHelpLine}" />
             <TextBlock Style="{StaticResource SA.Pane.Help}" Foreground="{StaticResource SA.Warn}" Text="{x:Static set:SetUpSiteText.NoSiteDrawing}"
                        Visibility="{Binding NoSiteShown, Converter={StaticResource Shown}}" />
             <ItemsControl Margin="{StaticResource SA.Gap.Top8}" ItemsSource="{Binding CurrentFiles}">
@@ -230,13 +230,49 @@
               </Grid>
             </Border>
           </StackPanel>
-          <TextBlock Style="{StaticResource SA.Pane.Section}" Text="{x:Static set:SetUpSiteText.NowTitle}" />
+          <!-- R510, R513. The plain line of a blank model, why CAD gives nothing, and the three ways to a site position. Apply stays off through the stops of Common -->
+          <TextBlock Style="{StaticResource SA.Type.Label}" Foreground="{StaticResource SA.Warn}" TextWrapping="Wrap" Text="{Binding NoCoordinatesLine}"
+                     Visibility="{Binding NoCoordinatesShown, Converter={StaticResource Shown}}" />
+          <TextBlock Style="{StaticResource SA.Pane.Help}" TextWrapping="Wrap" Text="{Binding TemplatePlaceLine}"
+                     Visibility="{Binding TemplatePlaceShown, Converter={StaticResource Shown}}" />
+          <StackPanel Margin="{StaticResource SA.Gap.Top8}">
+            <TextBlock Style="{StaticResource SA.Pane.Section}" Text="{x:Static set:SetUpSiteText.SourceTitle}" />
+            <TextBlock Style="{StaticResource SA.Pane.Help}" TextWrapping="Wrap" Text="{x:Static set:SetUpSiteText.SourceHelp}" />
+            <TextBlock Style="{StaticResource SA.Pane.Help}" Foreground="{StaticResource SA.Warn}" TextWrapping="Wrap" Text="{Binding NoSourceLine}"
+                       Visibility="{Binding NoSourceShown, Converter={StaticResource Shown}}" />
+            <StackPanel Orientation="Horizontal" Margin="{StaticResource SA.Gap.Top8}">
+              <Button Style="{StaticResource SA.Button.Base}" Content="{x:Static set:SetUpSiteText.UseCad}" Click="OnUseCad" />
+              <Button Style="{StaticResource SA.Button.Base}" Margin="{StaticResource SA.Gap.Left8}" Content="{x:Static set:SetUpSiteText.PickPosition}" Click="OnPickPosition" />
+            </StackPanel>
+            <Grid Margin="{StaticResource SA.Gap.Top8}">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <StackPanel Margin="{StaticResource SA.Gap.Right8}">
+                <TextBlock Style="{StaticResource SA.Pane.Help}" Text="{x:Static set:SetUpSiteText.Easting}" />
+                <TextBox Style="{StaticResource SA.Pane.Entry}" Text="{Binding TypedEast, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+              </StackPanel>
+              <StackPanel Grid.Column="1" Margin="{StaticResource SA.Gap.Right8}">
+                <TextBlock Style="{StaticResource SA.Pane.Help}" Text="{x:Static set:SetUpSiteText.Northing}" />
+                <TextBox Style="{StaticResource SA.Pane.Entry}" Text="{Binding TypedNorth, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+              </StackPanel>
+              <StackPanel Grid.Column="2" Margin="{StaticResource SA.Gap.Right8}">
+                <TextBlock Style="{StaticResource SA.Pane.Help}" Text="{x:Static set:SetUpSiteText.Angle}" />
+                <TextBox Style="{StaticResource SA.Pane.Entry}" Text="{Binding TypedAngle, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+              </StackPanel>
+              <Button Grid.Column="3" Style="{StaticResource SA.Button.Base}" VerticalAlignment="Bottom" Content="{x:Static set:SetUpSiteText.UseTyped}" Click="OnUseTyped" />
+            </Grid>
+          </StackPanel>
+          <TextBlock Style="{StaticResource SA.Pane.Section}" Margin="{StaticResource SA.Gap.Top16}" Text="{x:Static set:SetUpSiteText.NowTitle}" />
           <ItemsControl Margin="{StaticResource SA.Gap.Top8}" ItemsSource="{Binding Now}" ItemTemplate="{StaticResource SetRow}" />
           <TextBlock Style="{StaticResource SA.Pane.Section}" Margin="{StaticResource SA.Gap.Top16}" Text="{x:Static set:SetUpSiteText.WillTitle}" />
           <ItemsControl Margin="{StaticResource SA.Gap.Top8}" ItemsSource="{Binding WillSet}" ItemTemplate="{StaticResource SetRow}" />
         </StackPanel>
         <StackPanel Grid.Column="1" Margin="{StaticResource SA.Pad.Side}">
-          <TextBlock Style="{StaticResource SA.Pane.Section}" Text="Check points from CAD" />
+          <TextBlock Style="{StaticResource SA.Pane.Section}" Text="{Binding CheckTitle}" />
           <Border Margin="{StaticResource SA.Gap.Top8}" Padding="{StaticResource SA.Pad.Cell}" BorderBrush="{StaticResource SA.BorderStrong}"
                   BorderThickness="{StaticResource SA.Line.Under}">
             <Grid>
@@ -247,7 +283,7 @@
                 <ColumnDefinition Width="{StaticResource SA.Grid.CheckDiff}" />
               </Grid.ColumnDefinitions>
               <TextBlock Style="{StaticResource HeadText}" Text="Point" />
-              <TextBlock Grid.Column="1" Style="{StaticResource HeadText}" Text="CAD" />
+              <TextBlock Grid.Column="1" Style="{StaticResource HeadText}" Text="{Binding CheckColumn}" />
               <TextBlock Grid.Column="2" Style="{StaticResource HeadText}" Text="Revit" />
               <TextBlock Grid.Column="3" Style="{StaticResource HeadText}" HorizontalAlignment="Right" Text="Diff" />
             </Grid>
@@ -259,6 +295,47 @@
                      Visibility="{Binding NothingShown, Converter={StaticResource Shown}}" />
           <TextBlock Style="{StaticResource SA.Pane.Help}" Margin="{StaticResource SA.Gap.Top4}" Foreground="{StaticResource SA.Text}" TextWrapping="Wrap" Text="{Binding WaitingLine}"
                      Visibility="{Binding WaitingShown, Converter={StaticResource Shown}}" />
+          <TextBlock Style="{StaticResource SA.Pane.Help}" Margin="{StaticResource SA.Gap.Top16}" Foreground="{StaticResource SA.Warn}" TextWrapping="Wrap" Text="{Binding CheckLine}"
+                     Visibility="{Binding CheckLineShown, Converter={StaticResource Shown}}" />
+          <!-- R512. CAD beside the position file, a check that never stops the run -->
+          <StackPanel Margin="{StaticResource SA.Gap.Top16}" Visibility="{Binding SourceRowsShown, Converter={StaticResource Shown}}">
+            <TextBlock Style="{StaticResource SA.Pane.Section}" Text="{x:Static set:SetUpSiteText.CompareTitle}" />
+            <TextBlock Style="{StaticResource SA.Pane.Help}" TextWrapping="Wrap" Text="{x:Static set:SetUpSiteText.CompareHelp}" />
+            <Border Margin="{StaticResource SA.Gap.Top8}" Padding="{StaticResource SA.Pad.Cell}" BorderBrush="{StaticResource SA.BorderStrong}" BorderThickness="{StaticResource SA.Line.Under}">
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="{StaticResource SA.Grid.SetUpLabel}" />
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="{StaticResource SA.Grid.CheckPoint}" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Style="{StaticResource HeadText}" Text="{x:Static set:SetUpSiteText.CompareValue}" />
+                <TextBlock Grid.Column="1" Style="{StaticResource HeadText}" Text="{x:Static set:SetUpSiteText.CompareCad}" />
+                <TextBlock Grid.Column="2" Style="{StaticResource HeadText}" Text="{x:Static set:SetUpSiteText.CompareFile}" />
+                <TextBlock Grid.Column="3" Style="{StaticResource HeadText}" HorizontalAlignment="Right" Text="{x:Static set:SetUpSiteText.CompareDifference}" />
+              </Grid>
+            </Border>
+            <ItemsControl ItemsSource="{Binding SourceRows}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <Border MinHeight="{StaticResource SA.Size.Row}" Padding="{StaticResource SA.Pad.Cell}" BorderBrush="{StaticResource SA.Border}" BorderThickness="{StaticResource SA.Line.Under}">
+                    <Grid>
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="{StaticResource SA.Grid.SetUpLabel}" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="{StaticResource SA.Grid.CheckPoint}" />
+                      </Grid.ColumnDefinitions>
+                      <TextBlock Style="{StaticResource RowText}" Text="{Binding Label}" />
+                      <TextBlock Grid.Column="1" Style="{StaticResource RowText}" Margin="{StaticResource SA.Gap.Right8}" Text="{Binding Cad}" />
+                      <TextBlock Grid.Column="2" Style="{StaticResource RowText}" Margin="{StaticResource SA.Gap.Right8}" Text="{Binding File}" />
+                      <TextBlock Grid.Column="3" Style="{StaticResource RowText}" HorizontalAlignment="Right" Text="{Binding Difference}" />
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
           <Border Margin="{StaticResource SA.Gap.Top16}" Background="{StaticResource SA.Guide}" BorderBrush="{StaticResource SA.GuideBorder}"
                   BorderThickness="{StaticResource SA.Line.All}" CornerRadius="{StaticResource SA.Radius.Control}" Padding="{StaticResource SA.Pad.Box}">
             <StackPanel>

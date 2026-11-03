@@ -198,12 +198,37 @@ An entry marked CHOSEN in 5a was worded in 5a PR 2 or PR 5, where docs/design/ g
 - `Dry run`
 - `Apply`
 - `Browse` the Browse of the row Shared parameters
+- `Sets the coordinates, levels and types of this model from the position file.` CHOSEN, Q422, the intro under the position file
+- `Sets the coordinates of this model from the values typed here, and its levels and types.` CHOSEN, Q422, the intro under typed values
+- `Sets the coordinates, levels and types of this model once a source is chosen.` CHOSEN, Q422, the intro with no source
+- `Tick each file that is the current issue.` CHOSEN, R513, the help of Current files when the source is a position file or typed values
+- `Check points from the position file` CHOSEN, Q422
+- `Check points from the typed values` CHOSEN, Q422
+- `Check points` CHOSEN, Q422
+- `Typed` CHOSEN, Q422, the column of the check points under typed values
+- `Pick the position file` CHOSEN, R513, the title of the file dialog
+- `Place` CHOSEN, R510, the row of What the tool will set on a blank model under the position file
+- `Typed origin to the plots` CHOSEN, R513
+- `Position from` CHOSEN, R514, the first row of What the tool will set
+- `Position source` CHOSEN, R513, the section above What the project has now
+- `Use CAD, pick a position file or type Easting, Northing and Angle. Apply stays off until a source works.` CHOSEN, R513
+- `Use CAD` CHOSEN, R513
+- `Pick position file` CHOSEN, R513
+- `Easting` CHOSEN, R513
+- `Northing` CHOSEN, R513
+- `Angle` CHOSEN, R513
+- `Use typed values` CHOSEN, R513
+- `CAD and position file` CHOSEN, R512
+- `Only the source above is set. Easting and Northing differ by the choice of origin. File origin to the plots tells if both are in one frame.` CHOSEN, R512
+- `Value` CHOSEN, R512
+- `Position file` CHOSEN, R512
+- `Difference` CHOSEN, R512
 - `Nothing differs, the model stays as it is. Apply marks this step done.` CHOSEN, under the pass line on a second run by 03a Second run, while Apply is on, Q158
 - `Nothing differs, the model stays as it is.` CHOSEN, the same place while Apply is grey, a stop holds or the site drawing is not ticked, Q158
 - `Current files` CHOSEN, DRAFT of SCAN-UI, the section of the step 0 gate above the two tables (R441)
 - `Tick each file that is the current issue. Apply waits for the site drawing.` CHOSEN, DRAFT, its help line
 - `Current` CHOSEN, DRAFT, the tick of each file
-- `No site drawing in the setup. Pick the Baseplan in the pane first.` CHOSEN, DRAFT, when the setup holds no Baseplan
+- `No site drawing in the setup. CAD needs the Baseplan from the pane, or take a position file or typed values below.` CHOSEN, DRAFT, when the setup holds no Baseplan
 - `Site drawing` CHOSEN, DRAFT, beside the Baseplan row
 - `Rules` the dropdown of the saved rules profiles, the name of the pane row
 - `Baseplan` the files of the setup by the names of the pane rows

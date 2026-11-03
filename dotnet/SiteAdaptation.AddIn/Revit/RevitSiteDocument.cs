@@ -55,6 +55,10 @@ namespace SiteAdaptation.AddIn.Revit
                 LatitudeDeg = UnitMath.RadiansToDegrees(document.SiteLocation.Latitude),
                 LongitudeDeg = UnitMath.RadiansToDegrees(document.SiteLocation.Longitude),
                 PlaceName = document.SiteLocation.PlaceName,
+                PlacedLinks = new FilteredElementCollector(document).OfClass(typeof(RevitLinkInstance)).GetElementCount(),
+                Masses = new FilteredElementCollector(document).OfCategory(BuiltInCategory.OST_Mass).WhereElementIsNotElementType().GetElementCount(),
+                FloorsByType = new FilteredElementCollector(document).OfClass(typeof(Floor)).GroupBy(floor => floor.GetTypeId().Value)
+                    .ToDictionary(type => document.GetElement(new ElementId(type.Key)).Name, type => type.Count(), StringComparer.Ordinal),
             };
             var shared = new HashSet<long>();
             foreach (SharedParameterElement element in new FilteredElementCollector(document).OfClass(typeof(SharedParameterElement)).Cast<SharedParameterElement>())

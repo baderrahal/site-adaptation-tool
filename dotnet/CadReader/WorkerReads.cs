@@ -804,7 +804,7 @@ namespace CadReader
             NewProjectReport report;
             try
             {
-                report = NewProjectCheck.Check(config, rules, offsets, WorkRoot.OfThisMachine(), null, CheckReaders());
+                report = NewProjectCheck.Check(config, rules, offsets, WorkRoot.OfThisMachine(), null, CheckReaders(), request.CoordinateSource, request.PositionFile);
                 NewProjectCheck.KeepApart(request.OutputFolder, report.Paths, report.InputRoot);
             }
             catch (InvalidDataException refused)

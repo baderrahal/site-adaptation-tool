@@ -78,6 +78,14 @@ namespace SiteAdaptation.Common.Settings
             {
                 throw new InvalidDataException("the settings JSON names a projectMode that is no text");
             }
+            // R511. As above
+            foreach (string text in new[] { "coordinateSource", "positionFile" })
+            {
+                if (root[text] is JToken held && held.Type != JTokenType.Null && (held.Type != JTokenType.String || ((string)held).Length == 0))
+                {
+                    throw new InvalidDataException("the settings JSON names a " + text + " that is no text");
+                }
+            }
             ProjectSettings settings;
             try
             {
@@ -115,6 +123,7 @@ namespace SiteAdaptation.Common.Settings
             Scope(settings.Scope, "the scope");
             OneOf(settings.VillaMode, VillaModes.All, "villaMode");
             OneOf(settings.DoorLevelSource, DoorLevelSources.All, "doorLevelSource");
+            OneOf(settings.CoordinateSource, SetUp.SiteSources.All, "coordinateSource");
             Picks(settings.ScanPicks, "scanPicks");
             Picks(settings.ConflictPicks, "conflictPicks");
             if (settings.RoadSurfaces != null && (settings.RoadSurfaces.Count == 0 || settings.RoadSurfaces.Any(string.IsNullOrEmpty)
