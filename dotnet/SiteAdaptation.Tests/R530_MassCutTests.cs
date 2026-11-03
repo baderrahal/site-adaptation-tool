@@ -117,6 +117,8 @@ namespace SiteAdaptation.Tests
             Assert.Null(LightModeConfig.From(config).MassFiles.PartyLineOf("RRE-WP-NSP-KEO-ARC-TH1-ZZ-MOD-3100.rvt"));
             block["massPartyLines"] = new JObject { ["TH1"] = new JObject { ["minXM"] = "ten" } };
             Assert.Throws<InvalidDataException>(() => LightModeConfig.From(config));
+            block["massPartyLines"] = new JObject { ["TH1"] = 10 };
+            Assert.Throws<InvalidDataException>(() => LightModeConfig.From(config));
         }
 
         [Fact]
@@ -134,6 +136,9 @@ namespace SiteAdaptation.Tests
             MassBase cut = MassCut.Apply(Base(Box), new PartyLine { MinX = 10.001 }, 0.004);
             JObject sidecar = MassFiles.Sidecar("a.rvt", "aa", "key", cut);
             Assert.True((double)sidecar["check"]["uncutAreaM2"] > System.Math.Abs(RingMath.Area(cut.Ring)));
+            // The check block of the walls speaks of the ring before the cut, the ring written has its own area and says so
+            Assert.Equal(System.Math.Abs(RingMath.Area(cut.Ring)), (double)sidecar["check"]["writtenAreaM2"], 6);
+            Assert.True((bool)sidecar["check"]["offFaceIsBeforeCut"]);
             Assert.Null(((JValue)MassFiles.Sidecar("a.rvt", "aa", "key", Base(Box))["check"]["uncutAreaM2"]).Value);
         }
     }

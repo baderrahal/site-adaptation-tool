@@ -100,6 +100,10 @@ namespace SiteAdaptation.Common.PlaceVillas
             var lines = new Dictionary<string, PartyLine>(StringComparer.OrdinalIgnoreCase);
             foreach (JProperty unit in (block["massPartyLines"] as JObject)?.Properties() ?? Enumerable.Empty<JProperty>())
             {
+                if (!(unit.Value is JObject))
+                {
+                    throw new InvalidDataException("addin.lightMode.massPartyLines." + unit.Name + " is " + unit.Value + ", not an object of minXM and maxXM (R530)");
+                }
                 lines[unit.Name] = new PartyLine { MinX = PartySide(unit, "minXM"), MaxX = PartySide(unit, "maxXM") };
             }
             return lines;
@@ -205,7 +209,7 @@ namespace SiteAdaptation.Common.PlaceVillas
             WallRingBuild build = mass.Build;
             return new JObject
             {
-                ["ringAreaM2"] = mass.BuiltAreaM2, ["uncutAreaM2"] = mass.UncutAreaM2, ["slabAreaM2"] = mass.SlabAreaM2, ["share"] = mass.BuiltAreaM2.HasValue && mass.SlabAreaM2 > 0 ? mass.BuiltAreaM2 / mass.SlabAreaM2 : null,
+                ["ringAreaM2"] = mass.BuiltAreaM2, ["uncutAreaM2"] = mass.UncutAreaM2, ["writtenAreaM2"] = Math.Abs(RingMath.Area(mass.Ring)), ["offFaceIsBeforeCut"] = mass.UncutAreaM2.HasValue, ["slabAreaM2"] = mass.SlabAreaM2, ["share"] = mass.BuiltAreaM2.HasValue && mass.SlabAreaM2 > 0 ? mass.BuiltAreaM2 / mass.SlabAreaM2 : null,
                 ["edges"] = build?.Edges.Count, ["connectingEdges"] = build?.ConnectingEdges, ["largestOffFaceMm"] = build?.LargestOffFaceM * 1000, ["offFaceUnmeasured"] = build?.OffFaceUnmeasured,
                 ["wallsLeftByOption"] = build?.LeftByOption, ["primaryOptions"] = new JArray((build?.PrimaryOptions ?? new List<string>()).Cast<object>().ToArray()),
             };
