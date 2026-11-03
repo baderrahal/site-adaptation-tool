@@ -1,7 +1,8 @@
 <Page x:Class="SiteAdaptation.AddIn.Pane.SitePanePage"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-      xmlns:pane="clr-namespace:SiteAdaptation.AddIn.Pane">
+      xmlns:pane="clr-namespace:SiteAdaptation.AddIn.Pane"
+      xmlns:help="clr-namespace:SiteAdaptation.AddIn.Help">
   <!-- R372, docs/design/12-ui-spec.md 7.2 top to bottom. Every colour, size and font by StaticResource of Theme.xaml, every
        text in docs/design/14-ui-labels.md -->
   <Page.Resources>
@@ -103,7 +104,10 @@
             <ColumnDefinition Width="{StaticResource SA.Grid.StepMark}" />
             <ColumnDefinition Width="*" />
             <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="Auto" />
           </Grid.ColumnDefinitions>
+          <!-- R540. One line on hover, the side box on a click -->
+          <Button Grid.Column="3" Style="{StaticResource SA.Button.Info}" Margin="{StaticResource SA.Gap.Left8}" Content="{x:Static help:HelpText.Mark}" ToolTip="{Binding HelpLine}" Click="OnStepHelp" />
           <Grid Width="{StaticResource SA.Size.StepMark}" Height="{StaticResource SA.Size.StepMark}" HorizontalAlignment="Left" VerticalAlignment="Center">
             <Ellipse StrokeThickness="{StaticResource SA.Size.MarkStroke}">
               <Ellipse.Style>

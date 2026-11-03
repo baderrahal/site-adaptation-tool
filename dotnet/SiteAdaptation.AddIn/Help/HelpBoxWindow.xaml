@@ -1,0 +1,47 @@
+<Window x:Class="SiteAdaptation.AddIn.Help.HelpBoxWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:help="clr-namespace:SiteAdaptation.AddIn.Help"
+        Title="{Binding Title}" Width="{DynamicResource SA.Size.HelpBox}" MaxHeight="{DynamicResource SA.Size.DialogMax}"
+        SizeToContent="Height" ResizeMode="NoResize" ShowInTaskbar="False" WindowStartupLocation="Manual"
+        Background="{DynamicResource SA.Surface}">
+  <!-- R540. A side box, 340 wide on SA.Panel as the side box of 4 Check. Every colour, size and font by Theme.xaml -->
+  <Window.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="/SiteAdaptation.AddIn;component/Theme/Theme.xaml" />
+      </ResourceDictionary.MergedDictionaries>
+      <Style x:Key="HeadText" TargetType="TextBlock" BasedOn="{StaticResource SA.Type.Label}">
+        <Setter Property="Foreground" Value="{StaticResource SA.Heading}" />
+        <Setter Property="Margin" Value="{StaticResource SA.Gap.Top8}" />
+      </Style>
+      <Style x:Key="BodyText" TargetType="TextBlock" BasedOn="{StaticResource SA.Type.Body}">
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="Margin" Value="{StaticResource SA.Gap.Top4}" />
+      </Style>
+      <DataTemplate x:Key="Line">
+        <TextBlock Style="{StaticResource BodyText}" Text="{Binding}" />
+      </DataTemplate>
+    </ResourceDictionary>
+  </Window.Resources>
+  <DockPanel Background="{StaticResource SA.Surface}">
+    <Border DockPanel.Dock="Bottom" Background="{StaticResource SA.Panel}" Padding="{StaticResource SA.Pad.Foot}">
+      <Button HorizontalAlignment="Right" Style="{StaticResource SA.Button.Base}" Content="{x:Static help:HelpText.Close}" Click="OnClose" />
+    </Border>
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <StackPanel Margin="{StaticResource SA.Pad.Box}">
+        <TextBlock Style="{StaticResource HeadText}" Text="{x:Static help:HelpText.What}" />
+        <TextBlock Style="{StaticResource BodyText}" Text="{Binding What}" />
+        <TextBlock Style="{StaticResource HeadText}" Text="{x:Static help:HelpText.Files}" />
+        <ItemsControl ItemsSource="{Binding Files}" ItemTemplate="{StaticResource Line}" />
+        <TextBlock Style="{StaticResource HeadText}" Text="{x:Static help:HelpText.Before}" />
+        <TextBlock Style="{StaticResource BodyText}" Text="{Binding Before}" />
+        <TextBlock Style="{StaticResource HeadText}" Text="{x:Static help:HelpText.Click}" />
+        <ItemsControl ItemsSource="{Binding Click}" ItemTemplate="{StaticResource Line}" />
+        <TextBlock Style="{StaticResource HeadText}" Text="{x:Static help:HelpText.Limits}" />
+        <ItemsControl ItemsSource="{Binding Limits}" ItemTemplate="{StaticResource Line}" />
+        <TextBlock x:Name="NoLimits" Style="{StaticResource BodyText}" Text="{x:Static help:HelpText.NoLimits}" />
+      </StackPanel>
+    </ScrollViewer>
+  </DockPanel>
+</Window>
