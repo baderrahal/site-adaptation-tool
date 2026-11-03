@@ -389,7 +389,7 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R410 Back yard by Rev 6.
 - R411 Cluster and mirror proposals.
 - R412 Read only new project check.
-- R414 Split by slope and steps.
+- R414 Split by steps alone.
 - R415 Irregular plot by tolerance.
 - R416 Boundary wall face on plot line.
 - R470 Shared ramp corner, one level.
@@ -403,6 +403,8 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R478 Wall compare by wall centre.
 - R479 One villa type by prototype file.
 - R480 C10 side wall by hand.
+- R481 Parted walls read weak measured.
+- R482 Front edge by override.
 - R483 Placed names its element.
 
 ## 11-scanner-r420-up.md

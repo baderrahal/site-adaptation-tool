@@ -39,6 +39,7 @@ New by Bader's changes of 28 Oct 2026 (docs/design/13-workflow-changes.md, Revie
 | Level, ramp front fall | rampFrontFallM | nothing, a build never applies a fall (Q057) | no |
 | Position, link origin | insert | {"gapToRuleM": [along X, along Y]} in the link axes, X along the front and Y into the plot, as plan_from_book.moved_link reads it, 3 decimals | yes |
 | Position, rotation | rotationDeg | {"gapToRuleDeg": the past rotation less the rule rotation} | yes |
+| Position, front edge | frontEdge | {"edge": the number of an edge of the baseplan ring from its first vertex} (R482) | yes |
 | Hand | mirrored | true or false | yes |
 | Floor, ramp type | rampType | the slope class, flat, 0.5 or 2 | yes |
 | Floor, outlines | genericFloor, yardOutline, rampOutline | nothing, a build places the outline of its rule and leaves these (LEFT of plan_from_book.py) | no |

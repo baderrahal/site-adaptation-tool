@@ -78,7 +78,7 @@ def test_r363_past_writes_in_the_form_of_the_list_by_check_and_field_as_the_desi
     forms = {name: (item["check"], item["past"]) for name, item in BLOCK["fields"].items()}
     assert forms == {
         "entryM": ("Level", "gapToRuleM"), "heightM": ("Level", "gapToRuleM"), "rampFrontM": ("Level", "gapToRuleM"), "steps": ("Level", "wholeNumber"),
-        "rampFrontFallM": ("Level", None), "insert": ("Position", "gapToRuleM"), "rotationDeg": ("Position", "gapToRuleDeg"), "mirrored": ("Hand", "trueOrFalse"),
+        "rampFrontFallM": ("Level", None), "insert": ("Position", "gapToRuleM"), "rotationDeg": ("Position", "gapToRuleDeg"), "frontEdge": ("Position", "edgeOfRing"), "mirrored": ("Hand", "trueOrFalse"),
         "rampType": ("Floor", "slopeClass"), "genericFloor": ("Floor", None), "yardOutline": ("Floor", None), "rampOutline": ("Floor", None),
         "rampJoint": ("Floor", None), "parameter RRE_ZZ_SP_Prototype-FFL": ("Parameter", "gapToRuleM"), "parameter *": ("Parameter", "text"), "prototypeFile": ("Unit code", None)}
     assert all(item.get("why") for item in list(BLOCK["fields"].values()) + list(BLOCK["missing"].values()) if item["past"] is None)

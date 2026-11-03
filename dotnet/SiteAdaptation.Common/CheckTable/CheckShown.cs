@@ -21,6 +21,8 @@ namespace SiteAdaptation.Common.CheckTable
             { "rampSlope", CheckShownText.RampType },
             { "linkOrigin", CheckShownText.LinkOrigin },
             { "linkRotation", CheckShownText.LinkRotation },
+            // R482. The front sets the link rotation by keyRules.linkRotation, the rule frontRule, a row of the field departs from that rule
+            { "frontEdge", CheckShownText.LinkRotation },
             { "yardOutline", CheckShownText.YardOutline },
             { "rampOutline", CheckShownText.RampOutline },
             { "generic", CheckShownText.GenericFloor },

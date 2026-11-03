@@ -94,6 +94,26 @@ def frame_for(polygon, edge, distance=None):
     return {"n": normal, "r": right, "left": left_end, "right": right_end, "length": edge["length"], "distance": edge["distance"] if distance is None else distance, "tied": False}
 
 
+def edge_number(plot, value, count):
+    """R482. The edge an override frontEdge of a plot names of a ring of count edges, numbered from its first vertex in the order the build walks it
+    (plan_from_book.face_ring). A value that is no {"edge": n} of a whole number, or a number no ring holds, is refused by name, never passed to the rule."""
+    number = value.get("edge") if isinstance(value, dict) and set(value) == {"edge"} else None
+    if not isinstance(number, int) or isinstance(number, bool):
+        raise project_profile.ProfileError('override frontEdge of plot %s holds %s, its value is {"edge": n}, n a whole number (R482)' % (plot, json.dumps(value)))
+    if not 0 <= number < count:
+        raise project_profile.ProfileError("override frontEdge of plot %s names edge %d, the ring of its face holds edges 0 to %d (R482)" % (plot, number, count - 1))
+    return number
+
+
+def named_frame(polygon, tree, plot, value):
+    """R482. The frame of the edge an override frontEdge names, built as the rule builds the frame of an edge it picks (frame_for)."""
+    edges = entry_levels.ring_edges(polygon)
+    first, second = edges[edge_number(plot, value, len(edges))]
+    middle = Point((first[0] + second[0]) / 2, (first[1] + second[1]) / 2)
+    distance = float(tree.query_nearest(middle, return_distance=True)[1][0])
+    return frame_for(polygon, {"first": first, "second": second, "length": math.dist(first, second), "distance": distance, "out": outward(polygon, first, second)})
+
+
 def corner_frame(polygon, tree, roads, limits, block, sales_row):
     """R226. The front frame of a plot: on a plot with two or more road edges the edge the orientation rule picks, and none
     when its sales row has no Orientation, else the R122 front. Returns the frame and the rule that gave it, or why none."""
