@@ -76,9 +76,9 @@ def test_r470_a_plot_with_no_joint_or_a_joint_with_no_override_is_left_out():
 
 
 def joined_settings(*args, **kwargs):
-    """The project settings with floors.rampJoint.join true, which config holds false for now (Q340)."""
+    """The project settings with the front joints of R470 alone under every mode at 1 cm, the back corners left to R515."""
     settings = LOAD_SETTINGS(*args, **kwargs)
-    settings.values["floors"]["rampJoint"]["join"] = True
+    settings.values["floors"]["rampJoint"].update(join=True, nearM=NEAR, joinBack=False, modes=["rev6", "roshnPastJob"])
     return settings
 
 
@@ -87,8 +87,9 @@ LOAD_SETTINGS = project_profile.load_settings
 
 def test_r470_near_is_read_from_config_floors_ramp_joint_and_a_bad_one_refused():
     settings = project_profile.load_settings()
-    # Bader chose join false until Q340 is answered, so the build of config joins no corner
-    assert settings.get("floors.rampJoint.join") is False and plan_from_book.joint_near(settings) is None
+    assert plan_from_book.joint_near(settings) == settings.get("floors.rampJoint.nearM") == 0.005
+    settings.values["floors"]["rampJoint"]["join"] = False
+    assert plan_from_book.joint_near(settings) is None
     assert plan_from_book.joint_levels({"1": (LEFT, [10.0, 10.12, 10.16, 10.04], [10.0, 10.12]), "2": (RIGHT, [10.17, 10.24, 10.28, 10.21], [10.12, 10.24])}, None) == {}
     for bad in (None, "true", 1):
         refused = copy.deepcopy(settings)
