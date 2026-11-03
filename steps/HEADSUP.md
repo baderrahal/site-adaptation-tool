@@ -4,10 +4,10 @@
 
 ### Lane A
 
-- Lane: A, 4 Nov 01:50, branches fix/coord-3nov-a, fix/ramp-3nov-a. Blocked: none. No lock held
-- Done: KNOWN PR 166. COORD built, its gate, the blank line in Revit by the test host
-- Now: COORD PR. Then RAMP PR
-- Next: on main in the second slot, CAD Apply, typed, move stop, the step 5 probe of RAMP
+- Lane: A, 4 Nov 02:50, branch fix/ramp-3nov-a. Blocked: Revit install, Lane B holds it for 6b, I wait for its word. No lock held, no window open
+- Done: PR 166 KNOWN, PR 171 COORD merged. COORD runs A, A0, B by the test host ended clean. RAMP gate green on 7e863ef
+- Stopped at: the RAMP step 5 Revit probe. No push for 2 hours: 26 merged commits of RAMP sat local behind the gate, and I held the push for a helper's fix pass, my slip
+- Next: read the COORD results, RAMP probe, records, PR, merge. COORD move stop on an existing model needs a build
 
 ### Lane B, C and D
 
