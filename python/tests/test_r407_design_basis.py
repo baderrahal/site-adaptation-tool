@@ -22,6 +22,8 @@ def basis_settings(**changes):
     """config/project.json with designBasis changed: mode, door (the doorLevel keys), civil (the civilFile keys), surface and floor."""
     settings = project_profile.load_settings()
     values = copy.deepcopy(settings.values)
+    # R515 has its own tests, a row of these holds its levels by the unit
+    values["floors"]["rampJoint"]["join"] = changes.get("join", False)
     block = values["designBasis"]
     if "mode" in changes:
         block["mode"] = changes["mode"]

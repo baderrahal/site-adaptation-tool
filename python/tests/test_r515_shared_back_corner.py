@@ -8,6 +8,7 @@ import pytest
 import plan_from_book
 import project_profile
 from test_level_floor_steps import made_build
+from test_r407_design_basis import basis_settings, rev6_build
 
 NEAR = 0.005
 LEFT = [(0.0, 0.0), (12.0, 0.0), (12.0, 5.52), (0.0, 5.52)]
@@ -16,10 +17,10 @@ FAR = [(100.0, 0.0), (112.0, 0.0), (112.0, 5.52), (100.0, 5.52)]
 LOAD = project_profile.load_settings
 
 
-def joined(**more):
+def joined(*args, **kwargs):
     """The project settings with the joint on under the past job of the made up row, which config keeps off (R515)."""
-    settings = LOAD()
-    settings.values["floors"]["rampJoint"].update({"join": True, "joinBack": True, "modes": ["rev6", "roshnPastJob"], "slopePercent": 0.5}, **more)
+    settings = LOAD(*args, **kwargs)
+    settings.values["floors"]["rampJoint"].update({"join": True, "joinBack": True, "modes": list(settings.get("designBasis.modes")), "slopePercent": 0.5})
     return settings
 
 
@@ -54,7 +55,8 @@ def test_r515_the_rule_of_config_turns_on_under_its_modes_and_refuses_a_bad_bloc
     rule = plan_from_book.joint_rule(settings, {"mode": "rev6"})
     assert rule == {"near": NEAR, "back": True, "slope": 0.5}
     # The past job proof breaks with the joint on, so config keeps the past job off (R515)
-    assert block["modes"] == ["rev6"] and plan_from_book.joint_rule(settings, {"mode": "roshnPastJob"}) is None
+    past = next(mode for mode in settings.get("designBasis.modes") if mode != "rev6")
+    assert block["modes"] == ["rev6"] and plan_from_book.joint_rule(settings, {"mode": past}) is None
     assert plan_from_book.joint_rule(settings, None) is None
     off = copy.deepcopy(settings)
     off.values["floors"]["rampJoint"]["join"] = False
@@ -91,6 +93,22 @@ def test_r515_a_row_under_the_mode_holds_one_level_at_every_shared_corner_and_it
     for z in levels.values():
         # The rise over the depth of 5.52 m at the slope of the joint, the same on both sides of each ramp
         assert z[2] - z[1] == pytest.approx(0.005 * 5.52, abs=2e-3) and z[3] - z[0] == pytest.approx(0.005 * 5.52, abs=2e-3)
+
+
+def test_r515_under_rev6_a_two_percent_unit_in_a_row_takes_the_slope_of_the_joint_and_its_door_level_type_and_ffl_follow(monkeypatch):
+    settings = basis_settings(mode="rev6", join=True, door={"source": "roadPlusSlope", "slopePercent": {"default": 0.5, "VL4": 2.0}})
+    built = rev6_build(monkeypatch, settings, units={"5": "VL4"})
+    five = built["levels"]["5"]
+    # 5 shares its back corners with 4 and 6, so it takes 0.5 percent and not the 2 percent of a VL4, by the slope of the joint in config
+    assert five["slopePercent"] == pytest.approx(0.5, abs=1e-12) and built["floors"]["5"]["rampType"] == "Ramps 0.5%"
+    assert built["plan"]["5"]["floors"]["ramp"]["type"]["value"] == "Ramps 0.5%"
+    levels = row_levels(built, ("4", "5", "6"))
+    assert levels["4"][2] == levels["5"][3] and levels["5"][2] == levels["6"][3]
+    # With the joint off the same unit holds its 2 percent and its back corners stand apart
+    apart = rev6_build(monkeypatch, basis_settings(mode="rev6", door={"source": "roadPlusSlope", "slopePercent": {"default": 0.5, "VL4": 2.0}}), units={"5": "VL4"})
+    assert apart["levels"]["5"]["slopePercent"] == pytest.approx(2.0, abs=1e-12)
+    far = row_levels(apart, ("4", "5"))
+    assert abs(far["4"][2] - far["5"][3]) > 0.05
 
 
 def test_r516_an_entry_and_a_front_override_of_a_shared_ramp_are_left_with_why(monkeypatch):

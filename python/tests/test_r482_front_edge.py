@@ -42,7 +42,10 @@ def rows_of(numbers=NUMBERS):
 
 
 def settings_and_profile():
-    return project_profile.load_settings(), made_rules()
+    settings = project_profile.load_settings()
+    # R517. No pull, so the points of a test read as drawn
+    settings.values["floors"]["plotPull"]["pullM"] = 0
+    return settings, made_rules()
 
 
 def fronts(edges=None, numbers=("6",), faces=None, level=None):

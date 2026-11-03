@@ -72,8 +72,9 @@ namespace SiteAdaptation.Tests
             changeRules?.Invoke(rules);
             change?.Invoke((JObject)rules["levelProfiles"]["parsons2024Rev6"]["keyRules"]);
             JObject config = JObject.Parse(File.ReadAllText(WorkerRunTests.RepoConfig()));
-            // R517. No pull unless a test asks for one, so the points of a test read as drawn
+            // R517. No pull unless a test asks for one, so the points of a test read as drawn. R515 has its own tests, a row of the others holds its levels by the unit
             config["floors"]["plotPull"]["pullM"] = pull;
+            config["floors"]["rampJoint"]["join"] = false;
             changeConfig?.Invoke(config);
             List<string> numbers = new[] { "1", "2", "3", "4", "5", "6" }.Concat(faceless).ToList();
             var faces = numbers.Where(number => !faceless.Contains(number)).ToDictionary(number => number,

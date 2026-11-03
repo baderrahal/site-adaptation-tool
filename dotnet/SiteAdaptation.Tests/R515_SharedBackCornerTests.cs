@@ -139,6 +139,31 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
+        public void R515_under_rev6_a_two_percent_unit_in_a_row_takes_the_slope_of_the_joint_and_its_door_level_type_and_ffl_follow()
+        {
+            JObject settings = JObject.Parse(File.ReadAllText(WorkerRunTests.RepoConfig()));
+            settings["designBasis"]["mode"] = "rev6";
+            settings["designBasis"]["doorLevel"]["slopePercent"] = JObject.Parse("{\"default\": 0.5, \"DP2\": 2.0}");
+            DesignBasis rev6 = DesignBasis.Of(settings, () => null);
+            var list = new OverrideList(new Dictionary<string, JObject>());
+            OverrideParameterStepTests.Built built = OverrideParameterStepTests.Build(list, basis: rev6, bands: Bands(), changeConfig: Joined);
+            // 5, a DP2 at 2 percent by the door level block, shares its back corners with 4 and 6, so it takes 0.5 percent, the slope of the joint in config
+            Assert.Equal(0.5, (double)built.Plans["5"].Overrides["slopePercent"], 9);
+            Assert.Equal("Ramps 0.5%", (string)(JToken)built.Plans["5"].Overrides["rampType"]);
+            double[] four = Levels(built, "4"), five = Levels(built, "5"), six = Levels(built, "6");
+            Assert.Equal(four[2], five[3]);
+            Assert.Equal(five[2], six[3]);
+            // With the joint off the same unit holds its 2 percent and its back corners keep their own levels
+            OverrideParameterStepTests.Built apart = OverrideParameterStepTests.Build(list, basis: rev6, bands: Bands());
+            Assert.Equal(2.0, (double)apart.Plans["5"].Overrides["slopePercent"], 9);
+        }
+
+        private static JArray Bands()
+        {
+            return JArray.Parse("[{\"type\": \"Ramps 0.5%\", \"belowPercent\": 1.25}, {\"type\": \"Ramps 2%\", \"belowPercent\": null}]");
+        }
+
+        [Fact]
         public void R516_an_entry_and_a_front_override_of_a_shared_ramp_are_left_with_why()
         {
             DesignBasis past = DesignBasis.Of(JObject.Parse(File.ReadAllText(WorkerRunTests.RepoConfig())), () => null);
