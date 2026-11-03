@@ -23,7 +23,7 @@ namespace SiteAdaptation.AddIn.RuleValues
         }
 
         // workFolder names the folder of the model, null for a model never saved, which can read and not save
-        public static string Show(IntPtr owner, PaneSettings settings, string workRoot, string workFolder, Action<IntPtr> manualRules, Action<string> tell)
+        public static string Show(IntPtr owner, PaneSettings settings, string workRoot, string workFolder, bool readOnly, Action<IntPtr> manualRules, Action<string> tell)
         {
             string catalog = CatalogOf(settings.ConfigFile);
             if (catalog == null)
@@ -32,7 +32,7 @@ namespace SiteAdaptation.AddIn.RuleValues
                 return null;
             }
             string rulesText = File.ReadAllText(settings.RulesFile);
-            string copy = workFolder == null ? null : Common.Settings.RuleValues.CopyPath(workRoot, Path.GetFileName(workFolder), settings.RulesFile);
+            string copy = workFolder == null || readOnly ? null : Common.Settings.RuleValues.CopyPath(workRoot, Path.GetFileName(workFolder), settings.RulesFile);
             var model = new RuleValuesViewModel(Common.Settings.RuleValues.Read(File.ReadAllText(catalog), rulesText), rulesText, copy,
                 WorkFolder.InputRoot(settings.ConfigFile, WorkFiles.ReadText), new DialogPicker());
             var window = new RuleValuesWindow(model, manualRules);
@@ -42,7 +42,7 @@ namespace SiteAdaptation.AddIn.RuleValues
             }
             if (copy == null)
             {
-                tell(RuleValuesText.NoFolder);
+                tell(readOnly ? RuleValuesText.ReadOnly : RuleValuesText.NoFolder);
             }
             window.ShowDialog();
             return model.Saved;

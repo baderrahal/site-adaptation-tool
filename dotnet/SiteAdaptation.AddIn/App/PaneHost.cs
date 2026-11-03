@@ -161,11 +161,11 @@ namespace SiteAdaptation.AddIn
         internal void OpenRuleValues(UIApplication application, Document revit, DocumentSession session, Action<IntPtr> manualRules)
         {
             string root = WorkRoot();
-            string saved = RuleValues.RuleValuesBody.Show(application.MainWindowHandle, session.Settings, root, WorkFolder.For(root, session.Path), manualRules, line => TaskDialog.Show(RibbonLayout.Tab, line));
+            string saved = RuleValues.RuleValuesBody.Show(application.MainWindowHandle, session.Settings, root, WorkFolder.For(root, session.Path), revit.IsReadOnly, manualRules, line => TaskDialog.Show(RibbonLayout.Tab, line));
             if (saved != null)
             {
                 session.Settings.RulesFile = saved;
-                var settings = new PaneSettings(Written(revit.IsReadOnly ? null : revit, session.Settings.Project));
+                var settings = new PaneSettings(Written(revit, session.Settings.Project));
                 if (model.Document == session)
                 {
                     model.LoadSettings(settings);

@@ -594,6 +594,8 @@ The table of the button Site Adaptation Rules (R541). Rows come from config/rule
 - `Manual rules` CHOSEN, R541
 - `Close`
 - `Saved for this project.` CHOSEN, R541
+- `No value changed, nothing was saved.` CHOSEN, R541
+- `This model is read only, so its rules can not be saved.` CHOSEN, R541
 - `Save the model first, the rules of a project are kept by its file name.` CHOSEN, R541
 - `The rules were not saved: <name>` CHOSEN, R541
 - `Not imported: <name>` CHOSEN, R541

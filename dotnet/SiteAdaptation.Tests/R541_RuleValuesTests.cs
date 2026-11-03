@@ -78,6 +78,51 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
+        public void R541_a_smallest_over_its_largest_and_a_fraction_of_steps_are_refused()
+        {
+            var rows = RuleValues.Read(Catalog, Rules);
+            Assert.Null(RuleValues.Contradiction(rows));
+            rows.Single(item => item.Key == "frontSlopeMin").Project = 3;
+            rows.Single(item => item.Key == "frontSlopeMax").Project = 1;
+            Assert.Contains("Front ramp slope", RuleValues.Contradiction(rows));
+            RuleValue steps = rows.Single(item => item.Key == "stepsMax");
+            Assert.Null(RuleValues.Parse(steps, "2.5", out string refusal));
+            Assert.NotNull(refusal);
+            Assert.Equal(2, RuleValues.Parse(steps, "2", out refusal));
+            Assert.Null(RuleValues.Parse(rows.Single(item => item.Key == "irregularTolerance"), "0", out refusal));
+        }
+
+        [Fact]
+        public void R541_a_changed_rules_file_moves_its_hash_so_4_check_goes_back_to_ready()
+        {
+            string root = Path.Combine(Path.GetTempPath(), "r541_" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(root);
+            try
+            {
+                string file = Path.Combine(root, "rules.json");
+                File.WriteAllText(file, Rules);
+                string before = SiteAdaptation.Common.Flow.InputHash.Of(new SiteAdaptation.Common.Flow.RunInput("Rules", file, false));
+                var rows = RuleValues.Read(Catalog, Rules);
+                rows.Single(item => item.Key == "frontSlopeMax").Project = 1;
+                RuleValues.WriteCopy(file, RuleValues.Apply(Rules, rows), rows);
+                Assert.NotEqual(before, SiteAdaptation.Common.Flow.InputHash.Of(new SiteAdaptation.Common.Flow.RunInput("Rules", file, false)));
+            }
+            finally
+            {
+                Directory.Delete(root, true);
+            }
+        }
+
+        [Fact]
+        public void R541_a_partial_import_changes_nothing()
+        {
+            var rows = RuleValues.Read(Catalog, Rules);
+            string[] lines = RuleValues.ExportText(rows).Split(new[] { "\r\n" }, StringSplitOptions.RemoveEmptyEntries);
+            Assert.Null(RuleValues.Import(string.Join("\r\n", lines.Take(2)), rows, out string refusal));
+            Assert.Contains("no line", refusal);
+        }
+
+        [Fact]
         public void R541_the_copy_lies_under_the_work_root_and_lists_what_changed_and_the_read_file_stays()
         {
             string root = Path.Combine(Path.GetTempPath(), "r541_" + Guid.NewGuid().ToString("N"));

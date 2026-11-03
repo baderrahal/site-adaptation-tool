@@ -22,7 +22,12 @@ namespace SiteAdaptation.Common.Settings
         public string Page { get; set; }
         public double Min { get; set; }
         public double Max { get; set; }
-        public IReadOnlyList<int> Steps { get; set; }
+
+        // A value that counts, such as steps, takes no fraction
+        public bool Whole { get; set; }
+
+        // The key of the row this value may not pass, null for none
+        public string AtMost { get; set; }
 
         public bool Changed => Project != Manual;
     }
@@ -54,7 +59,8 @@ namespace SiteAdaptation.Common.Settings
                     Page = (string)row["page"],
                     Min = (double)row["min"],
                     Max = (double)row["max"],
-                    Steps = row["steps"].Select(step => (int)step).ToList(),
+                    Whole = (bool?)row["whole"] ?? false,
+                    AtMost = (string)row["atMost"],
                 };
             }).ToList();
         }
@@ -73,7 +79,26 @@ namespace SiteAdaptation.Common.Settings
                 refusal = row.Name + ": " + text + " lies outside " + Text(row.Min) + " to " + Text(row.Max) + " " + row.Unit;
                 return null;
             }
+            if (row.Whole && value != Math.Floor(value))
+            {
+                refusal = row.Name + ": " + text + " is no whole number";
+                return null;
+            }
             return value;
+        }
+
+        // The first pair of rows that contradict, null when none does, so a build never runs on a smallest over its largest
+        public static string Contradiction(IReadOnlyList<RuleValue> rows)
+        {
+            foreach (RuleValue row in rows.Where(item => item.AtMost != null))
+            {
+                RuleValue other = rows.First(item => item.Key == row.AtMost);
+                if (row.Project > other.Project)
+                {
+                    return row.Name + " " + Text(row.Project) + " stands over " + other.Name + " " + Text(other.Project);
+                }
+            }
+            return null;
         }
 
         // The rules text with each row at its project value, nothing else of the file changes
@@ -154,6 +179,12 @@ namespace SiteAdaptation.Common.Settings
                     return null;
                 }
                 values[row.Key] = value.Value;
+            }
+            RuleValue absent = rows.FirstOrDefault(row => !values.ContainsKey(row.Key));
+            if (absent != null)
+            {
+                refusal = "this file holds no line for " + absent.Name;
+                return null;
             }
             return values;
         }

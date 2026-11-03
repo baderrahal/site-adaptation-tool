@@ -27,7 +27,7 @@
       <DockPanel>
         <Button DockPanel.Dock="Left" Style="{StaticResource SA.Button.Base}" Content="{x:Static rv:RuleValuesText.ManualRules}" Click="OnManualRules" />
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-          <Button Style="{StaticResource SA.Button.Base}" Content="{x:Static rv:RuleValuesText.Export}" Click="OnExport" />
+          <Button Style="{StaticResource SA.Button.Base}" Content="{x:Static rv:RuleValuesText.Export}" IsEnabled="{Binding CanExport}" Click="OnExport" />
           <Button Style="{StaticResource SA.Button.Base}" Margin="{StaticResource SA.Gap.Left8}" Content="{x:Static rv:RuleValuesText.Import}" Click="OnImport" />
           <Button Style="{StaticResource SA.Button.Base}" Margin="{StaticResource SA.Gap.Left8}" Content="{x:Static rv:RuleValuesText.Reset}" Click="OnReset" />
           <Button Style="{StaticResource SA.Button.Base}" Margin="{StaticResource SA.Gap.Left8}" Content="{x:Static rv:RuleValuesText.Close}" Click="OnClose" />

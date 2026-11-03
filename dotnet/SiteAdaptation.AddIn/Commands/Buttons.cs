@@ -76,6 +76,10 @@ namespace SiteAdaptation.AddIn
             {
                 TaskDialog.Show(RibbonLayout.Tab, error.Message);
             }
+            catch (Newtonsoft.Json.JsonException error)
+            {
+                TaskDialog.Show(RibbonLayout.Tab, error.Message);
+            }
             return Result.Succeeded;
         }
 

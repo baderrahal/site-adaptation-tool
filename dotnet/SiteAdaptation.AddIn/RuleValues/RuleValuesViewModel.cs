@@ -67,6 +67,7 @@ namespace SiteAdaptation.AddIn.RuleValues
         private readonly string copyPath;
         private readonly string inputRoot;
         private readonly IPathPicker picker;
+        private readonly Dictionary<string, double> loaded;
         private string line = string.Empty;
         private bool lineIsProblem;
 
@@ -76,6 +77,7 @@ namespace SiteAdaptation.AddIn.RuleValues
             this.copyPath = copyPath;
             this.inputRoot = inputRoot;
             this.picker = picker;
+            loaded = values.ToDictionary(value => value.Key, value => value.Project, StringComparer.Ordinal);
             Rows = values.Select(value => new RuleValueRow(value, Refresh)).ToList();
         }
 
@@ -84,14 +86,28 @@ namespace SiteAdaptation.AddIn.RuleValues
         public string Line { get { return line; } private set { Set(ref line, value); } }
         public bool LineIsProblem { get { return lineIsProblem; } private set { Set(ref lineIsProblem, value); } }
         public bool HasLine => line.Length > 0;
-        public bool CanSave => copyPath != null && Rows.All(row => row.Problem == null);
+        public bool CanSave => copyPath != null && !Blocked;
+
+        private bool Blocked => Rows.Any(row => row.Problem != null) || Common.Settings.RuleValues.Contradiction(Rows.Select(row => row.Value).ToList()) != null;
+
+        public bool CanExport => !Blocked;
 
         public void Save()
         {
             try
             {
                 IReadOnlyList<RuleValue> values = Rows.Select(row => row.Value).ToList();
+                // A Save with no change leaves the file and step 4 as they are
+                if (values.All(value => value.Project == loaded[value.Key]))
+                {
+                    Say(RuleValuesText.NothingChanged, false);
+                    return;
+                }
                 RuleValues_WriteCopy(values);
+                foreach (RuleValue value in values)
+                {
+                    loaded[value.Key] = value.Project;
+                }
                 Saved = copyPath;
                 Say(RuleValuesText.Saved, false);
             }
@@ -107,11 +123,15 @@ namespace SiteAdaptation.AddIn.RuleValues
             {
                 row.Take(row.Value.Manual);
             }
-            Say(string.Empty, false);
+            Refresh();
         }
 
         public void Export()
         {
+            if (Blocked)
+            {
+                return;
+            }
             string path = picker.Save(RuleValuesText.Export);
             if (path == null)
             {
@@ -152,7 +172,7 @@ namespace SiteAdaptation.AddIn.RuleValues
                 {
                     row.Take(values[row.Value.Key]);
                 }
-                Say(string.Empty, false);
+                Refresh();
             }
             catch (Exception error) when (error is IOException || error is UnauthorizedAccessException)
             {
@@ -168,7 +188,8 @@ namespace SiteAdaptation.AddIn.RuleValues
         private void Refresh()
         {
             Changed(nameof(CanSave));
-            Say(Rows.Select(row => row.Problem).FirstOrDefault(problem => problem != null) ?? string.Empty, true);
+            Changed(nameof(CanExport));
+            Say(Rows.Select(row => row.Problem).FirstOrDefault(problem => problem != null) ?? Common.Settings.RuleValues.Contradiction(Rows.Select(row => row.Value).ToList()) ?? string.Empty, true);
         }
 
         private void Say(string text, bool problem)

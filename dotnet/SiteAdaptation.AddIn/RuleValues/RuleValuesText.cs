@@ -18,6 +18,8 @@ namespace SiteAdaptation.AddIn.RuleValues
         public const string ManualRules = "Manual rules";
         public const string Close = "Close";
         public const string Saved = "Saved for this project.";
+        public const string NothingChanged = "No value changed, nothing was saved.";
+        public const string ReadOnly = "This model is read only, so its rules can not be saved.";
         public const string NoFolder = "Save the model first, the rules of a project are kept by its file name.";
         public const string SaveFailed = "The rules were not saved: <name>";
         public const string ImportFailed = "Not imported: <name>";

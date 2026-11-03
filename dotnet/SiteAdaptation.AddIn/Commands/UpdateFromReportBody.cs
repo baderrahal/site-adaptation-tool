@@ -19,7 +19,7 @@ namespace SiteAdaptation.AddIn
             string path = document.PathName;
             Pane.DocumentSession session = PaneHost.Current.Sessions.Seen(document, document.PathName, document.Title);
             var run = new UpdateFromReportRun(Dialog(application.MainWindowHandle), WorkFiles.ReadText, UpdateWorkerClient.Read,
-                new WorkerDocument { Path = path, SessionId = "update-from-report" }) { ModePick = () => session.Settings.Project.ProjectMode };
+                new WorkerDocument { Path = path, SessionId = "update-from-report" }) { ModePick = () => session.Settings.Project.ProjectMode, RulesFile = () => session.Settings.RulesFile };
             return run.Body();
         }
     }
