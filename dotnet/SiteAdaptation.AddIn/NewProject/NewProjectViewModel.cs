@@ -286,7 +286,7 @@ namespace SiteAdaptation.AddIn.NewProject
         public bool CheckedOk { get { return checkedOk; } private set { Set(ref checkedOk, value); } }
         public string TemplateLine { get { return templateLine; } private set { Set(ref templateLine, value); } }
 
-        // R484. The one plain line under Start from, the rules the settings of Save setup would build under. Changed only by Start from
+        // R484. The one plain line under Start from, the rules the settings of Save setup would build under. Refreshed with every pick, empty where no mode is known
         public string ModeLine { get { return modeLine; } private set { Set(ref modeLine, value); } }
 
         // R445. True when Save setup has no model to write to, so the foot says the next button run writes the setup
@@ -351,7 +351,7 @@ namespace SiteAdaptation.AddIn.NewProject
         public void CheckFiles()
         {
             SetupCheckResult result = Refresh();
-            CheckedOk = (result.HasStart || Takes) && !result.Stops.Any();
+            CheckedOk = (result.HasStart || Takes) && !result.Stops.Any() && !Unread;
         }
 
         public void GetTemplate(SetupRowViewModel row)
@@ -408,6 +408,9 @@ namespace SiteAdaptation.AddIn.NewProject
 
         private string RefusedLine => !Wants ? null : shipped.Refusal == ShippedSetRefusal.NotSaved ? NewProjectText.SetNotSaved : shipped.Refusal == ShippedSetRefusal.NoSafeName ? NewProjectText.SetNoName : null;
 
+        // R486. The set is there and its files do not read, so the window does not read as all found
+        private bool Unread => Takes && taken == null && Previewed() == null;
+
         // R486. Before Save the window reads the shipped set as the Save will give it, so the road pick and the sheet row work, nothing is copied. Read once
         private ProjectSet Previewed()
         {
@@ -436,11 +439,12 @@ namespace SiteAdaptation.AddIn.NewProject
                 {
                     taken = shipped.Take(readText);
                 }
-                catch (Exception error) when (error is IOException || error is UnauthorizedAccessException || error is InvalidDataException || error is JsonException || error is ArgumentException || error is NotSupportedException)
+                catch (Exception error) when (error is IOException || error is UnauthorizedAccessException || error is InvalidDataException || error is JsonException || error is ArgumentException || error is NotSupportedException || error is InvalidOperationException)
                 {
+                    // The reason stays out of the window, the add-in has no log to put it in
                     StopShown = true;
-                    StopLine = TextTemplate.Fill(NewProjectText.SetNotCopied, error.Message);
-                    TodoLine = string.Empty;
+                    StopLine = NewProjectText.SetNotCopied;
+                    TodoLine = NewProjectText.SetNotCopiedTodo;
                     return;
                 }
             }
@@ -501,9 +505,10 @@ namespace SiteAdaptation.AddIn.NewProject
             Ready = TextTemplate.Fill(NewProjectText.Ready, result.Ready, result.Total);
             SetupRowViewModel stop = result.Stops.Select(item => Rows.Single(row => row.Row.Id == item.Row.Id)).FirstOrDefault();
             bool noStart = !result.HasStart && !Takes;
-            StopShown = noStart || stop != null;
-            StopLine = RefusedLine ?? (noStart ? (result.StartNamed ? NewProjectText.StartGone : NewProjectText.NoStart) : stop?.StopLine ?? string.Empty);
-            TodoLine = RefusedLine != null ? string.Empty : noStart ? NewProjectText.NoStartTodo : stop?.TodoLine ?? string.Empty;
+            bool unread = Unread;
+            StopShown = noStart || stop != null || unread;
+            StopLine = RefusedLine ?? (unread ? NewProjectText.SetNotRead : noStart ? (result.StartNamed ? NewProjectText.StartGone : NewProjectText.NoStart) : stop?.StopLine ?? string.Empty);
+            TodoLine = RefusedLine != null ? string.Empty : unread ? NewProjectText.SetNotReadTodo : noStart ? NewProjectText.NoStartTodo : stop?.TodoLine ?? string.Empty;
             return result;
         }
     }

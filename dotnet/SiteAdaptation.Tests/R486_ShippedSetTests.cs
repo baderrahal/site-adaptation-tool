@@ -56,6 +56,48 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
+        public void R486_preview_reads_the_copy_when_there_is_one_and_the_shipped_files_before_it()
+        {
+            string before = Set().Preview(File.ReadAllText).ParameterSheet;
+            Assert.StartsWith(shipped, before);
+            Assert.EndsWith("made_up_sheet.xlsx", before);
+            Set().Take(File.ReadAllText);
+            string copy = ProjectFile("config", "project.json");
+            JObject config = JObject.Parse(File.ReadAllText(copy));
+            config["addin"]["parameterSheet"] = "config/edited.xlsx";
+            config["designBasis"]["newProjectMode"] = "pastMade";
+            File.WriteAllText(copy, config.ToString());
+            File.WriteAllText(ProjectFile("rules made up", "made-up.json"), "{ \"levelProfiles\": { \"default\": \"editedProfile\" } }");
+            ProjectSet preview = Set().Preview(File.ReadAllText), taken = Set().Take(File.ReadAllText);
+            Assert.Equal(taken.ParameterSheet, preview.ParameterSheet);
+            Assert.EndsWith("edited.xlsx", preview.ParameterSheet);
+            Assert.Equal("editedProfile", preview.LevelProfile);
+            Assert.Equal(taken.ConfigFile, preview.ConfigFile);
+            Assert.Equal(taken.RulesFile, preview.RulesFile);
+            Assert.Equal("pastMade", Set().NewMode(File.ReadAllText));
+        }
+
+        [Theory]
+        [InlineData("{ \"levelProfiles\": [] }")]
+        [InlineData("{ \"levelProfiles\": 5 }")]
+        [InlineData("{ \"levelProfiles\": { \"default\": 5 } }")]
+        public void R486_preview_gives_null_for_files_that_do_not_read_where_take_would_throw(string rules)
+        {
+            File.WriteAllText(Path.Combine(shipped, "rules made up", "made-up.json"), rules);
+            Assert.Null(Set().Preview(File.ReadAllText));
+        }
+
+        [Fact]
+        public void R486_a_sheet_name_that_is_no_text_gives_null_from_preview()
+        {
+            string path = Path.Combine(shipped, "config", "project.json");
+            JObject config = JObject.Parse(File.ReadAllText(path));
+            config["addin"]["parameterSheet"] = 5;
+            File.WriteAllText(path, config.ToString());
+            Assert.Null(Set().Preview(File.ReadAllText));
+        }
+
+        [Fact]
         public void R486_the_set_is_copied_to_the_folder_of_the_project_and_names_config_rules_and_level_profile()
         {
             ProjectSet set = Set().Take(File.ReadAllText);
@@ -601,7 +643,36 @@ namespace SiteAdaptation.Tests
             NewProjectViewModel model = Window(new ProjectSettings(), Set());
             model.Save();
             Assert.Null(model.Result);
-            Assert.StartsWith("The project files were not copied: ", model.StopLine);
+            Assert.Equal("The project files were not copied.", model.StopLine);
+            Assert.Equal("Move or delete the folder of this project under New projects in the work folder, then press Save setup again.", model.TodoLine);
+            Assert.DoesNotContain(ProjectFolder, model.StopLine + model.TodoLine);
+            Assert.DoesNotContain("R486", model.StopLine + model.TodoLine);
+        }
+
+        [Fact]
+        public void R486_a_shipped_config_that_does_not_read_opens_the_window_with_a_stop_not_all_found()
+        {
+            string path = Path.Combine(shipped, "rules made up", "made-up.json");
+            File.WriteAllText(path, "{ 'levelProfiles': [] }".Replace("'", "\""));
+            NewProjectViewModel model = Window(new ProjectSettings(), Set());
+            Assert.True(model.StopShown);
+            Assert.Equal("The shipped project files could not be read.", model.StopLine);
+            Assert.Equal("Reinstall the add-in, then open New project again.", model.TodoLine);
+            Assert.False(model.CheckedOk);
+            model.CheckFiles();
+            Assert.False(model.CheckedOk);
+        }
+
+        [Fact]
+        public void R486_a_sheet_name_that_is_no_text_gives_a_stop_and_no_throw()
+        {
+            string path = Path.Combine(shipped, "config", "project.json");
+            JObject config = JObject.Parse(File.ReadAllText(path));
+            config["addin"]["parameterSheet"] = 5;
+            File.WriteAllText(path, config.ToString());
+            NewProjectViewModel model = Window(new ProjectSettings(), Set());
+            Assert.True(model.StopShown);
+            Assert.Equal("The shipped project files could not be read.", model.StopLine);
         }
 
         [Fact]

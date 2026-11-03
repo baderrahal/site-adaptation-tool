@@ -53,6 +53,14 @@ namespace SiteAdaptation.Common.Settings
 
         private string ShippedConfig => Path.Combine(shipped ?? string.Empty, ConfigFolder, ConfigName);
 
+        private string CopiedConfig => Path.Combine(ProjectFolder, ConfigFolder, ConfigName);
+
+        // Take reads the copy once it exists, so the window reads it too
+        private string ReadRoot()
+        {
+            return File.Exists(CopiedConfig) ? ProjectFolder : shipped;
+        }
+
         public bool There => !string.IsNullOrEmpty(shipped) && File.Exists(ShippedConfig);
 
         public ShippedSetRefusal Refusal => !saved ? ShippedSetRefusal.NotSaved : !SafeName(name) ? ShippedSetRefusal.NoSafeName : ShippedSetRefusal.None;
@@ -79,31 +87,32 @@ namespace SiteAdaptation.Common.Settings
         // designBasis.newProjectMode of the shipped config, what a Save would give, null when it gives none
         public string NewMode(Func<string, string> readText)
         {
-            return ProjectModes.NewProject(ProjectModes.ReadConfig(ShippedConfig, readText));
+            return ProjectModes.NewProject(ProjectModes.ReadConfig(ReadRoot() == shipped ? ShippedConfig : CopiedConfig, readText));
         }
 
         // What Take will name, read from the shipped files where they are. Nothing is copied or written, so the window can show the road pick and the sheet row before Save.
-        // Null where the shipped files do not read, Take then gives the line of the failure at Save
+        // Reads the copy when one exists, as Take does. Null where the files do not read, the window then stops
         public ProjectSet Preview(Func<string, string> readText)
         {
             try
             {
-                string configPath = ShippedConfig;
+                string root = ReadRoot();
+                string configPath = Path.Combine(root, ConfigFolder, ConfigName);
                 JObject config = JObject.Parse(readText(configPath));
                 string profile = config["profile"]?.Type == JTokenType.String ? (string)config["profile"] : null;
                 if (profile == null)
                 {
                     return null;
                 }
-                string rulesPath = Path.GetFullPath(Path.Combine(shipped, profile));
-                JToken level = JObject.Parse(readText(rulesPath))["levelProfiles"]?["default"];
+                string rulesPath = Path.GetFullPath(Path.Combine(root, profile));
+                JToken level = (JObject.Parse(readText(rulesPath))["levelProfiles"] as JObject)?["default"];
                 if (level == null || level.Type != JTokenType.String)
                 {
                     return null;
                 }
                 return new ProjectSet { ConfigFile = configPath, RulesFile = rulesPath, LevelProfile = (string)level, ParameterSheet = SetUp.ParameterSheet.PathOf(configPath, config) };
             }
-            catch (Exception failure) when (failure is IOException || failure is Newtonsoft.Json.JsonException || failure is ArgumentException || failure is NullReferenceException)
+            catch (Exception failure) when (failure is IOException || failure is UnauthorizedAccessException || failure is Newtonsoft.Json.JsonException || failure is ArgumentException || failure is InvalidDataException || failure is InvalidOperationException || failure is NullReferenceException)
             {
                 return null;
             }
@@ -121,7 +130,7 @@ namespace SiteAdaptation.Common.Settings
             string profile = config["profile"]?.Type == JTokenType.String ? (string)config["profile"] : throw new InvalidDataException("config names no rules profile, profile (R486)");
             string rulesPath = Path.GetFullPath(Path.Combine(ProjectFolder, profile));
             JObject rules = JObject.Parse(readText(rulesPath));
-            JToken level = rules["levelProfiles"]?["default"];
+            JToken level = (rules["levelProfiles"] as JObject)?["default"];
             if (level == null || level.Type != JTokenType.String)
             {
                 throw new InvalidDataException("the rules profile names no levelProfiles.default (R486)");

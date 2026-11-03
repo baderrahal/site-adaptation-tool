@@ -483,7 +483,10 @@ The window New project of Lane C NEWPROJ-UI, word for word from docs/design/boar
 - `ROSHN past job` CHOSEN, Bader's words of Q373, the same line under the past job (R484)
 - `Save the model first, the folder of a new project is named by it.` CHOSEN, the stop of Empty project on a model with no saved path (R486)
 - `The name of this model makes no folder name, save it under another name.` CHOSEN, the stop of Empty project on a name that makes no safe folder (R486)
-- `The project files were not copied: <name>` CHOSEN, the stop when the copy of the shipped set fails, <name> the reason (R486)
+- `The project files were not copied.` CHOSEN, the stop when the copy of the shipped set fails, the reason is not shown (R486)
+- `Move or delete the folder of this project under New projects in the work folder, then press Save setup again.` CHOSEN, what to do after the copy fails (R486)
+- `The shipped project files could not be read.` CHOSEN, the stop when the set is there and its config or rules profile does not read (R486)
+- `Reinstall the add-in, then open New project again.` CHOSEN, what to do after the shipped files do not read (R486)
 - `<name> (saved)`
 - `<name> is kept as a saved start, not built in.`
 - `Files the tool needs`
