@@ -759,7 +759,7 @@ Q411. Floor parameters bound but never filled (Lane B dry run, R465, Lane D). On
 - Recommended: correct the sheet to say villas fill them and floors stay empty, unless the past models hold values on floors, which Lane D reads first.
 - Other: button 5 writes them on each floor.
 
-Q412. Level 1 is empty after the build (Lane B dry run). After 1 to 9 the floor plan Level 1 shows only the elevation marks, also after a zoom to fit (READ, shots). The floors stand high above Level 1, so its view range leaves them out. A presenter must open a 3D view.
+Q412. Level 1 is empty after the build (Lane B dry run). Floor plan Level 1 shows only the elevation marks, also after a zoom to fit (READ, shots). The floors stand above its view range.
 - Recommended: button 1 or 5 sets the view range of the plan, or opens a 3D view at the end of the run.
 - Other: leave it, the demo script opens the 3D view.
 
