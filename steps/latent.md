@@ -603,3 +603,12 @@ Round SPEED-2NOV-C, review 1 of the delta, 3 Nov 2026:
 - Three copies of the input root list: Start-RevitListener.ps1, Get-RunInputRoots, Run-TestHost.ps1. They agree today.
 - Timing labels only: the second Decide runs under villaMassFiles, a wait on the load dialog is billed to the step before.
 - The pane lists the Prototypes folder twice per refresh. RevitFormat walks a long chain only on a corrupt file.
+
+Round SPEED-2NOV-C, breaker 1 of the delta, 3 Nov 2026:
+- A person's Cancel on the load dialog of button 7 ends as RolledBack with the failed text, the catch of ButtonFlow is older than this round. No recorded run reached it.
+- The long prefix and a UNC path of an input root read as outside it in the check of a .slog (RAN, strings only). The real specs name plain drive paths.
+- A config with no input root leaves every .slog of a backup folder out of the check. The real config gives 3 entries (RAN).
+- A file removed during an own run stops the after check with Get-Item's error, loud with the wrong cause. The listener says could not be marked.
+- The scope of RevitListenerJobVariable disposed twice would clear the variable of the next job (RAN). Only Finish disposes it, once per job.
+- A person's click on button 2 during a listener job skips the scan gate and its worker counts in that job. The lanes only send.
+- R496 stays silent: a 2021 file past the 20 files it reads, a file from before Revit wrote Format, a file locked with no share, an empty row Prototypes where the build falls back to config. Real folders hold 13 files, 2021 or 2024 (RAN).

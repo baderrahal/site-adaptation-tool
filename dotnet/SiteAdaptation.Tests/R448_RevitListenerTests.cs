@@ -973,8 +973,44 @@ namespace SiteAdaptation.Tests
         public void R497_the_input_list_of_a_buttons_run_uses_the_check_with_the_roots_of_config()
         {
             string script = File.ReadAllText(HostFile("Run-TestHost.ps1"));
-            Assert.Contains("Test-RevitWorksharingLog -Path $_.FullName -InputRoots $inputRoots", script);
+            Assert.Contains("Test-RevitWorksharingLog -Path $_.FullName -InputRoots $inputRoots", File.ReadAllText(HostFile("TestHostPaths.ps1")));
             Assert.Contains("Get-ButtonsInputs $buttonsSources (Get-RunInputRoots -Config $config)", script);
+        }
+
+        // Breaker 1. The list is made before the run, so a file new under an input root was never seen and the line read changed 0
+        [Fact]
+        public void R497_a_file_new_under_an_input_root_counts_and_one_outside_does_not()
+        {
+            string input = Path.Combine(root, "input");
+            string work = Path.Combine(root, "work");
+            Directory.CreateDirectory(Path.Combine(input, "protos", "A_backup"));
+            Directory.CreateDirectory(Path.Combine(work, "protos", "A_backup"));
+            File.WriteAllText(Path.Combine(input, "protos", "A.rvt"), "a");
+            File.WriteAllText(Path.Combine(work, "protos", "A.rvt"), "a");
+            string sources = "@(" + Quoted(Path.Combine(input, "protos")) + "," + Quoted(Path.Combine(work, "protos")) + ")";
+            string roots = "@(" + Quoted(input) + ")";
+
+            string before = "$before = Get-ButtonsInputs " + sources + " " + roots + "\n";
+            string now = "Get-NewInputFiles -Sources " + sources + " -Before $before -InputRoots " + roots + " | ForEach-Object { Split-Path $_ -Leaf }";
+            string write = string.Join("\n", new[] { Path.Combine(input, "protos", "A_backup", "A.slog"), Path.Combine(input, "protos", "A.0001.rvt"), Path.Combine(work, "protos", "A_backup", "A.slog"), Path.Combine(work, "protos", "B.rvt") }
+                .Select(path => "Set-Content -LiteralPath " + Quoted(path) + " 'x'")) + "\n";
+
+            Tuple<int, string, string> clean = Pwsh(before + now);
+            Assert.True(clean.Item1 == 0, clean.Item3);
+            Assert.Equal("", clean.Item2.Trim());
+
+            Tuple<int, string, string> run = Pwsh(before + write + now);
+            Assert.True(run.Item1 == 0, run.Item3);
+            Assert.Equal(new[] { "A.0001.rvt", "A.slog" }, run.Item2.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries).OrderBy(name => name, StringComparer.Ordinal));
+        }
+
+        [Fact]
+        public void R497_an_own_run_and_a_send_both_fail_on_a_new_file_under_an_input_root()
+        {
+            Assert.Contains("Get-NewInputFiles -Sources $buttonsSources -Before $buttonsInputs", File.ReadAllText(HostFile("Run-TestHost.ps1")));
+            string send = File.ReadAllText(HostFile("Send-RevitJob.ps1"));
+            Assert.Contains("Get-NewInputFiles -Sources $inputSources -Before $job.inputs", send);
+            Assert.True(send.IndexOf("$job.Remove('inputSources')", StringComparison.Ordinal) < send.IndexOf("Write-ListenerJob", StringComparison.Ordinal), "the job file keeps its own fields");
         }
 
         // First run in Revit, SPL1: with no job variable button 2 opened the window What the tool read, and nobody answers it in a job

@@ -176,24 +176,6 @@ $setUpSource = $null
 $buttonsInputs = $null
 $buttonsBefore = $null
 
-# Lane B 5c (R384). The real files a buttons run reads in place: each input of the pane settings, every file of a folder input, the
-# template and the key copy. Each is held by its size, write time and SHA-256 before and after the run (D19)
-function Get-ButtonsInputs($paths, $inputRoots) {
-    $files = [Collections.Generic.List[string]]::new()
-    foreach ($path in @($paths | Where-Object { $_ })) {
-        if (Test-Path -LiteralPath $path -PathType Container) {
-            Get-ChildItem -LiteralPath $path -File -Recurse | Where-Object { -not (Test-RevitWorksharingLog -Path $_.FullName -InputRoots $inputRoots) } | ForEach-Object { $files.Add($_.FullName) }
-        }
-        elseif (Test-Path -LiteralPath $path -PathType Leaf) {
-            $files.Add((Get-Item -LiteralPath $path).FullName)
-        }
-        else {
-            throw "A real input of the buttons run is not there: $path"
-        }
-    }
-    return @($files | Sort-Object -Unique)
-}
-
 function Get-InputHashes($files) {
     $hashes = [ordered]@{}
     foreach ($file in $files) {
@@ -676,6 +658,7 @@ try {
         if ($ListenerJobOut) {
             $job.config = Join-Path $runFolder 'config\project.json'
             $job.inputs = [string[]]@($buttonsInputs)
+            $job.inputSources = [string[]]@($buttonsSources)
             $job | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $ListenerJobOut -Encoding utf8
             return
         }
@@ -950,6 +933,7 @@ if (-not $DryStart) {
         if ($buttonsInputs) {
             $buttonsAfter = Get-InputHashes $buttonsInputs
             $buttonsChanged = @($buttonsInputs | Where-Object { $buttonsAfter[$_] -ne $buttonsBefore[$_] } | ForEach-Object { Split-Path $_ -Leaf })
+            $buttonsChanged += @(Get-NewInputFiles -Sources $buttonsSources -Before $buttonsInputs -InputRoots (Get-RunInputRoots -Config $config) | ForEach-Object { (Split-Path $_ -Leaf) + ' (new)' })
             "Real inputs of the buttons run: $($buttonsInputs.Count), unchanged $($buttonsInputs.Count - $buttonsChanged.Count)"
             if ($buttonsChanged.Count -gt 0) {
                 $stopReason = 'a real input of the buttons run changed (D19): ' + ($buttonsChanged -join ', ')

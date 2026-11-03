@@ -169,14 +169,47 @@ function Test-RevitWorksharingLog([string]$Path, [string[]]$InputRoots) {
     if ([IO.Path]::GetExtension($full) -ine '.slog' -or -not ([IO.Path]::GetFileName([IO.Path]::GetDirectoryName($full)) -ilike '*_backup')) {
         return $false
     }
+    return -not (Test-UnderInputRoot -Path $full -InputRoots $InputRoots)
+}
+
+function Test-UnderInputRoot([string]$Path, [string[]]$InputRoots) {
+    $full = [IO.Path]::GetFullPath($Path)
     foreach ($root in @($InputRoots | Where-Object { $_ })) {
         if ($full.StartsWith([IO.Path]::GetFullPath($root).TrimEnd('\') + '\', [StringComparison]::OrdinalIgnoreCase)) {
-            return $false
+            return $true
         }
     }
-    return $true
+    return $false
 }
 
 function Get-RunInputRoots($Config) {
     return @(@($env:SITE_ADAPTATION_INPUT, [string]$Config.inputRoot) + @($Config.testHost.listener.inputRoots | ForEach-Object { [string]$_ }) | Where-Object { $_ })
+}
+
+# R497. The list of real inputs is made before the run, so the files a run added under an input root are looked for after it (D19).
+# A run may add files outside one, as Revit does in the prototype folder of the work root
+function Get-NewInputFiles([string[]]$Sources, [string[]]$Before, [string[]]$InputRoots) {
+    $known = [Collections.Generic.HashSet[string]]::new([string[]]@($Before), [StringComparer]::OrdinalIgnoreCase)
+    $new = foreach ($source in @($Sources | Where-Object { $_ -and (Test-Path -LiteralPath $_ -PathType Container) })) {
+        Get-ChildItem -LiteralPath $source -File -Recurse | Where-Object { -not $known.Contains($_.FullName) -and (Test-UnderInputRoot -Path $_.FullName -InputRoots $InputRoots) } | ForEach-Object { $_.FullName }
+    }
+    return @($new | Sort-Object -Unique)
+}
+
+# Lane B 5c (R384). The real files a buttons run reads in place: each input of the pane settings, every file of a folder input, the
+# template and the key copy. Each is held by its size, write time and SHA-256 before and after the run (D19)
+function Get-ButtonsInputs($paths, $inputRoots) {
+    $files = [Collections.Generic.List[string]]::new()
+    foreach ($path in @($paths | Where-Object { $_ })) {
+        if (Test-Path -LiteralPath $path -PathType Container) {
+            Get-ChildItem -LiteralPath $path -File -Recurse | Where-Object { -not (Test-RevitWorksharingLog -Path $_.FullName -InputRoots $inputRoots) } | ForEach-Object { $files.Add($_.FullName) }
+        }
+        elseif (Test-Path -LiteralPath $path -PathType Leaf) {
+            $files.Add((Get-Item -LiteralPath $path).FullName)
+        }
+        else {
+            throw "A real input of the buttons run is not there: $path"
+        }
+    }
+    return @($files | Sort-Object -Unique)
 }

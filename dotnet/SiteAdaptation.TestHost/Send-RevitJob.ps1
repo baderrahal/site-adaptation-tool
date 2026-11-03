@@ -27,6 +27,8 @@ $prepared = Join-Path $folders.out ('prepared_' + [guid]::NewGuid().ToString('N'
 $job = Get-Content -Raw -LiteralPath $prepared | ConvertFrom-Json -AsHashtable
 Remove-Item -LiteralPath $prepared
 $job.runId = Split-Path (Split-Path $job.model) -Leaf
+$inputSources = $job.inputSources
+$job.Remove('inputSources')
 $job.token = $session.token
 $job.createdUtc = (Get-Date).ToUniversalTime().ToString('o')
 
@@ -40,6 +42,11 @@ switch ($wait.state) {
         $result = $wait.result
         Get-ListenerResultLines -Result $result
         "Result file: $(Join-Path $folders.out ($job.runId + '.result.json')), log: $log, run folder: $($result.runFolder)"
+        $newInputs = @(Get-NewInputFiles -Sources $inputSources -Before $job.inputs -InputRoots (Get-RunInputRoots -Config $config))
+        if ($newInputs.Count -gt 0) {
+            "A real input of the job changed (D19), new under an input root: $(($newInputs | ForEach-Object { Split-Path $_ -Leaf }) -join ', ')"
+            exit 1
+        }
         exit (Get-ListenerExitCode -Result $result)
     }
     'timeout' {
