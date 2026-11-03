@@ -84,9 +84,8 @@ Boxes:
 
 **Limits today.**
 
-- Q400 It reopens on Empty project.
 - Q379 A new project on another PC needs the inputs of this job.
-- Q394 to Q397 Empty project with Update, modes, past values and Save As.
+- Q394, Q395, Q397 Empty project with Update, modes and Save As.
 - Q416 The road row reads optional, step 2 stops without it.
 - Q418 Empty project on a model with settings keeps its old rules.
 - The Shared parameters row reads Not chosen with an amber mark though button 1 finds the sheet (steps/dryrun-3nov.md).

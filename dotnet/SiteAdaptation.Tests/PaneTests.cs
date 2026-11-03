@@ -932,6 +932,16 @@ namespace SiteAdaptation.Tests
 
             public Dictionary<string, string> Projects { get; } = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
+            public string ConfigSheet(string configFile)
+            {
+                return null;
+            }
+
+            public SiteAdaptation.AddIn.Pane.SheetRead ReadSheet(string path)
+            {
+                return null;
+            }
+
             public string VillaModeDefault(string configFile)
             {
                 return VillaModes.Masses;

@@ -612,6 +612,16 @@ namespace SiteAdaptation.UiShots
             }
         }
 
+        public string ConfigSheet(string configFile)
+        {
+            return null;
+        }
+
+        public SheetRead ReadSheet(string path)
+        {
+            return new SheetRead { Line = "11 parameters, 12 left out" };
+        }
+
         public string VillaModeDefault(string configFile)
         {
             return VillaModes.Masses;

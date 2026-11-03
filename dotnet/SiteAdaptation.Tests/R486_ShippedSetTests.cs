@@ -689,6 +689,21 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
+        public void R520_save_setup_on_the_saved_project_of_the_setup_copies_no_shipped_set_and_moves_no_mode()
+        {
+            string past = Path.Combine(root, "past.json");
+            File.WriteAllText(past, new JObject { ["designBasis"] = new JObject { ["mode"] = "pastMade", ["newProjectMode"] = DesignBasis.Rev6, ["modes"] = new JArray(DesignBasis.Rev6, "pastMade") } }.ToString());
+            var settings = new ProjectSettings { ConfigFile = past, ProjectMode = "pastMade" };
+            var starts = new[] { new SavedStart("Past", "p.json", PreSetting.Export(settings)) };
+            NewProjectViewModel model = Window(settings, Set(), starts);
+            Assert.Equal("Past (saved)", model.Start.Name);
+            model.Save();
+            Assert.Equal(past, model.Result.ConfigFile);
+            Assert.Equal("pastMade", model.Result.ProjectMode);
+            Assert.False(Directory.Exists(work));
+        }
+
+        [Fact]
         public void R486_a_saved_project_chosen_with_a_set_shipped_copies_nothing()
         {
             string past = Path.Combine(root, "past.json");

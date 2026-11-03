@@ -73,6 +73,9 @@ namespace SiteAdaptation.Common.Review
     {
         public string PlotNo { get; set; }
 
+        // R521. The two numbers the row read as before it took the official one, so a mark saved under them stays on the plot. Null on any other row
+        public string OldPlotNo { get; set; }
+
         public string CadLabel { get; set; }
 
         public string Nbh { get; set; }

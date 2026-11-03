@@ -185,7 +185,7 @@ namespace SiteAdaptation.Tests
             // FIX-3NOV-B added 1, the record of a step that did not reach the model (R498)
             // FIX-3NOV-A added 3: the copy stop now has a line to do, and the unread set a stop and a line to do (R486)
             // R505 added 1, the end of the found text of a file with external references
-            Assert.Equal(291, chosen);
+            Assert.Equal(294, chosen);
             Assert.True(matched > 100, matched.ToString());
         }
 

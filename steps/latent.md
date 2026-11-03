@@ -615,3 +615,15 @@ Round 6C-3NOV-C, review 1, 3 Nov 2026:
 Round RULES-3NOV-C, review 1 and breaker 1, 3 Nov 2026:
 - RuleValues.Read stops the table when a rules file holds no number at a path of the catalog, a loud box, and Manual rules can not be reached from it. The two rules files on disk hold them all.
 - RuleValues.Text writes 3 decimals, a value typed with more shows rounded in an export. All real values hold under 3.
+KNOWN-3NOV-A, review and breaker, no real input reaches these:
+- CheckTableBuild.cs:33 reads overrideDefaultSources with no check. A config with no such key would grey every Past, PlanOverrides.Load stops such a run first with the line of R330.
+- A key listed in two groups of majority.groups: OverrideEdits takes the first group, OtherJobKeys the last. The groups of config are apart.
+
+## Lane D PARAM-3NOV-D, review 1 and breaker 1, 3 Nov 2026
+
+- The unfilled template of TemplateBook at the config path gives a green 0 parameters. A sheet that does not read is Found in Check files of New project and amber in the pane. None is in use.
+- An xlsx with a relationship lacking Target throws a null error in ParameterBook that DiskProbe.ReadSheet does not catch. No real sheet has one.
+- A Filled by 7 row of a hand edited sheet that names Floors and no RVT Links stays on Floors, button 7 finds no parameter on the link. No such sheet exists. ParameterSheet.Counts says 1 parameters for one row. The real sheet has 11.
+- RefreshSheet reads the config and the xlsx on the UI thread on each refresh, uncached, not measured. A swallowed config failure reads Not chosen with no reason.
+- docs/design/07-mock.md still says Plot on floors and walls. R507 prevails.
+- A rebind of a links row that also lacks the link category counts as a removal alone. No model holds a row off the links and on Floors.
