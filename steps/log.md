@@ -2,6 +2,31 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Lane B DRY-RUN 3 Nov, 2026-11-03, the presenter check on frozen main b1a27d9, Lane B on the laptop
+
+Goal:
+- Bader: rehearse 1 to 9 on NBH 012 through the real windows, read the shared parameters, GO or NO-GO, steps/dryrun-3nov.md
+
+Done:
+- steps/dryrun-3nov.md. Lane B made the kit, none existed: SA-dryrun3nov.rvt from SA-demo-start. C:\SA-demo config and rules refreshed from main, backup in lane_b_check\p3nov_check\backup
+- 1 to 9 run twice through the pane. Fallback SA-dryrun3nov-done.rvt with its work folder
+
+Checked:
+- Q384 in Revit: a new Revit shows all nine rows as saved (READ the pane). Parameters read in Properties on 3 villas and 3 floors, none wrong
+- Inputs same 44 by SHA-256 at 15:12 (RAN), read again before the end
+
+Remains:
+- Undo in Revit not proven, keys and the Undo button changed no row. Task 4 checks left. Two plot overlaps merged, Lane A's question. 6b after the restart
+
+Known bugs:
+- Level 1 is empty after the build (Q412). Floors hold no RRE_ZZ_SP_ values (Q411). Report Summary gaps (Q307). Pane and report issue counts differ (Q307)
+
+Next:
+- Bader's dry run at 17:00. After the restart Bader resumes Lane B: Phase 6b
+
+Your turn:
+- Q411 Floor parameters bound but never filled. Q412 Level 1 is empty after the build. Q413 Input picks lost before a real run. 184 open, steps/questions-open.md
+
 ## Lane A FIX-3NOV-A, 2026-11-03, a new project runs rev6 and grading files are no roads
 
 Goal:

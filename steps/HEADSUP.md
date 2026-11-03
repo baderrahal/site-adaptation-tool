@@ -11,7 +11,7 @@
 
 ### Lane B, C and D
 
-- Lane B FIX-3NOV-B, 3 Nov, branch fix/3nov-b-rows: tasks 1 and 2, gate green, parity rerun of rev6 running, past job 16 of 16 with 0 failures. PR when it ends. No Revit, no window lock.
+- Lane B DRY RUN, 3 Nov, branch records/dryrun-3nov: script steps/dryrun-3nov.md, rehearsal done, kit rebuilt with step 1 run. GO or NO-GO by 15:45, stop 15:50.
 - Lane C 6C-3NOV-C, 3 Nov 13:30, branch check/6c-3nov-c: R505, row Plot fronts (curb lines), steps/part1-check.md short form, PR going up, merge before 14:00. New callers: FileRowViewModel.Hint and HasHint by PaneViewModel and SitePanePage.xaml. Blocked: none
 - Lane D MASS-2NOV-D, 3 Nov, branch mass/2nov-d: the mass outline by the outer wall faces, R500 to R504, closed Q279, Q321, opened Q390 to Q393. Revit proof done, lock free.
   Now: the PR, merge when green. Nothing queued after it. Blocked: none
