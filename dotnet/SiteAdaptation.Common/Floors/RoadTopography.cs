@@ -179,7 +179,7 @@ namespace SiteAdaptation.Common.Floors
         }
 
         // The hull by the monotone chain, counter clockwise from the lowest easting
-        public static List<double[]> Hull(IEnumerable<double[]> points)
+        private static List<double[]> Hull(IEnumerable<double[]> points)
         {
             List<double[]> sorted = points.Select(point => new[] { point[0], point[1] }).OrderBy(point => point[0]).ThenBy(point => point[1]).ToList();
             var unique = new List<double[]>();
@@ -287,19 +287,38 @@ namespace SiteAdaptation.Common.Floors
             return points.OrderBy(point => FloorPlan.Flat(point, to)).First();
         }
 
-        // Evenly along the order of the file, which keeps the spread of the surface. Only over the limit of the settings (R571)
+        // R571. Only over the limit of the settings. The first point of each cell of a grid, the grid made larger until the room holds them,
+        // so the points stay spread over the road, where a stride along the file would leave the parts the file lists late
         private static List<double[]> Thin(List<double[]> points, int room)
         {
             if (points.Count <= room)
             {
                 return points;
             }
-            var kept = new List<double[]>(room);
-            for (int index = 0; index < room; index++)
+            if (room == 0)
             {
-                kept.Add(points[(int)((long)index * points.Count / room)]);
+                return new List<double[]>();
             }
-            return kept;
+            double west = points.Min(point => point[0]), south = points.Min(point => point[1]);
+            double span = Math.Max(points.Max(point => point[0]) - west, points.Max(point => point[1]) - south);
+            double cell = Math.Max(span, 1e-3) / Math.Sqrt(points.Count);
+            while (true)
+            {
+                var taken = new HashSet<long>();
+                var kept = new List<double[]>();
+                foreach (double[] point in points)
+                {
+                    if (taken.Add(((long)((point[0] - west) / cell) << 32) ^ (long)((point[1] - south) / cell)))
+                    {
+                        kept.Add(point);
+                    }
+                }
+                if (kept.Count <= room)
+                {
+                    return kept;
+                }
+                cell *= 1.1;
+            }
         }
 
         private static IEnumerable<RoadEdgePoint> Samples(RampEdge edge, TinSurface tin, double snap)

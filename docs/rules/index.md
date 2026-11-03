@@ -480,6 +480,11 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R506 Sheet in use shown.
 - R507 Shared parameters on links only.
 - R508 Old binding removed by button 1.
+- R570 Road toposolid named in config.
+- R571 Boundary and points from the surface.
+- R572 Toposolid made after the floors.
+- R573 Road edge differences reported per point.
+- R574 Road topography tick on by default.
 
 ## 13-site-coords-r454-up.md
 

@@ -210,11 +210,11 @@
       "limitMm": 5.0,
       "limitMmWhy": "The target of Bader of 3 Nov 2026: a ramp road edge meets the toposolid within 5 mm. A larger difference is counted and listed, it stops nothing",
       "minCoverShare": 0.5,
-      "minCoverShareWhy": "Under this share of the ramp road edge points on the surface, the surface does not cover the scope and no toposolid is made. Set from the measure on NBH 012",
+      "minCoverShareWhy": "Under this share of the ramp road edge points on the surface, the surface does not cover the scope and no toposolid is made. NBH 012 holds all 1008 points on it, half tells a surface of another part of the site from a few plots off it",
       "pointGapM": 0.01,
       "pointGapMWhy": "Two points this near are one, and a boundary corner this near the last is dropped, since Revit refuses a curve under about 0.8 mm and two levels a few mm apart in plan only make a spike",
       "maxPoints": 10000,
-      "maxPointsWhy": "Thinning starts over this count. The limit Revit holds a toposolid to was not read from its API, 10000 is the limit it warns of on a toposurface, the Revit run of the round checks it"
+      "maxPointsWhy": "Thinning starts over this count. RevitAPI.xml 2024 names no limit of points on a toposolid, 10000 is the count Revit is known to warn of on a toposurface, NBH 012 holds 95177 points after pointGapM, and the Revit run of the round checks it"
     },
     "rampJoint": {"note": "R470, R471. Two front ramp corners of two plots within nearM in plan are one joint and hold one level, the road level taken once at the joint, while join is true. join false, Bader 1 Nov 2026 (Q340): the build joins no corner, since the road at a joint drops a rampFrontM override, and R471 still lists every shared corner with its gap. The check row of a joint passes at a gap of at most passGapM. nearM and passGapM by Bader, Q342", "join": false, "nearM": 0.01, "passGapM": 0.001},
     "types": {
