@@ -23,6 +23,53 @@ namespace SiteAdaptation.Common.PlaceVillas
 
         // From that plane up to the top of the wall
         public double HeightM { get; set; }
+
+        // The name of the design option the wall sits in, null in the main model, and whether it is the primary of its set (R500)
+        public string Option { get; set; }
+        public bool OptionPrimary { get; set; }
+
+        // The straight lines of the sketch of an edited profile, each { t0, z0, t1, z1 }: t along the curve from Start, z over the ground
+        // plane. Null for a wall with no sketch, whose ground stretch is its whole curve (R501)
+        public IReadOnlyList<double[]> Profile { get; set; }
+
+        // The real side faces Revit gives, each { x, y, nx, ny } of the plane in plan, null where none is planar. Never read to build the
+        // ring, only to measure it after (R504)
+        public double[] ExteriorFace { get; set; }
+        public double[] InteriorFace { get; set; }
+    }
+
+    // R500. What a link of the file shows by default: the main model and the primary option of each set, one rule for walls and floors
+    public static class DesignOptions
+    {
+        public static bool Shown(bool inOption, bool primary)
+        {
+            return !inOption || primary;
+        }
+    }
+
+    // R501. Where an edited profile stands on the ground. A door or window is no line of a profile sketch, so it never splits a wall
+    public static class WallProfiles
+    {
+        // The parts of the curve where a level line of the profile lies at most bottomAboveM over the ground plane, in order, touching parts
+        // as one. t may run past the curve, a profile can carry a wall on past its location line
+        public static List<double[]> GroundStretches(IEnumerable<double[]> lines, double bottomAboveM, double onLineM)
+        {
+            List<double[]> low = lines.Where(line => Math.Abs(line[1] - line[3]) <= onLineM && line[1] <= bottomAboveM && Math.Abs(line[0] - line[2]) > onLineM)
+                .Select(line => new[] { Math.Min(line[0], line[2]), Math.Max(line[0], line[2]) }).OrderBy(part => part[0]).ToList();
+            var stretches = new List<double[]>();
+            foreach (double[] part in low)
+            {
+                if (stretches.Count > 0 && part[0] <= stretches[stretches.Count - 1][1] + onLineM)
+                {
+                    stretches[stretches.Count - 1][1] = Math.Max(stretches[stretches.Count - 1][1], part[1]);
+                }
+                else
+                {
+                    stretches.Add(part);
+                }
+            }
+            return stretches;
+        }
     }
 
     // R503. One edge of the ring in walking order, a line when Centre is null, else an arc from Start to End about Centre
@@ -84,6 +131,17 @@ namespace SiteAdaptation.Common.PlaceVillas
 
         // The walls with a face that sees the outside that the walk passed by, also in LeftOut. They reach the run line of the mass (R502)
         public IReadOnlyList<WallLeftOut> Skipped { get; set; } = new List<WallLeftOut>();
+
+        // The walls in an option no link shows, counted with no reason line, and the names of the primary options the ring used (R500)
+        public int LeftByOption { get; set; }
+        public IReadOnlyList<string> PrimaryOptions { get; set; } = new List<string>();
+
+        // R504, the measure of the ring against the real side faces. Per edge the used wall on it that lies nearest, the largest over the
+        // edges, null when no edge could be measured. An edge with no wall on it is connecting and counted apart, an edge whose walls give
+        // no planar face is counted as unmeasured
+        public double? LargestOffFaceM { get; set; }
+        public int OffFaceUnmeasured { get; set; }
+        public int ConnectingEdges { get; set; }
     }
 
     // R503. The ring as points for a reader that takes points: the start of each edge, an arc cut every arcStepM along its length
@@ -182,9 +240,45 @@ namespace SiteAdaptation.Common.PlaceVillas
     {
         public static WallRingBuild Build(IEnumerable<RingWall> walls, IReadOnlyList<double[]> slab, RingLimits limits)
         {
+            List<RingWall> all = (walls ?? Enumerable.Empty<RingWall>()).ToList();
+            List<RingWall> shown = all.Where(wall => DesignOptions.Shown(wall.Option != null, wall.OptionPrimary)).ToList();
+            WallRingBuild build = Walked(shown, slab, limits);
+            var used = new HashSet<string>(build.Used, StringComparer.Ordinal);
+            build.LeftByOption = all.Count - shown.Count;
+            build.PrimaryOptions = shown.Where(wall => wall.Option != null && used.Contains(wall.Id)).Select(wall => wall.Option).Distinct(StringComparer.Ordinal).OrderBy(name => name, StringComparer.Ordinal).ToList();
+            // One wall may stand in several ground stretches, it is one line here
+            build.LeftOut = build.LeftOut.Where(wall => !used.Contains(wall.Id)).GroupBy(wall => wall.Id, StringComparer.Ordinal).Select(group => group.First()).ToList();
+            build.Skipped = build.Skipped.Where(wall => !used.Contains(wall.Id)).GroupBy(wall => wall.Id, StringComparer.Ordinal).Select(group => group.First()).ToList();
+            return build;
+        }
+
+        // R501. A wall with an edited profile stands only on its ground stretches, each one a wall of its own from here on
+        private static IEnumerable<RingWall> OnTheGround(RingWall wall, RingLimits limits, List<WallLeftOut> leftOut)
+        {
+            if (wall.Profile == null || wall.Function != WallFunctions.Exterior || wall.Centre != null || wall.Start == null || wall.End == null)
+            {
+                return new[] { wall };
+            }
+            List<double[]> stretches = WallProfiles.GroundStretches(wall.Profile, limits.BottomAboveM, limits.OnLineM);
+            if (stretches.Count == 0)
+            {
+                leftOut.Add(new WallLeftOut(wall.Id, "its profile stands nowhere within wallRingBottomAboveM of the ground plane"));
+            }
+            double length = RingGeometry.Distance(wall.Start, wall.End);
+            double[] along = { (wall.End[0] - wall.Start[0]) / length, (wall.End[1] - wall.Start[1]) / length };
+            return stretches.Select(part => new RingWall
+            {
+                Id = wall.Id, Function = wall.Function, Width = wall.Width, Exterior = wall.Exterior, BottomM = wall.BottomM, HeightM = wall.HeightM, Option = wall.Option, OptionPrimary = wall.OptionPrimary,
+                ExteriorFace = wall.ExteriorFace, InteriorFace = wall.InteriorFace,
+                Start = new[] { wall.Start[0] + along[0] * part[0], wall.Start[1] + along[1] * part[0] }, End = new[] { wall.Start[0] + along[0] * part[1], wall.Start[1] + along[1] * part[1] },
+            });
+        }
+
+        private static WallRingBuild Walked(List<RingWall> shown, IReadOnlyList<double[]> slab, RingLimits limits)
+        {
             var leftOut = new List<WallLeftOut>();
             var deep = new List<RingWall>();
-            List<RingWall> kept = Filter(walls, slab, limits, leftOut, deep);
+            List<RingWall> kept = Filter(shown.SelectMany(wall => OnTheGround(wall, limits, leftOut)).ToList(), slab, limits, leftOut, deep);
             List<double[][]> plans = kept.Concat(deep).Select(wall => Plan(wall, limits)).ToList();
             var back = new HashSet<string>(StringComparer.Ordinal);
             List<Face> runs = kept.SelectMany(wall => Runs(wall, plans, back, limits)).ToList();
@@ -206,7 +300,8 @@ namespace SiteAdaptation.Common.PlaceVillas
             {
                 return Refused(reason, kept, leftOut);
             }
-            HashSet<string> used = Touching(runs, carriers, closed, limits);
+            var measure = new WallRingBuild();
+            HashSet<string> used = Touching(runs, carriers, closed, kept, limits, measure);
             var walked = new HashSet<Face>(ring.Select(join => join.From));
             var skippedIds = new HashSet<string>(edges.Where(edge => !walked.Contains(edge)).SelectMany(edge => edge.Walls), StringComparer.Ordinal);
             var seeing = new HashSet<string>(runs.SelectMany(run => run.Walls), StringComparer.Ordinal);
@@ -225,27 +320,55 @@ namespace SiteAdaptation.Common.PlaceVillas
             return new WallRingBuild
             {
                 Edges = closed, Used = used.OrderBy(id => id, StringComparer.Ordinal).ToList(), BackFace = back.Where(used.Contains).OrderBy(id => id, StringComparer.Ordinal).ToList(), LeftOut = leftOut, Skipped = skipped,
+                LargestOffFaceM = measure.LargestOffFaceM, OffFaceUnmeasured = measure.OffFaceUnmeasured, ConnectingEdges = measure.ConnectingEdges,
             };
         }
 
         // The walls with a stretch that overlaps an edge of the finished ring. A wall on the line of an edge but past its corner, or one whose
-        // edge merged away, is not touched by the ring and is not used
-        private static HashSet<string> Touching(List<Face> runs, List<Face> carriers, List<RingEdge> edges, RingLimits limits)
+        // edge merged away, is not touched by the ring and is not used. The same walls give the measure of R504 against their real faces
+        private static HashSet<string> Touching(List<Face> runs, List<Face> carriers, List<RingEdge> edges, List<RingWall> kept, RingLimits limits, WallRingBuild measure)
         {
             var used = new HashSet<string>(StringComparer.Ordinal);
+            Dictionary<string, RingWall> byId = kept.GroupBy(wall => wall.Id, StringComparer.Ordinal).ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
             for (int i = 0; i < carriers.Count; i++)
             {
                 double length = carriers[i].Between(edges[i].Start, edges[i].End);
+                double nearest = double.PositiveInfinity;
+                bool walled = false;
                 foreach (Face run in runs.Where(run => carriers[i].OnSameCarrier(run, limits)))
                 {
                     double from = carriers[i].Offset(edges[i].Start, run.At(0));
                     if (Math.Min(from + run.Length, length) - Math.Max(from, 0) > limits.OnLineM)
                     {
                         used.UnionWith(run.Walls);
+                        walled = true;
+                        RingWall wall = byId[run.Walls.First()];
+                        double[] plane = run.IsBack ? wall.InteriorFace : wall.ExteriorFace;
+                        if (plane != null && !edges[i].IsArc)
+                        {
+                            nearest = Math.Min(nearest, Math.Max(OffPlane(edges[i].Start, plane), OffPlane(edges[i].End, plane)));
+                        }
                     }
+                }
+                if (!walled)
+                {
+                    measure.ConnectingEdges++;
+                }
+                else if (double.IsPositiveInfinity(nearest))
+                {
+                    measure.OffFaceUnmeasured++;
+                }
+                else
+                {
+                    measure.LargestOffFaceM = Math.Max(measure.LargestOffFaceM ?? 0, nearest);
                 }
             }
             return used;
+        }
+
+        private static double OffPlane(double[] point, double[] plane)
+        {
+            return Math.Abs((point[0] - plane[0]) * plane[2] + (point[1] - plane[1]) * plane[3]);
         }
 
         private static WallRingBuild Refused(string reason, List<RingWall> kept, List<WallLeftOut> leftOut)
@@ -745,9 +868,12 @@ namespace SiteAdaptation.Common.PlaceVillas
             public HashSet<string> Walls { get; private set; } = new HashSet<string>(StringComparer.Ordinal);
             public bool IsArc => Centre != null;
 
+            // The far face of the wall and not its exterior face (R501)
+            public bool IsBack { get; private set; }
+
             public static Face Of(RingWall wall, bool back)
             {
-                var face = new Face();
+                var face = new Face { IsBack = back };
                 face.Walls.Add(wall.Id);
                 double half = wall.Width / 2;
                 double length = Math.Sqrt(wall.Exterior[0] * wall.Exterior[0] + wall.Exterior[1] * wall.Exterior[1]);

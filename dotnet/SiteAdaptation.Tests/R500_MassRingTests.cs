@@ -13,7 +13,7 @@ namespace SiteAdaptation.Tests
     {
         private static readonly double[][] Slab = { new[] { 0.0, 0.0 }, new[] { 10.0, 0.0 }, new[] { 10.0, 8.0 }, new[] { 0.0, 8.0 } };
 
-        private static RingLimits Limits(double shortest = 0.01, double sample = 0.05, double parallelSine = 0.001, double onLine = 0.001)
+        private static RingLimits Limits(double shortest = 0.004, double sample = 0.05, double parallelSine = 0.001, double onLine = 0.001)
         {
             return new RingLimits { OutsideM = 1.0, InsideM = 0.5, MinHeightM = 2.3, ShortestEdgeM = shortest, CornerGapM = 1.0, SlotM = 0.3, ArcStepM = 0.1, BottomAboveM = 0.1, SampleM = sample, ParallelSine = parallelSine, OnLineM = onLine };
         }
@@ -37,7 +37,7 @@ namespace SiteAdaptation.Tests
             };
         }
 
-        private static WallRingBuild Build(IEnumerable<RingWall> walls, double shortest = 0.01, IReadOnlyList<double[]> slab = null)
+        private static WallRingBuild Build(IEnumerable<RingWall> walls, double shortest = 0.004, IReadOnlyList<double[]> slab = null)
         {
             return WallRingBuilder.Build(walls, slab ?? Slab, Limits(shortest));
         }
@@ -153,6 +153,123 @@ namespace SiteAdaptation.Tests
             Assert.Contains("wallRingBottomAboveM", Why(build, "above"));
             Assert.Contains("wallRingInsideM", Why(build, "deep"));
             Assert.DoesNotContain("deep", build.Used);
+        }
+
+        // The copies of a wall in other options of a file: only the main model and the primary of each set stand in what a link shows
+        [Fact]
+        public void R500_a_wall_of_an_option_that_is_not_primary_is_only_counted_and_a_primary_option_used_is_named()
+        {
+            List<RingWall> walls = Box();
+            walls[3].Option = "Shared <primary>";
+            walls[3].OptionPrimary = true;
+            RingWall copy = Face("copy", 0, 8, 0, 0, 0.2, -1, 0);
+            copy.Option = "Expansion Joint";
+            RingWall further = Face("further out", -0.4, 9, -0.4, -1, 0.2, -1, 0);
+            further.Option = "10 cm inside";
+            walls.Add(copy);
+            walls.Add(further);
+            WallRingBuild build = Build(walls);
+            Assert.Equal(Text(Slab), Text(Corners(build)));
+            Assert.Equal(2, build.LeftByOption);
+            Assert.Equal(new[] { "Shared <primary>" }, build.PrimaryOptions);
+            Assert.DoesNotContain(build.LeftOut, wall => wall.Id == "copy" || wall.Id == "further out");
+            JObject check = (JObject)MassFiles.Sidecar("X.rvt", "aa", "key", WallRing.Choose(build, Slab, 0.9, 1.3, 0.1))["check"];
+            Assert.Equal(2, (int)check["wallsLeftByOption"]);
+            Assert.Equal("Shared <primary>", (string)check["primaryOptions"][0]);
+        }
+
+        [Theory]
+        [InlineData(false, false, true)]
+        [InlineData(true, true, true)]
+        [InlineData(true, false, false)]
+        public void R500_a_link_shows_the_main_model_and_the_primary_option(bool inOption, bool primary, bool shown)
+        {
+            Assert.Equal(shown, DesignOptions.Shown(inOption, primary));
+        }
+
+        [Fact]
+        public void R501_an_edited_profile_stands_on_the_ground_only_where_a_level_line_lies_on_it()
+        {
+            // Along the bottom to t 2, up, across at 2.5 m to t 4, down, on to the end, the top back, as a real sketch runs. It starts past the curve
+            var profile = new List<double[]>
+            {
+                new[] { -0.1, 0.0, 2.0, 0.0 }, new[] { 2.0, 0.0, 2.0, 2.5 }, new[] { 2.0, 2.5, 4.0, 2.5 }, new[] { 4.0, 2.5, 4.0, 0.0 }, new[] { 4.0, 0.0, 10.0, 0.0 }, new[] { 10.0, 0.0, 10.0, 6.0 }, new[] { 10.0, 6.0, -0.1, 6.0 }, new[] { -0.1, 6.0, -0.1, 0.0 },
+            };
+            List<double[]> stretches = WallProfiles.GroundStretches(profile, 0.1, 0.001);
+            Assert.Equal(2, stretches.Count);
+            Assert.Equal(new[] { -0.1, 2.0 }, stretches[0]);
+            Assert.Equal(new[] { 4.0, 10.0 }, stretches[1]);
+
+            // A step of the bottom within the limit is still the ground and one stretch, a wall held up over the limit has none
+            Assert.Single(WallProfiles.GroundStretches(new[] { new[] { 0.0, 0.0, 2.0, 0.0 }, new[] { 2.0, 0.0, 2.0, 0.075 }, new[] { 2.0, 0.075, 5.0, 0.075 } }, 0.1, 0.001));
+            Assert.Empty(WallProfiles.GroundStretches(new[] { new[] { 0.0, 2.5, 5.0, 2.5 } }, 0.1, 0.001));
+        }
+
+        // The wall across a recess is cut by its profile, not by its door, so the walls of the recess meet the ring
+        [Fact]
+        public void R501_a_wall_with_a_gap_at_the_ground_gives_two_stretches_and_the_recess_walls_join_at_8_corners()
+        {
+            List<RingWall> walls = Box();
+            walls.Add(Face("side a", 4, 0, 4, 0.4, 0.2, 1, 0));
+            walls.Add(Face("back with its door", 4, 0.4, 6, 0.4, 0.2, 0, -1));
+            walls.Add(Face("side b", 6, 0.4, 6, 0, 0.2, -1, 0));
+            WallRingBuild across = Build(walls);
+            Assert.Equal(4, across.Edges.Count);
+
+            walls[0].Profile = new List<double[]> { new[] { 0.0, 0.0, 4.0, 0.0 }, new[] { 4.0, 0.0, 4.0, 2.5 }, new[] { 4.0, 2.5, 6.0, 2.5 }, new[] { 6.0, 2.5, 6.0, 0.0 }, new[] { 6.0, 0.0, 10.0, 0.0 }, new[] { 10.0, 0.0, 10.0, 6.0 }, new[] { 10.0, 6.0, 0.0, 6.0 }, new[] { 0.0, 6.0, 0.0, 0.0 } };
+            WallRingBuild recess = Build(walls);
+            Assert.Equal(8, recess.Edges.Count);
+            Assert.Equal(79.2, Area(recess), 9);
+            Assert.Contains("south", recess.Used);
+            Assert.Contains("back with its door", recess.Used);
+            Assert.Single(recess.Used, id => id == "south");
+        }
+
+        [Fact]
+        public void R501_a_wall_whose_profile_never_reaches_the_ground_is_left_out_and_says_so()
+        {
+            List<RingWall> walls = Box();
+            RingWall lintel = Face("lintel", 2, 0.2, 6, 0.2, 0.2, 0, -1);
+            lintel.Profile = new List<double[]> { new[] { 0.0, 2.5, 4.0, 2.5 }, new[] { 4.0, 2.5, 4.0, 3.0 }, new[] { 4.0, 3.0, 0.0, 3.0 }, new[] { 0.0, 3.0, 0.0, 2.5 } };
+            walls.Add(lintel);
+            Assert.Contains("wallRingBottomAboveM", Why(Build(walls), "lintel"));
+        }
+
+        // The measure of R504 reads the real faces and nothing the ring was built from
+        [Fact]
+        public void R504_the_build_measures_each_edge_against_the_real_face_and_counts_connecting_and_unmeasured_edges_apart()
+        {
+            List<RingWall> walls = Box();
+            foreach (RingWall wall in walls)
+            {
+                wall.ExteriorFace = new[] { wall.Start[0] + wall.Exterior[0] * wall.Width / 2, wall.Start[1] + wall.Exterior[1] * wall.Width / 2, wall.Exterior[0], wall.Exterior[1] };
+            }
+            walls[1].ExteriorFace = new[] { 10.002, 0.0, 1.0, 0.0 };
+            walls[2].ExteriorFace = null;
+            WallRingBuild build = Build(walls);
+            Assert.Equal(0.002, build.LargestOffFaceM.Value, 9);
+            Assert.Equal(1, build.OffFaceUnmeasured);
+            Assert.Equal(0, build.ConnectingEdges);
+
+            var stepped = new List<RingWall>
+            {
+                Face("south", 0, 0, 10, 0, 0.2, 0, -1), Face("east", 10, 0, 10, 8.4, 0.2, 1, 0), Face("north out", 10, 8.4, 6, 8.4, 0.2, 0, 1), Face("north", 6, 8, 0, 8, 0.2, 0, 1), Face("west", 0, 8, 0, 0, 0.2, -1, 0),
+            };
+            Assert.Equal(1, Build(stepped).ConnectingEdges);
+            Assert.Null(Build(stepped).LargestOffFaceM);
+        }
+
+        [Fact]
+        public void R504_the_sidecar_holds_the_ring_against_the_slab_also_when_the_slab_was_chosen()
+        {
+            double[][] wide = { new[] { 0.0, 0.0 }, new[] { 20.0, 0.0 }, new[] { 20.0, 8.0 }, new[] { 0.0, 8.0 } };
+            WallRingBuild over = new WallRingBuild { Edges = Enumerable.Range(0, 4).Select(i => new RingEdge(wide[i], wide[(i + 1) % 4])).ToList() };
+            MassBase chosen = WallRing.Choose(over, Slab, 0.9, 1.3, 0.1);
+            Assert.Equal(WallRing.FromSlab, chosen.Source);
+            JObject check = (JObject)MassFiles.Sidecar("X.rvt", "aa", "key", chosen)["check"];
+            Assert.Equal(160.0, (double)check["ringAreaM2"], 9);
+            Assert.Equal(80.0, (double)check["slabAreaM2"], 9);
+            Assert.Equal(2.0, (double)check["share"], 9);
         }
 
         // The outer skin of a house can start at the FFL, 75 mm over the plane of the SSL slab, with the inner skin on the plane. The ring takes the skin
@@ -272,7 +389,7 @@ namespace SiteAdaptation.Tests
             {
                 Face("south", 0.02, 0, 10, 0, 0.2, 0, -1), Face("east", 10, 0, 10, 8, 0.2, 1, 0), Face("north", 10, 8, 0, 8, 0.2, 0, 1), Face("west long", 0, 8, 0, 3, 0.2, -1, 0), Face("west short", 0.02, 3, 0.02, 0, 0.2, -1, 0),
             };
-            Assert.Null(Build(walls, 0.01).Reason);
+            Assert.Null(Build(walls).Reason);
             Assert.Contains("stands over wallRingCornerGapM", Build(walls, 0.05).Reason);
         }
 

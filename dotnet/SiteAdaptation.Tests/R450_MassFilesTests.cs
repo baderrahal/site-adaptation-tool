@@ -108,7 +108,7 @@ namespace SiteAdaptation.Tests
                 ["footprintLimitMm"] = 100.0, ["footprintSampleStepMm"] = 10.0,
                 ["linkFolder"] = linkFolder, ["massFolder"] = massFolder ?? masses,
                 ["wallRingMinShare"] = 0.9, ["wallRingMaxShare"] = 1.3, ["wallRingOutsideM"] = 1.0, ["wallRingInsideM"] = 0.5, ["wallRingMinHeightM"] = 2.3,
-                ["wallRingShortestEdgeM"] = 0.01, ["wallRingCornerGapM"] = 1.0, ["wallRingSlotM"] = 0.3, ["wallRingArcStepM"] = 0.1, ["wallRingBottomAboveM"] = 0.1, ["wallRingSampleM"] = 0.05, ["wallRingParallelSine"] = 0.001, ["wallRingOnLineM"] = 0.001,
+                ["wallRingShortestEdgeM"] = 0.004, ["wallRingCornerGapM"] = 1.0, ["wallRingSlotM"] = 0.3, ["wallRingArcStepM"] = 0.1, ["wallRingBottomAboveM"] = 0.1, ["wallRingSampleM"] = 0.05, ["wallRingParallelSine"] = 0.001, ["wallRingOnLineM"] = 0.001,
             };
             if (houses)
             {
@@ -425,6 +425,21 @@ namespace SiteAdaptation.Tests
             Assert.Equal(WallRing.FromWalls, (string)footprint["masses"][0]["source"]);
             Assert.False((bool)footprint["masses"][0]["flagged"]);
             Assert.True((double)footprint["rows"][0]["distanceMm"] < 20, (string)footprint["rows"][0]["distanceMm"]);
+        }
+
+        // A far face is a reading of the file, so the walls it took stand where Bader reads, not in the sidecar alone
+        [Fact]
+        public void R501_a_ring_on_a_far_face_names_the_walls_in_the_run_lines_and_the_footprint_file()
+        {
+            Run run = Make(Plan(Plot("101", 1100, 0, false)), VillaModes.Masses, Config(LinkFolders.Masses));
+            run.Maker.Walls = WallsRound(Outer);
+            RingWall west = run.Maker.Walls[3];
+            west.Exterior = new[] { -west.Exterior[0], -west.Exterior[1] };
+            IReadOnlyList<string> issues = Apply(run, Context("r1"));
+            Assert.Contains(issues, line => line.Contains("prototype VD4.rvt") && line.Contains("far face") && line.Contains(west.Id));
+            JObject footprint = JObject.Parse(File.ReadAllText(Directory.GetFiles(work, "footprint_012.json*").Single()));
+            Assert.Equal(WallRing.FromWalls, (string)footprint["masses"][0]["source"]);
+            Assert.Equal(west.Id, (string)footprint["masses"][0]["wallsBackFace"][0]);
         }
 
         // Fix pass of MASS-2NOV-D. A ring that stands with a wall skipped says so where Bader reads it, not in the sidecar alone

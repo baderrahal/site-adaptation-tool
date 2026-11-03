@@ -106,7 +106,7 @@ namespace SiteAdaptation.Common.PlaceVillas
     public static class MassFiles
     {
         // Raised whenever the Revit read of the base or the file written changes, so every mass file is made again
-        public const int ReaderVersion = 4;
+        public const int ReaderVersion = 5;
         public const string Format = "site-adaptation-mass-file";
         public const string SidecarSuffix = ".json";
 
@@ -136,7 +136,8 @@ namespace SiteAdaptation.Common.PlaceVillas
             {
                 ["edges"] = new JArray(mass.Edges.Select(EdgeJson)),
                 ["wallsUsed"] = new JArray((mass.Build?.Used ?? new List<string>()).Cast<object>().ToArray()),
-                ["wallsBackFace"] = new JArray((mass.Build?.BackFace ?? new List<string>()).Cast<object>().ToArray()),
+                ["wallsBackFace"] = new JArray(mass.BackFace.Cast<object>().ToArray()),
+                ["check"] = Check(mass),
                 ["wallsLeftOut"] = new JArray((mass.Build?.LeftOut ?? new List<WallLeftOut>()).Select(wall => new JObject { ["id"] = wall.Id, ["why"] = wall.Why })),
                 ["wallsSkipped"] = new JArray(mass.Skipped.Cast<object>().ToArray()),
                 ["format"] = Format, ["readerVersion"] = ReaderVersion, ["prototype"] = Path.GetFileName(prototypePath), ["prototypeSha256"] = prototypeSha256,
@@ -159,7 +160,21 @@ namespace SiteAdaptation.Common.PlaceVillas
             List<RingEdge> edges = (sidecar["edges"] as JArray)?.Select(EdgeOf).ToList();
             var read = new MassBase(points, (string)sidecar["source"], (string)sidecar["reason"], edges);
             read.Skipped = (sidecar["wallsSkipped"] as JArray)?.Select(id => (string)id).ToList() ?? new List<string>();
+            read.BackFace = (sidecar["wallsBackFace"] as JArray)?.Select(id => (string)id).ToList() ?? new List<string>();
             return read;
+        }
+
+        // R504. What the table per prototype of a real run reads: the ring the walls gave against the slab, how far its edges lie off the real
+        // side faces, the edges with no wall on them, the walls no link shows. Null values where the walls gave no ring
+        private static JObject Check(MassBase mass)
+        {
+            WallRingBuild build = mass.Build;
+            return new JObject
+            {
+                ["ringAreaM2"] = mass.BuiltAreaM2, ["slabAreaM2"] = mass.SlabAreaM2, ["share"] = mass.BuiltAreaM2.HasValue && mass.SlabAreaM2 > 0 ? mass.BuiltAreaM2 / mass.SlabAreaM2 : null,
+                ["edges"] = build?.Edges.Count, ["connectingEdges"] = build?.ConnectingEdges, ["largestOffFaceMm"] = build?.LargestOffFaceM * 1000, ["offFaceUnmeasured"] = build?.OffFaceUnmeasured,
+                ["wallsLeftByOption"] = build?.LeftByOption, ["primaryOptions"] = new JArray((build?.PrimaryOptions ?? new List<string>()).Cast<object>().ToArray()),
+            };
         }
 
         private static JObject EdgeJson(RingEdge edge)

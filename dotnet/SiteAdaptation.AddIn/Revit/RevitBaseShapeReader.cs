@@ -80,7 +80,7 @@ namespace SiteAdaptation.AddIn.Revit
             {
                 throw new NotSupportedException("the base boundary source areaBoundary is not read yet, Q164 holds lowestFloor or floorType");
             }
-            List<Floor> floors = new FilteredElementCollector(prototype).OfClass(typeof(Floor)).Cast<Floor>().ToList();
+            List<Floor> floors = new FilteredElementCollector(prototype).OfClass(typeof(Floor)).Cast<Floor>().Where(floor => DesignOptions.Shown(floor.DesignOption != null, floor.DesignOption?.IsPrimary ?? false)).ToList();
             if (config.BaseBoundary == BaseBoundarySources.LowestFloor)
             {
                 Level lowest = new FilteredElementCollector(prototype).OfClass(typeof(Level)).Cast<Level>().Where(level => floors.Any(floor => floor.LevelId == level.Id))
@@ -114,11 +114,21 @@ namespace SiteAdaptation.AddIn.Revit
                 {
                     Id = wall.Id.ToString(), Function = wall.WallType?.Function.ToString(), Width = UnitMath.FeetToMetres(wall.Width), Exterior = new[] { wall.Orientation.X, wall.Orientation.Y },
                     BottomM = UnitMath.FeetToMetres(box.Min.Z - top.Max.Z), HeightM = UnitMath.FeetToMetres(box.Max.Z - top.Max.Z),
+                    Option = wall.DesignOption?.Name, OptionPrimary = wall.DesignOption?.IsPrimary ?? false,
                 };
+                if (wall.WallType?.Function == WallFunction.Exterior)
+                {
+                    read.ExteriorFace = SideFace(wall, ShellLayerType.Exterior);
+                    read.InteriorFace = SideFace(wall, ShellLayerType.Interior);
+                }
                 if (location.Curve is Line || location.Curve is Arc)
                 {
                     read.Start = Plan(location.Curve.GetEndPoint(0));
                     read.End = Plan(location.Curve.GetEndPoint(1));
+                }
+                if (location.Curve is Line line && wall.SketchId != ElementId.InvalidElementId && prototype.GetElement(wall.SketchId) is Sketch sketch)
+                {
+                    read.Profile = ProfileLines(sketch, line, top.Max.Z);
                 }
                 if (location.Curve is Arc arc)
                 {
@@ -128,6 +138,45 @@ namespace SiteAdaptation.AddIn.Revit
                 walls.Add(read);
             }
             return walls;
+        }
+
+        // R501. The straight lines of the sketch of an edited profile, t along the curve from its first end in metres, z over the plane. The
+        // sketch lies in project coordinates, the probe of 3 Nov read it so on DT3 and TH3
+        private static List<double[]> ProfileLines(Sketch sketch, Line curve, double planeZ)
+        {
+            XYZ first = curve.GetEndPoint(0), along = (curve.GetEndPoint(1) - first).Normalize();
+            var lines = new List<double[]>();
+            foreach (CurveArray loop in sketch.Profile)
+            {
+                foreach (Curve part in loop)
+                {
+                    if (part is Line)
+                    {
+                        XYZ a = part.GetEndPoint(0), b = part.GetEndPoint(1);
+                        lines.Add(new[] { UnitMath.FeetToMetres((a - first).DotProduct(along)), UnitMath.FeetToMetres(a.Z - planeZ), UnitMath.FeetToMetres((b - first).DotProduct(along)), UnitMath.FeetToMetres(b.Z - planeZ) });
+                    }
+                }
+            }
+            return lines;
+        }
+
+        // R504. The plane of one side of a wall in plan, for the measure of the ring only. Null where Revit gives none or it is not planar, the
+        // ring never needs it
+        private static double[] SideFace(Wall wall, ShellLayerType side)
+        {
+            try
+            {
+                IList<Reference> faces = HostObjectUtils.GetSideFaces(wall, side);
+                if (faces.Count == 0 || !(wall.GetGeometryObjectFromReference(faces[0]) is PlanarFace face))
+                {
+                    return null;
+                }
+                return new[] { UnitMath.FeetToMetres(face.Origin.X), UnitMath.FeetToMetres(face.Origin.Y), face.FaceNormal.X, face.FaceNormal.Y };
+            }
+            catch (Autodesk.Revit.Exceptions.ApplicationException)
+            {
+                return null;
+            }
         }
 
         private static double[] Plan(XYZ point)

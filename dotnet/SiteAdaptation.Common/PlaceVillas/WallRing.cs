@@ -32,6 +32,14 @@ namespace SiteAdaptation.Common.PlaceVillas
         // The ids of the walls with a face that sees the outside that the walk of this ring passed by, each a doubt on the ring (R502)
         public IReadOnlyList<string> Skipped { get; set; } = new List<string>();
 
+        // The ids of the ring walls whose far face is the outer one, their Orientation faces the house (R501)
+        public IReadOnlyList<string> BackFace { get; set; } = new List<string>();
+
+        // R504, for the table per prototype of the sidecar. Built is the area of the ring the walls gave, null when they gave none, also
+        // when the slab was chosen over it
+        public double? BuiltAreaM2 { get; set; }
+        public double SlabAreaM2 { get; set; }
+
         // A base taken from the slab since the walls do not close, flagged with Q279
         public bool Flagged => Source == WallRing.FromSlab;
     }
@@ -51,12 +59,14 @@ namespace SiteAdaptation.Common.PlaceVillas
             {
                 throw new InvalidDataException("the largest ground slab holds " + slabRing.Count + " corners, a mass base needs 3 (R504)");
             }
-            MassBase Flag(string reason) => new MassBase(slabRing, FromSlab, reason) { Build = build };
-            if (build == null || build.Edges.Count == 0)
+            double slabArea = Math.Abs(RingMath.Area(slabRing));
+            List<double[]> outer = build != null && build.Edges.Count > 0 ? RingEdges.Points(build.Edges, arcStepM) : null;
+            double? built = outer == null ? (double?)null : Math.Abs(RingMath.Area(outer));
+            MassBase Flag(string reason) => new MassBase(slabRing, FromSlab, reason) { Build = build, BuiltAreaM2 = built, SlabAreaM2 = slabArea };
+            if (outer == null)
             {
                 return Flag(build?.Reason ?? "no exterior wall stands at the ground level");
             }
-            List<double[]> outer = RingEdges.Points(build.Edges, arcStepM);
             if (!FaceRings.IsSimple(outer))
             {
                 return Flag("the ring of the exterior walls crosses itself");
@@ -65,8 +75,7 @@ namespace SiteAdaptation.Common.PlaceVillas
             {
                 return Flag("the ring of the exterior walls does not hold the middle of the slab");
             }
-            double slabArea = Math.Abs(RingMath.Area(slabRing));
-            double share = slabArea == 0 ? 0 : Math.Abs(RingMath.Area(outer)) / slabArea;
+            double share = slabArea == 0 ? 0 : built.Value / slabArea;
             string shown = share.ToString("0.###", CultureInfo.InvariantCulture);
             if (share < minShare)
             {
@@ -76,7 +85,7 @@ namespace SiteAdaptation.Common.PlaceVillas
             {
                 return Flag("the ring of the exterior walls covers " + shown + " of the slab area, over wallRingMaxShare " + maxShare.ToString(CultureInfo.InvariantCulture));
             }
-            return new MassBase(outer, FromWalls, "the exterior walls close into a ring of " + shown + " of the slab area", build.Edges) { Build = build, Skipped = build.Skipped.Select(wall => wall.Id).ToList() };
+            return new MassBase(outer, FromWalls, "the exterior walls close into a ring of " + shown + " of the slab area", build.Edges) { Build = build, Skipped = build.Skipped.Select(wall => wall.Id).ToList(), BackFace = build.BackFace.ToList(), BuiltAreaM2 = built, SlabAreaM2 = slabArea };
         }
 
         private static List<double[]> Ring(IReadOnlyList<double[]> points)

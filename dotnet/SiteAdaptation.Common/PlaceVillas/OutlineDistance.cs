@@ -250,7 +250,7 @@ namespace SiteAdaptation.Common.PlaceVillas
                 ["masses"] = new JArray((masses ?? Enumerable.Empty<KeyValuePair<string, MassBase>>()).Where(item => item.Value != null).OrderBy(item => item.Key, StringComparer.Ordinal)
                     .Select(item => new JObject
                     {
-                        ["prototype"] = System.IO.Path.GetFileName(item.Key), ["source"] = item.Value.Source, ["flagged"] = item.Value.Flagged, ["reason"] = item.Value.Reason, ["wallsSkipped"] = new JArray(item.Value.Skipped.Cast<object>().ToArray()),
+                        ["prototype"] = System.IO.Path.GetFileName(item.Key), ["source"] = item.Value.Source, ["flagged"] = item.Value.Flagged, ["reason"] = item.Value.Reason, ["wallsSkipped"] = new JArray(item.Value.Skipped.Cast<object>().ToArray()), ["wallsBackFace"] = new JArray(item.Value.BackFace.Cast<object>().ToArray()),
                     })),
             };
         }
