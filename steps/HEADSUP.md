@@ -11,7 +11,7 @@
 
 ### Lane B, C and D
 
-- Lane B FIX-3NOV-B, 3 Nov, branch records/3nov-b-overlaps: PR 154 merged (tasks 1, 2). Task 3 report in review, then its PR. Task 4 and 5 wait for Lane A's lock. No Revit of mine.
+- Lane B FIX-3NOV-B, 3 Nov, branch records/3nov-b-overlaps: PR 154 merged. Task 3 report: review back, breaker running 20 min, then PR. Task 4 and 5 wait for Lane A's Revit run, then main is reinstalled. No Revit of mine.
 - Lane C SPEED-2NOV-C, 3 Nov: PR 151 merged, listener on main, how-to steps/revit-listener.md. Records PR open, sheet only. Nothing queued. Blocked: none
 - Lane D MASS-2NOV-D, 3 Nov, branch mass/2nov-d: the mass outline by the outer wall faces, R500 to R504, closed Q279, Q321, opened Q390 to Q393. Revit proof done, lock free.
   Now: the PR, merge when green. Nothing queued after it. Blocked: none
