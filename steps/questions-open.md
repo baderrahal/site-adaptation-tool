@@ -731,7 +731,7 @@ Q404. Set up site band shows a code name (Lane C 6C-3NOV-C, Lane B window). The 
 - Recommended: Lane B replaces it with Saved in this model.
 - Other: Leave it, it says where the settings live.
 
-Q405. Export to Excel hidden in Rules (Lane C 6C-3NOV-C, R444 against docs/design/13-workflow-changes.md line 43). Your changes of 28 Oct ask for Export to Excel in Site Adaptation Rules. R444 hid it as an idle button, line 137 of RulesWindow.xaml is Collapsed always (READ). The two disagree.
+Q405. Export to Excel hidden in Rules (Lane C 6C-3NOV-C, R444 against docs/design/13-workflow-changes.md line 43). Your changes of 28 Oct ask for Export to Excel in Site Adaptation Rules. R444 hid it as an idle button, line 137 of RulesWindow.xaml is Collapsed always (READ).
 - Recommended: Build the export in Part 2, hidden until then.
 - Other: Drop it from the design, the rules are in the manual and the report sheet Rules.
 
@@ -739,7 +739,7 @@ Q406. Conflicts Plot column shows the CAD label (Lane C 6C-3NOV-C, CHECK-2NOV pa
 - Recommended: The head reads CAD label, as 3 Review data does. ScanView.ConflictKey stays.
 - Other: Show both once the plot numbers are read, more work in the scan.
 
-Q407. Amber in the spec or the boards (Lane C 6C-3NOV-C, docs/design/12-ui-spec.md line 34 against boards). The spec says amber is SA.Warn #7A4B00, the boards draw marks in #B26B00 (READ). The XAML follows the spec, so the missing marks read brown beside the board. Button text 13 against the boards' 14, padding on the 4 to 24 scale against the boards' 18 and 20, the same kind.
+Q407. Amber in the spec or the boards (Lane C 6C-3NOV-C, docs/design/12-ui-spec.md line 34 against boards). The spec says amber is SA.Warn #7A4B00, the boards draw marks in #B26B00 (READ). The XAML follows the spec, so the missing marks read brown beside the board. Button text and padding differ the same way.
 - Recommended: The spec holds, the boards are drafts of the words and layout, say so in Q286.
 - Other: The boards hold, change SA.Warn, button text 14 and the padding scale, which moves every window.
 
@@ -767,7 +767,7 @@ Q413. Input picks lost before a real run (Lane B dry run, R367). A model saved a
 - Recommended: a Browse pick in the pane writes the setup at once as Save setup does (R445), in its own small transaction.
 - Other: keep R367, the pane says the picks are not saved until step 1 runs.
 
-Q414. How long a whole project takes (Lane C GUIDE-3NOV-C). steps/buttons-guide.md gives times of one rehearsal on NBH 012 only. No record holds New project or buttons 1 to 9 on the whole project.
+Q414. How long a whole project takes (Lane C GUIDE-3NOV-C). steps/buttons-guide.md gives times of one rehearsal on NBH 012 only. No record holds New project or a whole project.
 - Recommended: Lane B times one whole project run on a copy and the guide takes the numbers.
 - Other: Leave Not known until Part 2.
 
