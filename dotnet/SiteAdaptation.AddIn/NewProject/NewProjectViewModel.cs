@@ -225,19 +225,8 @@ namespace SiteAdaptation.AddIn.NewProject
             SavedStart origin = SavedStarts.CameFrom(this.current, starts);
             cameFrom = origin == null ? null : Starts.First(choice => choice.Start == origin);
             Rows = SetupRows.All.Select(row => new SetupRowViewModel(row)).ToList();
-            ReportRows = new[]
-            {
-                ReportRow("project", NewProjectText.ReportProject),
-                ReportRow("originator", NewProjectText.ReportOriginator),
-                ReportRow("volume", NewProjectText.ReportVolume),
-                ReportRow("level", NewProjectText.ReportLevel),
-                ReportRow("type", NewProjectText.ReportType),
-                ReportRow("role", NewProjectText.ReportRole),
-                ReportRow("number", NewProjectText.ReportNumber),
-                ReportRow(ReportFile.Revision, NewProjectText.ReportRevision),
-                ReportRow(ReportFile.Status, NewProjectText.ReportStatus),
-                ReportRow(ReportFile.ProjectName, NewProjectText.ProjectName),
-            };
+            ReportRows = ReportFile.NameFields.Concat(new[] { ReportFile.Revision, ReportFile.Status, ReportFile.ProjectName })
+                .Select((key, index) => new ReportFieldRow(key, NewProjectText.ReportLabels[index], ReportEdited)).ToList();
             facts = facts ?? new DrawingFactsResult();
             this.facts = facts;
             ScanFactsData scan = facts.Scan;
@@ -562,11 +551,6 @@ namespace SiteAdaptation.AddIn.NewProject
             ProjectSettings next = Next();
             string mode = next.ProjectMode ?? ProjectModes.OfConfig(ProjectModes.ReadConfig(next.ConfigFile, readText)) ?? (Takes ? shipped.NewMode(readText) : null);
             ModeLine = mode == null ? string.Empty : mode == Common.DesignBasis.Rev6 ? NewProjectText.ModeRev6 : NewProjectText.ModePast;
-        }
-
-        private ReportFieldRow ReportRow(string key, string label)
-        {
-            return new ReportFieldRow(key, label, ReportEdited);
         }
 
         // An edit back to the value of the settings is no edit, so the project keeps following config

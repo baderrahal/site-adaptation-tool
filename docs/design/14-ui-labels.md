@@ -99,7 +99,10 @@ The five panels and their buttons of 7.1 of docs/design/12-ui-spec.md, Bader's c
 - `Links`
 - `Steps`
 - `Run them in order. Each one waits for the one before.`
-- `Coordinates, levels and types from CAD`
+- `Coordinates, levels and types, set in step 1` CHOSEN, R543
+- `Coordinates from the CAD baseplan, levels and units from the rules, types from config` CHOSEN, R543
+- `Coordinates, levels and units from the position file, types from config` CHOSEN, R543
+- `Coordinates typed by the user, levels and units from the rules, types from config` CHOSEN, R543
 - `Reads the drawings and schedules`
 - `The team checks what was read`
 - `Compares the rules with the past job`
@@ -607,7 +610,10 @@ The window New project of Lane C NEWPROJ-UI, word for word from docs/design/boar
 - `Used by 9 Report. Leave a field empty to use the value of the project settings.` CHOSEN, R542
 - `File name: ` CHOSEN, R542
 - `These fields make no file name. Take out any of \ / : * ? " | from them.` CHOSEN, R542
+- `Project` CHOSEN, R542
 - `Originator` CHOSEN, R542
+- `Level` CHOSEN, R542
+- `Type` CHOSEN, R542
 - `Volume (keep <nbh>)` CHOSEN, R542
 - `Role` CHOSEN, R542
 - `Number` CHOSEN, R542

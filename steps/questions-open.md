@@ -718,10 +718,6 @@ Q414. How long a whole project takes (Lane C GUIDE-3NOV-C). steps/buttons-guide.
 - Recommended: Lane B times one whole project run on a copy and the guide takes the numbers.
 - Other: Leave Not known until Part 2.
 
-Q415. Pane lines say more than is built (Lane C GUIDE-3NOV-C, R362, Q328). Step 1 reads from CAD, coordinates.source is positionFile. Lane A sends the step 1 text, step 8 now reads Boundary walls.
-- Recommended: Keep step 1 until Q328 switches, step 8 reads Boundary walls.
-- Other: Leave both.
-
 Q416. Road row reads optional, step 2 needs it (Lane C GUIDE-3NOV-C, R430). New project marks Road levels optional, Without it the tool uses road level plus slope. ButtonFlow.Absent stops step 2 with no folder (READ).
 - Recommended: The row loses Optional and that line until a build without roads exists.
 - Other: Build the road level plus slope path.
