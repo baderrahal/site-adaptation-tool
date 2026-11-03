@@ -396,6 +396,10 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R416 Boundary wall face on plot line.
 - R470 Shared ramp corner, one level.
 - R471 Ramp joint check row.
+- R515 Shared back corner, front plus slope.
+- R516 Override at shared corner left.
+- R517 Floors pulled inside their plot.
+- R518 Joint check reach past pull.
 - R472 Update finds the plan of 4 Check.
 - R473 Read takes the saved picks.
 - R474 Read log names each source.
