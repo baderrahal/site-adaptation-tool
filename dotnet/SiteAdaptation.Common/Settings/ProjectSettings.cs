@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
 
 namespace SiteAdaptation.Common.Settings
 {
@@ -58,6 +60,23 @@ namespace SiteAdaptation.Common.Settings
 
     public sealed class ButtonRun
     {
+        // R498. The key of Counts for the warnings Revit gave at the commit, which come too late to be written as issues in that transaction
+        public const string WarningsCount = "warnings";
+
+        // R367. The record of a real run as the settings JSON keeps it. The mode follows the tick of the settings, since the flow runs the
+        // dry run first exactly when it is on (CHOSEN)
+        public static ButtonRun Of(DateTime time, ProjectSettings settings, SettingsScope scope, IReadOnlyDictionary<string, string> inputHashes, IEnumerable<string> issues)
+        {
+            return new ButtonRun
+            {
+                Time = time.ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'", CultureInfo.InvariantCulture),
+                Mode = settings.DryRunFirst ? RunModes.AfterDryRun : RunModes.Direct,
+                Scope = scope,
+                InputHashes = new SortedDictionary<string, string>(inputHashes.ToDictionary(pair => pair.Key, pair => pair.Value), StringComparer.Ordinal),
+                Issues = issues.ToList(),
+            };
+        }
+
         // ISO 8601 in UTC
         public string Time { get; set; }
         public string Mode { get; set; }
@@ -65,6 +84,10 @@ namespace SiteAdaptation.Common.Settings
         public SortedDictionary<string, string> InputHashes { get; set; } = new SortedDictionary<string, string>(StringComparer.Ordinal);
         public SortedDictionary<string, int> Counts { get; set; } = new SortedDictionary<string, int>(StringComparer.Ordinal);
         public List<string> Issues { get; set; } = new List<string>();
+
+        // R498. Each output of the run with its SHA-256, on its name under the work folder of the model, so a copy under a new path looks
+        // in its own folder and finds none. Null in a record of button 1 and in one written before this field, which holds by hash alone
+        public SortedDictionary<string, string> Outputs { get; set; }
     }
 
     public static class ScopeKinds

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using SiteAdaptation.Common.Scope;
 using SiteAdaptation.Common.Settings;
@@ -53,8 +54,9 @@ namespace SiteAdaptation.Common.Steps
         public int Issues { get; }
         public IReadOnlyDictionary<string, string> Outputs { get; }
 
-        // Q158. The last run of a step in the settings, null with none or with a time that does not read, which R367 refused already
-        public static StepRun FromSettings(ProjectSettings settings, int step)
+        // Q158. The last run of a step in the settings, null with none or with a time that does not read, which R367 refused already.
+        // R498. Its outputs under the work folder given, none with no folder
+        public static StepRun FromSettings(ProjectSettings settings, int step, string workFolder = null)
         {
             if (settings == null || !settings.LastRuns.TryGetValue(step.ToString(CultureInfo.InvariantCulture), out ButtonRun last) || last == null)
             {
@@ -62,7 +64,7 @@ namespace SiteAdaptation.Common.Steps
             }
             try
             {
-                return From(last, null);
+                return From(last, workFolder == null || last.Outputs == null ? null : last.Outputs.ToDictionary(output => Path.Combine(workFolder, output.Key), output => output.Value, StringComparer.OrdinalIgnoreCase));
             }
             catch (FormatException)
             {
@@ -70,11 +72,12 @@ namespace SiteAdaptation.Common.Steps
             }
         }
 
-        // The last run of a button as the settings JSON of R367 keeps it, with the outputs of its run record, which lastRuns does not hold
+        // The last run of a button as the settings JSON of R367 keeps it, with the outputs on their full names
         public static StepRun From(ButtonRun run, IReadOnlyDictionary<string, string> outputs)
         {
             DateTime time = DateTime.Parse(run.Time, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal);
-            return new StepRun(time, StepHash.Combine(run.InputHashes), run.Scope, run.Issues.Count, outputs);
+            run.Counts.TryGetValue(ButtonRun.WarningsCount, out int warnings);
+            return new StepRun(time, StepHash.Combine(run.InputHashes), run.Scope, run.Issues.Count + warnings, outputs);
         }
     }
 

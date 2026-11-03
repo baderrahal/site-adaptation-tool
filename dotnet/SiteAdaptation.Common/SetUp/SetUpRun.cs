@@ -357,16 +357,9 @@ namespace SiteAdaptation.Common.SetUp
         // dry run first exactly when it is on (CHOSEN). Counts names the rows of the window that differed and were set
         private ButtonRun LastRun(RunContext context, int changing, IReadOnlyList<string> issues)
         {
-            ProjectSettings settings = settingsNow();
-            return new ButtonRun
-            {
-                Time = clock().ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'", CultureInfo.InvariantCulture),
-                Mode = settings.DryRunFirst ? RunModes.AfterDryRun : RunModes.Direct,
-                Scope = new SettingsScope(),
-                InputHashes = new SortedDictionary<string, string>(context.InputHashes.ToDictionary(pair => pair.Key, pair => pair.Value), StringComparer.Ordinal),
-                Counts = new SortedDictionary<string, int>(StringComparer.Ordinal) { { "set", changing } },
-                Issues = issues.ToList(),
-            };
+            ButtonRun run = ButtonRun.Of(clock(), settingsNow(), new SettingsScope(), context.InputHashes, issues);
+            run.Counts["set"] = changing;
+            return run;
         }
 
         // R311. The site facts read back from the document, in the shape plan_from_book.py takes by --site

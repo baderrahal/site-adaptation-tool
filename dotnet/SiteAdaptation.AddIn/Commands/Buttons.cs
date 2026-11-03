@@ -85,7 +85,10 @@ namespace SiteAdaptation.AddIn
             Document document = application.ActiveUIDocument == null ? null : application.ActiveUIDocument.Document;
             // R446. Before the flow reads the tick. The test host keeps its own state, so a job runs as it names
             (State as Pane.PaneRunState)?.BeforeRun(button.Number);
-            var flow = new ButtonFlow(State, new RevitModel(document), new TaskDialogConfirm(), InputHash.Of, () => RunIds.New(button.Number, DateTime.Now), timing);
+            // R498. A run of buttons 2 to 9 records itself in the model of its session
+            Pane.DocumentSession recordIn = document == null || document.IsFamilyDocument ? null : PaneHost.Current?.Sessions.Seen(document, document.PathName, document.Title);
+            StepRecorder recorder = recordIn == null ? null : new StepRecorder(() => recordIn.Settings.Project, new SettingsEntity(document), () => DateTime.UtcNow);
+            var flow = new ButtonFlow(State, new RevitModel(document), new TaskDialogConfirm(), InputHash.Of, () => RunIds.New(button.Number, DateTime.Now), timing, recorder);
             string configFile = document == null ? null : PaneHost.Current?.Sessions.Seen(document, document.PathName, document.Title)?.Settings?.ConfigFile;
             // R444. One loader for every button, the ribbon and the pane both come here. A run outside Revit keeps it until its end
             Loader.RunLoader loader = Loader.RunLoader.Start(button.Label, application.MainWindowHandle);

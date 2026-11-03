@@ -293,6 +293,9 @@ namespace SiteAdaptation.AddIn.Pane
         // Reads the text of the settings file for the pick. The disk by default, a test gives its own
         public Func<string, string> ReadText { get; set; } = WorkFolder.ReadIfThere;
 
+        // R498. The work folder of a saved document, where the outputs of a run the model recorded lie. The add-in sets it, null in a test with none
+        public Func<string, string> WorkFolderOf { get; set; }
+
         // R492. Pick surfaces of the row Road surface. A Use keeps the order in the settings in memory, as a Browse does, so it reaches the
         // model with the record of the next real run. A Cancel keeps what was there. A change of folder does not clear the pick
         public void PickSurfaces()
@@ -665,7 +668,7 @@ namespace SiteAdaptation.AddIn.Pane
 
         private StepRun LastRun(int step)
         {
-            return document.LastRun(step);
+            return document.LastRun(step, document.HasPath ? WorkFolderOf?.Invoke(document.Path) : null);
         }
 
         private void RefreshHelp()
@@ -738,7 +741,7 @@ namespace SiteAdaptation.AddIn.Pane
             BoxButtonShown = next != 0;
         }
 
-        // R446. The files of the last run of 9 Report once it is done and no step is left to run, none known after a reopen, else null
+        // R446. The files of the last run of 9 Report once it is done and no step is left to run, else null
         private IReadOnlyList<string> ReportFiles()
         {
             StepKind report = statuses[ReportStep - 1].Kind;
@@ -746,7 +749,8 @@ namespace SiteAdaptation.AddIn.Pane
             {
                 return null;
             }
-            return document.Runs.TryGetValue(ReportStep, out StepRun run) ? run.Outputs.Keys.OrderBy(path => path, StringComparer.OrdinalIgnoreCase).ToList() : new List<string>();
+            StepRun run = LastRun(ReportStep);
+            return run != null ? run.Outputs.Keys.OrderBy(path => path, StringComparer.OrdinalIgnoreCase).ToList() : new List<string>();
         }
 
         private void OnBox()
