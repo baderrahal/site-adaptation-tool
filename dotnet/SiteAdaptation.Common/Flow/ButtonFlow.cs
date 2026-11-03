@@ -165,6 +165,7 @@ namespace SiteAdaptation.Common.Flow
         private RunOutcome Later(ButtonBody body, RunContext context, Action<RunOutcome> ended)
         {
             int taken = 0;
+            recorder?.Begin();
             timing?.NextStep(RunTiming.WorkerStartStep);
             Action<RunLater> end = later =>
             {
@@ -211,7 +212,7 @@ namespace SiteAdaptation.Common.Flow
             {
                 return outcome;
             }
-            string reason = WrittenAlone(context, transaction => recorder.Write(context, outcome.Record.Issues, transaction));
+            string reason = WrittenAlone(context, transaction => recorder.Write(context, outcome.Record.Issues, transaction, outcome.Record.Outputs));
             if (reason == null)
             {
                 return outcome;
@@ -340,6 +341,7 @@ namespace SiteAdaptation.Common.Flow
         {
             var issues = new List<string>();
             int warnings;
+            int beforeCommit;
             timing?.NextStep(RunTiming.ApplyStep);
             IModelTransaction started;
             try
@@ -395,6 +397,7 @@ namespace SiteAdaptation.Common.Flow
                     return new RunOutcome(RunEnd.RolledBack, RunTexts.ChangedNothing(context.Label, reason), null);
                 }
                 warnings = transaction.Warnings.Count;
+                beforeCommit = issues.Count;
                 issues.AddRange(transaction.Warnings);
                 try
                 {
@@ -421,9 +424,10 @@ namespace SiteAdaptation.Common.Flow
                     failed.Add(output.Value);
                 }
             }
-            if (recording != null && recording.NeedsSettling(warnings, failed.Count))
+            List<string> issuesAfter = issues.Skip(beforeCommit + warnings).ToList();
+            if (recording != null && recording.NeedsSettling(warnings, issuesAfter.Count, moved.Count, failed.Count))
             {
-                string notSettled = WrittenAlone(context, transaction => recording.Settle(context.Button, warnings, failed.Count, transaction));
+                string notSettled = WrittenAlone(context, transaction => recording.Settle(context, warnings, issuesAfter, moved, failed.Count, transaction));
                 if (notSettled != null)
                 {
                     issues.Add(RunTexts.RecordNotWritten(notSettled));

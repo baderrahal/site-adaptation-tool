@@ -84,6 +84,10 @@ namespace SiteAdaptation.Common.Settings
         public SortedDictionary<string, string> InputHashes { get; set; } = new SortedDictionary<string, string>(StringComparer.Ordinal);
         public SortedDictionary<string, int> Counts { get; set; } = new SortedDictionary<string, int>(StringComparer.Ordinal);
         public List<string> Issues { get; set; } = new List<string>();
+
+        // R498. Each output of the run with its SHA-256, on its name under the work folder of the model, so a copy under a new path looks
+        // in its own folder and finds none. Null in a record of button 1 and in one written before this field, which holds by hash alone
+        public SortedDictionary<string, string> Outputs { get; set; }
     }
 
     public static class ScopeKinds

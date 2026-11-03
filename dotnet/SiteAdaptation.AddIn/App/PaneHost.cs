@@ -116,6 +116,7 @@ namespace SiteAdaptation.AddIn
             };
             host.SavedStartsChanged();
             Buttons.State = new PaneRunState(host.model, WorkRoot, WorkFolder.ReadIfThere);
+            host.model.WorkFolderOf = path => WorkFolder.For(WorkRoot(), path);
             application.RegisterDockablePane(PaneId, PaneText.Title, host);
             application.ControlledApplication.DocumentOpened += host.OnOpened;
             application.ControlledApplication.DocumentCreated += host.OnCreated;

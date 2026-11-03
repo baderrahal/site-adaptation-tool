@@ -130,13 +130,13 @@ namespace SiteAdaptation.AddIn.Pane
         public PaneSettings Settings { get; set; }
 
         // R366. The last real run of each step that committed in this session, with the outputs of its record. A step with none here
-        // takes its last run from lastRuns of the settings, which hold no outputs, so it is held by its hash and scope alone (CHOSEN)
+        // takes its last run from lastRuns of the settings, with the outputs R498 keeps there under the work folder of this document
         public Dictionary<int, StepRun> Runs { get; } = new Dictionary<int, StepRun>();
 
         // R366, Q158. The last run of a step as the pane and a press of button 1 read it: the one of this session first, else the one of the settings
-        public StepRun LastRun(int step)
+        public StepRun LastRun(int step, string workFolder = null)
         {
-            return Runs.TryGetValue(step, out StepRun run) ? run : StepRun.FromSettings(Settings.Project, step);
+            return Runs.TryGetValue(step, out StepRun run) ? run : StepRun.FromSettings(Settings.Project, step, workFolder);
         }
 
         public bool HasPath

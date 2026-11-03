@@ -74,6 +74,22 @@ namespace SiteAdaptation.Tests
             Assert.NotNull(session.LastRun(5));
         }
 
+        // Breaker: an undo of a wall moved by hand keeps what a step knows of its files
+        [Fact]
+        public void R499_an_undo_of_something_else_keeps_the_outputs_the_entity_holds()
+        {
+            var sessions = new PaneSessions();
+            object document = new object();
+            DocumentSession session = sessions.Opened(document, @"C:\work\site.rvt", "site");
+            var settings = new ProjectSettings();
+            settings.LastRuns["9"] = new ButtonRun { Time = "2026-11-03T08:00:00.000Z", Scope = new SettingsScope(), Outputs = new SortedDictionary<string, string> { { "012_Report.xlsx", Hash } } };
+            session.Runs[9] = Session();
+
+            sessions.Undone(document, new Entity { Json = SettingsJson.Write(settings) });
+
+            Assert.Equal(Hash, session.LastRun(9, @"C:\work\f").Outputs[System.IO.Path.Combine(@"C:\work\f", "012_Report.xlsx")]);
+        }
+
         private sealed class Entity : ISettingsEntity
         {
             public string Json { get; set; }

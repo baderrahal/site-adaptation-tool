@@ -304,6 +304,134 @@ namespace SiteAdaptation.Tests
             Assert.Equal(1, lines[4].Value);
         }
 
+        private ButtonBody Writing(string name, params string[] issues)
+        {
+            return new ButtonBody
+            {
+                Preview = context => new RunSummary("c", null),
+                Apply = context =>
+                {
+                    context.WriteText(name, "made");
+                    return issues;
+                },
+            };
+        }
+
+        [Fact]
+        public void R498_the_outputs_go_into_the_record_on_their_names_under_the_work_folder()
+        {
+            RunOutcome outcome = Press(5, Writing("floors.json"));
+
+            string hash = outcome.Record.Outputs.Single().Value;
+            Assert.Equal(new[] { "floors.json" }, Held().LastRuns["5"].Outputs.Keys);
+            Assert.Equal(hash, Held().LastRuns["5"].Outputs["floors.json"]);
+            Assert.Equal(2, model.Started);
+            Assert.Equal(1, model.GroupsKept);
+            Assert.Equal(hash, StepRun.FromSettings(Held(), 5, root).Outputs[Path.Combine(root, "floors.json")]);
+            Assert.Empty(StepRun.FromSettings(Held(), 5).Outputs);
+        }
+
+        // Breaker: a copy of the model under a new path has a new work folder with nothing in it, so no row may read Done
+        [Fact]
+        public void R498_a_copy_of_the_model_finds_no_outputs_and_its_step_is_not_done()
+        {
+            Press(5, Writing("floors.json"));
+            ProjectSettings reopened = Held();
+            string hashNow = StepHash.Combine(new Dictionary<string, string> { { "Curbs", Hash } });
+
+            StepRun here = StepRun.FromSettings(reopened, 5, root);
+            StepRun copy = StepRun.FromSettings(reopened, 5, Path.Combine(root, "copy"));
+            var onDisk = here.Outputs.ToDictionary(output => output.Key, output => output.Value);
+
+            Assert.Equal(StepStateKind.Ready, Line(5, new StepNow(copy, hashNow, new Dictionary<string, string>()), reopened).Kind);
+            Assert.Equal(StepStateKind.Done, Line(5, new StepNow(here, hashNow, onDisk), reopened).Kind);
+        }
+
+        private static StepLine Line(int step, StepNow now, ProjectSettings settings)
+        {
+            var steps = new Dictionary<int, StepNow> { { step, now } };
+            for (int before = 1; before < step; before++)
+            {
+                steps[before] = new StepNow(new StepRun(new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc), "h", settings.Scope, 0, null), "h", null);
+            }
+            return StepStates.Of(true, settings.Scope, steps)[step - 1];
+        }
+
+        [Fact]
+        public void R498_a_worker_output_goes_into_its_small_transaction()
+        {
+            RunOutcome ended = null;
+            var outputs = new Dictionary<string, string> { { Path.Combine(root, "plan.json"), Hash } };
+            var body = new ButtonBody { Preview = context => new RunSummary("c", null), Start = (context, end) => end(RunLater.Done(null, null, outputs)) };
+            new ButtonFlow(state, model, new Yes(), run => Hash, () => "4_run", null, new StepRecorder(() => session, entity, () => now)).Run(4, "4 Step", body, Document, later => ended = later);
+
+            Assert.Equal(RunEnd.Committed, ended.End);
+            Assert.Equal(1, model.Started);
+            Assert.Equal(Hash, Held().LastRuns["4"].Outputs["plan.json"]);
+        }
+
+        // Breaker: the pane stays live while a worker runs
+        [Fact]
+        public void R498_a_worker_keeps_the_scope_and_time_of_its_start()
+        {
+            DateTime started = now;
+            var body = new ButtonBody
+            {
+                Preview = context => new RunSummary("c", null),
+                Start = (context, end) =>
+                {
+                    session.Scope = new SettingsScope { Kind = ScopeKinds.Nbh, Nbh = "013" };
+                    now = now.AddHours(1);
+                    end(RunLater.Done(null, null, null));
+                },
+            };
+            new ButtonFlow(state, model, new Yes(), run => Hash, () => "4_run", null, new StepRecorder(() => session, entity, () => now)).Run(4, "4 Step", body, Document, later => { });
+
+            ButtonRun run = Held().LastRuns["4"];
+            Assert.Equal("012", run.Scope.Nbh);
+            Assert.Equal(started, DateTime.Parse(run.Time, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AdjustToUniversal));
+        }
+
+        [Fact]
+        public void R498_an_issue_after_the_commit_comes_back_on_a_reopen()
+        {
+            RunOutcome outcome = Press(5, new ButtonBody
+            {
+                Preview = context => new RunSummary("c", null),
+                Apply = context => new[] { "one" },
+                AfterCommit = context => throw new IOException("held"),
+            });
+
+            Assert.Equal(2, outcome.Record.Issues.Count);
+            Assert.Equal(2, StepRun.FromSettings(Held(), 5).Issues);
+        }
+
+        [Fact]
+        public void R498_warnings_and_issues_after_the_commit_are_counted_once_each()
+        {
+            model.WarningsOfNext = new[] { "w1", "w2" };
+
+            RunOutcome outcome = Press(5, new ButtonBody
+            {
+                Preview = context => new RunSummary("c", null),
+                Apply = context => new[] { "one" },
+                AfterCommit = context => throw new IOException("held"),
+            });
+
+            Assert.Equal(4, outcome.Record.Issues.Count);
+            Assert.Equal(4, StepRun.FromSettings(Held(), 5).Issues);
+            Assert.DoesNotContain("w1", Held().LastRuns["5"].Issues);
+        }
+
+        [Fact]
+        public void R498_a_written_output_with_a_bad_hash_is_refused_by_the_reader()
+        {
+            var settings = new ProjectSettings();
+            settings.LastRuns["5"] = new ButtonRun { Time = "2026-11-03T08:00:00.000Z", Outputs = new SortedDictionary<string, string> { { "a.json", "not a hash" } } };
+
+            Assert.Throws<InvalidDataException>(() => SettingsJson.Read(SettingsJson.Write(settings)));
+        }
+
         private sealed class Yes : IConfirm
         {
             public bool Apply(string label, RunSummary summary, bool dryRun)
