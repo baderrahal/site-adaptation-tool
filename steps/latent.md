@@ -625,3 +625,9 @@ KNOWN-3NOV-A, review and breaker, no real input reaches these:
 - RefreshSheet reads the config and the xlsx on the UI thread on each refresh, uncached, not measured. A swallowed config failure reads Not chosen with no reason.
 - docs/design/07-mock.md still says Plot on floors and walls. R507 prevails.
 - A rebind of a links row that also lacks the link category counts as a removal alone. No model holds a row off the links and on Floors.
+
+## Lane D MASS-3NOV-D, 3 Nov 2026
+
+- R530 builds no cut across an arc, no prototype has an arc wall. A concave side crossed twice stays whole. Neither is in the 13. A new prototype needs its own party lines in config, none means no cut.
+- MassCut.NoShortEdge drops the next corner and keeps no longer neighbour's line, unlike R503, so a long edge would slant by up to 4 mm. No corner goes on any of the 9 cut rings, shortest 20 mm.
+- After a cut wallRingMinShare and the slab middle are not tested again, real shares stay over 0.9. A read back drops NotCut and UncutAreaM2, no run line lists a refused cut, none of the 9 is refused. A misspelt maxX cuts nothing and says nothing. A revised prototype is remade against the old line.

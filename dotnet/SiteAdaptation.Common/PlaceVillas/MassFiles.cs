@@ -25,6 +25,9 @@ namespace SiteAdaptation.Common.PlaceVillas
         // May start with the {workRoot} mark
         public string MassFolder { get; private set; }
 
+        // R530. By unit, addin.lightMode.massPartyLines
+        public IReadOnlyDictionary<string, PartyLine> PartyLines { get; private set; } = new Dictionary<string, PartyLine>();
+
         // The share of the slab area the ring must cover to be the base (R504)
         public double WallRingMinShare { get; private set; }
 
@@ -63,6 +66,7 @@ namespace SiteAdaptation.Common.PlaceVillas
                     ArcStepM = Number(block, "wallRingArcStepM", 0, double.MaxValue), BottomAboveM = Number(block, "wallRingBottomAboveM", 0, double.MaxValue),
                     SampleM = Number(block, "wallRingSampleM", 0, double.MaxValue), ParallelSine = Number(block, "wallRingParallelSine", 0, 1), OnLineM = Number(block, "wallRingOnLineM", 0, double.MaxValue),
                 };
+                config.PartyLines = ReadPartyLines(block);
                 config.WallRingMinShare = Number(block, "wallRingMinShare", 0, 1);
                 config.WallRingMaxShare = Number(block, "wallRingMaxShare", 0, double.MaxValue);
                 if (config.WallRingMaxShare < config.WallRingMinShare)
@@ -90,6 +94,39 @@ namespace SiteAdaptation.Common.PlaceVillas
         }
 
         // Over low and at most high
+        // R530. Optional, so a config from before the rule cuts nothing and stops nothing. A value that is no number is refused
+        private static Dictionary<string, PartyLine> ReadPartyLines(JObject block)
+        {
+            var lines = new Dictionary<string, PartyLine>(StringComparer.OrdinalIgnoreCase);
+            foreach (JProperty unit in (block["massPartyLines"] as JObject)?.Properties() ?? Enumerable.Empty<JProperty>())
+            {
+                if (!(unit.Value is JObject))
+                {
+                    throw new InvalidDataException("addin.lightMode.massPartyLines." + unit.Name + " is " + unit.Value + ", not an object of minXM and maxXM (R530)");
+                }
+                lines[unit.Name] = new PartyLine { MinX = PartySide(unit, "minXM"), MaxX = PartySide(unit, "maxXM") };
+            }
+            return lines;
+        }
+
+        private static double? PartySide(JProperty unit, string key)
+        {
+            JToken token = unit.Value[key];
+            if (token == null)
+            {
+                return null;
+            }
+            return token.Type == JTokenType.Float || token.Type == JTokenType.Integer ? token.Value<double>()
+                : throw new InvalidDataException("addin.lightMode.massPartyLines." + unit.Name + "." + key + " is " + token + ", not a number (R530)");
+        }
+
+        // R530. The party lines of the unit of a prototype file, null for a unit with none
+        public PartyLine PartyLineOf(string prototypePath)
+        {
+            string unit = Hands.UnitOfFile(Path.GetFileName(prototypePath));
+            return unit != null && PartyLines.TryGetValue(unit, out PartyLine line) ? line : null;
+        }
+
         private static double Number(JObject block, string key, double low, double high)
         {
             JToken token = block[key];
@@ -106,7 +143,7 @@ namespace SiteAdaptation.Common.PlaceVillas
     public static class MassFiles
     {
         // Raised whenever the Revit read of the base or the file written changes, so every mass file is made again
-        public const int ReaderVersion = 5;
+        public const int ReaderVersion = 6;
         public const string Format = "site-adaptation-mass-file";
         public const string SidecarSuffix = ".json";
 
@@ -115,8 +152,9 @@ namespace SiteAdaptation.Common.PlaceVillas
         {
             MassFileConfig mass = config.MassFiles;
             RingLimits ring = mass.Limits;
-            return string.Format(CultureInfo.InvariantCulture, "solidHeight {0:R} m, baseBoundary {1} {2}, wallRing minShare {3:R}, maxShare {4:R}, outside {5:R} m, inside {6:R} m, minHeight {7:R} m, shortestEdge {8:R} m, cornerGap {9:R} m, slot {10:R} m, arcStep {11:R} m, bottomAbove {12:R} m, sample {13:R} m, parallelSine {14:R}, onLine {15:R} m",
+            string key = string.Format(CultureInfo.InvariantCulture, "solidHeight {0:R} m, baseBoundary {1} {2}, wallRing minShare {3:R}, maxShare {4:R}, outside {5:R} m, inside {6:R} m, minHeight {7:R} m, shortestEdge {8:R} m, cornerGap {9:R} m, slot {10:R} m, arcStep {11:R} m, bottomAbove {12:R} m, sample {13:R} m, parallelSine {14:R}, onLine {15:R} m",
                 config.SolidHeightM, config.BaseBoundary, config.BaseBoundaryFloorType ?? "", mass.WallRingMinShare, mass.WallRingMaxShare, ring.OutsideM, ring.InsideM, ring.MinHeightM, ring.ShortestEdgeM, ring.CornerGapM, ring.SlotM, ring.ArcStepM, ring.BottomAboveM, ring.SampleM, ring.ParallelSine, ring.OnLineM);
+            return mass.PartyLines.Count == 0 ? key : key + ", party lines " + string.Join(" ", mass.PartyLines.OrderBy(line => line.Key, StringComparer.Ordinal).Select(line => line.Key + " " + line.Value.Text));
         }
 
         public static string PathFor(string folder, string prototypePath)
@@ -141,7 +179,7 @@ namespace SiteAdaptation.Common.PlaceVillas
                 ["wallsLeftOut"] = new JArray((mass.Build?.LeftOut ?? new List<WallLeftOut>()).Select(wall => new JObject { ["id"] = wall.Id, ["why"] = wall.Why })),
                 ["wallsSkipped"] = new JArray(mass.Skipped.Cast<object>().ToArray()),
                 ["format"] = Format, ["readerVersion"] = ReaderVersion, ["prototype"] = Path.GetFileName(prototypePath), ["prototypeSha256"] = prototypeSha256,
-                ["sourceKey"] = sourceKey, ["source"] = mass.Source, ["flagged"] = mass.Flagged, ["reason"] = mass.Reason,
+                ["sourceKey"] = sourceKey, ["source"] = mass.Source, ["flagged"] = mass.Flagged, ["reason"] = mass.Reason, ["notCut"] = mass.NotCut,
                 ["points"] = new JArray(mass.Ring.Select(point => new JArray(point[0], point[1]))),
             };
         }
@@ -171,7 +209,7 @@ namespace SiteAdaptation.Common.PlaceVillas
             WallRingBuild build = mass.Build;
             return new JObject
             {
-                ["ringAreaM2"] = mass.BuiltAreaM2, ["slabAreaM2"] = mass.SlabAreaM2, ["share"] = mass.BuiltAreaM2.HasValue && mass.SlabAreaM2 > 0 ? mass.BuiltAreaM2 / mass.SlabAreaM2 : null,
+                ["ringAreaM2"] = mass.BuiltAreaM2, ["uncutAreaM2"] = mass.UncutAreaM2, ["writtenAreaM2"] = Math.Abs(RingMath.Area(mass.Ring)), ["offFaceIsBeforeCut"] = mass.UncutAreaM2.HasValue, ["slabAreaM2"] = mass.SlabAreaM2, ["share"] = mass.BuiltAreaM2.HasValue && mass.SlabAreaM2 > 0 ? mass.BuiltAreaM2 / mass.SlabAreaM2 : null,
                 ["edges"] = build?.Edges.Count, ["connectingEdges"] = build?.ConnectingEdges, ["largestOffFaceMm"] = build?.LargestOffFaceM * 1000, ["offFaceUnmeasured"] = build?.OffFaceUnmeasured,
                 ["wallsLeftByOption"] = build?.LeftByOption, ["primaryOptions"] = new JArray((build?.PrimaryOptions ?? new List<string>()).Cast<object>().ToArray()),
             };
@@ -262,7 +300,7 @@ namespace SiteAdaptation.Common.PlaceVillas
             string sha = hash(prototypePath);
             MassBaseRead read = maker.ReadBase(prototypePath, config) ?? throw new InvalidDataException(Path.GetFileName(prototypePath) + " gave no base read (R451)");
             RingLimits limits = config.MassFiles.Limits;
-            MassBase chosen = WallRing.Choose(WallRingBuilder.Build(read.Walls, read.Slab, limits), read.Slab, config.MassFiles.WallRingMinShare, config.MassFiles.WallRingMaxShare, limits.ArcStepM);
+            MassBase chosen = MassCut.Apply(WallRing.Choose(WallRingBuilder.Build(read.Walls, read.Slab, limits), read.Slab, config.MassFiles.WallRingMinShare, config.MassFiles.WallRingMaxShare, limits.ArcStepM), config.MassFiles.PartyLineOf(prototypePath), limits.ShortestEdgeM);
             Directory.CreateDirectory(folder);
             maker.Write(mass, chosen.Edges, config.SolidHeightM);
             WorkFiles.WriteText(MassFiles.SidecarPath(mass), "mass", MassFiles.Sidecar(prototypePath, sha, MassFiles.SourceKey(config), chosen).ToString(Newtonsoft.Json.Formatting.Indented));
