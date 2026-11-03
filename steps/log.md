@@ -13,7 +13,7 @@ Done:
 - CHOSEN: CASE also leaves Detail Items, Bader's check asks links only
 
 Checked:
-- RAN on a15d58c: pytest 2,509 passed, 1 skipped. dotnet 2,563 net48, 2,238 net8.0. Past plans byte equal whole project and IMC. 62 inputs the same. Parity: PARITYLINE
+- RAN on a15d58c: pytest 2,509 passed, 1 skipped. dotnet 2,563 net48, 2,238 net8.0. Past plans byte equal whole project and IMC. 62 inputs the same. Parity: 13 steps, net48 and net8.0, whole project and the 7 keys, past job and rev6, 32 runs, 416 lines, 0 failures
 - Review 1: chosen sheet green though button 1 stops, line gone after the run, code names in the note. Breaker 1: the rebind took Done off 2 to 9. The stop on an old sheet taken out at Bader's fix step 1. All fixed with tests. The rest in steps/latent.md
 
 Remains:
