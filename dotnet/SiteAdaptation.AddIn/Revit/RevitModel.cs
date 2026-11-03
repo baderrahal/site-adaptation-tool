@@ -7,7 +7,7 @@ using SiteAdaptation.Common.Flow;
 namespace SiteAdaptation.AddIn.Revit
 {
     // R382. The thin Revit side of the flow: the one transaction of a real run with its failure preprocessor
-    internal sealed class RevitModel : IModel
+    internal sealed class RevitModel : IModel, IModelGroups
     {
         private readonly Document document;
 
@@ -19,6 +19,48 @@ namespace SiteAdaptation.AddIn.Revit
         public IModelTransaction Start(string name)
         {
             return new RevitTransaction(document, name);
+        }
+
+        public IModelGroup StartGroup(string name)
+        {
+            return new RevitGroup(document, name);
+        }
+    }
+
+    // R498. Assimilate makes the transactions of the group one entry of the undo list
+    internal sealed class RevitGroup : IModelGroup
+    {
+        private readonly TransactionGroup group;
+
+        public RevitGroup(Document document, string name)
+        {
+            group = new TransactionGroup(document, name);
+            if (group.Start() != TransactionStatus.Started)
+            {
+                group.Dispose();
+                throw new InvalidOperationException("Revit did not start the transaction group " + name);
+            }
+        }
+
+        public void Keep()
+        {
+            if (group.HasStarted() && !group.HasEnded())
+            {
+                group.Assimilate();
+            }
+        }
+
+        public void RollBack()
+        {
+            if (group.HasStarted() && !group.HasEnded())
+            {
+                group.RollBack();
+            }
+        }
+
+        public void Dispose()
+        {
+            group.Dispose();
         }
     }
 

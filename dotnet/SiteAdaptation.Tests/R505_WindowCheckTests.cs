@@ -5,9 +5,9 @@ using Xunit;
 
 namespace SiteAdaptation.Tests
 {
-    // R498. The windows of Lane C against the boards of docs/design/boards. These tests read the XAML text only, so they run on
+    // R505. The windows of Lane C against the boards of docs/design/boards. These tests read the XAML text only, so they run on
     // net48 and on net8.0. The colour and the size of each token are held by the theme gate, here only which element takes which token
-    public sealed class R498_WindowCheckTests
+    public sealed class R505_WindowCheckTests
     {
         internal static readonly System.Collections.Generic.Dictionary<string, string> BoardColours = new System.Collections.Generic.Dictionary<string, string>(StringComparer.Ordinal)
         {
@@ -51,7 +51,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R498_the_base_and_the_primary_button_react_to_the_mouse_and_a_disabled_one_wins()
+        public void R505_the_base_and_the_primary_button_react_to_the_mouse_and_a_disabled_one_wins()
         {
             string theme = Theme;
             foreach (string key in new[] { "SA.Button.Base", "SA.Button.Primary" })
@@ -65,7 +65,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R498_the_warn_boxes_take_the_warn_border_token()
+        public void R505_the_warn_boxes_take_the_warn_border_token()
         {
             Assert.Contains("x:Key=\"SA.WarnBorder\" Color=\"#E8D08A\"", Theme);
             foreach (string file in new[] { "ScanResults/ScanResultsWindow.xaml", "NewProject/NewProjectWindow.xaml" })
@@ -78,21 +78,21 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R498_the_conflicts_count_has_its_own_colour()
+        public void R505_the_conflicts_count_has_its_own_colour()
         {
             Assert.Contains("x:Key=\"SA.ConflictCount\" Color=\"#FFD580\"", Theme);
             Assert.Matches("Foreground=\"\\{StaticResource SA.ConflictCount\\}\"[^>]*Text=\"\\{Binding ConflictCount\\}\"", Addin("ScanResults", "ScanResultsWindow.xaml"));
         }
 
         [Fact]
-        public void R498_each_pane_section_but_the_first_has_a_line_above()
+        public void R505_each_pane_section_but_the_first_has_a_line_above()
         {
             Assert.Equal(3, Regex.Matches(Pane, "<Border BorderBrush=\"\\{StaticResource SA.Border\\}\" BorderThickness=\"\\{StaticResource SA.Line.Over\\}\"").Count);
             Assert.Contains("x:Key=\"SA.Line.Over\"", Theme);
         }
 
         [Fact]
-        public void R498_a_found_row_mark_in_the_pane_is_a_green_disc_with_a_white_tick_at_18()
+        public void R505_a_found_row_mark_in_the_pane_is_a_green_disc_with_a_white_tick_at_18()
         {
             string theme = Theme;
             Assert.Matches("x:Key=\"SA.Size.PaneMark\">18<", theme);
@@ -104,7 +104,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R498_a_missing_row_mark_in_the_pane_is_an_amber_ring_with_an_amber_sign()
+        public void R505_a_missing_row_mark_in_the_pane_is_an_amber_ring_with_an_amber_sign()
         {
             string rowMark = RowMark();
             Assert.Contains("SA.Mark.PaneMissingRing", rowMark);
@@ -113,7 +113,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R498_the_box_line_and_the_start_line_are_in_the_text_colour()
+        public void R505_the_box_line_and_the_start_line_are_in_the_text_colour()
         {
             string pane = Pane;
             Assert.Matches("Style=\"\\{StaticResource SA.Pane.Help\\}\" Foreground=\"\\{StaticResource SA.Text\\}\" Text=\"\\{Binding BoxLine\\}\"", pane);
@@ -121,7 +121,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R498_step_names_are_medium_the_next_one_semibold_and_the_chip_semibold()
+        public void R505_step_names_are_medium_the_next_one_semibold_and_the_chip_semibold()
         {
             string theme = Theme;
             string pane = Pane;
@@ -132,19 +132,19 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R498_the_dry_run_box_has_a_border_of_one_pixel()
+        public void R505_the_dry_run_box_has_a_border_of_one_pixel()
         {
             Assert.Matches("<Border Margin=\"\\{StaticResource SA.Gap.Top8\\}\" Background=\"\\{StaticResource SA.Panel\\}\" BorderBrush=\"\\{StaticResource SA.Border\\}\" BorderThickness=\"\\{StaticResource SA.Line.All\\}\"", Pane);
         }
 
         [Fact]
-        public void R498_a_link_in_a_line_of_text_is_semibold()
+        public void R505_a_link_in_a_line_of_text_is_semibold()
         {
             Assert.Matches("(?s)x:Key=\"SA.Pane.Link\".*?FontWeight\" Value=\"\\{StaticResource SA.Type.Label.Weight\\}\"", Theme);
         }
 
         [Fact]
-        public void R498_on_first_open_the_steps_have_grey_names_and_a_plain_status()
+        public void R505_on_first_open_the_steps_have_grey_names_and_a_plain_status()
         {
             string pane = Pane;
             Assert.Contains("x:Key=\"SA.StepWaitName\" Color=\"#6B7682\"", Theme);
@@ -153,7 +153,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R498_the_band_line_of_new_project_and_how_it_works_has_the_max_width_of_its_board()
+        public void R505_the_band_line_of_new_project_and_how_it_works_has_the_max_width_of_its_board()
         {
             string theme = Theme;
             Assert.Matches("x:Key=\"SA.Size.NewProjectLine\">640<", theme);
@@ -163,7 +163,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R498_a_missing_mark_of_new_project_is_an_amber_sign_at_14_with_no_disc()
+        public void R505_a_missing_mark_of_new_project_is_an_amber_sign_at_14_with_no_disc()
         {
             string xaml = Addin("NewProject", "NewProjectWindow.xaml");
             Assert.Matches("x:Key=\"SA.Size.StatusMark\">14<", Theme);

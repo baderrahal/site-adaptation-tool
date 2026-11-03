@@ -144,6 +144,10 @@ namespace SiteAdaptation.Common.Settings
                 {
                     Hash(hash.Value, "the input " + hash.Key + " of the last run of button " + last.Key);
                 }
+                foreach (KeyValuePair<string, string> output in run.Outputs ?? new SortedDictionary<string, string>(StringComparer.Ordinal))
+                {
+                    Hash(output.Value, "the output " + output.Key + " of the last run of button " + last.Key);
+                }
                 foreach (KeyValuePair<string, int> count in run.Counts.Where(count => count.Value < 0))
                 {
                     throw new InvalidDataException("the settings JSON gives the count " + count.Key + " of the last run of button " + last.Key + " the value " + count.Value.ToString(CultureInfo.InvariantCulture));

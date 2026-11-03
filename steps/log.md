@@ -2,6 +2,32 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Lane B FIX-3NOV-B tasks 1 and 2, 2026-11-03, step rows survive a reopen and an undo, Lane B on the laptop
+
+Goal:
+- Bader: Q384, every button 2 to 9 records its run in the model. Q382, an undo takes the Done state back
+
+Done:
+- R498: buttons 3, 5, 6, 7, 8, 9 write in the transaction of the run, 2 and 4, which have none, in a small one of their own
+- Warnings, issues after the commit and outputs go in by a second write, one undo entry by a transaction group
+- R499: an undo or redo drops the runs of the session, each step reads the entity
+- Breaker: the record keeps its outputs under the work folder, so a copy or a Save As of the model is not Done
+
+Checked:
+- Parity 32 runs, 416 lines, 0 failures. Gate dotnet 2,404 and 2,109 passed. Review 1, breaker 2 passes. Fakes only so far: the group and the undo in Revit are task 4
+
+Remains:
+- Tasks 3, 4, 5 of the round. Q382 narrowed to step 4 and site.json
+
+Known bugs:
+- Override list changes leave steps Done (Q386). An undo of 3 or 4 takes the record back, not the files
+
+Next:
+- PR of task 3, hand check of tasks 1 and 2 in Revit, Phase 6b
+
+Your turn:
+- Q384 Step rows lost on a reopen, closed. Q386 Override list changes leave steps Done. 166 open, steps/questions-open.md
+
 ## Lane D MASS-2NOV-D, 2026-11-03, the mass outline on the outer face of the walls (Q321, Q279)
 
 Goal:

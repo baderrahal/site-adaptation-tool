@@ -59,6 +59,20 @@ namespace SiteAdaptation.Common.Flow
         IModelTransaction Start(string name);
     }
 
+    // R498. The optional side of a model that holds several transactions as one undo entry, so an undo takes back a whole step
+    public interface IModelGroups
+    {
+        IModelGroup StartGroup(string name);
+    }
+
+    public interface IModelGroup : IDisposable
+    {
+        // The transactions of the group become one undo entry
+        void Keep();
+
+        void RollBack();
+    }
+
     // R382. Apply or Cancel on the summary of a dry run, or with no dry run on the counts alone. True is Apply
     public interface IConfirm
     {

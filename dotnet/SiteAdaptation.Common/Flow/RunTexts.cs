@@ -57,6 +57,12 @@ namespace SiteAdaptation.Common.Flow
             return "The read back does not match: " + difference;
         }
 
+        // R498
+        public static string RecordNotWritten(string reason)
+        {
+            return "The step is done, but its record did not reach the model, so a reopen asks for it again: " + reason;
+        }
+
         public static string Refused(IEnumerable<string> errors)
         {
             return "Revit refused the change: " + string.Join(" ", errors);

@@ -584,3 +584,14 @@ Round SPEED-2NOV-C records, 3 Nov 2026:
 - A rejected ring keeps its build, so a sidecar could list wallsUsed under source slab. A null slab throws a bare null error, the reader throws first. None of the 13 reaches them.
 - MassFiles.Stale tests the reader version by not equal on one shared folder, so a build of another version and this one remake each other's masses. It ends at the merge.
 - faces_check2.py takes the whole face of a wall at all heights, so an edited profile counts as covering above its ground stretch. Breaker 2 read the profiles and found no fault.
+
+Round FIX-3NOV-B, R498 and R499, review 1 and breaker 1, 3 Nov 2026:
+- A failed move puts back the run before while the model keeps the new one, so a rerun of 5 to 8 with an output held open shows the old run Done. The HeldOpen message says so. No real output of 5 to 8 was found with a name another program holds.
+- An exception other than an IO or access fault between the commit and Keep disposes the group, which rolls back a committed run, loud. The status of Assimilate is not read. No real input known.
+- The settle write failing after a failed move says the step is done though it is not, and the first write stands. Needs a held file and a refused transaction at once.
+- The record can roll back a step: a workshared model with ProjectInformation held by another user, whether SetEntity throws is UNKNOWN, the host runs one user. An empty roadSurfaces pick, whether the window can give one is UNKNOWN. Issue text with no cap, the size limit of a Revit string field is UNKNOWN. All loud.
+- Clocks of two PCs: a rerun of 3 on a slow clock stays older than 4, and 4 stays Done. An entity of a later formatVersion is overwritten by any button 2 to 9. A session made by Seen with no LoadFrom holds defaults, the flow stops first with no config chosen.
+- The pane stays live while a worker runs, with no busy guard. A pick of another NBH during 4 reads Done for it, in the session and after a reopen, and step 5 then stops loud on no plan. A press of 1 during a worker: the end is later, so the worker reads Done on the site before. Older in the session (PaneRunState.RunOf), read only.
+- Button 1 keeps no outputs: site.json deleted by hand shows row 1 Ready in the session, Done after a reopen, row 2 holds by its own. Next to Q382.
+- The test host keeps its work folder apart from WorkRoot, so after an undo or reload every row with outputs reads Ready in a host run. A false fail, no job reads the rows today, a Revit proof of a reopen goes through the windows.
+- A hand edited entity with output keys that differ by case or hold an invalid path character throws from StepRun.FromSettings. A machine file broken while Revit runs now throws from a pane refresh. A work folder copied by hand keeps absolute names in read.json.

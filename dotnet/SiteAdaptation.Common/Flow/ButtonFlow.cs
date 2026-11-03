@@ -15,9 +15,11 @@ namespace SiteAdaptation.Common.Flow
         private readonly Func<RunInput, string> hash;
         private readonly Func<string> newRunId;
         private readonly RunTiming timing;
+        private readonly StepRecorder recorder;
 
-        public ButtonFlow(IRunState state, IModel model, IConfirm confirm, Func<RunInput, string> hash, Func<string> newRunId, RunTiming timing = null)
+        public ButtonFlow(IRunState state, IModel model, IConfirm confirm, Func<RunInput, string> hash, Func<string> newRunId, RunTiming timing = null, StepRecorder recorder = null)
         {
+            this.recorder = recorder;
             this.state = state;
             this.model = model;
             this.confirm = confirm;
@@ -170,7 +172,7 @@ namespace SiteAdaptation.Common.Flow
                 {
                     return;
                 }
-                RunOutcome outcome = Ended(context, later);
+                RunOutcome outcome = RecordedAlone(context, Ended(context, later));
                 // Before the end is told, since the caller shows its dialog there and the wait of a user is no time of the run
                 timing?.Finish(outcome.End.ToString());
                 ended(outcome);
@@ -199,6 +201,45 @@ namespace SiteAdaptation.Common.Flow
             }
             var record = new RunRecord(context.RunId, context.InputHashes, later.Issues, later.Outputs, new string[0]);
             return new RunOutcome(RunEnd.Committed, later.Message, record);
+        }
+
+        // R498. A body with no transaction records its run in a small one of its own once its work ended. The work stands when this write
+        // fails, so the step is done for this session, a reopen asks for it again and the message says so
+        private RunOutcome RecordedAlone(RunContext context, RunOutcome outcome)
+        {
+            if (recorder == null || !StepRecorder.Records(context.Button) || outcome.Record == null)
+            {
+                return outcome;
+            }
+            string reason = WrittenAlone(context, transaction => recorder.Write(context, outcome.Record.Issues, transaction, outcome.Record.Outputs));
+            if (reason == null)
+            {
+                return outcome;
+            }
+            string told = RunTexts.RecordNotWritten(reason);
+            return new RunOutcome(outcome.End, outcome.Message == null ? told : outcome.Message + " " + told, outcome.Record);
+        }
+
+        // Null when the transaction committed, else why not
+        private string WrittenAlone(RunContext context, Action<IModelTransaction> write)
+        {
+            try
+            {
+                using (IModelTransaction transaction = model.Start(RunTexts.TransactionName(context.Label)))
+                {
+                    write(transaction);
+                    if (transaction.Commit())
+                    {
+                        return null;
+                    }
+                    transaction.RollBack();
+                    return transaction.Errors.Count > 0 ? RunTexts.Refused(transaction.Errors) : RunTexts.NotCommitted;
+                }
+            }
+            catch (Exception failure)
+            {
+                return failure.Message;
+            }
         }
 
         private static RunOutcome Stop(string message)
@@ -276,9 +317,30 @@ namespace SiteAdaptation.Common.Flow
             }
         }
 
+        // R498. A group around the run, so the write a commit still asks for after it falls into one undo entry with the step
         private RunOutcome Transacted(ButtonBody body, RunContext context)
         {
+            StepRecorder recording = StepRecorder.Records(context.Button) ? recorder : null;
+            IModelGroup group;
+            try
+            {
+                group = recording == null ? null : (model as IModelGroups)?.StartGroup(RunTexts.TransactionName(context.Label));
+            }
+            catch (Exception failure)
+            {
+                return new RunOutcome(RunEnd.RolledBack, RunTexts.ChangedNothing(context.Label, RunTexts.Failed(failure.Message)), null);
+            }
+            using (group)
+            {
+                return Transacted(body, context, recording, group);
+            }
+        }
+
+        private RunOutcome Transacted(ButtonBody body, RunContext context, StepRecorder recording, IModelGroup group)
+        {
             var issues = new List<string>();
+            int warnings;
+            int beforeCommit;
             timing?.NextStep(RunTiming.ApplyStep);
             IModelTransaction started;
             try
@@ -301,6 +363,10 @@ namespace SiteAdaptation.Common.Flow
                     if (difference != null)
                     {
                         reason = RunTexts.ReadBackDiffers(difference);
+                    }
+                    else
+                    {
+                        recording?.Write(context, issues, transaction);
                     }
                 }
                 catch (Exception failure)
@@ -325,9 +391,12 @@ namespace SiteAdaptation.Common.Flow
                 if (reason != null)
                 {
                     transaction.RollBack();
+                    group?.RollBack();
                     context.DeleteOutputs();
                     return new RunOutcome(RunEnd.RolledBack, RunTexts.ChangedNothing(context.Label, reason), null);
                 }
+                warnings = transaction.Warnings.Count;
+                beforeCommit = issues.Count;
                 issues.AddRange(transaction.Warnings);
                 try
                 {
@@ -354,6 +423,16 @@ namespace SiteAdaptation.Common.Flow
                     failed.Add(output.Value);
                 }
             }
+            List<string> issuesAfter = issues.Skip(beforeCommit + warnings).ToList();
+            if (recording != null && recording.NeedsSettling(warnings, issuesAfter.Count, moved.Count, failed.Count))
+            {
+                string notSettled = WrittenAlone(context, transaction => recording.Settle(context, warnings, issuesAfter, moved, failed.Count, transaction));
+                if (notSettled != null)
+                {
+                    issues.Add(RunTexts.RecordNotWritten(notSettled));
+                }
+            }
+            group?.Keep();
             var record = new RunRecord(context.RunId, context.InputHashes, issues, moved, failed);
             if (context.Button > 0)
             {

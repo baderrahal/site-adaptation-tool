@@ -26,7 +26,7 @@
   <SolidColorBrush x:Key="SA.OkGround" Color="#E6F4EA" />
   <SolidColorBrush x:Key="SA.Warn" Color="#7A4B00" />
   <SolidColorBrush x:Key="SA.WarnGround" Color="#FFF4D6" />
-  <!-- R498, the colours the boards of Lane C hold that the spec has no name for -->
+  <!-- R505, the colours the boards of Lane C hold that the spec has no name for -->
   <SolidColorBrush x:Key="SA.WarnBorder" Color="#E8D08A" />
   <SolidColorBrush x:Key="SA.ConflictCount" Color="#FFD580" />
   <SolidColorBrush x:Key="SA.Found" Color="#0B7A3E" />
@@ -160,7 +160,7 @@
   <GridLength x:Key="SA.Grid.Label">124</GridLength>
   <GridLength x:Key="SA.Grid.StepMark">38</GridLength>
   <Geometry x:Key="SA.Mark.Found">M3 8.5l3.5 3.5l6.5-8</Geometry>
-  <!-- R498, the marks of the boards at 18 in the pane and 14 in New project -->
+  <!-- R505, the marks of the boards at 18 in the pane and 14 in New project -->
   <sys:Double x:Key="SA.Size.PaneMark">18</sys:Double>
   <sys:Double x:Key="SA.Size.StatusMark">14</sys:Double>
   <Geometry x:Key="SA.Mark.PaneDisc">M1 9a8 8 0 1 0 16 0a8 8 0 1 0 -16 0z</Geometry>
@@ -230,7 +230,7 @@
             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
           </Border>
           <ControlTemplate.Triggers>
-            <!-- R498. The hover of the board comes before the disabled look, so a disabled button keeps its grey -->
+            <!-- R505. The hover of the board comes before the disabled look, so a disabled button keeps its grey -->
             <Trigger Property="IsMouseOver" Value="True">
               <Setter TargetName="Box" Property="Background" Value="{StaticResource SA.ButtonHover}" />
               <Setter TargetName="Box" Property="BorderBrush" Value="{StaticResource SA.ButtonHoverBorder}" />
