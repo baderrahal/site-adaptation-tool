@@ -90,7 +90,7 @@
               <TextBlock Style="{StaticResource SA.Type.Small}" FontWeight="{StaticResource SA.Type.Label.Weight}" Foreground="{StaticResource SA.Band}" Text="{x:Static how:HowItWorksText.Badge}" />
             </Border>
           </StackPanel>
-          <TextBlock Style="{StaticResource SA.Type.Step}" Foreground="{StaticResource SA.BandText}" Margin="{StaticResource SA.Gap.Top4}" TextWrapping="Wrap" Text="{x:Static how:HowItWorksText.Line}" />
+          <TextBlock Style="{StaticResource SA.Type.Step}" Foreground="{StaticResource SA.BandText}" Margin="{StaticResource SA.Gap.Top4}" TextWrapping="Wrap" MaxWidth="{StaticResource SA.Size.HowLine}" HorizontalAlignment="Left" Text="{x:Static how:HowItWorksText.Line}" />
           <TextBlock Style="{StaticResource SA.Type.Body}" Foreground="{StaticResource SA.BandAccent}" Margin="{StaticResource SA.Gap.Top4}" Text="{x:Static how:HowItWorksText.ApplyLine}" />
         </StackPanel>
         <StackPanel Grid.Column="1" HorizontalAlignment="Right">

@@ -127,6 +127,7 @@
             <TextBlock Text="{Binding Check}">
               <TextBlock.Style>
                 <Style TargetType="TextBlock" BasedOn="{StaticResource RowText}">
+                  <Setter Property="Margin" Value="{StaticResource SA.Gap.None}" />
                   <Setter Property="Foreground" Value="{StaticResource SA.TextMuted}" />
                   <Style.Triggers>
                     <DataTrigger Binding="{Binding IsOk}" Value="True">

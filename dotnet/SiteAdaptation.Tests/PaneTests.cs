@@ -96,7 +96,7 @@ namespace SiteAdaptation.Tests
         [Fact]
         public void R372_input_files_gain_the_shared_parameters_row_after_prototypes_for_the_parameter_sheet_file()
         {
-            Assert.Equal(new[] { "Baseplan", "Villa blocks", "Curbs", "Road surface", "DLUS and sales", "Plot numbers", "Prototypes", "Shared parameters" },
+            Assert.Equal(new[] { "Baseplan", "Villa blocks", PaneText.CurbsRow, "Road surface", "DLUS and sales", "Plot numbers", "Prototypes", "Shared parameters" },
                 Model(new FakeProbe()).InputRows.Select(row => row.Label));
             var probe = new FakeProbe();
             probe.Add(Folder + "parameters.xlsx", 4096, "fedcba98" + new string('0', 56));

@@ -177,7 +177,7 @@
             <TextBlock Style="{StaticResource SA.Type.Body}" Foreground="{StaticResource SA.BandText}" HorizontalAlignment="Right" Text="{x:Static sr:ScanResultsText.PlotsFound}" />
           </StackPanel>
           <StackPanel Margin="{StaticResource SA.Gap.Left24}">
-            <TextBlock Style="{StaticResource SA.Type.Count}" Foreground="{StaticResource SA.WarnGround}" HorizontalAlignment="Right" Text="{Binding ConflictCount}" />
+            <TextBlock Style="{StaticResource SA.Type.Count}" Foreground="{StaticResource SA.ConflictCount}" HorizontalAlignment="Right" Text="{Binding ConflictCount}" />
             <TextBlock Style="{StaticResource SA.Type.Body}" Foreground="{StaticResource SA.BandText}" HorizontalAlignment="Right" Text="{x:Static sr:ScanResultsText.Conflicts}" />
           </StackPanel>
         </StackPanel>
@@ -236,7 +236,7 @@
           <ItemsControl ItemsSource="{Binding Unclear}">
             <ItemsControl.ItemTemplate>
               <DataTemplate>
-                <Border Margin="{StaticResource SA.Gap.Bottom16}" Background="{StaticResource SA.WarnGround}" BorderBrush="{StaticResource SA.Border}" BorderThickness="{StaticResource SA.Line.All}"
+                <Border Margin="{StaticResource SA.Gap.Bottom16}" Background="{StaticResource SA.WarnGround}" BorderBrush="{StaticResource SA.WarnBorder}" BorderThickness="{StaticResource SA.Line.All}"
                         CornerRadius="{StaticResource SA.Radius.Control}" Padding="{StaticResource SA.Pad.Box}">
                   <StackPanel>
                     <TextBlock Style="{StaticResource SA.Type.Step}" FontWeight="{StaticResource SA.Type.Label.Weight}" Foreground="{StaticResource SA.Warn}" Text="{Binding Title}" />

@@ -595,3 +595,8 @@ Round FIX-3NOV-B, R498 and R499, review 1 and breaker 1, 3 Nov 2026:
 - Button 1 keeps no outputs: site.json deleted by hand shows row 1 Ready in the session, Done after a reopen, row 2 holds by its own. Next to Q382.
 - The test host keeps its work folder apart from WorkRoot, so after an undo or reload every row with outputs reads Ready in a host run. A false fail, no job reads the rows today, a Revit proof of a reopen goes through the windows.
 - A hand edited entity with output keys that differ by case or hold an invalid path character throws from StepRun.FromSettings. A machine file broken while Revit runs now throws from a pane refresh. A work folder copied by hand keeps absolute names in read.json.
+
+Round 6C-3NOV-C, review 1, 3 Nov 2026:
+- ScanView.cs about line 170, StartsWith |xref repeats the form CadScan.cs line 190 writes, with no shared constant. A rename shows the file Not read, the safe side.
+- ReviewDataWindow.xaml, Mirror column 72: an unread mirror shows not read yet, about 71 against 64, cut with an ellipsis. All 337 plots of the run read Yes or No.
+- Review data, the head Team check sits about 10 px left of the chip text, cosmetic.
