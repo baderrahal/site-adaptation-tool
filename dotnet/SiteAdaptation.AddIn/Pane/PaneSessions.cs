@@ -63,7 +63,8 @@ namespace SiteAdaptation.AddIn.Pane
         }
 
         // DocumentSavedAs: a document the add-in knows takes its new path and title and is shown again, with the same session and
-        // settings. One it does not know, as a family or a linked document, gets no session and nothing to show
+        // settings. One it does not know, as a family or a linked document, gets no session and nothing to show. R498. A new path has a new
+        // work folder, so the runs of this session, with outputs in the old one, go and each step looks in the new one
         public DocumentSession SavedAs(object key, string path, string title)
         {
             DocumentSession session = Find(key);
@@ -71,6 +72,7 @@ namespace SiteAdaptation.AddIn.Pane
             {
                 return null;
             }
+            session.Runs.Clear();
             session.Path = path;
             session.Title = title;
             return session;

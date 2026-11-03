@@ -90,6 +90,21 @@ namespace SiteAdaptation.Tests
             Assert.Equal(Hash, session.LastRun(9, @"C:\work\f").Outputs[System.IO.Path.Combine(@"C:\work\f", "012_Report.xlsx")]);
         }
 
+        // Breaker 2: outputs of the session lie in the work folder of the old path
+        [Fact]
+        public void R498_a_save_as_drops_the_runs_of_the_session()
+        {
+            var sessions = new PaneSessions();
+            object document = new object();
+            DocumentSession session = sessions.Opened(document, @"C:\work\site.rvt", "site");
+            session.Runs[5] = Session();
+
+            sessions.SavedAs(document, @"C:\work\site_v2.rvt", "site_v2");
+
+            Assert.Empty(session.Runs);
+            Assert.Equal(@"C:\work\site_v2.rvt", session.Path);
+        }
+
         private sealed class Entity : ISettingsEntity
         {
             public string Json { get; set; }

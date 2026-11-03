@@ -165,7 +165,6 @@ namespace SiteAdaptation.Common.Flow
         private RunOutcome Later(ButtonBody body, RunContext context, Action<RunOutcome> ended)
         {
             int taken = 0;
-            recorder?.Begin();
             timing?.NextStep(RunTiming.WorkerStartStep);
             Action<RunLater> end = later =>
             {

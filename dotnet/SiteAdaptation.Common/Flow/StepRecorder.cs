@@ -16,8 +16,6 @@ namespace SiteAdaptation.Common.Flow
         private readonly Func<DateTime> clock;
         private ButtonRun before;
         private ButtonRun written;
-        private DateTime? begun;
-        private SettingsScope scopeBegun;
 
         public StepRecorder(Func<ProjectSettings> settingsNow, ISettingsEntity entity, Func<DateTime> clock)
         {
@@ -31,15 +29,8 @@ namespace SiteAdaptation.Common.Flow
             return button > SetUp;
         }
 
-        // A worker runs on with the pane live, so a pick or a press of another step in that time is no part of its run. Its time and scope are
-        // those of its start
-        public void Begin()
-        {
-            begun = clock();
-            scopeBegun = Copy(settingsNow()?.Scope);
-        }
-
-        // Inside the open transaction, so a roll back takes the write back with the model
+        // Inside the open transaction, so a roll back takes the write back with the model. A worker writes at its end, with the time and scope
+        // the session run takes then (PaneRunState.RunOf), so a reopen shows what the session showed
         public void Write(RunContext context, IReadOnlyList<string> issues, IModelTransaction transaction, IReadOnlyDictionary<string, string> outputs = null)
         {
             ProjectSettings settings = settingsNow();
@@ -48,7 +39,7 @@ namespace SiteAdaptation.Common.Flow
                 return;
             }
             before = store.LastRun(context.Button);
-            written = ButtonRun.Of(begun ?? clock(), settings, scopeBegun ?? Copy(settings.Scope), context.InputHashes, issues ?? new string[0]);
+            written = ButtonRun.Of(clock(), settings, Copy(settings.Scope), context.InputHashes, issues ?? new string[0]);
             written.Outputs = Named(context, outputs);
             store.Record(settings, context.Button, written, RunKind.Real, transaction);
         }

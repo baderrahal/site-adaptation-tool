@@ -370,11 +370,10 @@ namespace SiteAdaptation.Tests
             Assert.Equal(Hash, Held().LastRuns["4"].Outputs["plan.json"]);
         }
 
-        // Breaker: the pane stays live while a worker runs
+        // Breaker 2: the record and the session run of a worker take the same end, or a reopen shows another row than the session did
         [Fact]
-        public void R498_a_worker_keeps_the_scope_and_time_of_its_start()
+        public void R498_a_worker_keeps_the_scope_and_time_of_its_end_as_the_session_does()
         {
-            DateTime started = now;
             var body = new ButtonBody
             {
                 Preview = context => new RunSummary("c", null),
@@ -388,8 +387,8 @@ namespace SiteAdaptation.Tests
             new ButtonFlow(state, model, new Yes(), run => Hash, () => "4_run", null, new StepRecorder(() => session, entity, () => now)).Run(4, "4 Step", body, Document, later => { });
 
             ButtonRun run = Held().LastRuns["4"];
-            Assert.Equal("012", run.Scope.Nbh);
-            Assert.Equal(started, DateTime.Parse(run.Time, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AdjustToUniversal));
+            Assert.Equal("013", run.Scope.Nbh);
+            Assert.Equal(now, DateTime.Parse(run.Time, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AdjustToUniversal));
         }
 
         [Fact]
