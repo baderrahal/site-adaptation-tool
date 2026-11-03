@@ -34,7 +34,36 @@ Next:
 Your turn:
 - Closed: Q371 Seven non road files still offered. Q373 New project does not start under rev6. Q377 Where Empty project gets its config. Q378 Override list of a new project
 - Opened: Q379 A new project on another PC. Q394 Update from report on a new project. Q395 A mode in memory lost on reopen. Q396 Past of a native key on new project. Q397 Save As of a new project keeps one list. Q398 The 443 hairline floor overlaps at step 5
-- 170 open, steps/questions-open.md
+- 181 open, steps/questions-open.md
+
+## Lane C 6C-3NOV-C, 2026-11-03, window check, Excel compare, check sheet
+
+Goal:
+- Every window against its board in real Revit, the Excel compare of NBH 012, the Part 1 sheet, then Bader's row rename before the 14:00 freeze
+
+Done:
+- R505: theme, pane, New project, How it works, What the tool read, Review data, 4 Check differences fixed. steps/investigations/6c-windows.md per window and the rest by owner
+- steps/investigations/6c-excel.md. steps/part1-check.md the short form for 16:00, steps/part1-check-long.md the long check for later
+- Bader 3 Nov: row Curbs reads Plot fronts (curb lines) with its Read only line, the run input keeps the name Curbs, a key of the step hashes (R366)
+
+Checked:
+- Real windows, RAN: 3 runs through the pane on copies, buttons 1 to 9 on NBH 012 in the last two. 1,003 floors, 336 villas, 778 walls, 1,339 Placed, 688 accepted, box 485. 43 inputs the same by SHA-256
+- Excel, RAN by openpyxl and by raw XML, the same counts: FFL 324 equal, 12 differ up to 187 mm, 1 missing. Steps 334, 2, 1. Placed against past Unit 334, 2, 1
+- Dead buttons: 0 pressed dead. Two Change buttons of New project have no handler and never show
+- Review 1 with the UI checklist: REAL fixed or a question, 3 LATENT
+
+Remains:
+- The rename and the separator are not seen in Revit, only in the rendered PNG and tests, the lock was Lane B's. Road surfaces never seen in Revit. Update from report filled state not seen, my driver failed twice
+
+Known bugs:
+- Q403 Road surface row cut. Q400 New project reopen. Q408 Update silent after a pick
+
+Next:
+- Bader's dry run at 17:00, steps/dryrun-3nov.md of Lane B
+
+Your turn:
+- Opened Q400 New project reopens on Empty project. Q401 12 plots differ from the past FFL. Q402 Plots 2301 and 2302 read VD4. Q403 Road surface row cut in the pane. Q404 Set up site band shows a code name. Q405 Export to Excel hidden in Rules. Q406 Conflicts Plot column shows the CAD label. Q407 Amber in the spec or the boards. Q408 Update from report shows nothing after a pick. Q409 Two greens and the step name weight. Q410 Rule column shows R471 on joint rows. Closed none.
+- 177 open, steps/questions-open.md
 
 ## Lane B FIX-3NOV-B tasks 1 and 2, 2026-11-03, step rows survive a reopen and an undo, Lane B on the laptop
 

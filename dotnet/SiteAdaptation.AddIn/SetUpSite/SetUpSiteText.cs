@@ -50,7 +50,7 @@ namespace SiteAdaptation.AddIn.SetUpSite
         // Each file of the setup by its input, the names of the pane rows
         public static readonly IReadOnlyDictionary<string, string> InputLabels = new Dictionary<string, string>
         {
-            [InputNames.Baseplan] = "Baseplan", [InputNames.VillaBlocks] = "Villa blocks", [InputNames.Curbs] = "Curbs", [InputNames.RoadSurface] = "Road surface", [InputNames.Dlus] = "DLUS schedule",
+            [InputNames.Baseplan] = "Baseplan", [InputNames.VillaBlocks] = "Villa blocks", [InputNames.Curbs] = "Plot fronts (curb lines)", [InputNames.RoadSurface] = "Road surface", [InputNames.Dlus] = "DLUS schedule",
             [InputNames.Sales] = "Sales schedule", [InputNames.PlotNumbers] = "Plot numbers", [InputNames.ParameterSheet] = "Parameter sheet",
         };
 

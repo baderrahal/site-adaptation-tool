@@ -50,6 +50,8 @@ namespace SiteAdaptation.AddIn.Pane
         public const string Baseplan = "Baseplan";
         public const string VillaBlocks = "Villa blocks";
         public const string Curbs = "Curbs";
+        public const string CurbsRow = "Plot fronts (curb lines)";
+        public const string CurbsHint = "Read only. Finds the front of each plot. No curb is built.";
         public const string RoadSurface = "Road surface";
         public const string DlusAndSales = "DLUS and sales";
         public const string PlotNumbers = "Plot numbers";

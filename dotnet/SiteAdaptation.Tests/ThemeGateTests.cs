@@ -93,6 +93,12 @@ namespace SiteAdaptation.Tests
 
             Assert.Equal(21, expected.Count - expected.Keys.Count(key => key.EndsWith("Ground", StringComparison.Ordinal)));
             Assert.Equal(26, expected.Count);
+            // R505. The boards of Lane C hold colours the spec has no name for, each is a token of its own and listed here with its value
+            foreach (KeyValuePair<string, string> board in R505_WindowCheckTests.BoardColours)
+            {
+                Assert.Equal(board.Value, brushes[board.Key]);
+                brushes.Remove(board.Key);
+            }
             Assert.Equal(expected.OrderBy(pair => pair.Key, StringComparer.Ordinal), brushes.OrderBy(pair => pair.Key, StringComparer.Ordinal));
         }
 

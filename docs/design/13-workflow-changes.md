@@ -69,3 +69,5 @@ The UI controls of docs/design/12-ui-spec.md hold as given before: the theme tes
 - 5d: Place villas at the FFL with Prototype-FFL, and Levels with no link parameter, in the buttons of the new order.
 - 5e: the report line with its manual rule ID.
 - 5f: Update from report.
+
+Bader, 3 Nov 2026. No curb is built (R355), so the row Curbs of the pane and of Set up site reads Plot fronts (curb lines), with the line Read only. Finds the front of each plot. No curb is built. under it in the pane. New project says Pick plots, roads, curb lines below. The name of the run input stays Curbs, a key of the step hashes (R366).

@@ -53,7 +53,7 @@ namespace SiteAdaptation.AddIn.Pane
             {
                 new FileRowViewModel(PaneText.Baseplan, false, InputKeys.Baseplan),
                 new FileRowViewModel(PaneText.VillaBlocks, false, InputKeys.VillaBlocks),
-                new FileRowViewModel(PaneText.Curbs, false, InputKeys.Curbs),
+                new FileRowViewModel(PaneText.CurbsRow, false, InputKeys.Curbs) { Hint = PaneText.CurbsHint },
                 new FileRowViewModel(PaneText.RoadSurface, true, InputKeys.RoadSurface),
                 new FileRowViewModel(PaneText.DlusAndSales, false, InputKeys.Dlus, InputKeys.Sales),
                 new FileRowViewModel(PaneText.PlotNumbers, false, InputKeys.PlotNumbers),
@@ -884,6 +884,10 @@ namespace SiteAdaptation.AddIn.Pane
         public bool Found { get { return found; } private set { Set(ref found, value); } }
         public string FileName { get { return fileName; } private set { Set(ref fileName, value); } }
         public string ToolTip { get { return toolTip; } private set { Set(ref toolTip, value); } }
+
+        // R505. A fixed line under the row, what the row is for
+        public string Hint { get; set; } = string.Empty;
+        public bool HasHint { get { return !string.IsNullOrEmpty(Hint); } }
 
         // R492. The button Pick surfaces and the line under the row Road surface
         public bool HasSurfaces { get { return Keys.Contains(InputKeys.RoadSurface); } }

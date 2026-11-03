@@ -82,7 +82,7 @@ namespace SiteAdaptation.AddIn.NewProject
         {
             [SetupRows.Site] = new[]
             {
-                "Site drawing (CAD)", "Civil team", "Buttons 1 to 4", "Pick plots, roads, curbs below.",
+                "Site drawing (CAD)", "Civil team", "Buttons 1 to 4", "Pick plots, roads, curb lines below.",
                 "The site drawing is missing, so buttons 1 to 4 cannot read the plots.", "What to do: ask the civil team for the drawing, then press Browse.",
             },
             [SetupRows.PlotList] = new[]

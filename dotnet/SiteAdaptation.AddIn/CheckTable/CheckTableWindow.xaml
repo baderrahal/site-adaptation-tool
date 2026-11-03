@@ -141,7 +141,7 @@
             <ColumnDefinition Width="{StaticResource SA.Grid.CheckNbh}" />
             <ColumnDefinition Width="{StaticResource SA.Grid.CheckUnit}" />
             <ColumnDefinition Width="{StaticResource SA.Grid.CheckType}" />
-            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="{StaticResource SA.Grid.CheckTool}" />
             <ColumnDefinition Width="*" />
             <ColumnDefinition Width="{StaticResource SA.Grid.CheckRule}" />
             <ColumnDefinition Width="{StaticResource SA.Grid.CheckManual}" />
@@ -289,7 +289,7 @@
             <ColumnDefinition Width="{StaticResource SA.Grid.CheckNbh}" />
             <ColumnDefinition Width="{StaticResource SA.Grid.CheckUnit}" />
             <ColumnDefinition Width="{StaticResource SA.Grid.CheckType}" />
-            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="{StaticResource SA.Grid.CheckTool}" />
             <ColumnDefinition Width="*" />
             <ColumnDefinition Width="{StaticResource SA.Grid.CheckRule}" />
             <ColumnDefinition Width="{StaticResource SA.Grid.CheckManual}" />

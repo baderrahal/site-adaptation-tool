@@ -606,3 +606,8 @@ FIX-3NOV-A, breaker and review, no real input reaches these:
 - Settings hold the absolute path of the copy, a work root that moves keeps writing under the old root while that folder stands.
 - A model name of about 92 characters or more can reach the name limit of R486, not tested.
 - PickConfig has no production caller, the pane never picks a settings file.
+
+Round 6C-3NOV-C, review 1, 3 Nov 2026:
+- ScanView.cs about line 170, StartsWith |xref repeats the form CadScan.cs line 190 writes, with no shared constant. A rename shows the file Not read, the safe side.
+- ReviewDataWindow.xaml, Mirror column 72: an unread mirror shows not read yet, about 71 against 64, cut with an ellipsis. All 337 plots of the run read Yes or No.
+- Review data, the head Team check sits about 10 px left of the chip text, cosmetic.
