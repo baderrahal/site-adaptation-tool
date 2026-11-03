@@ -298,7 +298,7 @@ namespace SiteAdaptation.Tests
             var fields = new JObject { ["projectName"] = "P", ["project"] = "00101", ["originator"] = "PSN", ["volume"] = "<nbh>", ["level"] = "XXX", ["type"] = "SCH", ["role"] = "TU", ["number"] = "090000", ["revision"] = "P01", ["status"] = "S0" };
             var facts = new JObject
             {
-                ["model"] = "a.rvt", ["toolVersion"] = "1.0.0.0, build abc", ["fields"] = fields, ["runSeconds"] = 150.0, ["levelPlots"] = 2,
+                ["model"] = "a.rvt", ["toolVersion"] = "1.0.0.0, build abc", ["fields"] = fields, ["runSeconds"] = 150.0, ["levelPlots"] = new JArray("101"),
                 ["steps"] = new JObject { ["1"] = new JObject { ["time"] = "2026-11-03T14:01:00.000Z", ["issues"] = 0 }, ["5"] = new JObject { ["time"] = "2026-11-03T14:12:00.000Z", ["issues"] = 490 } },
                 ["changedRules"] = new JArray(new JObject { ["id"] = "M05", ["name"] = "Ramp slope", ["manual"] = 2, ["project"] = 3, ["unit"] = "%" }),
             };
@@ -320,6 +320,15 @@ namespace SiteAdaptation.Tests
             Assert.Equal(ReportExcelText.WallColumns.Cast<object>().ToArray(), book.Row("Walls", 1).ToArray());
             Assert.Equal("Changed", book.Row("Rules used", 1)[5]);
             Assert.Equal(new object[] { "M05 Ramp slope", null, null, null, "manual 2, project 3 %", "Changed" }, book.Sheets["Rules used"].Keys.Select(row => book.Row("Rules used", row)).Last().ToArray());
+        }
+
+        // R555. An empty list keeps the five columns
+        [Fact]
+        public void R555_an_empty_list_keeps_the_five_columns_of_rules_used()
+        {
+            WorkerAnswer answer = Run(MadePlan(), out int code, out string plan, facts: new JObject { ["changedRules"] = new JArray() });
+            Assert.True(code == 0, "exit " + code + ": " + answer.Message);
+            Assert.Equal(5, LevelExcelTests.Book.Read(answer.Outputs[0].Path).Row("Rules used", 1).Count);
         }
 
         // R553. Read from the package: the frozen row and the filter of a list, none on Cover

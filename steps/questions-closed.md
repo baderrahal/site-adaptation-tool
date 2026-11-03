@@ -383,3 +383,4 @@ Lane B numbered its questions QL1 upward from 28 Oct 2026. At the fold in of Rou
 | Q406 | Conflicts Plot column shows the CAD label | As recommended, Lane C: the head reads CAD label. | Lane C on Bader's order of 3 Nov 2026 | 2026-11-03 |
 | Q408 | Update from report shows nothing after a pick | As recommended in part, Lane C: the window says No changes found in this Excel. The filled state still has no Revit sight. | Lane C on Bader's order of 3 Nov 2026 | 2026-11-03 |
 | Q410 | Rule column shows R471 on joint rows | As recommended, Lane C: Ramp joint by the rule. | Lane C on Bader's order of 3 Nov 2026 | 2026-11-03 |
+| Q307 | What the report Summary shows after a run | As recommended, by Lane B on Bader's order: R551 to R554, the model name and run time on top, steps 1 and 3 from their records, Levels from button 6, walls in Placed, one count for pane and report. | Lane B REPORT-3NOV-B, 3 Nov 2026 |

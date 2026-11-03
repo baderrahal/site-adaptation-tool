@@ -6,6 +6,7 @@ using Newtonsoft.Json.Linq;
 using SiteAdaptation.Common;
 using SiteAdaptation.Common.Report;
 using SiteAdaptation.Common.Tags;
+using SiteAdaptation.Common.Update;
 using Xunit;
 
 namespace SiteAdaptation.Tests
@@ -33,12 +34,19 @@ namespace SiteAdaptation.Tests
         [Fact]
         public void R550_update_from_report_finds_the_nbh_in_the_iso_name_and_the_old_names()
         {
-            Assert.Equal("012", SiteAdaptation.Common.Update.UpdateWorkerRequest.NbhOf(@"C:\w01-PSN-012-XXX-SCH-TU-090000.xlsx"));
-            Assert.Equal("012", SiteAdaptation.Common.Update.UpdateWorkerRequest.NbhOf(@"C:\w
-_Report.xlsx"));
-            Assert.Equal("012", SiteAdaptation.Common.Update.UpdateWorkerRequest.NbhOf(@"C:\w
-_Levels_parsons2024Rev6.xlsx"));
-            Assert.Null(SiteAdaptation.Common.Update.UpdateWorkerRequest.NbhOf(@"C:\weport.xlsx"));
+            Assert.Equal("012", UpdateWorkerRequest.NbhOf(@"C:\w\00101-PSN-012-XXX-SCH-TU-090000.xlsx"));
+            Assert.Equal("012", UpdateWorkerRequest.NbhOf(@"C:\w\012_Report.xlsx"));
+            Assert.Equal("012", UpdateWorkerRequest.NbhOf(@"C:\w\012_Levels_parsons2024Rev6.xlsx"));
+            Assert.Null(UpdateWorkerRequest.NbhOf(@"C:\w\report.xlsx"));
+        }
+
+        [Fact]
+        public void Q307_the_one_count_is_the_issues_and_the_warnings_of_a_run()
+        {
+            var run = new SiteAdaptation.Common.Settings.ButtonRun { Time = "2026-11-03T11:00:00.000Z", Issues = new List<string> { "a", "b" } };
+            run.Counts[SiteAdaptation.Common.Settings.ButtonRun.WarningsCount] = 488;
+            Assert.Equal(490, run.IssueCount);
+            Assert.Equal(490, SiteAdaptation.Common.Steps.StepRun.From(run, null).Issues);
         }
 
         [Fact]

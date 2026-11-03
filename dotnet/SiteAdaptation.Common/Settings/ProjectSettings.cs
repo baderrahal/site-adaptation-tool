@@ -84,6 +84,17 @@ namespace SiteAdaptation.Common.Settings
             };
         }
 
+        // Q307. The one count of a step, what the pane shows and the report writes: its issues and the warnings it accepted
+        [Newtonsoft.Json.JsonIgnore]
+        public int IssueCount
+        {
+            get
+            {
+                Counts.TryGetValue(WarningsCount, out int warnings);
+                return Issues.Count + warnings;
+            }
+        }
+
         // ISO 8601 in UTC
         public string Time { get; set; }
         public string Mode { get; set; }

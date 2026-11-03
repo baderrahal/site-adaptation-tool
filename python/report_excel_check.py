@@ -543,7 +543,7 @@ def expected(inputs, profile_name, mock):
         placed_links = sum(1 for row in placed if row[1] == LINK)
         placed_floors = sum(1 for row in placed if row[1] in FLOOR_KINDS)
         wall_counts = None if standing is None else (len(walls), sum(len(ids) for key, ids in standing.items() if key.split("|")[0] in names))
-        counts, unequal = counts_box(placed, mine_written, mock, totals, manual_of(manual, mock["reportStep"]), facts.get("levelPlots"), wall_counts)
+        counts, unequal = counts_box(placed, mine_written, mock, totals, manual_of(manual, mock["reportStep"]), len([number for number in facts["levelPlots"] if number in names]) if "levelPlots" in facts else None, wall_counts)
         gaps["count boxes with a mismatch"] += 1 if unequal else 0
         outcome = lambda step, word: sum(1 for row in overrides if row[2] == word and step_of(row[1], block) == step)
         moved = sum(1 for wall in walls if any((details.get(value.get("statusFrom")) or {}).get("overrides") for value in wall.values()

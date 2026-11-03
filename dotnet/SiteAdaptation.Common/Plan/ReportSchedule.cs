@@ -153,15 +153,9 @@ namespace SiteAdaptation.Common
         {
             if (made.Parts == null)
             {
-                var seen = new Dictionary<string, int>(StringComparer.Ordinal);
-                made.Parts = new Dictionary<JObject, string>();
-                foreach (JObject wall in made.Walls)
-                {
-                    string stem = string.Join("+", (wall["plots"]?["value"] as JArray ?? new JArray()).Select(item => (string)item)) + "|e" + ((long?)wall["edge"] ?? 0).ToString(CultureInfo.InvariantCulture);
-                    string counted = (string)wall["plot"] + "\n" + stem;
-                    seen[counted] = seen.TryGetValue(counted, out int count) ? count + 1 : 1;
-                    made.Parts[wall] = stem + "|p" + seen[counted].ToString(CultureInfo.InvariantCulture);
-                }
+                List<string> parts = BoundaryWalls.WallPlan.Parts(made.Walls.Select(wall => Tuple.Create((string)wall["plot"],
+                    (wall["plots"]?["value"] as JArray ?? new JArray()).Select(item => ((string)item).Trim()), (long?)wall["edge"] ?? 0)));
+                made.Parts = made.Walls.Select((wall, index) => new { wall, index }).ToDictionary(item => item.wall, item => parts[item.index]);
             }
             return made.Parts;
         }

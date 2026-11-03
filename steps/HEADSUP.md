@@ -11,7 +11,7 @@
 
 ### Lane B, C and D
 
-- Lane B 22:00, 3 Nov, branch report/lane-b-3nov: REPORT-3NOV-B, C# built and tests green, Python checker with a helper. Next: Revit test on a copy, review, parity decision, PR, then 6b. PR 164 merged. Blocked: none
+- Lane B 23:00, 3 Nov, branch report/lane-b-3nov: R550 to R555, real book 105,411 matches 0 mismatches. New: ReportFile.Fields, Name by ReportRun and Book, the sheet tables by Book, ReportRun.Facts by Outside, ButtonRun.IssueCount by StepRun.From and Facts. Now: breaker, gate, PR. Next: 6b. Blocked: none
 - Lane C, 3 Nov, branch feat/help-3nov-c: PR 160, 161, 162 merged, HELP PR going up, next RULES-3NOV-C. Ids R540 to R549, Q416 to Q419, Q440 to Q449. New callers: HelpBook by HelpFile, HelpFile by the pane and New project rows, HelpBox by OnStepHelp and OnRowHelp. A guide change needs python/build_help.py. I own the pane file tonight. Blocked: none
 - Lane D MASS-2NOV-D, 3 Nov, branch mass/2nov-d: the mass outline by the outer wall faces, R500 to R504, closed Q279, Q321, opened Q390 to Q393. Revit proof done, lock free.
   Now: the PR, merge when green. Nothing queued after it. Blocked: none

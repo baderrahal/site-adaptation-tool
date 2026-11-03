@@ -420,7 +420,7 @@ def test_r365_settings_with_no_block_addin_report_are_refused(made, tmp_path):
 
 
 FIELDS = {"project": "00101", "originator": "PSN", "volume": "<nbh>", "level": "XXX", "type": "SCH", "role": "TU", "number": "090000", "revision": "P01", "status": "S0", "projectName": "Made up"}
-FACTS = {"model": "site_012.rvt", "toolVersion": "1.0, build abc", "runSeconds": 75.0, "levelPlots": 2, "fields": FIELDS,
+FACTS = {"model": "site_012.rvt", "toolVersion": "1.0, build abc", "runSeconds": 75.0, "levelPlots": ["101", "102", "other"], "fields": FIELDS,
          "steps": {"1": {"time": "2026-11-03T08:00:00Z", "issues": 4}, "3": {"time": "2026-11-03T08:05:00Z", "issues": 0}, "5": {"time": "2026-11-03T08:10:00Z", "issues": 1407}}}
 
 

@@ -225,8 +225,7 @@ namespace SiteAdaptation.Common.Report
             {
                 if (run.Value != null)
                 {
-                    run.Value.Counts.TryGetValue(ButtonRun.WarningsCount, out int warnings);
-                    steps[run.Key] = new JObject { ["time"] = run.Value.Time, ["issues"] = run.Value.Issues.Count + warnings };
+                    steps[run.Key] = new JObject { ["time"] = run.Value.Time, ["issues"] = run.Value.IssueCount };
                 }
             }
             var facts = new JObject
@@ -244,11 +243,11 @@ namespace SiteAdaptation.Common.Report
             string changed = Path.Combine(Path.GetDirectoryName(rulesPath), ChangedRulesName);
             if (File.Exists(changed))
             {
-                facts["changedRules"] = Json(changed, "the list of changed rules")["changed"];
+                facts["changedRules"] = Json(changed, "the list of changed rules")["changed"] as JArray ?? throw new InvalidDataException(ChangedRulesName + " holds no list changed (R555): " + changed);
             }
             if (levels != null)
             {
-                facts["levelPlots"] = levels.LevelPlots.Count;
+                facts["levelPlots"] = new JArray(levels.LevelPlots);
             }
             return facts;
         }

@@ -838,12 +838,14 @@ namespace SiteAdaptation.Common
             long links = placed.Rows.Count(row => (string)row[1] == ReportExcelText.LinkKind);
             long floors = placed.Rows.Count(row => SiteCoordinates.FloorKinds.Contains((string)row[1]));
             long planFloors = written.Sum(plot => (plot["floors"] as JObject ?? new JObject()).Count);
-            JToken levelPlots = inputs?.RunFacts?["levelPlots"];
+            // R554. The plots button 6 set of the whole run, counted for this book as the Revit column is
+            var scopeOfBook = new HashSet<string>(written.Select(plot => (string)plot["plot"]));
+            long? levelPlots = (inputs?.RunFacts?["levelPlots"] as JArray)?.Select(item => (string)item).Count(scopeOfBook.Contains);
             var items = new List<object[]>
             {
                 new object[] { ReportExcelText.Links, (long)written.Count, revit == null ? (object)ReportExcelText.NotPlaced : revit[0], links },
                 new object[] { ReportExcelText.Floors, planFloors, revit == null ? (object)ReportExcelText.NotPlaced : revit[1], floors },
-                new object[] { ReportExcelText.Levels, (long)written.Count, revit == null ? (object)ReportExcelText.NotPlaced : revit[2], levelPlots == null ? (object)ReportExcelText.NoLevelRun : (long)levelPlots },
+                new object[] { ReportExcelText.Levels, (long)written.Count, revit == null ? (object)ReportExcelText.NotPlaced : revit[2], levelPlots == null ? (object)ReportExcelText.NoLevelRun : levelPlots.Value },
             };
             // Q307. The walls beside the links and floors, once the model read names them
             if (inputs?.RevitCounts?["walls"] is JObject standing && walls != null)
