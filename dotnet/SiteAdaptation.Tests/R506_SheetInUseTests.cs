@@ -14,9 +14,11 @@ namespace SiteAdaptation.Tests
     // R506, R507. The sheet in use, by New project and by the pane, and the real sheet of config held to links only
     public sealed class R506_SheetInUseTests
     {
-        private const string Config = @"X:\job\config\project.json";
+        // A folder of this system, the Linux runner reads no drive letter as a root
+        private static readonly string Job = Path.Combine(Path.GetTempPath(), "r506-job");
+        private static readonly string Config = Path.Combine(Job, "config", "project.json");
         private const string Named = "{\"addin\":{\"parameterSheet\":\"config/shared_parameters.xlsx\"}}";
-        private static readonly string InConfig = Path.Combine(@"X:\job", "config/shared_parameters.xlsx");
+        private static readonly string InConfig = Path.Combine(Job, "config/shared_parameters.xlsx");
 
         private static SetupRowState Row(ProjectSettings settings, Func<string, bool> there, string configText)
         {
