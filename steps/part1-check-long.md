@@ -27,13 +27,9 @@ Do not chase these. Each has a question in steps/questions-open.md.
 | A first Past on a plot of a native key on a new project | 4 Check | Q396 |
 | Save As of a new project keeps one override list | New project | Q397 |
 | 443 hairline floor overlaps of two neighbouring plots at step 5 | 5 Floors and ramps | Q398 |
-| Road surface: Browse is cut at the pane edge and the name landxml never shows | Pane | Q403 |
 | Road surfaces window could not be opened: Pick surfaces is grey under a past job, so no Revit run has seen it | Pane, New project | Q403 |
-| The band of 1 Set up site reads the Settings entity SiteAdaptation_Settings | 1 Set up site | Q404 |
 | Rules has no Export to Excel button, hidden on purpose since R444 | Rules | Q405 |
-| The Plot column of Conflicts shows the CAD label, not Plot No. Plot No 2291 has CAD label 2281, and another plot has Plot No 2281 | 2 Read data | Q406 |
 | 12 plots differ from the past schedule on FFL, up to 187 mm, and plot 2312 is blank | Level Excel | Q401, Q402 |
-| Update from report showed nothing after a report was picked, in the one try of this round. Its filled state is not seen by this round. Lane B ran the same flow in CHECK-2NOV | Update from report | Q408 |
 | A file dialog can take over a minute to appear or close, its inside black meanwhile. Wait, do not press again | Every Browse | none, seen once per dialog in this round, cause UNKNOWN |
 
 The 4 masses questions Q390 to Q393 are about the wall ring, they change no step below.

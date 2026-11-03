@@ -135,6 +135,9 @@
     <Border DockPanel.Dock="Bottom" Background="{StaticResource SA.ErrorGround}" Padding="{StaticResource SA.Pad.Box}" Visibility="{Binding ProblemShown, Converter={StaticResource Shown}}">
       <TextBlock Style="{StaticResource SA.Type.Body}" Foreground="{StaticResource SA.Error}" TextWrapping="Wrap" Text="{Binding ProblemLine}" />
     </Border>
+    <Border DockPanel.Dock="Bottom" Background="{StaticResource SA.InfoGround}" Padding="{StaticResource SA.Pad.Box}" Visibility="{Binding NoChangesShown, Converter={StaticResource Shown}}">
+      <TextBlock Style="{StaticResource SA.Type.Body}" TextWrapping="Wrap" Text="{Binding NoChangesLine}" />
+    </Border>
     <Border DockPanel.Dock="Bottom" Background="{StaticResource SA.InfoGround}" Padding="{StaticResource SA.Pad.Box}" Visibility="{Binding DryShown, Converter={StaticResource Shown}}">
       <TextBlock Style="{StaticResource SA.Type.Body}" Foreground="{StaticResource SA.Info}" TextWrapping="Wrap" Text="{Binding DryLine}" />
     </Border>

@@ -25,6 +25,7 @@ namespace SiteAdaptation.Common.CheckTable
             { "frontEdge", CheckShownText.LinkRotation },
             { "yardOutline", CheckShownText.YardOutline },
             { "rampOutline", CheckShownText.RampOutline },
+            { "R471", CheckShownText.RampJoint },
             { "generic", CheckShownText.GenericFloor },
             { "steps", CheckShownText.Steps },
             { "hand villa", CheckShownText.VillaHand },

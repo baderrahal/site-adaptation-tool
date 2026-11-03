@@ -2,6 +2,30 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Lane C known issues, 2026-11-03, FIX-KNOWN-3NOV-C
+
+Goal:
+- The issues of the guide with a clear answer
+
+Done:
+- Pick surfaces under the row (Q403), plain band (Q404), CAD label (Q406), No changes line (Q408), Ramp joint name (Q410), step 8 Boundary walls (Q415)
+
+Checked:
+- Touched tests on net48 and net8.0, text and window only, no parity
+
+Remains:
+- Not seen in Revit. Step 1 text of Q415 from Lane A. Then HELP-3NOV-C, RULES-3NOV-C
+
+Known bugs:
+- Q400, Q416, Q417, Q418
+
+Next:
+- HELP-3NOV-C
+
+Your turn:
+- Opened Q416 Road row reads optional, step 2 needs it. Q417 Whole project stops at step 3. Q418 Empty project keeps old rules on a set up model. Closed Q403, Q404, Q406, Q408, Q410.
+- 184 open, steps/questions-open.md
+
 ## Lane C GUIDE-3NOV-C, 2026-11-03, plain guide to the 9 buttons
 
 Goal:

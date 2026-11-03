@@ -28,7 +28,7 @@ namespace SiteAdaptation.AddIn.ScanResults
 
         public const string ConflictsTitle = "Conflicts";
         public const string ConflictsHelp = "Two files disagree on these plots. Pick the right one.";
-        public const string ColumnPlot = "Plot";
+        public const string ColumnPlot = "CAD label";
         public const string ColumnUse = "Use";
         public const string ShowAll = "Show all <n>";
         public const string UseProposed = "Use the proposed for all";
