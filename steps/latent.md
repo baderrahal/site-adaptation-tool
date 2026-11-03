@@ -584,3 +584,15 @@ Round SPEED-2NOV-C records, 3 Nov 2026:
 - A rejected ring keeps its build, so a sidecar could list wallsUsed under source slab. A null slab throws a bare null error, the reader throws first. None of the 13 reaches them.
 - MassFiles.Stale tests the reader version by not equal on one shared folder, so a build of another version and this one remake each other's masses. It ends at the merge.
 - faces_check2.py takes the whole face of a wall at all heights, so an edited profile counts as covering above its ground stretch. Breaker 2 read the profiles and found no fault.
+
+FIX-3NOV-A, breaker and review, no real input reaches these:
+- CheckRun never adds the role civilFile, so under rev6 with doorLevel.source civilFile button 4 stops as floorOutlines did. The shipped source is roadPlusSlope.
+- python/zone_compare.py:205 reads the mode with no project mode, an offline compare of the past job (Q224).
+- CheckRun.cs:476 wraps a worker refusal of R485 as the build ended refused, R493 passes plain. The read and the plan stop it first.
+- design_basis.py:159 lower against OrdinalIgnoreCase of RoadSurfaceChoices.cs:47 differ on odd Unicode, the stems are ASCII.
+- A settings file with a mode its config does not list is refused whole, SavedStarts leaves such a file out. It needs a second project whose past mode has another name.
+- A config with no notRoad reads as an empty list under rev6. All 4 older copies of Saved projects lack it, none reaches rev6 since a project that names a config stays on its mode.
+- A reinstall leaves every project copy of R486 as it was, a later rule fix in config does not reach it, and nothing records the install that made the copy.
+- Settings hold the absolute path of the copy, a work root that moves keeps writing under the old root while that folder stands.
+- A model name of about 92 characters or more can reach the name limit of R486, not tested.
+- PickConfig has no production caller, the pane never picks a settings file.

@@ -181,7 +181,7 @@ Look for: 337 plots, not 379.
 
 ## 16. The footprint check by same type (Lane A, FIX-2NOV-A, R477)
 
-Not run in the add-in yet, Lane A applied the check to the last hand run by C# and a second script.
+Not run in the add-in yet when written, Lane A applied the check to the last hand run by C# and a second script. The counts in Look for are of that time: R479 made them 59 same type and 269 other (Lane B hand run of main a4551dd), and R500 moved the base again, so read the line and take the counts of the latest run.
 
 1. In the same model, run 6 Levels.
 2. Set Villa mode to Masses, run 7 Place villas, press Run.
