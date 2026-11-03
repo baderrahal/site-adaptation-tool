@@ -4,10 +4,10 @@
 
 ### Lane A
 
-- Lane: A, round FIX-3NOV-A, branch fix/3nov-a. Time: 2026-11-03 03:52. Blocked: none
-- Done: FIX-2NOV-A3 merged PR 149, the plan and contract. Q371, Q373 closed by Bader
-- Now: a helper builds R484 project mode and R485 notRoad
-- Next: helper merged, proof on 5 TU zones 1,759 by Python, review and breaker running, then parity, Revit run under a lock slot, the PR
+- Lane: A, round FIX-3NOV-A, branch fix/3nov-a. Time: 2026-11-03 08:18. Blocked: none
+- Done: FIX-2NOV-A3 merged PR 149, contract. Q371, Q373, Q377, Q378 closed by Bader. Breaker 1 found button 4 under rev6 stops and a saved past job moved to rev6, both fixed on the helper branch
+- Now: a helper builds R486 Empty project takes the shipped set and R487 no override list. It changes Install-SiteAdaptation.ps1, SetupSave and NewProjectViewModel
+- Next: proof 1,759 of 1,791, breaker 2, parity, Revit run through the listener, the PR
 
 ### Lane B, C and D
 
