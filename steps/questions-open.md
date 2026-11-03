@@ -766,3 +766,7 @@ Q417. Whole project stops at step 3 (Lane C GUIDE-3NOV-C, R406). ReviewLoad.Load
 Q418. Empty project keeps old rules on a set up model (Lane C GUIDE-3NOV-C, R486). SetupSave and NewProjectViewModel.Wants copy the set only when no config is named, a model with settings keeps its rules and list, no message (READ).
 - Recommended: A line in the window says this model keeps its rules, under Empty project.
 - Other: Copy the set over, the old override list is lost.
+
+Q419. Ramp slope limit does nothing under the past job (Lane C RULES-3NOV-C, R541). Front ramp slope, largest lists plots outside the manual only under Rev 06 (BuildPlan, IsRev6). Under the past job the plan stays the same (RAN, worker build on NBH 012). A Save of a model also leaves a Save As sharing that copy, as Q397.
+- Recommended: Keep it in the table and let the row say Rev 06 only, in Part 2.
+- Other: Hide the two rows under the past job.

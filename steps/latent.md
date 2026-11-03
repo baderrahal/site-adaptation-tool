@@ -611,3 +611,7 @@ Round 6C-3NOV-C, review 1, 3 Nov 2026:
 - ScanView.cs about line 170, StartsWith |xref repeats the form CadScan.cs line 190 writes, with no shared constant. A rename shows the file Not read, the safe side.
 - ReviewDataWindow.xaml, Mirror column 72: an unread mirror shows not read yet, about 71 against 64, cut with an ellipsis. All 337 plots of the run read Yes or No.
 - Review data, the head Team check sits about 10 px left of the chip text, cosmetic.
+
+Round RULES-3NOV-C, review 1 and breaker 1, 3 Nov 2026:
+- RuleValues.Read stops the table when a rules file holds no number at a path of the catalog, a loud box, and Manual rules can not be reached from it. The two rules files on disk hold them all.
+- RuleValues.Text writes 3 decimals, a value typed with more shows rounded in an export. All real values hold under 3.
