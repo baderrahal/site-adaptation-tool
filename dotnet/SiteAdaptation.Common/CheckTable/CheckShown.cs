@@ -21,8 +21,8 @@ namespace SiteAdaptation.Common.CheckTable
             { "rampSlope", CheckShownText.RampType },
             { "linkOrigin", CheckShownText.LinkOrigin },
             { "linkRotation", CheckShownText.LinkRotation },
-            // R482. The front sets the link rotation by keyRules.linkRotation, the rule frontRule, a row of the field departs from that rule
-            { "frontEdge", CheckShownText.LinkRotation },
+            // R482, Q376. A row of the field holds the front an override names
+            { "frontEdge", CheckShownText.FrontEdge },
             { "yardOutline", CheckShownText.YardOutline },
             { "rampOutline", CheckShownText.RampOutline },
             { "R471", CheckShownText.RampJoint },
@@ -76,7 +76,7 @@ namespace SiteAdaptation.Common.CheckTable
         }
 
         // A past value in words and units. A gap to the rule keeps its sign as above or below, a position gap as along the front and into
-        // the plot, a rotation gap in degrees, a bool as the hand, any other value as the list writes it
+        // the plot, a rotation gap in degrees, a bool as the hand, a front edge of R482 by the number the list holds, any other value as the list writes it
         public static string Past(JToken value)
         {
             if (value == null || value.Type == JTokenType.Null)
@@ -101,6 +101,11 @@ namespace SiteAdaptation.Common.CheckTable
                 if (IsNumber(gap["gapToRuleDeg"]))
                 {
                     return Gap(gap["gapToRuleDeg"], CheckShownText.DegreesAbove, CheckShownText.DegreesBelow);
+                }
+                if (IsNumber(gap["edge"]))
+                {
+                    // Counted from 1 as Review data shows it (ReviewTable), the list holds it from 0
+                    return ReplaceFirst(CheckShownText.EdgeOfOutline, Number(new JValue(gap["edge"].Value<long>() + 1)));
                 }
             }
             return CheckTableState.Text(value);

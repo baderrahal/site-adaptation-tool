@@ -2,6 +2,32 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Lane A KNOWN-3NOV-A, 2026-11-03, the known issues with a clear answer
+
+Goal:
+- Bader: fix the known issues of Lane A with a clear answer, write a recommended answer on the rest
+
+Done:
+- R520 Start from opens on the saved project, a re-pick imports. R521 Review takes the official number on 2312, saved marks move with it. Front edge in plain words, counted from 1 as Review. The override line ends with its folder
+- Breaker: built R522 no Past on another job's key, removed, the add-in gives no key reads, Q396 to steps/latent.md
+
+Checked:
+- Touched tests on both runners, full gate before the PR, review 1 and breaker 1. Q400 and the check line not seen in Revit
+- Q401, Q402 compared with the IMC key, RAN: no override wanted
+
+Remains:
+- The Revit pass of FIX-3NOV-A runs with COORD-3NOV-A: a first pass stopped twice in New project, nothing conclusive
+
+Known bugs:
+- R347 of WorkerRunTests failed once on net48 in a gate under load, passed 3 of 3 alone
+
+Next:
+- COORD-3NOV-A, RAMP-3NOV-A
+
+Your turn:
+- Closed Q376 Plain words for the front edge override. Q396 Past of a native key on new project. Q400 New project reopens on Empty project. Narrowed Q355, Q397. Recommended written Q401, Q402. Opened none.
+- 181 open, steps/questions-open.md
+
 ## Lane C HELP-3NOV-C, 2026-11-03, i beside each step
 
 Goal:

@@ -22,6 +22,17 @@ namespace SiteAdaptation.Common.Review
             {
                 checks[check.Plot] = check;
             }
+            // R521. A mark saved when the row read its two numbers. A mark under the number the row holds now is the later one and stays
+            foreach (ReviewRow row in rows.Where(row => row.OldPlotNo != null && checks.ContainsKey(row.OldPlotNo)))
+            {
+                ReviewCheck old = checks[row.OldPlotNo];
+                checks.Remove(row.OldPlotNo);
+                if (!checks.ContainsKey(row.PlotNo))
+                {
+                    old.Plot = row.PlotNo;
+                    checks[row.PlotNo] = old;
+                }
+            }
         }
 
         public IReadOnlyList<ReviewRow> Rows { get; }

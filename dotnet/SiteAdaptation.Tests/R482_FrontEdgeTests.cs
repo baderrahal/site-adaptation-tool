@@ -257,12 +257,14 @@ namespace SiteAdaptation.Tests
             Assert.Equal("{\"edge\":2}", Text(list.FrontEdges()["6"]));
         }
 
+        private const string TextOfEdge3 = "edge 4 of the plot outline";
+
         [Fact]
         public void R482_the_check_table_shows_the_rule_and_the_past_in_words()
         {
-            // The rule column names the rule the row departs from, the front sets the link rotation by keyRules.linkRotation, and the past is the value as the list writes it
-            Assert.Equal(CheckShownText.LinkRotation, CheckShown.RuleName("parsons frontEdge"));
-            Assert.Contains("3", CheckShown.Past(Named(3)));
+            // Q376. The rule column names the front set by hand, the past is the edge the list writes
+            Assert.Equal(CheckShownText.FrontEdge, CheckShown.RuleName("parsons frontEdge"));
+            Assert.Equal(TextOfEdge3, CheckShown.Past(Named(3)));
             JObject config = JObject.Parse(File.ReadAllText(WorkerRunTests.RepoConfig()));
             Assert.Equal("Position", (string)config["checkRows"]["fields"]["frontEdge"]["check"]);
         }
