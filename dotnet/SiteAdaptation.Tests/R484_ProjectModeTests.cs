@@ -589,6 +589,73 @@ namespace SiteAdaptation.Tests
             Assert.Equal("pastMade", model.Result.ProjectMode);
         }
 
+        private static ProjectSettings SavedJob()
+        {
+            return new ProjectSettings { ConfigFile = "cfg", RulesFile = "rules", LevelProfile = "made" };
+        }
+
+        [Fact]
+        public void R520_new_project_reopens_on_the_saved_project_the_setup_came_from_and_its_hint_goes()
+        {
+            var starts = new[] { new SavedStart("Other", "o.json", PreSetting.Export(new ProjectSettings { ConfigFile = "other" })), new SavedStart("Job", "j.json", PreSetting.Export(SavedJob())) };
+            NewProjectViewModel model = Window(SavedJob(), starts, path => Config("pastMade"));
+            Assert.Equal("Job (saved)", model.Start.Name);
+            Assert.Equal(string.Empty, model.SavedHint);
+            var told = new List<string>();
+            model.PropertyChanged += (sender, change) => told.Add(change.PropertyName);
+            model.Start = model.Starts[0];
+            Assert.Equal("Other is kept as a saved start, not built in.", model.SavedHint);
+            Assert.Contains(nameof(model.SavedHint), told);
+        }
+
+        [Fact]
+        public void R520_a_setup_of_no_saved_project_opens_on_empty_project_with_the_hint()
+        {
+            var starts = new[] { new SavedStart("Other", "o.json", PreSetting.Export(new ProjectSettings { ConfigFile = "other" })) };
+            NewProjectViewModel model = Window(SavedJob(), starts, path => Config("pastMade"));
+            Assert.Null(model.Start.Start);
+            Assert.Equal("Other is kept as a saved start, not built in.", model.SavedHint);
+            model.Start = model.Starts[1];
+            Assert.Equal(string.Empty, model.SavedHint);
+        }
+
+        [Fact]
+        public void R520_save_setup_from_there_does_not_import_it_again_so_the_picks_and_the_mode_stay()
+        {
+            ProjectSettings saved = SavedJob();
+            saved.RoadSurfaces = new List<string> { "Made Up Job__Road A" };
+            saved.Inputs[InputNames.ParameterSheet] = new SettingsInput { Path = "saved.xlsx" };
+            ProjectSettings settings = SavedJob();
+            settings.RoadSurfaces = new List<string> { "Made Up Job__Road B" };
+            settings.Inputs[InputNames.ParameterSheet] = new SettingsInput { Path = "picked.xlsx" };
+            settings.ProjectMode = DesignBasis.Rev6;
+            NewProjectViewModel model = Window(settings, new[] { new SavedStart("Job", "j.json", PreSetting.Export(saved)) }, path => Config("pastMade"));
+            Assert.NotNull(model.Start.Start);
+            model.Save();
+            Assert.Equal(new[] { "Made Up Job__Road B" }, model.Result.RoadSurfaces);
+            Assert.Equal("picked.xlsx", model.Result.Inputs[InputNames.ParameterSheet].Path);
+            Assert.Equal(DesignBasis.Rev6, model.Result.ProjectMode);
+        }
+
+        [Fact]
+        public void R520_a_saved_job_with_no_mode_stays_on_the_mode_of_its_config_with_nothing_written()
+        {
+            NewProjectViewModel model = Window(SavedJob(), new[] { new SavedStart("Job", "j.json", PreSetting.Export(SavedJob())) }, path => Config("pastMade"));
+            Assert.Equal("ROSHN past job", model.ModeLine);
+            model.Save();
+            Assert.Null(model.Result.ProjectMode);
+        }
+
+        [Fact]
+        public void R520_choosing_another_saved_project_still_imports_it()
+        {
+            var starts = new[] { new SavedStart("Job", "j.json", PreSetting.Export(SavedJob())), new SavedStart("Other", "o.json", PreSetting.Export(new ProjectSettings { ConfigFile = "other" })) };
+            NewProjectViewModel model = Window(SavedJob(), starts, path => Config("pastMade"));
+            model.Start = model.Starts[2];
+            model.Save();
+            Assert.Equal("other", model.Result.ConfigFile);
+        }
+
         [Fact]
         public void R484_a_config_picked_in_the_pane_sets_no_mode_only_save_setup_writes_it()
         {

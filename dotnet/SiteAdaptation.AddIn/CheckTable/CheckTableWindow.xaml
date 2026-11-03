@@ -177,7 +177,7 @@
         <StackPanel>
           <TextBlock Style="{StaticResource SA.Type.Title}" Foreground="{StaticResource SA.Surface}" Text="{Binding Title}" />
           <TextBlock Style="{StaticResource SA.Type.Body}" Foreground="{StaticResource SA.BandText}" Margin="{StaticResource SA.Gap.Top4}" TextTrimming="CharacterEllipsis"
-                     Text="{Binding ProfileLine}" Visibility="{Binding ProfileShown, Converter={StaticResource Shown}}" />
+                     Text="{Binding ProfileLine}" ToolTip="{Binding ProfileLine}" Visibility="{Binding ProfileShown, Converter={StaticResource Shown}}" />
         </StackPanel>
         <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="{StaticResource SA.Gap.Left16}">
           <!-- R444. A button with nothing to do is hidden, never shown grey -->

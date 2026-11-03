@@ -4,10 +4,10 @@
 
 ### Lane A
 
-- Lane: A, round FIX-3NOV-A, branch fix/3nov-a. Time: 13:25. Blocked: none
-- Done: R484 to R487, parity, gate, Revit on 84e1e69 to 4 Check. Records written
-- Now: the PR, merge only if green by 14:00
-- Next: a short Revit pass of the window fixes after the restart, not seen in Revit yet
+- Lane: A, 3 Nov 21:45, branches fix/known-3nov-a, fix/coord-3nov-a, fix/ramp-3nov-a. Blocked: none. No lock held
+- Done: KNOWN fixes, new callers SavedStarts.CameFrom by NewProjectViewModel
+- Now: KNOWN PR, COORD and RAMP building in their worktrees
+- Next: one Revit window for COORD with the window fixes not seen yet, then RAMP
 
 ### Lane B, C and D
 
