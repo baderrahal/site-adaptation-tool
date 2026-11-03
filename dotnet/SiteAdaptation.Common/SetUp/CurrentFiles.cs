@@ -215,6 +215,10 @@ namespace SiteAdaptation.Common.SetUp
             {
                 wrapped.SheetChosen = path => fill(callbacks.SheetChosen(path));
             }
+            if (callbacks?.SourceChosen != null)
+            {
+                wrapped.SourceChosen = pick => fill(callbacks.SourceChosen(pick));
+            }
             SetUpSiteAnswer answer = inner.Show(fill(view), wrapped);
             if (answer != null && answer.Apply)
             {

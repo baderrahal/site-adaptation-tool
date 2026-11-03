@@ -42,11 +42,12 @@ namespace SiteAdaptation.UiShots
         public const string ScanResults = "scan-results";
         public const string RoadSurfaces = "road-surfaces";
         public const string HelpBox = "help-box";
+        public const string SetUpNoSource = "setup-site-no-source";
         public static readonly string[] Windows = { RibbonIcons, Pane, PaneFirstOpen, SetUpSite, ReviewData, Rules, CheckTable, UpdateFromReport, NewProject, HowItWorks, ScanResults };
 
         // R492. Drawn by the command line and Render, not in Windows: UiShotTests counts 11 windows and holds each of them to the sizes of the spec,
         // so the window Road surfaces joins Windows once Bader approves its draft and that test follows
-        public static readonly string[] Drafts = { RoadSurfaces, HelpBox };
+        public static readonly string[] Drafts = { RoadSurfaces, HelpBox, SetUpNoSource };
 
         private const double Dpi = 96.0;
 
@@ -67,6 +68,7 @@ namespace SiteAdaptation.UiShots
                 case ScanResults: return ScanResultsPage();
                 case RoadSurfaces: return RoadSurfacesPage();
                 case HelpBox: return HelpBoxPage();
+                case SetUpNoSource: return SetUpNoSourcePage();
                 default: throw new ArgumentException("no window " + window + ", only " + string.Join(", ", Windows), nameof(window));
             }
         }
@@ -221,6 +223,33 @@ namespace SiteAdaptation.UiShots
             bitmap.Render(body);
             bitmap.Freeze();
             return bitmap;
+        }
+
+        // R510, R513. A blank model with no usable source, the window asking
+        private static BitmapSource SetUpNoSourcePage()
+        {
+            SetUpSiteWindow window = LaidOutSetUp(SampleNoSourceView());
+            FrameworkElement body = Body(window);
+            var bitmap = new RenderTargetBitmap((int)body.ActualWidth, (int)body.ActualHeight, Dpi, Dpi, PixelFormats.Pbgra32);
+            bitmap.Render(body);
+            bitmap.Freeze();
+            return bitmap;
+        }
+
+        public static SetUpSiteView SampleNoSourceView()
+        {
+            SetUpSiteView view = SampleSetUpView(false, false);
+            view.PositionSource = null;
+            view.SourceRows.Clear();
+            view.CheckLine = null;
+            view.CheckPoints.Clear();
+            view.NoCoordinatesLine = SetUpTexts.NoCoordinates;
+            view.TemplatePlaceLine = SetUpTexts.TemplatePlace("Sample Town");
+            view.NoSourceLine = "The pane names no baseplan drawing, so the tool has no coordinates from CAD.";
+            view.Stops.Add(view.NoSourceLine);
+            view.WillSet[0].Value = SetUpTexts.NoSourceYet;
+            view.WillSet.Single(row => row.Label == SetUpTexts.SurveyPoint).Value = SetUpTexts.NoSourceYet;
+            return view;
         }
 
         private static BitmapSource ReviewPage()
@@ -443,8 +472,21 @@ namespace SiteAdaptation.UiShots
                 new SetUpRow { Label = "Shared parameters", Value = "9 found" },
                 new SetUpRow { Label = "Units", Value = "meters, accuracy 0.01" },
             });
+            // R512, R514. The source and the section CAD and position file, made up numbers
+            view.PositionSource = SiteSources.Cad;
+            view.SourceRows = new List<SourceRow>
+            {
+                new SourceRow { Label = SetUpTexts.Easting, Cad = "1000.000", File = "1400.000", Difference = "400000 mm" },
+                new SourceRow { Label = SetUpTexts.Northing, Cad = "2000.000", File = "2300.000", Difference = "300000 mm" },
+                new SourceRow { Label = SetUpTexts.Elevation, Cad = "0.000", File = "0.000", Difference = "0 mm" },
+                new SourceRow { Label = SetUpTexts.Angle, Cad = "0", File = "0", Difference = "0 deg" },
+                new SourceRow { Label = SetUpTexts.SurveyPoint, Cad = "1000.000, 2000.000", File = "1500.000, 2500.000", Difference = "707106.78 mm" },
+                new SourceRow { Label = SetUpTexts.SurveyHeight, Cad = "0.000", File = "12.000", Difference = "12000 mm" },
+                new SourceRow { Label = SetUpTexts.FileOriginToPlots, Cad = SetUpTexts.PlotBox, File = SetUpTexts.InsidePlots, Difference = "0 mm" },
+            };
             view.WillSet.AddRange(new[]
             {
+                new SetUpRow { Label = SetUpTexts.PositionFrom, Value = SetUpTexts.FromCad },
                 new SetUpRow { Label = "Coordinate system", Value = "Shared coordinates of CAD, site Internal", Differs = false },
                 new SetUpRow { Label = "Survey point", Value = "E 1000.000, N 2000.000, Z 0.000" },
                 new SetUpRow { Label = "Angle to true north", Value = "0" },

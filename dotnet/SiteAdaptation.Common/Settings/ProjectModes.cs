@@ -79,6 +79,11 @@ namespace SiteAdaptation.Common.Settings
             {
                 next.ProjectMode = NewProject(ReadConfig(next.ConfigFile, readText));
             }
+            // R511. The same line for the site source, coordinates.newProjectSource over coordinates.source of a new project
+            if (next.CoordinateSource == null && string.IsNullOrEmpty(configBefore))
+            {
+                next.CoordinateSource = SetUp.SiteSources.NewProject(ReadConfig(next.ConfigFile, readText));
+            }
         }
     }
 }

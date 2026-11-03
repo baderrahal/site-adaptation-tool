@@ -2,6 +2,30 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Lane A COORD-3NOV-A, 2026-11-04, a model with no site coordinates
+
+Goal:
+- Bader: button 1 works on a model with no shared coordinates, position from the picked CAD, file only as a check, never set silently
+
+Done:
+- R510 detects it, says This model has no site coordinates. R511 CAD is the default of a new project. R512 CAD and file side by side in mm. R513 no usable CAD asks for a file or typed values, Apply off. R514 site.json positionSource, pane text with Lane C. R523 no move with placed content, Q420
+- Review 1 and breaker 1: a silent fall back to the file, a typed slip passing every check, a source held before the commit, no retry of the CAD read, each fixed with a test
+
+Checked:
+- Gate on both runners and pytest, CI. Parity skipped, no plan or Excel number. Revit, RAN by the test host under a locked screen, 3.6 minutes: a blank copy shows the line and with no source Apply stays off
+
+Remains:
+- Not seen in Revit: Apply from CAD, typed, the move stop on the copy of SA-dryrun3nov.rvt and the real window. Runs follow on main
+
+Known bugs:
+- The new project check has no sender in the add-in, so nothing asks it today (steps/latent.md)
+
+Next:
+- The runs on main, RAMP-3NOV-A
+
+Your turn:
+- Opened Q420 Moving a model with placed content. Closed none.
+- 180 open, steps/questions-open.md
 ## Lane C RULES-3NOV-C, 2026-11-04, the table of rule values
 
 Goal:

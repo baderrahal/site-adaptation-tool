@@ -488,6 +488,12 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R454 Coordinate system of the inputs.
 - R455 Site position from CAD.
 - R456 Three CAD control points.
+- R510 Model with no site coordinates.
+- R511 CAD default for new projects.
+- R512 CAD and position file side by side.
+- R513 No usable CAD asks the user.
+- R514 Where the position came from.
+- R523 No move with placed content.
 
 ## 14-report-r550-up.md
 

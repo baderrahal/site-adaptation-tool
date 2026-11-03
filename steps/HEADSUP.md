@@ -4,10 +4,10 @@
 
 ### Lane A
 
-- Lane: A, 3 Nov 21:45, branches fix/known-3nov-a, fix/coord-3nov-a, fix/ramp-3nov-a. Blocked: none. No lock held
-- Done: KNOWN fixes, new callers SavedStarts.CameFrom by NewProjectViewModel
-- Now: KNOWN PR, COORD and RAMP building in their worktrees
-- Next: one Revit window for COORD with the window fixes not seen yet, then RAMP
+- Lane: A, 4 Nov 01:50, branches fix/coord-3nov-a, fix/ramp-3nov-a. Blocked: none. No lock held
+- Done: KNOWN PR 166. COORD built, its gate, the blank line in Revit by the test host
+- Now: COORD PR. Then RAMP PR
+- Next: on main in the second slot, CAD Apply, typed, move stop, the step 5 probe of RAMP
 
 ### Lane B, C and D
 

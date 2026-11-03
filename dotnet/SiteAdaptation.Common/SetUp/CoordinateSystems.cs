@@ -67,6 +67,9 @@ namespace SiteAdaptation.Common.SetUp
         public double[] UtmNorthM { get; set; }
         public double[] UtmSouthNorthM { get; set; }
 
+        // R513. How far off the box of the plots a typed origin may lie, null for a config of before the key, which then only shows the distance
+        public double? TypedOffBoxLimitM { get; set; }
+
         public bool FromCad
         {
             get { return Source == FromCadSource; }
@@ -98,6 +101,7 @@ namespace SiteAdaptation.Common.SetUp
                 AngleToTrueNorthDeg = Number(block, "angleToTrueNorthDeg"), OriginElevationM = Number(block, "originElevationM"), PositionName = Text(block, "positionName"),
                 PlaceName = place == null || place.Type == JTokenType.Null ? null : Text(block, "placeName"), ControlPointCount = (int)count, ControlPointLimitMm = Number(block, "controlPointLimitMm"),
                 UtmEastM = Range(block, "utmEastM"), UtmNorthM = Range(block, "utmNorthM"), UtmSouthNorthM = Range(block, "utmSouthNorthM"),
+                TypedOffBoxLimitM = block["typedOffBoxLimitM"] == null ? (double?)null : Number(block, "typedOffBoxLimitM"),
             };
             if (settings.OriginRoundM <= 0 || settings.ControlPointLimitMm <= 0)
             {
@@ -205,14 +209,37 @@ namespace SiteAdaptation.Common.SetUp
             UtmZone zone = UtmMath.ZoneOf(epsg);
             double[] east = { vertices.Min(vertex => vertex[0]), vertices.Max(vertex => vertex[0]) };
             double[] north = { vertices.Min(vertex => vertex[1]), vertices.Max(vertex => vertex[1]) };
-            double[] northRange = zone.North ? settings.UtmNorthM : settings.UtmSouthNorthM;
-            if (east[0] >= settings.UtmEastM[0] && east[1] <= settings.UtmEastM[1] && north[0] >= northRange[0] && north[1] <= northRange[1])
+            double[] northRange = NorthRange(zone, settings);
+            if (InZone(east, north, northRange, settings))
             {
                 return null;
             }
             return "The plot outlines of the baseplan run " + Metres(east) + " m east and " + Metres(north) + " m north, outside the range of UTM zone "
                 + Code(zone.Number) + (zone.North ? " north" : " south") + " of EPSG " + Code(epsg) + ", " + Metres(settings.UtmEastM) + " m east and " + Metres(northRange)
                 + " m north. The baseplan is likely in drawing coordinates or another system, so button 1 takes no site position from it";
+        }
+
+        // R513. The same range for a typed site, null when it lies inside, else the plain line of the refusal
+        public static string TypedOutside(double east, double north, CoordinateSettings settings, int epsg)
+        {
+            UtmZone zone = UtmMath.ZoneOf(epsg);
+            double[] northRange = NorthRange(zone, settings);
+            if (InZone(new[] { east, east }, new[] { north, north }, northRange, settings))
+            {
+                return null;
+            }
+            return "These values lie outside the range of UTM zone " + Code(zone.Number) + (zone.North ? " north" : " south") + " of EPSG " + Code(epsg) + ", " + Metres(settings.UtmEastM) + " m east and " + Metres(northRange) + " m north.";
+        }
+
+        private static double[] NorthRange(UtmZone zone, CoordinateSettings settings)
+        {
+            return zone.North ? settings.UtmNorthM : settings.UtmSouthNorthM;
+        }
+
+        // R455, R513. The least and the most east and north held to the range of the zone
+        private static bool InZone(double[] east, double[] north, double[] northRange, CoordinateSettings settings)
+        {
+            return east[0] >= settings.UtmEastM[0] && east[1] <= settings.UtmEastM[1] && north[0] >= northRange[0] && north[1] <= northRange[1];
         }
 
         private static string Metres(double[] range)
