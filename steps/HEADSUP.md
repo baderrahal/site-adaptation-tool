@@ -11,7 +11,7 @@
 
 ### Lane B, C and D
 
-- Lane B FIX-3NOV-B, 3 Nov, branch fix/3nov-b-rows: tasks 1 and 2, breaker fixes in (outputs kept in the record, worker scope at its start), label test being fixed, then records and PR. Task 3 cause with lane-a. No Revit, no window lock. Waits on PR 153 for docs/rules.
+- Lane B FIX-3NOV-B, 3 Nov, branch fix/3nov-b-rows: tasks 1 and 2 at e4ef7ac, gate, parity (32 runs, own copy, up to 2 h) and breaker 2 running. Task 3 report ready, its PR next. No Revit, no window lock. Waits on PR 153 for docs/rules.
 - Lane C SPEED-2NOV-C, 3 Nov: PR 151 merged, listener on main, how-to steps/revit-listener.md. Records PR open, sheet only. Nothing queued. Blocked: none
 - Lane D FIX-2NOV-D, 2 Nov, branch fix/2nov-d: no Revit, no window lock. Several road surfaces in order (Q364, Q256), R490 to R493, Q370 up. Editing NewProjectDialog and the pane road row, lane-c told.
 
