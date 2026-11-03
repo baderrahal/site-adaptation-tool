@@ -137,6 +137,8 @@ namespace SiteAdaptation.AddIn.NewProject
         // R486. The shipped set of the install, null where the window has none, and what Save took from it
         private readonly ShippedSet shipped;
         private ProjectSet taken;
+        private ProjectSet preview;
+        private bool previewRead;
 
         // R440, Q283. The scan the facts came from, the window What the tool read it opens, and the picks of the dropdowns and the window
         private readonly DrawingFactsResult facts;
@@ -406,6 +408,21 @@ namespace SiteAdaptation.AddIn.NewProject
 
         private string RefusedLine => !Wants ? null : shipped.Refusal == ShippedSetRefusal.NotSaved ? NewProjectText.SetNotSaved : shipped.Refusal == ShippedSetRefusal.NoSafeName ? NewProjectText.SetNoName : null;
 
+        // R486. Before Save the window reads the shipped set as the Save will give it, so the road pick and the sheet row work, nothing is copied. Read once
+        private ProjectSet Previewed()
+        {
+            if (!Takes)
+            {
+                return null;
+            }
+            if (!previewRead)
+            {
+                preview = shipped.Preview(readText);
+                previewRead = true;
+            }
+            return preview;
+        }
+
         public void Save()
         {
             // R486. The copy is made here where the work root is known, SetupSave lays the result over the settings. A refusal leaves the window open and nothing written
@@ -439,7 +456,7 @@ namespace SiteAdaptation.AddIn.NewProject
 
         private SetupDraft Draft()
         {
-            var draft = new SetupDraft { StartText = start?.Start?.Text, ScanPicks = new Dictionary<string, string>(scanPicks), ConflictPicks = conflictPicks, RoadSurfaces = surfaces, NewSet = taken };
+            var draft = new SetupDraft { StartText = start?.Start?.Text, ScanPicks = new Dictionary<string, string>(scanPicks), ConflictPicks = conflictPicks, RoadSurfaces = surfaces, NewSet = taken ?? Previewed() };
             foreach (KeyValuePair<string, string> pick in picks)
             {
                 draft.Picks[pick.Key] = pick.Value;
