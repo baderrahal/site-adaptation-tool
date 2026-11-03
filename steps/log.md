@@ -2,6 +2,57 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Lane D MASS-3NOV-D and the Revit check of PARAM-3NOV-D, 2026-11-04
+
+Goal:
+- Q391, masses inside their plots, no overlap above 1 mm. The check of PR 165 through the real windows
+
+Done:
+- R530: the base cut at the party lines of its unit, config massPartyLines. Reader version 6, masses made once
+
+Checked:
+- MASS, RAN in Revit on a copy, Boolean of link solids, NBH 012: pairs over 1 mm 45 before, 0 after, largest left 0.55 mm. Mirror and rotation hold on 336. 1 pair Revit refused, 0.21 mm by a second method. Footprint 59 same, 0 over, 271 other, 6 none
+- PARAM, RAN in Revit on a copy, old sheet in C:\SA-demo\config: row green, New project Found, no stop, the line before and after Apply, rows 2 to 9 unchanged. Parameters on links only, Plot on Floors, by a read job, the dialog shows no categories. 336 villas: 0 values lost. 1,003 floors hold Plot only
+- Offline whole project: pairs over 1 mm 385 before, 2 after, plots past their plot 1,199 before, 11 after, Q470. Past plans byte equal. Parity not run, no step reads a mass
+
+Remains:
+- The PC stood locked, so presses went by UIA, not by mouse, and a press by step row is UNKNOWN. Button 7 on a copied model in another folder failed on the full path in check.json until edited (R377), the fallback SA-dryrun3nov-done should fail the same way, not run
+- C:\SA-demo\config was refreshed with massPartyLines and the new sheet, backup in p_revit3nov. Its config hash changed, so step rows of models on it read Needs step until they run again
+
+Known bugs:
+- Mass remake 13.9 s each with Revit open, 181 s for 13, once per reader version
+
+Next:
+- TOPO-3NOV-D
+
+Your turn:
+- Opened: Q470 Plots a mass of its unit does not fit. Q471 Free ends that lose a wall they had room for. Closed: Q391, Q331, Q333, Q338. 179 open, steps/questions-open.md
+
+## Lane B REPORT-3NOV-B, 2026-11-03, the report in BIM layout
+
+Goal:
+- Why the report failed in the dry run, Q307, Q408, ISO name and BIM sheets
+
+Done:
+- R550 to R555. Cover, Plot schedule, Floors, Walls first, walls in Placed, one count for pane and report (R554, ButtonRun.IssueCount)
+- Dry run report: no failure in the logs, UNKNOWN what Bader saw, see the PR
+
+Checked:
+- python/report_excel_check.py on the real book: 105,411 matches, 0 mismatches. 336 villas, 1,003 floors, 778 walls from the model read
+- Update from report by the worker: 0 changes on the plain book, 1 on an edited one
+
+Remains:
+- New project fields, Lane C after this merges. The window of Update from report not seen in Revit
+- Element ids not opened by id in Revit, the screen was in use
+
+Known bugs:
+- C:\SA-demo\config holds no fileName block, so its models keep 012_Report.xlsx until it is refreshed
+
+Next:
+- 6b
+
+Your turn:
+- Opened Q450 Report defaults of old number, revision, status. Q451 Report Issues column against its sheets. Closed Q307 What the report Summary shows after a run. See steps/questions-open.md
 ## Lane D PARAM-3NOV-D, 2026-11-03, shared parameters shown right, on links only
 
 Goal:

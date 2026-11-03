@@ -71,7 +71,20 @@ namespace SiteAdaptation.Common
                 }
                 ids[kind.Key.Kind] = new JArray(kind.Select(element => element.Key).Distinct().OrderBy(id => id));
             }
+            // Q307. The walls by "<plot>|<part>", apart from plots, as a wall counts in no plot row of the box
+            var walls = new JObject();
+            foreach (var wall in elements.Where(element => element.Value.Key.Kind == PlacedKinds.BoundaryWall).GroupBy(element => element.Value.Key.Plot + "|" + element.Value.Key.Part))
+            {
+                walls[wall.Key] = new JArray(wall.Select(element => element.Key).Distinct().OrderBy(id => id));
+            }
+            counts["walls"] = walls;
             return counts;
+        }
+
+        // The ids the model holds for a wall of a plot, none when the counts hold no walls
+        public static List<long> WallIds(JObject counts, string plot, string part)
+        {
+            return (counts?["walls"]?[plot + "|" + part] as JArray)?.Select(id => (long)id).ToList() ?? new List<long>();
         }
 
         // R483. The cell Element id of a plot and kind: the id, the ids joined where a person copied an element, null where the model holds none
