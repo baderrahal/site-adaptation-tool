@@ -693,3 +693,34 @@ Q393. The chosen limits of the wall ring (Lane D MASS-2NOV-D, R500 to R504). All
 - Recommended: Keep them, and run the sidecar check block on the first new prototype before trusting its masses.
 - Other: Tighten wallRingMinShare and give the notches of DP2, DP4, VD2 and VD4 an override.
 
+Q400. New project reopens on Empty project (Lane C 6C-3NOV-C, seen in Revit, Lane A asked for a question). New project opened again on a project with a saved setup reads Start from Empty project and its hint still names ROSHN Makkah task6, on SA-part2 with SA-6c saved (RAN, shot p2-064). Save setup from there is not tried. It is older than this round.
+- Recommended: Start from reads the saved project the setup came from, and the hint goes when one is chosen. Lane A, in NewProjectViewModel.
+- Other: Leave it, a person rarely opens New project twice.
+
+Q401. 12 plots differ from the past FFL (Lane C 6C-3NOV-C, steps/investigations/6c-excel.md). Against the IMC schedule 324 FFL equal, 12 differ up to 187 mm, 1 blank (plot 2312), two methods (RAN). All 12 read Rule with no override, 8 of them in the clusters 2375-2376, 2377-2378, 2387-2388, 2389-2390. 2377 and 2388 also differ by one step. Whether the schedule or the IMC key is the right past value on them is UNKNOWN.
+- Recommended: Lane A compares these 12 with the IMC key, and any the key agrees with the schedule goes to the override list by the majority rule. Rev 6 prevails where they differ.
+- Other: Accept them as they are, the rule is right and the schedule is older.
+
+Q402. Plots 2301 and 2302 read VD4 (Lane C 6C-3NOV-C, steps/investigations/6c-excel.md). The Level Excel and Placed read VD4, the IMC schedule reads DP4 (RAN). Plots 2513 and 2514 read TH1-IM against TH1, the same unit under a longer name. Why 2301 and 2302 differ is not traced.
+- Recommended: Lane A traces 2301 and 2302 to their source and adds an override if the key reads DP4. TH1-IM stays as it is.
+- Other: Accept VD4.
+
+Q403. Road surface row cut in the pane (Lane C 6C-3NOV-C, R492, Lane D). Pick surfaces and Browse take the whole width, so the name landxml never shows and Browse is cut at the pane edge by a few pixels (RAN, shot p2-059). R492 and docs/design/18-new-project.md say next to Browse. The window Road surfaces has not been seen in a real Revit, Pick surfaces is grey under a past job (Lane D SEARCHED).
+- Recommended: Pick surfaces moves to the line under the row with its surfaces line, R492 changes with it, and Lane D opens the window once on a project with no past job.
+- Other: Keep it beside Browse and narrow the label column.
+
+Q404. Set up site band shows a code name (Lane C 6C-3NOV-C, Lane B window). The band of 1 Set up site on an existing file reads the Settings entity SiteAdaptation_Settings, a developer name (RAN, shot p1-022).
+- Recommended: Lane B replaces it with Saved in this model.
+- Other: Leave it, it says where the settings live.
+
+Q405. Export to Excel hidden in Rules (Lane C 6C-3NOV-C, R444 against docs/design/13-workflow-changes.md line 43). Your changes of 28 Oct ask for Export to Excel in Site Adaptation Rules. R444 hid it as an idle button, line 137 of RulesWindow.xaml is Collapsed always (READ). The two disagree.
+- Recommended: Build the export in Part 2, hidden until then.
+- Other: Drop it from the design, the rules are in the manual and the report sheet Rules.
+
+Q406. Conflicts Plot column shows the CAD label (Lane C 6C-3NOV-C, CHECK-2NOV part 8). What the tool read runs before the plot table, so its Plot column holds the label read from the CAD, and Plot No 2291 has label 2281 while another plot reads Plot No 2281 (READ steps/check-2nov.md row 8). A pick lands on the right plot by that label, the words mislead. The board says Plot.
+- Recommended: The head reads CAD label, as 3 Review data does. ScanView.ConflictKey stays.
+- Other: Show both once the plot numbers are read, more work in the scan.
+
+Q407. Amber in the spec or the boards (Lane C 6C-3NOV-C, docs/design/12-ui-spec.md line 34 against boards). The spec says amber is SA.Warn #7A4B00, the boards draw marks in #B26B00 (READ). The XAML follows the spec, so the missing marks read brown beside the board. Button text 13 against the boards' 14, padding on the 4 to 24 scale against the boards' 18 and 20, the same kind.
+- Recommended: The spec holds, the boards are drafts of the words and layout, say so in Q286.
+- Other: The boards hold, change SA.Warn, button text 14 and the padding scale, which moves every window.
