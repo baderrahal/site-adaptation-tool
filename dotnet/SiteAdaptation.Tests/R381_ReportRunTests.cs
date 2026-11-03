@@ -424,6 +424,32 @@ namespace SiteAdaptation.Tests
             Assert.Null(facts["fields"]);
         }
 
+        // R550. The whole road with the worker: the iso name on disk, the old report named and kept, a second press moves the first to earlier
+        [Fact]
+        public void R550_a_press_under_the_block_writes_the_iso_name_and_leaves_the_old_report_named()
+        {
+            CheckRunLog();
+            FileNameBlock("<nbh>");
+            string old = Path.Combine(work, "012_Report.xlsx");
+            File.WriteAllBytes(old, new byte[] { 1, 2, 3 });
+            Func<WorkerRequest, string, WorkerAnswer> worker = (request, folder) =>
+            {
+                int code = WorkerRunner.Run(request.Write(folder), WorkerReads.Commands(), () => 90000.0, () => 0.0);
+                WorkerAnswer answer = WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, request.RunId));
+                Assert.True(code == 0, "exit " + code + ": " + answer.Message);
+                return answer;
+            };
+            var confirm = new Confirm { Answer = true };
+            RunOutcome outcome = Run(true, confirm, worker, out Model model, out State state);
+
+            Assert.True(outcome.End == RunEnd.Committed, outcome.End + " " + outcome.Message);
+            string name = "00101-PSN-012-XXX-SCH-TU-090000.xlsx";
+            Assert.True(File.Exists(Path.Combine(work, name)));
+            Assert.Equal(new byte[] { 1, 2, 3 }, File.ReadAllBytes(old));
+            Assert.Contains(confirm.Summary.PerPlot, line => line.Contains("012_Report.xlsx stays in the work folder"));
+            Assert.Contains(confirm.Summary.PerPlot, line => line == "Writes " + Path.Combine(work, name));
+        }
+
         [Fact]
         public void R550_one_name_for_two_neighbourhoods_stops_the_button_by_name()
         {

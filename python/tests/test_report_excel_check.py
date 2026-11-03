@@ -1,8 +1,11 @@
 """R365. The second route of the report Excel, python/report_excel_check.py, on small workbooks written here with openpyxl in the layout the
 worker writes, from a made up plan with its status, walls and missing list, override list, step checkRows and plots.csv, the same as
 ReportExcelTests of C# (R10). The counts it works out are those the C# test asserts, and each planted fault is caught by its own check."""
+import calendar
 import hashlib
 import json
+import time
+from datetime import timedelta, timezone
 
 import openpyxl
 import pytest
@@ -189,6 +192,11 @@ def write_summary(summary, want, mock):
                     target.number_format = check.SHARE_FORMAT
 
 
+def local_date(stamp):
+    """The local day of a UTC stamp by the time module, another route than the datetime of the check."""
+    return time.strftime("%Y-%m-%d", time.localtime(calendar.timegm(time.strptime(stamp, "%Y-%m-%dT%H:%M:%SZ"))))
+
+
 def write_book(path, want, mock, settings):
     """A workbook in the layout of the worker, filled from want."""
     book = openpyxl.Workbook()
@@ -201,7 +209,7 @@ def write_book(path, want, mock, settings):
         elif name == "Cover":
             sheet.append(list(check.COVER_COLUMNS))
             for item, value in want["cover"]:
-                sheet.append([item, settings["Run time"][:10] if item == check.COVER_DATE else value])
+                sheet.append([item, local_date(settings["Run time"]) if item == check.COVER_DATE else value])
         elif name == "Settings":
             write_list(sheet, ["Setting", "Value"], [[item, settings.get(item, want["settings"].get(item))] for item in check.SETTINGS])
         else:
@@ -420,8 +428,25 @@ def test_r365_settings_with_no_block_addin_report_are_refused(made, tmp_path):
 
 
 FIELDS = {"project": "00101", "originator": "PSN", "volume": "<nbh>", "level": "XXX", "type": "SCH", "role": "TU", "number": "090000", "revision": "P01", "status": "S0", "projectName": "Made up"}
-FACTS = {"model": "site_012.rvt", "toolVersion": "1.0, build abc", "runSeconds": 75.0, "levelPlots": ["101", "102", "other"], "fields": FIELDS,
+FACTS = {"model": "site_012.rvt", "toolVersion": "1.0, build abc", "runSeconds": 75.0, "fields": FIELDS,
          "steps": {"1": {"time": "2026-11-03T08:00:00Z", "issues": 4}, "3": {"time": "2026-11-03T08:05:00Z", "issues": 0}, "5": {"time": "2026-11-03T08:10:00Z", "issues": 1407}}}
+
+
+def level_excel(tmp_path, numbers=(101, "102", 103, "other", None, "201")):
+    """A level Excel in the layout of the worker: a top line, then the header and a key in column A. The row after the empty cell and the Plot No of the
+    other sheet are bait for a read that goes too far."""
+    path = tmp_path / "012_Levels_parsons2024Rev6.xlsx"
+    book = openpyxl.Workbook()
+    sheet = book.active
+    sheet.title = "Levels"
+    sheet.append(["NBH 012, made up"])
+    sheet.append(["Plot No", "Unit"])
+    for number in numbers:
+        sheet.append([number, "VD4"])
+    book.create_sheet("Overrides").append(["Plot No", "Field"])
+    book["Overrides"].append(["201", "entryM"])
+    book.save(path)
+    return str(path)
 
 
 def round_trip(tmp_path, want, mock, nbh="012"):
@@ -431,7 +456,7 @@ def round_trip(tmp_path, want, mock, nbh="012"):
 
 
 def test_r554_the_facts_fill_the_top_line_the_steps_of_a_record_and_levels_of_the_box(tmp_path):
-    paths, mock, want = build(tmp_path, facts=FACTS)
+    paths, mock, want = build(tmp_path, facts=dict(FACTS, levelExcel=level_excel(tmp_path)))
     book = want["books"]["012"]
     none = "no manual rule block"
     # 75 s is 1.25 min, half away from zero as the format of the worker, which %.1f would write 1.2
@@ -467,7 +492,7 @@ def test_r554_the_run_time_rounds_as_the_format_of_the_worker(seconds, minutes):
     (lambda book: book["Cover"].cell(row=8, column=2, value="not set"), "Cover row 8 Value"),
 ])
 def test_r554_a_fault_against_the_facts_is_caught(tmp_path, fault, caught):
-    paths, mock, want = build(tmp_path, facts=FACTS)
+    paths, mock, want = build(tmp_path, facts=dict(FACTS, levelExcel=level_excel(tmp_path)))
     path = round_trip(tmp_path, want, mock)
     opened = openpyxl.load_workbook(path)
     fault(opened)
@@ -490,6 +515,57 @@ def test_r550_the_file_name_comes_from_the_fields_and_each_nbh_takes_its_own(tmp
         build(tmp_path, facts=dict(FACTS, fields={"project": "00101"}))
 
 
+def test_r554_levels_counts_the_written_plots_of_the_book_in_the_sheet_levels(tmp_path):
+    path = level_excel(tmp_path)
+    assert check.level_plots(path) == ["101", "102", "103", "other"]
+    books = build(tmp_path, facts=dict(FACTS, levelExcel=path))[2]["books"]
+    # 103 is in the book but not written and 201 lies past the empty cell, so 101 and 102 of 012 and none of 013
+    assert books["012"]["counts"][2] == ["Levels", "not placed yet", 2]
+    assert books["013"]["counts"][2] == ["Levels", "not placed yet", 0]
+
+
+def test_r554_with_no_level_excel_the_levels_cell_says_no_run_and_old_facts_are_not_read(tmp_path):
+    assert build(tmp_path, facts=FACTS)[2]["books"]["012"]["counts"][2] == ["Levels", "not placed yet", "no run of button 6 yet"]
+    old = dict(FACTS, levelPlots=["101", "102"])
+    assert build(tmp_path, facts=old)[2]["books"]["012"]["counts"][2] == ["Levels", "not placed yet", "no run of button 6 yet"]
+
+
+def test_r554_a_level_excel_with_no_sheet_levels_or_no_header_is_refused_by_name(tmp_path):
+    path = tmp_path / "bad.xlsx"
+    book = openpyxl.Workbook()
+    book.active.title = "Other"
+    book.save(path)
+    with pytest.raises(ValueError, match="bad.xlsx.*Levels.*R554"):
+        check.level_plots(path)
+    book.active.title = "Levels"
+    book.active.append(["Plot", "Unit"])
+    book.save(path)
+    with pytest.raises(ValueError, match="bad.xlsx.*Plot No.*R554"):
+        check.level_plots(path)
+
+
+def test_r551_the_cover_date_is_the_local_day_of_the_utc_run_time(tmp_path, monkeypatch):
+    stamp = "2026-11-03T22:30:00Z"
+    east, west = timezone(timedelta(hours=3)), timezone(timedelta(hours=-5))
+    assert check.local_day(stamp, east) == "2026-11-04"
+    assert check.local_day("2026-11-03T01:00:00Z", west) == "2026-11-02"
+    assert check.local_day(stamp) == local_date(stamp)
+    assert check.local_day("no time") == ""
+    # The zone is fixed here so a machine on UTC still sees the two days apart
+    real = check.local_day
+    monkeypatch.setattr(check, "local_day", lambda text: real(text, east))
+    paths, mock, want = build(tmp_path)
+    book = want["books"]["012"]
+    path = tmp_path / book["file"]
+    for day, holds in (("2026-11-04", True), ("2026-11-03", False)):
+        write_book(path, book, mock, dict(SETTINGS, **{"Run time": stamp}))
+        opened = openpyxl.load_workbook(path)
+        opened["Cover"]["B6"] = day
+        opened.save(path)
+        result, bad = check.check_xlsx(path, book, mock, "rx1")
+        assert (not any("Cover row 6 Value" in item for item in bad)) is holds, bad
+
+
 def test_r551_cover_holds_the_fields_and_the_day_of_the_run(tmp_path):
     paths, mock, want = build(tmp_path, facts=FACTS)
     book = want["books"]["012"]
@@ -498,17 +574,19 @@ def test_r551_cover_holds_the_fields_and_the_day_of_the_run(tmp_path):
     bare = build(tmp_path)[2]["books"]["012"]
     assert [row[1] for row in bare["cover"]] == ["not set", "012", "not set", "not set", None, "not set", "not set", "012_Report.xlsx"]
     opened = openpyxl.load_workbook(round_trip(tmp_path, want, mock))
-    assert opened["Cover"]["B6"].value == "2026-10-29"
+    assert opened["Cover"]["B6"].value == local_date(SETTINGS["Run time"])
 
 
 def test_r552_plot_schedule_has_every_column_from_the_plan(made):
     paths, mock, want = made
     lines = want["books"]["012"]["sheets"]["Plot schedule"]
-    assert [line[1] for line in lines] == [101, 102]
+    assert [line[1] for line in lines] == [101, 102, 103]
     assert lines[0] == ["101-VD4", 101, "VD4", 11.6, 11.55, 10.5, 0.2, 3, 2, 5101, "VD4_v2.1", False, 90.5, 10.2, 10.3, 10.4, 10.5, None, None, None, None, None]
     # The leading zero of 0102 stays text, 102 has no ramp and no height
     assert lines[1][:2] == ["102-DP1", 102] and lines[1][6] is None and lines[1][9] == "0102" and lines[1][13:17] == [None] * 4
     assert want["books"]["013"]["sheets"]["Plot schedule"][0][9] == ("blank",)
+    # The plot the plan could not write keeps its row after the written ones, its number as text, its old number and nothing else
+    assert lines[2] == ["103", 103] + [None] * 7 + [5103] + [None] * 12
 
 
 def test_r552_floors_and_walls_read_the_plan_and_the_length_from_the_ends(made):
@@ -568,12 +646,52 @@ def test_q307_the_piece_counts_one_plot_and_stem_over_all_the_plan():
 def test_r552_the_ids_of_the_model_fill_the_id_columns_a_single_id_a_number(tmp_path):
     paths, mock, want = build(tmp_path, revit=COUNTED, plan=WALLED)
     book = want["books"]["012"]
-    first, second = book["sheets"]["Plot schedule"]
+    first, second, unwritten = book["sheets"]["Plot schedule"]
     assert first[17:] == [5001, 5002, None, "5003, 5004", "7001, 7002, 7003"]
-    assert second[17:] == [6001, None, None, None, None]
+    # 102 holds the two pieces of 101 on their shared edge, by their ids under the owner 101
+    assert second[17:] == [6001, None, None, None, "7001, 7002, 7003"]
+    assert unwritten[17:] == [None] * 5
     assert want["books"]["013"]["sheets"]["Plot schedule"][0][-1] == 8001
     assert [row[-1] for row in book["sheets"]["Walls"]] == [7001, None, "7002, 7003"]
     assert [row[-1] for row in book["sheets"]["Floors"]][:2] == [5002, "5003, 5004"]
+
+
+def test_r552_wall_ids_read_all_walls_of_the_plan_in_plan_order_also_those_of_another_book(tmp_path):
+    shared = dict(PIECE, plot="201", edge=3, plots=read(["201", " 102", "103"]))
+    counts = dict(COUNTED, walls=dict(COUNTED["walls"], **{"201|201+ 102+103|e3|p1": [8002]}))
+    paths, mock, want = build(tmp_path, revit=counts, plan=dict(WALLED, walls=WALLED["walls"] + [shared]))
+    first, second, unwritten = want["books"]["012"]["sheets"]["Plot schedule"]
+    assert first[-1] == "7001, 7002, 7003"
+    assert second[-1] == "7001, 7002, 7003, 8002"
+    assert unwritten[-1] is None
+    assert want["books"]["013"]["sheets"]["Plot schedule"][0][-1] == "8001, 8002"
+    # The sheet Walls keeps the walls tagged under the plots of the book, only the schedule reads across
+    assert len(want["books"]["012"]["sheets"]["Walls"]) == 3
+    alone = dict(COUNTED, walls={"201|201+ 102+103|e3|p1": [8002]})
+    lines = build(tmp_path, revit=alone, plan=dict(PLAN, walls=[shared]))[2]["books"]["012"]["sheets"]["Plot schedule"]
+    assert lines[1][-1] == 8002 and lines[0][-1] is None
+
+
+@pytest.mark.parametrize("fault, caught", [
+    # R552: the id of a wall shared with 101 left off the row of 102
+    (lambda book: book["Plot schedule"].cell(row=3, column=22, value="7001, 7002"), "Plot schedule row 3 Wall IDs"),
+    (lambda book: setattr(book["Plot schedule"].cell(row=3, column=22), "value", None), "Plot schedule row 3 Wall IDs"),
+    # R552: the row of the plot the plan could not write
+    (lambda book: book["Plot schedule"].delete_rows(4), "Plot schedule max_row"),
+    (lambda book: book["Plot schedule"].cell(row=4, column=1, value="103-"), "Plot schedule row 4 Plot & Unit"),
+    (lambda book: book["Plot schedule"].cell(row=4, column=2, value="103"), "Plot schedule row 4 Plot No."),
+    (lambda book: book["Plot schedule"].cell(row=4, column=3, value="DP1"), "Plot schedule row 4 Unit"),
+    (lambda book: setattr(book["Plot schedule"].cell(row=4, column=10), "value", None), "Plot schedule row 4 Old Plot No."),
+])
+def test_r552_a_fault_of_the_schedule_is_caught(tmp_path, fault, caught):
+    paths, mock, want = build(tmp_path, revit=COUNTED, plan=WALLED)
+    path = round_trip(tmp_path, want, mock)
+    assert not check.check_xlsx(path, want["books"]["012"], mock, "rx1")[1]
+    opened = openpyxl.load_workbook(path)
+    fault(opened)
+    opened.save(path)
+    result, bad = check.check_xlsx(path, want["books"]["012"], mock, "rx1")
+    assert any(caught in item for item in bad), bad
 
 
 def test_r553_a_plot_with_a_letter_or_a_leading_zero_stays_text():

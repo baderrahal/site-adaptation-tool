@@ -1,16 +1,18 @@
 """R365. The second route of the report Excel the worker command reportExcel writes in C# (CadReader ReportWorkbook): each xlsx read with
 openpyxl, every label and its order held against the words of docs/addin-mock.md item 6 and docs/design/07-mock.md 7.6 with items 9 to 12 of
 7.7, read from those files and never from the C#, and every cell held against the plan, its override list, the step checkRows of the build and
-plots.csv, worked out again here by its own walk with json and csv only.
+plots.csv, worked out again here by its own walk with json and csv only, the level Excel the facts name read with openpyxl.
 
 - workbooks: one per NBH of the plan by nbhId of plots.csv, each named <NBH>_Report.xlsx, or by the fields of the facts of the run (R550), no
   other xlsx in the folder
 - labels: the sheets in the order of SHEET_ORDER (R551), the sheets of 7.6 all among them, the Summary table and its steps 1 to 8 by the order
   of docs/design/13-workflow-changes.md with the column Manual rule of 7.6 (R381), the two boxes with their columns and items, the columns of
   Placed with Mirror after type (item 11) and of Skipped
-- R551, R552: Cover, Plot schedule, Floors and Walls each worked out here from the plan, plots.csv, the counts and the facts of the run
+- R551, R552: Cover, Plot schedule, Floors and Walls each worked out here from the plan, plots.csv, the counts and the facts of the run, one
+  schedule row for every plot of the book, the Wall IDs over all walls of the plan, the Cover date the local day of the UTC run time of Settings
 - R553: row 1 frozen and a filter over every row of each list, plot numbers as numbers on the sheets of NUMBER_SHEETS
-- R554: --report-facts, the top line, the Summary rows of steps 1 and 3, the Issues of each step with a record and Levels of the box
+- R554: --report-facts, the top line, the Summary rows of steps 1 and 3, the Issues of each step with a record and Levels of the box, the plots of
+  the sheet Levels of the level Excel the facts name that are written plots of the book
 - R555: the column Changed of Rules used and one row per changed rule of the facts
 - R381: the manual rule IDs of each Summary and Issues line from the block manualRules of the rules profile, the faces of plots.csv in the
   scope for 2 Read data (Q123), one Issues row per weak wall decision (Q125) and the Revit column from the counts the add-in read (Q124)
@@ -35,6 +37,7 @@ import math
 import re
 import sys
 from collections import Counter
+from datetime import datetime, timezone
 from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path, PureWindowsPath
 
@@ -51,6 +54,9 @@ FLOOR_KINDS = ("generic", "yard", "ramp")
 NOT_RUN = "not run yet"
 NOT_PLACED = "not placed yet"
 NO_LEVEL_RUN = "no run of button 6 yet"
+LEVELS_SHEET = "Levels"
+LEVEL_KEY = "Plot No"
+RUN_TIME_FORM = "%Y-%m-%dT%H:%M:%SZ"
 NOT_MEASURED = "not measured"
 RULE_COLUMNS = ("Decision", "Rule", "Share", "Strength", "Plots")
 ACCEPTED_SHEET = "Accepted warnings"
@@ -294,6 +300,47 @@ def wall_parts(walls):
     return parts
 
 
+def walls_of_plots(walls):
+    """R552. The places in the plan of the walls on each plot's boundary, by the plots value or the owner, each wall once per plot and in plan order. A wall on
+    two plots is tagged under one, so the owner alone would leave it off the row of the other."""
+    held = {}
+    for index, wall in enumerate(walls):
+        shared = (wall.get("plots") or {}).get("value")
+        numbers = [item.strip() for item in shared if isinstance(item, str)] if isinstance(shared, list) else []
+        for number in dict.fromkeys(numbers + [wall.get("plot")]):
+            held.setdefault(number, []).append(index)
+    return held
+
+
+def level_plots(path):
+    """R554. The plots of the level Excel as text: under the header of the sheet Levels to the first empty cell of that column, the top line above it passed over."""
+    import openpyxl
+    book = openpyxl.load_workbook(path, data_only=True)
+    name = Path(path).name
+    if LEVELS_SHEET not in book.sheetnames:
+        raise ValueError("%s holds no sheet %s (R554)" % (name, LEVELS_SHEET))
+    lines = list(book[LEVELS_SHEET].iter_rows(values_only=True))
+    place = next(((row, line.index(LEVEL_KEY)) for row, line in enumerate(lines) if LEVEL_KEY in line), None)
+    if place is None:
+        raise ValueError("%s holds no header %s on the sheet %s (R554)" % (name, LEVEL_KEY, LEVELS_SHEET))
+    plots = []
+    for line in lines[place[0] + 1:]:
+        value = line[place[1]]
+        if value is None:
+            break
+        plots.append(str(int(value)) if isinstance(value, float) and value.is_integer() else str(value))
+    return plots
+
+
+def local_day(stamp, zone=None):
+    """R551. The day of the Cover: Settings holds the run time in UTC and the writer turns it to the local date. No text for another form, the check of the form names it."""
+    try:
+        moment = datetime.strptime(stamp or "", RUN_TIME_FORM).replace(tzinfo=timezone.utc)
+    except ValueError:
+        return ""
+    return moment.astimezone(zone).strftime("%Y-%m-%d")
+
+
 def plot_cell(value):
     """R553. A plot as Excel holds it on NUMBER_SHEETS: digits with no leading zero a number, anything else as it is."""
     return int(value) if isinstance(value, str) and re.fullmatch(r"[1-9][0-9]*", value) else value
@@ -359,6 +406,14 @@ def schedule_row(plot, old_number, plots, ids_of_walls):
         + [element_id(plots, number, kind) for kind in (LINK,) + FLOOR_KINDS] + [id_cell(ids_of_walls)]
 
 
+def unwritten_row(number, old_number):
+    """R552. The row of a plot the plan could not write: its number, its old number of plots.csv and nothing else, the sheet Skipped says why."""
+    line = [None] * len(SCHEDULE_COLUMNS)
+    line[0] = line[1] = number
+    line[SCHEDULE_COLUMNS.index("Old Plot No.")] = old_number
+    return line
+
+
 def floor_rows(plot, plots):
     """R552. One row of Floors per floor of the plot in the order of the plan."""
     rows = []
@@ -399,8 +454,8 @@ def sheet_headers(mock, want):
 
 def counts_box(placed, written, mock, revit=None, manual=NO_MANUAL_BLOCK, level_plots=None, walls=None):
     """The box Counts agree across outputs: Revit the totals the add-in read or not placed yet, Excel the rows of the Placed sheet, and one Issues
-    row per item whose plan, Revit and Excel counts differ on any two, a text count compared with none. Excel of Levels the plots of the run of
-    button 6 when the facts give them (R554), and the row Walls only when the counts name walls, walls as the plan count and the count of the model (Q307)."""
+    row per item whose plan, Revit and Excel counts differ on any two, a text count compared with none. Excel of Levels the written plots of the book in
+    the level Excel when the facts name one (R554), and the row Walls only when the counts name walls, walls as the plan count and the count of the model (Q307)."""
     links = sum(1 for row in placed if row[1] == LINK)
     floors = sum(1 for row in placed if row[1] in FLOOR_KINDS)
     shown = list(revit) if revit is not None else [NOT_PLACED] * 3
@@ -451,11 +506,16 @@ def expected(inputs, profile_name, mock):
     facts = inputs.get("facts") or {}
     fields = facts.get("fields") if isinstance(facts.get("fields"), dict) else None
     records = facts.get("steps") if isinstance(facts.get("steps"), dict) else {}
+    level_excel = text_of(facts.get("levelExcel"))
+    listed_plots = None if level_excel is None else level_plots(level_excel)
     plan_walls = plan.get("walls") or []
     parts = wall_parts(plan_walls)
     # Q307. The ids of a wall by its place in the plan, so two pieces of one edge keep their own ids
     ids_of_wall = {index: sorted(set((standing or {}).get("%s|%s" % (wall.get("plot"), parts[index])) or [])) for index, wall in enumerate(plan_walls)}
+    held_by_plot = walls_of_plots(plan_walls)
     old_column = block.get("oldPlotColumn")
+    # An empty cell of plots.csv is an empty cell of the book, whether the writer leaves it out or writes no text in it
+    old_of = lambda number: ((rows.get(number) or {}).get(old_column) if old_column else None) or ("blank",)
     scope = {number: item.get("written") or item.get("raw") or {} for number, item in (inputs["summary"].get("plots") or {}).items()}
     scope_kind = inputs["summary"].get("scope")
     books = {}
@@ -475,11 +535,10 @@ def expected(inputs, profile_name, mock):
         placed.extend([wall["plot"], BOUNDARY_WALL, None, None, id_cell(ids_of_wall[index])] for index, wall in mine_walls)
         schedule, floors_rows = [], []
         for plot in mine_written:
-            mine_ids = [item for index, wall in mine_walls if wall["plot"] == plot["plot"] for item in ids_of_wall[index]]
-            # An empty cell of plots.csv is an empty cell of the book, whether the writer leaves it out or writes no text in it
-            old_number = (rows.get(plot["plot"]) or {}).get(old_column) if old_column else None
-            schedule.append(schedule_row(plot, old_number or ("blank",), revit, mine_ids))
+            mine_ids = [item for index in held_by_plot.get(plot["plot"], []) for item in ids_of_wall[index]]
+            schedule.append(schedule_row(plot, old_of(plot["plot"]), revit, mine_ids))
             floors_rows.extend(floor_rows(plot, revit))
+        schedule.extend(unwritten_row(item["plot"], old_of(item["plot"])) for item in mine_not)
         walls_rows = [wall_row(wall, ids_of_wall[index]) for index, wall in mine_walls]
         skipped = []
         for item in mine_missing:
@@ -543,7 +602,7 @@ def expected(inputs, profile_name, mock):
         placed_links = sum(1 for row in placed if row[1] == LINK)
         placed_floors = sum(1 for row in placed if row[1] in FLOOR_KINDS)
         wall_counts = None if standing is None else (len(walls), sum(len(ids) for key, ids in standing.items() if key.split("|")[0] in names))
-        counts, unequal = counts_box(placed, mine_written, mock, totals, manual_of(manual, mock["reportStep"]), len([number for number in facts["levelPlots"] if number in names]) if "levelPlots" in facts else None, wall_counts)
+        counts, unequal = counts_box(placed, mine_written, mock, totals, manual_of(manual, mock["reportStep"]), None if listed_plots is None else sum(1 for number in listed_plots if number in names), wall_counts)
         gaps["count boxes with a mismatch"] += 1 if unequal else 0
         outcome = lambda step, word: sum(1 for row in overrides if row[2] == word and step_of(row[1], block) == step)
         moved = sum(1 for wall in walls if any((details.get(value.get("statusFrom")) or {}).get("overrides") for value in wall.values()
@@ -583,7 +642,7 @@ def expected(inputs, profile_name, mock):
         rule_sheet, marked = changed_rows(rule_rows, facts)
         books[nbh] = {"file": name, "topLine": mock["filled"] % {"model": NOT_SET if model is None else model, "nbh": nbh, "n": len(order), "profile": profile_name, "time": run_time(facts.get("runSeconds"))},
                       "steps": steps, "counts": counts, "box": box, "changed": marked,
-                      # The date is the day of the run time of Settings, which the writer stamps once, so check_xlsx holds it against that cell
+                      # The date is the local day of the run time of Settings, which the writer stamps once, so check_xlsx holds it against that cell
                       "cover": [["Project", field("projectName")], ["NBH", nbh], ["Revision", field("revision")], ["Status code", field("status")], [COVER_DATE, None],
                                 ["Tool version", NOT_SET if tool is None else tool], ["Model name", NOT_SET if model is None else model], ["File name", name]],
                       "sheets": {"Plot schedule": as_numbers(schedule, SCHEDULE_COLUMNS), "Floors": as_numbers(floors_rows, FLOOR_COLUMNS), "Walls": as_numbers(walls_rows, WALL_COLUMNS),
@@ -718,7 +777,7 @@ def check_xlsx(path, want, mock, run_id=None):
     hold("Cover header", row_values(cover, 1, 2) == list(COVER_COLUMNS), "Cover row 1")
     hold("Cover rows", cover.max_row == 1 + len(want["cover"]), "Cover max_row %d against %d" % (cover.max_row, 1 + len(want["cover"])))
     hold("Cover no merged range", not cover.merged_cells.ranges, "Cover merged")
-    rows(cover, 2, [[item, (values.get("Run time") or "")[:10] if item == COVER_DATE else value] for item, value in want["cover"]], COVER_COLUMNS, "Cover")
+    rows(cover, 2, [[item, local_day(values.get("Run time")) if item == COVER_DATE else value] for item, value in want["cover"]], COVER_COLUMNS, "Cover")
     return result, bad
 
 
