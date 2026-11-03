@@ -578,3 +578,17 @@ Round FIX-2NOV-C-CHECK, review 1 and the gate, 2 Nov 2026:
 - Seven WPF tests failed once in a full net48 run while Revit started on the machine, all passed alone (RAN, 66 of 66).
 - Plural by count stays open where no real input reaches it: Review data title, New project plots and types, ScanView plots and files, 0 of 1 rows.
 - CheckTableState.Filter of two arguments has only test callers.
+
+Round SPEED-2NOV-C, review 1 and breaker 1 of R447, R448, R449, 3 Nov 2026:
+- test_window_lock.py leaves SITE_ADAPTATION_WINDOW_SLOT set in the test process, no other test reads it.
+- A crashed holder of slot 2 is not cleaned while any window process runs, it clears when all windows end. It takes a killed terminal.
+- With SITEADAPT_LISTENER_INPUT_ROOTS unset the C# side of the listener refuses no input root, only Start-RevitListener.ps1 sets it, and it always does.
+- If every result write fails, the listener logs to Trace and retries each second, and the queue stands behind that job. Disk full or a read-only out folder.
+- A failed SaveAs of listener_home.rvt leaves the small project open.
+- AddinRunSession reads the start time of its process with no guard, test host only.
+- A worker thread that ends before NextStep(WorkerStep) gets a wrong category in the timing, never a wrong outcome.
+- A refusal the out folder blocks for one moment leaves the job in claimed with no result, the send exits 2 (RAN). A job that passed its check retries.
+- A hand-made job naming a used run folder reports the old run_timing as its own (RAN). Send always makes a new folder.
+- InsideRoot of the listener compares text only: forward slashes, a parent step, the long prefix and an 8.3 name pass it (RAN). IsPlainFullPath and CheckPlace stop them for a model. prototypeLoops and junctions as in or out folders are hand-made holes.
+- Revit does not wait for Civil 3D on the slot side, Civil 3D waits for Revit. python/c3d_probe.json names a lock of another machine, so no Civil 3D run takes it today.
+- A new process with the pid of a hard killed listener reads as a listener already there, until that process ends.

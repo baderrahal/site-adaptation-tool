@@ -165,7 +165,7 @@ Lane A ran buttons 1 to 5 through the test host, before the last source change o
 3. When 5 stops on the Revit box of warnings, press OK. The box stays until Lane B's step 5 item lands.
 4. In plan, look at plots 2543 and 2546.
 
-Look for: place 1,003 and no floor refused. About 1,131 "Highlighted floors overlap" (1,402 before this round) and about 42 "Line in Sketch is slightly off axis" (Q356). The yard of 2543 and of 2546 stays inside its plot. Generic floors still cover the whole plot, as Bader chose (Q350).
+Look for: place 1,003 and no floor refused. The box at the commit reads about 485: about 443 "Highlighted floors overlap" and about 42 "Line in Sketch is slightly off axis" (Q356). The yard of 2543 and of 2546 stays inside its plot. Generic floors still cover the whole plot, as Bader chose (Q350).
 
 ## 15. Review lists the plots of Check (Lane A, FIX-2NOV-A, R476)
 
@@ -186,7 +186,7 @@ Not run in the add-in yet, Lane A applied the check to the last hand run by C# a
 3. Read the line that starts "Masses: place".
 4. Press Apply.
 
-Look for: in the line of step 3, ", over the footprint limit 0 of 57 of the same type, 271 of another type (Q277), 8 with no outline". If it says "footprint not measured" instead, the mass files were still to make. Press Run at 7 again after Apply, this retry has not run.
+Look for: in the line of step 3, ", over the footprint limit 0 of 59 of the same type, 269 of another type (Q277), 8 with no outline". If it says "footprint not measured" instead, the mass files were still to make. Press Run at 7 again after Apply, this retry has not run.
 
 ## 17. The pane comes back, Show pane (Lane C, R494)
 
