@@ -13,7 +13,7 @@
 
 - Lane B 20:55, 3 Nov. Undo proven in Revit (R499), steps/investigations/undo-3nov.md, lock free. Next: known issues, REPORT-3NOV-B, 6b. Ids R550 to R569, Q450 to Q469. Blocked: none
 - Lane C, 3 Nov, branch feat/help-3nov-c: PR 160, 161, 162 merged, HELP PR going up, next RULES-3NOV-C. Ids R540 to R549, Q416 to Q419, Q440 to Q449. New callers: HelpBook by HelpFile, HelpFile by the pane and New project rows, HelpBox by OnStepHelp and OnRowHelp. A guide change needs python/build_help.py. I own the pane file tonight. Blocked: none
-- Lane D PARAM-3NOV-D, 3 Nov 21:30, branch param/3nov-d: R506 to R508, Q411 closed. Gate green on a15d58c. Now: the past job half of parity, the PR, then the Revit check on a copy. Next: known issues, MASS-3NOV-D, TOPO-3NOV-D. Ids R530 to R539, R570 to R579, Q470 to Q479. No lock. Blocked: none
+- Lane D PARAM-3NOV-D, 3 Nov 21:30, branch param/3nov-d: R506 to R508, Q411 closed. Gate green on a15d58c. Now: the past job half of parity, the PR, then the Revit check on a copy. Next: known issues, MASS-3NOV-D, TOPO-3NOV-D. Ids R530 to R539, R570 to R579, Q472 to Q479. No lock. Blocked: none
   New callers: SetupCheck.ConfigSheet by SetupCheck.Run and DiskProbe.ConfigSheet. IInputProbe.ConfigSheet, ReadSheet by PaneViewModel.RefreshSheet by RefreshOnce. ParameterSheet.Counts by Source and ReadSheet. ParameterSpec.LinksOnly by BoundOn, SetUpPlanner.Changes, RevitSiteDocument.BindParameters. BoundOn by SetUpPlanner.Changes, BindParameters. SetUpChanges.RemovalAlone, RunContext.KeepsLastRun by SetUpRun.Apply, ButtonFlow. SetUpTexts.TakesOff by SetUpPlanner, SetUpRun. NoRuleId by RefreshSheet.
 
 Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane D PARAM-3NOV-D, 3 Nov 2026.

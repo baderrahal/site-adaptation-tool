@@ -752,10 +752,10 @@ Q418. Empty project keeps old rules on a set up model (Lane C GUIDE-3NOV-C, R486
 - Recommended: A line in the window says this model keeps its rules, under Empty project.
 - Other: Copy the set over, the old override list is lost.
 
-Q470. Ramp front overrides stand off the road (Lane D TOPO-3NOV-D, R573). On NBH 012, 80 of 336 plots hold a road corner over 5 mm from Top Surface-02, largest 531 mm, and all 80 hold a rampFrontM override (Q340).
+Q472. Ramp front overrides stand off the road (Lane D TOPO-3NOV-D, R573). On NBH 012, 80 of 336 plots hold a road corner over 5 mm from Top Surface-02, largest 531 mm, and all 80 hold a rampFrontM override (Q340).
 - Recommended: Keep the overrides, the report lists them, the 5 mm target holds for the other plots.
 - Other: Drop rampFrontM under rev6, so each ramp meets the road.
 
-Q471. The chosen values of the road toposolid (Lane D TOPO-3NOV-D, R570). floors.roadTopography: typeName Road surface, marginM 5, minCoverShare 0.5, pointGapM 0.01, maxPoints 10000, all CHOSEN by Code.
+Q473. The chosen values of the road toposolid (Lane D TOPO-3NOV-D, R570). floors.roadTopography: typeName Road surface, marginM 5, minCoverShare 0.5, pointGapM 0.01, maxPoints 10000, all CHOSEN by Code.
 - Recommended: Keep them, maxPoints moves once the Revit run measured it.
 - Other: Name other values in config.
