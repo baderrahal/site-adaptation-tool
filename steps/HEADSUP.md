@@ -11,7 +11,7 @@
 
 ### Lane B, C and D
 
-- Lane B FIX-2NOV-B, 00:19, branch fix/2nov-b-q158: second breaker pass clean, gate running, then PR, then the hand run of task 4. Lock free, nothing blocks.
+- Lane B FIX-2NOV-B, 03:10, branch fix/2nov-b-handrun: hand run done, lock released 03:01, steps/fix-2nov-b-handrun.md written. Records PR next, then the round ends. Nothing blocks.
 - Lane C FIX-2NOV-C-CHECK, branch fix/2nov-c-check: R494 pane, R495 Check sort and filter, Save As owner, sheet parts 17 to 20. SPEED-2NOV-C paused on speed/2nov-c. Blocked: none
 - Lane D FIX-2NOV-D, 2 Nov, branch fix/2nov-d: no Revit, no window lock. Several road surfaces in order (Q364, Q256), R490 to R493, Q370 up. Editing NewProjectDialog and the pane road row, lane-c told.
 
