@@ -43,6 +43,9 @@ namespace SiteAdaptation.Common.Settings
         // R484. The project mode, one of designBasis.modes of config, null in a file written before it, which reads designBasis.mode of config. Save setup
         // of New project writes it, every worker request carries it and it is laid over the config where a run loads it (ProjectModes)
         public string ProjectMode { get; set; }
+
+        // R550. The fields of the report file name the user set, over addin.report.fileName of config, null until a pick
+        public SortedDictionary<string, string> ReportFields { get; set; }
     }
 
     public sealed class SettingsInput
@@ -79,6 +82,17 @@ namespace SiteAdaptation.Common.Settings
                 InputHashes = new SortedDictionary<string, string>(inputHashes.ToDictionary(pair => pair.Key, pair => pair.Value), StringComparer.Ordinal),
                 Issues = issues.ToList(),
             };
+        }
+
+        // Q307. The one count of a step, what the pane shows and the report writes: its issues and the warnings it accepted
+        [Newtonsoft.Json.JsonIgnore]
+        public int IssueCount
+        {
+            get
+            {
+                Counts.TryGetValue(WarningsCount, out int warnings);
+                return Issues.Count + warnings;
+            }
         }
 
         // ISO 8601 in UTC

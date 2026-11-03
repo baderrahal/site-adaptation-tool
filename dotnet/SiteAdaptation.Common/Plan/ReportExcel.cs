@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using SiteAdaptation.Common.Tags;
 
 namespace SiteAdaptation.Common
 {
@@ -14,6 +15,10 @@ namespace SiteAdaptation.Common
     {
         public const string FileName = "<nbh>_Report.xlsx";
 
+        public const string CoverSheet = "Cover";
+        public const string ScheduleSheet = "Plot schedule";
+        public const string FloorsSheet = "Floors";
+        public const string WallsSheet = "Walls";
         public const string SummarySheet = "Summary";
         public const string PlacedSheet = "Placed";
         public const string SkippedSheet = "Skipped";
@@ -22,13 +27,40 @@ namespace SiteAdaptation.Common
         public const string IssuesSheet = "Issues";
         // R459, item 38 of 7.7
         public const string AcceptedSheet = "Accepted warnings";
-        public const string RulesSheet = "Rules";
+        public const string RulesSheet = "Rules used";
         public const string SettingsSheet = "Settings";
-        // 7.6 in its order, Assumed after Overrides (7.7 item 9) and Settings after them all (7.7 item 12)
-        public static readonly string[] Sheets = { SummarySheet, PlacedSheet, SkippedSheet, OverridesSheet, AssumedSheet, IssuesSheet, AcceptedSheet, RulesSheet, SettingsSheet };
+        // R551. The BIM layout first, then the sheets of 7.6 that Update from report and the checks read
+        public static readonly string[] Sheets = { CoverSheet, ScheduleSheet, FloorsSheet, WallsSheet, IssuesSheet, OverridesSheet, RulesSheet, SummarySheet, PlacedSheet, SkippedSheet, AssumedSheet, AcceptedSheet, SettingsSheet };
 
         // 7.6: the open values stay as the mock writes them while no model is placed, Phase 6 fills them
-        public const string TopLine = "[file name].rvt, NBH <nbh>, <n> plots, <profile>, run time [n] min";
+        public const string TopLine = "<model>, NBH <nbh>, <n> plots, <profile>, run time <time>";
+        public const string RunMinutes = "<n> min";
+        public const string NotSet = "not set";
+        public const string Changed = "Changed";
+        public const string ChangedValues = "manual <manual>, project <project> <unit>";
+
+        public const string CoverProject = "Project";
+        public const string CoverNbh = "NBH";
+        public const string CoverRevision = "Revision";
+        public const string CoverStatus = "Status code";
+        public const string CoverDate = "Date";
+        public const string CoverTool = "Tool version";
+        public const string CoverModel = "Model name";
+        public const string CoverFile = "File name";
+        public static readonly string[] CoverColumns = { "Item", "Value" };
+
+        // R552. The nine columns of the past job schedule in its order, El @ Entry is the door level (R408), then what it lacks
+        public const int RampCorners = 4;
+        public const string PlotNumber = "Plot No.";
+        public const string OldPlotNumber = "Old Plot No.";
+        public static readonly string[] ScheduleColumns =
+        {
+            "Plot & Unit", PlotNumber, "Unit", "FFL (m)", "SSL (m)", "El @ Entry, door level (m)", "Height (m)", "Site Steps Needed", "Steps Needed",
+            OldPlotNumber, "Prototype", Mirror, "Rotation (deg)", "Ramp corner 1 (m)", "Ramp corner 2 (m)", "Ramp corner 3 (m)", "Ramp corner 4 (m)",
+            "Villa ID", "Generic floor ID", "Yard floor ID", "Ramp ID", "Wall IDs",
+        };
+        public static readonly string[] FloorColumns = { Plot, Kind, Type, "Level", "Level elevation (m)", "Z (m)", "Height offset (m)", "Slope (%)", ElementId };
+        public static readonly string[] WallColumns = { Plot, "Edge", "Other plot", "Base (m)", "Top (m)", "Length (m)", ElementId };
 
         public const string Step = "Step";
         public const string Done = "Done";
@@ -54,6 +86,7 @@ namespace SiteAdaptation.Common
         public const string Links = "Links";
         public const string Floors = "Floors";
         public const string Levels = "Levels";
+        public const string Walls = "Walls";
         public static readonly string[] CountItems = { Links, Floors, Levels };
         public const string NotPlaced = "not placed yet";
         // CHOSEN: Excel of Levels is the level Excel of the run of button 6 that committed, none before button 6 runs in Revit
@@ -152,6 +185,8 @@ namespace SiteAdaptation.Common
     {
         public string Name { get; set; }
         public string TopLine { get; set; }
+        // R553. False on a sheet that is no list, which freezes and filters nothing
+        public bool IsList { get; set; } = true;
         public List<ReportTable> Tables { get; } = new List<ReportTable>();
     }
 
@@ -187,6 +222,10 @@ namespace SiteAdaptation.Common
         public JObject RevitCounts { get; set; }
         // R459: the file step 5 left, AcceptedWarningFile of Flow, null when the request gives none
         public JObject AcceptedWarnings { get; set; }
+        // R554: what button 9 knows of the run and the worker does not, ReportRun.FactsRole, null when the request gives none
+        public JObject RunFacts { get; set; }
+        // R554: the plot numbers of the sheet Levels of the level Excel of the last run of 6, null when the request gives none
+        public ICollection<string> LevelExcelPlots { get; set; }
         public string RunId { get; set; }
         public string Profile { get; set; }
         public DateTime Now { get; set; }
@@ -195,7 +234,7 @@ namespace SiteAdaptation.Common
     // R365. The sheets of the report Excel from one build, the plan as written, nothing measured again: the counts of the summary from the
     // plan and its sheets, the overrides by what the plan did with them, the rows of 7.4 of the step checkRows (R363), the status of each value
     // and its detail of the table statusFrom of the plan (R401). One workbook per NBH of the plan by nbhId of plots.csv, as R364 takes it
-    public static class ReportSheets
+    public static partial class ReportSheets
     {
         private static string Fill(string template, params string[] pairs)
         {
@@ -335,6 +374,7 @@ namespace SiteAdaptation.Common
 
         private sealed class Made
         {
+            public Dictionary<JObject, string> Parts { get; set; }
             public JObject Plan;
             public JObject Details;
             public List<JObject> Written;
@@ -408,7 +448,7 @@ namespace SiteAdaptation.Common
             Func<string, int> rowsOf = name => result.Books.Sum(book => book.Sheets.First(sheet => sheet.Name == name).Tables[0].Rows.Count);
             result.Counts["report workbooks"] = result.Books.Count;
             result.Counts["report plots with no NBH"] = lacking.Count;
-            foreach (string name in ReportExcelText.Sheets.Skip(1))
+            foreach (string name in ReportExcelText.Sheets.Where(name => name != ReportExcelText.CoverSheet && name != ReportExcelText.SummarySheet))
             {
                 result.Counts["report rows " + name] = rowsOf(name);
             }
@@ -424,7 +464,7 @@ namespace SiteAdaptation.Common
 
         private static ReportBook Book(ReportInputs inputs, Made made, string nbh, HashSet<string> mine, ReportResult result)
         {
-            var book = new ReportBook { Nbh = nbh, FileName = Fill(ReportExcelText.FileName, "nbh", nbh) };
+            var book = new ReportBook { Nbh = nbh, FileName = ReportFile.Name(nbh, FieldsOf(inputs)) };
             List<JObject> written = made.Written.Where(item => mine.Contains((string)item["plot"])).ToList();
             var writtenNumbers = new HashSet<string>(written.Select(item => (string)item["plot"]));
             List<JObject> missing = made.Missing.Where(item => mine.Contains((string)item["plot"])).ToList();
@@ -432,20 +472,22 @@ namespace SiteAdaptation.Common
             List<string> order = written.Select(item => (string)item["plot"]).Concat(made.NotWritten.Select(item => (string)item["plot"]).Where(mine.Contains)).ToList();
 
             ReportTable placed = PlacedTable(written, inputs.RevitCounts);
+            AddWallRows(placed, inputs, made, walls);
             ReportTable skipped = SkippedTable(missing);
             ReportTable overrides = OverridesTable(made, written, missing);
             ReportTable assumed = AssumedTable(made, written);
             ReportTable issues = IssuesTable(made, order);
-            ReportTable rulesTable = RulesTable(made, written, walls);
+            ReportTable rulesTable = MarkChanged(RulesTable(made, written, walls), inputs);
 
             var summary = new ReportSheet
             {
                 Name = ReportExcelText.SummarySheet,
-                TopLine = Fill(ReportExcelText.TopLine, "nbh", nbh, "n", order.Count.ToString(CultureInfo.InvariantCulture), "profile", inputs.Profile),
+                TopLine = Fill(ReportExcelText.TopLine, "model", Text(inputs.RunFacts?["model"]) ?? ReportExcelText.NotSet, "nbh", nbh, "n", order.Count.ToString(CultureInfo.InvariantCulture), "profile", inputs.Profile, "time", RunTime(inputs)),
+                IsList = false,
             };
             JObject keyRules = inputs.Rules["levelProfiles"][inputs.Profile]["keyRules"] as JObject ?? new JObject();
             List<string> weak = WeakWalls(made, keyRules);
-            summary.Tables.Add(StepTable(made, nbh, weak.Count, order, written, walls, placed, skipped, overrides, issues, result));
+            summary.Tables.Add(StepTable(inputs, made, nbh, weak.Count, order, written, walls, placed, skipped, overrides, issues, result));
             // Q125: one row per weak wall decision after the rows of 7.4, as 8 Walls counts them
             string file = Text(inputs.Config["profile"]) ?? "";
             foreach (string decision in weak)
@@ -462,11 +504,15 @@ namespace SiteAdaptation.Common
             }
             long[] revit = inputs.RevitCounts == null ? null
                 : RevitCounts.Totals(inputs.RevitCounts, number => made.Rows.TryGetValue(number, out Dictionary<string, string> row) && row.TryGetValue("nbhId", out string found) && found == nbh);
-            summary.Tables.Add(CountsTable(written, placed, revit, issues, result, nbh, ManualOf(made, ReportExcelText.ReportStep)));
+            summary.Tables.Add(CountsTable(written, placed, revit, issues, result, nbh, ManualOf(made, ReportExcelText.ReportStep), inputs, walls));
             summary.Tables.Add(RulesBox(inputs, made, written, walls));
-            book.Sheets.Add(summary);
+            var cover = new ReportSheet { Name = ReportExcelText.CoverSheet, IsList = false };
+            cover.Tables.Add(CoverTable(inputs, nbh, book.FileName));
+            var sheets = new Dictionary<string, ReportSheet> { [ReportExcelText.CoverSheet] = cover, [ReportExcelText.SummarySheet] = summary };
             foreach (var item in new[]
             {
+                Tuple.Create(ReportExcelText.ScheduleSheet, ScheduleTable(inputs, made, written, order, result)), Tuple.Create(ReportExcelText.FloorsSheet, FloorsTable(inputs, written)),
+                Tuple.Create(ReportExcelText.WallsSheet, WallsTable(inputs, made, walls)),
                 Tuple.Create(ReportExcelText.PlacedSheet, placed), Tuple.Create(ReportExcelText.SkippedSheet, skipped), Tuple.Create(ReportExcelText.OverridesSheet, overrides),
                 Tuple.Create(ReportExcelText.AssumedSheet, assumed), Tuple.Create(ReportExcelText.IssuesSheet, issues), Tuple.Create(ReportExcelText.AcceptedSheet, AcceptedTable(inputs, nbh)),
                 Tuple.Create(ReportExcelText.RulesSheet, rulesTable),
@@ -475,9 +521,80 @@ namespace SiteAdaptation.Common
             {
                 var sheet = new ReportSheet { Name = item.Item1 };
                 sheet.Tables.Add(item.Item2);
-                book.Sheets.Add(sheet);
+                sheets[item.Item1] = sheet;
             }
+            book.Sheets.AddRange(ReportExcelText.Sheets.Select(name => sheets[name]));
             return book;
+        }
+
+        // R550. The fields of the file name as the run gave them, null with none, and each book takes its own name from them
+        private static SortedDictionary<string, string> FieldsOf(ReportInputs inputs)
+        {
+            return inputs.RunFacts?["fields"] is JObject fields ? new SortedDictionary<string, string>(fields.Properties().ToDictionary(item => item.Name, item => (string)item.Value), StringComparer.Ordinal) : null;
+        }
+
+        private static string Invariant(JToken value)
+        {
+            return value is JValue plain ? Convert.ToString(plain.Value, CultureInfo.InvariantCulture) ?? "" : "";
+        }
+
+        // R555. The rules changed in the rules window of the project, rule id, name and the two values, with the column Changed. A project with none keeps the five columns
+        private static ReportTable MarkChanged(ReportTable table, ReportInputs inputs)
+        {
+            List<JObject> changed = (inputs.RunFacts?["changedRules"] as JArray ?? new JArray()).OfType<JObject>().ToList();
+            if (changed.Count == 0)
+            {
+                return table;
+            }
+            var marked = new ReportTable { Header = table.Header.Concat(new[] { ReportExcelText.Changed }).ToArray(), Formats = table.Formats.Concat(new string[] { null }).ToArray(), Editable = table.Editable };
+            foreach (object[] row in table.Rows)
+            {
+                marked.Rows.Add(row.Concat(new object[] { null }).ToArray());
+            }
+            foreach (JObject rule in changed)
+            {
+                string unit = Text(rule["unit"]);
+                marked.Rows.Add(new object[]
+                {
+                    Text(rule["id"]) + " " + Text(rule["name"]), null, null, null,
+                    Fill(ReportExcelText.ChangedValues, "manual", Invariant(rule["manual"]), "project", Invariant(rule["project"]), "unit", unit ?? "").Trim(), ReportExcelText.Changed,
+                });
+            }
+            return marked;
+        }
+
+        // Q307. One row per wall the plan holds, its element id as the model holds it now, so Placed lists all that was placed
+        private static void AddWallRows(ReportTable placed, ReportInputs inputs, Made made, List<JObject> walls)
+        {
+            Dictionary<JObject, string> parts = WallParts(made);
+            foreach (JObject wall in walls)
+            {
+                string number = (string)wall["plot"];
+                List<long> ids = RevitCounts.WallIds(inputs.RevitCounts, number, parts[wall]);
+                placed.Rows.Add(new object[] { number, PlacedKinds.BoundaryWall, null, null, ids.Count == 0 ? null : ids.Count == 1 ? (object)ids[0] : string.Join(ReportExcelText.ListJoin, ids) });
+            }
+        }
+
+        // Q307. The minutes of the last committed run of each button, the waits on a person left out, as button 9 measured them
+        private static string RunTime(ReportInputs inputs)
+        {
+            JToken seconds = inputs.RunFacts?["runSeconds"];
+            return seconds == null || seconds.Type == JTokenType.Null ? ReportExcelText.NotSet
+                : Fill(ReportExcelText.RunMinutes, "n", ((double)seconds / 60).ToString("0.0", CultureInfo.InvariantCulture));
+        }
+
+        // Q307. The count of the pane for a step, the issues and warnings of its last run, null when the run gives none
+        private static object PaneIssues(ReportInputs inputs, int step)
+        {
+            JToken count = inputs.RunFacts?["steps"]?[step.ToString(CultureInfo.InvariantCulture)]?["issues"];
+            return count == null ? null : (object)(long)count;
+        }
+
+        private static object[] RowOfRecord(ReportInputs inputs, int step)
+        {
+            string time = Text(inputs.RunFacts?["steps"]?[step.ToString(CultureInfo.InvariantCulture)]?["time"]);
+            return time == null ? new object[] { ReportExcelText.NotRun, ReportExcelText.NotRun, ReportExcelText.NotRun, ReportExcelText.NotRun }
+                : new[] { time, null, null, PaneIssues(inputs, step) };
         }
 
         // R459. Apart from the issues, as an accepted warning is no issue of the run. Only a book of the NBH the file names
@@ -673,7 +790,7 @@ namespace SiteAdaptation.Common
         }
 
         // R381, J12: one row per step 1 to 8 of the order of Bader's changes of 28 Oct 2026, each with the manual rules of its step (W7)
-        private static ReportTable StepTable(Made made, string nbh, int weakWalls, List<string> order, List<JObject> written, List<JObject> walls, ReportTable placed, ReportTable skipped,
+        private static ReportTable StepTable(ReportInputs inputs, Made made, string nbh, int weakWalls, List<string> order, List<JObject> written, List<JObject> walls, ReportTable placed, ReportTable skipped,
             ReportTable overrides, ReportTable issues, ReportResult result)
         {
             var table = new ReportTable { Header = ReportExcelText.StepColumns, Formats = new string[6] };
@@ -690,12 +807,11 @@ namespace SiteAdaptation.Common
             long listed = made.Entries.Count(entry => orderSet.Contains(Text(entry["plot"]) ?? ""));
             long movedWalls = walls.Count(wall => WallValues(wall).Any(value => (made.Details[Text(value["statusFrom"]) ?? ""]?["overrides"] as JArray)?.Count > 0));
             long notWritten = order.Count - written.Count;
-            object[] notRun = { ReportExcelText.NotRun, ReportExcelText.NotRun, ReportExcelText.NotRun, ReportExcelText.NotRun };
             var rows = new[]
             {
-                notRun,
+                RowOfRecord(inputs, 1),
                 new object[] { withUnit, faces.Count - withUnit, 0L, 0L },
-                notRun,
+                RowOfRecord(inputs, 3),
                 new object[] { (long)order.Count, (long)order.Count(made.Skipped.Contains), listed, (long)issues.Rows.Count },
                 new object[] { kinds(placed, isFloor), kinds(skipped, isFloor), outcome(5, ReportExcelText.Applied), outcome(5, ReportExcelText.Left) },
                 new object[] { (long)written.Count, notWritten, outcome(6, ReportExcelText.Applied), outcome(6, ReportExcelText.Left) },
@@ -704,6 +820,12 @@ namespace SiteAdaptation.Common
             };
             for (int index = 0; index < ReportExcelText.Steps.Length; index++)
             {
+                // Q307. One count for pane and report: the Issues of a step that has a record is what the pane says
+                object pane = PaneIssues(inputs, index + 1);
+                if (pane != null)
+                {
+                    rows[index][3] = pane;
+                }
                 table.Rows.Add(new object[] { ReportExcelText.Steps[index] }.Concat(rows[index]).Concat(new object[] { ManualOf(made, ReportExcelText.Steps[index]) }).ToArray());
             }
             return table;
@@ -712,18 +834,28 @@ namespace SiteAdaptation.Common
         // The box Counts agree across outputs: Revit the counts the add-in read from the model (Q124), not placed yet when the request gives none,
         // Excel the rows of the Placed sheet the report built, the plan held against both apart. An item whose counts differ on any two is one
         // issue naming the three, a text count compared with none
-        internal static ReportTable CountsTable(List<JObject> written, ReportTable placed, long[] revit, ReportTable issues, ReportResult result, string nbh, string manual)
+        internal static ReportTable CountsTable(List<JObject> written, ReportTable placed, long[] revit, ReportTable issues, ReportResult result, string nbh, string manual, ReportInputs inputs = null, List<JObject> walls = null)
         {
             var table = new ReportTable { Title = ReportExcelText.CountsBox, Header = ReportExcelText.CountColumns, Formats = new string[3], Bordered = true };
             long links = placed.Rows.Count(row => (string)row[1] == ReportExcelText.LinkKind);
             long floors = placed.Rows.Count(row => SiteCoordinates.FloorKinds.Contains((string)row[1]));
             long planFloors = written.Sum(plot => (plot["floors"] as JObject ?? new JObject()).Count);
-            var items = new[]
+            // R554. The plots the level Excel holds, read from the file, so the box compares it with what the model read says
+            var scopeOfBook = new HashSet<string>(written.Select(plot => (string)plot["plot"]));
+            long? levelPlots = inputs?.LevelExcelPlots?.Count(scopeOfBook.Contains);
+            var items = new List<object[]>
             {
                 new object[] { ReportExcelText.Links, (long)written.Count, revit == null ? (object)ReportExcelText.NotPlaced : revit[0], links },
                 new object[] { ReportExcelText.Floors, planFloors, revit == null ? (object)ReportExcelText.NotPlaced : revit[1], floors },
-                new object[] { ReportExcelText.Levels, (long)written.Count, revit == null ? (object)ReportExcelText.NotPlaced : revit[2], ReportExcelText.NoLevelRun },
+                new object[] { ReportExcelText.Levels, (long)written.Count, revit == null ? (object)ReportExcelText.NotPlaced : revit[2], levelPlots == null ? (object)ReportExcelText.NoLevelRun : levelPlots.Value },
             };
+            // Q307. The walls beside the links and floors, once the model read names them
+            if (inputs?.RevitCounts?["walls"] is JObject standing && walls != null)
+            {
+                var scope = new HashSet<string>(written.Select(plot => (string)plot["plot"]));
+                long inModel = standing.Properties().Where(item => scope.Contains(item.Name.Split('|')[0])).Sum(item => (long)((JArray)item.Value).Count);
+                items.Add(new object[] { ReportExcelText.Walls, (long)walls.Count, inModel, (long)placed.Rows.Count(row => (string)row[1] == PlacedKinds.BoundaryWall) });
+            }
             string rule = revit == null ? " (R365)" : " (R381)";
             foreach (object[] item in items)
             {
