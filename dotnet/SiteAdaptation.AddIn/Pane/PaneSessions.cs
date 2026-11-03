@@ -39,10 +39,12 @@ namespace SiteAdaptation.AddIn.Pane
         }
 
         // R445, breaker of FIX-1NOV-C. An undo or a redo puts back the Settings entity the document held, so the session reads it again.
-        // A document with no session is no project of the pane and stays without one
+        // A document with no session is no project of the pane and stays without one. R499, Q382. The entity holds the last run of every
+        // button (R498), so the runs of this session go and each step reads what the undo left: an undone step is no longer done
         public DocumentSession Undone(object key, ISettingsEntity entity)
         {
             DocumentSession session = Find(key);
+            session?.Runs.Clear();
             session?.LoadFrom(entity);
             return session;
         }
@@ -61,7 +63,8 @@ namespace SiteAdaptation.AddIn.Pane
         }
 
         // DocumentSavedAs: a document the add-in knows takes its new path and title and is shown again, with the same session and
-        // settings. One it does not know, as a family or a linked document, gets no session and nothing to show
+        // settings. One it does not know, as a family or a linked document, gets no session and nothing to show. R498. A new path has a new
+        // work folder, so the runs of this session, with outputs in the old one, go and each step looks in the new one
         public DocumentSession SavedAs(object key, string path, string title)
         {
             DocumentSession session = Find(key);
@@ -69,6 +72,7 @@ namespace SiteAdaptation.AddIn.Pane
             {
                 return null;
             }
+            session.Runs.Clear();
             session.Path = path;
             session.Title = title;
             return session;
@@ -128,13 +132,13 @@ namespace SiteAdaptation.AddIn.Pane
         public PaneSettings Settings { get; set; }
 
         // R366. The last real run of each step that committed in this session, with the outputs of its record. A step with none here
-        // takes its last run from lastRuns of the settings, which hold no outputs, so it is held by its hash and scope alone (CHOSEN)
+        // takes its last run from lastRuns of the settings, with the outputs R498 keeps there under the work folder of this document
         public Dictionary<int, StepRun> Runs { get; } = new Dictionary<int, StepRun>();
 
         // R366, Q158. The last run of a step as the pane and a press of button 1 read it: the one of this session first, else the one of the settings
-        public StepRun LastRun(int step)
+        public StepRun LastRun(int step, string workFolder = null)
         {
-            return Runs.TryGetValue(step, out StepRun run) ? run : StepRun.FromSettings(Settings.Project, step);
+            return Runs.TryGetValue(step, out StepRun run) ? run : StepRun.FromSettings(Settings.Project, step, workFolder);
         }
 
         public bool HasPath

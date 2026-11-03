@@ -11,8 +11,8 @@
 
 ### Lane B, C and D
 
-- Lane B FIX-2NOV-B, 03:10, branch fix/2nov-b-handrun: hand run done, lock released 03:01, steps/fix-2nov-b-handrun.md written. Records PR next, then the round ends. Nothing blocks.
-- Lane C 6C-3NOV-C, 3 Nov, branch check/6c-3nov-c: window check, Excel compare, steps/part1-check.md. R498 fixes in, Revit pass next. Touches Theme.xaml, SitePanePage.xaml, NewProjectWindow.xaml, ScanResultsWindow.xaml, HowItWorksWindow.xaml. Blocked: none
+- Lane B FIX-3NOV-B, 3 Nov, branch fix/3nov-b-rows: tasks 1 and 2, gate green, parity rerun of rev6 running, past job 16 of 16 with 0 failures. PR when it ends. No Revit, no window lock.
+- Lane C 6C-3NOV-C, 3 Nov, branch check/6c-3nov-c: Revit pass 1 done, steps/investigations/6c-excel.md written, fix batch 2 and steps/part1-check.md next, one short Revit pass after Lane A. Rule R505. Touches Theme.xaml, SitePanePage.xaml, ReviewDataWindow, CheckTableWindow, NewProjectWindow, ScanResultsWindow, HowItWorksWindow, ScanView. Blocked: none
 - Lane D MASS-2NOV-D, 3 Nov, branch mass/2nov-d: the mass outline by the outer wall faces, R500 to R504, closed Q279, Q321, opened Q390 to Q393. Revit proof done, lock free.
   Now: the PR, merge when green. Nothing queued after it. Blocked: none
 

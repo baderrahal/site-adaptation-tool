@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using SiteAdaptation.Common.Flow;
 
 namespace SiteAdaptation.Common.Settings
@@ -56,6 +58,7 @@ namespace SiteAdaptation.Common.Settings
             // Read back from its own text, so a pick or a record the reader refuses never reaches the document
             ProjectSettings next = SettingsJson.Read(SettingsJson.Write(settings));
             next.FormatVersion = SettingsJson.Version;
+            next.LastRuns = RunsHeld(next);
             next.LastRuns[button.ToString(CultureInfo.InvariantCulture)] = run;
             string json = SettingsJson.Write(next);
             SettingsJson.Read(json);
@@ -77,10 +80,62 @@ namespace SiteAdaptation.Common.Settings
             }
             ProjectSettings next = SettingsJson.Read(SettingsJson.Write(settings));
             next.FormatVersion = SettingsJson.Version;
+            next.LastRuns = RunsHeld(next);
             string json = SettingsJson.Write(next);
             ProjectSettings written = SettingsJson.Read(json);
             entity.Write(json);
             return written;
+        }
+
+        // R498. The last run of a button as the model holds it, null with none or with settings the reader refuses
+        public ButtonRun LastRun(int button)
+        {
+            SortedDictionary<string, ButtonRun> held = RunsHeld(new ProjectSettings());
+            return held.TryGetValue(button.ToString(CultureInfo.InvariantCulture), out ButtonRun run) ? run : null;
+        }
+
+        // R498. Puts back the last run a step had, or none, for a run that committed and whose outputs did not move (03a Steps)
+        public void PutBack(ProjectSettings settings, int button, ButtonRun before, IModelTransaction transaction)
+        {
+            if (transaction == null)
+            {
+                throw new InvalidOperationException("the settings are written only inside a transaction (R367)");
+            }
+            ProjectSettings next = SettingsJson.Read(SettingsJson.Write(settings));
+            next.FormatVersion = SettingsJson.Version;
+            next.LastRuns = RunsHeld(next);
+            string key = button.ToString(CultureInfo.InvariantCulture);
+            if (before == null)
+            {
+                next.LastRuns.Remove(key);
+            }
+            else
+            {
+                next.LastRuns[key] = before;
+            }
+            string json = SettingsJson.Write(next);
+            SettingsJson.Read(json);
+            entity.Write(json);
+        }
+
+        // R498. The settings of a session keep only the runs of when it loaded them, so a write from them alone would take back what a later
+        // button recorded. The run of the model wins for its button, a run only the settings give stays, and settings the reader refuses
+        // in the model count as none
+        private SortedDictionary<string, ButtonRun> RunsHeld(ProjectSettings given)
+        {
+            var runs = new SortedDictionary<string, ButtonRun>(given.LastRuns, StringComparer.Ordinal);
+            try
+            {
+                foreach (KeyValuePair<string, ButtonRun> held in Load()?.LastRuns ?? new SortedDictionary<string, ButtonRun>(StringComparer.Ordinal))
+                {
+                    runs[held.Key] = held.Value;
+                }
+            }
+            catch (InvalidDataException)
+            {
+                return runs;
+            }
+            return runs;
         }
     }
 }
