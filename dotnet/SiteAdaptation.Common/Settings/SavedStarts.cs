@@ -65,6 +65,30 @@ namespace SiteAdaptation.Common.Settings
             return starts;
         }
 
+        // R520. The saved project a setup came from, the first that names the config, rules and level profile of the settings, as Import laid them. The settings
+        // hold no name of it, so a setup edited since reads none. No config came from none, which leaves Empty project and R486 as they are
+        public static SavedStart CameFrom(ProjectSettings current, IReadOnlyList<SavedStart> starts)
+        {
+            if (current == null || string.IsNullOrEmpty(current.ConfigFile) || starts == null)
+            {
+                return null;
+            }
+            foreach (SavedStart start in starts)
+            {
+                ProjectSettings saved = SettingsJson.Read(start.Text);
+                if (SamePath(saved.ConfigFile, current.ConfigFile) && SamePath(saved.RulesFile, current.RulesFile) && (saved.LevelProfile ?? "") == (current.LevelProfile ?? ""))
+                {
+                    return start;
+                }
+            }
+            return null;
+        }
+
+        private static bool SamePath(string one, string two)
+        {
+            return string.Equals(one ?? "", two ?? "", StringComparison.OrdinalIgnoreCase);
+        }
+
         // A file Import of a pre-setting takes, tried on a scratch copy so nothing of a project changes
         public static SavedStart Read(string path)
         {

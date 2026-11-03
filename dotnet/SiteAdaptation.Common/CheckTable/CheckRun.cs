@@ -318,7 +318,7 @@ namespace SiteAdaptation.Common.CheckTable
                     }
                 }
             }
-            return join == null && links == null ? null : new PastJob { KeyJoin = join, Links = links };
+            return join == null && links == null ? null : new PastJob { KeyJoin = join, Links = links, OtherJobs = CheckTableBuild.OtherJobKeys(config) };
         }
 
         // The links of the project document of a key read by the plot their plot parameter names, a plot two links name is left out
@@ -534,12 +534,13 @@ namespace SiteAdaptation.Common.CheckTable
             }
         }
 
-        // 7.4 of the mock, the line under the title: the level profile the build took, the override list and its entries
+        // 7.4 of the mock, the line under the title: the level profile the build took, the override list and its entries. The list with its folder, as its file
+        // name reads the same for every project (R486, Q397)
         private static CheckTableInfo Info(CheckPlan plan, JObject step, JObject list, string levelProfile)
         {
             string rulesPath = plan.Inputs.Where(input => input.Role == Rules).Select(input => input.Path).FirstOrDefault();
             JObject rules = JObject.Parse(WorkFiles.ReadText(rulesPath));
-            return CheckTableInfo.Of(BuildRules.ProfileName(rules, levelProfile), Path.GetFileName(plan.OverridesPath), list, step, plan.Nbh);
+            return CheckTableInfo.Of(BuildRules.ProfileName(rules, levelProfile), plan.OverridesPath, list, step, plan.Nbh);
         }
 
         public static JObject Record(string runId, IReadOnlyDictionary<string, string> outputs)
