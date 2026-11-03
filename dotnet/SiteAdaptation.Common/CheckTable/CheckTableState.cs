@@ -131,6 +131,7 @@ namespace SiteAdaptation.Common.CheckTable
     {
         public string LevelProfile { get; set; }
 
+        // The list as the run gives it, with its folder (R486, Q397)
         public string OverrideFile { get; set; }
 
         public int Overrides { get; set; }
