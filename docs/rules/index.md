@@ -480,6 +480,7 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R506 Sheet in use shown.
 - R507 Shared parameters on links only.
 - R508 Old binding removed by button 1.
+- R530 Mass cut at party line.
 
 ## 13-site-coords-r454-up.md
 

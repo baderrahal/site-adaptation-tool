@@ -624,3 +624,7 @@ KNOWN-3NOV-A, review and breaker, no real input reaches these:
 - RefreshSheet reads the config and the xlsx on the UI thread on each refresh, uncached, not measured. A swallowed config failure reads Not chosen with no reason.
 - docs/design/07-mock.md still says Plot on floors and walls. R507 prevails.
 - A rebind of a links row that also lacks the link category counts as a removal alone. No model holds a row off the links and on Floors.
+
+## Lane D MASS-3NOV-D, 3 Nov 2026
+
+- R530 builds no cut across an arc, no prototype has an arc wall. A concave side crossed twice stays whole. Neither is in the 13. A new prototype needs its own party lines in config, none means no cut.
