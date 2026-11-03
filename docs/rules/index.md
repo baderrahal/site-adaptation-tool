@@ -455,6 +455,9 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R497 Revit slog leaves input check.
 - R505 Windows match their boards.
 - R540 Help beside each step.
+- R541 Team changes rule values.
+- R542 Report name fields in New project.
+- R543 Step 1 line names its source.
 
 ## 13-parameters-r460-up.md
 
@@ -480,6 +483,7 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R506 Sheet in use shown.
 - R507 Shared parameters on links only.
 - R508 Old binding removed by button 1.
+- R530 Mass cut at party line.
 - R570 Road toposolid named in config.
 - R571 Boundary and points from the surface.
 - R572 Toposolid made after the floors.
@@ -491,3 +495,18 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R454 Coordinate system of the inputs.
 - R455 Site position from CAD.
 - R456 Three CAD control points.
+- R510 Model with no site coordinates.
+- R511 CAD default for new projects.
+- R512 CAD and position file side by side.
+- R513 No usable CAD asks the user.
+- R514 Where the position came from.
+- R523 No move with placed content.
+
+## 14-report-r550-up.md
+
+- R550 Report file name by ISO.
+- R551 Report sheets in BIM order.
+- R552 Plot schedule, one row per plot.
+- R553 Lists freeze and filter.
+- R554 Run facts for the report.
+- R555 Changed rules are marked.

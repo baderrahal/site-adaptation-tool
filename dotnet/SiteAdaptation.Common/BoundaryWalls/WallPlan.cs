@@ -52,12 +52,18 @@ namespace SiteAdaptation.Common.BoundaryWalls
         // left a span open between keep two keys. The piece counts the walls of the same plot, edge and plots in plan order from 1
         public static List<string> Parts(IEnumerable<PlanWallItem> walls)
         {
+            return Parts(walls.Select(wall => Tuple.Create(wall.Plot, (IEnumerable<string>)wall.Plots, (long)wall.Edge)));
+        }
+
+        // The part of each wall by its plot, plots and edge, for a reader of the plan with no PlanWallItem, the report (R552)
+        public static List<string> Parts(IEnumerable<Tuple<string, IEnumerable<string>, long>> walls)
+        {
             var seen = new Dictionary<string, int>(StringComparer.Ordinal);
             var parts = new List<string>();
-            foreach (PlanWallItem wall in walls)
+            foreach (Tuple<string, IEnumerable<string>, long> wall in walls)
             {
-                string stem = string.Join("+", wall.Plots) + "|e" + wall.Edge.ToString(CultureInfo.InvariantCulture);
-                string counted = wall.Plot + "\n" + stem;
+                string stem = string.Join("+", wall.Item2) + "|e" + wall.Item3.ToString(CultureInfo.InvariantCulture);
+                string counted = wall.Item1 + "\n" + stem;
                 seen[counted] = seen.TryGetValue(counted, out int count) ? count + 1 : 1;
                 parts.Add(stem + "|p" + seen[counted].ToString(CultureInfo.InvariantCulture));
             }

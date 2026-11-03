@@ -18,9 +18,11 @@ Q225 The level of a yard floor under Rev 6. Q226 The hand of a detached unit. Q2
 Q260 Outline change of a placed floor. Q262 Level Excel and the read back values. Q263 Levels count still at its level. Q266 Walls on edges other units meet. Q267 Base level of a boundary wall. Q268 Scope of a wall on two plots. Q269 Untagged BW wall on a plan wall. Q270 Where a prototype set upgrades now. Q271 Python build takes the pane folder. Q273 6 Levels on a floor moved by hand. Q277 Footprint block names unlike the unit. Q323 A keyCopy run refused by its guard. Q340 The level of a joint an override moves. Q341 Back corners two ramps share. Q343 Passing joint rows in the check chips. Q344 Joints at the edge of a build.
 Q284 Villa mode row the boards drop. Q285 Name the Rules row shows. Q286 Approve the four drafts of NEWPROJ-UI. Q287 Button messages that name a work file.
 Q288 Scan picks in the settings at version 1. Q289 Board rows the scan does not read. Q290 Curbs and road surface left out of scan. Q291 Where the line Current files is shown. Q293 Approve the three drafts of SCAN-UI. Q294 Rules chosen in Set up site, when used. Q295 Test host runs skip the scan. Q300 Plots with no cluster proposal. Q301 The build takes the door level pick. Q302 Door level row under the past job. Q305 Hide Confirmed under the past job.
-Q306 A neighbourhood picked after the first read. Q307 What the report Summary shows after a run.
+Q306 A neighbourhood picked after the first read.
 Q326 Shared origin at the plot box centre. Q327 Elevation of the shared origin from CAD. Q329 The rule that picks the control points.
-Q331 Plot is no link parameter of the keys. Q332 FFL bound but never written. Q333 Categories beyond the link instances. Q334 An xlsx read inside Revit. Q336 Link parameter group is Text not Data. Q337 Swap back in the same model unproven. Q338 Input guard counts Revit .slog files. Q361 FFL rule far from keys without overrides. Q362 Chosen limits of the zone compare. Q363 Plot 2302 and two IMD FFL plots. Q370 Approve the road surface window draft. Q372 A road pick in the pane, when it is kept. Q374 The stop looks at the zone, not the neighbourhood. Q390 A wall modelled inside out, far face kept. Q391 Twin masses overlap along one side. Q392 The primary option is not every plot's condition. Q393 The chosen limits of the wall ring. Q375 Ramp type after a rampFrontM gap. Q380 The save dialog and the input folder write time. Q381 The crash on Browse For Folder. Q382 Ctrl+Z of button 1 keeps step Done. Q383 A tick on a held step reruns steps. Q385 Accepted warnings return after a save. Q386 Override list changes leave steps Done. Q412 Level 1 is empty after the build. Q413 Input picks lost before a real run. Q379 A new project on another PC. Q394 Update from report on a new project. Q395 A mode in memory lost on reopen. Q397 Save As of a new project keeps one list. Q398 The 443 hairline floor overlaps at step 5.
+Q331 Plot is no link parameter of the keys. Q332 FFL bound but never written. Q333 Categories beyond the link instances. Q334 An xlsx read inside Revit. Q336 Link parameter group is Text not Data. Q337 Swap back in the same model unproven. Q338 Input guard counts Revit .slog files. Q361 FFL rule far from keys without overrides. Q362 Chosen limits of the zone compare. Q363 Plot 2302 and two IMD FFL plots. Q370 Approve the road surface window draft. Q372 A road pick in the pane, when it is kept. Q374 The stop looks at the zone, not the neighbourhood. Q390 A wall modelled inside out, far face kept. Q391 Twin masses overlap along one side. Q392 The primary option is not every plot's condition. Q393 The chosen limits of the wall ring. Q375 Ramp type after a rampFrontM gap. Q380 The save dialog and the input folder write time. Q381 The crash on Browse For Folder. Q382 Ctrl+Z of button 1 keeps step Done. Q383 A tick on a held step reruns steps. Q385 Accepted warnings return after a save. Q386 Override list changes leave steps Done. Q412 Level 1 is empty after the build. Q413 Input picks lost before a real run. Q450 Report defaults of old number, revision, status. Q451 Report Issues column against its sheets. Q379 A new project on another PC. Q394 Update from report on a new project. Q395 A mode in memory lost on reopen. Q397 Save As of a new project keeps one list. Q398 The 443 hairline floor overlaps at step 5.
+
+Q332 FFL bound but never written. Q334 An xlsx read inside Revit. Q336 Link parameter group is Text not Data. Q337 Swap back in the same model unproven. slog files. Q361 FFL rule far from keys without overrides. Q362 Chosen limits of the zone compare. Q363 Plot 2302 and two IMD FFL plots. Q370 Approve the road surface window draft. Q372 A road pick in the pane, when it is kept. Q374 The stop looks at the zone, not the neighbourhood. Q390 A wall modelled inside out, far face kept. Q392 The primary option is not every plot's condition. Q393 The chosen limits of the wall ring. Q375 Ramp type after a rampFrontM gap. Q380 The save dialog and the input folder write time. Q381 The crash on Browse For Folder. Q382 Ctrl+Z of button 1 keeps step Done. Q383 A tick on a held step reruns steps. Q385 Accepted warnings return after a save. Q386 Override list changes leave steps Done. Q412 Level 1 is empty after the build. Q413 Input picks lost before a real run. Q379 A new project on another PC. Q394 Update from report on a new project. Q395 A mode in memory lost on reopen. Q397 Save As of a new project keeps one list. Q398 The 443 hairline floor overlaps at step 5.
 
 Q149. M14, the boundary wall of an irregular plot (Round FOLD, docs/design/15-manual-rules.md). The canvas text reads "boundary wall 200 mm inside the plot limit". The Rev 06 manual, 2.8.A, p. 20 (PDF 23), reads "the boundary wall external face will be identical to the plot limit, and the 200mm will be positioned fully inside the plot", the outer face on the limit and the 200 mm wall thickness inside it. The canvas text is kept until Bader answers. It does not block, M14 is checked by 8 Walls in 5d.
 - Recommended: the PDF reading, the outer face of the wall on the plot limit and its 200 mm inside the plot, and the canvas text written so.
@@ -597,10 +599,6 @@ Q306. A neighbourhood picked after the first read (Lane B Task 6, R457, R366). T
 - Recommended: button 2 takes the project key as button 1 does, since the pick does not change what is read.
 - Other: keep the key and refresh the rows at the pick, so the box asks for step 2 before step 3.
 
-Q307. What the report Summary shows after a run (Lane B Task 6, R365, R381, Lane A). In 012_Report.xlsx after 1 to 9 (RAN): the top line holds the literal [file name].rvt and run time [n] min, Levels says no run of button 6 yet though 6 ran, steps 1 and 3 say not run yet, Placed holds no wall rows. The pane says 1,407, 355 and 753 issues on 5, 7 and 8 where Summary says 112, 0 and 1.
-- Recommended: Lane A fills the top line and the Levels row, adds walls to Placed, and takes one issue count for pane and report.
-- Other: leave it until Part 2, the output sheets.
-
 Q336. Link parameter group is Text not Data (Lane D D2, R460, R464). The read KC2 of the IMC key copy in Revit gives all 10 shared link parameters the group Text (autodesk.parameter.group:text-1.0.0) and the spec String, 338 links, 337 holding a value (RAN, round_addin\reads\KC2\run4\testhost_KC2_parameters.json). The sheet held Data, CHOSEN in FIX-1NOV-D. D2 wrote Text into config/shared_parameters.xlsx for the 10 rows, so button 1 binds them under Text as the past job does, and R464 moves a parameter a model holds under Data to Text. Plot is a project parameter of the key with no GUID, the read gives it no group, it stays Data.
 - Recommended: Text, as the past links hold it.
 - Other: Data, the group of FIX-1NOV-D, by editing the Group column back.
@@ -608,10 +606,6 @@ Q336. Link parameter group is Text not Data (Lane D D2, R460, R464). The read KC
 Q337. Swap back in the same model unproven (Lane D D3, R450, R467, Q323). Bader asked to point config at the mass files again, reload and confirm the masses return. A buttons job cannot open an existing model, the guard of Q323 refuses it, so D3S ran on a new project from the template (RAN, 336 masses placed). The masses return by the config alone, a reload inside one model is UNKNOWN. The same guard is why D3L started from the template and not from a copy of SA-demo-start.rvt.
 - Recommended: Answer Q323 as it recommends, then run the swap back on the D3L model once.
 - Other: Accept the proof on two new projects.
-
-Q338. Input guard counts Revit .slog files (Lane D D3, D19, R384). A buttons run whose inputs.prototypes is a folder hashes every file under it. Remaking masses opens each central prototype, Revit writes the .slog in its _backup folder, so D3S ended 275 inputs, 262 unchanged, exit 1, with 13 .slog files newer than the run start and no other file there (RAN). The 2021 sources stayed the same by SHA-256 (RAN, 13). The stop reason is set after testhost_D3S_run.json is written, so that file says none (READ, Run-TestHost.ps1:926, 947). Whether this also writes into a 2021 folder under an input root is UNKNOWN, D3 did not run that. Lane B CHECK-2NOV: Prototypes-copy of the 2021 files holds 0 .slog after two remakes, and R458 drops such a .slog from the pane folder hash, the guard still counts them (READ, steps/check-2nov.md).
-- Recommended: The guard skips the _backup folders of a prototypes input under the work root only, an input root still fails on any change, and the reason goes into the run file.
-- Other: Keep the guard as it is and read exit 1 by hand on such a run.
 
 Q361. FFL rule far from keys without overrides (Lane D 6B-DATA, R278, R469, Q224). With no override list the FFL is within 5 mm on 29 to 53 percent of the plots of the 5 TU zones, 1,043 of 1,759 over, and El @ Entry 819 of 1,738 over, against majority.strongShare 0.90 (RAN). ROSHN Makkah takes its levels from the list, so a build for ROSHN is not hurt. A new project has no such list, so this is the share a past job mode build would reach there. New projects start on rev6 (Q224), which this round did not compare.
 - Recommended: Mark the level rules weak, keep ROSHN Makkah on the list, and compare rev6 on the same keys as the next data step.
@@ -625,17 +619,9 @@ Q363. Plot 2302 and two IMD FFL plots (Lane D 6B-DATA, R469). Plot 2302 of IMC s
 - Recommended: Bader adds plot 2302 to the override list by hand, and the Revit half of 6b opens the two IMD plots.
 - Other: Leave all three as they are.
 
-Q331. Plot is no link parameter of the keys (Lane D FIX-1NOV-D, R461). The 10 shared parameters on the villa links of the IMC key are those config held, none added, dropped or renamed (READ, round_addin\reads\KC\testhost_KC_parameters.json, 338 links). Plot, the floor parameter of floors.plotParameter that button 5 writes on every Generic, yard and ramp floor (unit-plot, as VD2-2441), is a project parameter of the floors in all 7 keys and no link parameter, its GUID that of Q156.
-- Recommended: keep Plot as the 11th row, Category Floors, Filled by 5 Floors, since button 5 and the check of 4 tell a placed floor by it.
-- Other: Keep No, and button 5 writes no plot on its floors.
-
 Q332. FFL bound but never written (Lane D FIX-1NOV-D, R465). RRE_ZZ_SP_Prototype-FFL is on every link of the 5 TU keys with a value (RAN, the 2a reads), and Bader's rule is never to write it. The sheet keeps it, Filled by none, so button 1 binds it as the past links hold it and no button writes it.
 - Recommended: as built, bound and empty.
 - Other: Keep No, so a new site holds no FFL parameter.
-
-Q333. Categories beyond the link instances (Lane D FIX-1NOV-D, R461). The task binds the parameters to the link instances. The keys also bind RRE_ZZ_SP_Plot-Number, RRE_ZZ_SP_Prototype and the two Facade parameters on Floors and CASE on Detail Items (READ, testhost_KC_parameters.json), and the sheet keeps those categories as button 1 bound them before.
-- Recommended: keep the categories of the keys, a user edits the Category cell to narrow them.
-- Other: RVT Links only for the 10 link parameters.
 
 Q334. An xlsx read inside Revit (Lane D FIX-1NOV-D, R462). R350 kept every xlsx read in the worker. Buttons 1 and 7 run inside Revit and need the sheet with no worker start, so ParameterBook of Common reads its plain xlsx parts with no OpenXml, held to XlsxSheet of the worker by a test on the sheet of the repo and on inline strings.
 - Recommended: as built, for the parameter sheet alone.
@@ -670,10 +656,6 @@ Q375. Ramp type after a rampFrontM gap (R408, R482, breaker 2 of FIX-2NOV-A3). P
 Q390. A wall modelled inside out, far face kept (Lane D MASS-2NOV-D, R501). 4 walls of 3 prototypes have their exterior side toward the house, so their outer face is the other one: DP2 1605340, DP4 2503887, DT1 811115 and 6270859 (RAN). The ring takes that far face and names the wall in the run line. With exterior faces only DP2 and DP4 fall to the slab (RAN). On DT1 the ring stands 120 to 130 mm inside the slab edge and the north and south walls run on past it, what the outer face of DT1 is there is UNKNOWN.
 - Recommended: Keep the far face, named in the run line, as Bader's outer face of the walls.
 - Other: Exterior faces only, DP2, DP4 and DT1 on the slab with a flag.
-
-Q391. Twin masses overlap along one side (Lane D MASS-2NOV-D, breaker 2). 52 pairs of plots of NBH 012 overlap, DT3 34, TH1 8, TH3 8 at about 1.5 m2, 150 mm over 9.96 m, DP1 2 at 2.39 m2 (RAN, a grid test of the placed rings). Each prototype file models the shared wall whole, so each mass holds it, and a link shows the same. The mass is the walls of the file, not the share of the plot.
-- Recommended: Keep the mass as the walls of the file, it equals the link.
-- Other: Cut a mass at the party line, a rule of its own and a neighbour to read.
 
 Q392. The primary option is not every plot's condition (Lane D MASS-2NOV-D, R500). The 4 prototypes read hold 649 to 768 walls in design options, mostly for the side they share: DP1 925 walls, 118 in the main model (RAN). The mass reads the main model and the primary option, what a link shows by default. On NBH 012, 13 plots do not fit: 4 DP1 beside a DP1, 8 DP1 with no TH beside them, DP2 2311 with nothing on that side, whose side then has no outer wall (RAN, breaker 2). The tool sets no option on a link (READ), and no option read is written for a free side.
 - Recommended: Keep the primary for mass and link now, and list these plots. A rule that picks the option by the neighbour is a round of its own, and it changes the link too.
@@ -736,9 +718,9 @@ Q414. How long a whole project takes (Lane C GUIDE-3NOV-C). steps/buttons-guide.
 - Recommended: Lane B times one whole project run on a copy and the guide takes the numbers.
 - Other: Leave Not known until Part 2.
 
-Q415. Pane lines say more than is built (Lane C GUIDE-3NOV-C, R362, Q328). Step 1 reads from CAD, coordinates.source is positionFile. Lane A sends the step 1 text, step 8 now reads Boundary walls.
-- Recommended: Keep step 1 until Q328 switches, step 8 reads Boundary walls.
-- Other: Leave both.
+Q415. Pane lines say more than is built (Lane C GUIDE-3NOV-C, R362, Q328, R511, R543). Step 1 now names the source of its last run and step 8 reads Boundary walls, both built. Left for Bader: coordinates.newProjectSource is the source Empty project writes, coordinates.source stays positionFile so a saved past job and the proof do not move (Lane A, R511).
+- Recommended: Keep both keys as Lane A set them.
+- Other: Move coordinates.source to cad when Q328 switches.
 
 Q416. Road row reads optional, step 2 needs it (Lane C GUIDE-3NOV-C, R430). New project marks Road levels optional, Without it the tool uses road level plus slope. ButtonFlow.Absent stops step 2 with no folder (READ).
 - Recommended: The row loses Optional and that line until a build without roads exists.
@@ -751,6 +733,34 @@ Q417. Whole project stops at step 3 (Lane C GUIDE-3NOV-C, R406). ReviewLoad.Load
 Q418. Empty project keeps old rules on a set up model (Lane C GUIDE-3NOV-C, R486). SetupSave and NewProjectViewModel.Wants copy the set only when no config is named, a model with settings keeps its rules and list, no message (READ).
 - Recommended: A line in the window says this model keeps its rules, under Empty project.
 - Other: Copy the set over, the old override list is lost.
+
+Q419. Ramp slope limit does nothing under the past job (Lane C RULES-3NOV-C, R541). Front ramp slope, largest lists plots outside the manual only under Rev 06 (BuildPlan, IsRev6). Under the past job the plan stays the same (RAN, worker build on NBH 012). A Save of a model also leaves a Save As sharing that copy, as Q397.
+- Recommended: Keep it in the table and let the row say Rev 06 only, in Part 2.
+- Other: Hide the two rows under the past job.
+
+Q440. Rules table not yet proven in Revit (Lane C RULES-3NOV-C, R541). The pass on a copy of the dry run stopped each time before the table opened. The last stop was a locked PC screen, LogonUI running, no foreground window (RAN). Save, reset and the plan change hold in the tests and the worker build, not by a press in Revit.
+- Recommended: Keep the PC unlocked for one 20 minute pass, Lane C runs it and reports the five plans.
+- Other: Bader checks the table by hand in his check of Part 1.
+
+Q450. Report defaults of old number, revision, status (Lane B, R550, R552). CHOSEN: Old Plot No. is baseplanLabel of plots.csv, v9PlotNumber differs, revision P01, status S0.
+- Recommended: keep these, addin.report in config changes them.
+- Other: name the column and codes.
+
+Q451. Report Issues column against its sheets (Lane B, R554, Q307). Summary now reads what the pane says: 4 Check 0 beside 2,347 rows on sheet Issues, 5 reads 490 where 112 overrides were left, the count it held before (RAN).
+- Recommended: keep the pane's count, add a column Overrides left and name the sheet's rows Listed for review.
+- Other: leave it as built.
+
+Q470. Plots a mass of its unit does not fit (Lane D MASS-3NOV-D, R530). One cut per prototype cannot fit a plot of another width. Whole project after the cut, RAN offline, not in NBH 012: DT3 on plot 1400, 8.0 m wide, overlaps DP1 on 1401 by 1,997 mm, and stands 1,998 mm past its plot. DP4 on 1995, 6.0 m wide, 1,990 mm past. VD4 1747 142 mm, 441 53 mm, 889 13, 664 13, 892 12. DT3 1716 52, 1924 24. DP1 2266 2.3, 1853 1.1. TH1 2083 and 2084 overlap 1.9 mm, 0.01 degree apart in rotation. No run line names them. Whether the units of 1400 and 1995 are right is UNKNOWN, both come from the location plan.
+- Recommended: No Rev 6 evidence, none of the 7 keys holds 1400 or 1995 (Lane A, RAN). The unit stays by the rule, Bader or the schedule decides. 1400 reads DT3 from schedule IMD, native u13 reads TH1, never used for unit codes. 1995 has no number, neighbourhood or unit in plots.csv.
+- Other: A mass file per plot width, more files for 9 plots.
+
+Q471. Free ends that lose a wall they had room for (Lane D MASS-3NOV-D, R530). The cut is per prototype, so a free end is cut too. On 10 plots nothing needed it, the plot had room and no mass stands beside: DP1 2374, 2391 by 301 mm, DT3 552, 1280, 1485, 1763, 1764, 2271 by 77 mm, TH1 1402, 1403 by 76 mm. NBH 012 holds 2 of them. Elsewhere a free side ends at the plot line and needs the cut.
+- Recommended: Keep one mass per prototype. A mass is a check volume, 300 mm on 10 plots changes no build.
+- Other: A second mass file for a free end, picked per plot.
+
+Q420. Moving a model with placed content (R523, COORD-3NOV-A). Button 1 moves position and survey point and no element, so a model with placed links, masses or floors would stand off CAD by the move, 828 m between CAD and the position file on this job (RAN). Lane A built the stop.
+- Recommended: keep the stop, a move starts from a model with nothing placed.
+- Other: allow it after a plain warning.
 
 Q472. Ramp front overrides stand off the road (Lane D TOPO-3NOV-D, R573). On NBH 012, 80 of 336 plots hold a road corner over 5 mm from Top Surface-02, largest 531 mm, and all 80 hold a rampFrontM override (Q340).
 - Recommended: Keep the overrides, the report lists them, the 5 mm target holds for the other plots.

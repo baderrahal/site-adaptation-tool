@@ -275,14 +275,14 @@ namespace SiteAdaptation.Tests
             Assert.False(model.FirstOpen);
             Assert.Equal("Next step", model.BoxLabel);
             Assert.Equal("Set up site", model.BoxName);
-            Assert.Equal("Coordinates, levels and types from CAD. Dry run is on.", model.BoxLine);
+            Assert.Equal("Coordinates, levels and types, set in step 1. Dry run is on.", model.BoxLine);
             Assert.Equal("Run 1 Set up site", model.BoxButton);
             Assert.Equal(new[] { "Ready", "Needs step 1", "Needs step 2", "Needs step 3", "Needs step 4", "Needs step 5", "Needs step 6", "Needs step 7", "Needs step 4" }, model.Steps.Select(step => step.ChipText));
             Assert.Equal(MarkKind.Next, model.Steps[0].Mark);
             Assert.True(model.DryRun);
 
             model.DryRun = false;
-            Assert.Equal("Coordinates, levels and types from CAD. Dry run is off.", model.BoxLine);
+            Assert.Equal("Coordinates, levels and types, set in step 1. Dry run is off.", model.BoxLine);
             Assert.False(model.Settings.DryRunFirst);
             var runs = new List<int>();
             model.RunRequested += runs.Add;
@@ -904,7 +904,7 @@ namespace SiteAdaptation.Tests
             return new PaneViewModel(probe);
         }
 
-        private sealed class FakeProbe : IInputProbe
+        internal sealed class FakeProbe : IInputProbe
         {
             private readonly Dictionary<string, Tuple<long, string, long>> files = new Dictionary<string, Tuple<long, string, long>>(StringComparer.OrdinalIgnoreCase);
 

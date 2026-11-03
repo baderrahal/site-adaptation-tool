@@ -707,6 +707,9 @@
   <sys:Double x:Key="SA.Size.SetupName">240</sys:Double>
   <sys:Double x:Key="SA.Size.SetupStart">210</sys:Double>
   <sys:Double x:Key="SA.Size.SetupFileName">200</sys:Double>
+  <GridLength x:Key="SA.Grid.RuleId">64</GridLength>
+  <GridLength x:Key="SA.Grid.RuleName">280</GridLength>
+  <GridLength x:Key="SA.Grid.RuleValue">110</GridLength>
   <GridLength x:Key="SA.Grid.SetupFile">210</GridLength>
   <GridLength x:Key="SA.Grid.SetupWho">180</GridLength>
   <GridLength x:Key="SA.Grid.SetupUsed">120</GridLength>

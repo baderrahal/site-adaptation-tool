@@ -138,10 +138,16 @@ def header_texts(book, sheet, count):
     return rows
 
 
-def position_line(settings, run):
+def position_line(settings, run, coordinate_source=None, position_file=None):
     name = "position file"
+    # R511. The source the project holds, else coordinates.source of config, never the default of a new project, so a past job with its position file still gets its line
+    source = coordinate_source if coordinate_source is not None else get(settings, "coordinates.source")
+    if source == "cad":
+        return line(name, OK, "not asked, this project takes its position from CAD")
+    if source == "typed":
+        return line(name, OK, "not asked, this project takes its position from typed values")
     block = get(settings, "addin.position")
-    path = block.get("file") if isinstance(block, dict) else None
+    path = position_file if position_file is not None else (block.get("file") if isinstance(block, dict) else None)
     if not isinstance(path, str) or not path.lower().endswith(".json"):
         return line(name, DOES_NOT_FIT, "config names no .json file in addin.position.file")
     path = Path(path)
@@ -432,7 +438,7 @@ def text_of(report):
     return "\n".join(out) + "\n"
 
 
-def check(config_path, rules_path, offsets_path, work_root, input_root=None):
+def check(config_path, rules_path, offsets_path, work_root, input_root=None, coordinate_source=None, position_file=None):
     """The report of the check with the lines, the counts and the inputs opened with their marks, the paths of those inputs and the input
     root. The inputs are marked before their first read and again at the end, a change raises input_guard.InputChanged."""
     values = project_profile.read_object(config_path)
@@ -448,7 +454,7 @@ def check(config_path, rules_path, offsets_path, work_root, input_root=None):
     run.opened(rules_path)
     folder = prototype_folder(settings, root)
     work = data_book_work(settings, work_root)
-    lines = [position_line(settings, run), parameter_line(config_path, settings, rules, run), offsets_line(settings, rules, offsets_path, run),
+    lines = [position_line(settings, run, coordinate_source, position_file), parameter_line(config_path, settings, rules, run), offsets_line(settings, rules, offsets_path, run),
              hands_line(rules, folder), prototype_line(rules, folder)]
     lines += [excel_line(settings, block, run, work) for block in EXCEL_BLOCKS]
     lines += schedule_lines(settings, run, root)
@@ -494,13 +500,15 @@ def main(argv=None):
     parser.add_argument("--offsets", default=None, help="the offsets file, default prototype_offsets.json beside the config")
     parser.add_argument("--work-root", default=None, help="default is the work root of this machine (R372)")
     parser.add_argument("--out", required=True, help="the output folder, the only place written")
+    parser.add_argument("--coordinate-source", default=None, help="the site source the settings of the project hold, default coordinates.source of config (R511)")
+    parser.add_argument("--position-file", default=None, help="the position file the settings of the project hold, default addin.position.file of config (R511)")
     args = parser.parse_args(argv)
     config = Path(args.config)
     rules = Path(args.rules) if args.rules else project_profile.profile_path(project_profile.load_profile(config))
     offsets = Path(args.offsets) if args.offsets else config.parent / "prototype_offsets.json"
     root = args.work_root or project_profile.work_root()
     try:
-        report, paths, input_root = check(config, rules, offsets, root)
+        report, paths, input_root = check(config, rules, offsets, root, coordinate_source=args.coordinate_source, position_file=args.position_file)
         write(report, args.out, paths, input_root)
     except (CheckError, project_profile.ProfileError, input_guard.InputChanged) as error:
         print("new project check failed: %s" % error, file=sys.stderr)

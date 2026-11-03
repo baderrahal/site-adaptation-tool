@@ -31,7 +31,7 @@ In file names, <run> is the button and the time, such as 4_20261103-141015-492, 
 | 6 Levels | Sets floor heights, writes the level Excel | Plan of step 4, floors of step 5 | Step 4, step 5, Project files | Floor heights in Revit. <NBH>_Levels_<profile>.xlsx in the work folder | 5 s |
 | 7 Place villas | Places one villa on each plot at its FFL | Plan of step 4, mass files or prototypes | Step 4, Work root\masses | Revit links with parameters. place_<NBH>.json in the work folder | 18 s with masses ready |
 | 8 Walls | Places boundary walls, no garden walls yet | Plan of step 4 | Step 4 | Walls in Revit. walls_<NBH>.json in the work folder | 5 s |
-| 9 Report | Writes the report Excel | Plan and logs of step 4, counts of the model | Step 4, the model | <NBH>_Report.xlsx in the work folder | 5 s |
+| 9 Report | Writes the report Excel | Plan and logs of step 4, counts of the model | Step 4, the model | The report Excel in the work folder, named as in 9 Report | 5 s |
 
 Only a Neighbourhood scope passes step 3 today, see 3 Review data (Q417). Times for New project and a whole project are not known (Q414).
 
@@ -48,6 +48,8 @@ Only a Neighbourhood scope passes step 3 today, see 3 Review data (Q417). Times 
 
 ## New project
 
+Report file name, under the files: one box per field of the report name, and the File name line. Empty goes back to the project settings. Keep <nbh> in Volume, 9 Report puts the neighbourhood there.
+
 **What it does.** Opens from the pane with Open New project. It says where the settings and files of this model come from, and saves that in the model. Save setup writes at once. A saved project is a start point. Its file holds settings but no file picks, so the rows still need Browse.
 
 **Files it needs.**
@@ -58,7 +60,7 @@ Only a Neighbourhood scope passes step 3 today, see 3 Review data (Q417). Times 
 | Plot list (Excel) | Plot, code and cluster. It fills the Sales schedule | Sales team | Button 3 | User picks, Inputs\PSN-ZZZ-XXX-SCH-TM-000201- DLUS Schedule_(Rev9)_Accomodation_Schedule.xlsx |
 | Villa levels (Excel) | Floor level and door level per villa type. Reads Comes later, no file is taken yet | Architect | Buttons 4 and 5 | Nothing today |
 | Road levels (civil file) | Road surfaces. The row reads optional, but step 2 stops with no folder picked (Q416) | Civil team | Button 4 | User picks, Inputs\landxml |
-| Parameter sheet (Excel) | The shared parameters | BIM team | Button 1 | The set: C:\SA-demo\config\shared_parameters.xlsx |
+| Parameter sheet (Excel) | The shared parameters. Reads Found from the sheet of the settings | BIM team | Button 1 | The set: C:\SA-demo\config\shared_parameters.xlsx |
 
 Start from also reads:
 
@@ -88,7 +90,6 @@ Boxes:
 - Q394, Q395, Q397 Empty project with Update, modes and Save As.
 - Q416 The road row reads optional, step 2 stops without it.
 - Q418 Empty project on a model with settings keeps its old rules.
-- The Shared parameters row reads Not chosen with an amber mark though button 1 finds the sheet (steps/dryrun-3nov.md).
 
 ## Input files and Prototypes rows
 
@@ -106,7 +107,7 @@ Boxes:
 | DLUS and sales, sales | PSN-ZZZ-XXX-SCH-TM-000201- DLUS Schedule_(Rev9)_Accomodation_Schedule.xlsx | The sales schedule |
 | Plot numbers | 01101-PSN-ZZZ-XXX-DWG-TU-005000.pdf | The location plan with plot numbers |
 | Prototypes | Work root\prototypes_2024 | 13 villa files, Revit 2024 |
-| Shared parameters | C:\SA-demo\config\shared_parameters.xlsx | Taken from the settings, the row is not read by button 1 |
+| Shared parameters | C:\SA-demo\config\shared_parameters.xlsx | The sheet of the settings, the row reads green with its counts, 11 parameters, 12 left out |
 
 **Before it.** New project.
 
@@ -120,6 +121,8 @@ Boxes:
 - Q372 When a road pick is kept.
 
 ## 1 Set up site
+
+After the first run the line of this step in the pane says where the coordinates, levels and units came from.
 
 **What it does.** Makes this model ready. It sets units, position, survey point, project base point, Level 1 and Level 2, floor types, wall types and the shared parameters. It sets only what differs. The position comes from a position file today, not from CAD, as the settings say (Q415).
 
@@ -145,12 +148,11 @@ Boxes: No site drawing in the setup, pick the Baseplan in the pane first. Nothin
 
 **What it writes.**
 
-- Revit: Level 1 and Level 2 with a floor plan each, floor types Generic 150mm, yard, Ramps 0.5%, Ramps 2%, Flat Ramps, wall types BW and Generic Wall-150mm_ Garden, 11 shared parameters.
+- Revit: Level 1 and Level 2 with a floor plan each, floor types Generic 150mm, yard, Ramps 0.5%, Ramps 2%, Flat Ramps, wall types BW and Generic Wall-150mm_ Garden, 11 shared parameters: 10 on links only, whatever an older sheet names, and Plot on floors. A model set up before loses its old bindings, and a line says so.
 - Work folder: site.json. A shared parameter text file is made for the run and removed.
 
 **Limits today.**
 
-- Q415 The pane says from CAD, the position comes from the file.
 - Q336 Group of the link parameters.
 - Q379 Another PC needs its own inputs.
 
@@ -271,7 +273,6 @@ Do not click anywhere while the Revit box is open. A press waits behind it and f
 - Q398 The 443 hairline floor overlaps at step 5.
 - Q356 The off axis warning of a cut yard.
 - Q354 Yards of a model already built.
-- Q411 Floor parameters bound but never filled.
 
 ## 6 Levels
 
@@ -318,7 +319,6 @@ Do not click anywhere while the Revit box is open. A press waits behind it and f
 **Limits today.**
 
 - Q277 Footprint block names unlike the unit.
-- Q391 Twin masses overlap along one side.
 - Q337 Swap back in the same model unproven.
 - Q332 FFL bound but never written.
 
@@ -350,14 +350,28 @@ Do not click anywhere while the Revit box is open. A press waits behind it and f
 
 **Before it.** Step 4. Steps 5 to 8 give it the counts, so run them first.
 
-**What the user clicks.** Run 9 Report, then Apply. Then Open folder, open <NBH>_Report.xlsx.
+**What the user clicks.** Run 9 Report, then Apply. Then Open folder, open the report Excel.
 
-**What it writes.** Work folder: <NBH>_Report.xlsx with sheets Summary, Placed, Skipped, Overrides, Assumed, Issues, Accepted warnings, Rules and Settings. revit_counts_<run>.json, accepted_warnings_<run>_<NBH>.json.
+**What it writes.** Work folder: the report Excel, named <project>-<originator>-<volume>-<level>-<type>-<role>-<number>.xlsx, for example 00101-PSN-012-XXX-SCH-TU-090000.xlsx. Set the name under Report file name in New project. Sheets Cover, Plot schedule, Floors, Walls, Issues, Overrides, Rules used, Summary, Placed, Skipped, Assumed, Accepted warnings and Settings. revit_counts_<run>.json, accepted_warnings_<run>_<NBH>.json.
 
 **Limits today.**
 
-- Q307 Summary shows [file name].rvt and other gaps, Placed holds no wall rows, and the pane counts differ from Summary.
+- Q451 The Issues column of Summary differs from sheet Issues.
 - Q385 Accepted warnings return after a save.
+
+## Site Adaptation Rules
+
+The ribbon button opens a table of the values the team may change: rule, name, manual value, project value, unit, manual page. Manual rules opens the full list of the manual.
+
+- Type a project value. A changed value shows amber. A value past its limits, or a smallest over its largest, blocks Save.
+- Save writes a copy for this project in Work root\New projects\<model name>_<8 letters>\rules, and changed_rules.json beside it. It never writes the shipped set or the file it read. 4 Check then reads Ready and the steps after it wait on it.
+- Reset to manual sets every row back, then Save.
+- Export writes the table to a file you pick, Import reads it back. A file with a line missing changes nothing.
+
+Limits today:
+
+- Q419 Under the past job the ramp slope limit changes no plan.
+- Q440 The table is not yet proven inside Revit.
 
 ## Files from start to end
 
@@ -389,6 +403,8 @@ Do not click anywhere while the Revit box is open. A press waits behind it and f
 | Step 4 | check_<run>\plan_<NBH>.json, checks_<NBH>.json, steps | Work folder | 4 writes. 5 to 9 read the plan |
 | Step 4 | run_<run>.json | Work folder | 4 writes. 9 reads |
 | Step 4 | roshn-makkah.json, override list | C:\SA-demo\config\overrides | 4 reads, Save overrides writes. 6 and 9 read |
+| Rules | Rules copy, changed_rules.json | Work root\New projects\<model name>_<8 letters>\rules | Save of Site Adaptation Rules writes. 4 reads the copy |
+| Rules | rule_values.json, the rows of the table | Install\ShippedSet\config | Site Adaptation Rules reads |
 | Step 5 | floors_<NBH>.json, floors_<NBH>_accepted.json, run_<run>.json | Work folder | 5 writes. 9 reads the log |
 | Step 6 | <NBH>_Levels_<profile>.xlsx, levels_<run>.json, run_<run>.json | Work folder | 6 writes. 9 reads the log |
 | Step 7 | Mass files | Work root\masses | 7 reads, writes when stale |

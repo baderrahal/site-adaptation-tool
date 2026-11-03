@@ -48,72 +48,9 @@ Moved with no word changed to steps/history/latent-addin-4g2.md on 2026-11-02 (R
 
 Moved with no word changed to steps/history/latent-addin-4g3.md on 2026-11-03 (R400).
 
-## Lane B L0 and 5a, moved at the fold in
+## Lane B L0 and 5a
 
-The latent findings of steps/lane-b.md, moved here word for word by Round FOLD on 2026-10-29.
-
-- L0 breaker 21. Step 8 of the Bader section of steps/laptop-check.md sets only http.sslBackend. It works because ~/.gitconfig already holds http.schannelcheckrevoke=false, set by someone UNKNOWN. On a machine without that line the step would not be enough. No other machine runs it now.
-- 5a PR 2 review. On net48 the resolver throws ArgumentNullException when a file of its folder is not an assembly, since the Version compare of .NET Framework refuses a null version (OwnFolderResolver.cs lines 46 and 60). AssemblyName or LoadFrom throws there on a malformed name or a file that is no assembly.
-- 5a PR 2 review. The theme gate misses compound property names such as RowBackground and HorizontalGridLinesBrush, SystemColors, a Setter with Value before Property or a Setter.Value element, single-quoted attributes, sc# colours, a FontSize from a Binding FallbackValue or TargetNullValue or from a sys:Double resource, FontSize += and *=, and the emSize of FormattedText. Nothing checks the Setters and Colors inside Theme.xaml itself.
-- 5a PR 2 review. The resolver would serve the Newtonsoft.Json.dll of the build output if the install copied it, so the install of PR 4 must leave it out.
-- 5a PR 2 review. CreateRibbonTab throws on a second manifest of the add-in.
-- 5a PR 5 review. A folder input is hashed by its file list only, so a copy of the same size and write time passes the Apply re-check, and no slot holds the content hash a body takes as it reads.
-- 5a PR 5 review. With the dry run unticked the inputs are not hashed again at Apply.
-- 5a PR 5 review. A body with a null ReadBack skips the read back.
-- 5a PR 5 review. Install-SiteAdaptation.ps1 -NoBuild can mix two builds of Common, the add-in build and an older worker build.
-- 5a PR 5 review. Every failed move is called held open by another program, and a saved file is reported unsaved when the hash after its move fails.
-- 5a PR 5 review. Two outputs of one file name in different folders collide under the dry folder.
-- 5a PR 5 review. Buttons.State is never set, the pane of PR 4 fills it.
-- 5a PR 5 review. Two inputs of one name or a bad path character throw an ArgumentException the flow does not catch.
-- 5a PR 5 review. A temporary file a body left open in a stream is not deleted on a roll back, and nothing deletes it later.
-- 5a PR 5 review. An exception that is not an IOException after the commit, in a move or its hash, leaves no record of the committed run.
-- 5a PR 5 review. No hook runs the link load before the transaction or puts the shared parameter file back after it.
-- 5a PR 5 review. A workbook open in Excel can fail the FileShare.Read hash of an input.
-- 5a PR 5 review. The folder hash walks every file of the folder, backups and lock files too.
-- 5a PR 5 review. The install writes the manifest before the Common check and copies the add-in before a failing Worker copy.
-- 5a PR 5 review. Copy-Files never removes a file an earlier install left.
-- 5a PR 5 review. The TaskDialog and the Transaction are not disposed on every path.
-- 5a PR 5 review. The list per plot of the confirm is hidden in ExpandedContent.
-- 5a PR 5 review. No test drives WarningCollector, RevitTransaction or TaskDialogConfirm.
-- 5a PR 5 review 2. A running Revit whose path is known but whose version cannot be read, outside a Revit 2024 folder, counts as not Revit 2024 and lets the install go on (dotnet/SiteAdaptation.AddIn/InstallChecks.ps1 lines 21 to 23 and 35). No real input is known to reach it, Revit.exe carries its version.
-- 5a PR 4 review. With no machine.json the work root falls back to the Documents folder, which OneDrive may hold, with no warning. Rank first for 5c.
-- 5a PR 4 review. A work folder inside inputRoot or a machine.json with no workRoot throws out of IRunState.WorkFolder, and the flow has no stop for it.
-- 5a PR 4 review. A relative or unexpanded workRoot of machine.json is taken as written.
-- 5a PR 4 review. A cloud PathName can throw in Path.GetFullPath of the work folder hash.
-- 5a PR 4 review. The folder hash of the pane and the one of the flow differ in case and slash, so they never match each other.
-- 5a PR 4 review. The folder stamp, the latest write time xor the file count, misses a rename.
-- 5a PR 4 review. SettingsFile.Read takes formatVersion 0 and throws an exception it does not catch on a field of the wrong shape.
-- 5a PR 4 review. A folder input with a denied subfolder shows as missing.
-- 5a PR 4 review. A mapped drive and its UNC path give one model two work folders.
-- 5a PR 4 review. The Nbh setter of the view model takes null.
-- 5a PR 4 review. The baseline compare goes through a 256 colour palette and may flake on another machine.
-- 5a PR 4 review. The rules file is parsed on the UI thread at every refresh of the pane.
-- 5a PR 4 review. A file that keeps changing is hashed again at every refresh.
-- 5a PR 4 review. A drive root picked as a folder input is hashed over the whole drive.
-- 5a PR 4 review. The text test checks the messages of RunTexts by their parts, so a short part passes inside any entry, and a text built by code is not seen.
-- 5a PR 4 review. PaneHost.Current, PaneHost.Sessions, PaneHost.Routed, AnswerRelay.Post and PaneSessions.KeyOf have no production caller yet.
-- 5a PR 4 review. DocumentOpened and DocumentCreated give a session to linked and family documents too, which no button runs on.
-- 5a PR 4 review. A click of the box runs later through an ExternalEvent and may run on another document if the user switched in between.
-- 5a PR 4 review 2. The hash of DiskProbe in the pane is a second copy of FileHash.Sha256 and InputHash.OfFolder of Common, now with another share mode. In 5b the pane calls the hash of Common and FileHash takes FileShare.ReadWrite.
-- 5a PR 4 review 2. PaneViewModel.PickInput, SettingsFile.Read and PaneViewModel.Document have test callers only.
-- 5a PR 4 review 2. A hash that fails is swallowed in DiskProbe.Hash, so its row looks like a hash still running.
-- 5a PR 8 review. The ribbon items are named "SiteAdaptation.Button" and the number, so a Revit shortcut or a Quick Access item set on an old number runs the renumbered step. Name them by the command class before Bader's check of Part 1.
-- 5a PR 8 review. A button with no number enters the flow as step 0, so once it has a body MissingStep(0) reads Statuses[-1] and its run id starts "0_". In 5a the not built stop comes first.
-- 5a PR 8 review. Bodies.Of(int) and Buttons.NotBuiltText(int) have test callers only.
-- 5a PR 8 review. pane-first-open.png is 84,976 bytes of the 100 KB cap of R400.
-- 5a PR 8 review. TellHandler holds one text, so two Told before Revit is idle show the last one only.
-- 5a PR 8 review. The Key of a button with no number comes from its label, so a label with a double or a trailing space gives an empty word and throws.
-- PR 97 breaker E1. A row of two files with one missing shows both names and an amber mark, and the tooltip gives the missing one no size line, so only the absent line tells which is missing (PaneViewModel.cs RefreshRow). Run 3 chose no settings.
-- PR 97 breaker B1. The window of Run-TestHost.ps1 counts its 15 minutes from the start of Revit, the job its 13 from OnStartup. Run 3 took 1.67 minutes to reach OnStartup, so a job that ran to its deadline would leave Revit about 20 s to exit, not the 2 minutes of the comment. Run 3 ended at 3.4 minutes.
-- PR 97 breaker B2 and review. Inside Revit the cap does not hold the exit: Exit moves the watchdog to now plus 5 minutes, so a job written by hand with totalMinutes 15 could run to about 20 minutes. Only Run-TestHost writes the jobs, at most 13, and its window stops Revit at 15.
-- PR 97 review. A -TimeoutMinutes of 2 or less gives a job of 0 minutes or less, which the guard refuses with its reason. A -TimeoutMinutes over 15 throws after New-AddinRunFolder made an empty run folder.
-- PR 97 review 2. Item 11 of the Revit part of steps/ui-shots/README.md stands under the pane shot but is read from Theme.xaml lines 115 and 135, since the step rows are not in that shot.
-- PR 97 breaker S1, the part no run reaches. PaneFirstShow.Due marks the show done before it asks IsShown, so if GetDockablePane throws at the first project view the catch of PaneHost swallows it and the pane is not shown in that session, with nothing written.
-- PR 99 breaker. A path SavedPath.Is accepts can still make Path.GetFullPath throw in WorkFolder.PathHash and AddinRunJudge.ExpectedFolder, for C:\a:b.rvt, a ? or * in the name, or a C:\ path over 260 characters, and WorkFolderOf catches only InvalidOperationException. The longest real model path under C:\02-Site Adaptation is 100 characters (RAN).
-- PR 99 breaker. One file can get two work folders, since the hash is of the path text: \\?\C:\a\b.rvt against C:\a\b.rvt, or a mapped drive against its share path. Revit gave plain C:\ paths in run 3. The hash rule is that of 06-settings.md.
-- PR 99 breaker. SavedPath.Is lets a path ending in a separator through, C:\a\, whose file name is empty. Revit gives no such PathName.
-- PR 99 breaker and review. A cloud, BIM 360, Autodesk Docs or RSN path gets "Save the project first", which saving does not cure. No host model of this job is in the cloud, the cloud models are links only.
-- PR 99 breaker. AnswerRouting matches an answer by path and session, so a saved document that gets a SaveAs while a worker run is out has its answer dropped as "ended after its document closed", the wrong reason. From before PR 99.
+Moved to steps/history/latent-addin-l0-5a.md.
 
 ## Round FOLD, D19
 
@@ -612,9 +549,13 @@ Round 6C-3NOV-C, review 1, 3 Nov 2026:
 - ReviewDataWindow.xaml, Mirror column 72: an unread mirror shows not read yet, about 71 against 64, cut with an ellipsis. All 337 plots of the run read Yes or No.
 - Review data, the head Team check sits about 10 px left of the chip text, cosmetic.
 
+Round RULES-3NOV-C, review 1 and breaker 1, 3 Nov 2026:
+- RuleValues.Read stops the table when a rules file holds no number at a path of the catalog, a loud box, and Manual rules can not be reached from it. The two rules files on disk hold them all.
+- RuleValues.Text writes 3 decimals, a value typed with more shows rounded in an export. All real values hold under 3.
 KNOWN-3NOV-A, review and breaker, no real input reaches these:
 - CheckTableBuild.cs:33 reads overrideDefaultSources with no check. A config with no such key would grey every Past, PlanOverrides.Load stops such a run first with the line of R330.
 - A key listed in two groups of majority.groups: OverrideEdits takes the first group, OtherJobKeys the last. The groups of config are apart.
+- REPORT-3NOV-B: ReportFields has no writer until Lane C's New project section. A volume with no <nbh> passes on one NBH and Update then stops. A report left under a name of fields since removed is not named. A plot of two numbers has no old number in Plot schedule (0 such plots on 7 NBH, RAN). Old revit counts give no Walls line.
 
 ## Lane D PARAM-3NOV-D, review 1 and breaker 1, 3 Nov 2026
 
@@ -624,6 +565,22 @@ KNOWN-3NOV-A, review and breaker, no real input reaches these:
 - RefreshSheet reads the config and the xlsx on the UI thread on each refresh, uncached, not measured. A swallowed config failure reads Not chosen with no reason.
 - docs/design/07-mock.md still says Plot on floors and walls. R507 prevails.
 - A rebind of a links row that also lacks the link category counts as a removal alone. No model holds a row off the links and on Floors.
+
+## Lane D MASS-3NOV-D, 3 Nov 2026
+
+- R530 builds no cut across an arc, no prototype has an arc wall. A concave side crossed twice stays whole. Neither is in the 13. A new prototype needs its own party lines in config, none means no cut.
+- MassCut.NoShortEdge drops the next corner and keeps no longer neighbour's line, unlike R503, so a long edge would slant by up to 4 mm. No corner goes on any of the 9 cut rings, shortest 20 mm.
+- After a cut wallRingMinShare and the slab middle are not tested again, real shares stay over 0.9. A read back drops NotCut and UncutAreaM2, no run line lists a refused cut, none of the 9 is refused. A misspelt maxX cuts nothing and says nothing. A revised prototype is remade against the old line.
+
+COORD-3NOV-A, review and breaker, no real input reaches these:
+- newProjectCheck has no sender in the add-in. WorkerRequest.CoordinateSource and PositionFile wait for one, until then the check reads coordinates.source of config.
+- ProjectElevationM once coordinates.originElevationM is not 0: ReadRules adds that height to every level, no test holds it against Revit. Config holds 0.
+- A corrupt position file under CAD: the check line covers a JSON, format or IO failure, a parser failure of another type fails the run.
+- A picked position file of another job: any file of the format is accepted. Under CAD the row File origin to the plots shows the distance, under the file nothing does.
+- A baseplan revision on a held CAD model: a new plot box moves the rounded centre, only Will change says so, unless R523 stops it.
+- More than one named location: the read and the check take the active one.
+- Under CAD the levels come from the profile of config, not the rules file picked in the window.
+- A baseplan in local coordinates whose box falls inside the UTM range passes OutsideZone.
 
 ## Lane D TOPO-3NOV-D, breaker 1, 4 Nov 2026
 

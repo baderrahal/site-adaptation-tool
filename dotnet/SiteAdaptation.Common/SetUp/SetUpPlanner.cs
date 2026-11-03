@@ -131,6 +131,22 @@ namespace SiteAdaptation.Common.SetUp
             {
                 stops.AddRange(target.Cad.Systems.Stops);
             }
+            // R513. No usable source and nothing chosen yet, so Apply stays off and no position is ever set silently
+            if (target.SourceProblem != null)
+            {
+                stops.Add(target.SourceProblem);
+            }
+            // R513. A typed origin far off the plots is a slip of a digit, the one fault no check row can see
+            double? off = TypedOff(target);
+            if (off.HasValue && target.Cad.OffBoxLimitM.HasValue && off.Value > target.Cad.OffBoxLimitM.Value)
+            {
+                stops.Add(SetUpTexts.TypedOffBoxStop(off.Value, target.Cad.OffBoxLimitM.Value));
+            }
+            string placed = SiteSources.PlacedStop(now, target, changes);
+            if (placed != null)
+            {
+                stops.Add(placed);
+            }
             return stops;
         }
 
@@ -139,6 +155,12 @@ namespace SiteAdaptation.Common.SetUp
         {
             bool plotHasGuid = target.Parameters.Parameters.Any(item => item.Name == target.PlotParameter && item.Guid != null);
             List<string> waiting = target.PlotParameter == null || plotHasGuid ? new List<string>() : new List<string> { SetUpTexts.PlotWaits(target.PlotParameter) };
+            // R513. Off the box and under the limit warns and stops nothing
+            double? off = TypedOff(target);
+            if (off.HasValue && off.Value > 0 && !(target.Cad.OffBoxLimitM.HasValue && off.Value > target.Cad.OffBoxLimitM.Value))
+            {
+                waiting.Add(SetUpTexts.TypedOffBoxWarning(off.Value));
+            }
             // R454. The coordinate system each CAD input states, a file that states none listed and never a stop (Q325)
             if (target.Cad != null)
             {
@@ -147,9 +169,15 @@ namespace SiteAdaptation.Common.SetUp
             return waiting;
         }
 
+        // R513. How far a typed origin lies off the box of the plots in metres, null on another source or with no plots read
+        private static double? TypedOff(SetUpTarget target)
+        {
+            return target.PositionSource == SiteSources.Typed && target.Cad?.PlotBox != null ? SiteSources.OffBox(target.Cad.PlotBox, target.Position.EastM.Value, target.Position.NorthM.Value) : (double?)null;
+        }
+
         public static SetUpChanges Changes(SiteState now, SetUpTarget target)
         {
-            bool position = !SamePosition(now.Position, target.Position);
+            bool position = !target.NoSite && !SamePosition(now.Position, target.Position);
             // R455, LB1F and LB1G. SetProjectPosition moves the survey point internal to (-E,-N) on a new project (survey probe of
             // FIX-1NOV-B), so a point read at its target before the writes is off after them. A position change moves both points,
             // each by the gap Revit reads at that time
@@ -158,8 +186,8 @@ namespace SiteAdaptation.Common.SetUp
                 Units = !SameUnits(now.Units, target.Units),
                 Location = target.Cad != null && !SameLocation(now, target.Cad),
                 Position = position,
-                SurveyPoint = position || Gap(now.Survey.InternalM, target.SurveyInternal) > SameMm,
-                BasePoint = position || Gap(now.ProjectBase.InternalM, target.BaseInternal) > SameMm,
+                SurveyPoint = !target.NoSite && (position || Gap(now.Survey.InternalM, target.SurveyInternal) > SameMm),
+                BasePoint = !target.NoSite && (position || Gap(now.ProjectBase.InternalM, target.BaseInternal) > SameMm),
                 // A level made takes the default level type, whose base is not known before, so its type is set too
                 LevelBase = target.Levels.Any(level => now.Levels.FirstOrDefault(have => have.Name == level.Name)?.Base != target.LevelBase),
             };
@@ -219,6 +247,10 @@ namespace SiteAdaptation.Common.SetUp
                 CheckPoints = CheckPoints(target, revitShared),
                 DryRunDone = revitShared != null,
                 NothingDiffers = !changes.Any,
+                NoCoordinatesLine = SiteSources.NoCoordinates(now, target.BlankLimits) ? SetUpTexts.NoCoordinates : null,
+                TemplatePlaceLine = SiteSources.NoCoordinates(now, target.BlankLimits) && !string.IsNullOrWhiteSpace(now.PlaceName) ? SetUpTexts.TemplatePlace(now.PlaceName) : null,
+                NoSourceLine = target.SourceProblem ?? (target.Cad != null && target.Cad.Systems.Stops.Count > 0 ? string.Join(". ", target.Cad.Systems.Stops) : null),
+                PositionSource = target.PositionSource,
             };
             view.ExistingSite = view.Signs.Count > 0;
             view.Passing = view.CheckPoints.Count(row => row.Pass);
@@ -233,6 +265,11 @@ namespace SiteAdaptation.Common.SetUp
         public static List<CheckPointRow> CheckPoints(SetUpTarget target, Func<double[], double[]> revitShared)
         {
             var rows = new List<CheckPointRow>();
+            // R513. With no site chosen there is nothing to hold Revit to
+            if (target.NoSite)
+            {
+                return rows;
+            }
             foreach (KeyValuePair<string, double[]> point in new[] { new KeyValuePair<string, double[]>(SetUpTexts.SurveyPoint, target.SurveyShared), new KeyValuePair<string, double[]>(SetUpTexts.ProjectBasePoint, target.BaseShared) })
             {
                 var row = new CheckPointRow { Point = point.Key, Cad = SetUpTexts.Coordinate(point.Value) };
@@ -312,11 +349,12 @@ namespace SiteAdaptation.Common.SetUp
 
         private static List<SetUpRow> WillSetRows(SiteState now, SetUpTarget target, SetUpChanges changes)
         {
-            return new List<SetUpRow>
+            var rows = new List<SetUpRow>
             {
-                new SetUpRow { Label = SetUpTexts.CoordinateSystem, Value = SetUpTexts.CoordinateSystemText(target), Differs = changes.Location || changes.Position || changes.BasePoint },
-                new SetUpRow { Label = SetUpTexts.SurveyPoint, Value = SetUpTexts.Coordinate(target.SurveyShared), Differs = changes.SurveyPoint || Gap(now.Survey.SharedM, target.SurveyShared) > SameMm },
-                new SetUpRow { Label = SetUpTexts.AngleToTrueNorth, Value = SetUpTexts.Number(target.Position.AngleDeg.Value, 6), Differs = Math.Abs(now.Position.AngleDeg.Value - target.Position.AngleDeg.Value) > SameDeg },
+                new SetUpRow { Label = SetUpTexts.PositionFrom, Value = SetUpTexts.PositionFromText(target) },
+                new SetUpRow { Label = SetUpTexts.CoordinateSystem, Value = target.NoSite ? SetUpTexts.NoSourceYet : SetUpTexts.CoordinateSystemText(target), Differs = changes.Location || changes.Position || changes.BasePoint },
+                new SetUpRow { Label = SetUpTexts.SurveyPoint, Value = target.NoSite ? SetUpTexts.NoSourceYet : SetUpTexts.Coordinate(target.SurveyShared), Differs = !target.NoSite && (changes.SurveyPoint || Gap(now.Survey.SharedM, target.SurveyShared) > SameMm) },
+                new SetUpRow { Label = SetUpTexts.AngleToTrueNorth, Value = target.NoSite ? SetUpTexts.NoSourceYet : SetUpTexts.Number(target.Position.AngleDeg.Value, 6), Differs = !target.NoSite && Math.Abs(now.Position.AngleDeg.Value - target.Position.AngleDeg.Value) > SameDeg },
                 new SetUpRow { Label = SetUpTexts.Levels, Value = SetUpTexts.LevelsTarget(target), Differs = changes.LevelBase || changes.Levels.Count > 0 },
                 new SetUpRow { Label = SetUpTexts.FloorTypes, Value = SetUpTexts.FloorTypesRow, Differs = changes.FloorTypes.Count > 0 },
                 new SetUpRow { Label = SetUpTexts.RampSlope, Value = RampSlopes.Text(target.RampSlope) + "%", Differs = changes.FloorTypes.Contains(target.RampType) },
@@ -324,6 +362,18 @@ namespace SiteAdaptation.Common.SetUp
                 new SetUpRow { Label = SetUpTexts.SharedParameters, Value = changes.TakenOff.Count == 0 ? SetUpTexts.FromSheet(target.Parameters.Source) : SetUpTexts.FromSheet(target.Parameters.Source) + ". " + SetUpTexts.TakesOff(changes.TakenOff), Differs = changes.Parameters.Count > 0 },
                 new SetUpRow { Label = SetUpTexts.Units, Value = SetUpTexts.UnitsText(target.Units), Differs = changes.Units },
             };
+            // R513. The one check a typed origin has, or the plain line that it has none
+            if (target.PositionSource == SiteSources.Typed)
+            {
+                double? off = TypedOff(target);
+                rows.Insert(1, new SetUpRow { Label = SetUpTexts.TypedToPlots, Value = off.HasValue ? SetUpTexts.TypedOffBox(off.Value) : SetUpTexts.TypedNoCheck });
+            }
+            // R510. The position file sets no site location, so the window says the place of the template stays and is no site
+            if (target.PositionSource == SiteSources.PositionFile && SiteSources.NoCoordinates(now, target.BlankLimits) && !string.IsNullOrWhiteSpace(now.PlaceName))
+            {
+                rows.Insert(1, new SetUpRow { Label = SetUpTexts.Place, Value = SetUpTexts.PlaceStays(now.PlaceName) });
+            }
+            return rows;
         }
 
         private static List<string> ToolNames(SetUpTarget target)
@@ -361,7 +411,7 @@ namespace SiteAdaptation.Common.SetUp
         }
 
         // An angle difference brought into -180 to 180, so 359.9999999 and 0 are the same angle
-        private static double Turn(double degrees)
+        internal static double Turn(double degrees)
         {
             double turned = degrees % 360.0;
             return turned > 180 ? turned - 360 : turned < -180 ? turned + 360 : turned;

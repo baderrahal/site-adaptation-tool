@@ -128,6 +128,32 @@ def test_r483_a_filled_element_id_lists_nothing(tmp_path):
     assert found["changes"] == []
 
 
+def test_r551_a_wall_row_of_placed_lists_only_a_filled_type_or_mirror_and_is_no_second_row(tmp_path):
+    report = tmp_path / "012_Report.xlsx"
+    write_report(report)
+    book = openpyxl.load_workbook(report)
+    first = book["Placed"].max_row + 1
+    # Two rows of one plot and a plot the plan does not hold, each with its id, as the worker writes them
+    for line in (("101", "boundaryWall", None, None, 7001), ("101", "boundaryWall", None, None, 7002), ("999", "boundaryWall", None, None, None)):
+        book["Placed"].append(line)
+    book.save(report)
+    found = check.result([check.read_book(report)], PLAN, SHA, RULES, PROFILE, None, "u1")
+    assert (found["refusal"], found["ignored"], found["changes"]) == (None, [], [])
+    book = openpyxl.load_workbook(report)
+    book["Placed"].cell(row=first, column=3).value = "Wall 200"
+    book["Placed"].cell(row=first + 1, column=4).value = False
+    book["Placed"].cell(row=first + 2, column=3).value = "Wall 300"
+    book["Placed"].cell(row=first + 2, column=4).value = True
+    book.save(report)
+    found = check.result([check.read_book(report)], PLAN, SHA, RULES, PROFILE, None, "u1")
+    assert found["changes"] == []
+    assert [(item["sheet"], item["row"], item["plot"], item["column"], item["inModel"], item["inExcel"], item["why"]) for item in found["ignored"]] == [
+        ("Placed", first, "101", "Type", None, "Wall 200", "a wall row is not editable"),
+        ("Placed", first + 1, "101", "Mirror", None, False, "a wall row is not editable"),
+        ("Placed", first + 2, "999", "Type", None, "Wall 300", "a wall row is not editable"),
+        ("Placed", first + 2, "999", "Mirror", None, True, "a wall row is not editable")]
+
+
 def test_r402_apply_saves_each_ticked_change_as_an_override_that_gives_back_its_cell(books):
     found = check.result(books, PLAN, SHA, RULES, PROFILE, OVERRIDES, "u1", tick="all")
     assert found["plots"] == ["101", "102", "103"] and found["notApplied"] == []

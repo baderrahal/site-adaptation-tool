@@ -22,7 +22,6 @@
     "Boxes: No site drawing in the setup, pick the Baseplan in the pane first. Nothing differs: Apply only marks the step done."
    ],
    "limits": [
-    "Q415 The pane says from CAD, the position comes from the file.",
     "Q336 Group of the link parameters.",
     "Q379 Another PC needs its own inputs."
    ]
@@ -123,8 +122,7 @@
     "Q385 Accepted warnings return after a save.",
     "Q398 The 443 hairline floor overlaps at step 5.",
     "Q356 The off axis warning of a cut yard.",
-    "Q354 Yards of a model already built.",
-    "Q411 Floor parameters bound but never filled."
+    "Q354 Yards of a model already built."
    ]
   },
   {
@@ -160,7 +158,6 @@
    ],
    "limits": [
     "Q277 Footprint block names unlike the unit.",
-    "Q391 Twin masses overlap along one side.",
     "Q337 Swap back in the same model unproven.",
     "Q332 FFL bound but never written."
    ]
@@ -195,10 +192,10 @@
    ],
    "before": "Step 4. Steps 5 to 8 give it the counts, so run them first.",
    "click": [
-    "Run 9 Report, then Apply. Then Open folder, open <NBH>_Report.xlsx."
+    "Run 9 Report, then Apply. Then Open folder, open the report Excel."
    ],
    "limits": [
-    "Q307 Summary shows [file name].rvt and other gaps, Placed holds no wall rows, and the pane counts differ from Summary.",
+    "Q451 The Issues column of Summary differs from sheet Issues.",
     "Q385 Accepted warnings return after a save."
    ]
   },
@@ -227,8 +224,7 @@
     "Q379 A new project on another PC needs the inputs of this job.",
     "Q394, Q395, Q397 Empty project with Update, modes and Save As.",
     "Q416 The road row reads optional, step 2 stops without it.",
-    "Q418 Empty project on a model with settings keeps its old rules.",
-    "The Shared parameters row reads Not chosen with an amber mark though button 1 finds the sheet (steps/dryrun-3nov.md)."
+    "Q418 Empty project on a model with settings keeps its old rules."
    ]
   },
   {
@@ -256,8 +252,7 @@
     "Q379 A new project on another PC needs the inputs of this job.",
     "Q394, Q395, Q397 Empty project with Update, modes and Save As.",
     "Q416 The road row reads optional, step 2 stops without it.",
-    "Q418 Empty project on a model with settings keeps its old rules.",
-    "The Shared parameters row reads Not chosen with an amber mark though button 1 finds the sheet (steps/dryrun-3nov.md)."
+    "Q418 Empty project on a model with settings keeps its old rules."
    ]
   },
   {
@@ -285,8 +280,7 @@
     "Q379 A new project on another PC needs the inputs of this job.",
     "Q394, Q395, Q397 Empty project with Update, modes and Save As.",
     "Q416 The road row reads optional, step 2 stops without it.",
-    "Q418 Empty project on a model with settings keeps its old rules.",
-    "The Shared parameters row reads Not chosen with an amber mark though button 1 finds the sheet (steps/dryrun-3nov.md)."
+    "Q418 Empty project on a model with settings keeps its old rules."
    ]
   },
   {
@@ -314,15 +308,14 @@
     "Q379 A new project on another PC needs the inputs of this job.",
     "Q394, Q395, Q397 Empty project with Update, modes and Save As.",
     "Q416 The road row reads optional, step 2 stops without it.",
-    "Q418 Empty project on a model with settings keeps its old rules.",
-    "The Shared parameters row reads Not chosen with an amber mark though button 1 finds the sheet (steps/dryrun-3nov.md)."
+    "Q418 Empty project on a model with settings keeps its old rules."
    ]
   },
   {
    "key": "parameterSheet",
    "title": "Parameter sheet (Excel)",
-   "line": "The shared parameters",
-   "what": "The shared parameters",
+   "line": "The shared parameters. Reads Found from the sheet of the settings",
+   "what": "The shared parameters. Reads Found from the sheet of the settings",
    "files": [
     "Who gives it: BIM team",
     "Used by: Button 1",
@@ -343,8 +336,7 @@
     "Q379 A new project on another PC needs the inputs of this job.",
     "Q394, Q395, Q397 Empty project with Update, modes and Save As.",
     "Q416 The road row reads optional, step 2 stops without it.",
-    "Q418 Empty project on a model with settings keeps its old rules.",
-    "The Shared parameters row reads Not chosen with an amber mark though button 1 finds the sheet (steps/dryrun-3nov.md)."
+    "Q418 Empty project on a model with settings keeps its old rules."
    ]
   }
  ]

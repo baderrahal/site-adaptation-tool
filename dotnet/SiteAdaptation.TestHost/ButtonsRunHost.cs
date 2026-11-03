@@ -886,7 +886,7 @@ namespace SiteAdaptation.TestHost
             public SetUpSiteAnswer Show(SetUpSiteView view, SetUpSiteCallbacks callbacks)
             {
                 host.Shoot(ButtonShots.SetUpSite, "SetUp", view, callbacks);
-                var window = new SetUpSiteRun.AnswerWindow();
+                var window = new SetUpSiteRun.AnswerWindow { Pick = host.job.SiteSource };
                 SetUpSiteAnswer answer = window.Show(view, callbacks);
                 host.current["setUpStops"] = window.Stops;
                 return answer;
