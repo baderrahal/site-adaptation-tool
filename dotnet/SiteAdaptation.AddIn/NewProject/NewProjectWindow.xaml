@@ -184,6 +184,27 @@
         </Border>
         <ItemsControl ItemsSource="{Binding Rows}" ItemTemplate="{StaticResource FileRow}" />
 
+        <!-- R542. The fields of the report file name, shown when the settings hold them -->
+        <StackPanel Margin="{StaticResource SA.Gap.Top16}" Visibility="{Binding ReportShown, Converter={StaticResource Shown}}">
+          <TextBlock Style="{StaticResource SA.Type.Section}" Foreground="{StaticResource SA.Heading}" Text="{x:Static np:NewProjectText.ReportNameTitle}" />
+          <TextBlock Style="{StaticResource HelpText}" Margin="{StaticResource SA.Gap.Top4}" Text="{x:Static np:NewProjectText.ReportNameHelp}" />
+          <ItemsControl Margin="{StaticResource SA.Gap.Top8}" ItemsSource="{Binding ReportRows}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <Grid Margin="{StaticResource SA.Gap.Top4}">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="{StaticResource SA.Grid.SetupFact}" />
+                    <ColumnDefinition Width="*" />
+                  </Grid.ColumnDefinitions>
+                  <TextBlock Style="{StaticResource CellText}" Foreground="{StaticResource SA.TextMuted}" VerticalAlignment="Center" Text="{Binding Label}" />
+                  <TextBox Grid.Column="1" Style="{StaticResource SA.Pane.Entry}" Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" />
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <TextBlock Style="{StaticResource SA.Pane.Detail}" Margin="{StaticResource SA.Gap.Top8}" Text="{Binding ReportLine}" />
+        </StackPanel>
+
         <Grid Margin="{StaticResource SA.Gap.Top16}">
           <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*" />

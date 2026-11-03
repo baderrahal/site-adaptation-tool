@@ -14,6 +14,13 @@ namespace SiteAdaptation.AddIn.NewProject
         public const string Ready = "<n> of <n>";
         public const string ReadyLine = "files ready";
 
+        public const string ReportNameTitle = "Report file name";
+        public const string ReportNameHelp = "Used by 9 Report. Leave a field empty to use the value of the project settings.";
+        public const string ReportNameLine = "File name: ";
+        public const string ReportNameRefused = "These fields make no file name. Take out any of \\ / : * ? \" | from them.";
+        // R542. In the order of ReportFile.NameFields, then revision, status and project name
+        public static readonly string[] ReportLabels = { "Project", "Originator", "Volume (keep <nbh>)", "Level", "Type", "Role", "Number", "Revision", "Status code", "Project name" };
+
         public const string ProjectName = "Project name";
         public const string StartFrom = "Start from";
         public const string EmptyProject = "Empty project";

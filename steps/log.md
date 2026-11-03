@@ -26,6 +26,30 @@ Next:
 Your turn:
 - Opened Q420 Moving a model with placed content. Closed none.
 - 180 open, steps/questions-open.md
+## Lane C TEXTS-3NOV-C, 2026-11-04, the pane texts of the other lanes
+
+Goal:
+- Apply the text changes Lane A and Lane B sent, the owner of the pane file. Lane D waits on topo/3nov-d
+
+Done:
+- R542: section Report file name in New project, each edit to ReportFields. R543: step 1 line from positionSource of site.json
+
+Checked:
+- Tests R542, R543, labels, Pane, New project on net48 and net8.0, full gate, see the PR. Not seen in Revit, Q440
+
+Remains:
+- Road topography tick of Lane D. Revit pass. Browse not measured
+
+Known bugs:
+- None found
+
+Next:
+- Lane D tick after its merge, then Lane done
+
+Your turn:
+- Opened and closed: none. Q415 Pane lines say more than is built stays open, narrowed to the config keys Lane A cites
+- Open count and titles: steps/questions-open.md
+
 ## Lane C RULES-3NOV-C, 2026-11-04, the table of rule values
 
 Goal:

@@ -21,6 +21,22 @@ namespace SiteAdaptation.Common
         // Null when config holds no block, else every field by its name
         public static SortedDictionary<string, string> Fields(JObject config, IReadOnlyDictionary<string, string> picked)
         {
+            SortedDictionary<string, string> fields = Laid(config, picked);
+            if (fields == null)
+            {
+                return null;
+            }
+            string[] missing = NameFields.Where(name => !fields.TryGetValue(name, out string value) || string.IsNullOrWhiteSpace(value)).ToArray();
+            if (missing.Length > 0)
+            {
+                throw new InvalidDataException("addin.report.fileName of the settings holds no " + string.Join(", ", missing) + " (R550)");
+            }
+            return fields;
+        }
+
+        // R542. The picks over the block with no check, so New project can show a field still empty. Null when config holds no block
+        public static SortedDictionary<string, string> Laid(JObject config, IReadOnlyDictionary<string, string> picked)
+        {
             if (!(config?["addin"]?["report"]?["fileName"] is JObject block))
             {
                 return null;
@@ -34,12 +50,20 @@ namespace SiteAdaptation.Common
             {
                 fields[pick.Key] = pick.Value;
             }
-            string[] missing = NameFields.Where(name => !fields.TryGetValue(name, out string value) || string.IsNullOrWhiteSpace(value)).ToArray();
-            if (missing.Length > 0)
-            {
-                throw new InvalidDataException("addin.report.fileName of the settings holds no " + string.Join(", ", missing) + " (R550)");
-            }
             return fields;
+        }
+
+        // R542. The name before a neighbourhood is known, the token stays and a field still empty shows by its name
+        public static string Shown(IReadOnlyDictionary<string, string> fields)
+        {
+            return string.Join("-", NameFields.Select(field => fields.TryGetValue(field, out string value) && !string.IsNullOrWhiteSpace(value) ? value : "<" + field + ">")) + ".xlsx";
+        }
+
+        // R542. True when Name would refuse these fields for a character a file name can not hold
+        public static bool Refused(IReadOnlyDictionary<string, string> fields)
+        {
+            return NameFields.Any(field => fields.TryGetValue(field, out string value) && value != null
+                && value.Replace(NbhToken, string.Empty).IndexOfAny(Path.GetInvalidFileNameChars()) >= 0);
         }
 
         public static string Name(string nbh, IReadOnlyDictionary<string, string> fields)
