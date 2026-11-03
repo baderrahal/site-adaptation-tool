@@ -11,7 +11,7 @@
 
 ### Lane B, C and D
 
-- Lane B 23:00, 3 Nov, branch report/lane-b-3nov: R550 to R555, real book 105,411 matches 0 mismatches. New: ReportFile.Fields, Name by ReportRun and Book, the sheet tables by Book, ReportRun.Facts by Outside, ButtonRun.IssueCount by StepRun.From and Facts. Now: breaker, gate, PR. Next: 6b. Blocked: none
+- Lane B 23:40, 3 Nov, branch check/lane-b-6b: PR 168 REPORT-3NOV-B merged, R550 to R555, Q450, Q451. Now: Phase 6b, 7 zones in Masses, one NBH in Links, queued for the Revit lock. Blocked: none
 - Lane C, 3 Nov, branch feat/help-3nov-c: PR 160, 161, 162 merged, HELP PR going up, next RULES-3NOV-C. Ids R540 to R549, Q416 to Q419, Q440 to Q449. New callers: HelpBook by HelpFile, HelpFile by the pane and New project rows, HelpBox by OnStepHelp and OnRowHelp. A guide change needs python/build_help.py. I own the pane file tonight. Blocked: none
 - Lane D PARAM-3NOV-D, 3 Nov 21:30, branch param/3nov-d: R506 to R508, Q411 closed. Gate green on a15d58c. Now: the past job half of parity, the PR, then the Revit check on a copy. Next: known issues, MASS-3NOV-D, TOPO-3NOV-D. Ids R530 to R539, R570 to R579, Q470 to Q479. No lock. Blocked: none
   New callers: SetupCheck.ConfigSheet by SetupCheck.Run and DiskProbe.ConfigSheet. IInputProbe.ConfigSheet, ReadSheet by PaneViewModel.RefreshSheet by RefreshOnce. ParameterSheet.Counts by Source and ReadSheet. ParameterSpec.LinksOnly by BoundOn, SetUpPlanner.Changes, RevitSiteDocument.BindParameters. BoundOn by SetUpPlanner.Changes, BindParameters. SetUpChanges.RemovalAlone, RunContext.KeepsLastRun by SetUpRun.Apply, ButtonFlow. SetUpTexts.TakesOff by SetUpPlanner, SetUpRun. NoRuleId by RefreshSheet.
