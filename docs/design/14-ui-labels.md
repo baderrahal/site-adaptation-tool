@@ -477,6 +477,8 @@ The window New project of Lane C NEWPROJ-UI, word for word from docs/design/boar
 - `Project name`
 - `Start from`
 - `Empty project`
+- `New project rules, Rev 06` CHOSEN, Bader's words of Q373, the one plain line under Start from when the project mode is rev6 (R484)
+- `ROSHN past job` CHOSEN, Bader's words of Q373, the same line under the past job (R484)
 - `<name> (saved)`
 - `<name> is kept as a saved start, not built in.`
 - `Files the tool needs`

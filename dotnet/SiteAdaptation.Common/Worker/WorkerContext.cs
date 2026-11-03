@@ -79,6 +79,12 @@ namespace SiteAdaptation.Common
             return input.Path;
         }
 
+        // R484. The settings of the config of this run under the project mode of its request, the one way a command loads them
+        public ReadSettings ConfigSettings()
+        {
+            return ReadSettings.Load(Input("config"), Request.ProjectMode);
+        }
+
         // R347, R348. A refusal of the request found by a command before it used anything of an input, such as a drawing whose units
         // are not Meters: the run ends with exit 2 and the message, the command throws what this gives
         public Exception Refusal(string message)

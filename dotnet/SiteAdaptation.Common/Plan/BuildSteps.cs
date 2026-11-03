@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Newtonsoft.Json.Linq;
+using SiteAdaptation.Common.Settings;
 
 namespace SiteAdaptation.Common
 {
@@ -55,12 +56,19 @@ namespace SiteAdaptation.Common
             private JObject sales;
             private List<TinSurface> surfaces;
 
+            private static JObject LoadSettings(WorkerContext run)
+            {
+                JObject read = PyMath.ReadJson(run.Input("config"), "config", true) as JObject ?? throw new InvalidDataException("the config is no JSON object");
+                return ProjectModes.Apply(read, run.Request.ProjectMode);
+            }
+
             public Site(WorkerContext run, AddinConfig config)
             {
                 this.run = run;
                 this.config = config;
                 // P2. Config and the rules profile as project_profile.read_object reads them
-                Settings = PyMath.ReadJson(run.Input("config"), "config", true) as JObject ?? throw new InvalidDataException("the config is no JSON object");
+                // R484. The project mode of the request laid once here, so every reader of the build takes it
+                Settings = LoadSettings(run);
                 Rules = PyMath.ReadJson(run.Input("rules"), "rules", true) as JObject ?? throw new InvalidDataException("the rules file is no JSON object");
                 RulesName = Path.GetFileName(run.Request.Inputs.First(input => input.Role == "rules").Path);
                 // G1, H1. The plots of the scope, labels.csv read first as plan_from_book.py reads it before plots.csv, then plots.csv, each
@@ -121,7 +129,7 @@ namespace SiteAdaptation.Common
                         JObject footprint = Read("villaBlocksRead", "villaBlocks", true);
                         // R300. The villa blocks of a drawing kept for reference only are never read
                         string source = (string)footprint["source"] ?? "";
-                        if (ReadSettings.Load(run.Input("config")).IsReferenceOnly(source))
+                        if (run.ConfigSettings().IsReferenceOnly(source))
                         {
                             throw new InvalidDataException(source + " is kept for reference only (drawings.referenceOnly) and is never read for villaBlocks (R300)");
                         }
@@ -140,7 +148,7 @@ namespace SiteAdaptation.Common
                     if (roads == null)
                     {
                         JObject curbs = Read("curbsRead", "curbs");
-                        List<string> layers = ReadSettings.Load(run.Input("config")).CurbLayers;
+                        List<string> layers = run.ConfigSettings().CurbLayers;
                         roads = new RoadLines(ReadSteps.EdgePieces(curbs["pieces"] as JArray ?? new JArray(), layers).Select(item => (IReadOnlyList<double[]>)item.Value));
                         if (roads.Count == 0)
                         {
@@ -186,7 +194,7 @@ namespace SiteAdaptation.Common
                 {
                     return surfaces;
                 }
-                List<string> order = Fronts.RoadNames(levelProfile, ReadSettings.Load(run.Input("config")), basis);
+                List<string> order = Fronts.RoadNames(levelProfile, run.ConfigSettings(), basis);
                 List<string> roles = run.Request.Inputs.Select(input => input.Role).Where(role => role != null && role.StartsWith(WorkerRunner.RoadSurfaceRole, StringComparison.Ordinal)).ToList();
                 List<string> extra = roles.Where(role => !order.Contains(role.Substring(WorkerRunner.RoadSurfaceRole.Length))).ToList();
                 List<string> missing = order.Where(name => !roles.Contains(WorkerRunner.RoadSurfaceRole + name)).ToList();
@@ -377,7 +385,7 @@ namespace SiteAdaptation.Common
                 }
                 if (asked.Contains(Fronts.StepName))
                 {
-                    ReadSettings read = ReadSettings.Load(run.Input("config"));
+                    ReadSettings read = run.ConfigSettings();
                     double snap = read.SnapM;
                     List<TinSurface> surfaces = site.Surfaces(levelProfile, basis);
                     double[] limits = Fronts.Limits(site.Rules, site.Settings, site.RulesName);
@@ -444,7 +452,7 @@ namespace SiteAdaptation.Common
                             wallRules = Walls.Rules(key, levelProfile, profileName, site.Rules, site.RulesName, site.Settings["keyPlans"]?["wallEdgeM"]);
                         }
                         // R359. The fronts of the plots whose levels the build works out, with the road levels of the surfaces of the level profile
-                        ReadSettings read = ReadSettings.Load(run.Input("config"));
+                        ReadSettings read = run.ConfigSettings();
                         double snap = read.SnapM;
                         List<TinSurface> surfaces = site.Surfaces(levelProfile, basis);
                         double[] limits = Fronts.Limits(site.Rules, site.Settings, site.RulesName);

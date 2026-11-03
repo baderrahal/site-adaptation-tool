@@ -26,7 +26,8 @@ namespace SiteAdaptation.Common.Settings
     // the model at once (R445, Q280)
     public static class SetupSave
     {
-        public static ProjectSettings Apply(SetupDraft draft, ProjectSettings current)
+        // readText reads the config for the project mode of R484, null leaves the mode as Import and the settings give it
+        public static ProjectSettings Apply(SetupDraft draft, ProjectSettings current, Func<string, string> readText = null)
         {
             if (draft == null)
             {
@@ -44,6 +45,12 @@ namespace SiteAdaptation.Common.Settings
                 {
                     next.Inputs[InputNames.ParameterSheet] = sheet;
                 }
+                // R484. Written, so a later Save setup with Start from on Empty project keeps the mode of the saved project
+                next.ProjectMode = next.ProjectMode ?? ProjectModes.SavedMode(ProjectModes.ReadConfig(next.ConfigFile, readText));
+            }
+            else
+            {
+                ProjectModes.TakeNewProject(next, readText);
             }
             foreach (KeyValuePair<string, string> pick in draft.Picks)
             {

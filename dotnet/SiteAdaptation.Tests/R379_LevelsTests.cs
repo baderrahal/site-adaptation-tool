@@ -58,6 +58,9 @@ namespace SiteAdaptation.Tests
             return document;
         }
 
+        // R484. The mode the request of the build carried, which the request of the Excel carries on
+        private string buildMode;
+
         private LevelsRun Make(FakeFloors document, PlanFile plan, IReadOnlyDictionary<string, string> noFfl = null)
         {
             return new LevelsRun(document, context => new LevelRunInputs
@@ -65,7 +68,20 @@ namespace SiteAdaptation.Tests
                 Plan = plan, PlanPath = planPath, Profile = Profile, NoFfl = noFfl ?? new Dictionary<string, string>(), TimeLimitS = 60,
                 ExcelInputs = new List<WorkerFile> { new WorkerFile { Role = "plan", Path = planPath, Sha256 = FileHash.Sha256(planPath) } },
                 Document = new WorkerDocument { Path = Document, SessionId = "levels" },
+                ProjectMode = buildMode,
             }, Worker);
+        }
+
+        [Fact]
+        public void R484_the_request_of_the_level_excel_carries_the_mode_of_the_build()
+        {
+            buildMode = "rev6";
+            PlanFile plan = FloorPlans.Plan(FloorPlans.Plot("101"), FloorPlans.Plot("102"));
+            FakeFloors document = Placed(plan);
+            LevelsRun run = Make(document, plan);
+            run.Body().Preview(Context());
+            run.Body().Apply(Context());
+            Assert.Equal("rev6", asked.Single().ProjectMode);
         }
 
         private WorkerAnswer Worker(WorkerRequest request, string workFolder)
@@ -124,6 +140,7 @@ namespace SiteAdaptation.Tests
             Assert.Equal(LevelsRun.Command, asked[0].Command);
             Assert.Equal(60, asked[0].TimeLimitS);
             Assert.Equal(Profile, asked[0].LevelProfile);
+            Assert.Null(asked[0].ProjectMode);
             Assert.True(File.Exists(WorkFiles.TemporaryName(Path.Combine(work, LevelsRun.ExcelName("012", Profile)), "6_1")));
             Assert.Empty(issues);
         }

@@ -17,6 +17,8 @@ namespace SiteAdaptation.AddIn.NewProject
         public const string ProjectName = "Project name";
         public const string StartFrom = "Start from";
         public const string EmptyProject = "Empty project";
+        public const string ModeRev6 = "New project rules, Rev 06";
+        public const string ModePast = "ROSHN past job";
         public const string SavedName = "<name> (saved)";
         public const string SavedHint = "<name> is kept as a saved start, not built in.";
 

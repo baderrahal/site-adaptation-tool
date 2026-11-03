@@ -19,11 +19,12 @@ namespace SiteAdaptation.Common
             this.root = root;
         }
 
-        public static ReadSettings Load(string path)
+        // R484. mode is the project mode of the request, laid over designBasis.mode here so no reader of these settings keeps a copy of its own
+        public static ReadSettings Load(string path, string mode = null)
         {
             using (var reader = new Newtonsoft.Json.JsonTextReader(new StringReader(WorkFiles.ReadText(path))) { DateParseHandling = Newtonsoft.Json.DateParseHandling.None })
             {
-                return new ReadSettings(JObject.Load(reader));
+                return new ReadSettings(Settings.ProjectModes.Apply(JObject.Load(reader), mode));
             }
         }
 
@@ -93,6 +94,13 @@ namespace SiteAdaptation.Common
         public List<string> ReadRoads(IReadOnlyList<string> picked)
         {
             return IsRev6 ? new List<string>(Settings.RoadSurfaceChoices.Named(root, picked)) : RoadSurfaces;
+        }
+
+        // R485. The line that refuses the first road of this order designBasis.roadLevel.notRoad lists, null for none and under the past job
+        public string NotRoadRefusal(IEnumerable<string> order)
+        {
+            string name = order.FirstOrDefault(road => Settings.RoadSurfaceChoices.NotRoadWhy(root, road) != null);
+            return name == null ? null : Settings.RoadSurfaceChoices.NotRoadLine(name, Settings.RoadSurfaceChoices.NotRoadWhy(root, name));
         }
 
         // The name a build gives a surface, plan_from_book.load_roads: the part of the file name after its last double underscore

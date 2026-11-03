@@ -37,6 +37,10 @@ namespace SiteAdaptation.Common.Settings
 
         // R492. The road surfaces picked in Set up, in order, null until a pick, which under rev6 replace designBasis.roadLevel for the read and the build
         public List<string> RoadSurfaces { get; set; }
+
+        // R484. The project mode, one of designBasis.modes of config, null in a file written before it, which reads designBasis.mode of config. Save setup
+        // of New project writes it, every worker request carries it and it is laid over the config where a run loads it (ProjectModes)
+        public string ProjectMode { get; set; }
     }
 
     public sealed class SettingsInput

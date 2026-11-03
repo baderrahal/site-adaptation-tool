@@ -35,6 +35,8 @@ BAD_SURFACES = "designBasis.roadLevel.surfaces must be a list in order, not empt
 NO_ZONE = "no zone"
 NO_ROAD_ZONE = "%s: %d of %d plots have no road level on the road surfaces named (%s). What to do: add the road surface of this zone in Set up."
 NO_ROAD_END = " (R493)"
+NOT_ROAD = "%s is no road surface: %s (R485)"
+NOT_ROAD_SHAPE = "designBasis.roadLevel.notRoad must be an object of file stem to why (R485)"
 
 
 def refuse(text):
@@ -64,6 +66,19 @@ def mode_of(settings):
     if not isinstance(mode, str) or mode not in modes:
         refuse("designBasis.mode %s is no mode of designBasis.modes %s (R407)" % (common_text(mode), listed))
     return mode
+
+
+def take_mode(values, mode):
+    """R484. The project mode of the settings laid over designBasis.mode of the values of a config, once where a run loads it, so every reader of the mode
+    takes it. None leaves the values as they are, a settings file written before the project mode reads the mode of config. A mode outside designBasis.modes
+    is refused by its name, ProjectModes.Apply of the C# gives the same line."""
+    if mode is None:
+        return values
+    modes = (values.get("designBasis") or {}).get("modes")
+    if not isinstance(modes, list) or mode not in modes:
+        refuse("the project mode %s is no mode of designBasis.modes %s (R484)" % (mode, ", ".join(str(item) for item in modes) if isinstance(modes, list) else "none"))
+    values["designBasis"]["mode"] = mode
+    return values
 
 
 def finite(value):
@@ -136,11 +151,23 @@ def surfaces_of(block, site_build):
     """R490. designBasis.roadLevel.surfaces, the road surfaces of a build under rev6 in order, non empty and unique texts, each no surface
     siteBuild.roadFolder.notTaken names. The one surface of an old config reads as a list of one, both keys together, no value or a bad value refused by name."""
     surfaces = named_surfaces(block)
+    reasons = not_road_of(block)
     for name in surfaces:
         why = not_taken_why(site_build, name)
         if why is not None:
             refuse("designBasis.roadLevel.surfaces names %s, which is no road surface: %s (R490)" % (name, why))
+        why = next((reason for stem, reason in reasons.items() if stem.lower() == name.lower()), None)
+        if why is not None:
+            refuse(NOT_ROAD % (name, why))
     return surfaces
+
+
+def not_road_of(block):
+    """R485. designBasis.roadLevel.notRoad, file stem to why, the grading files of the road folder that are no road, read under rev6 alone. None is an empty list."""
+    reasons = road_block(block).get("notRoad", {})
+    if not isinstance(reasons, dict) or not all(isinstance(why, str) and why and stem for stem, why in reasons.items()):
+        refuse(NOT_ROAD_SHAPE)
+    return reasons
 
 
 def named_surfaces(block):

@@ -196,6 +196,16 @@ namespace SiteAdaptation.Tests
             return Write(Path.Combine(work, folder, ScanStep.ResultFile), Worker.Result(inputs).ToString());
         }
 
+        private string projectMode;
+
+        [Fact]
+        public void R484_the_request_of_the_scan_carries_the_mode_of_the_settings()
+        {
+            projectMode = "rev6";
+            Start(Wrapped(true, string.Format(ScanStep.ClearLine, 8, 2)));
+            Assert.Equal("rev6", worker.Requests.Single().ProjectMode);
+        }
+
         private ButtonBody Wrapped(bool goOn, string line)
         {
             var read = new ButtonBody
@@ -211,7 +221,7 @@ namespace SiteAdaptation.Tests
             {
                 gated.Add(path);
                 return new ScanGateAnswer { GoOn = goOn, Line = line };
-            });
+            }, null, () => projectMode);
         }
 
         private void Start(ButtonBody body, string runId = RunId)

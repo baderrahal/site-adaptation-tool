@@ -188,6 +188,7 @@ namespace SiteAdaptation.Tests
             public string Profile = "parsons2024Rev6";
             public JObject Config = MadeConfig();
             public List<string> RoadSurfaces;
+            public string ProjectMode;
         }
 
         private const string PlotsCsv = "locationPlanNumber,baseplanLabel,zone,nbhId\n101,A1,Zone 2,012\n102,A2,Zone 2,012\n103,A3,Zone 2,012\n104|106,A4,Zone 2,012\n105,A5,Zone 3,012\n201,B1,Zone 3,013\n";
@@ -209,7 +210,7 @@ namespace SiteAdaptation.Tests
             var request = new WorkerRequest
             {
                 FormatVersion = 1, RunId = id, Command = "levelExcel", Document = new WorkerDocument { Path = @"C:\Projects\a.rvt", SessionId = "s1" },
-                Inputs = inputs, LevelProfile = made.Profile, Scope = new WorkerScope { Kind = "project" }, OutputFolder = Path.Combine(folder, "out"), TimeLimitS = 60, RoadSurfaces = made.RoadSurfaces,
+                Inputs = inputs, LevelProfile = made.Profile, Scope = new WorkerScope { Kind = "project" }, OutputFolder = Path.Combine(folder, "out"), TimeLimitS = 60, RoadSurfaces = made.RoadSurfaces, ProjectMode = made.ProjectMode,
             };
             code = WorkerRunner.Run(request.Write(folder), WorkerReads.Commands(), () => 90000.0, () => 0.0);
             return WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, id));
@@ -359,6 +360,19 @@ namespace SiteAdaptation.Tests
             Book book = RunBook(made, out answer, out plan);
             object order = book.Sheets["Settings"].Keys.Skip(1).Select(row => book.Row("Settings", row)).Single(values => (string)values[0] == LevelExcelText.RoadOrder)[1];
             Assert.Equal(second == null ? first : first + LevelExcelText.ListJoin + second, (string)order);
+        }
+
+        // R484. The request of the Excel carries the mode of the build, so a past job config names the order rev6 built in, no JSON edit
+        [Fact]
+        public void R484_the_level_excel_names_the_order_under_the_mode_of_its_request_on_a_past_job_config()
+        {
+            var made = new Made { ProjectMode = "rev6" };
+            made.Config["designBasis"] = new JObject { ["mode"] = "madeUpPastJob", ["modes"] = new JArray("rev6", "madeUpPastJob"), ["roadLevel"] = new JObject { ["surfaces"] = new JArray("Road B", "Road A") } };
+            WorkerAnswer answer;
+            string plan;
+            Book book = RunBook(made, out answer, out plan);
+            object order = book.Sheets["Settings"].Keys.Skip(1).Select(row => book.Row("Settings", row)).Single(values => (string)values[0] == LevelExcelText.RoadOrder)[1];
+            Assert.Equal("Road B" + LevelExcelText.ListJoin + "Road A", (string)order);
         }
 
         [Fact]

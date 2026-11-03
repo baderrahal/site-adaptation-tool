@@ -100,6 +100,21 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
+        public void R484_the_request_of_the_report_carries_the_mode_of_the_settings_and_none_while_they_hold_none()
+        {
+            CheckRunLog();
+            var asked = new List<WorkerRequest>();
+            Model model;
+            State state;
+            Run(false, true, Stand(asked), out model, out state);
+            Assert.Null(asked.Single().ProjectMode);
+            asked.Clear();
+            projectMode = "rev6";
+            Run(false, true, Stand(asked), out model, out state);
+            Assert.Equal("rev6", asked.Single().ProjectMode);
+        }
+
+        [Fact]
         public void R459_the_request_names_the_file_step_5_left_for_the_nbh_only_when_it_is_there_and_the_worker_lists_it()
         {
             CheckRunLog();
@@ -357,11 +372,13 @@ namespace SiteAdaptation.Tests
             return Run(dryFirst, new Confirm { Answer = apply }, worker, out model, out state, counts);
         }
 
+        private string projectMode;
+
         private RunOutcome Run(bool dryFirst, Confirm confirm, Func<WorkerRequest, string, WorkerAnswer> worker, out Model model, out State state,
             Func<ICollection<string>, string, JObject> counts = null)
         {
             var run = new ReportRun("Settings", WorkFiles.ReadText, counts ?? ((plots, levelRun) => RevitCounts.FromTags(new PlacedTag[0], plots, levelRun)), worker,
-                new WorkerDocument { Path = @"C:\Models\Site.rvt", SessionId = "s" }) { StandingFloors = standing };
+                new WorkerDocument { Path = @"C:\Models\Site.rvt", SessionId = "s" }) { StandingFloors = standing, ModePick = () => projectMode };
             model = new Model();
             state = new State { Work = work, Config = config, DryFirst = dryFirst };
             var flow = new ButtonFlow(state, model, confirm, InputHash.Of, () => RunId);

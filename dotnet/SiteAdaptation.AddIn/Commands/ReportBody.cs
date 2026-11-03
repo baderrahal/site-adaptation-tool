@@ -18,10 +18,10 @@ namespace SiteAdaptation.AddIn
         public static ButtonBody For(UIApplication application)
         {
             Document document = application.ActiveUIDocument.Document;
-            var run = new ReportRun(PaneText.Settings, WorkFiles.ReadText, (levelPlots, levelRun) => RevitCountsReader.Read(document, levelPlots, levelRun),
-                ReportWorkerClient.Run, new WorkerDocument { Path = document.PathName, SessionId = "report" }) { StandingFloors = () => RevitCountsReader.FloorIds(document) };
-            // R441, the line Current files of the setup after the lines of the report
             DocumentSession session = PaneHost.Current.Sessions.Seen(document, document.PathName, document.Title);
+            var run = new ReportRun(PaneText.Settings, WorkFiles.ReadText, (levelPlots, levelRun) => RevitCountsReader.Read(document, levelPlots, levelRun),
+                ReportWorkerClient.Run, new WorkerDocument { Path = document.PathName, SessionId = "report" }) { StandingFloors = () => RevitCountsReader.FloorIds(document), ModePick = () => session.Settings.Project.ProjectMode };
+            // R441, the line Current files of the setup after the lines of the report
             return CurrentFiles.WithReportLine(run.Body(), () => session.Settings.Project);
         }
     }

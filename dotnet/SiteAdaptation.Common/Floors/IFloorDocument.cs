@@ -103,5 +103,8 @@ namespace SiteAdaptation.Common.Floors
 
         // R492. The road surfaces the request of the build picked, for the order the level Excel names, null when it picked none
         public List<string> RoadSurfaces { get; set; }
+
+        // R484. The project mode the request of the build carried, for the same reason, null when it held none
+        public string ProjectMode { get; set; }
     }
 }

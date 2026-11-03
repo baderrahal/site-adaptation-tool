@@ -6,6 +6,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using Newtonsoft.Json.Linq;
+using SiteAdaptation.Common.Settings;
 using SiteAdaptation.Common;
 
 namespace CadReader
@@ -32,7 +33,7 @@ namespace CadReader
             JObject plan = PyJson.Parse(WorkFiles.ReadText(planPath)) as JObject ?? throw new InvalidDataException("the plan is no JSON object (R365): " + planPath);
             string rulesPath = run.Input("rules");
             JObject rules = PyJson.Parse(WorkFiles.ReadText(rulesPath)) as JObject ?? throw new InvalidDataException("the rules profile is no JSON object (R365): " + rulesPath);
-            JObject config = PyJson.Parse(WorkFiles.ReadText(run.Input("config"))) as JObject;
+            JObject config = ProjectModes.Apply(PyJson.Parse(WorkFiles.ReadText(run.Input("config"))) as JObject, request.ProjectMode);
             string refusal = ReportSheets.Refusal(plan, rules, config, request.LevelProfile);
             if (refusal != null)
             {

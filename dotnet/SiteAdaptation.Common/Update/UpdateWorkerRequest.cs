@@ -40,7 +40,7 @@ namespace SiteAdaptation.Common.Update
             return found[0];
         }
 
-        public static WorkerRequest Make(string runId, WorkerDocument document, string configPath, string rulesPath, string planPath, string overridesPath, string profile, string nbh, IReadOnlyList<string> excelPaths, string outputFolder)
+        public static WorkerRequest Make(string runId, WorkerDocument document, string configPath, string rulesPath, string planPath, string overridesPath, string profile, string nbh, IReadOnlyList<string> excelPaths, string outputFolder, string projectMode = null)
         {
             var inputs = new List<WorkerFile>
             {
@@ -57,6 +57,7 @@ namespace SiteAdaptation.Common.Update
             {
                 FormatVersion = WorkerRequest.CurrentFormatVersion, RunId = runId, Command = Command, Document = document, Inputs = inputs, LevelProfile = profile,
                 Scope = new WorkerScope { Kind = "nbh", Nbh = nbh }, OutputFolder = outputFolder, TimeLimitS = AddinConfig.Load(configPath).WorkerTimeLimitS(Command),
+                ProjectMode = projectMode,
             };
         }
 

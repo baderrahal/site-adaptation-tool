@@ -77,6 +77,9 @@ namespace SiteAdaptation.Common.CheckTable
         // R492. The road surfaces picked in Set up, read under rev6 alone. Null where no pane gives one, or a pick not made, takes those of config
         public Func<IReadOnlyList<string>> RoadPick { get; set; }
 
+        // R484. The project mode of the settings, null where no pane gives one or the settings hold none, which reads the mode of config
+        public Func<string> ModePick { get; set; }
+
         public ButtonBody Body()
         {
             return new ButtonBody { Preview = Preview, Start = Start };
@@ -98,6 +101,15 @@ namespace SiteAdaptation.Common.CheckTable
 
             // R492. The road surfaces the request names under rev6 when Set up picked them, null otherwise
             public List<string> RoadSurfaces { get; set; }
+
+            // R484. The project mode the request names, null when the settings hold none
+            public string ProjectMode { get; set; }
+        }
+
+        // R484. The config of the run under its project mode, the one way this run loads it
+        private static JObject ConfigOf(CheckPlan plan)
+        {
+            return ProjectModes.Apply(JObject.Parse(WorkFiles.ReadText(plan.ConfigPath)), plan.ProjectMode);
         }
 
         public CheckPlan Plan(RunContext context)
@@ -111,7 +123,17 @@ namespace SiteAdaptation.Common.CheckTable
                 return plan;
             }
             plan.ConfigPath = Path.GetFullPath(configPath);
-            JObject config = JObject.Parse(WorkFiles.ReadText(plan.ConfigPath));
+            plan.ProjectMode = ModePick?.Invoke();
+            JObject config;
+            try
+            {
+                config = ConfigOf(plan);
+            }
+            catch (InvalidDataException refused)
+            {
+                plan.Stops.Add(refused.Message);
+                return plan;
+            }
             SettingsScope chosen = scope?.Invoke() ?? new SettingsScope();
             plan.Nbh = chosen.Kind == ScopeKinds.Nbh && !string.IsNullOrWhiteSpace(chosen.Nbh) ? chosen.Nbh.Trim() : null;
             plan.ReadFolder = ReviewLoad.LatestReadFolder(context.WorkFolder);
@@ -348,6 +370,7 @@ namespace SiteAdaptation.Common.CheckTable
                 Scope = plan.Nbh == null ? new WorkerScope { Kind = "project" } : new WorkerScope { Kind = ScopeKinds.Nbh, Nbh = plan.Nbh },
                 LevelProfile = levelProfile, PrototypeFolder = plan.PrototypeFolder, OutputFolder = folder, StepsFolder = Path.Combine(folder, "steps"),
                 Steps = new[] { FaceStep.Name }.Concat(BuildSteps.Names).ToList(), TimeLimitS = AddinConfig.Load(plan.ConfigPath).WorkerTimeLimitS(Command), RoadSurfaces = plan.RoadSurfaces,
+                ProjectMode = plan.ProjectMode,
             };
         }
 
@@ -407,7 +430,7 @@ namespace SiteAdaptation.Common.CheckTable
                         {
                             Save = choices =>
                             {
-                                session.Save(view.Rows, choices, JObject.Parse(WorkFiles.ReadText(plan.ConfigPath)), runId);
+                                session.Save(view.Rows, choices, ConfigOf(plan), runId);
                                 return plan.OverridesPath;
                             },
                             DoorLevel = DoorPicked,
@@ -458,7 +481,7 @@ namespace SiteAdaptation.Common.CheckTable
                 throw new InvalidDataException("the build wrote no " + Path.GetFileName(stepPath));
             }
             JObject step = JObject.Parse(WorkFiles.ReadText(stepPath));
-            JObject config = JObject.Parse(WorkFiles.ReadText(plan.ConfigPath));
+            JObject config = ConfigOf(plan);
             JObject block = config["checkRows"] as JObject ?? throw new InvalidDataException(CheckRows.NoBlock);
             string tableHash = FileHash.Sha256(Path.Combine(plan.ReadFolder, ReadDataRun.PlotTableFile));
             List<ReviewCheck> wrong = plan.Nbh == null ? new List<ReviewCheck>() : ReviewFile.WrongPlots(context.WorkFolder, plan.Nbh, tableHash);

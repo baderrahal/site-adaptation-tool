@@ -153,7 +153,7 @@ namespace SiteAdaptation.Common.SetUp
             return Path.GetExtension(path).ToLowerInvariant() == LandXmlExtension;
         }
 
-        public static WorkerRequest Make(IReadOnlyList<RunInput> inputs, IReadOnlyDictionary<string, string> roles, string configPath, string runId, string outputFolder, WorkerDocument document, double timeLimitS)
+        public static WorkerRequest Make(IReadOnlyList<RunInput> inputs, IReadOnlyDictionary<string, string> roles, string configPath, string runId, string outputFolder, WorkerDocument document, double timeLimitS, string projectMode = null)
         {
             var files = new List<WorkerFile> { File(ConfigRole, configPath) };
             foreach (RunInput input in inputs.Where(input => !string.IsNullOrEmpty(input.Path) && roles.ContainsKey(input.Name) && roles[input.Name] != ConfigRole))
@@ -180,17 +180,17 @@ namespace SiteAdaptation.Common.SetUp
             return new WorkerRequest
             {
                 FormatVersion = WorkerRequest.CurrentFormatVersion, RunId = runId, Document = document, Command = Command, Inputs = files,
-                Scope = new WorkerScope { Kind = "project" }, OutputFolder = outputFolder, TimeLimitS = timeLimitS,
+                Scope = new WorkerScope { Kind = "project" }, OutputFolder = outputFolder, TimeLimitS = timeLimitS, ProjectMode = projectMode,
             };
         }
 
         // Button 1 with coordinates.source cad: the request made of the pane inputs, the worker run and crs.json read back. The pane
         // inputs come from the caller since button 1 hashes the Settings file only (PaneRunState.InputsOf)
-        public static CoordinateRead Run(RunContext context, IReadOnlyList<RunInput> inputs, IReadOnlyDictionary<string, string> roles, string settingsInput, WorkerDocument document, Func<WorkerRequest, string, WorkerAnswer> worker)
+        public static CoordinateRead Run(RunContext context, IReadOnlyList<RunInput> inputs, IReadOnlyDictionary<string, string> roles, string settingsInput, WorkerDocument document, Func<WorkerRequest, string, WorkerAnswer> worker, string projectMode = null)
         {
             string configPath = context.Inputs.FirstOrDefault(input => input.Name == settingsInput)?.Path ?? throw new InvalidOperationException("the run names no " + settingsInput + " file");
             string output = Path.Combine(context.WorkFolder, "crs_" + context.RunId);
-            WorkerRequest request = Make(inputs, roles, configPath, context.RunId + "-crs", output, document, AddinConfig.Load(configPath).WorkerTimeLimitS(Command));
+            WorkerRequest request = Make(inputs, roles, configPath, context.RunId + "-crs", output, document, AddinConfig.Load(configPath).WorkerTimeLimitS(Command), projectMode);
             if (request.Inputs.All(input => input.Role != BaseplanRole))
             {
                 throw new InvalidOperationException("coordinates.source is cad and the pane names no baseplan drawing (R455)");

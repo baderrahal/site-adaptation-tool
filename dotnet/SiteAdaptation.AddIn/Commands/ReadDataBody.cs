@@ -47,7 +47,7 @@ namespace SiteAdaptation.AddIn
             Func<SettingsScope> scope = () => new SettingsScope { Kind = session.Settings.Scope.Kind, Nbh = session.Settings.Scope.Nbh, Plots = session.Settings.Scope.Plots };
             var document = new WorkerDocument { Path = session.Path, SessionId = session.SessionId };
             // R492. The road surfaces picked in Set up, null while none was picked
-            ButtonBody read = new ReadDataRun(Roles, Worker, document, scope, () => session.Settings.Project) { RoadPick = () => session.Settings.Project.RoadSurfaces }.Body();
+            ButtonBody read = new ReadDataRun(Roles, Worker, document, scope, () => session.Settings.Project) { RoadPick = () => session.Settings.Project.RoadSurfaces, ModePick = () => session.Settings.Project.ProjectMode }.Body();
             // A run of the test host has no one to pick in the window and runs its read as before, so the runs of Lane B keep their
             // time and never wait on a window (CHOSEN, SCAN-UI)
             if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable(TestHostGuard.JobVariable)))
@@ -56,7 +56,7 @@ namespace SiteAdaptation.AddIn
             }
             return ScanStep.Wrap(read, Worker, document, () => ScanInputs(session.Settings),
                 path => ScanResults.ScanGate.Ask(path, session.Settings, owner, WorkFiles.ReadText),
-                () => new[] { session.Settings.RulesFile, LaunchedWorker.BesideAddIn() });
+                () => new[] { session.Settings.RulesFile, LaunchedWorker.BesideAddIn() }, () => session.Settings.Project.ProjectMode);
         }
 
         // The inputs of the read with the Settings file, whose role config the scan needs, and the Prototypes folder

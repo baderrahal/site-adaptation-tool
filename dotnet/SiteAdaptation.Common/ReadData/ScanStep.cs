@@ -147,7 +147,7 @@ namespace SiteAdaptation.Common.ReadData
         // nothing. CHOSEN by Code in SCAN-UI: a scan that fails or runs past its time limit never blocks the read, the read goes on with
         // one line that says why the scan did not finish
         public static ButtonBody Wrap(ButtonBody read, IWorkerStart worker, WorkerDocument document, Func<IReadOnlyList<WorkerFile>> scanInputs, Func<string, ScanGateAnswer> gate,
-            Func<IEnumerable<string>> stamps = null)
+            Func<IEnumerable<string>> stamps = null, Func<string> modePick = null)
         {
             if (read == null || scanInputs == null || gate == null)
             {
@@ -168,7 +168,7 @@ namespace SiteAdaptation.Common.ReadData
                     return read.Preview(context);
                 },
                 Apply = read.Apply, ReadBack = read.ReadBack, Done = read.Done, Confirm = read.Confirm, Outside = read.Outside,
-                Start = (context, done) => Start(read, worker, document, scanInputs, gate, stamps, context, done),
+                Start = (context, done) => Start(read, worker, document, scanInputs, gate, stamps, modePick, context, done),
             };
         }
 
@@ -181,7 +181,7 @@ namespace SiteAdaptation.Common.ReadData
         }
 
         private static void Start(ButtonBody read, IWorkerStart worker, WorkerDocument document, Func<IReadOnlyList<WorkerFile>> scanInputs, Func<string, ScanGateAnswer> gate,
-            Func<IEnumerable<string>> stamps, RunContext context, Action<RunLater> done)
+            Func<IEnumerable<string>> stamps, Func<string> modePick, RunContext context, Action<RunLater> done)
         {
             string work = Path.GetFullPath(context.WorkFolder);
             lock (Running)
@@ -220,6 +220,7 @@ namespace SiteAdaptation.Common.ReadData
                     Inputs = inputs.Select(item => new WorkerFile { Role = item.Role, Path = item.Path, Sha256 = item.Sha256 }).ToList(),
                     Scope = new WorkerScope { Kind = "project" }, OutputFolder = FolderOf(work, context.RunId),
                     TimeLimitS = AddinConfig.Load(configPath).WorkerTimeLimitS(Command),
+                    ProjectMode = modePick?.Invoke(),
                 };
                 if (worker == null)
                 {

@@ -80,7 +80,8 @@ namespace SiteAdaptation.AddIn.Pane
                 inputs.AddRange(ReadDataBody.Inputs(settings));
                 // R492. Under rev6 the effective road order is an input of the read as a file is, so a changed pick or order runs step 2 and the
                 // chain after it again, as a Browse does. Under the past job there is no such input, so its hashes stay as they were
-                string order = RoadSurfaceChoices.OrderText(ConfigOf(settings.ConfigFile), settings.Project.RoadSurfaces);
+                // R484. Under the mode of the settings, so a change of mode leaves step 2 not done as a change of pick does
+                string order = RoadSurfaceChoices.OrderText(ConfigOf(settings.ConfigFile, settings.Project.ProjectMode), settings.Project.RoadSurfaces);
                 if (order != null)
                 {
                     inputs.Add(RunInput.OfText(RoadOrderInput, order));
@@ -99,8 +100,9 @@ namespace SiteAdaptation.AddIn.Pane
         private static DateTime heldStamp;
         private static long heldSize;
         private static JObject heldConfig;
+        private static string heldMode;
 
-        private static JObject ConfigOf(string path)
+        private static JObject ConfigOf(string path, string mode)
         {
             try
             {
@@ -109,16 +111,17 @@ namespace SiteAdaptation.AddIn.Pane
                 {
                     return null;
                 }
-                if (heldPath != file.FullName || heldStamp != file.LastWriteTimeUtc || heldSize != file.Length)
+                if (heldPath != file.FullName || heldStamp != file.LastWriteTimeUtc || heldSize != file.Length || heldMode != mode)
                 {
-                    heldConfig = JObject.Parse(WorkFiles.ReadText(file.FullName));
+                    heldConfig = ProjectModes.Apply(JObject.Parse(WorkFiles.ReadText(file.FullName)), mode);
+                    heldMode = mode;
                     heldPath = file.FullName;
                     heldStamp = file.LastWriteTimeUtc;
                     heldSize = file.Length;
                 }
                 return heldConfig;
             }
-            catch (Exception failure) when (failure is JsonException || failure is IOException || failure is UnauthorizedAccessException || failure is ArgumentException || failure is NotSupportedException)
+            catch (Exception failure) when (failure is JsonException || failure is IOException || failure is UnauthorizedAccessException || failure is ArgumentException || failure is NotSupportedException || failure is InvalidDataException)
             {
                 heldPath = null;
                 return null;

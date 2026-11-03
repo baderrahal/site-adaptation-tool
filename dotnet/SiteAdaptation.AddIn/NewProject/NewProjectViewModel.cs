@@ -132,6 +132,7 @@ namespace SiteAdaptation.AddIn.NewProject
         private string todoLine = string.Empty;
         private bool checkedOk;
         private string templateLine = string.Empty;
+        private string modeLine = string.Empty;
 
         // R440, Q283. The scan the facts came from, the window What the tool read it opens, and the picks of the dropdowns and the window
         private readonly DrawingFactsResult facts;
@@ -278,6 +279,9 @@ namespace SiteAdaptation.AddIn.NewProject
         public bool CheckedOk { get { return checkedOk; } private set { Set(ref checkedOk, value); } }
         public string TemplateLine { get { return templateLine; } private set { Set(ref templateLine, value); } }
 
+        // R484. The one plain line under Start from, the rules the settings of Save setup would build under. Changed only by Start from
+        public string ModeLine { get { return modeLine; } private set { Set(ref modeLine, value); } }
+
         // R445. True when Save setup has no model to write to, so the foot says the next button run writes the setup
         public bool NoModelShown { get; }
 
@@ -413,7 +417,15 @@ namespace SiteAdaptation.AddIn.NewProject
 
         private ProjectSettings Next()
         {
-            return SetupSave.Apply(Draft(), current);
+            return SetupSave.Apply(Draft(), current, readText);
+        }
+
+        // By rev6 against the other, the name of the past job lives in config alone. With no config known yet Empty project starts on the rules of a new project
+        private void ShowMode()
+        {
+            ProjectSettings next = Next();
+            string mode = next.ProjectMode ?? ProjectModes.OfConfig(ProjectModes.ReadConfig(next.ConfigFile, readText));
+            ModeLine = (mode == null ? start?.Start == null : mode == Common.DesignBasis.Rev6) ? NewProjectText.ModeRev6 : NewProjectText.ModePast;
         }
 
         private void ShowSurfaces()
@@ -435,6 +447,7 @@ namespace SiteAdaptation.AddIn.NewProject
                 row.Show(result.Rows.Single(item => item.Row.Id == row.Row.Id));
             }
             ShowSurfaces();
+            ShowMode();
             Ready = TextTemplate.Fill(NewProjectText.Ready, result.Ready, result.Total);
             SetupRowViewModel stop = result.Stops.Select(item => Rows.Single(row => row.Row.Id == item.Row.Id)).FirstOrDefault();
             StopShown = !result.HasStart || stop != null;

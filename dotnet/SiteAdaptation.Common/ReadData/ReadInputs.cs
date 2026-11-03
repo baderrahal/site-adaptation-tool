@@ -77,7 +77,7 @@ namespace SiteAdaptation.Common.ReadData
 
         // roles names the role of each input of the pane by its name there. workFolder is the work folder of the document, whose
         // parent is the work root of R372 the data book folder lies in. picked gives the road surfaces picked in Set up, read under rev6 alone (R492)
-        public static ReadPlan Make(IReadOnlyList<RunInput> pane, IReadOnlyDictionary<string, string> roles, string workFolder, IReadOnlyList<string> picked = null)
+        public static ReadPlan Make(IReadOnlyList<RunInput> pane, IReadOnlyDictionary<string, string> roles, string workFolder, IReadOnlyList<string> picked = null, string mode = null)
         {
             var stops = new List<string>();
             var found = new List<KeyValuePair<string, string>>();
@@ -87,7 +87,16 @@ namespace SiteAdaptation.Common.ReadData
                 return new ReadPlan(new ReadInput[0], ReadSteps(), new[] { "the read names no settings file on disk" }, null);
             }
             string configPath = Path.GetFullPath(configInput.Path);
-            JObject config = JObject.Parse(WorkFiles.ReadText(configPath));
+            JObject config;
+            try
+            {
+                // R484. The project mode of the settings laid once here, the road roles and the hash of the read take it
+                config = ProjectModes.Apply(JObject.Parse(WorkFiles.ReadText(configPath)), mode);
+            }
+            catch (InvalidDataException refused)
+            {
+                return new ReadPlan(new ReadInput[0], ReadSteps(), new[] { refused.Message }, null);
+            }
             var referenceOnly = new HashSet<string>(Strings(config.SelectToken("drawings.referenceOnly")), StringComparer.OrdinalIgnoreCase);
             string order = RoadSurfaceChoices.OrderText(config, picked);
             foreach (RunInput input in pane)
@@ -112,6 +121,12 @@ namespace SiteAdaptation.Common.ReadData
                         if (why != null)
                         {
                             stops.Add(input.Name + ": " + name + " is no road surface: " + why + " (R492)");
+                            continue;
+                        }
+                        why = RoadSurfaceChoices.NotRoadWhy(config, name);
+                        if (why != null)
+                        {
+                            stops.Add(RoadSurfaceChoices.NotRoadLine(name, why));
                             continue;
                         }
                         string file = Path.Combine(input.Path, name + ".xml");
