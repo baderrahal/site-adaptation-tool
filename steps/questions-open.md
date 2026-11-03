@@ -711,11 +711,11 @@ Q398. The 443 hairline floor overlaps at step 5 (Lane B report steps/investigati
 - Recommended: one Revit probe on a copy of NBH 012 first, a plan with a finer grid against a 2 mm pull, and only then a round for the one that gives fewer boxes, with the cause of the yard error measured in it.
 - Other: leave it, R459 already accepts the known overlaps at step 5.
 
-Q400. New project reopens on Empty project (Lane C 6C-3NOV-C, seen in Revit, Lane A asked for a question). New project opened again on a project with a saved setup reads Start from Empty project and its hint still names ROSHN Makkah task6, on SA-part2 with SA-6c saved (RAN, shot p2-064). Save setup from there is not tried. It is older than this round.
+Q400. New project reopens on Empty project (Lane C 6C-3NOV-C, seen in Revit, Lane A asked for a question). New project opened again on a project with a saved setup reads Start from Empty project and its hint still names ROSHN Makkah task6, on SA-part2 with SA-6c saved (RAN, shot p2-064). Save setup from there is not tried.
 - Recommended: Start from reads the saved project the setup came from, and the hint goes when one is chosen. Lane A, in NewProjectViewModel.
 - Other: Leave it, a person rarely opens New project twice.
 
-Q401. 12 plots differ from the past FFL (Lane C 6C-3NOV-C, steps/investigations/6c-excel.md). Against the IMC schedule 324 FFL equal, 12 differ up to 187 mm, 1 blank (plot 2312), two methods (RAN). All 12 read Rule with no override, 8 of them in the clusters 2375-2376, 2377-2378, 2387-2388, 2389-2390. 2377 and 2388 also differ by one step. Whether the schedule or the IMC key is the right past value on them is UNKNOWN.
+Q401. 12 plots differ from the past FFL (Lane C 6C-3NOV-C, steps/investigations/6c-excel.md). Against the IMC schedule 324 FFL equal, 12 differ up to 187 mm, 1 blank (plot 2312), two methods (RAN). All 12 read Rule with no override, 8 in four clusters. 2377 and 2388 also differ by one step. Whether the schedule or the key is right is UNKNOWN.
 - Recommended: Lane A compares these 12 with the IMC key, and any the key agrees with the schedule goes to the override list by the majority rule. Rev 6 prevails where they differ.
 - Other: Accept them as they are, the rule is right and the schedule is older.
 
@@ -723,7 +723,7 @@ Q402. Plots 2301 and 2302 read VD4 (Lane C 6C-3NOV-C, steps/investigations/6c-ex
 - Recommended: Lane A traces 2301 and 2302 to their source and adds an override if the key reads DP4. TH1-IM stays as it is.
 - Other: Accept VD4.
 
-Q403. Road surface row cut in the pane (Lane C 6C-3NOV-C, R492, Lane D). Pick surfaces and Browse take the whole width, so the name landxml never shows and Browse is cut at the pane edge by a few pixels (RAN, shot p2-059). R492 and docs/design/18-new-project.md say next to Browse. The window Road surfaces has not been seen in a real Revit, Pick surfaces is grey under a past job (Lane D SEARCHED).
+Q403. Road surface row cut in the pane (Lane C 6C-3NOV-C, R492, Lane D). Pick surfaces and Browse take the whole width, so the name landxml never shows and Browse is cut at the pane edge (RAN, shot p2-059, Lane B saw it too). R492 says next to Browse. The window Road surfaces is not seen in Revit, Pick surfaces is grey under a past job.
 - Recommended: Pick surfaces moves to the line under the row with its surfaces line, R492 changes with it, and Lane D opens the window once on a project with no past job.
 - Other: Keep it beside Browse and narrow the label column.
 
@@ -735,7 +735,7 @@ Q405. Export to Excel hidden in Rules (Lane C 6C-3NOV-C, R444 against docs/desig
 - Recommended: Build the export in Part 2, hidden until then.
 - Other: Drop it from the design, the rules are in the manual and the report sheet Rules.
 
-Q406. Conflicts Plot column shows the CAD label (Lane C 6C-3NOV-C, CHECK-2NOV part 8). What the tool read runs before the plot table, so its Plot column holds the label read from the CAD, and Plot No 2291 has label 2281 while another plot reads Plot No 2281 (READ steps/check-2nov.md row 8). A pick lands on the right plot by that label, the words mislead. The board says Plot.
+Q406. Conflicts Plot column shows the CAD label (Lane C 6C-3NOV-C, CHECK-2NOV part 8). What the tool read runs before the plot table, so its Plot column holds the CAD label: Plot No 2291 has label 2281 (READ steps/check-2nov.md row 8). A pick lands on the right plot, the words mislead.
 - Recommended: The head reads CAD label, as 3 Review data does. ScanView.ConflictKey stays.
 - Other: Show both once the plot numbers are read, more work in the scan.
 
@@ -743,11 +743,11 @@ Q407. Amber in the spec or the boards (Lane C 6C-3NOV-C, docs/design/12-ui-spec.
 - Recommended: The spec holds, the boards are drafts of the words and layout, say so in Q286.
 - Other: The boards hold, change SA.Warn, button text 14 and the padding scale, which moves every window.
 
-Q408. Update from report shows nothing after a pick (Lane C 6C-3NOV-C, Lane B window). A real report picked by Browse in Update from report: the file dialog closed, and 26 s later the window stood empty, no tile, no message, Apply 0 changes grey (RAN, shot p2-082, an unedited copy). The try with an edited copy failed twice on my driver, not on the window, so the filled state is not seen in this round. Lane B's CHECK-2NOV covered the flow on an earlier main. Whether the window is slow, or silent on an Excel with no change, is UNKNOWN.
+Q408. Update from report shows nothing after a pick (Lane C 6C-3NOV-C, Lane B window). A real report picked by Browse: 26 s later the window stood empty, no tile, no message, Apply grey (RAN, shot p2-082, an unedited copy). An edited copy failed twice on my driver, so the filled state is not seen. Slow, or silent on an Excel with no change, is UNKNOWN.
 - Recommended: Lane B runs part 9 of steps/bader-fix-1nov.md once on main, and the window says No changes found when an Excel has none.
 - Other: Leave it, a person only picks an Excel they edited.
 
-Q409. Two greens and the step name weight (Lane C 6C-3NOV-C, review 1, docs/design/12-ui-spec.md lines 28, 34, 75). The pane found mark takes #0B7A3E from the Pane board, the spec and the Tokens board have SA.Ok #0B6B2E, so two greens show in one product. The step name takes weight 500 from the board where the spec says Regular, and the font holds only Regular and SemiBold faces, so 500 may draw as Regular (UNKNOWN).
+Q409. Two greens and the step name weight (Lane C 6C-3NOV-C, review 1, docs/design/12-ui-spec.md lines 28, 34, 75). The pane found mark takes #0B7A3E from the Pane board, the spec has SA.Ok #0B6B2E, so two greens show. The step name takes weight 500 from the board where the spec says Regular, the font holds Regular and SemiBold only (UNKNOWN).
 - Recommended: One green, SA.Ok, and Regular step names, the spec holds. Change with Q286.
 - Other: The board holds, the spec takes both.
 
@@ -766,3 +766,11 @@ Q412. Level 1 is empty after the build (Lane B dry run). Floor plan Level 1 show
 Q413. Input picks lost before a real run (Lane B dry run, R367). A model saved after five Browse picks and before step 1, then reopened, loses them: step 2 stops on needs Villa blocks, the file is not chosen (RAN). The save gives no sign.
 - Recommended: a Browse pick in the pane writes the setup at once as Save setup does (R445), in its own small transaction.
 - Other: keep R367, the pane says the picks are not saved until step 1 runs.
+
+Q414. How long a whole project takes (Lane C GUIDE-3NOV-C). steps/buttons-guide.md gives times of one rehearsal on NBH 012 only. No record holds New project or buttons 1 to 9 on the whole project.
+- Recommended: Lane B times one whole project run on a copy and the guide takes the numbers.
+- Other: Leave Not known until Part 2.
+
+Q415. Pane lines say more than is built (Lane C GUIDE-3NOV-C, R362, Q328). Step 1 reads from CAD, coordinates.source is positionFile. Step 8 reads garden walls, none is placed (READ).
+- Recommended: Keep step 1 until Q328 switches, step 8 reads Boundary walls.
+- Other: Leave both.
