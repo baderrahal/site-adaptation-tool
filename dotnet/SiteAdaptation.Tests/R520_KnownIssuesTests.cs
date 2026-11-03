@@ -64,7 +64,7 @@ namespace SiteAdaptation.Tests
         public void R521_a_mark_saved_under_the_old_number_stays_on_its_plot_and_is_saved_under_the_new()
         {
             IReadOnlyList<ReviewRow> rows = ReviewTable.Rows(new JObject { ["a"] = Face("216|2312", "2312") }, "012", null, null, null);
-            var saved = new[] { new ReviewCheck { Plot = "216|2312", Check = ReviewCheckValue.Ok } };
+            var saved = new[] { new ReviewCheck { Plot = "216|2312", Check = ReviewCheckValue.Ok, RunId = "run", PlotTableHash = "hash" } };
 
             var state = new ReviewState(rows, saved, "run", "hash");
 
@@ -76,7 +76,7 @@ namespace SiteAdaptation.Tests
         public void R521_a_mark_under_the_new_number_wins_over_one_under_the_old()
         {
             IReadOnlyList<ReviewRow> rows = ReviewTable.Rows(new JObject { ["a"] = Face("216|2312", "2312") }, "012", null, null, null);
-            var saved = new[] { new ReviewCheck { Plot = "216|2312", Check = ReviewCheckValue.Ok }, new ReviewCheck { Plot = "2312", Check = ReviewCheckValue.Wrong } };
+            var saved = new[] { new ReviewCheck { Plot = "216|2312", Check = ReviewCheckValue.Ok, RunId = "run", PlotTableHash = "hash" }, new ReviewCheck { Plot = "2312", Check = ReviewCheckValue.Wrong, RunId = "run", PlotTableHash = "hash" } };
 
             var state = new ReviewState(rows, saved, "run", "hash");
 
