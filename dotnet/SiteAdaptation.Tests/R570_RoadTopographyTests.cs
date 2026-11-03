@@ -34,7 +34,7 @@ namespace SiteAdaptation.Tests
         }
 
         // A grid of 50 m with a far point no face uses, as a LandXML can hold
-        private static LandXmlSurface Tin(double fromX = 900, double toX = 1400, double fromY = 1900, double toY = 2200)
+        internal static LandXmlSurface Tin(double fromX = 900, double toX = 1400, double fromY = 1900, double toY = 2200)
         {
             var points = new List<double>();
             var faces = new List<int>();
@@ -59,7 +59,7 @@ namespace SiteAdaptation.Tests
             return new LandXmlSurface { Name = "Road", Points = points.ToArray(), Faces = faces.ToArray() };
         }
 
-        private static RoadTopographySettings Settings()
+        internal static RoadTopographySettings Settings()
         {
             return new RoadTopographySettings { TypeName = "Road surface", Surface = "Road", MarginM = 5, LimitMm = 5, MinCoverShare = 0.5, PointGapM = 0.01, MaxPoints = 5000, SnapM = 0.005 };
         }
@@ -71,7 +71,7 @@ namespace SiteAdaptation.Tests
         }
 
         // The ramp of plot n on the road at both front corners, off metres above it when off is given
-        private static PlanPlot Plot(string number, double off = 0)
+        internal static PlanPlot Plot(string number, double off = 0)
         {
             PlanPlot plot = FloorPlans.Plot(number);
             double[][] corners = plot.Floors.Ramp.Corners.Value.ToArray();
@@ -81,25 +81,107 @@ namespace SiteAdaptation.Tests
             return plot;
         }
 
-        private FloorsRun Make(FakeFloors document, PlanFile plan, bool on = true, LandXmlSurface surface = null, Func<string, bool> inScope = null)
+        private static ToposolidPlan PlanOf(LandXmlSurface surface, IEnumerable<double[]> outlines, IEnumerable<RampEdge> edges, RoadTopographySettings settings)
+        {
+            return RoadTopography.Plan(new RoadSurfaceRead { Surface = surface, Settings = settings }, outlines, edges);
+        }
+
+        private FloorsRun Make(FakeFloors document, PlanFile plan, bool on = true, LandXmlSurface surface = null, Func<string, bool> inScope = null, string sha = "abc", RoadTopographySettings settings = null)
         {
             return new FloorsRun(document, context => new FloorInputs
             {
                 Plan = plan, PlanPath = Path.Combine(work, "plan_012.json"), Profile = "parsons2024Rev6", InScope = inScope,
-                RoadTopography = on ? () => new RoadSurfaceRead { Settings = Settings(), Surface = surface ?? Tin(), Mark = new InputMark { Name = "Road.xml", Size = 5, WriteTimeUtc = "t", Sha256 = "abc" } } : (Func<RoadSurfaceRead>)null,
+                RoadTopography = on ? () => new RoadSurfaceRead { Settings = settings ?? Settings(), Surface = surface ?? Tin(), Mark = new InputMark { Name = "Road.xml", Size = 5, WriteTimeUtc = "t", Sha256 = sha } } : (Func<RoadSurfaceRead>)null,
             });
         }
+
+        // The model of the flow for the toposolid step: a roll back takes back what the document holds of toposolids, as Revit does
+        private sealed class SolidModel : IModel
+        {
+            private readonly FakeFloors document;
+
+            public SolidModel(FakeFloors document)
+            {
+                this.document = document;
+            }
+
+            public int Started;
+            public int RolledBack;
+            public string RefuseCommit;
+            public string[] Warn = new string[0];
+
+            public IModelTransaction Start(string name)
+            {
+                Started++;
+                return new SolidTransaction(this, document.Solids.ToList());
+            }
+
+            private sealed class SolidTransaction : IModelTransaction
+            {
+                private readonly SolidModel model;
+                private readonly List<FakeFloors.Solid> before;
+                private bool open = true;
+
+                public SolidTransaction(SolidModel model, List<FakeFloors.Solid> before)
+                {
+                    this.model = model;
+                    this.before = before;
+                }
+
+                public IReadOnlyList<string> Warnings => model.Warn;
+                public IReadOnlyList<string> Errors => model.RefuseCommit == null ? new string[0] : new[] { model.RefuseCommit };
+
+                public bool Commit()
+                {
+                    if (model.RefuseCommit != null)
+                    {
+                        return false;
+                    }
+                    open = false;
+                    return true;
+                }
+
+                public void RollBack()
+                {
+                    if (open)
+                    {
+                        open = false;
+                        model.RolledBack++;
+                        model.document.Solids.Clear();
+                        model.document.Solids.AddRange(before);
+                    }
+                }
+
+                public void Dispose()
+                {
+                    RollBack();
+                }
+            }
+        }
+
+        private SolidModel solidModel;
 
         private RunContext Context(string runId = "5_1", bool dry = false)
         {
             return new RunContext(5, "5 Floors and ramps", runId, work, dry ? Path.Combine(work, "dry", runId) : null, true, new RunInput[0], new Dictionary<string, string>());
         }
 
-        private static IReadOnlyList<string> Apply(FloorsRun run, RunContext context)
+        // Preview, Apply and the step after the commit, as the flow runs them
+        private IReadOnlyList<string> Apply(FloorsRun run, RunContext context, FakeFloors document)
         {
             ButtonBody body = run.Body();
             body.Preview(context);
-            return body.Apply(context);
+            var issues = new List<string>(body.Apply(context));
+            solidModel = solidModel ?? new SolidModel(document);
+            context.Model = solidModel;
+            body.AfterCommit(context);
+            issues.AddRange(context.IssuesAfterCommit);
+            return issues;
+        }
+
+        private static IEnumerable<string> Topo(IEnumerable<string> lines)
+        {
+            return lines.Where(line => line.StartsWith(RoadTopography.Line, StringComparison.Ordinal));
         }
 
         // What the flow does at its commit, as the outputs of a run stand under temporary names until then
@@ -165,7 +247,7 @@ namespace SiteAdaptation.Tests
         {
             var outlines = new[] { new[] { 1000.0, 2000 }, new[] { 1010.0, 2000 }, new[] { 1005.0, 2005 }, new[] { 1010.0, 2020 }, new[] { 1000.0, 2020 } };
 
-            ToposolidPlan plan = RoadTopography.Plan(Tin(), outlines, new RampEdge[0], Settings());
+            ToposolidPlan plan = PlanOf(Tin(), outlines, new RampEdge[0], Settings());
 
             Assert.Null(plan.Refused);
             Assert.Equal(new[] { "995,1995", "1015,1995", "1015,2025", "995,2025" }, plan.Boundary.Select(point => Math.Round(point[0], 6) + "," + Math.Round(point[1], 6)));
@@ -176,7 +258,7 @@ namespace SiteAdaptation.Tests
         {
             var outlines = new[] { new[] { 1040.0, 2040 }, new[] { 1060.0, 2040 }, new[] { 1060.0, 2060 }, new[] { 1040.0, 2060 } };
 
-            ToposolidPlan plan = RoadTopography.Plan(Tin(), outlines, new RampEdge[0], Settings());
+            ToposolidPlan plan = PlanOf(Tin(), outlines, new RampEdge[0], Settings());
 
             Assert.Equal(1, plan.VerticesInside);
             // The four corners each at the level of the plane under them, then the one vertex of the grid inside
@@ -191,7 +273,7 @@ namespace SiteAdaptation.Tests
         {
             var outlines = new[] { new[] { 1095.0, 2045 }, new[] { 1105.0, 2045 }, new[] { 1105.0, 2055 }, new[] { 1095.0, 2055 } };
 
-            ToposolidPlan plan = RoadTopography.Plan(Tin(), outlines, new RampEdge[0], Settings());
+            ToposolidPlan plan = PlanOf(Tin(), outlines, new RampEdge[0], Settings());
 
             Assert.DoesNotContain(plan.Points, point => point[2] == 99.0);
         }
@@ -202,7 +284,7 @@ namespace SiteAdaptation.Tests
             // The hull grown by 5 m stands 3 m over the west end of the surface at x 900, so its west corners lie off it
             var outlines = new[] { new[] { 902.0, 2000 }, new[] { 1010.0, 2000 }, new[] { 1010.0, 2020 }, new[] { 902.0, 2020 } };
 
-            ToposolidPlan plan = RoadTopography.Plan(Tin(), outlines, new RampEdge[0], Settings());
+            ToposolidPlan plan = PlanOf(Tin(), outlines, new RampEdge[0], Settings());
 
             Assert.Null(plan.Refused);
             Assert.Equal(2, plan.CornersOffSurface);
@@ -214,7 +296,7 @@ namespace SiteAdaptation.Tests
         {
             var outlines = new[] { new[] { 5000.0, 5000 }, new[] { 5010.0, 5000 }, new[] { 5010.0, 5010 } };
 
-            ToposolidPlan plan = RoadTopography.Plan(Tin(), outlines, new RampEdge[0], Settings());
+            ToposolidPlan plan = PlanOf(Tin(), outlines, new RampEdge[0], Settings());
 
             Assert.Contains("does not cover", plan.Refused);
             Assert.Contains("Road", plan.Refused);
@@ -227,7 +309,7 @@ namespace SiteAdaptation.Tests
             var edges = new[] { Edge("1", 1000, 2000), Edge("2", 8000, 2000), Edge("3", 8100, 2000), Edge("4", 8200, 2000) };
             var outlines = new[] { new[] { 1000.0, 2000 }, new[] { 1010.0, 2000 }, new[] { 1010.0, 2020 } };
 
-            ToposolidPlan plan = RoadTopography.Plan(Tin(), outlines, edges, Settings());
+            ToposolidPlan plan = PlanOf(Tin(), outlines, edges, Settings());
 
             Assert.Contains("does not cover", plan.Refused);
             Assert.Contains("9 of 12", plan.Refused);
@@ -236,7 +318,7 @@ namespace SiteAdaptation.Tests
         [Fact]
         public void R571_no_area_in_the_scope_is_refused_in_a_plain_line()
         {
-            ToposolidPlan plan = RoadTopography.Plan(Tin(), new[] { new[] { 1000.0, 2000 }, new[] { 1010.0, 2000 } }, new RampEdge[0], Settings());
+            ToposolidPlan plan = PlanOf(Tin(), new[] { new[] { 1000.0, 2000 }, new[] { 1010.0, 2000 } }, new RampEdge[0], Settings());
 
             Assert.Contains("no area", plan.Refused);
         }
@@ -246,7 +328,7 @@ namespace SiteAdaptation.Tests
         {
             var outlines = new[] { new[] { 1020.0, 2020 }, new[] { 1030.0, 2020 }, new[] { 1030.0, 2030 } };
 
-            ToposolidPlan plan = RoadTopography.Plan(Tin(), outlines, new[] { Edge("1", 1020, 2020) }, Settings());
+            ToposolidPlan plan = PlanOf(Tin(), outlines, new[] { Edge("1", 1020, 2020) }, Settings());
 
             Assert.Equal(new[] { "start", "middle", "end" }, plan.Edges.Select(edge => edge.At));
             Assert.Contains(plan.Points, point => point[0] == 1025 && point[1] == 2020 && Math.Abs(point[2] - Road(1025)) < 1e-9);
@@ -262,7 +344,7 @@ namespace SiteAdaptation.Tests
             };
             var outlines = new[] { new[] { 990.0, 1990 }, new[] { 1010.0, 1990 }, new[] { 1010.0, 2010 }, new[] { 990.0, 2010 } };
 
-            ToposolidPlan plan = RoadTopography.Plan(tin, outlines, new RampEdge[0], Settings());
+            ToposolidPlan plan = PlanOf(tin, outlines, new RampEdge[0], Settings());
 
             Assert.Equal(3, plan.VerticesInside);
             // The four corners and one of the three vertices 4 mm apart
@@ -276,7 +358,7 @@ namespace SiteAdaptation.Tests
             settings.MaxPoints = 10;
             var outlines = new[] { new[] { 950.0, 1950 }, new[] { 1350.0, 1950 }, new[] { 1350.0, 2150 }, new[] { 950.0, 2150 } };
 
-            ToposolidPlan plan = RoadTopography.Plan(Tin(), outlines, new[] { Edge("1", 1000, 2000) }, settings);
+            ToposolidPlan plan = PlanOf(Tin(), outlines, new[] { Edge("1", 1000, 2000) }, settings);
 
             Assert.True(plan.Thinned > 0);
             Assert.True(plan.Points.Count <= 10);
@@ -292,7 +374,7 @@ namespace SiteAdaptation.Tests
         public void R572_the_toposolid_is_made_after_the_floors_on_the_level_of_the_ramp_and_tagged_for_the_nbh()
         {
             var document = new FakeFloors();
-            Apply(Make(document, FloorPlans.Plan(Plot("101"), Plot("102"))), Context());
+            Apply(Make(document, FloorPlans.Plan(Plot("101"), Plot("102"))), Context(), document);
 
             Assert.Equal(6, document.Items.Count);
             FakeFloors.Solid made = Assert.Single(document.Solids);
@@ -308,13 +390,242 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R572_the_hull_takes_the_plots_in_scope_only()
+        public void R572_a_plot_list_leaves_the_toposolid_with_one_line_no_read_and_no_report()
         {
             var document = new FakeFloors();
-            Apply(Make(document, FloorPlans.Plan(Plot("101"), Plot("103")), true, null, plot => plot == "101"), Context());
+            PlanFile plan = FloorPlans.Plan(Plot("101"), Plot("103"));
+            Apply(Make(document, plan), Context("5_1"), document);
+            string first = Assert.Single(document.Solids).UniqueId;
+            var run = new FloorsRun(document, context => new FloorInputs
+            {
+                Plan = plan, PlanPath = Path.Combine(work, "plan_012.json"), Profile = "parsons2024Rev6", InScope = plot => plot == "101",
+                RoadTopography = () => throw new InvalidOperationException("a plot list reads no surface"),
+            });
+            RunContext second = Context("5_2");
 
-            double east = Assert.Single(document.Solids).Boundary.Max(corner => corner[0]);
-            Assert.Equal(115, east, 6);
+            ButtonBody body = run.Body();
+            RunSummary summary = body.Preview(second);
+            var issues = new List<string>(body.Apply(second));
+            second.Model = solidModel;
+            body.AfterCommit(second);
+
+            Assert.Equal(first, Assert.Single(document.Solids).UniqueId);
+            Assert.Equal(RoadTopography.PlotListLine, Assert.Single(Topo(summary.PerPlot)));
+            Assert.Equal(RoadTopography.PlotListLine, Assert.Single(Topo(issues)));
+            Assert.Empty(second.IssuesAfterCommit);
+            Assert.DoesNotContain(second.Outputs, output => output.Value.Contains("toposolid_"));
+        }
+
+        [Fact]
+        public void R572_a_plot_list_of_every_plot_covers_the_nbh()
+        {
+            var document = new FakeFloors();
+
+            Apply(Make(document, FloorPlans.Plan(Plot("101"), Plot("103")), true, null, plot => true), Context(), document);
+
+            Assert.Single(document.Solids);
+        }
+
+        [Fact]
+        public void R572_a_second_press_with_nothing_changed_keeps_the_toposolid_and_reads_it_back()
+        {
+            var document = new FakeFloors { TopLevel = (x, y) => Road(x + 1000) };
+            PlanFile plan = FloorPlans.Plan(Plot("101"));
+            Apply(Make(document, plan), Context("5_1"), document);
+            string first = Assert.Single(document.Solids).UniqueId;
+            document.Calls.Clear();
+            int started = solidModel.Started;
+            RunContext context = Context("5_2");
+
+            FloorsRun run = Make(document, plan);
+            RunSummary summary = run.Body().Preview(context);
+            IReadOnlyList<string> issues = Apply(run, context, document);
+
+            Assert.Equal(first, Assert.Single(document.Solids).UniqueId);
+            Assert.Equal(started, solidModel.Started);
+            Assert.DoesNotContain("toposolid", document.Calls);
+            Assert.Contains("triangles", document.Calls);
+            Assert.Contains("left as it is", Assert.Single(Topo(summary.PerPlot)));
+            Assert.Empty(Topo(issues));
+            JObject report = Report(context);
+            Assert.Equal(RoadTopography.Keep, (string)report["action"]);
+            Assert.Equal(first, (string)report["element"]);
+            Assert.Equal(0.0, (double)report["largestModelMm"], 1);
+        }
+
+        [Theory]
+        [InlineData("another-hash", 5.0)]
+        [InlineData("abc", 6.0)]
+        public void R572_another_surface_or_setting_replaces_it_and_the_lines_say_so(string sha, double margin)
+        {
+            var document = new FakeFloors();
+            PlanFile plan = FloorPlans.Plan(Plot("101"));
+            Apply(Make(document, plan), Context("5_1"), document);
+            FakeFloors.Solid first = Assert.Single(document.Solids);
+            first.SubDivisions = 2;
+            RoadTopographySettings settings = Settings();
+            settings.MarginM = margin;
+            RunContext context = Context("5_2");
+
+            FloorsRun run = Make(document, plan, sha: sha, settings: settings);
+            RunSummary summary = run.Body().Preview(context);
+            IReadOnlyList<string> issues = Apply(run, context, document);
+
+            Assert.NotEqual(first.UniqueId, Assert.Single(document.Solids).UniqueId);
+            Assert.Contains("replaces the toposolid", Assert.Single(Topo(summary.PerPlot)));
+            Assert.Contains("2 subdivisions", Assert.Single(Topo(summary.PerPlot)));
+            Assert.Contains(Topo(issues), line => line.Contains("replaces the toposolid") && line.Contains("hand edit"));
+            Assert.Equal(RoadTopography.Replace, (string)Report(context)["action"]);
+        }
+
+        [Fact]
+        public void R572_a_tag_from_before_the_key_is_replaced()
+        {
+            var document = new FakeFloors();
+            document.Solids.Add(new FakeFloors.Solid { UniqueId = "old", Tag = FakeFloors.ToposolidTag("012", "old") });
+
+            Apply(Make(document, FloorPlans.Plan(Plot("101"))), Context(), document);
+
+            Assert.DoesNotContain(document.Solids, solid => solid.UniqueId == "old");
+            Assert.Single(document.Solids);
+        }
+
+        [Fact]
+        public void R572_an_error_at_the_commit_of_the_toposolid_loses_neither_the_floors_nor_the_last_one()
+        {
+            var document = new FakeFloors();
+            PlanFile plan = FloorPlans.Plan(Plot("101"));
+            Apply(Make(document, plan), Context("5_1"), document);
+            string first = Assert.Single(document.Solids).UniqueId;
+            solidModel.RefuseCommit = "Revit refuses the top";
+            RunContext context = Context("5_2");
+
+            IReadOnlyList<string> issues = Apply(Make(document, plan, sha: "another"), context, document);
+
+            Assert.Equal(3, document.Items.Count);
+            Assert.Equal(first, Assert.Single(document.Solids).UniqueId);
+            Assert.Equal(1, solidModel.RolledBack);
+            string line = Assert.Single(Topo(issues));
+            Assert.Contains("Revit refuses the top", line);
+            Assert.Contains("The floors stand", line);
+            JObject report = Report(context);
+            Assert.False((bool)report["made"]);
+            Assert.Contains("Revit refuses the top", (string)report["problem"]);
+        }
+
+        [Fact]
+        public void R572_a_throw_rolls_back_its_transaction_and_reads_nothing_of_the_document_after_it()
+        {
+            var document = new FakeFloors { RefuseToposolid = "regeneration failed" };
+
+            IReadOnlyList<string> issues = Apply(Make(document, FloorPlans.Plan(Plot("101"))), Context(), document);
+
+            Assert.Equal(1, solidModel.RolledBack);
+            Assert.DoesNotContain("triangles", document.Calls);
+            Assert.Contains("regeneration failed", Assert.Single(Topo(issues)));
+        }
+
+        [Fact]
+        public void R572_a_warning_of_the_toposolid_transaction_is_an_issue_line()
+        {
+            var document = new FakeFloors();
+            solidModel = new SolidModel(document) { Warn = new[] { "Highlighted lines overlap." } };
+
+            IReadOnlyList<string> issues = Apply(Make(document, FloorPlans.Plan(Plot("101"))), Context(), document);
+
+            Assert.Contains(RoadTopography.Line + "Revit warns, Highlighted lines overlap.", issues);
+        }
+
+        [Fact]
+        public void R572_the_type_made_is_in_the_report_with_the_type_it_came_from()
+        {
+            var document = new FakeFloors { DuplicatedFrom = "Toposolid 300" };
+            RunContext context = Context();
+
+            Apply(Make(document, FloorPlans.Plan(Plot("101"))), context, document);
+
+            Assert.Equal("Toposolid 300", (string)Report(context)["typeDuplicatedFrom"]);
+        }
+
+        [Fact]
+        public void R572_with_the_tick_off_a_toposolid_that_stands_stays_with_one_line()
+        {
+            var document = new FakeFloors();
+            PlanFile plan = FloorPlans.Plan(Plot("101"));
+            Apply(Make(document, plan), Context("5_1"), document);
+            string first = Assert.Single(document.Solids).UniqueId;
+            RunContext context = Context("5_2");
+
+            FloorsRun run = Make(document, plan, false);
+            RunSummary summary = run.Body().Preview(context);
+            IReadOnlyList<string> issues = Apply(run, context, document);
+
+            Assert.Equal(first, Assert.Single(document.Solids).UniqueId);
+            Assert.Equal(RoadTopography.TickOffLine, Assert.Single(Topo(summary.PerPlot)));
+            Assert.Equal(RoadTopography.TickOffLine, Assert.Single(Topo(issues)));
+            Assert.DoesNotContain(context.Outputs, output => output.Value.Contains("toposolid_"));
+        }
+
+        [Fact]
+        public void R571_the_corners_made_up_and_the_points_left_out_reach_the_preview_and_the_done_line()
+        {
+            var document = new FakeFloors { TopLevel = (x, y) => Road(x + 1000) };
+            RoadTopographySettings settings = Settings();
+            settings.MaxPoints = 12;
+            // The surface starts at x 1097 and the boundary at 1095, so the west corners lie off it
+            RunContext context = Context();
+            FloorsRun run = Make(document, FloorPlans.Plan(Plot("101")), surface: Tin(1097, 1397, 1900, 2200), settings: settings);
+
+            string preview = Assert.Single(Topo(run.Body().Preview(context).PerPlot));
+            string done = Assert.Single(Topo(Apply(run, context, document)));
+
+            foreach (string line in new[] { preview, done })
+            {
+                Assert.Contains("2 of 4 boundary corners lie off the surface and take the level of the nearest surface point", line);
+            }
+            ToposolidPlan plan = PlanOf(Tin(1097, 1397, 1900, 2200), new[] { new[] { 1100.0, 1995 }, new[] { 1110.0, 1995 }, new[] { 1110.0, 2030 }, new[] { 1100.0, 2030 } }, new[] { Edge("101", 1100, 1995) }, settings);
+            Assert.Equal(0, plan.Thinned);
+
+            var many = FakeOver(settings);
+            Assert.Contains("surface points left out to stay within 12", RoadTopography.PreviewLine(many, settings, RoadTopography.Make, new ToposolidElement[0]));
+            Assert.Contains("surface points left out to stay within 12", RoadTopography.DoneLine(many, settings, RoadTopography.Make, new ToposolidElement[0]));
+        }
+
+        private static ToposolidPlan FakeOver(RoadTopographySettings settings)
+        {
+            var outlines = new[] { new[] { 950.0, 1950 }, new[] { 1350.0, 1950 }, new[] { 1350.0, 2150 }, new[] { 950.0, 2150 } };
+            return PlanOf(Tin(), outlines, new RampEdge[0], settings);
+        }
+
+        [Fact]
+        public void R571_the_tin_of_a_read_is_built_once()
+        {
+            var read = new RoadSurfaceRead { Surface = Tin(), Settings = Settings() };
+
+            Assert.Same(read.Tin, read.Tin);
+        }
+
+        [Fact]
+        public void R573_a_ramp_this_press_leaves_as_it_stands_is_marked_and_counts_in_no_largest()
+        {
+            var document = new FakeFloors { TopLevel = (x, y) => Road(x + 1000) };
+            PlanFile plan = FloorPlans.Plan(Plot("101", 0.04));
+            Apply(Make(document, plan), Context("5_1"), document);
+            FakeFloors.Floor ramp = document.Items.Single(floor => floor.Tag.Key.Kind == PlacedKinds.Ramp);
+            ramp.CornerOffsets[0] += 0.5;
+            RunContext context = Context("5_2");
+
+            FloorsRun run = Make(document, plan);
+            string preview = Assert.Single(Topo(run.Body().Preview(context).PerPlot));
+            IReadOnlyList<string> issues = Apply(run, context, document);
+
+            JObject report = Report(context);
+            Assert.Equal(3, (int)report["skippedPoints"]);
+            Assert.All((JArray)report["edges"], edge => Assert.True((bool)edge["skipped"]));
+            Assert.Equal(JTokenType.Null, report["largestMm"].Type);
+            Assert.Equal(0, (int)report["overLimit"]);
+            Assert.Contains("3 points of ramps left as they stand are not counted", preview);
+            Assert.Empty(Topo(issues));
         }
 
         [Fact]
@@ -327,9 +638,9 @@ namespace SiteAdaptation.Tests
             document.Solids.Add(new FakeFloors.Solid { UniqueId = "copy", Tag = FakeFloors.ToposolidTag("012", "placed-earlier") });
             PlanFile plan = FloorPlans.Plan(Plot("101"));
 
-            Apply(Make(document, plan), Context("5_1"));
+            Apply(Make(document, plan), Context("5_1"), document);
             string first = document.Solids.Single(solid => solid.Tag?.Run == "5_1").UniqueId;
-            Apply(Make(document, plan), Context("5_2"));
+            Apply(Make(document, plan, sha: "another"), Context("5_2"), document);
 
             Assert.DoesNotContain(document.Solids, solid => solid.UniqueId == first);
             Assert.Single(document.Solids, solid => solid.Tag?.Run == "5_2");
@@ -341,11 +652,11 @@ namespace SiteAdaptation.Tests
         {
             var document = new FakeFloors();
             PlanFile plan = FloorPlans.Plan(Plot("101"));
-            Apply(Make(document, plan), Context("5_1"));
+            Apply(Make(document, plan), Context("5_1"), document);
             string first = Assert.Single(document.Solids).UniqueId;
             document.RefuseToposolid = "the sketch is not closed";
 
-            IReadOnlyList<string> issues = Apply(Make(document, plan), Context("5_2"));
+            IReadOnlyList<string> issues = Apply(Make(document, plan, sha: "another"), Context("5_2"), document);
 
             Assert.Equal(3, document.Items.Count);
             Assert.Equal(first, Assert.Single(document.Solids).UniqueId);
@@ -364,7 +675,7 @@ namespace SiteAdaptation.Tests
                 RoadTopography = () => throw new InvalidDataException("the surface is not on disk"),
             });
 
-            IReadOnlyList<string> issues = Apply(run, Context());
+            IReadOnlyList<string> issues = Apply(run, Context(), document);
 
             Assert.Equal(3, document.Items.Count);
             Assert.Empty(document.Solids);
@@ -391,7 +702,7 @@ namespace SiteAdaptation.Tests
             var document = new FakeFloors();
             RunContext context = Context();
 
-            IReadOnlyList<string> issues = Apply(Make(document, FloorPlans.Plan(Plot("101")), false), context);
+            IReadOnlyList<string> issues = Apply(Make(document, FloorPlans.Plan(Plot("101")), false), context, document);
 
             Assert.Empty(document.Solids);
             Assert.DoesNotContain(issues, issue => issue.StartsWith("Road topography:", StringComparison.Ordinal));
@@ -404,7 +715,7 @@ namespace SiteAdaptation.Tests
             var document = new FakeFloors { TopLevel = (x, y) => Road(x + 1000) + 0.002 };
             RunContext context = Context();
 
-            IReadOnlyList<string> issues = Apply(Make(document, FloorPlans.Plan(Plot("101", 0.004))), context);
+            IReadOnlyList<string> issues = Apply(Make(document, FloorPlans.Plan(Plot("101", 0.004))), context, document);
 
             Assert.DoesNotContain(issues, issue => issue.StartsWith("Road topography:", StringComparison.Ordinal));
             JObject report = Report(context);
@@ -433,7 +744,7 @@ namespace SiteAdaptation.Tests
             var document = new FakeFloors { TopLevel = (x, y) => Road(x + 1000) };
             RunContext context = Context();
 
-            IReadOnlyList<string> issues = Apply(Make(document, FloorPlans.Plan(Plot("101", 0.04), Plot("102"))), context);
+            IReadOnlyList<string> issues = Apply(Make(document, FloorPlans.Plan(Plot("101", 0.04), Plot("102"))), context, document);
 
             JObject report = Report(context);
             Assert.Equal(3, (int)report["overLimit"]);
@@ -469,7 +780,7 @@ namespace SiteAdaptation.Tests
             var document = new FakeFloors { RefuseTriangles = "no geometry" };
             RunContext context = Context();
 
-            IReadOnlyList<string> issues = Apply(Make(document, FloorPlans.Plan(Plot("101"))), context);
+            IReadOnlyList<string> issues = Apply(Make(document, FloorPlans.Plan(Plot("101"))), context, document);
 
             Assert.Single(document.Solids);
             Assert.Contains(issues, issue => issue.StartsWith("Road topography:", StringComparison.Ordinal) && issue.Contains("no geometry"));

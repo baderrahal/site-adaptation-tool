@@ -391,6 +391,49 @@ namespace SiteAdaptation.Tests
             Assert.Equal(now, DateTime.Parse(run.Time, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AdjustToUniversal));
         }
 
+        private ButtonBody FloorsWithToposolid(SiteAdaptation.Common.Floors.IFloorDocument document)
+        {
+            return new SiteAdaptation.Common.Floors.FloorsRun(document, context => new SiteAdaptation.Common.Floors.FloorInputs
+            {
+                Plan = FloorPlans.Plan(R570_RoadTopographyTests.Plot("101")), PlanPath = Path.Combine(root, "plan_012.json"), Profile = "parsons2024Rev6",
+                RoadTopography = () => new SiteAdaptation.Common.Floors.RoadSurfaceRead { Settings = R570_RoadTopographyTests.Settings(), Surface = R570_RoadTopographyTests.Tin(), Mark = new SiteAdaptation.Common.InputMark { Name = "Road.xml", Sha256 = "abc" } },
+            }).Body();
+        }
+
+        [Fact]
+        public void R572_the_toposolid_commits_alone_in_the_group_and_the_step_record_settles_its_lines()
+        {
+            var document = new FakeFloors { TopLevel = (x, y) => 0 };
+
+            RunOutcome outcome = Press(5, FloorsWithToposolid(document));
+
+            Assert.Equal(RunEnd.Committed, outcome.End);
+            Assert.Single(document.Solids);
+            Assert.Equal(1, model.GroupsKept);
+            // The floors with the first record, the toposolid, and the settling of the lines and outputs after them
+            Assert.Equal(3, model.Started);
+            Assert.Contains(outcome.Record.Issues, issue => issue.StartsWith("Road topography:", StringComparison.Ordinal));
+            Assert.Equal(outcome.Record.Issues.Count, StepRun.FromSettings(Held(), 5).Issues);
+            Assert.Contains(outcome.Record.Outputs.Keys, name => name.EndsWith("toposolid_012.json", StringComparison.Ordinal));
+        }
+
+        [Fact]
+        public void R572_a_refused_commit_of_the_toposolid_keeps_the_committed_floors_and_is_an_issue_of_the_step()
+        {
+            var document = new FakeFloors();
+            model.CommitAnswers.Enqueue(true);
+            model.CommitAnswers.Enqueue(false);
+
+            RunOutcome outcome = Press(5, FloorsWithToposolid(document));
+
+            Assert.Equal(RunEnd.Committed, outcome.End);
+            Assert.Equal(1, model.GroupsKept);
+            Assert.Equal(0, model.GroupsRolledBack);
+            Assert.Equal(3, document.Items.Count);
+            Assert.Contains(outcome.Record.Issues, issue => issue.Contains("no toposolid") && issue.Contains("The floors stand"));
+            Assert.Equal(outcome.Record.Issues.Count, StepRun.FromSettings(Held(), 5).Issues);
+        }
+
         [Fact]
         public void R498_an_issue_after_the_commit_comes_back_on_a_reopen()
         {

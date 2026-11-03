@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using Newtonsoft.Json.Linq;
 using SiteAdaptation.Common.Tags;
 
@@ -53,6 +55,11 @@ namespace SiteAdaptation.Common.Floors
         public RoadTopographySettings Settings { get; set; }
         public LandXmlSurface Surface { get; set; }
         public InputMark Mark { get; set; }
+
+        private TinSurface tin;
+
+        // Built once, a press plans twice
+        public TinSurface Tin => tin ?? (tin = TinSurface.Of(Surface));
     }
 
     // R571. The road edge of one ramp in shared coordinates, its two front corners with their z
@@ -61,6 +68,9 @@ namespace SiteAdaptation.Common.Floors
         public string Plot { get; set; }
         public double[] Start { get; set; }
         public double[] End { get; set; }
+
+        // R573. A ramp this press leaves as it stands, changed by hand or its outline changed
+        public bool Skipped { get; set; }
     }
 
     // R573. One point of a ramp road edge, levels in shared metres
@@ -73,6 +83,9 @@ namespace SiteAdaptation.Common.Floors
         public double RampLevel { get; set; }
         public double? SurfaceLevel { get; set; }
         public double? ModelLevel { get; set; }
+
+        // R573. Of a ramp this press leaves as it stands, whose level the plan does not give, so it counts in no largest and no limit
+        public bool Skipped { get; set; }
 
         public double? DifferenceMm => SurfaceLevel.HasValue ? (RampLevel - SurfaceLevel.Value) * 1000 : (double?)null;
         public double? ModelDifferenceMm => ModelLevel.HasValue ? (RampLevel - ModelLevel.Value) * 1000 : (double?)null;
@@ -97,9 +110,15 @@ namespace SiteAdaptation.Common.Floors
         public const string Kind = PlacedKinds.Toposolid;
         public const string RecordFormat = "site-adaptation-toposolid";
         public const string Line = "Road topography: ";
+        public const string Make = "make";
+        public const string Replace = "replace";
+        public const string Keep = "keep";
+        public const string TickOffLine = Line + "the tick is off, the toposolid of this NBH stands as it was made and this press did not check it";
+        public const string PlotListLine = Line + "left as it is, a plot list does not cover the NBH. Press with the NBH as the scope to make or replace the toposolid";
 
         // A triangle this flat in plan, a side of the solid, gives a point no level
         private const double NoPlanArea = 1e-9;
+        private const string KeyValue = "key";
 
         public static string RecordName(string nbh)
         {
@@ -109,10 +128,12 @@ namespace SiteAdaptation.Common.Floors
         // R571. The boundary is the convex hull of the plots grown by the margin, CHOSEN by the main session. A boundary corner off the surface
         // takes the level of the nearest vertex inside, as the road surface has holes under the plots and a hull corner often falls in one.
         // The samples of each road edge join the points, so Revit, which triangulates the points its own way, holds the level there
-        public static ToposolidPlan Plan(LandXmlSurface surface, IEnumerable<double[]> outlines, IEnumerable<RampEdge> edges, RoadTopographySettings settings)
+        public static ToposolidPlan Plan(RoadSurfaceRead read, IEnumerable<double[]> outlines, IEnumerable<RampEdge> edges)
         {
             var plan = new ToposolidPlan();
-            var tin = TinSurface.Of(surface);
+            LandXmlSurface surface = read.Surface;
+            RoadTopographySettings settings = read.Settings;
+            TinSurface tin = read.Tin;
             string name = settings.Surface;
             List<RampEdge> ramps = edges.ToList();
             plan.Edges = ramps.SelectMany(edge => Samples(edge, tin, settings.SnapM)).ToList();
@@ -330,7 +351,7 @@ namespace SiteAdaptation.Common.Floors
                 double x = edge.Start[0] + (edge.End[0] - edge.Start[0]) * share, y = edge.Start[1] + (edge.End[1] - edge.Start[1]) * share;
                 yield return new RoadEdgePoint
                 {
-                    Plot = edge.Plot, At = at[index], X = x, Y = y, RampLevel = edge.Start[2] + (edge.End[2] - edge.Start[2]) * share, SurfaceLevel = tin.SnapZ(x, y, snap),
+                    Plot = edge.Plot, At = at[index], X = x, Y = y, Skipped = edge.Skipped, RampLevel = edge.Start[2] + (edge.End[2] - edge.Start[2]) * share, SurfaceLevel = tin.SnapZ(x, y, snap),
                 };
             }
         }
@@ -369,10 +390,46 @@ namespace SiteAdaptation.Common.Floors
             return tag != null && tag.Key.Kind == Kind && tag.Key.Plot == nbh && tag.PlacedId == element.UniqueId;
         }
 
-        public static PlacedTag Tag(string nbh, string runId, string profile, string uniqueId, ToposolidPlan plan)
+        // R572. What the toposolid was made from: the file of the surface by its hash, the boundary, every point and the settings that shape it,
+        // so a press with the same key has nothing to change. The limit and the cover share only judge it, so they stay out
+        public static string KeyOf(RoadSurfaceRead read, ToposolidPlan plan)
         {
-            var counts = new Dictionary<string, double[]> { ["points"] = new double[] { plan.Points.Count }, ["corners"] = new double[] { plan.Boundary.Count } };
-            return new PlacedTag(PlacedSchema.Latest.Version, new TagKey(nbh, Kind, ""), runId, profile, uniqueId, new PlacedValues(counts));
+            RoadTopographySettings settings = read.Settings;
+            var text = new StringBuilder();
+            text.Append(read.Mark?.Sha256).Append('|').Append(settings.TypeName).Append('|').Append(settings.Surface);
+            foreach (double value in new[] { settings.MarginM, settings.PointGapM, settings.MaxPoints, settings.SnapM })
+            {
+                text.Append('|').Append(value.ToString("R", CultureInfo.InvariantCulture));
+            }
+            foreach (double[] point in plan.Boundary.Concat(plan.Points))
+            {
+                text.Append('|').Append(point[0].ToString("F3", CultureInfo.InvariantCulture)).Append(',').Append(point[1].ToString("F3", CultureInfo.InvariantCulture)).Append(',').Append(point[2].ToString("F3", CultureInfo.InvariantCulture));
+            }
+            using (SHA256 hash = SHA256.Create())
+            {
+                return string.Concat(hash.ComputeHash(Encoding.UTF8.GetBytes(text.ToString())).Select(item => item.ToString("x2", CultureInfo.InvariantCulture)));
+            }
+        }
+
+        public static ToposolidElement Matching(IEnumerable<ToposolidElement> own, string key)
+        {
+            return own.FirstOrDefault(element => element.Tag.Placed.Values.TryGetValue(KeyValue, out IReadOnlyList<double> held) && new string(held.Select(code => (char)code).ToArray()) == key);
+        }
+
+        public static string ActionOf(IReadOnlyCollection<ToposolidElement> own, string key)
+        {
+            return own.Count == 0 ? Make : Matching(own, key) != null ? Keep : Replace;
+        }
+
+        public static PlacedTag Tag(string nbh, string runId, string profile, string uniqueId, ToposolidPlan plan, string key)
+        {
+            var values = new Dictionary<string, double[]>
+            {
+                ["points"] = new double[] { plan.Points.Count }, ["corners"] = new double[] { plan.Boundary.Count },
+                // A placed value is a list of numbers, so the key as the code points of its text, as FloorPlan keeps a type name
+                [KeyValue] = key.Select(character => (double)character).ToArray(),
+            };
+            return new PlacedTag(PlacedSchema.Latest.Version, new TagKey(nbh, Kind, ""), runId, profile, uniqueId, new PlacedValues(values));
         }
 
         public static string NoToposolid(string why)
@@ -380,23 +437,62 @@ namespace SiteAdaptation.Common.Floors
             return Line + "no toposolid, " + why + ". The floors stand";
         }
 
-        public static string PreviewLine(ToposolidPlan plan, RoadTopographySettings settings)
+        public static string PreviewLine(ToposolidPlan plan, RoadTopographySettings settings, string action, IEnumerable<ToposolidElement> own)
         {
-            return Line + "toposolid of type " + settings.TypeName + " from " + settings.Surface + ", " + plan.Points.Count + " points in a boundary of " + plan.Boundary.Count + " corners, " + plan.Edges.Count + " ramp road edge points, "
-                + Against(plan.Edges.Select(edge => edge.DifferenceMm), settings.LimitMm, "the surface");
+            string against = Against(Counted(plan).Select(edge => edge.DifferenceMm), settings.LimitMm, "the surface") + SkippedText(plan);
+            if (action == Keep)
+            {
+                return Line + "the toposolid of this NBH was made from this surface, these plots and these settings, so it is left as it is, " + against + Invented(plan, settings);
+            }
+            return Line + (action == Replace ? ReplaceText(own) + ", " : "") + "toposolid of type " + settings.TypeName + " from " + settings.Surface + ", " + plan.Points.Count + " points in a boundary of " + plan.Boundary.Count + " corners, "
+                + plan.Edges.Count + " ramp road edge points, " + against + Invented(plan, settings);
         }
 
-        // R573. Null when every road edge point is on the surface and on the model within the limit. Off the limit stops nothing
+        // R571, R572. Null when no corner was made up, no point left out and nothing replaced
+        public static string DoneLine(ToposolidPlan plan, RoadTopographySettings settings, string action, IEnumerable<ToposolidElement> own)
+        {
+            string invented = Invented(plan, settings);
+            if (invented.Length == 0 && action != Replace)
+            {
+                return null;
+            }
+            string what = action == Replace ? ReplaceText(own) : action == Keep ? "the toposolid of this NBH is left as it is" : "toposolid made";
+            return Line + what + ", " + plan.Points.Count + " points" + invented;
+        }
+
+        private static string ReplaceText(IEnumerable<ToposolidElement> own)
+        {
+            int subdivisions = own.Sum(element => element.SubDivisions);
+            return "replaces the toposolid of this NBH, made from another surface, other plots or other settings, a hand edit on it is lost" + (subdivisions > 0 ? " and so are its " + subdivisions + " subdivisions" : "");
+        }
+
+        private static string Invented(ToposolidPlan plan, RoadTopographySettings settings)
+        {
+            return (plan.CornersOffSurface > 0 ? ", " + plan.CornersOffSurface + " of " + plan.Boundary.Count + " boundary corners lie off the surface and take the level of the nearest surface point" : "")
+                + (plan.Thinned > 0 ? ", " + plan.Thinned + " surface points left out to stay within " + settings.MaxPoints : "");
+        }
+
+        private static string SkippedText(ToposolidPlan plan)
+        {
+            int skipped = plan.Edges.Count(edge => edge.Skipped);
+            return skipped > 0 ? ", " + skipped + " points of ramps left as they stand are not counted" : "";
+        }
+
+        private static IEnumerable<RoadEdgePoint> Counted(ToposolidPlan plan)
+        {
+            return plan.Edges.Where(edge => !edge.Skipped);
+        }
+
+        // R573. Null when every road edge point counted is on the surface and on the model within the limit. Off the limit stops nothing
         public static string LimitLine(ToposolidPlan plan, RoadTopographySettings settings, string nbh)
         {
-            int count = plan.Edges.Count;
-            List<RoadEdgePoint> edges = plan.Edges;
+            List<RoadEdgePoint> edges = Counted(plan).ToList();
             bool fine = edges.All(edge => edge.DifferenceMm.HasValue && edge.ModelDifferenceMm.HasValue && Math.Abs(edge.DifferenceMm.Value) <= settings.LimitMm && Math.Abs(edge.ModelDifferenceMm.Value) <= settings.LimitMm);
             if (fine)
             {
                 return null;
             }
-            return Line + Against(edges.Select(edge => edge.DifferenceMm), settings.LimitMm, "the surface") + ", " + Against(edges.Select(edge => edge.ModelDifferenceMm), settings.LimitMm, "the model") + ", " + count + " points in all, see " + RecordName(nbh);
+            return Line + Against(edges.Select(edge => edge.DifferenceMm), settings.LimitMm, "the surface") + ", " + Against(edges.Select(edge => edge.ModelDifferenceMm), settings.LimitMm, "the model") + SkippedText(plan) + ", see " + RecordName(nbh);
         }
 
         private static string Against(IEnumerable<double?> differences, double limit, string what)
@@ -418,17 +514,19 @@ namespace SiteAdaptation.Common.Floors
         }
 
         // R573. The record of a run: the file read with its mark, the counts and each road edge point by plot, its levels and differences with
-        // no x and no y. A read of the model that failed or was not made stays null
-        public static JObject Report(string runId, string nbh, RoadSurfaceRead read, ToposolidPlan plan, string element, bool readBack, string problem)
+        // no x and no y. A read of the model that failed or was not made stays null. Largest and limit leave out the points marked skipped,
+        // of ramps this press left as they stand: the plan, not the model, gives their ramp level
+        public static JObject Report(string runId, string nbh, RoadSurfaceRead read, ToposolidPlan plan, string element, bool readBack, string problem, string action, string typeDuplicatedFrom)
         {
             List<RoadEdgePoint> edges = plan?.Edges ?? new List<RoadEdgePoint>();
+            List<RoadEdgePoint> counted = edges.Where(edge => !edge.Skipped).ToList();
             double limit = read?.Settings?.LimitMm ?? 0;
-            List<double?> surface = edges.Select(edge => edge.DifferenceMm).ToList();
-            List<double?> model = edges.Select(edge => readBack ? edge.ModelDifferenceMm : null).ToList();
+            List<double?> surface = counted.Select(edge => edge.DifferenceMm).ToList();
+            List<double?> model = counted.Select(edge => readBack ? edge.ModelDifferenceMm : null).ToList();
             return new JObject
             {
-                ["format"] = RecordFormat, ["runId"] = runId, ["nbh"] = nbh, ["made"] = element != null, ["element"] = element, ["problem"] = problem,
-                ["type"] = read?.Settings?.TypeName,
+                ["format"] = RecordFormat, ["runId"] = runId, ["nbh"] = nbh, ["made"] = element != null, ["action"] = action, ["element"] = element, ["problem"] = problem,
+                ["type"] = read?.Settings?.TypeName, ["typeDuplicatedFrom"] = typeDuplicatedFrom,
                 ["surface"] = read == null ? null : new JObject
                 {
                     ["name"] = read.Settings.Surface, ["file"] = read.Mark?.Name, ["size"] = read.Mark?.Size, ["writeTimeUtc"] = read.Mark?.WriteTimeUtc, ["sha256"] = read.Mark?.Sha256,
@@ -436,12 +534,12 @@ namespace SiteAdaptation.Common.Floors
                 ["marginM"] = read?.Settings?.MarginM,
                 ["boundaryCorners"] = plan?.Boundary.Count, ["points"] = plan?.Points.Count, ["verticesInside"] = plan?.VerticesInside,
                 ["cornersOffSurface"] = plan?.CornersOffSurface, ["thinned"] = plan?.Thinned,
-                ["limitMm"] = limit,
+                ["limitMm"] = limit, ["skippedPoints"] = edges.Count - counted.Count,
                 ["largestMm"] = Rounded(Largest(surface)), ["overLimit"] = surface.Count(value => value.HasValue && Math.Abs(value.Value) > limit), ["offSurface"] = surface.Count(value => !value.HasValue),
                 ["largestModelMm"] = Rounded(Largest(model)), ["overLimitModel"] = model.Count(value => value.HasValue && Math.Abs(value.Value) > limit), ["offModel"] = model.Count(value => !value.HasValue),
                 ["edges"] = new JArray(edges.Select(edge => new JObject
                 {
-                    ["plot"] = edge.Plot, ["at"] = edge.At, ["rampLevelM"] = JsonOut.Round3(edge.RampLevel), ["surfaceLevelM"] = Level(edge.SurfaceLevel), ["modelLevelM"] = Level(readBack ? edge.ModelLevel : null),
+                    ["plot"] = edge.Plot, ["at"] = edge.At, ["skipped"] = edge.Skipped, ["rampLevelM"] = JsonOut.Round3(edge.RampLevel), ["surfaceLevelM"] = Level(edge.SurfaceLevel), ["modelLevelM"] = Level(readBack ? edge.ModelLevel : null),
                     ["differenceMm"] = Rounded(edge.DifferenceMm), ["modelDifferenceMm"] = Rounded(readBack ? edge.ModelDifferenceMm : null),
                 })),
             };

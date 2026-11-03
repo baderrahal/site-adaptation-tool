@@ -37,6 +37,12 @@ namespace SiteAdaptation.Common.Flow
         // The open transaction of the real run while Apply runs, else null, so a body writes the Settings entity of R367 inside it
         public IModelTransaction Transaction { get; internal set; }
 
+        // R572. The model of the real run, for a body whose AfterCommit changes the model in a transaction of its own, which fails alone
+        public IModel Model { get; internal set; }
+
+        // R572. The issues AfterCommit gives, which the flow adds after those of Apply and the step record settles (R498)
+        public List<string> IssuesAfterCommit { get; } = new List<string>();
+
         // R508. Set by a body whose change touches nothing a later step reads: the run commits and the step keeps the run it holds, so a
         // later record does not make the steps after it run again
         public bool KeepsLastRun { get; set; }

@@ -46,9 +46,9 @@ namespace SiteAdaptation.Common.Floors
         IReadOnlyList<ToposolidElement> Toposolids();
 
         // R572. Makes one toposolid of the type of the name, duplicated from a type the document holds when missing. The boundary lies flat
-        // on the level, the points carry the levels, all internal metres. A refusal throws and leaves the document as it was, so the
-        // floors of the run stay
-        string CreateToposolid(IList<double[]> boundary, IList<double[]> points, string typeName, string levelKey);
+        // on the level, the points carry the levels, all internal metres. Called in the transaction of its own that FloorsRun starts after
+        // the floors committed, which a throw rolls back
+        ToposolidMade CreateToposolid(IList<double[]> boundary, IList<double[]> points, string typeName, string levelKey);
 
         void DeleteToposolid(string uniqueId);
 
@@ -61,6 +61,16 @@ namespace SiteAdaptation.Common.Floors
     {
         public string UniqueId { get; set; }
         public PlacedTag Tag { get; set; }
+
+        // What a replace would take with it, told in its line
+        public int SubDivisions { get; set; }
+    }
+
+    // R572. The toposolid made, and the type its type was duplicated from, null when the document held the type by its name
+    public sealed class ToposolidMade
+    {
+        public string UniqueId { get; set; }
+        public string TypeDuplicatedFrom { get; set; }
     }
 
     public sealed class FloorElement

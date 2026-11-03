@@ -756,6 +756,6 @@ Q472. Ramp front overrides stand off the road (Lane D TOPO-3NOV-D, R573). On NBH
 - Recommended: Keep the overrides, the report lists them, the 5 mm target holds for the other plots.
 - Other: Drop rampFrontM under rev6, so each ramp meets the road.
 
-Q473. The chosen values of the road toposolid (Lane D TOPO-3NOV-D, R570). floors.roadTopography: typeName Road surface, marginM 5, minCoverShare 0.5, pointGapM 0.01, maxPoints 10000, all CHOSEN by Code.
-- Recommended: Keep them, maxPoints moves once the Revit run measured it.
-- Other: Name other values in config.
+Q473. The chosen values of the road toposolid (Lane D TOPO-3NOV-D, R570). floors.roadTopography: typeName Road surface, marginM 5, minCoverShare 0.5, pointGapM 0.01, maxPoints 10000, all CHOSEN by Code. The boundary is the convex hull of the plots: it spreads outside the NBH and two hulls can overlap, where Bader said cut to the NBH.
+- Recommended: Keep them and the hull for now, maxPoints moves once the Revit run measured it, an NBH outline replaces the hull once the plan holds one.
+- Other: Name other values in config, or cut to the NBH now.

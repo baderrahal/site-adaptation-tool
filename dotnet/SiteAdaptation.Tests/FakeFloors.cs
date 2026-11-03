@@ -44,6 +44,7 @@ namespace SiteAdaptation.Tests
             public List<double[]> Boundary = new List<double[]>();
             public List<double[]> Points = new List<double[]>();
             public PlacedTag Tag;
+            public int SubDivisions;
         }
 
         public readonly List<Solid> Solids = new List<Solid>();
@@ -151,10 +152,13 @@ namespace SiteAdaptation.Tests
 
         public IReadOnlyList<ToposolidElement> Toposolids()
         {
-            return Solids.Select(solid => new ToposolidElement { UniqueId = solid.UniqueId, Tag = solid.Tag }).ToList();
+            return Solids.Select(solid => new ToposolidElement { UniqueId = solid.UniqueId, Tag = solid.Tag, SubDivisions = solid.SubDivisions }).ToList();
         }
 
-        public string CreateToposolid(IList<double[]> boundary, IList<double[]> points, string typeName, string levelKey)
+        // The type a missing type is duplicated from, null when the document holds the type by its name
+        public string DuplicatedFrom;
+
+        public ToposolidMade CreateToposolid(IList<double[]> boundary, IList<double[]> points, string typeName, string levelKey)
         {
             Calls.Add("toposolid");
             if (RefuseToposolid != null)
@@ -163,7 +167,7 @@ namespace SiteAdaptation.Tests
             }
             var solid = new Solid { UniqueId = "solid-" + (++next).ToString(CultureInfo.InvariantCulture), TypeName = typeName, LevelKey = levelKey, Boundary = boundary.ToList(), Points = points.ToList() };
             Solids.Add(solid);
-            return solid.UniqueId;
+            return new ToposolidMade { UniqueId = solid.UniqueId, TypeDuplicatedFrom = DuplicatedFrom };
         }
 
         public void DeleteToposolid(string uniqueId)
@@ -175,6 +179,7 @@ namespace SiteAdaptation.Tests
         // A top and an underside 1 m below it over the box of the boundary, as the faces of a solid are both read
         public double[] ToposolidTriangles(string uniqueId)
         {
+            Calls.Add("triangles");
             if (RefuseTriangles != null)
             {
                 throw new InvalidOperationException(RefuseTriangles);

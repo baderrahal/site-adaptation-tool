@@ -624,3 +624,9 @@ KNOWN-3NOV-A, review and breaker, no real input reaches these:
 - RefreshSheet reads the config and the xlsx on the UI thread on each refresh, uncached, not measured. A swallowed config failure reads Not chosen with no reason.
 - docs/design/07-mock.md still says Plot on floors and walls. R507 prevails.
 - A rebind of a links row that also lacks the link category counts as a removal alone. No model holds a row off the links and on Floors.
+
+## Lane D TOPO-3NOV-D, breaker 1, 4 Nov 2026
+
+- RoadTopography: a scope with no ramp passes with no row, nothing proven. RoadTopographySettings.Number takes any range, a gap of 0 or a margin under 0 needs a hand edit. Grow mitres a sharp hull corner far out, NBH 012 matches shapely's limited mitre with no difference.
+- FloorsRun: a surface delegate giving null ends in a null error line, and a plan with no NBH runs as all. FloorLoad.RoadSurface: a config path gone from disk ends in the plain file error, as an issue line.
+- RevitFloorDocument.CreateToposolid duplicates the first type whatever its thickness, the report names it (R572).

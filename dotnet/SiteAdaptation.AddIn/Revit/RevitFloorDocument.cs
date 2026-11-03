@@ -183,37 +183,24 @@ namespace SiteAdaptation.AddIn.Revit
         public IReadOnlyList<ToposolidElement> Toposolids()
         {
             return tags.Collect().Where(item => item.Key is Toposolid).GroupBy(item => item.Key.UniqueId, StringComparer.Ordinal)
-                .Select(group => new ToposolidElement { UniqueId = group.Key, Tag = group.OrderByDescending(item => item.Value.Version).First().Value }).ToList();
+                .Select(group => new ToposolidElement { UniqueId = group.Key, Tag = group.OrderByDescending(item => item.Value.Version).First().Value, SubDivisions = ((Toposolid)group.First().Key).GetSubDivisionIds().Count }).ToList();
         }
 
-        // R572. Toposolid.Create(Document, IList<CurveLoop>, IList<XYZ>, ElementId, ElementId) of RevitAPI.dll 2024. A sub transaction, so a
-        // refusal takes back the new type and the toposolid and the floors stay in the one transaction of the flow
-        public string CreateToposolid(IList<double[]> boundary, IList<double[]> points, string typeName, string levelKey)
+        // R572. Toposolid.Create(Document, IList<CurveLoop>, IList<XYZ>, ElementId, ElementId) of RevitAPI.dll 2024, in the transaction of its
+        // own that FloorsRun starts after the floors committed. No regenerate here, the commit does it and takes its failure back alone
+        public ToposolidMade CreateToposolid(IList<double[]> boundary, IList<double[]> points, string typeName, string levelKey)
         {
-            using (var sub = new SubTransaction(document))
+            var loop = new CurveLoop();
+            for (int corner = 0; corner < boundary.Count; corner++)
             {
-                sub.Start();
-                try
-                {
-                    var loop = new CurveLoop();
-                    for (int corner = 0; corner < boundary.Count; corner++)
-                    {
-                        loop.Append(Line.CreateBound(Feet(boundary[corner]), Feet(boundary[(corner + 1) % boundary.Count])));
-                    }
-                    Toposolid made = Toposolid.Create(document, new List<CurveLoop> { loop }, points.Select(Feet).ToList(), ToposolidTypeOf(typeName), Id(levelKey));
-                    RunTiming.Measure(RunTiming.ModelRefresh, document.Regenerate);
-                    sub.Commit();
-                    return made.UniqueId;
-                }
-                catch
-                {
-                    if (sub.HasStarted() && !sub.HasEnded())
-                    {
-                        sub.RollBack();
-                    }
-                    throw;
-                }
+                loop.Append(Line.CreateBound(Feet(boundary[corner]), Feet(boundary[(corner + 1) % boundary.Count])));
             }
+            List<ToposolidType> types = new FilteredElementCollector(document).OfClass(typeof(ToposolidType)).Cast<ToposolidType>().ToList();
+            ToposolidType named = types.FirstOrDefault(type => type.Name == typeName);
+            ToposolidType from = named == null ? types.FirstOrDefault() ?? throw new InvalidOperationException("the document holds no toposolid type to duplicate for " + typeName) : null;
+            ElementId typeId = named != null ? named.Id : from.Duplicate(typeName).Id;
+            Toposolid made = Toposolid.Create(document, new List<CurveLoop> { loop }, points.Select(Feet).ToList(), typeId, Id(levelKey));
+            return new ToposolidMade { UniqueId = made.UniqueId, TypeDuplicatedFrom = from?.Name };
         }
 
         public void DeleteToposolid(string uniqueId)
@@ -246,18 +233,6 @@ namespace SiteAdaptation.AddIn.Revit
                 }
             }
             return found.ToArray();
-        }
-
-        private ElementId ToposolidTypeOf(string typeName)
-        {
-            List<ToposolidType> types = new FilteredElementCollector(document).OfClass(typeof(ToposolidType)).Cast<ToposolidType>().ToList();
-            ToposolidType named = types.FirstOrDefault(type => type.Name == typeName);
-            if (named != null)
-            {
-                return named.Id;
-            }
-            ToposolidType from = types.FirstOrDefault() ?? throw new InvalidOperationException("the document holds no toposolid type to duplicate for " + typeName);
-            return from.Duplicate(typeName).Id;
         }
 
         private static FloorReadBack Read(Floor floor)

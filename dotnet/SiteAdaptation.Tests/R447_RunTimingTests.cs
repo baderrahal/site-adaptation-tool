@@ -511,7 +511,7 @@ namespace SiteAdaptation.Tests
                 Assert.DoesNotContain("document.Regenerate()", source);
                 measured += source.Split(new[] { "RunTiming.Measure(RunTiming.ModelRefresh, document.Regenerate)" }, StringSplitOptions.None).Length - 1;
             }
-            Assert.Equal(12, measured);
+            Assert.Equal(11, measured);
 
             string model = File.ReadAllText(Path.Combine(revit, "RevitModel.cs"));
             Assert.Contains("RunTiming.Measure(RunTiming.Transactions, () => transaction.Commit())", model);
