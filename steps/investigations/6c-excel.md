@@ -66,7 +66,7 @@ Tool minus past, in mm.
 - UNKNOWN: whether the schedule or the IMC key model is the right past value on these plots. The majority rule of CLAUDE.md puts a plot the rule does not reproduce into the override list from the key models, and these 12 hold none. The schedule against the key was not compared in this round, past_all.csv is not in this worktree or the main folder's sample_output (SEARCHED by file name).
 - UNKNOWN: why 2301 and 2302 read VD4. Not traced in this round.
 
-Q395 and Q396 of steps/questions-open.md carry these for Bader.
+Q401 and Q402 of steps/questions-open.md carry these for Bader.
 
 ## Scripts
 
