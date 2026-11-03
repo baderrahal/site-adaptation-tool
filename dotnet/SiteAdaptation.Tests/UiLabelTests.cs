@@ -31,8 +31,8 @@ namespace SiteAdaptation.Tests
                     [Path.Combine(root, "dotnet", "SiteAdaptation.Common", "Review", "ClusterConfirmText.cs")] = "Review data",
                 });
 
-            Assert.Equal(new[] { "Ribbon", "Pane", "Button messages", "Set up site", "Review data", "Site Adaptation Rules", "Check table", "Update from report", "New project", "Help box", "How it works", "What the tool read", "Loader" }, list.Keys.ToArray());
-            Assert.Equal(new[] { "Ribbon", "Pane", "Button messages", "Set up site", "Review data", "Site Adaptation Rules", "Check table", "Update from report", "New project", "Help box", "How it works", "What the tool read", "Loader" }, list.Values.Where(window => window.Built).Select(window => window.Name).ToArray());
+            Assert.Equal(new[] { "Ribbon", "Pane", "Button messages", "Set up site", "Review data", "Site Adaptation Rules", "Check table", "Update from report", "New project", "Rule values", "Help box", "How it works", "What the tool read", "Loader" }, list.Keys.ToArray());
+            Assert.Equal(new[] { "Ribbon", "Pane", "Button messages", "Set up site", "Review data", "Site Adaptation Rules", "Check table", "Update from report", "New project", "Rule values", "Help box", "How it works", "What the tool read", "Loader" }, list.Values.Where(window => window.Built).Select(window => window.Name).ToArray());
             Assert.Equal(18, list["Ribbon"].Entries.Count);
             Assert.Contains(shown["Ribbon"], found => found.Text == "Update from report");
             Assert.Contains(shown["Pane"], found => found.Text == "Browse" && found.Where.EndsWith(".xaml", StringComparison.Ordinal));
@@ -189,7 +189,7 @@ namespace SiteAdaptation.Tests
             // and the folder of the override list (Q397)
             // R510 to R514 added 14: the row Position from, the section Position source and the section CAD and position file of Set up site
             // COORD-3NOV-A review added 11: the words that follow the source, the title of the file dialog, the rows Place and Typed origin to the plots, the help of Current files
-            Assert.Equal(301, chosen);
+            Assert.Equal(319, chosen);
             Assert.True(matched > 100, matched.ToString());
         }
 
@@ -251,6 +251,7 @@ namespace SiteAdaptation.Tests
             { "Update from report", "Update" },
             { "New project", "NewProject" },
             { "How it works", "HowItWorks" },
+            { "Rule values", "RuleValues" },
             { "Help box", "Help" },
             { "What the tool read", "ScanResults" },
             { "Loader", "Loader" },

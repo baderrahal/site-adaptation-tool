@@ -455,6 +455,7 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R497 Revit slog leaves input check.
 - R505 Windows match their boards.
 - R540 Help beside each step.
+- R541 Team changes rule values.
 
 ## 13-parameters-r460-up.md
 
