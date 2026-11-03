@@ -120,7 +120,7 @@ namespace SiteAdaptation.Tests
         {
             SetUpTarget target = Target(sheet: ParameterSheet.FromRows("old.xlsx", Sheet(new[] { "CASE", CaseGuid, "Text", "Floors, RVT Links", "7", "Yes" }, new[] { "Plot", NameGuid, "Text", "Floors", "5", "Yes" })));
             List<string> stops = SetUpPlanner.Stops(Template(), target);
-            Assert.Equal(new[] { "The parameter sheet binds CASE on Floors. Shared parameters are for the villa links only, so use the sheet of this version (R507)" }, stops);
+            Assert.Equal(new[] { "old.xlsx binds CASE on Floors. Shared parameters are for the villa links only, so set its Category to RVT Links in that file" }, stops);
         }
 
         private SetUpTarget Target(double slope = 0.5, ParameterSheet sheet = null)
@@ -849,6 +849,49 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
+        public void R508_a_press_that_only_removes_an_old_binding_says_so_and_steps_2_to_8_stay_done()
+        {
+            var calls = new List<string>();
+            var document = new FakeDocument(Template()) { Calls = calls };
+            var entity = new RecordingEntity(calls);
+            var settings = new ProjectSettings { ConfigFile = configPath, DryRunFirst = false };
+            Press(document, entity, settings, calls, HashA, FirstPress);
+            string held = entity.Json;
+            string site = File.ReadAllText(Path.Combine(work, SetUpRun.SiteFile));
+            ParameterState old = document.State.SharedParameters.Single(item => item.Name == "CASE");
+            old.Categories.Add("Detail Items");
+            calls.Clear();
+
+            RunOutcome outcome = Press(document, entity, settings, calls, HashA, FirstPress.AddDays(1), new FakeDialog());
+
+            Assert.Equal(RunEnd.Committed, outcome.End);
+            Assert.Equal("Removes the Detail Items binding of CASE.", outcome.Message);
+            Assert.Equal(new[] { "RVT Links" }, document.State.SharedParameters.Single(item => item.Name == "CASE").Categories);
+            Assert.Equal(held, entity.Json);
+            Assert.Equal(site, File.ReadAllText(Path.Combine(work, SetUpRun.SiteFile)));
+            Assert.All(Kinds(Pass(StepRun.From(SettingsJson.Read(entity.Json).LastRuns["1"], null), HashA, HashA)), kind => Assert.Equal(StepStateKind.Done, kind));
+        }
+
+        [Fact]
+        public void R508_a_removal_with_another_change_records_as_any_change_does()
+        {
+            var calls = new List<string>();
+            var document = new FakeDocument(Template()) { Calls = calls };
+            var entity = new RecordingEntity(calls);
+            var settings = new ProjectSettings { ConfigFile = configPath, DryRunFirst = false };
+            Press(document, entity, settings, calls, HashA, FirstPress);
+            string held = entity.Json;
+            document.State.SharedParameters.Single(item => item.Name == "CASE").Categories.Add("Detail Items");
+            document.State.Position = new SitePosition { EastM = 1, NorthM = 0, ElevationM = 0, AngleDeg = 0 };
+
+            RunOutcome outcome = Press(document, entity, settings, calls, HashA, FirstPress.AddDays(1), new FakeDialog());
+
+            Assert.Equal(RunEnd.Committed, outcome.End);
+            Assert.Equal("Removes the Detail Items binding of CASE.", outcome.Message);
+            Assert.NotEqual(held, entity.Json);
+        }
+
+        [Fact]
         public void R374_q158_site_json_and_the_entity_are_written_when_missing_with_no_element_set()
         {
             var calls = new List<string>();
@@ -1259,6 +1302,7 @@ namespace SiteAdaptation.Tests
                 Assert.NotNull(ParameterFile);
                 foreach (ParameterSpec item in parameters)
                 {
+                    State.SharedParameters.RemoveAll(found => found.Guid == item.Guid);
                     State.SharedParameters.Add(new ParameterState { Name = item.Name, Guid = item.Guid, Categories = item.Categories.ToList(), Group = item.Group });
                 }
             }

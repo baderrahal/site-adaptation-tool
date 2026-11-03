@@ -53,6 +53,12 @@ namespace SiteAdaptation.Common.SetUp
         // The names of the rows of Keep No
         public List<string> LeftOut { get; private set; } = new List<string>();
 
+        // R507. The rows button 7 fills that a sheet from before the rule still binds on Floors
+        public List<ParameterSpec> VillaRowsOnFloors
+        {
+            get { return Parameters.Where(item => item.FilledBy == PlaceVillasButton && item.Categories.Contains(FloorCategory)).ToList(); }
+        }
+
         // R506. The line under the pane row Shared parameters
         public string Counts
         {

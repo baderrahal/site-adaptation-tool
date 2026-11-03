@@ -29,6 +29,16 @@ namespace SiteAdaptation.Common.SetUp
         // R508. By category, in name order, the parameters a rebind takes off it
         public SortedDictionary<string, List<string>> TakenOff { get; set; } = new SortedDictionary<string, List<string>>(StringComparer.Ordinal);
 
+        // R508. Nothing to set but the removal of an old binding
+        public bool RemovalAlone
+        {
+            get
+            {
+                return !Units && !Location && !Position && !SurveyPoint && !BasePoint && !LevelBase && Levels.Count == 0 && LevelsToMake.Count == 0 && FloorTypes.Count == 0 && WallTypes.Count == 0
+                    && Parameters.Count > 0 && Parameters.All(item => TakenOff.Values.Any(names => names.Contains(item.Name)));
+            }
+        }
+
         public bool Any
         {
             get { return Units || Location || Position || SurveyPoint || BasePoint || LevelBase || Levels.Count > 0 || FloorTypes.Count > 0 || WallTypes.Count > 0 || Parameters.Count > 0; }
@@ -106,9 +116,9 @@ namespace SiteAdaptation.Common.SetUp
                 {
                     stops.Add(SetUpTexts.FloorsOwn(item.Name, ParameterSheet.FloorsButton));
                 }
-                if (item.Name != target.PlotParameter && item.FilledBy == ParameterSheet.PlaceVillasButton && item.Categories.Contains(ParameterSheet.FloorCategory))
+                if (item.Name != target.PlotParameter && target.Parameters.VillaRowsOnFloors.Contains(item))
                 {
-                    stops.Add(SetUpTexts.VillaRowOnFloors(item.Name, ParameterSheet.FloorCategory));
+                    stops.Add(SetUpTexts.VillaRowOnFloors(target.Parameters.Sheet, item.Name));
                 }
             }
             SetUpChanges changes = Changes(now, target);

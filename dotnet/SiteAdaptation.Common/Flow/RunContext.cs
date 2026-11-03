@@ -37,6 +37,10 @@ namespace SiteAdaptation.Common.Flow
         // The open transaction of the real run while Apply runs, else null, so a body writes the Settings entity of R367 inside it
         public IModelTransaction Transaction { get; internal set; }
 
+        // R508. Set by a body whose change touches nothing a later step reads: the run commits and the step keeps the run it holds, so a
+        // later record does not make the steps after it run again
+        public bool KeepsLastRun { get; set; }
+
         // R447. The timing of the real run, null with none. A worker ends after the flow returned, so its body names the window it shows
         // here, or the wait of a user would read as the wait of a worker
         internal RunTiming Timing { get; set; }

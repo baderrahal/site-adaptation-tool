@@ -139,6 +139,25 @@ namespace SiteAdaptation.Tests
             FileRowViewModel row = PaneRow(settings, probe);
             Assert.Equal("mine.xlsx", row.FileName);
             Assert.Equal(@"X:\mine.xlsx", probe.LastRead);
+            // Button 1 stops on it, so the row says why and shows no code name
+            Assert.True(row.Found);
+            Assert.Equal("mine.xlsx is not the parameter sheet of config, shared_parameters.xlsx, the one every button reads. Edit shared_parameters.xlsx instead", row.Note);
+        }
+
+        [Fact]
+        public void R507_a_sheet_from_before_the_rule_stays_green_with_the_reason_button_1_stops()
+        {
+            FileRowViewModel row = PaneRow(new ProjectSettings { ConfigFile = "cfg" }, new SheetProbe { Config = Sheet, Read = new SheetRead { Line = "11 parameters, 12 left out", Warning = "old sheet" } });
+            Assert.True(row.Found);
+            Assert.Equal("11 parameters, 12 left out", row.Hint);
+            Assert.Equal("old sheet", row.Note);
+        }
+
+        [Fact]
+        public void R506_a_refused_sheet_shows_its_reason_with_no_rule_id()
+        {
+            FileRowViewModel row = PaneRow(new ProjectSettings { ConfigFile = "cfg" }, new SheetProbe { Config = Sheet, Read = new SheetRead { Refused = "the sheet has no column Keep (R461)" } });
+            Assert.Equal("the sheet has no column Keep", row.Note);
         }
 
         private sealed class SheetProbe : IInputProbe

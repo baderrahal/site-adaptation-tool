@@ -96,9 +96,9 @@ namespace SiteAdaptation.Common.SetUp
         }
 
         // R507. A sheet from before the rule, it would bind the row on Floors again
-        public static string VillaRowOnFloors(string name, string floors)
+        public static string VillaRowOnFloors(string sheet, string name)
         {
-            return "The parameter sheet binds " + name + " on " + floors + ". Shared parameters are for the villa links only, so use the sheet of this version (R507)";
+            return sheet + " binds " + name + " on " + ParameterSheet.FloorCategory + ". Shared parameters are for the villa links only, so set its Category to " + ParameterSheet.LinkCategory + " in that file";
         }
 
         // The line under the check points at addin.position.revitCheckPointLimitMm, the key of its own of Q142 (W2)

@@ -434,7 +434,7 @@ namespace SiteAdaptation.Common.Flow
             }
             group?.Keep();
             var record = new RunRecord(context.RunId, context.InputHashes, issues, moved, failed);
-            if (context.Button > 0)
+            if (context.Button > 0 && !context.KeepsLastRun)
             {
                 state.Committed(context.Button, record);
             }

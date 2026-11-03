@@ -523,8 +523,8 @@ namespace SiteAdaptation.AddIn.Pane
             }
         }
 
-        // R506. The row Shared parameters shows the sheet button 1 reads, the one chosen, else the one config names, with its counts
-        // under it. A sheet that does not read is amber with its reason
+        // R506. The row Shared parameters shows the sheet of the project, the one chosen, else the one config names, with its counts under
+        // it. A sheet that does not read is amber with its reason. One button 1 would stop on stays green, as it is found, with the reason
         private void RefreshSheet()
         {
             FileRowViewModel row = InputRows.First(item => item.Keys.Contains(InputKeys.ParameterSheet));
@@ -542,11 +542,20 @@ namespace SiteAdaptation.AddIn.Pane
             }
             SheetRead read = row.Found ? probe.ReadSheet(path) : null;
             row.Hint = read?.Line ?? string.Empty;
-            row.ShowNote(read?.Refused ?? string.Empty);
+            string config = string.IsNullOrEmpty(chosen) ? path : probe.ConfigSheet(document.Settings.ConfigFile);
+            bool other = row.Found && !string.IsNullOrEmpty(chosen) && !string.IsNullOrEmpty(config) && !string.Equals(Path.GetFullPath(chosen), Path.GetFullPath(config), StringComparison.OrdinalIgnoreCase);
+            string note = read?.Refused ?? (other ? SetUpTexts.OtherSheet(Path.GetFileName(chosen), Path.GetFileName(config)) : read?.Warning);
+            row.ShowNote(NoRuleId(note));
             if (read?.Refused != null)
             {
                 row.Show(true, false, row.FileName, row.ToolTip);
             }
+        }
+
+        // The messages of the sheet end on a rule id for the log, a window shows no code name
+        private static string NoRuleId(string text)
+        {
+            return text == null ? string.Empty : System.Text.RegularExpressions.Regex.Replace(text, @"\s*\(R\d+\)$", string.Empty);
         }
 
         private void RefreshRow(FileRowViewModel row, string[] paths)

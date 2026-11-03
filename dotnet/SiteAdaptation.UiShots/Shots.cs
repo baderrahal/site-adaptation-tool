@@ -612,12 +612,12 @@ namespace SiteAdaptation.UiShots
 
         public string ConfigSheet(string configFile)
         {
-            return null;
+            return "Parameter sheet.xlsx";
         }
 
         public SheetRead ReadSheet(string path)
         {
-            return null;
+            return new SheetRead { Line = "11 parameters, 12 left out" };
         }
 
         public string VillaModeDefault(string configFile)
