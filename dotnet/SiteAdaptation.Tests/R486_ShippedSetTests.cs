@@ -404,7 +404,7 @@ namespace SiteAdaptation.Tests
         public void R486_save_takes_the_set_and_the_road_pick_is_active_once_save_has_it()
         {
             NewProjectViewModel model = Window(new ProjectSettings(), Set());
-            Assert.False(RoadRow(model).SurfacesEnabled);
+            Assert.True(RoadRow(model).SurfacesEnabled);
             model.Save();
             Assert.Equal(DesignBasis.Rev6, model.Result.ProjectMode);
             Assert.StartsWith(ProjectFolder, model.Result.ConfigFile);
@@ -473,13 +473,124 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R486_before_the_save_the_sheet_row_stays_as_it_is_and_after_it_reads_found()
+        public void R486_the_sheet_row_reads_found_before_the_save_and_after_it()
         {
             NewProjectViewModel model = Window(new ProjectSettings(), Set());
-            Assert.Equal(SetupState.Missing, model.Rows.Single(row => row.Row.Id == SetupRows.ParameterSheet).State);
+            Assert.Equal(SetupState.Found, model.Rows.Single(row => row.Row.Id == SetupRows.ParameterSheet).State);
             Assert.False(Directory.Exists(ProjectFolder));
             model.Save();
             Assert.Equal(SetupState.Found, SetupCheck.Run(model.Result, (path, folder) => File.Exists(path)).Rows.Single(item => item.Row.Id == SetupRows.ParameterSheet).State);
+        }
+
+        // The shipped config of the made up set with a grading file listed as no road, and a road folder of three files
+        private string RoadFolderWithNotRoad()
+        {
+            string path = Path.Combine(shipped, "config", "project.json");
+            JObject config = JObject.Parse(File.ReadAllText(path));
+            config["designBasis"]["roadLevel"] = new JObject { ["notRoad"] = new JObject { ["grading made up"] = "a grading file" } };
+            File.WriteAllText(path, config.ToString());
+            string folder = Path.Combine(root, "roads");
+            Directory.CreateDirectory(folder);
+            foreach (string stem in new[] { "area__road one", "area__road two", "grading made up" })
+            {
+                File.WriteAllText(Path.Combine(folder, stem + ".xml"), "<x/>");
+            }
+            return folder;
+        }
+
+        private static ProjectSettings WithRoadFolder(string folder)
+        {
+            var settings = new ProjectSettings();
+            settings.Inputs[InputNames.RoadSurface] = new SettingsInput { Path = folder };
+            return settings;
+        }
+
+        [Fact]
+        public void R486_R485_R492_before_the_save_the_road_pick_works_off_the_shipped_config_and_leaves_out_a_not_road_name()
+        {
+            string folder = RoadFolderWithNotRoad();
+            IReadOnlyList<string> offered = null;
+            var model = new NewProjectViewModel(WithRoadFolder(folder), "Site", new SavedStart[0], null, (path, isFolder) => File.Exists(path), null,
+                path => File.Exists(path) ? File.ReadAllText(path) : null, null, true, (inFolder, effective) => { offered = inFolder; return new[] { "area__road two" }; }, Set());
+            SetupRowViewModel row = RoadRow(model);
+            Assert.True(row.SurfacesEnabled);
+            model.PickSurfaces();
+            Assert.Equal(new[] { "area__road one", "area__road two" }, offered);
+            Assert.False(Directory.Exists(work));
+        }
+
+        [Fact]
+        public void R486_before_the_save_the_sheet_row_reads_found_with_the_shipped_sheet_no_stop_and_four_of_four()
+        {
+            // Every other file is there, so the sheet row alone decides the count and the stop
+            var settings = new ProjectSettings();
+            foreach (string name in InputNames.All.Where(item => item != InputNames.ParameterSheet))
+            {
+                settings.Inputs[name] = new SettingsInput { Path = Path.Combine(root, name) };
+            }
+            var model = new NewProjectViewModel(settings, "Site", new SavedStart[0], null, (path, isFolder) => true, null, path => File.Exists(path) ? File.ReadAllText(path) : null, null, true, null, Set());
+            SetupRowViewModel sheet = model.Rows.Single(row => row.Row.Id == SetupRows.ParameterSheet);
+            Assert.Equal(SetupState.Found, sheet.State);
+            Assert.Equal("made_up_sheet.xlsx", sheet.FileName);
+            Assert.False(model.StopShown);
+            Assert.Equal(string.Empty, model.StopLine);
+            Assert.Equal("4 of 4", model.Ready);
+            Assert.False(Directory.Exists(work));
+        }
+
+        [Fact]
+        public void R486_a_pick_made_before_the_save_is_kept_and_the_saved_config_reads_ready()
+        {
+            string folder = RoadFolderWithNotRoad();
+            var model = new NewProjectViewModel(WithRoadFolder(folder), "Site", new SavedStart[0], null, (path, isFolder) => File.Exists(path), null,
+                path => File.Exists(path) ? File.ReadAllText(path) : null, null, true, (inFolder, effective) => new[] { "area__road two" }, Set());
+            model.PickSurfaces();
+            model.Save();
+            Assert.Equal(new[] { "area__road two" }, model.Result.RoadSurfaces);
+            Assert.StartsWith(ProjectFolder, model.Result.ConfigFile);
+            RoadPickState after = RoadPickState.Of(model.Result, File.ReadAllText);
+            Assert.Equal(RoadPickWhy.Ready, after.Why);
+            Assert.Equal(new[] { "area__road two" }, after.Effective);
+            NewProjectViewModel again = Window(model.Result, Set());
+            Assert.True(RoadRow(again).SurfacesEnabled);
+        }
+
+        [Fact]
+        public void R486_with_no_set_a_refused_name_or_a_past_job_the_road_pick_stays_grey()
+        {
+            Assert.False(RoadRow(Window(new ProjectSettings(), new ShippedSet(Path.Combine(root, "none"), work, "Site A", true))).SurfacesEnabled);
+            Assert.False(RoadRow(Window(new ProjectSettings(), Set("a:b"))).SurfacesEnabled);
+            string past = Path.Combine(root, "past.json");
+            File.WriteAllText(past, new JObject { ["designBasis"] = new JObject { ["mode"] = "pastMade", ["modes"] = new JArray(DesignBasis.Rev6, "pastMade") } }.ToString());
+            NewProjectViewModel pastWindow = Window(new ProjectSettings { ConfigFile = past, ProjectMode = "pastMade" }, Set());
+            Assert.False(RoadRow(pastWindow).SurfacesEnabled);
+            Assert.Equal(RoadSurfacesText.PastJob, RoadRow(pastWindow).SurfacesTip);
+        }
+
+        [Fact]
+        public void R486_a_sheet_picked_in_the_window_before_the_save_still_wins_over_the_shipped_one()
+        {
+            string other = Path.Combine(root, "other sheet.xlsx");
+            File.WriteAllText(other, "x");
+            var picked = new NewProjectViewModel(new ProjectSettings(), "Site", new SavedStart[0], null, (path, isFolder) => File.Exists(path), new FixedPicker(other),
+                path => File.Exists(path) ? File.ReadAllText(path) : null, null, true, null, Set());
+            picked.Browse(picked.Rows.Single(row => row.Row.Id == SetupRows.ParameterSheet));
+            picked.Save();
+            Assert.Equal(other, picked.Result.Inputs[InputNames.ParameterSheet].Path);
+        }
+
+        private sealed class FixedPicker : IPathPicker
+        {
+            private readonly string path;
+
+            public FixedPicker(string path)
+            {
+                this.path = path;
+            }
+
+            public string File(string title) { return path; }
+            public string Folder() { return null; }
+            public string Save(string title) { return null; }
         }
 
         [Fact]

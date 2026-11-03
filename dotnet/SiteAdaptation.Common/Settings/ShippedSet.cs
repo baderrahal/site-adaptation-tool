@@ -82,6 +82,33 @@ namespace SiteAdaptation.Common.Settings
             return ProjectModes.NewProject(ProjectModes.ReadConfig(ShippedConfig, readText));
         }
 
+        // What Take will name, read from the shipped files where they are. Nothing is copied or written, so the window can show the road pick and the sheet row before Save.
+        // Null where the shipped files do not read, Take then gives the line of the failure at Save
+        public ProjectSet Preview(Func<string, string> readText)
+        {
+            try
+            {
+                string configPath = ShippedConfig;
+                JObject config = JObject.Parse(readText(configPath));
+                string profile = config["profile"]?.Type == JTokenType.String ? (string)config["profile"] : null;
+                if (profile == null)
+                {
+                    return null;
+                }
+                string rulesPath = Path.GetFullPath(Path.Combine(shipped, profile));
+                JToken level = JObject.Parse(readText(rulesPath))["levelProfiles"]?["default"];
+                if (level == null || level.Type != JTokenType.String)
+                {
+                    return null;
+                }
+                return new ProjectSet { ConfigFile = configPath, RulesFile = rulesPath, LevelProfile = (string)level, ParameterSheet = SetUp.ParameterSheet.PathOf(configPath, config) };
+            }
+            catch (Exception failure) when (failure is IOException || failure is Newtonsoft.Json.JsonException || failure is ArgumentException || failure is NullReferenceException)
+            {
+                return null;
+            }
+        }
+
         // The set in the project folder, copied once, by a name next to it and a rename, so a copy that fails leaves nothing that reads as a set. Throws what the disk throws
         public ProjectSet Take(Func<string, string> readText)
         {
