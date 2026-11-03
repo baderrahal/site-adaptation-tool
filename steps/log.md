@@ -2,6 +2,29 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Lane B FIX-3NOV-B end, 2026-11-03, undo in Revit
+
+Goal:
+- Finish task 4, the undo check of R499 in Revit
+
+Done:
+- steps/investigations/undo-3nov.md. steps/dryrun-3nov.md: the step 1 line (Q415) and the undo line
+
+Checked:
+- One undo and one redo on 9, one undo on 3, read in the pane and the journal. Records only, no code
+
+Remains:
+- 4 not proven, it stopped on picks.json of the copy. Save prompt after 3, 4, 9 alone
+
+Known bugs:
+- none new
+
+Next:
+- Known issues, REPORT-3NOV-B, 6b
+
+Your turn:
+- Opened none. Closed none. See steps/questions-open.md
+
 ## Lane C known issues, 2026-11-03, FIX-KNOWN-3NOV-C
 
 Goal:

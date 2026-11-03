@@ -11,7 +11,7 @@ About 3 minutes of wait in all, plus your talking. The seconds are from one rehe
 | # | Do | Wait |
 |---|---|---|
 | 1 | Open C:\SA-demo\SA-dryrun3nov.rvt. On each security box press Load Once | 2 to 3 min, open before you start |
-| 2 | Step 1 reads Done. Say: step 1 set coordinates, levels, types and shared parameters from the CAD files. Leave Scope on Whole project | 8 s when it ran |
+| 2 | Step 1 reads Done. Say: step 1 set the position from the position file, and levels, types and shared parameters from the setup (Q415). Leave Scope on Whole project | 8 s when it ran |
 | 3 | Scroll the pane to Input files, show the green rows, Plot fronts (curb lines) is read only | |
 | 4 | Press Run 2 Read data, then Apply on the dry run box | 100 s, the picks window at 49 s |
 | 5 | In What the tool read press Use the proposed for all, then Use these picks | |
@@ -37,7 +37,7 @@ Say: "These are overlaps of two neighbouring plots, hairline, under 1.5 mm, plus
 
 ## What not to do live
 
-- No Ctrl+Z. Keys and the Undo button from the driver changed no row and took back no wall, so what an undo does in Revit is not proven (R499 holds in tests only, Q382).
+- No Ctrl+Z live. Proven after the dry run (R499, RAN on a copy): one undo takes the last press back and its rows, one redo brings them again. The first test here was void, a just opened model has nothing to undo.
 - No click anywhere while the Revit box is open. A press waits behind it and fires after OK, a second 5 Floors and ramps opened in the rehearsal. If it does, press Cancel on it.
 - Do not press Neighbourhood before step 2. The list is empty until step 2 ends, and step 2 then stops on "no neighbourhood is chosen". If it happens, open the fallback: leaving by Whole project was not tried, a reopen did fill the list.
 - Do not stay on Level 1 after the build. It shows nothing but the elevation marks, the floors stand above its view range. Use the 3D view.
@@ -90,5 +90,5 @@ To run again from step 2: copy Documents\SiteAdaptation\lane_b_check\p3nov_check
 - Ran through the pane, not the test host: 1,003 floors, 485 warnings shown, 688 accepted, 336 villas (no mass remade), Run complete. Walls by the row and report, read once. A driver fault stopped step 5 at its box and cost 12 minutes, not the tool.
 - A second pass from the saved kit stopped at step 2, which found Q413, so steps 2 to 9 were run once end to end. The kit was then rebuilt with step 1 run.
 - Inputs: same 44 files by SHA-256 at 15:12 (RAN). C:\SA-demo\config and rules refreshed from main before the run, backup in lane_b_check\p3nov_check\backup, the old config lacked the keys of PR 153.
-- Not reached: what an undo does in Revit, undo entries per run, whether a close asks to save after 3, 4 or 9. Clicking a villa in the 3D view: selected here by Select by ID, the click itself not tried, if it misses use Manage, Select by ID.
+- Not reached in the rehearsal: whether a close asks to save after 3, 4 or 9. Undo: steps/investigations/undo-3nov.md. Clicking a villa in the 3D view: selected here by Select by ID, the click itself not tried, if it misses use Manage, Select by ID.
 - File dialogs took 30 s to 60 s late in the run, the machine was also under other load, so no Browse live.
