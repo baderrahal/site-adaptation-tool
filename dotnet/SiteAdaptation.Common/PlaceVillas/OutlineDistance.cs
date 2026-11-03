@@ -117,7 +117,8 @@ namespace SiteAdaptation.Common.PlaceVillas
         // not keo_file of the rules, which gives DP4 for a VD4 that links a VD4 file. A plot with no prototype, or a file name of no unit, goes by its own unit
         public static FootprintRow Row(string plot, IReadOnlyList<double[]> placedBase, IEnumerable<double[][]> blocks, LightModeConfig config, string prototype = null, string unit = null)
         {
-            double[] middle = Middle(placedBase);
+            // The centre of the area, a mean of the corners moves with their count while the house stays put
+            double[] middle = RingMath.Centroid(placedBase);
             double[][] block = blocks.Where(outline => outline.Length >= 3 && RingMath.Holds(outline, middle))
                 .OrderBy(outline => Distance(Middle(outline), middle)).FirstOrDefault();
             if (block == null)
