@@ -183,7 +183,8 @@ namespace SiteAdaptation.Tests
             // SPEED-2NOV-C added 1, the line under the row Prototypes for files older than the running Revit (R496)
             // Q158 added 1, the short line of a grey Apply
             // FIX-3NOV-B added 1, the record of a step that did not reach the model (R498)
-            Assert.Equal(252, chosen);
+            // R505 added 1, the end of the found text of a file with external references
+            Assert.Equal(253, chosen);
             Assert.True(matched > 100, matched.ToString());
         }
 

@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
 using Xunit;
 
@@ -170,6 +171,84 @@ namespace SiteAdaptation.Tests
             Assert.Contains("SA.Mark.StatusMissing", xaml);
             int at = xaml.IndexOf("IsMissing", StringComparison.Ordinal);
             Assert.DoesNotContain("Fill=\"{StaticResource SA.Warn}\"", xaml.Substring(at, 600));
+        }
+
+        [Fact]
+        public void R505_the_selected_text_of_a_combo_clears_the_arrow_and_ends_with_an_ellipsis()
+        {
+            string theme = Theme;
+            Assert.Matches("x:Key=\"SA.Pad.Combo\">8,0,24,0<", theme);
+            string combo = Style(theme, "SA.Pane.Combo");
+            Assert.Contains("<ContentPresenter IsHitTestVisible=\"False\" Margin=\"{StaticResource SA.Pad.Combo}\"", combo);
+            Assert.Matches("(?s)<ContentPresenter.Resources>.*TextTrimming\" Value=\"CharacterEllipsis\"", combo);
+        }
+
+        [Fact]
+        public void R505_team_check_of_review_data_keeps_not_checked_whole()
+        {
+            Assert.Matches("x:Key=\"SA.Grid.ReviewMirror\">72<", Theme);
+            string xaml = Addin("ReviewData", "ReviewDataWindow.xaml");
+            Assert.Equal(2, Regex.Matches(xaml, "SA.Grid.ReviewMirror").Count);
+            int chip = xaml.IndexOf("Text=\"{Binding Check}\"", StringComparison.Ordinal);
+            Assert.Contains("Property=\"Margin\" Value=\"{StaticResource SA.Gap.None}\"", xaml.Substring(chip, 400));
+        }
+
+        [Fact]
+        public void R505_the_tool_value_column_of_the_check_table_has_a_width_of_its_own_in_the_head_and_the_rows()
+        {
+            string theme = Theme;
+            Assert.Matches("x:Key=\"SA.Grid.CheckTool\">120<", theme);
+            Assert.Matches("x:Key=\"SA.Grid.CheckNbh\">48<", theme);
+            Assert.Matches("x:Key=\"SA.Grid.CheckPlot\">64<", theme);
+            string xaml = Addin("CheckTable", "CheckTableWindow.xaml");
+            Assert.Equal(2, Regex.Matches(xaml, "<ColumnDefinition Width=\"\\{StaticResource SA.Grid.CheckTool\\}\" />").Count);
+            Assert.DoesNotContain("CheckType}\"/><ColumnDefinitionWidth=\"*\"", xaml.Replace(" ", "").Replace("\r", "").Replace("\n", ""));
+        }
+
+        [Fact]
+        public void R505_a_long_file_name_of_new_project_is_cut_by_the_text_with_an_ellipsis()
+        {
+            string xaml = Addin("NewProject", "NewProjectWindow.xaml");
+            Assert.DoesNotContain("<ColumnDefinition Width=\"Auto\" MaxWidth", xaml);
+            Assert.Matches("MaxWidth=\"\\{StaticResource SA.Size.SetupFileName\\}\"[^>]*TextTrimming=\"CharacterEllipsis\" Text=\"\\{Binding FileName\\}\" ToolTip=\"\\{Binding ToolTip\\}\"", Regex.Replace(xaml, "\\s+", " "));
+        }
+
+        private static string ScanWith(params string[] notRead)
+        {
+            var checks = new Newtonsoft.Json.Linq.JArray();
+            foreach (string source in notRead)
+            {
+                checks.Add(new Newtonsoft.Json.Linq.JObject { ["what"] = "notRead", ["source"] = source, ["plot"] = "", ["value"] = "x" });
+            }
+            return new Newtonsoft.Json.Linq.JObject
+            {
+                ["inputs"] = new Newtonsoft.Json.Linq.JArray { new Newtonsoft.Json.Linq.JObject { ["role"] = "scanCad:1", ["name"] = "site.dwg" } },
+                ["rows"] = new Newtonsoft.Json.Linq.JArray { new Newtonsoft.Json.Linq.JObject { ["kind"] = "cadLayer", ["source"] = "site.dwg|A", ["found"] = "4 closed outlines, 6 texts, 1 blocks" } },
+                ["checks"] = checks,
+                ["conflicts"] = new Newtonsoft.Json.Linq.JArray(),
+            }.ToString();
+        }
+
+        [Fact]
+        public void R505_a_file_with_only_xref_checks_reads_and_says_how_many_references_were_not_read()
+        {
+            var settings = new SiteAdaptation.Common.Settings.ProjectSettings();
+            var file = SiteAdaptation.Common.Scan.ScanView.Read(ScanWith("site.dwg|xref a", "site.dwg|xref b", "site.dwg|xref c"), settings).Files.Single();
+            Assert.Equal("Read", file.Status);
+            Assert.EndsWith("External references not read: 3.", file.Found);
+            Assert.StartsWith("1 layers, 4 closed outlines", file.Found);
+        }
+
+        [Fact]
+        public void R505_a_file_with_a_depth_limit_a_cycle_or_layer_pairs_check_stays_not_read()
+        {
+            var settings = new SiteAdaptation.Common.Settings.ProjectSettings();
+            foreach (string source in new[] { "site.dwg|depth limit", "site.dwg|cycle", "site.dwg|layer pairs" })
+            {
+                var file = SiteAdaptation.Common.Scan.ScanView.Read(ScanWith("site.dwg|xref a", source), settings).Files.Single();
+                Assert.Equal("Not read", file.Status);
+            }
+            Assert.DoesNotContain("External", SiteAdaptation.Common.Scan.ScanView.Read(ScanWith(), settings).Files.Single().Found);
         }
     }
 }

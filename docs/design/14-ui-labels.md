@@ -670,6 +670,7 @@ The window What the tool read of Lane C SCAN-UI, word for word from docs/design/
 - `<n> files`
 - `<n> layers, <n> closed outlines, <n> texts, <n> blocks` CHOSEN, the board gives two shorter lines
 - `<n> villa type sources` CHOSEN, what an Excel or PDF file gave
+- `External references not read: <n>.` CHOSEN, the end of the What it found text of a file with external references the scan does not follow, the file still reads
 - `<name> from <name>`
 - `<name> is not clear`
 - `No source matches your prototype names on enough plots. The best covers <n> of <n>.`

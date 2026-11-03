@@ -32,6 +32,7 @@ namespace SiteAdaptation.Common.Scan
 
         public const string FoundCad = "<n> layers, <n> closed outlines, <n> texts, <n> blocks";
         public const string FoundSources = "<n> villa type sources";
+        public const string XrefsNotRead = "External references not read: <n>.";
 
         public const string ChoiceFrom = "<name> from <name>";
 
