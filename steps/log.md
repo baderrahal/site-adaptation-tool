@@ -47,7 +47,7 @@ Next:
 - Lane D tick after its merge, then Lane done
 
 Your turn:
-- Closed: Q415 Pane lines say more than is built. Opened: none
+- Opened and closed: none. Q415 Pane lines say more than is built stays open, narrowed to the config keys Lane A cites
 - Open count and titles: steps/questions-open.md
 
 ## Lane C RULES-3NOV-C, 2026-11-04, the table of rule values
