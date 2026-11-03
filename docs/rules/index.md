@@ -380,6 +380,8 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R457 Neighbourhood list from the read.
 - R458 Revit slog leaves step hash.
 - R459 Step accepts known warnings.
+- R498 Every step records its run.
+- R499 Undo takes step back.
 
 ## 10-addin-r407-up.md
 
@@ -445,8 +447,6 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R495 Check rows sort and filter.
 - R496 Pane warns on old prototypes.
 - R497 Revit slog leaves input check.
-- R498 Every step records its run.
-- R499 Undo takes step back.
 
 ## 13-parameters-r460-up.md
 
