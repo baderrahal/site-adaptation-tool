@@ -36,8 +36,11 @@ namespace SiteAdaptation.Common.SetUp
         // R514. cad, or typed for the site R513 builds from typed values
         public string Source { get; set; } = SiteSources.Cad;
 
-        // R512. The box of the plot outlines, least east, most east, least north, most north, null on a typed site
+        // R512, R513. The box of the plot outlines, least east, most east, least north, most north, null on a typed site where no plots read
         public double[] PlotBox { get; set; }
+
+        // R513. coordinates.typedOffBoxLimitM on a typed site
+        public double? OffBoxLimitM { get; set; }
     }
 
     // R455. The site position from CAD. The shared origin is the centre of the box of every plot outline, rounded to
@@ -203,8 +206,9 @@ namespace SiteAdaptation.Common.SetUp
         public static CoordinateRead Run(RunContext context, IReadOnlyList<RunInput> inputs, IReadOnlyDictionary<string, string> roles, string settingsInput, WorkerDocument document, Func<WorkerRequest, string, WorkerAnswer> worker, string projectMode = null)
         {
             string configPath = context.Inputs.FirstOrDefault(input => input.Name == settingsInput)?.Path ?? throw new InvalidOperationException("the run names no " + settingsInput + " file");
-            string output = Path.Combine(context.WorkFolder, "crs_" + context.RunId);
-            WorkerRequest request = Make(inputs, roles, configPath, context.RunId + "-crs", output, document, AddinConfig.Load(configPath).WorkerTimeLimitS(Command), projectMode);
+            string runId = FreeRunId(context);
+            string output = Path.Combine(context.WorkFolder, "crs_" + runId);
+            WorkerRequest request = Make(inputs, roles, configPath, runId, output, document, AddinConfig.Load(configPath).WorkerTimeLimitS(Command), projectMode);
             if (request.Inputs.All(input => input.Role != BaseplanRole))
             {
                 throw new NoBaseplanException();
@@ -221,6 +225,17 @@ namespace SiteAdaptation.Common.SetUp
                 throw new InvalidOperationException("the worker command " + Command + " wrote no " + OutputFile);
             }
             return CoordinateRead.Parse(JObject.Parse(WorkFiles.ReadText(path)));
+        }
+
+        // R513. Use CAD reads again within one press, and the launch refuses a run id it holds a log of (WorkerLaunch)
+        private static string FreeRunId(RunContext context)
+        {
+            string runId = context.RunId + "-crs";
+            for (int read = 2; System.IO.File.Exists(WorkerFiles.LogPath(context.WorkFolder, runId)); read++)
+            {
+                runId = context.RunId + "-crs" + read.ToString(CultureInfo.InvariantCulture);
+            }
+            return runId;
         }
 
         private static WorkerFile File(string role, string path)

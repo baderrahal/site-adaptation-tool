@@ -206,6 +206,11 @@ namespace SiteAdaptation.Tests
             File.Delete(Path.Combine(root, "protos", Prototype));
             Dictionary<string, CheckLine> got = Run().Lines.ToDictionary(line => line.Input);
             Assert.Equal(new[] { "missing", "pos.json is not there" }, new[] { got["position file"].Status, got["position file"].Text });
+            // R511. A new project takes its position from CAD, the same line as the Python of R412
+            JObject held = JObject.Parse(File.ReadAllText(Path.Combine(config, "project.json")));
+            held["coordinates"] = new JObject { ["newProjectSource"] = "cad" };
+            File.WriteAllText(Path.Combine(config, "project.json"), held.ToString());
+            Assert.Equal(new[] { "ok", "not asked, a new project takes its position from CAD" }, Run().Lines.Where(line => line.Input == "position file").Select(line => new[] { line.Status, line.Text }).Single());
             Assert.Equal(new[] { "does not fit", "prototype_offsets.json cannot be read as a JSON object" }, new[] { got["villa offsets"].Status, got["villa offsets"].Text });
             Assert.Equal(new[] { "does not fit", "a.xlsx cannot be read as a workbook" }, new[] { got["Excel dlus dataBook.rev9.dlus"].Status, got["Excel dlus dataBook.rev9.dlus"].Text });
             Assert.Equal(new[] { "missing", "s1.xlsx is not there" }, new[] { got["Schedule N1"].Status, got["Schedule N1"].Text });
@@ -295,6 +300,8 @@ namespace SiteAdaptation.Tests
                 }
             }
             merged["addin"]["position"]["file"] = Path.Combine(work, "pos.json");
+            // The made up project asks for its file, the test of R511 says it does not
+            ((JObject)merged["coordinates"]).Remove("newProjectSource");
             merged["addin"]["readData"]["dataBookFolder"] = Path.Combine(work, "data_book");
             merged["addin"]["workerTimeLimitS"] = JObject.Parse(File.ReadAllText(WorkerRunTests.RepoConfig()))["addin"]["workerTimeLimitS"];
             File.WriteAllText(Path.Combine(config, "project.json"), merged.ToString());

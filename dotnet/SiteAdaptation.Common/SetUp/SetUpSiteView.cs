@@ -15,10 +15,13 @@ namespace SiteAdaptation.Common.SetUp
         // R510. The place a blank model holds, named as what the template gave, null when there is none or the model holds coordinates
         public string TemplatePlaceLine { get; set; }
 
-        // R513. Why CAD gives no usable coordinates, one line, null when it does or is not asked
-        public string NoCadLine { get; set; }
+        // R512. Why the check against the position file did not run, null when it ran or is not asked
+        public string CheckLine { get; set; }
 
-        // R514. cad, positionFile or typed, null while no usable source is chosen
+        // R513. Why no source gives usable coordinates, one line, null when one does
+        public string NoSourceLine { get; set; }
+
+        // R514. cad, positionFile or typed, null while no usable source is chosen. The window words its intro and its check table by it and asks for the site drawing only under CAD
         public string PositionSource { get; set; }
 
         // R512. CAD beside the position file, empty unless both are there

@@ -140,6 +140,9 @@ def header_texts(book, sheet, count):
 
 def position_line(settings, run):
     name = "position file"
+    # R511. A new project takes its position from CAD and the file is only a check, so its absence is no fault
+    if get(settings, "coordinates.newProjectSource") == "cad":
+        return line(name, OK, "not asked, a new project takes its position from CAD")
     block = get(settings, "addin.position")
     path = block.get("file") if isinstance(block, dict) else None
     if not isinstance(path, str) or not path.lower().endswith(".json"):

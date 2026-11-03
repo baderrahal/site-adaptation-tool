@@ -29,6 +29,38 @@ namespace SiteAdaptation.Tests
             return view;
         }
 
+        // R441, R513. A position file or typed values never wait for the tick of a site drawing, else a setup with no baseplan row is a dead end
+        [Theory]
+        [InlineData("positionFile", true)]
+        [InlineData("typed", true)]
+        [InlineData("cad", false)]
+        public void R513_the_site_drawing_gate_asks_only_while_the_source_is_cad(string source, bool opens)
+        {
+            SetUpSiteView view = Shots.SampleSetUpView(true, true);
+            view.PositionSource = source;
+            view.CurrentFiles = new List<CurrentFileRow> { new CurrentFileRow { Input = InputNames.Sales, FileName = "plot list.xlsx", Current = false } };
+            var model = new SetUpSiteViewModel(view);
+
+            Assert.Equal(opens, model.CanApply);
+            Assert.Equal(!opens, model.NoSiteShown);
+        }
+
+        // Q422. The words of the window follow the source
+        [Theory]
+        [InlineData("cad", "from the CAD drawings", "Check points from CAD", "CAD")]
+        [InlineData("positionFile", "from the position file", "Check points from the position file", "Position file")]
+        [InlineData("typed", "typed here", "Check points from the typed values", "Typed")]
+        [InlineData(null, "once a source is chosen", "Check points", "CAD")]
+        public void R514_the_intro_and_the_head_of_the_check_points_follow_the_source(string source, string intro, string title, string column)
+        {
+            SetUpSiteView view = Shots.SampleSetUpView(true, true);
+            view.PositionSource = source;
+            var model = new SetUpSiteViewModel(view);
+            Assert.Contains(intro, model.IntroLine);
+            Assert.Equal(title, model.CheckTitle);
+            Assert.Equal(column, model.CheckColumn);
+        }
+
         // R510, R513. The three ways to a site position, handed to Common with no click, and the plain lines of the view shown as they are
         [Fact]
         public void R513_the_session_hands_each_source_to_common_and_a_stop_keeps_apply_off()
@@ -36,8 +68,8 @@ namespace SiteAdaptation.Tests
             var picks = new List<SiteSourcePick>();
             SetUpSiteView blank = Shots.SampleSetUpView(true, true);
             blank.NoCoordinatesLine = "This model has no site coordinates.";
-            blank.NoCadLine = "The pane names no baseplan drawing, so the tool has no coordinates from CAD.";
-            blank.Stops = new List<string> { blank.NoCadLine };
+            blank.NoSourceLine = "The pane names no baseplan drawing, so the tool has no coordinates from CAD.";
+            blank.Stops = new List<string> { blank.NoSourceLine };
             string file = null;
             var session = new SetUpSiteSession(blank, new SetUpSiteCallbacks
             {
@@ -49,7 +81,7 @@ namespace SiteAdaptation.Tests
             }, () => null, () => file);
 
             Assert.True(session.Model.NoCoordinatesShown);
-            Assert.True(session.Model.NoCadShown);
+            Assert.True(session.Model.NoSourceShown);
             Assert.False(session.Model.CanApply);
 
             session.PickPosition();
@@ -62,14 +94,14 @@ namespace SiteAdaptation.Tests
 
             session.Model.TypedEast = "300100.5";
             session.Model.TypedNorth = "2400200.25";
-            session.Model.TypedAngle = "2.5";
+            session.Model.TypedAngle = "0";
             session.UseTyped();
             Assert.Equal(SiteSources.Typed, picks[0].Source);
             Assert.Equal(300100.5, picks[0].EastM);
             Assert.Equal(2400200.25, picks[0].NorthM);
-            Assert.Equal(2.5, picks[0].AngleDeg);
+            Assert.Equal(0.0, picks[0].AngleDeg);
             Assert.DoesNotContain(SetUpTexts.TypedNotNumbers, session.Model.StopsLine);
-            Assert.False(session.Model.NoCadShown);
+            Assert.False(session.Model.NoSourceShown);
             Assert.Equal("300100.5", session.Model.TypedEast);
 
             file = @"C:\Sample\position.json";
@@ -208,7 +240,7 @@ namespace SiteAdaptation.Tests
             var model = new SetUpSiteViewModel(Shots.SampleSetUpView(true, true));
 
             Assert.Equal(new[] { "Survey point", "Project base point", "Levels", "Floor types and wall types", "Shared parameters", "Units" }, model.Now.Select(row => row.Label));
-            Assert.Equal(new[] { "Coordinate system", "Survey point", "Angle to true north", "Levels", "Floor types", "Ramp slope", "Wall types", "Shared parameters", "Units" },
+            Assert.Equal(new[] { "Position from", "Coordinate system", "Survey point", "Angle to true north", "Levels", "Floor types", "Ramp slope", "Wall types", "Shared parameters", "Units" },
                 model.WillSet.Select(row => row.Label));
             SetUpRowViewModel floor = model.WillSet.Single(row => row.Label == "Floor types");
             Assert.Equal("Generic 150mm, yard, Flat Ramps, and one Ramps type per slope below", floor.Value);

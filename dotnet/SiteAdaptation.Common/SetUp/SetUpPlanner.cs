@@ -131,10 +131,21 @@ namespace SiteAdaptation.Common.SetUp
             {
                 stops.AddRange(target.Cad.Systems.Stops);
             }
-            // R513. No usable CAD and nothing chosen yet, so Apply stays off and no position is ever set silently
-            if (target.CadProblem != null)
+            // R513. No usable source and nothing chosen yet, so Apply stays off and no position is ever set silently
+            if (target.SourceProblem != null)
             {
-                stops.Add(target.CadProblem);
+                stops.Add(target.SourceProblem);
+            }
+            // R513. A typed origin far off the plots is a slip of a digit, the one fault no check row can see
+            double? off = TypedOff(target);
+            if (off.HasValue && target.Cad.OffBoxLimitM.HasValue && off.Value > target.Cad.OffBoxLimitM.Value)
+            {
+                stops.Add(SetUpTexts.TypedOffBoxStop(off.Value, target.Cad.OffBoxLimitM.Value));
+            }
+            string placed = SiteSources.PlacedStop(now, target, changes);
+            if (placed != null)
+            {
+                stops.Add(placed);
             }
             return stops;
         }
@@ -144,12 +155,24 @@ namespace SiteAdaptation.Common.SetUp
         {
             bool plotHasGuid = target.Parameters.Parameters.Any(item => item.Name == target.PlotParameter && item.Guid != null);
             List<string> waiting = target.PlotParameter == null || plotHasGuid ? new List<string>() : new List<string> { SetUpTexts.PlotWaits(target.PlotParameter) };
+            // R513. Off the box and under the limit warns and stops nothing
+            double? off = TypedOff(target);
+            if (off.HasValue && off.Value > 0 && !(target.Cad.OffBoxLimitM.HasValue && off.Value > target.Cad.OffBoxLimitM.Value))
+            {
+                waiting.Add(SetUpTexts.TypedOffBoxWarning(off.Value));
+            }
             // R454. The coordinate system each CAD input states, a file that states none listed and never a stop (Q325)
             if (target.Cad != null)
             {
                 waiting.AddRange(target.Cad.Systems.Lines);
             }
             return waiting;
+        }
+
+        // R513. How far a typed origin lies off the box of the plots in metres, null on another source or with no plots read
+        private static double? TypedOff(SetUpTarget target)
+        {
+            return target.PositionSource == SiteSources.Typed && target.Cad?.PlotBox != null ? SiteSources.OffBox(target.Cad.PlotBox, target.Position.EastM.Value, target.Position.NorthM.Value) : (double?)null;
         }
 
         public static SetUpChanges Changes(SiteState now, SetUpTarget target)
@@ -226,7 +249,7 @@ namespace SiteAdaptation.Common.SetUp
                 NothingDiffers = !changes.Any,
                 NoCoordinatesLine = SiteSources.NoCoordinates(now, target.BlankLimits) ? SetUpTexts.NoCoordinates : null,
                 TemplatePlaceLine = SiteSources.NoCoordinates(now, target.BlankLimits) && !string.IsNullOrWhiteSpace(now.PlaceName) ? SetUpTexts.TemplatePlace(now.PlaceName) : null,
-                NoCadLine = target.CadProblem ?? (target.Cad != null && target.Cad.Systems.Stops.Count > 0 ? string.Join(". ", target.Cad.Systems.Stops) : null),
+                NoSourceLine = target.SourceProblem ?? (target.Cad != null && target.Cad.Systems.Stops.Count > 0 ? string.Join(". ", target.Cad.Systems.Stops) : null),
                 PositionSource = target.PositionSource,
             };
             view.ExistingSite = view.Signs.Count > 0;
@@ -326,7 +349,7 @@ namespace SiteAdaptation.Common.SetUp
 
         private static List<SetUpRow> WillSetRows(SiteState now, SetUpTarget target, SetUpChanges changes)
         {
-            return new List<SetUpRow>
+            var rows = new List<SetUpRow>
             {
                 new SetUpRow { Label = SetUpTexts.PositionFrom, Value = SetUpTexts.PositionFromText(target) },
                 new SetUpRow { Label = SetUpTexts.CoordinateSystem, Value = target.NoSite ? SetUpTexts.NoSourceYet : SetUpTexts.CoordinateSystemText(target), Differs = changes.Location || changes.Position || changes.BasePoint },
@@ -339,6 +362,18 @@ namespace SiteAdaptation.Common.SetUp
                 new SetUpRow { Label = SetUpTexts.SharedParameters, Value = changes.TakenOff.Count == 0 ? SetUpTexts.FromSheet(target.Parameters.Source) : SetUpTexts.FromSheet(target.Parameters.Source) + ". " + SetUpTexts.TakesOff(changes.TakenOff), Differs = changes.Parameters.Count > 0 },
                 new SetUpRow { Label = SetUpTexts.Units, Value = SetUpTexts.UnitsText(target.Units), Differs = changes.Units },
             };
+            // R513. The one check a typed origin has, or the plain line that it has none
+            if (target.PositionSource == SiteSources.Typed)
+            {
+                double? off = TypedOff(target);
+                rows.Insert(1, new SetUpRow { Label = SetUpTexts.TypedToPlots, Value = off.HasValue ? SetUpTexts.TypedOffBox(off.Value) : SetUpTexts.TypedNoCheck });
+            }
+            // R510. The position file sets no site location, so the window says the place of the template stays and is no site
+            if (target.PositionSource == SiteSources.PositionFile && SiteSources.NoCoordinates(now, target.BlankLimits) && !string.IsNullOrWhiteSpace(now.PlaceName))
+            {
+                rows.Insert(1, new SetUpRow { Label = SetUpTexts.Place, Value = SetUpTexts.PlaceStays(now.PlaceName) });
+            }
+            return rows;
         }
 
         private static List<string> ToolNames(SetUpTarget target)

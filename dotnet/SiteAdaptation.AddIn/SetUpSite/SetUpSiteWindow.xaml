@@ -171,7 +171,7 @@
             </Border>
           </StackPanel>
           <TextBlock Style="{StaticResource SA.Type.Body}" Foreground="{StaticResource SA.BandText}" Margin="{StaticResource SA.Gap.Top4}"
-                     Text="{x:Static set:SetUpSiteText.Intro}" />
+                     Text="{Binding IntroLine}" />
           <TextBlock Style="{StaticResource SA.Type.Small}" Foreground="{StaticResource SA.BandAccent}" Margin="{StaticResource SA.Gap.Top4}"
                      TextWrapping="Wrap" Text="{Binding SignsLine}" Visibility="{Binding SignsShown, Converter={StaticResource Shown}}" />
         </StackPanel>
@@ -238,8 +238,8 @@
           <StackPanel Margin="{StaticResource SA.Gap.Top8}">
             <TextBlock Style="{StaticResource SA.Pane.Section}" Text="{x:Static set:SetUpSiteText.SourceTitle}" />
             <TextBlock Style="{StaticResource SA.Pane.Help}" TextWrapping="Wrap" Text="{x:Static set:SetUpSiteText.SourceHelp}" />
-            <TextBlock Style="{StaticResource SA.Pane.Help}" Foreground="{StaticResource SA.Warn}" TextWrapping="Wrap" Text="{Binding NoCadLine}"
-                       Visibility="{Binding NoCadShown, Converter={StaticResource Shown}}" />
+            <TextBlock Style="{StaticResource SA.Pane.Help}" Foreground="{StaticResource SA.Warn}" TextWrapping="Wrap" Text="{Binding NoSourceLine}"
+                       Visibility="{Binding NoSourceShown, Converter={StaticResource Shown}}" />
             <StackPanel Orientation="Horizontal" Margin="{StaticResource SA.Gap.Top8}">
               <Button Style="{StaticResource SA.Button.Base}" Content="{x:Static set:SetUpSiteText.UseCad}" Click="OnUseCad" />
               <Button Style="{StaticResource SA.Button.Base}" Margin="{StaticResource SA.Gap.Left8}" Content="{x:Static set:SetUpSiteText.PickPosition}" Click="OnPickPosition" />
@@ -272,7 +272,7 @@
           <ItemsControl Margin="{StaticResource SA.Gap.Top8}" ItemsSource="{Binding WillSet}" ItemTemplate="{StaticResource SetRow}" />
         </StackPanel>
         <StackPanel Grid.Column="1" Margin="{StaticResource SA.Pad.Side}">
-          <TextBlock Style="{StaticResource SA.Pane.Section}" Text="Check points from CAD" />
+          <TextBlock Style="{StaticResource SA.Pane.Section}" Text="{Binding CheckTitle}" />
           <Border Margin="{StaticResource SA.Gap.Top8}" Padding="{StaticResource SA.Pad.Cell}" BorderBrush="{StaticResource SA.BorderStrong}"
                   BorderThickness="{StaticResource SA.Line.Under}">
             <Grid>
@@ -283,7 +283,7 @@
                 <ColumnDefinition Width="{StaticResource SA.Grid.CheckDiff}" />
               </Grid.ColumnDefinitions>
               <TextBlock Style="{StaticResource HeadText}" Text="Point" />
-              <TextBlock Grid.Column="1" Style="{StaticResource HeadText}" Text="CAD" />
+              <TextBlock Grid.Column="1" Style="{StaticResource HeadText}" Text="{Binding CheckColumn}" />
               <TextBlock Grid.Column="2" Style="{StaticResource HeadText}" Text="Revit" />
               <TextBlock Grid.Column="3" Style="{StaticResource HeadText}" HorizontalAlignment="Right" Text="Diff" />
             </Grid>
@@ -295,6 +295,8 @@
                      Visibility="{Binding NothingShown, Converter={StaticResource Shown}}" />
           <TextBlock Style="{StaticResource SA.Pane.Help}" Margin="{StaticResource SA.Gap.Top4}" Foreground="{StaticResource SA.Text}" TextWrapping="Wrap" Text="{Binding WaitingLine}"
                      Visibility="{Binding WaitingShown, Converter={StaticResource Shown}}" />
+          <TextBlock Style="{StaticResource SA.Pane.Help}" Margin="{StaticResource SA.Gap.Top16}" Foreground="{StaticResource SA.Warn}" TextWrapping="Wrap" Text="{Binding CheckLine}"
+                     Visibility="{Binding CheckLineShown, Converter={StaticResource Shown}}" />
           <!-- R512. CAD beside the position file, a check that never stops the run -->
           <StackPanel Margin="{StaticResource SA.Gap.Top16}" Visibility="{Binding SourceRowsShown, Converter={StaticResource Shown}}">
             <TextBlock Style="{StaticResource SA.Pane.Section}" Text="{x:Static set:SetUpSiteText.CompareTitle}" />

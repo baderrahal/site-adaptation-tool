@@ -114,8 +114,10 @@ namespace SiteAdaptation.Common.SetUp
             return source != null && source.Type == JTokenType.String ? (string)source : null;
         }
 
-        // R513. The site of typed values, built as R455 builds one from CAD on coordinates.expectedEpsg. Refused outside the UTM range, so a slip of a digit never reaches the model
-        public static CadSite Typing(double east, double north, double angle, CoordinateSettings settings)
+        // R513. The site of typed values, built as R455 builds one from CAD on coordinates.expectedEpsg. The UTM range refuses only a value that is no easting or northing at all, a
+        // wrong digit inside the range passes it, and the check rows pass too since they hold the site to itself. The box of the plots, when plots read, is the one check that can
+        // see it (SetUpPlanner). The angle is held to coordinates.angleToTrueNorthDeg, since a build refuses any other (R83, Placer)
+        public static CadSite Typing(double east, double north, double angle, CoordinateSettings settings, double[] plotBox = null)
         {
             if (!Finite(east) || !Finite(north) || !Finite(angle))
             {
@@ -126,8 +128,14 @@ namespace SiteAdaptation.Common.SetUp
             {
                 throw new InvalidDataException(outside);
             }
+            if (Math.Abs(SetUpPlanner.Turn(angle - settings.AngleToTrueNorthDeg)) > SetUpPlanner.SameDeg)
+            {
+                throw new InvalidDataException(SetUpTexts.TypedAngleRefused(angle, settings.AngleToTrueNorthDeg));
+            }
             CadSite site = SiteFromCad.At(east, north, angle, settings, settings.ExpectedEpsg);
             site.Source = Typed;
+            site.PlotBox = plotBox;
+            site.OffBoxLimitM = settings.TypedOffBoxLimitM;
             site.Systems = new SystemsCheck { Outcome = SystemAgreement.NoneStated, EpsgForMath = settings.ExpectedEpsg };
             site.ControlPointLimitMm = settings.ControlPointLimitMm;
             return site;
@@ -150,21 +158,45 @@ namespace SiteAdaptation.Common.SetUp
                     Label = SetUpTexts.Angle, Cad = SetUpTexts.Number(mine.AngleDeg.Value, 6), File = SetUpTexts.Number(other.AngleDeg.Value, 6),
                     Difference = SetUpTexts.Number(Math.Abs(SetUpPlanner.Turn(mine.AngleDeg.Value - other.AngleDeg.Value)), 6) + " deg",
                 },
+                // East and north alone, the row Elevation is the height of the origin and reads 0 mm while the survey point stands at another height, so the height has its own row
                 new SourceRow
                 {
-                    Label = SetUpTexts.SurveyPoint, Cad = SetUpTexts.Coordinate(cad.SurveyShared), File = SetUpTexts.Coordinate(read.SurveyShared),
-                    Difference = Millimetres(SiteCoordinates.Gap(cad.SurveyShared, read.SurveyShared)),
+                    Label = SetUpTexts.SurveyPoint, Cad = SetUpTexts.Coordinate(Flat(cad.SurveyShared)), File = SetUpTexts.Coordinate(Flat(read.SurveyShared)),
+                    Difference = Millimetres(SiteCoordinates.Gap(new[] { cad.SurveyShared[0], cad.SurveyShared[1], 0.0 }, new[] { read.SurveyShared[0], read.SurveyShared[1], 0.0 })),
                 },
+                Metres(SetUpTexts.SurveyHeight, cad.SurveyShared[2], read.SurveyShared[2]),
             };
             if (cad.PlotBox != null)
             {
-                double[] box = cad.PlotBox;
-                double east = Math.Max(Math.Max(box[0] - other.EastM.Value, 0.0), other.EastM.Value - box[1]);
-                double north = Math.Max(Math.Max(box[2] - other.NorthM.Value, 0.0), other.NorthM.Value - box[3]);
-                double off = Math.Sqrt(east * east + north * north);
+                double off = OffBox(cad.PlotBox, other.EastM.Value, other.NorthM.Value);
                 rows.Add(new SourceRow { Label = SetUpTexts.FileOriginToPlots, Cad = SetUpTexts.PlotBox, File = off > 0 ? SetUpTexts.OutsidePlots : SetUpTexts.InsidePlots, Difference = Millimetres(off) });
             }
             return rows;
+        }
+
+        // R512, R513. How far a point lies off the box of the plots, least east, most east, least north, most north, in metres, 0 inside it
+        public static double OffBox(double[] box, double east, double north)
+        {
+            double offEast = Math.Max(Math.Max(box[0] - east, 0.0), east - box[1]);
+            double offNorth = Math.Max(Math.Max(box[2] - north, 0.0), north - box[3]);
+            return Math.Sqrt(offEast * offEast + offNorth * offNorth);
+        }
+
+        // R523. Moving the position or the survey point moves no element (RevitSiteDocument), so on a model that holds coordinates and placed content everything would stand off the
+        // site. Null when nothing moves, the model is blank or nothing is placed, else the plain line that stops button 1
+        public static string PlacedStop(SiteState now, SetUpTarget target, SetUpChanges changes)
+        {
+            if ((!changes.Position && !changes.SurveyPoint) || NoCoordinates(now, target.BlankLimits))
+            {
+                return null;
+            }
+            int floors = target.FloorTypes.Sum(name => now.FloorsByType != null && now.FloorsByType.TryGetValue(name, out int count) ? count : 0);
+            return now.PlacedLinks + now.Masses + floors == 0 ? null : SetUpTexts.PlacedContent(now.PlacedLinks, now.Masses, floors);
+        }
+
+        private static double[] Flat(double[] point)
+        {
+            return new[] { point[0], point[1] };
         }
 
         private static SourceRow Metres(string label, double mine, double other)
@@ -203,6 +235,8 @@ namespace SiteAdaptation.Common.SetUp
         private readonly ProjectSettings held;
         private string picked;
         private JObject check;
+        private double[] plotBox;
+        private bool boxRead;
 
         public SiteChoice(JObject config, Func<RunContext, CoordinateRead> readCad, Func<string, JObject> readJson, ProjectSettings held)
         {
@@ -225,6 +259,10 @@ namespace SiteAdaptation.Common.SetUp
 
         public string PickedFile => picked;
 
+        // R512. Why the check against the position file did not run, null when it ran or is not asked
+        public string CheckLine { get; private set; }
+
+        // R513. Whatever a source fails on, the window opens and asks. Only a slip in config itself stays a failure of the run
         public void Start(RunContext context, SiteState now)
         {
             bool blank = SiteSources.NoCoordinates(now, SiteSources.Limits(config));
@@ -232,15 +270,32 @@ namespace SiteAdaptation.Common.SetUp
             string source = SiteSources.Starting(config, held?.CoordinateSource, blank, readCad != null);
             if (source == SiteSources.Typed)
             {
-                UseSite(SiteSources.Typing(now.Position.EastM.Value, now.Position.NorthM.Value, now.Position.AngleDeg.Value, CoordinateSettings.From(config)));
+                CoordinateSettings settings = CoordinateSettings.From(config);
+                double[] box = ReadBox(context);
+                try
+                {
+                    UseSite(SiteSources.Typing(now.Position.EastM.Value, now.Position.NorthM.Value, now.Position.AngleDeg.Value, settings, box));
+                }
+                catch (InvalidDataException failure)
+                {
+                    Ask(failure);
+                }
             }
             else if (source == SiteSources.PositionFile)
             {
-                UseFile(readJson(FilePath()));
+                string path = FilePath();
+                try
+                {
+                    UseFile(ReadFile(path));
+                }
+                catch (Exception failure) when (Unreadable(failure))
+                {
+                    Ask(failure);
+                }
             }
             else
             {
-                ReadCad(context, source, held?.CoordinateSource == null && SiteSources.OfConfig(config) == SiteSources.PositionFile);
+                ReadCad(context, source);
             }
         }
 
@@ -250,11 +305,10 @@ namespace SiteAdaptation.Common.SetUp
             switch (pick?.Source)
             {
                 case SiteSources.Cad:
-                    ReadCad(context, SiteSources.Cad, false);
+                    ReadCad(context, SiteSources.Cad);
                     break;
                 case SiteSources.PositionFile:
-                    JObject file = readJson(pick.PositionFile ?? FilePath());
-                    SetUpTarget.ReadPosition(new SetUpTarget(), file, SetUpDefaults.SiteUnits(config));
+                    JObject file = ReadFile(pick.PositionFile ?? FilePath());
                     picked = pick.PositionFile ?? picked;
                     UseFile(file);
                     break;
@@ -263,7 +317,7 @@ namespace SiteAdaptation.Common.SetUp
                     {
                         throw new InvalidDataException(SetUpTexts.TypedNotNumbers);
                     }
-                    UseSite(SiteSources.Typing(pick.EastM.Value, pick.NorthM.Value, pick.AngleDeg.Value, CoordinateSettings.From(config)));
+                    UseSite(SiteSources.Typing(pick.EastM.Value, pick.NorthM.Value, pick.AngleDeg.Value, CoordinateSettings.From(config), ReadBox(context)));
                     break;
                 default:
                     throw new InvalidDataException("the window names no site source of " + string.Join(", ", SiteSources.All) + " (R513)");
@@ -298,27 +352,75 @@ namespace SiteAdaptation.Common.SetUp
             return picked ?? PositionSettings.From(config).File;
         }
 
-        private void ReadCad(RunContext context, string source, bool mayStayOnFile)
+        private void ReadCad(RunContext context, string source)
         {
             // A slip in the block is a fault of config and no reason to ask the user for a source
             CoordinateSettings.From(config);
             try
             {
-                UseSite(SiteFromCad.Load(config, context, readCad, source));
+                CadSite site = SiteFromCad.Load(config, context, readCad, source);
+                KeepBox(site);
+                UseSite(site);
                 check = ReadCheck();
             }
-            catch (NoBaseplanException) when (mayStayOnFile)
+            catch (Exception failure) when (readCad != null && Unreadable(failure))
             {
-                UseFile(readJson(FilePath()));
+                boxRead = true;
+                plotBox = null;
+                Ask(failure);
             }
-            catch (Exception failure) when (readCad != null && (failure is InvalidOperationException || failure is InvalidDataException || failure is IOException))
+        }
+
+        // R513. The box of the plots a typed origin is held to, read once a press. A CAD with a stop gives none, a box outside the UTM range says nothing of a typed origin, and no
+        // read at all leaves the typed values with no check, which the window says
+        private double[] ReadBox(RunContext context)
+        {
+            if (!boxRead && readCad != null)
             {
-                Cad = null;
-                Position = null;
-                Source = null;
-                check = null;
-                Problem = string.Join(" ", failure.Message.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries));
+                try
+                {
+                    KeepBox(SiteFromCad.Load(config, context, readCad, SiteSources.Cad));
+                }
+                catch (Exception failure) when (Unreadable(failure))
+                {
+                    plotBox = null;
+                }
+                boxRead = true;
             }
+            return plotBox;
+        }
+
+        private void KeepBox(CadSite site)
+        {
+            boxRead = true;
+            plotBox = site != null && site.Systems.Stops.Count == 0 ? site.PlotBox : null;
+        }
+
+        private JObject ReadFile(string path)
+        {
+            JObject file = readJson(path);
+            SetUpTarget.ReadPosition(new SetUpTarget(), file, SetUpDefaults.SiteUnits(config));
+            return file;
+        }
+
+        private static bool Unreadable(Exception failure)
+        {
+            return failure is InvalidOperationException || failure is InvalidDataException || failure is IOException || failure is JsonException || failure is UnauthorizedAccessException;
+        }
+
+        private void Ask(Exception failure)
+        {
+            Cad = null;
+            Position = null;
+            Source = null;
+            check = null;
+            CheckLine = null;
+            Problem = OneLine(failure.Message);
+        }
+
+        private static string OneLine(string text)
+        {
+            return string.Join(" ", text.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries));
         }
 
         private void UseSite(CadSite site)
@@ -328,6 +430,7 @@ namespace SiteAdaptation.Common.SetUp
             Source = site.Source;
             Problem = null;
             check = null;
+            CheckLine = null;
         }
 
         private void UseFile(JObject file)
@@ -337,20 +440,24 @@ namespace SiteAdaptation.Common.SetUp
             Source = SiteSources.PositionFile;
             Problem = null;
             check = null;
+            CheckLine = null;
         }
 
         private JObject ReadCheck()
         {
             try
             {
-                JObject file = readJson(FilePath());
-                SetUpTarget.ReadPosition(new SetUpTarget(), file, SetUpDefaults.SiteUnits(config));
-                return file;
+                return ReadFile(FilePath());
             }
-            catch (Exception failure) when (failure is InvalidDataException || failure is IOException || failure is JsonException || failure is UnauthorizedAccessException)
+            catch (FileNotFoundException)
             {
-                return null;
+                CheckLine = SetUpTexts.CheckNotRun("the file is not on disk");
             }
+            catch (Exception failure) when (Unreadable(failure))
+            {
+                CheckLine = SetUpTexts.CheckNotRun(OneLine(failure.Message));
+            }
+            return null;
         }
     }
 }

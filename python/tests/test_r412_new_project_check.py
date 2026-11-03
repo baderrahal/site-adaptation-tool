@@ -121,6 +121,12 @@ def test_r412_an_input_that_is_not_there_is_missing_and_one_that_cannot_be_read_
     report = new_project_check.check(config / "project.json", config / "rules.json", config / "prototype_offsets.json", work, root)[0]
     got = {each["input"]: (each["status"], each["text"]) for each in report["lines"]}
     assert got["position file"] == ("missing", "pos.json is not there")
+    # R511. A new project takes its position from CAD, the same line as the C# of R412
+    settings = json.loads((config / "project.json").read_text(encoding="utf-8"))
+    settings["coordinates"] = {"newProjectSource": "cad"}
+    (config / "project.json").write_text(json.dumps(settings), encoding="utf-8")
+    again = new_project_check.check(config / "project.json", config / "rules.json", config / "prototype_offsets.json", work, root)[0]
+    assert {each["input"]: (each["status"], each["text"]) for each in again["lines"]}["position file"] == ("ok", "not asked, a new project takes its position from CAD")
     assert got["villa offsets"] == ("does not fit", "prototype_offsets.json cannot be read as a JSON object")
     assert got["Excel dlus dataBook.rev9.dlus"] == ("does not fit", "a.xlsx cannot be read as a workbook")
     assert got["Schedule N1"] == ("missing", "s1.xlsx is not there")

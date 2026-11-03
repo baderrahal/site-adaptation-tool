@@ -104,6 +104,7 @@ namespace SiteAdaptation.Common
         public const string Ok = "ok";
         public const string Missing = "missing";
         public const string DoesNotFit = "does not fit";
+        public const string PositionFileNotAsked = "not asked, a new project takes its position from CAD";
         public const string ConfigRole = "config";
         public const string RulesRole = "rules";
         public const string OffsetsRole = "offsets";
@@ -265,6 +266,11 @@ namespace SiteAdaptation.Common
         private static CheckLine PositionLine(JObject settings, Run run)
         {
             const string name = "position file";
+            // R511. A new project takes its position from CAD and the file is only a check, so its absence is no fault
+            if (settings["coordinates"]?["newProjectSource"]?.Type == JTokenType.String && (string)settings["coordinates"]["newProjectSource"] == SetUp.CoordinateSettings.FromCadSource)
+            {
+                return Line(name, Ok, PositionFileNotAsked);
+            }
             string file = Str(settings, "addin.position.file", run.WorkRoot);
             if (file == null || !file.ToLowerInvariant().EndsWith(".json", StringComparison.Ordinal))
             {

@@ -491,3 +491,4 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R512 CAD and position file side by side.
 - R513 No usable CAD asks the user.
 - R514 Where the position came from.
+- R523 No move with placed content.

@@ -97,7 +97,7 @@ namespace SiteAdaptation.Common.SetUp
 
         public ButtonBody Body()
         {
-            return new ButtonBody { Preview = Preview, Confirm = Confirm, Outside = Outside, Apply = Apply, ReadBack = context => readBack, Done = context => removedLine };
+            return new ButtonBody { Preview = Preview, Confirm = Confirm, Outside = Outside, Apply = Apply, ReadBack = context => readBack, AfterCommit = context => site.Hold(settingsNow?.Invoke()), Done = context => removedLine };
         }
 
         private RunSummary Preview(RunContext context)
@@ -173,8 +173,6 @@ namespace SiteAdaptation.Common.SetUp
             {
                 throw new InvalidOperationException(string.Join(". ", stops));
             }
-            // R511, R513. Held so the next press stays on this source and never moves the model back to what config gives
-            site.Hold(settingsNow?.Invoke());
             // Q158. With nothing to set the run still marks step 1 done, so the steps after it go on after a config edit. A step that holds
             // already records nothing, since a later record would make the steps after it run again (R366). The window said the line
             return SetUpPlanner.Changes(document.Read(), target).Any || !StepHolds(context);
@@ -205,7 +203,15 @@ namespace SiteAdaptation.Common.SetUp
             var steps = new Dictionary<int, StepNow> { [context.Button] = new StepNow(run, StepHash.Combine(context.InputHashes), StepHash.OnDisk(run.Outputs.Keys)) };
             StepStateKind line = StepStates.Of(true, new SettingsScope(), steps)[context.Button - 1].Kind;
             return (line == StepStateKind.Done || line == StepStateKind.DoneWithIssues) && SameSetup(held, settingsNow())
-                && SiteFileAgrees(Path.Combine(context.WorkFolder, SiteFile), document.Read());
+                && SiteFileAgrees(Path.Combine(context.WorkFolder, SiteFile), document.Read()) && SameSource(Path.Combine(context.WorkFolder, SiteFile));
+        }
+
+        // R514. A press that changes only the source still writes, so site.json and the settings name it. A file of before the key was written under the source of config
+        private bool SameSource(string path)
+        {
+            JToken written = JObject.Parse(WorkFiles.ReadText(path))[PositionSourceKey];
+            string source = written != null && written.Type == JTokenType.String ? (string)written : SiteSources.OfConfig(config) ?? SiteSources.PositionFile;
+            return source == target.PositionSource;
         }
 
         private static bool SameSetup(ProjectSettings held, ProjectSettings now)
@@ -375,8 +381,16 @@ namespace SiteAdaptation.Common.SetUp
                 return issues;
             }
             // Written last, so a read back that differs above writes no entity, and the roll back of the flow takes this write back
-            store.Record(settingsNow(), context.Button, LastRun(context, changing, issues), RunKind.Real, context.Transaction);
+            store.Record(HeldSettings(), context.Button, LastRun(context, changing, issues), RunKind.Real, context.Transaction);
             return issues;
+        }
+
+        // R511, R513. The record carries the source, so a commit holds it in the entity and a roll back takes it back. The settings in memory take it only after the commit (AfterCommit)
+        private ProjectSettings HeldSettings()
+        {
+            ProjectSettings copy = SettingsJson.Read(SettingsJson.Write(settingsNow()));
+            site.Hold(copy);
+            return copy;
         }
 
         // R367. Button 1 always works on the whole project (R366). The mode follows the tick of the settings, since the flow runs the
@@ -429,6 +443,7 @@ namespace SiteAdaptation.Common.SetUp
             SetUpSiteView view = SetUpPlanner.View(document.Read(), target, dry);
             view.Stops = SheetStops(view.Stops);
             view.SourceRows = site.Rows();
+            view.CheckLine = site.CheckLine;
             return view;
         }
 

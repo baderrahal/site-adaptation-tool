@@ -43,7 +43,7 @@ namespace SiteAdaptation.Common.SetUp
         public string PositionSource { get; set; }
 
         // R513. Why CAD gives no coordinates, and with it true when the target holds no site at all, so nothing of the position is planned and the window asks
-        public string CadProblem { get; set; }
+        public string SourceProblem { get; set; }
         public bool NoSite { get; set; }
 
         // R514. The name of the position file, for the row Position from
@@ -55,7 +55,7 @@ namespace SiteAdaptation.Common.SetUp
 
         // config, the rules profile and the position file as button 1 reads them, with the slope chosen in the dialog
         // R511, R513. Under CAD or a typed site the position file is only a check, so the levels and units come from keyRules.site, what the worker holds the file against
-        public static SetUpTarget From(JObject config, JObject rules, string levelProfile, JObject position, double rampSlope, ParameterSheet parameters, CadSite cad = null, string cadProblem = null, string positionFile = null)
+        public static SetUpTarget From(JObject config, JObject rules, string levelProfile, JObject position, double rampSlope, ParameterSheet parameters, CadSite cad = null, string sourceProblem = null, string positionFile = null)
         {
             PositionSettings settings = PositionSettings.From(config);
             JObject floors = config["floors"] as JObject ?? throw new InvalidDataException("config holds no floors block, the floor types of button 1 (R112)");
@@ -77,7 +77,7 @@ namespace SiteAdaptation.Common.SetUp
                 WallTypes = SetUpDefaults.WallTypes(config),
                 PassLimitMm = settings.RevitCheckPointLimitMm,
                 GapDecimals = settings.GapDecimals,
-                CadProblem = cadProblem,
+                SourceProblem = sourceProblem,
                 BlankLimits = SiteSources.Limits(config),
                 PositionFileName = Path.GetFileName(positionFile ?? settings.File),
             };
@@ -92,7 +92,7 @@ namespace SiteAdaptation.Common.SetUp
             {
                 throw new InvalidDataException("floors.types.generic of config names no floor type (R112)");
             }
-            if (cad != null || (position == null && cadProblem != null))
+            if (cad != null || (position == null && sourceProblem != null))
             {
                 ReadRules(target, rules, levelProfile, SetUpDefaults.SiteUnits(config), settings.Key, cad == null ? 0.0 : cad.SurveyInternal[2]);
             }
@@ -101,7 +101,7 @@ namespace SiteAdaptation.Common.SetUp
                 ReadPosition(target, position, SetUpDefaults.SiteUnits(config));
                 target.PositionSource = SiteSources.PositionFile;
             }
-            if (cad == null && position == null && cadProblem != null)
+            if (cad == null && position == null && sourceProblem != null)
             {
                 var origin = new[] { 0.0, 0.0, 0.0 };
                 target.NoSite = true;

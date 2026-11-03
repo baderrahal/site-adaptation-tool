@@ -41,9 +41,36 @@ namespace SiteAdaptation.AddIn.SetUpSite
         public bool TemplatePlaceShown => TemplatePlaceLine.Length > 0;
 
         // R513. Why CAD gives no usable coordinates, as Common gives it
-        public string NoCadLine => view.NoCadLine ?? "";
+        public string NoSourceLine => view.NoSourceLine ?? "";
 
-        public bool NoCadShown => NoCadLine.Length > 0;
+        public bool NoSourceShown => NoSourceLine.Length > 0;
+
+        // R512. Why the check against the position file did not run, as Common gives it
+        public string CheckLine => view.CheckLine ?? "";
+
+        public bool CheckLineShown => CheckLine.Length > 0;
+
+        // Q422. The words of the window follow the source, a head that says CAD over a position file would say where the numbers do not come from
+        public string IntroLine => BySource(SetUpSiteText.Intro, SetUpSiteText.IntroFile, SetUpSiteText.IntroTyped, SetUpSiteText.IntroNone);
+
+        public string CheckTitle => BySource(SetUpSiteText.CheckTitleCad, SetUpSiteText.CheckTitleFile, SetUpSiteText.CheckTitleTyped, SetUpSiteText.CheckTitleNone);
+
+        public string CheckColumn => BySource(SetUpSiteText.CompareCad, SetUpSiteText.CompareFile, SetUpSiteText.CheckColumnTyped, SetUpSiteText.CompareCad);
+
+        private string BySource(string cad, string file, string typed, string none)
+        {
+            switch (view.PositionSource)
+            {
+                case SiteSources.Cad:
+                    return cad;
+                case SiteSources.PositionFile:
+                    return file;
+                case SiteSources.Typed:
+                    return typed;
+                default:
+                    return none;
+            }
+        }
 
         // R512
         public IReadOnlyList<SourceRow> SourceRows => view.SourceRows;
@@ -114,10 +141,13 @@ namespace SiteAdaptation.AddIn.SetUpSite
         public bool CurrentShown => view.CurrentFiles != null;
 
         // Breaker of SCAN-UI: with no site drawing to tick Apply can never turn on, so the section says why
-        public bool NoSiteShown => view.CurrentFiles != null && !CurrentFiles.Any(row => row.Site);
+        public bool NoSiteShown => view.CurrentFiles != null && DrawingAsked && !CurrentFiles.Any(row => row.Site);
+
+        // R441, R513. Only CAD reads the site drawing, so a position file or typed values never wait for its tick, else no drawing in the setup would be a dead end
+        private bool DrawingAsked => view.PositionSource != SiteSources.PositionFile && view.PositionSource != SiteSources.Typed;
 
         // Apply stays grey until the site drawing is ticked Current (R441)
-        public bool SiteTicked => view.CurrentFiles == null || Common.SetUp.CurrentFiles.CanApply(CurrentFiles.Select(row => new CurrentFileRow { Site = row.Site, Current = row.Current }));
+        public bool SiteTicked => view.CurrentFiles == null || !DrawingAsked || Common.SetUp.CurrentFiles.CanApply(CurrentFiles.Select(row => new CurrentFileRow { Site = row.Site, Current = row.Current }));
 
         public IReadOnlyList<string> RulesChoices { get; private set; }
 

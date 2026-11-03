@@ -32,7 +32,7 @@ namespace SiteAdaptation.Tests
             return SiteSources.Limits(config);
         }
 
-        private RunOutcome PressSource(FakeDocument document, FakeDialog dialog, Func<RunContext, CoordinateRead> read, ProjectSettings settings, List<string> calls, out SetUpRun made)
+        private RunOutcome PressSource(FakeDocument document, FakeDialog dialog, Func<RunContext, CoordinateRead> read, ProjectSettings settings, List<string> calls, out SetUpRun made, RecordingEntity entity = null)
         {
             made = new SetUpRun(document, dialog, new FakeTags(calls), File.ReadAllText, Settings, null);
             if (read != null)
@@ -41,7 +41,7 @@ namespace SiteAdaptation.Tests
             }
             if (settings != null)
             {
-                made.Recording(() => settings, new RecordingEntity(calls), () => new DateTime(2026, 11, 3, 20, 0, 0, DateTimeKind.Utc));
+                made.Recording(() => settings, entity ?? new RecordingEntity(calls), () => new DateTime(2026, 11, 3, 20, 0, 0, DateTimeKind.Utc));
             }
             var flow = new ButtonFlow(new FakeState(work, configPath), new FakeModel(calls), null, input => new string('a', 64), () => RunId);
             return flow.Run(1, "1 Set up site", made.Body(), Document);
@@ -171,20 +171,6 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R511_a_blank_model_under_the_position_file_with_no_baseplan_stays_on_the_file_and_says_so()
-        {
-            var calls = new List<string>();
-            var document = new FakeDocument(Template()) { Calls = calls };
-            var dialog = new FakeDialog();
-            RunOutcome outcome = PressSource(document, dialog, context => throw new NoBaseplanException(), null, calls, out SetUpRun run);
-
-            Assert.True(outcome.End == RunEnd.Committed, outcome.Message);
-            Assert.Equal(At.EastM, document.State.Position.EastM);
-            Assert.Equal(SiteSources.PositionFile, run.Target.PositionSource);
-            Assert.Contains(dialog.Shown[0].WillSet, row => row.Label == SetUpTexts.PositionFrom && row.Value.Contains("position_test.json"));
-        }
-
-        [Fact]
         public void R511_a_model_with_coordinates_and_no_source_held_stays_on_the_file_with_no_cad_read()
         {
             SiteState held = Template();
@@ -194,7 +180,7 @@ namespace SiteAdaptation.Tests
             PressSource(new FakeDocument(held) { Calls = calls }, dialog, context => throw new InvalidOperationException("no read"), null, calls, out SetUpRun run);
 
             Assert.Equal(SiteSources.PositionFile, run.Target.PositionSource);
-            Assert.Null(dialog.Shown[0].NoCadLine);
+            Assert.Null(dialog.Shown[0].NoSourceLine);
         }
 
         [Fact]
@@ -217,6 +203,7 @@ namespace SiteAdaptation.Tests
             Assert.Equal((string)site["units"]["length"], run.Target.Units.Length);
             Assert.Equal((double)site["lengthAccuracy"][(string)config["majority"]["siteReference"]["parsons"]], run.Target.Units.LengthAccuracy);
             Assert.Empty(dialog.Shown[0].SourceRows);
+            Assert.Equal("The check against the position file did not run: the file is not on disk.", dialog.Shown[0].CheckLine);
         }
 
         [Fact]
@@ -225,14 +212,14 @@ namespace SiteAdaptation.Tests
             CadSite cad = SiteFromCad.FromCad(MadePlots, CoordinateSettings.From(config), 32637);
             List<SourceRow> rows = SiteSources.Compare(cad, PositionFile(), SetUpDefaults.SiteUnits(config));
 
-            Assert.Equal(new[] { "Easting", "Northing", "Elevation", "Angle", "Survey point", "File origin to the plots" }, rows.Select(row => row.Label));
+            Assert.Equal(new[] { "Easting", "Northing", "Elevation", "Angle", "Survey point", "Survey point height", "File origin to the plots" }, rows.Select(row => row.Label));
             Assert.Equal("300050.000", rows[0].Cad);
             Assert.Equal("1000.000", rows[0].File);
             Assert.Equal("299050000 mm", rows[0].Difference);
             Assert.Equal("30 deg", rows[3].Difference);
             Assert.EndsWith(" mm", rows[4].Difference);
             double gap = Math.Sqrt(Math.Pow(300010.0 - 1000.0, 2) + Math.Pow(2400020.0 - 2000.0, 2)) * 1000.0;
-            Assert.Equal(gap.ToString("0.##", CultureInfo.InvariantCulture) + " mm", rows[5].Difference);
+            Assert.Equal(gap.ToString("0.##", CultureInfo.InvariantCulture) + " mm", rows[6].Difference);
         }
 
         [Fact]
@@ -254,7 +241,7 @@ namespace SiteAdaptation.Tests
             RunOutcome outcome = PressSource(document, dialog, context => MadeRead(), new ProjectSettings { CoordinateSource = SiteSources.Cad }, calls, out SetUpRun run);
 
             Assert.Equal(RunEnd.Committed, outcome.End);
-            Assert.Equal(6, dialog.Shown[0].SourceRows.Count);
+            Assert.Equal(7, dialog.Shown[0].SourceRows.Count);
             Assert.Empty(dialog.Shown[0].Stops);
 
             var other = new FakeDialog { Answer = false };
@@ -289,8 +276,8 @@ namespace SiteAdaptation.Tests
             RunOutcome outcome = PressSource(document, dialog, read, new ProjectSettings { CoordinateSource = SiteSources.Cad }, calls, out SetUpRun run);
 
             Assert.NotEqual(RunEnd.Committed, outcome.End);
-            Assert.False(string.IsNullOrEmpty(dialog.Shown[0].NoCadLine));
-            Assert.DoesNotContain(Environment.NewLine, dialog.Shown[0].NoCadLine);
+            Assert.False(string.IsNullOrEmpty(dialog.Shown[0].NoSourceLine));
+            Assert.DoesNotContain(Environment.NewLine, dialog.Shown[0].NoSourceLine);
             Assert.NotEmpty(dialog.Shown[0].Stops);
             Assert.Equal(0.0, document.State.Position.EastM);
             Assert.DoesNotContain("position", calls);
@@ -324,7 +311,7 @@ namespace SiteAdaptation.Tests
             Assert.True(outcome.End == RunEnd.Committed, outcome.Message);
             Assert.Equal(At.EastM, document.State.Position.EastM);
             Assert.Equal(SiteSources.PositionFile, run.Target.PositionSource);
-            Assert.Null(dialog.Shown[1].NoCadLine);
+            Assert.Null(dialog.Shown[1].NoSourceLine);
             Assert.Equal(SiteSources.PositionFile, settings.CoordinateSource);
             Assert.Equal(picked, settings.PositionFile);
         }
@@ -335,13 +322,13 @@ namespace SiteAdaptation.Tests
             var settings = new ProjectSettings { CoordinateSource = SiteSources.Cad };
             var calls = new List<string>();
             var document = new FakeDocument(Template()) { Calls = calls };
-            var dialog = new FakeDialog { Pick = new SiteSourcePick { Source = SiteSources.Typed, EastM = 300100.5, NorthM = 2400200.25, AngleDeg = 2.5 } };
+            var dialog = new FakeDialog { Pick = new SiteSourcePick { Source = SiteSources.Typed, EastM = 300100.5, NorthM = 2400200.25, AngleDeg = 0.0 } };
             RunOutcome outcome = PressSource(document, dialog, context => throw new NoBaseplanException(), settings, calls, out SetUpRun run);
 
             Assert.True(outcome.End == RunEnd.Committed, outcome.Message);
             Assert.Equal(300100.5, document.State.Position.EastM);
             Assert.Equal(2400200.25, document.State.Position.NorthM);
-            Assert.Equal(2.5, document.State.Position.AngleDeg);
+            Assert.Equal(0.0, document.State.Position.AngleDeg);
             Assert.Equal((string)config["coordinates"]["positionName"], document.State.PositionName);
             Assert.Equal(SiteSources.Typed, run.Target.PositionSource);
             Assert.Equal(SiteSources.Typed, settings.CoordinateSource);
@@ -353,7 +340,7 @@ namespace SiteAdaptation.Tests
         public void R513_a_second_press_of_typed_reads_the_values_from_the_model_and_nothing_differs()
         {
             SiteState placed = Template();
-            CadSite typed = SiteSources.Typing(300100.5, 2400200.25, 2.5, CoordinateSettings.From(config));
+            CadSite typed = SiteSources.Typing(300100.5, 2400200.25, 0.0, CoordinateSettings.From(config));
             placed.Position = typed.Position;
             placed.Survey = new BasePointState { InternalM = typed.SurveyInternal, SharedM = typed.SurveyShared };
             placed.ProjectBase = new BasePointState { InternalM = typed.BaseInternal, SharedM = typed.BaseShared };
