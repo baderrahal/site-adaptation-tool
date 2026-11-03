@@ -14,7 +14,7 @@ Done:
 - Breaker: the record keeps its outputs under the work folder, so a copy or a Save As of the model is not Done
 
 Checked:
-- Gate and parity: see the PR. Review 1, breaker 2 passes. Fakes only so far: the group and the undo in Revit are task 4
+- Parity 32 runs, 416 lines, 0 failures. Gate dotnet 2,404 and 2,109 passed. Review 1, breaker 2 passes. Fakes only so far: the group and the undo in Revit are task 4
 
 Remains:
 - Tasks 3, 4, 5 of the round. Q382 narrowed to step 4 and site.json
