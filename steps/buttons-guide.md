@@ -58,7 +58,7 @@ Only a Neighbourhood scope passes step 3 today, see 3 Review data (Q417). Times 
 | Plot list (Excel) | Plot, code and cluster. It fills the Sales schedule | Sales team | Button 3 | User picks, Inputs\PSN-ZZZ-XXX-SCH-TM-000201- DLUS Schedule_(Rev9)_Accomodation_Schedule.xlsx |
 | Villa levels (Excel) | Floor level and door level per villa type. Reads Comes later, no file is taken yet | Architect | Buttons 4 and 5 | Nothing today |
 | Road levels (civil file) | Road surfaces. The row reads optional, but step 2 stops with no folder picked (Q416) | Civil team | Button 4 | User picks, Inputs\landxml |
-| Parameter sheet (Excel) | The shared parameters | BIM team | Button 1 | The set: C:\SA-demo\config\shared_parameters.xlsx |
+| Parameter sheet (Excel) | The shared parameters. Reads Found from the sheet of the settings | BIM team | Button 1 | The set: C:\SA-demo\config\shared_parameters.xlsx |
 
 Start from also reads:
 
@@ -88,7 +88,6 @@ Boxes:
 - Q394, Q395, Q397 Empty project with Update, modes and Save As.
 - Q416 The road row reads optional, step 2 stops without it.
 - Q418 Empty project on a model with settings keeps its old rules.
-- The Shared parameters row reads Not chosen with an amber mark though button 1 finds the sheet (steps/dryrun-3nov.md).
 
 ## Input files and Prototypes rows
 
@@ -106,7 +105,7 @@ Boxes:
 | DLUS and sales, sales | PSN-ZZZ-XXX-SCH-TM-000201- DLUS Schedule_(Rev9)_Accomodation_Schedule.xlsx | The sales schedule |
 | Plot numbers | 01101-PSN-ZZZ-XXX-DWG-TU-005000.pdf | The location plan with plot numbers |
 | Prototypes | Work root\prototypes_2024 | 13 villa files, Revit 2024 |
-| Shared parameters | C:\SA-demo\config\shared_parameters.xlsx | Taken from the settings, the row is not read by button 1 |
+| Shared parameters | C:\SA-demo\config\shared_parameters.xlsx | The sheet of the settings, the row reads green with its counts, 11 parameters, 12 left out |
 
 **Before it.** New project.
 
@@ -145,7 +144,7 @@ Boxes: No site drawing in the setup, pick the Baseplan in the pane first. Nothin
 
 **What it writes.**
 
-- Revit: Level 1 and Level 2 with a floor plan each, floor types Generic 150mm, yard, Ramps 0.5%, Ramps 2%, Flat Ramps, wall types BW and Generic Wall-150mm_ Garden, 11 shared parameters.
+- Revit: Level 1 and Level 2 with a floor plan each, floor types Generic 150mm, yard, Ramps 0.5%, Ramps 2%, Flat Ramps, wall types BW and Generic Wall-150mm_ Garden, 11 shared parameters: 10 on links only, whatever an older sheet names, and Plot on floors. A model set up before loses its old bindings, and a line says so.
 - Work folder: site.json. A shared parameter text file is made for the run and removed.
 
 **Limits today.**
@@ -271,7 +270,6 @@ Do not click anywhere while the Revit box is open. A press waits behind it and f
 - Q398 The 443 hairline floor overlaps at step 5.
 - Q356 The off axis warning of a cut yard.
 - Q354 Yards of a model already built.
-- Q411 Floor parameters bound but never filled.
 
 ## 6 Levels
 
