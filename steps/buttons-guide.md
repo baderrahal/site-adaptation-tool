@@ -21,7 +21,7 @@ In file names, <run> is the button and the time, such as 4_20261103-141015-492, 
 | Name | What it does | Files it needs | Where they come from | What it writes and where | About how long |
 |---|---|---|---|---|---|
 | New project | Names the settings and files of this model | A saved project or Empty project, the five file rows | User picks, Work root\Saved projects, Install\ShippedSet | Setup in the model. Under Empty project, a copy of the set in Work root\New projects | Not known (Q414) |
-| Input files | Holds the file picks of the model | Drawings, schedules, the road surface folder | User picks in Inputs | Nothing on disk. Picks stay in memory until a real run (Q413) | A Browse took 30 to 60 s late in the rehearsal |
+| Input files | Holds the file picks of the model | Drawings, schedules, the road surface folder | User picks in Inputs | Nothing on disk. Picks stay in memory until the next real run (Q413) | A Browse took 30 to 60 s late in the rehearsal |
 | Prototypes | Holds the folder of villa files | 13 Revit 2024 files | User picks Work root\prototypes_2024 | Nothing on disk, as Input files | As Input files |
 | 1 Set up site | Sets position, levels, types and parameters | Project settings, rules, position file, parameter sheet | Project files and Inputs\position | Revit settings and types. site.json in the work folder | 8 s |
 | 2 Read data | Reads the drawings and schedules | Input files, data book, past schedules | User picks, Inputs | read_<code> and scan_<run> in the work folder | 100 s, the picks window at 49 s |
@@ -33,14 +33,14 @@ In file names, <run> is the button and the time, such as 4_20261103-141015-492, 
 | 8 Walls | Places boundary walls, no garden walls yet | Plan of step 4 | Step 4 | Walls in Revit. walls_<NBH>.json in the work folder | 5 s |
 | 9 Report | Writes the report Excel | Plan and logs of step 4, counts of the model | Step 4, the model | <NBH>_Report.xlsx in the work folder | 5 s |
 
-A whole project takes longer than these times. How long is not known (Q414).
+Only a Neighbourhood scope passes step 3 today, see 3 Review data. Times for New project and a whole project are not known (Q414).
 
 ## What every button shares
 
 - The pane or the ribbon starts a button. Both run the same thing.
 - Each button needs the one before it. 9 Report needs only 4 Check. A model with no setup reads Needs setup.
-- Dry run first is on by default. A box then shows the counts with Apply and Cancel. Cancel is the default and changes nothing.
-- 4 Check has no dry run, so the tool unticks it when 4 runs.
+- Dry run first is on by default. A box then shows the counts with Apply and Cancel. Cancel is the default and changes nothing in the model. A dry run writes its files under the work folder in dry\<run>, they are not a real result.
+- 4 Check has no dry run, so the tool unticks it when 4 runs and it stays off. Steps after 4 still ask Apply or Cancel, with the counts only and no list per plot.
 - A real run records itself in the model, so a reopen shows the same rows.
 - Every run writes run_<run>.log and run_timing_<run>.json in the work folder.
 - A changed input file, or a changed scope, sends the steps after it back to Ready or Needs step.
@@ -57,7 +57,7 @@ A whole project takes longer than these times. How long is not known (Q414).
 | Site drawing (CAD) | Plots, roads, curb lines. It fills Baseplan | Civil team | Buttons 1 to 4 | User picks, Inputs\ROSHN Makkah Baseplan.dwg |
 | Plot list (Excel) | Plot, code and cluster. It fills the Sales schedule | Sales team | Button 3 | User picks, Inputs\PSN-ZZZ-XXX-SCH-TM-000201- DLUS Schedule_(Rev9)_Accomodation_Schedule.xlsx |
 | Villa levels (Excel) | Floor level and door level per villa type. Reads Comes later, no file is taken yet | Architect | Buttons 4 and 5 | Nothing today |
-| Road levels (civil file) | Road surfaces. Optional | Civil team | Button 4 | User picks, Inputs\landxml |
+| Road levels (civil file) | Road surfaces. The row reads optional, but step 2 stops with no folder picked | Civil team | Button 4 | User picks, Inputs\landxml |
 | Parameter sheet (Excel) | The shared parameters | BIM team | Button 1 | The set: C:\SA-demo\config\shared_parameters.xlsx |
 
 Start from also reads:
@@ -71,7 +71,7 @@ Start from also reads:
 
 1. Pane, Open New project.
 2. Pick Start from.
-3. Browse each row, or Get template to send a team an empty sheet. Pick surfaces is active only on Empty project.
+3. Browse each row, or Get template to send a team an empty sheet. Pick surfaces is active when the settings follow Rev 06, as Empty project does, and grey under the past job.
 4. Check files. It shows what is found and a yellow box for what stops a button.
 5. Save setup.
 
@@ -80,7 +80,7 @@ Boxes:
 - The tool stops here, no saved project is chosen: pick one under Start from.
 - A template refused because it would lie in the input folder: pick another folder.
 
-**What it writes.** No element in Revit. The setup goes on Project Information. Empty project copies the set once to Work root\New projects\<model name>_<8 letters>, with an override list holding no entries.
+**What it writes.** No element in Revit. The setup goes on Project Information. Empty project copies the set once to Work root\New projects\<model name>_<8 letters>, with an override list holding no entries. This happens only on a model with no settings yet. On a model that already has settings, Empty project keeps its old rules and override list, with no message.
 
 **Limits today.**
 
@@ -112,7 +112,7 @@ Boxes:
 
 **What the user clicks.** Browse on a row, pick the file or folder. Do not Browse a prototype folder on the Desktop (Q381). Do not use a Revit 2021 folder. The pane warns that those files upgrade on each use.
 
-**What it writes.** Nothing on disk. A pick stays in memory until a real run writes it.
+**What it writes.** Nothing on disk. A pick stays in memory until the next real run of a button writes it. Run a button before you save and close.
 
 **Limits today.**
 
@@ -130,7 +130,7 @@ Boxes:
 |---|---|---|---|
 | project.json | Project settings | The setup | C:\SA-demo\config |
 | roshn-makkah.json | Rules and the site values | The setup | C:\SA-demo\rules |
-| position_parsons.json | Site position | Settings, addin.position.file | Inputs\position |
+| position_parsons.json | Site position | Settings, addin.position.file | Inputs\position in the kit, Work root\round_addin\position in the shipped set |
 | shared_parameters.xlsx | 23 rows, 11 marked Keep | Settings, addin.parameterSheet | C:\SA-demo\config |
 
 **Before it.** New project. The Baseplan row picked.
@@ -177,7 +177,7 @@ Boxes: No site drawing in the setup, pick the Baseplan in the pane first. Nothin
 1. Run 2 Read data.
 2. Apply on the dry run box.
 3. In What the tool read: Use the proposed for all, then Use these picks.
-4. After it, pick the Scope: Whole project, Neighbourhood or Plot list. The list is empty until step 2 ends, so do not press Neighbourhood before it.
+4. After it, pick the Scope: Whole project, Neighbourhood or Plot list. Step 3 takes Neighbourhood only. The list is empty until step 2 ends, so do not press Neighbourhood before it.
 
 Boxes: a missing file names it, for example needs Villa blocks, the file is not chosen. Cancel in What the tool read stops the step. Scope stop: change the scope and run it again, the read is reused.
 
@@ -195,7 +195,7 @@ Boxes: a missing file names it, for example needs Villa blocks, the file is not 
 
 **Files it needs.** read_plotTable.json of step 2 in the work folder, and the last review_<NBH>.json if there is one.
 
-**Before it.** Step 2.
+**Before it.** Step 2. Scope on Neighbourhood. It shows one NBH, so Whole project or Plot list stops here with: Choose an NBH in Scope of the pane. 4 Check needs this step, so those scopes do not go on past it.
 
 **What the user clicks.**
 
@@ -347,7 +347,7 @@ Do not click anywhere while the Revit box is open. A press waits behind it and f
 
 ## 9 Report
 
-**What it does.** Counts what stands in the model, then writes the report Excel. It changes no element. The pane then reads Run complete.
+**What it does.** Counts what stands in the model, then writes the report Excel. It changes no element. The pane reads Run complete only when no step is left. After 4 then 9, it still points to 5.
 
 **Files it needs.** All from earlier: plan_<NBH>.json, step files and run logs of steps 4, 5 and 6 in the work folder. The model itself. project.json, the rules, the override list and plots.csv in their folders above.
 
@@ -401,3 +401,4 @@ Do not click anywhere while the Revit box is open. A press waits behind it and f
 | Step 9 | revit_counts_<run>.json, accepted_warnings_<run>_<NBH>.json | Work folder | 9 writes and reads |
 | Step 9 | <NBH>_Report.xlsx | Work folder | 9 writes. Update from report reads an edited copy |
 | Every step | run_<run>.log, run_timing_<run>.json | Work folder | Each button writes |
+| Dry run | dry\<run>\ | Work folder | A dry run writes, no later button reads them as a result |
