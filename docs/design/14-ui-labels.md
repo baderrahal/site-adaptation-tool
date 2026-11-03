@@ -575,6 +575,19 @@ The window New project of Lane C NEWPROJ-UI, word for word from docs/design/boar
 - `Not in the folder any more: <name>. It stays unticked.` CHOSEN, DRAFT, the line naming the saved surfaces the folder no longer holds (R492)
 - `The road surface folder holds no road surface files. Pick the folder in the row Road levels, then open this window again.` CHOSEN, DRAFT, the line of a folder with nothing to pick (R492)
 
+### Help box
+
+The side box of the i of a step row and a New project row (R540). Its text comes from the help file, built from steps/buttons-guide.md by python/build_help.py. Only the headings stand here.
+
+- `i` CHOSEN, R540, by Bader's round HELP-3NOV-C
+- `What it does` CHOSEN, R540, by Bader's round HELP-3NOV-C
+- `Files it needs and from where` CHOSEN, R540, by Bader's round HELP-3NOV-C
+- `Before it` CHOSEN, R540, by Bader's round HELP-3NOV-C
+- `What you click` CHOSEN, R540, by Bader's round HELP-3NOV-C
+- `Known limits` CHOSEN, R540, by Bader's round HELP-3NOV-C
+- `None known.` CHOSEN, R540
+- `Close`
+
 ### How it works
 
 The page How it works of Lane C NEWPROJ-UI, word for word from docs/design/boards/HowItWorks.dc.html. Its picture is steps/ui-shots/how-it-works.png. The Button column is the ribbon label of each step.

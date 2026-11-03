@@ -17,6 +17,15 @@ namespace SiteAdaptation.AddIn.Pane
             DataContext = model;
         }
 
+        // R540. The i of a step row
+        private void OnStepHelp(object sender, RoutedEventArgs e)
+        {
+            if (sender is FrameworkElement source && source.DataContext is StepRowViewModel row)
+            {
+                Help.HelpBox.Show(row.HelpKey, source);
+            }
+        }
+
         private void OnPickSurfaces(object sender, RoutedEventArgs e)
         {
             model.PickSurfaces();

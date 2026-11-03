@@ -962,6 +962,10 @@ namespace SiteAdaptation.AddIn.Pane
         public int Number { get; }
         public string Name { get; }
         public string Line { get; }
+
+        // R540. The key of the row in the help file and its one line on hover
+        public string HelpKey => Common.Help.HelpBook.StepKey(Number);
+        public string HelpLine => Help.HelpFile.Book.Find(HelpKey)?.Line;
         public StepKind Chip { get { return chip; } private set { Set(ref chip, value); } }
         public string ChipText { get { return chipText; } private set { Set(ref chipText, value); } }
         public string ChipTip { get { return chipTip; } private set { Set(ref chipTip, value); } }
