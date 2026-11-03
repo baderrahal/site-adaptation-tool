@@ -6,6 +6,7 @@ namespace SiteAdaptation.AddIn.CheckTable
     {
         public const string Title = "4 Check, NBH <n>, <n> plots";
         public const string TitleAll = "4 Check, NBH all, <n> plots";
+        public const string ProfileFolder = ", in <n>";
         public const string ProfileLine = "Level profile <n>, override file <n>, <n> overrides, <n> of them on NBH <n>";
         public const string ZoomToPlot = "Zoom to plot";
         public const string ExportToExcel = "Export to Excel";

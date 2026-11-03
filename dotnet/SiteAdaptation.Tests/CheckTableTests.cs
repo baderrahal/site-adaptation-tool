@@ -61,6 +61,16 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
+        public void R486_the_folder_of_the_override_list_ends_the_line_so_the_counts_stay_in_sight()
+        {
+            CheckTableView view = Shots.SampleCheckView(false);
+            view.Info.OverrideFile = System.IO.Path.Combine("work", "New projects", "site_ab12", "roshn-makkah.json");
+            var session = new CheckTableSession(view, new CheckTableCallbacks { Save = choices => "list.json" }, Shots.SampleRuleLine(), id => { });
+
+            Assert.Equal("Level profile parsons2024Rev6, override file roshn-makkah.json, 12 overrides, 5 of them on NBH 012, in " + System.IO.Path.GetDirectoryName(view.Info.OverrideFile), session.Model.ProfileLine);
+        }
+
+        [Fact]
         public void R376_the_view_model_shows_the_title_the_profile_line_the_chips_and_the_manual_rule_id_of_each_row()
         {
             var session = new CheckTableSession(Shots.SampleCheckView(false), new CheckTableCallbacks { Save = choices => "list.json" }, Shots.SampleRuleLine(), id => { });

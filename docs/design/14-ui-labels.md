@@ -106,7 +106,7 @@ The five panels and their buttons of 7.1 of docs/design/12-ui-spec.md, Bader's c
 - `Generic, yard and ramp floors`
 - `Sets FFL and entry levels`
 - `Places a villa on each plot at its FFL`
-- `Boundary and garden walls`
+- `Boundary walls` CHOSEN, Q415
 - `Excel report of the run`
 - `Done`
 - `<n> issues`
@@ -363,8 +363,10 @@ Built in Lane B 5c. The title, band, buttons, chips, columns and side box are th
 - `Ramp type by the rule` CHOSEN, the Rule column and side box name of the code name rampSlope (max 6 words, 07-mock.md item 31)
 - `Link origin by the rule` CHOSEN, the Rule column and side box name of the code name linkOrigin (max 6 words, 07-mock.md item 31)
 - `Link rotation by the rule` CHOSEN, the Rule column and side box name of the code name linkRotation (max 6 words, 07-mock.md item 31)
+- `Front edge by hand` CHOSEN, Q376, the Rule column and side box name of the code name frontEdge of R482
 - `Yard outline by the rule` CHOSEN, the Rule column and side box name of the code name yardOutline (max 6 words, 07-mock.md item 31)
 - `Ramp outline by the rule` CHOSEN, the Rule column and side box name of the code name rampOutline (max 6 words, 07-mock.md item 31)
+- `Ramp joint by the rule` CHOSEN, Q410, the Rule column and side box name of the joint rows of R471
 - `Generic floor by the rule` CHOSEN, the Rule column and side box name of the code name generic (max 6 words, 07-mock.md item 31)
 - `Steps by the rule` CHOSEN, the Rule column and side box name of the code name steps (max 6 words, 07-mock.md item 31)
 - `Villa hand by the rule` CHOSEN, the Rule column and side box name of the code name hand villa (max 6 words, 07-mock.md item 31)
@@ -380,6 +382,8 @@ Built in Lane B 5c. The title, band, buttons, chips, columns and side box are th
 - `<n> m above the rule` CHOSEN, Past job column, side box and Choose line for a past value of {"gapToRuleM": n} above 0, the list keeps the value as it is
 - `<n> m below the rule` CHOSEN, Past job column, side box and Choose line for a past value of {"gapToRuleM": n} below 0, the list keeps the value as it is
 - `on the rule` CHOSEN, Past job column, side box and Choose line for a gap of 0, the list keeps the value as it is
+- `, in <n>` CHOSEN, Q397, end of the line under the title of 4 Check, the folder of the override list
+- `edge <n> of the plot outline` CHOSEN, Q376, Past job column, side box and Choose line for a front edge {"edge": n} of R482, counted from 1 as Review data shows it, the list holds n from 0
 - `along the front <n> m, into the plot <n> m` CHOSEN, Past job column, side box and Choose line for a position gap {"gapToRuleM": [x, y]}, signs kept, the list keeps the value as it is
 - `<n> degrees above the rule` CHOSEN, Past job column, side box and Choose line for a rotation gap {"gapToRuleDeg": n} above 0, the list keeps the value as it is
 - `<n> degrees below the rule` CHOSEN, Past job column, side box and Choose line for a rotation gap {"gapToRuleDeg": n} below 0, the list keeps the value as it is
@@ -398,6 +402,7 @@ The window of the button Update from report, 5f, word for word from the part Upd
 - `Update from report`
 - `Pick the edited report Excel`
 - `Browse` CHOSEN, the button beside the line above
+- `No changes found in this Excel.` CHOSEN, Q408
 - `Changes found`
 - `Follow the rules`
 - `Break a manual rule`
@@ -573,6 +578,19 @@ The window New project of Lane C NEWPROJ-UI, word for word from docs/design/boar
 - `Not in the folder any more: <name>. It stays unticked.` CHOSEN, DRAFT, the line naming the saved surfaces the folder no longer holds (R492)
 - `The road surface folder holds no road surface files. Pick the folder in the row Road levels, then open this window again.` CHOSEN, DRAFT, the line of a folder with nothing to pick (R492)
 
+### Help box
+
+The side box of the i of a step row and a New project row (R540). Its text comes from the help file, built from steps/buttons-guide.md by python/build_help.py. Only the headings stand here.
+
+- `i` CHOSEN, R540, by Bader's round HELP-3NOV-C
+- `What it does` CHOSEN, R540, by Bader's round HELP-3NOV-C
+- `Files it needs and from where` CHOSEN, R540, by Bader's round HELP-3NOV-C
+- `Before it` CHOSEN, R540, by Bader's round HELP-3NOV-C
+- `What you click` CHOSEN, R540, by Bader's round HELP-3NOV-C
+- `Known limits` CHOSEN, R540, by Bader's round HELP-3NOV-C
+- `None known.` CHOSEN, R540
+- `Close`
+
 ### How it works
 
 The page How it works of Lane C NEWPROJ-UI, word for word from docs/design/boards/HowItWorks.dc.html. Its picture is steps/ui-shots/how-it-works.png. The Button column is the ribbon label of each step.
@@ -613,7 +631,7 @@ The page How it works of Lane C NEWPROJ-UI, word for word from docs/design/board
 - `Generic, yard and ramp floors`
 - `Floor level, entry level and steps of each villa`
 - `Villas on their plots at their floor level`
-- `Boundary and garden walls, corner plots included`
+- `Boundary walls, corner plots included` CHOSEN, Q415
 - `Excel report the team can edit and read back`
 - `When the tool stops`
 - `It says what is missing, which step needs it, and who to ask. Fix that and press the button again.`
@@ -646,7 +664,7 @@ The window What the tool read of Lane C SCAN-UI, word for word from docs/design/
 - `What it found`
 - `Conflicts`
 - `Two files disagree on these plots. Pick the right one.`
-- `Plot`
+- `CAD label` CHOSEN, Q406
 - `Use`
 - `Show all <n>`
 - `Use the proposed for all`

@@ -502,6 +502,7 @@ namespace SiteAdaptation.AddIn.Pane
             {
                 RefreshRow(row, document == null ? null : row.Keys.Select(key => document.Settings.InputPath(key)).ToArray());
             }
+            RefreshSheet();
             RefreshSurfaces();
             RefreshFormat();
             RefreshHelp();
@@ -519,6 +520,35 @@ namespace SiteAdaptation.AddIn.Pane
             foreach (string name in new[] { nameof(HasDocument), nameof(FirstOpen), nameof(InUse), nameof(ShownSteps), nameof(Settings), nameof(ScopeWhole), nameof(ScopeNbh), nameof(ScopePlots), nameof(Nbh), nameof(Plots), nameof(DryRun), nameof(VillaMasses), nameof(VillaLinks) })
             {
                 Changed(name);
+            }
+        }
+
+        // R506. The row Shared parameters shows the sheet of the project, the one chosen, else the one config names, with its counts under
+        // it. A sheet that does not read is amber with its reason. A chosen one button 1 would stop on stays green, as it is found, with the reason
+        private void RefreshSheet()
+        {
+            FileRowViewModel row = InputRows.First(item => item.Keys.Contains(InputKeys.ParameterSheet));
+            if (document == null)
+            {
+                row.Hint = string.Empty;
+                row.ShowNote(string.Empty);
+                return;
+            }
+            string chosen = document.Settings.InputPath(InputKeys.ParameterSheet);
+            string path = string.IsNullOrEmpty(chosen) ? probe.ConfigSheet(document.Settings.ConfigFile) : chosen;
+            if (string.IsNullOrEmpty(chosen))
+            {
+                RefreshRow(row, new[] { path });
+            }
+            SheetRead read = row.Found ? probe.ReadSheet(path) : null;
+            row.Hint = read?.Line ?? string.Empty;
+            string config = string.IsNullOrEmpty(chosen) ? path : probe.ConfigSheet(document.Settings.ConfigFile);
+            bool other = row.Found && !string.IsNullOrEmpty(chosen) && !string.IsNullOrEmpty(config) && !string.Equals(Path.GetFullPath(chosen), Path.GetFullPath(config), StringComparison.OrdinalIgnoreCase);
+            string note = read?.Refused ?? (other ? Common.SetUp.SetUpTexts.OtherSheet(Path.GetFileName(chosen), Path.GetFileName(config)) : null);
+            row.ShowNote(Common.SetUp.SetUpTexts.NoRuleId(note));
+            if (read?.Refused != null)
+            {
+                row.Show(true, false, row.FileName, row.ToolTip);
             }
         }
 
@@ -869,6 +899,7 @@ namespace SiteAdaptation.AddIn.Pane
         private string surfacesTip;
         private string surfacesLine = string.Empty;
         private string note = string.Empty;
+        private string hint = string.Empty;
 
         public FileRowViewModel(string label, bool folder, params string[] keys)
         {
@@ -885,8 +916,8 @@ namespace SiteAdaptation.AddIn.Pane
         public string FileName { get { return fileName; } private set { Set(ref fileName, value); } }
         public string ToolTip { get { return toolTip; } private set { Set(ref toolTip, value); } }
 
-        // R505. A fixed line under the row, what the row is for
-        public string Hint { get; set; } = string.Empty;
+        // R505, R506. A line under the row, what the row is for or the counts of the sheet in use
+        public string Hint { get { return hint; } set { Set(ref hint, value); Changed(nameof(HasHint)); } }
         public bool HasHint { get { return !string.IsNullOrEmpty(Hint); } }
 
         // R492. The button Pick surfaces and the line under the row Road surface
@@ -962,6 +993,10 @@ namespace SiteAdaptation.AddIn.Pane
         public int Number { get; }
         public string Name { get; }
         public string Line { get; }
+
+        // R540. The key of the row in the help file and its one line on hover
+        public string HelpKey => Common.Help.HelpBook.StepKey(Number);
+        public string HelpLine => Help.HelpFile.Book.Find(HelpKey)?.Line;
         public StepKind Chip { get { return chip; } private set { Set(ref chip, value); } }
         public string ChipText { get { return chipText; } private set { Set(ref chipText, value); } }
         public string ChipTip { get { return chipTip; } private set { Set(ref chipTip, value); } }

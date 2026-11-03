@@ -23,7 +23,7 @@ namespace SiteAdaptation.Common.SetUp
         public const string RampSlopeLine = "Default 0.5%. Choices 0.5%, 1%, 2%, then 3% to 15%";
         public const string WallTypes = "Wall types";
 
-        public const string SignSettings = "the Settings entity SiteAdaptation_Settings";
+        public const string SignSettings = "settings saved in this model";
         public const string SignPosition = "a project position other than zero";
         public const string SignSurvey = "the survey point off the internal origin";
         public const string SignBase = "the project base point off the internal origin";
@@ -87,6 +87,18 @@ namespace SiteAdaptation.Common.SetUp
         public static string FromSheet(string source)
         {
             return "From the parameter sheet: " + source;
+        }
+
+        // R508. The line of the row Shared parameters on a model set up before R507, one sentence per category
+        public static string TakesOff(IEnumerable<KeyValuePair<string, List<string>>> taken)
+        {
+            return string.Join(" ", taken.Select(each => "Removes the " + each.Key + " binding of " + string.Join(", ", each.Value) + "."));
+        }
+
+        // R506. The messages of the sheet end on a rule id for the log, a window shows no code name
+        public static string NoRuleId(string text)
+        {
+            return text == null ? string.Empty : System.Text.RegularExpressions.Regex.Replace(text, @"\s*\(R\d+\)$", string.Empty);
         }
 
         // The line under the check points at addin.position.revitCheckPointLimitMm, the key of its own of Q142 (W2)

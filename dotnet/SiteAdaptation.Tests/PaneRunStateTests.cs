@@ -502,6 +502,16 @@ namespace SiteAdaptation.Tests
                 return null;
             }
 
+            public string ConfigSheet(string configFile)
+            {
+                return null;
+            }
+
+            public SiteAdaptation.AddIn.Pane.SheetRead ReadSheet(string path)
+            {
+                return null;
+            }
+
             public string VillaModeDefault(string configFile)
             {
                 return VillaDefault;
@@ -529,6 +539,16 @@ namespace SiteAdaptation.Tests
             }
 
             public string RulesName(string rulesFile)
+            {
+                return null;
+            }
+
+            public string ConfigSheet(string configFile)
+            {
+                return null;
+            }
+
+            public SiteAdaptation.AddIn.Pane.SheetRead ReadSheet(string path)
             {
                 return null;
             }
@@ -572,6 +592,16 @@ namespace SiteAdaptation.Tests
             }
 
             public string RulesName(string rulesFile)
+            {
+                return null;
+            }
+
+            public string ConfigSheet(string configFile)
+            {
+                return null;
+            }
+
+            public SiteAdaptation.AddIn.Pane.SheetRead ReadSheet(string path)
             {
                 return null;
             }

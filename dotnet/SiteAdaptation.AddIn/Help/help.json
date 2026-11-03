@@ -1,0 +1,351 @@
+{
+ "note": "R540. Built by python/build_help.py from steps/buttons-guide.md, do not edit by hand",
+ "entries": [
+  {
+   "key": "step1",
+   "title": "1 Set up site",
+   "line": "Sets position, levels, types and parameters",
+   "what": "Makes this model ready. It sets units, position, survey point, project base point, Level 1 and Level 2, floor types, wall types and the shared parameters. It sets only what differs. The position comes from a position file today, not from CAD, as the settings say (Q415).",
+   "files": [
+    "The project settings file. Project settings. From: The setup. Folder: C:\\SA-demo\\config",
+    "The rules file. Rules and the site values. From: The setup. Folder: C:\\SA-demo\\rules",
+    "The position file. Site position. From: Settings. Folder: Inputs\\position in the kit, Work root\\round_addin\\position in the shipped set",
+    "Shared_parameters.xlsx. 23 rows, 11 marked Keep. From: Settings. Folder: C:\\SA-demo\\config"
+   ],
+   "before": "New project. The Baseplan row picked.",
+   "click": [
+    "Run 1 Set up site. In the window:",
+    "Tick Current on each current file. Apply waits for the site drawing.",
+    "Check the two tables, What the project has now and What the tool will set.",
+    "Pick the Ramp slope. Default 0.5%.",
+    "Dry run, then Apply.",
+    "Boxes: No site drawing in the setup, pick the Baseplan in the pane first. Nothing differs: Apply only marks the step done."
+   ],
+   "limits": [
+    "Q415 The pane says from CAD, the position comes from the file.",
+    "Q336 Group of the link parameters.",
+    "Q379 Another PC needs its own inputs."
+   ]
+  },
+  {
+   "key": "step2",
+   "title": "2 Read data",
+   "line": "Reads the drawings and schedules",
+   "what": "The helper program CadReader.exe reads every input outside Revit. First it scans the files and shows What the tool read, where each value comes from and what conflicts. Then it reads them in full. No element changes in Revit. A read of unchanged files is reused.",
+   "files": [
+    "The input rows above, except Prototypes for the read. From: User picks. Folder: Inputs",
+    "The layer list, the layer list. From: Settings. Folder: C:\\SA-demo\\config",
+    "00101-PSN-IMC-XXX-SCH-TU-090000.xlsx, 00101-PSN-IMD-XXX-SCH-TU-090000.xlsx, past schedules. From: Settings. Folder: Inputs\\01_Output\\1.11 References",
+    "Plots.csv, location_plan\\labels.csv, phase1_border.csv, the data book. From: Settings. Folder: Inputs\\data_book",
+    "The prototypes, for the scan. From: User picks. Folder: Work root\\prototypes_2024"
+   ],
+   "before": "Step 1. All input rows picked.",
+   "click": [
+    "Run 2 Read data.",
+    "Apply on the dry run box.",
+    "In What the tool read: Use the proposed for all, then Use these picks.",
+    "After it, pick the Scope: Whole project, Neighbourhood or Plot list. Step 3 takes Neighbourhood only. The list is empty until step 2 ends, so do not press Neighbourhood before it.",
+    "Boxes: a missing file names it, for example needs Villa blocks, the file is not chosen. Cancel in What the tool read stops the step. Scope stop: change the scope and run it again, the read is reused."
+   ],
+   "limits": [
+    "Q306 A neighbourhood picked after the first read.",
+    "Q345 to Q349 Conflict picks."
+   ]
+  },
+  {
+   "key": "step3",
+   "title": "3 Review data",
+   "line": "The team checks each plot",
+   "what": "Shows every plot of the scope against its sources. The team marks each one. Nothing changes in Revit.",
+   "files": [
+    "The plot table of step 2 in the work folder, and the last the review file if there is one."
+   ],
+   "before": "Step 2. Scope on Neighbourhood. It shows one NBH, so Whole project or Plot list stops here with: Choose an NBH in Scope of the pane. 4 Check needs this step, so those scopes do not go on past it.",
+   "click": [
+    "Run 3 Review data.",
+    "Ok or Wrong per row, or Confirm all proposed.",
+    "Save review.",
+    "Close.",
+    "Zoom to plot and Export to Excel are there if needed. Boxes: closing unsaved asks Save your review? with Save, Don't save and Cancel. After a scope change the pane goes back to Run 2, press it, the read is reused."
+   ],
+   "limits": [
+    "Q417 Whole project and Plot list stop here.",
+    "Q355 A Wrong on a plot of two numbers.",
+    "Q300 Plots with no cluster proposal.",
+    "Q305 Hide Confirmed under the past job."
+   ]
+  },
+  {
+   "key": "step4",
+   "title": "4 Check",
+   "line": "Builds the plan and compares it with the past job",
+   "what": "Builds the plan of the scope and compares it with the past job. It shows each plot where the tool and the past job differ. The team picks Rule, Past or Skip. Nothing changes in Revit. Every later button builds from this plan.",
+   "files": [
+    "The reads of step 2. From: Step 2. Folder: Work folder",
+    "The site file of step 1. From: Step 1. Folder: Work folder",
+    "The project settings file, the floor outlines file, the prototype offsets file. From: Settings. Folder: C:\\SA-demo\\config",
+    "The rules file. From: Setup. Folder: C:\\SA-demo\\rules",
+    "The rules file, the override list. From: Beside the settings. Folder: C:\\SA-demo\\config\\overrides",
+    "The six road surfaces, plots.csv, labels.csv. From: Step 2 inputs. Folder: Inputs",
+    "13 prototypes. From: User picks. Folder: Work root\\prototypes_2024"
+   ],
+   "before": "Steps 1 to 3.",
+   "click": [
+    "Run 4 Check.",
+    "Apply.",
+    "When 4 Check opens, pick a row, see why, then Rule, Past or Skip.",
+    "Save overrides if anything changed.",
+    "Close the window, then Close the box."
+   ],
+   "limits": [
+    "Q401 12 plots differ from the past FFL.",
+    "Q402 Plots 2301 and 2302 read VD4.",
+    "Q386 Override list changes leave steps Done.",
+    "Q382 Step 4 builds on a the site file of step 1 off the model."
+   ]
+  },
+  {
+   "key": "step5",
+   "title": "5 Floors and ramps",
+   "line": "Places generic, yard and ramp floors",
+   "what": "Places the generic, yard and ramp floor of each plot in the scope, and fills the Plot parameter on them. Dry run on NBH 012: 1,003 floors, 0 refused.",
+   "files": [
+    "The plan of step 4 in the work folder. The floor types of step 1."
+   ],
+   "before": "Step 4.",
+   "click": [
+    "Run 5 Floors and ramps.",
+    "Apply.",
+    "Wait for the Revit box, 485 warnings on NBH 012, then OK. Cancel undoes the step.",
+    "Do not click anywhere while the Revit box is open. A press waits behind it and fires after OK."
+   ],
+   "limits": [
+    "Q385 Accepted warnings return after a save.",
+    "Q398 The 443 hairline floor overlaps at step 5.",
+    "Q356 The off axis warning of a cut yard.",
+    "Q354 Yards of a model already built.",
+    "Q411 Floor parameters bound but never filled."
+   ]
+  },
+  {
+   "key": "step6",
+   "title": "6 Levels",
+   "line": "Sets floor heights, writes the level Excel",
+   "what": "Sets the height of each generic and yard floor and each ramp corner of this tool to the plan, then writes the level Excel. It writes no villa parameter. If the Excel cannot be written the run is undone.",
+   "files": [
+    "All from earlier: the plan and step files of check_<run> in the work folder. the project settings file, the rules, the override list and plots.csv in their folders above."
+   ],
+   "before": "Step 5.",
+   "click": [
+    "Run 6 Levels, then Apply. A box names the Excel if another program holds it open. Close that program and run again."
+   ],
+   "limits": [
+    "Q412 Level 1 is empty after the build, use the 3D view.",
+    "Q401 12 plots differ from the past FFL."
+   ]
+  },
+  {
+   "key": "step7",
+   "title": "7 Place villas",
+   "line": "Places one villa on each plot at its FFL",
+   "what": "Places one villa on each plot at its FFL and writes its parameters. Under Masses, the default, each villa is a link to a light mass file of its prototype. Under Links, it is a link to the prototype itself. Dry run on NBH 012: 336 villas.",
+   "files": [
+    "The plan. From: Step 4. Folder: Work folder",
+    "13 mass files. From: Earlier run, or made from the prototypes if stale. Folder: Work root\\masses",
+    "13 prototypes. From: User picks. Folder: Work root\\prototypes_2024"
+   ],
+   "before": "Step 6. Keep Masses unless asked.",
+   "click": [
+    "Run 7 Place villas, then Apply. Box, when a link type must load or reload: Link types to load before Place villas, with Load and Cancel. Load clears the Undo list of Revit."
+   ],
+   "limits": [
+    "Q277 Footprint block names unlike the unit.",
+    "Q391 Twin masses overlap along one side.",
+    "Q337 Swap back in the same model unproven.",
+    "Q332 FFL bound but never written."
+   ]
+  },
+  {
+   "key": "step8",
+   "title": "8 Walls",
+   "line": "Places boundary walls, no garden walls yet",
+   "what": "Places the boundary walls of each plot in the scope. Garden walls are not placed, they have no measured rule. Dry run on NBH 012: 778 walls.",
+   "files": [
+    "The plan of step 4 in the work folder. the project settings file for the BW wall pattern. The wall types of step 1."
+   ],
+   "before": "Step 7.",
+   "click": [
+    "Run 8 Walls, then Apply."
+   ],
+   "limits": [
+    "Q266 Walls on edges other units meet. The wall rule is weak, 2,539 of 3,427 walls hold on the keys.",
+    "Q259 Garden door place of each unit.",
+    "Q358 Walls only the keys hold.",
+    "Q357 Key walls with the face on the line.",
+    "Q359 A C10 side wall beside a VL6."
+   ]
+  },
+  {
+   "key": "step9",
+   "title": "9 Report",
+   "line": "Writes the report Excel",
+   "what": "Counts what stands in the model, then writes the report Excel. It changes no element. The pane reads Run complete only when no step is left. After 4 then 9, it still points to 5.",
+   "files": [
+    "All from earlier: the plan, step files and run logs of steps 4, 5 and 6 in the work folder. The model itself. the project settings file, the rules, the override list and plots.csv in their folders above."
+   ],
+   "before": "Step 4. Steps 5 to 8 give it the counts, so run them first.",
+   "click": [
+    "Run 9 Report, then Apply. Then Open folder, open <NBH>_Report.xlsx."
+   ],
+   "limits": [
+    "Q307 Summary shows [file name].rvt and other gaps, Placed holds no wall rows, and the pane counts differ from Summary.",
+    "Q385 Accepted warnings return after a save."
+   ]
+  },
+  {
+   "key": "site",
+   "title": "Site drawing (CAD)",
+   "line": "Plots, roads, curb lines. It fills Baseplan",
+   "what": "Plots, roads, curb lines. It fills Baseplan",
+   "files": [
+    "Who gives it: Civil team",
+    "Used by: Buttons 1 to 4",
+    "Where it comes from: User picks, Inputs\\ROSHN Makkah Baseplan.dwg"
+   ],
+   "before": "Open and save the model. Empty project stops on a model never saved.",
+   "click": [
+    "Pane, Open New project.",
+    "Pick Start from.",
+    "Browse each row, or Get template to send a team an empty sheet. Pick surfaces is active when the settings follow Rev 06, as Empty project does, and grey under the past job.",
+    "Check files. It shows what is found and a yellow box for what stops a button.",
+    "Save setup.",
+    "Boxes:",
+    "The tool stops here, no saved project is chosen: pick one under Start from.",
+    "A template refused because it would lie in the input folder: pick another folder."
+   ],
+   "limits": [
+    "Q379 A new project on another PC needs the inputs of this job.",
+    "Q394, Q395, Q397 Empty project with Update, modes and Save As.",
+    "Q416 The road row reads optional, step 2 stops without it.",
+    "Q418 Empty project on a model with settings keeps its old rules.",
+    "The Shared parameters row reads Not chosen with an amber mark though button 1 finds the sheet (steps/dryrun-3nov.md)."
+   ]
+  },
+  {
+   "key": "plotList",
+   "title": "Plot list (Excel)",
+   "line": "Plot, code and cluster. It fills the Sales schedule",
+   "what": "Plot, code and cluster. It fills the Sales schedule",
+   "files": [
+    "Who gives it: Sales team",
+    "Used by: Button 3",
+    "Where it comes from: User picks, Inputs\\PSN-ZZZ-XXX-SCH-TM-000201- DLUS Schedule_(Rev9)_Accomodation_Schedule.xlsx"
+   ],
+   "before": "Open and save the model. Empty project stops on a model never saved.",
+   "click": [
+    "Pane, Open New project.",
+    "Pick Start from.",
+    "Browse each row, or Get template to send a team an empty sheet. Pick surfaces is active when the settings follow Rev 06, as Empty project does, and grey under the past job.",
+    "Check files. It shows what is found and a yellow box for what stops a button.",
+    "Save setup.",
+    "Boxes:",
+    "The tool stops here, no saved project is chosen: pick one under Start from.",
+    "A template refused because it would lie in the input folder: pick another folder."
+   ],
+   "limits": [
+    "Q379 A new project on another PC needs the inputs of this job.",
+    "Q394, Q395, Q397 Empty project with Update, modes and Save As.",
+    "Q416 The road row reads optional, step 2 stops without it.",
+    "Q418 Empty project on a model with settings keeps its old rules.",
+    "The Shared parameters row reads Not chosen with an amber mark though button 1 finds the sheet (steps/dryrun-3nov.md)."
+   ]
+  },
+  {
+   "key": "villaLevels",
+   "title": "Villa levels (Excel)",
+   "line": "Floor level and door level per villa type. Reads Comes later, no file is taken yet",
+   "what": "Floor level and door level per villa type. Reads Comes later, no file is taken yet",
+   "files": [
+    "Who gives it: Architect",
+    "Used by: Buttons 4 and 5",
+    "Where it comes from: Nothing today"
+   ],
+   "before": "Open and save the model. Empty project stops on a model never saved.",
+   "click": [
+    "Pane, Open New project.",
+    "Pick Start from.",
+    "Browse each row, or Get template to send a team an empty sheet. Pick surfaces is active when the settings follow Rev 06, as Empty project does, and grey under the past job.",
+    "Check files. It shows what is found and a yellow box for what stops a button.",
+    "Save setup.",
+    "Boxes:",
+    "The tool stops here, no saved project is chosen: pick one under Start from.",
+    "A template refused because it would lie in the input folder: pick another folder."
+   ],
+   "limits": [
+    "Q379 A new project on another PC needs the inputs of this job.",
+    "Q394, Q395, Q397 Empty project with Update, modes and Save As.",
+    "Q416 The road row reads optional, step 2 stops without it.",
+    "Q418 Empty project on a model with settings keeps its old rules.",
+    "The Shared parameters row reads Not chosen with an amber mark though button 1 finds the sheet (steps/dryrun-3nov.md)."
+   ]
+  },
+  {
+   "key": "roadLevels",
+   "title": "Road levels (civil file)",
+   "line": "Road surfaces. The row reads optional, but step 2 stops with no folder picked (Q416)",
+   "what": "Road surfaces. The row reads optional, but step 2 stops with no folder picked (Q416)",
+   "files": [
+    "Who gives it: Civil team",
+    "Used by: Button 4",
+    "Where it comes from: User picks, Inputs\\landxml"
+   ],
+   "before": "Open and save the model. Empty project stops on a model never saved.",
+   "click": [
+    "Pane, Open New project.",
+    "Pick Start from.",
+    "Browse each row, or Get template to send a team an empty sheet. Pick surfaces is active when the settings follow Rev 06, as Empty project does, and grey under the past job.",
+    "Check files. It shows what is found and a yellow box for what stops a button.",
+    "Save setup.",
+    "Boxes:",
+    "The tool stops here, no saved project is chosen: pick one under Start from.",
+    "A template refused because it would lie in the input folder: pick another folder."
+   ],
+   "limits": [
+    "Q379 A new project on another PC needs the inputs of this job.",
+    "Q394, Q395, Q397 Empty project with Update, modes and Save As.",
+    "Q416 The road row reads optional, step 2 stops without it.",
+    "Q418 Empty project on a model with settings keeps its old rules.",
+    "The Shared parameters row reads Not chosen with an amber mark though button 1 finds the sheet (steps/dryrun-3nov.md)."
+   ]
+  },
+  {
+   "key": "parameterSheet",
+   "title": "Parameter sheet (Excel)",
+   "line": "The shared parameters",
+   "what": "The shared parameters",
+   "files": [
+    "Who gives it: BIM team",
+    "Used by: Button 1",
+    "Where it comes from: The set: C:\\SA-demo\\config\\shared_parameters.xlsx"
+   ],
+   "before": "Open and save the model. Empty project stops on a model never saved.",
+   "click": [
+    "Pane, Open New project.",
+    "Pick Start from.",
+    "Browse each row, or Get template to send a team an empty sheet. Pick surfaces is active when the settings follow Rev 06, as Empty project does, and grey under the past job.",
+    "Check files. It shows what is found and a yellow box for what stops a button.",
+    "Save setup.",
+    "Boxes:",
+    "The tool stops here, no saved project is chosen: pick one under Start from.",
+    "A template refused because it would lie in the input folder: pick another folder."
+   ],
+   "limits": [
+    "Q379 A new project on another PC needs the inputs of this job.",
+    "Q394, Q395, Q397 Empty project with Update, modes and Save As.",
+    "Q416 The road row reads optional, step 2 stops without it.",
+    "Q418 Empty project on a model with settings keeps its old rules.",
+    "The Shared parameters row reads Not chosen with an amber mark though button 1 finds the sheet (steps/dryrun-3nov.md)."
+   ]
+  }
+ ]
+}

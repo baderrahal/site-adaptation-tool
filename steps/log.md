@@ -2,6 +2,127 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Lane D PARAM-3NOV-D, 2026-11-03, shared parameters shown right, on links only
+
+Goal:
+- Bader's dry run: the pane row read Not chosen, New project said the sheet is missing, Q411 floors bound but empty
+
+Done:
+- R506: the pane row shows the sheet of config, green, 11 parameters, 12 left out, New project reads Found. R507: config/shared_parameters.xlsx, the 9 RRE_ZZ_SP_ rows and CASE on RVT Links alone, Plot on Floors. An old sheet stops nothing, a button 7 row binds on links alone whatever it names, so C:\SA-demo needs no edit
+- R508: button 1 takes other categories off a links row and says so before Apply and after. A removal alone keeps the last run, so steps 2 to 9 stay done
+- CHOSEN: CASE also leaves Detail Items, Bader's check asks links only
+
+Checked:
+- RAN on a15d58c: pytest 2,509 passed, 1 skipped. dotnet 2,563 net48, 2,238 net8.0. Past plans byte equal whole project and IMC. 62 inputs the same. Parity: 13 steps, net48 and net8.0, whole project and the 7 keys, past job and rev6, 32 runs, 416 lines, 0 failures
+- Review 1: chosen sheet green though button 1 stops, line gone after the run, code names in the note. Breaker 1: the rebind took Done off 2 to 9. The stop on an old sheet taken out at Bader's fix step 1. All fixed with tests. The rest in steps/latent.md
+
+Remains:
+- The Revit check, waits for Bader to say the dry run is over: no Revit, no lock, no install, no C:\SA-demo until then. So UNKNOWN: BindParameters in Revit, whether link values survive ReInsert on fewer categories, the windows in Revit
+
+Known bugs:
+- A model keeps the old binding until a press of 1
+
+Next:
+- Bader says the dry run is over, then the Revit check on a copy of SA-dryrun3nov-done.rvt and a records PR
+
+Your turn:
+- Closed: Q411 Floor parameters bound but never filled. 180 open, steps/questions-open.md
+## Lane A KNOWN-3NOV-A, 2026-11-03, the known issues with a clear answer
+
+Goal:
+- Bader: fix the known issues of Lane A with a clear answer, write a recommended answer on the rest
+
+Done:
+- R520 Start from opens on the saved project, a re-pick imports. R521 Review takes the official number on 2312, saved marks move with it. Front edge in plain words, counted from 1 as Review. The override line ends with its folder
+- Breaker: built R522 no Past on another job's key, removed, the add-in gives no key reads, Q396 to steps/latent.md
+
+Checked:
+- Touched tests on both runners, full gate before the PR, review 1 and breaker 1. Q400 and the check line not seen in Revit
+- Q401, Q402 compared with the IMC key, RAN: no override wanted
+
+Remains:
+- The Revit pass of FIX-3NOV-A runs with COORD-3NOV-A: a first pass stopped twice in New project, nothing conclusive
+
+Known bugs:
+- R347 of WorkerRunTests failed once on net48 in a gate under load, passed 3 of 3 alone
+
+Next:
+- COORD-3NOV-A, RAMP-3NOV-A
+
+Your turn:
+- Closed Q376 Plain words for the front edge override. Q396 Past of a native key on new project. Q400 New project reopens on Empty project. Narrowed Q355, Q397. Recommended written Q401, Q402. Opened none.
+- 181 open, steps/questions-open.md
+
+## Lane C HELP-3NOV-C, 2026-11-03, i beside each step
+
+Goal:
+- Hover line and side box on steps 1 to 9 and New project rows, text from the guide
+
+Done:
+- R540: python/build_help.py, help file in the DLL, side box
+
+Checked:
+- Touched tests on net48 and net8.0, the pane and New project PNGs read. Not seen in Revit yet
+
+Remains:
+- RULES-3NOV-C. Second guide PR when PARAM merges, then rebuild the help file
+
+Known bugs:
+- None new
+
+Next:
+- RULES-3NOV-C
+
+Your turn:
+- Opened none. Closed none.
+- 184 open, steps/questions-open.md
+## Lane B FIX-3NOV-B end, 2026-11-03, undo in Revit
+
+Goal:
+- Finish task 4, the undo check of R499 in Revit
+
+Done:
+- steps/investigations/undo-3nov.md. steps/dryrun-3nov.md: the step 1 line (Q415) and the undo line
+
+Checked:
+- One undo and one redo on 9, one undo on 3, read in the pane and the journal. Records only, no code
+
+Remains:
+- 4 not proven, it stopped on picks.json of the copy. Save prompt after 3, 4, 9 alone
+
+Known bugs:
+- none new
+
+Next:
+- Known issues, REPORT-3NOV-B, 6b
+
+Your turn:
+- Opened none. Closed none. See steps/questions-open.md
+
+## Lane C known issues, 2026-11-03, FIX-KNOWN-3NOV-C
+
+Goal:
+- The issues of the guide with a clear answer
+
+Done:
+- Pick surfaces under the row (Q403), plain band (Q404), CAD label (Q406), No changes line (Q408), Ramp joint name (Q410), step 8 Boundary walls (Q415)
+
+Checked:
+- Touched tests on net48 and net8.0, text and window only, no parity
+
+Remains:
+- Not seen in Revit. Step 1 text of Q415 from Lane A. Then HELP-3NOV-C, RULES-3NOV-C
+
+Known bugs:
+- Q400, Q416, Q417, Q418
+
+Next:
+- HELP-3NOV-C
+
+Your turn:
+- Opened Q416 Road row reads optional, step 2 needs it. Q417 Whole project stops at step 3. Q418 Empty project keeps old rules on a set up model. Closed Q403, Q404, Q406, Q408, Q410.
+- 184 open, steps/questions-open.md
+
 ## Lane C GUIDE-3NOV-C, 2026-11-03, plain guide to the 9 buttons
 
 Goal:

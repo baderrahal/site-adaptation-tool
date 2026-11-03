@@ -74,6 +74,63 @@ namespace SiteAdaptation.Tests
             };
         }
 
+        private const string CaseGuid = "c0b2c4ee-e129-4a42-bcb6-225759b874eb";
+        private const string NameGuid = "6e8e827b-cc9a-4da2-9ddb-c8e3f09ffa36";
+
+        [Fact]
+        public void R508_a_model_set_up_before_loses_the_floors_binding_of_a_links_row_and_says_so_in_one_line()
+        {
+            SetUpTarget target = Target(sheet: ParameterSheet.FromRows("p.xlsx", Sheet(new[] { "CASE", CaseGuid, "Text", "RVT Links", "7", "Yes" }, new[] { "AA_Name", NameGuid, "Text", "RVT Links", "7", "Yes" })));
+            SiteState site = Template();
+            site.SharedParameters.Add(new ParameterState { Name = "CASE", Guid = CaseGuid, Group = "Text", Categories = { "Detail Items", "RVT Links" } });
+            site.SharedParameters.Add(new ParameterState { Name = "AA_Name", Guid = NameGuid, Group = "Text", Categories = { "Floors", "RVT Links" } });
+
+            SetUpChanges changes = SetUpPlanner.Changes(site, target);
+
+            Assert.Equal(new[] { "CASE", "AA_Name" }, changes.Parameters.Select(item => item.Name));
+            Assert.Equal(new[] { "Detail Items", "Floors" }, changes.TakenOff.Keys);
+            SetUpRow row = SetUpPlanner.View(site, target, null).WillSet.Single(item => item.Label == SetUpTexts.SharedParameters);
+            Assert.True(row.Differs);
+            Assert.Equal("From the parameter sheet: p.xlsx, 2 parameters. Removes the Detail Items binding of CASE. Removes the Floors binding of AA_Name.", row.Value);
+
+            // After the rebind the same model has nothing to change and no line
+            site.SharedParameters.ForEach(item => item.Categories = new List<string> { "RVT Links" });
+            SetUpChanges after = SetUpPlanner.Changes(site, target);
+            Assert.Empty(after.Parameters);
+            Assert.Empty(after.TakenOff);
+            Assert.Equal("From the parameter sheet: p.xlsx, 2 parameters", SetUpPlanner.View(site, target, null).WillSet.Single(item => item.Label == SetUpTexts.SharedParameters).Value);
+        }
+
+        [Fact]
+        public void R508_plot_on_floors_and_a_row_of_more_categories_keep_what_the_model_holds()
+        {
+            SetUpTarget target = Target(sheet: ParameterSheet.FromRows("p.xlsx", Sheet(new[] { "Plot", CaseGuid, "Text", "Floors", "5", "Yes" }, new[] { "AA_Two", NameGuid, "Text", "RVT Links, Walls", "none", "Yes" })));
+            SiteState site = Template();
+            site.SharedParameters.Add(new ParameterState { Name = "Plot", Guid = CaseGuid, Group = "Text", Categories = { "Floors", "Walls" } });
+            site.SharedParameters.Add(new ParameterState { Name = "AA_Two", Guid = NameGuid, Group = "Text", Categories = { "Doors", "RVT Links", "Walls" } });
+
+            SetUpChanges changes = SetUpPlanner.Changes(site, target);
+
+            Assert.Empty(changes.Parameters);
+            Assert.Empty(changes.TakenOff);
+        }
+
+        [Fact]
+        public void R507_a_sheet_from_before_the_rule_does_not_stop_button_1_and_binds_its_villa_rows_on_the_links_alone()
+        {
+            SetUpTarget target = Target(sheet: ParameterSheet.FromRows("old.xlsx", Sheet(new[] { "CASE", CaseGuid, "Text", "Detail Items, RVT Links", "7", "Yes" }, new[] { "AA_Name", NameGuid, "Text", "Floors, RVT Links", "7", "Yes" }, new[] { "Plot", "faecae98-f82c-46b5-bd80-489380545236", "Text", "Floors", "5", "Yes" })));
+            ParameterSpec old = target.Parameters.Parameters[1];
+            Assert.Equal(new[] { "Floors", "RVT Links" }, old.Categories);
+            Assert.Equal(new[] { "RVT Links" }, old.BoundOn);
+            Assert.Equal(new[] { "Floors" }, target.Parameters.Parameters[2].BoundOn);
+            SiteState site = Template();
+            Assert.Empty(SetUpPlanner.Stops(site, target));
+            site.SharedParameters.Add(new ParameterState { Name = "AA_Name", Guid = NameGuid, Group = "Text", Categories = { "Floors", "RVT Links" } });
+            Assert.Equal(new[] { "AA_Name" }, SetUpPlanner.Changes(site, target).TakenOff["Floors"]);
+            site.SharedParameters.Single(item => item.Name == "AA_Name").Categories = new List<string> { "RVT Links" };
+            Assert.False(SetUpPlanner.Changes(site, target).TakenOff.ContainsKey("Floors"));
+        }
+
         private SetUpTarget Target(double slope = 0.5, ParameterSheet sheet = null)
         {
             return SetUpTarget.From(config, Rules(), null, PositionFile(), slope, sheet ?? ParameterSheet.FromConfig(configPath, config));
@@ -193,7 +250,7 @@ namespace SiteAdaptation.Tests
             Assert.Equal(ParameterSheet.FloorsButton, plot.FilledBy);
             Assert.Null(sheet.Parameters.Single(item => item.Name == Placer.FflParameter).FilledBy);
             Assert.Equal(9, sheet.GuidsFilledBy(ParameterSheet.PlaceVillasButton).Count);
-            Assert.Equal(new[] { "Detail Items", "RVT Links" }, sheet.Parameters.First(item => item.Name == "CASE").Categories);
+            Assert.Equal(new[] { "RVT Links" }, sheet.Parameters.First(item => item.Name == "CASE").Categories);
             Assert.Equal("From the parameter sheet: shared_parameters.xlsx, 11 parameters, 12 left out", SetUpTexts.FromSheet(sheet.Source));
             SetUpSiteView view = SetUpPlanner.View(Template(), Target(), null);
             Assert.Empty(view.Waiting);
@@ -800,6 +857,49 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
+        public void R508_a_press_that_only_removes_an_old_binding_says_so_and_steps_2_to_8_stay_done()
+        {
+            var calls = new List<string>();
+            var document = new FakeDocument(Template()) { Calls = calls };
+            var entity = new RecordingEntity(calls);
+            var settings = new ProjectSettings { ConfigFile = configPath, DryRunFirst = false };
+            Press(document, entity, settings, calls, HashA, FirstPress);
+            string held = entity.Json;
+            string site = File.ReadAllText(Path.Combine(work, SetUpRun.SiteFile));
+            ParameterState old = document.State.SharedParameters.Single(item => item.Name == "CASE");
+            old.Categories.Add("Detail Items");
+            calls.Clear();
+
+            RunOutcome outcome = Press(document, entity, settings, calls, HashA, FirstPress.AddDays(1), new FakeDialog());
+
+            Assert.Equal(RunEnd.Committed, outcome.End);
+            Assert.Equal("Removes the Detail Items binding of CASE.", outcome.Message);
+            Assert.Equal(new[] { "RVT Links" }, document.State.SharedParameters.Single(item => item.Name == "CASE").Categories);
+            Assert.Equal(held, entity.Json);
+            Assert.Equal(site, File.ReadAllText(Path.Combine(work, SetUpRun.SiteFile)));
+            Assert.All(Kinds(Pass(StepRun.From(SettingsJson.Read(entity.Json).LastRuns["1"], null), HashA, HashA)), kind => Assert.Equal(StepStateKind.Done, kind));
+        }
+
+        [Fact]
+        public void R508_a_removal_with_another_change_records_as_any_change_does()
+        {
+            var calls = new List<string>();
+            var document = new FakeDocument(Template()) { Calls = calls };
+            var entity = new RecordingEntity(calls);
+            var settings = new ProjectSettings { ConfigFile = configPath, DryRunFirst = false };
+            Press(document, entity, settings, calls, HashA, FirstPress);
+            string held = entity.Json;
+            document.State.SharedParameters.Single(item => item.Name == "CASE").Categories.Add("Detail Items");
+            document.State.Position = new SitePosition { EastM = 1, NorthM = 0, ElevationM = 0, AngleDeg = 0 };
+
+            RunOutcome outcome = Press(document, entity, settings, calls, HashA, FirstPress.AddDays(1), new FakeDialog());
+
+            Assert.Equal(RunEnd.Committed, outcome.End);
+            Assert.Equal("Removes the Detail Items binding of CASE.", outcome.Message);
+            Assert.NotEqual(held, entity.Json);
+        }
+
+        [Fact]
         public void R374_q158_site_json_and_the_entity_are_written_when_missing_with_no_element_set()
         {
             var calls = new List<string>();
@@ -1210,7 +1310,8 @@ namespace SiteAdaptation.Tests
                 Assert.NotNull(ParameterFile);
                 foreach (ParameterSpec item in parameters)
                 {
-                    State.SharedParameters.Add(new ParameterState { Name = item.Name, Guid = item.Guid, Categories = item.Categories.ToList(), Group = item.Group });
+                    State.SharedParameters.RemoveAll(found => found.Guid == item.Guid);
+                    State.SharedParameters.Add(new ParameterState { Name = item.Name, Guid = item.Guid, Categories = item.BoundOn.ToList(), Group = item.Group });
                 }
             }
 
@@ -1239,7 +1340,7 @@ namespace SiteAdaptation.Tests
             {
                 foreach (ParameterSpec item in target.Parameters.Parameters)
                 {
-                    State.SharedParameters.Add(new ParameterState { Name = item.Name, Guid = item.Guid, Categories = item.Categories.ToList(), Group = item.Group });
+                    State.SharedParameters.Add(new ParameterState { Name = item.Name, Guid = item.Guid, Categories = item.BoundOn.ToList(), Group = item.Group });
                 }
             }
 

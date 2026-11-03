@@ -4,19 +4,19 @@
 
 ### Lane A
 
-- Lane: A, round FIX-3NOV-A, branch fix/3nov-a. Time: 13:25. Blocked: none
-- Done: R484 to R487, parity, gate, Revit on 84e1e69 to 4 Check. Records written
-- Now: the PR, merge only if green by 14:00
-- Next: a short Revit pass of the window fixes after the restart, not seen in Revit yet
+- Lane: A, 3 Nov 21:45, branches fix/known-3nov-a, fix/coord-3nov-a, fix/ramp-3nov-a. Blocked: none. No lock held
+- Done: KNOWN fixes, new callers SavedStarts.CameFrom by NewProjectViewModel
+- Now: KNOWN PR, COORD and RAMP building in their worktrees
+- Next: one Revit window for COORD with the window fixes not seen yet, then RAMP
 
 ### Lane B, C and D
 
-- Lane B STOPPED 15:50, 3 Nov, for Bader's dry run, resume after 19:00. Lock released 15:49, Revit closed, no helper or background run. Dry run GO, steps/dryrun-3nov.md. Q384, Q382 merged PR 154, overlaps merged PR 155. Next: task 4 undo in Revit, then 6b, specs in lane_b_check\p6b.
-- Lane C, 3 Nov 19:50, branch check/6c-rest: resumed, PR 160 merged, the rest of 6c, then known issues, HELP-3NOV-C, RULES-3NOV-C. No new function in this PR. I own the pane file tonight, send me text changes. Blocked: none
-- Lane D MASS-2NOV-D, 3 Nov, branch mass/2nov-d: the mass outline by the outer wall faces, R500 to R504, closed Q279, Q321, opened Q390 to Q393. Revit proof done, lock free.
-  Now: the PR, merge when green. Nothing queued after it. Blocked: none
+- Lane B 20:55, 3 Nov. Undo proven in Revit (R499), steps/investigations/undo-3nov.md, lock free. Next: known issues, REPORT-3NOV-B, 6b. Ids R550 to R569, Q450 to Q469. Blocked: none
+- Lane C, 3 Nov, branch feat/help-3nov-c: PR 160, 161, 162 merged, HELP PR going up, next RULES-3NOV-C. Ids R540 to R549, Q416 to Q419, Q440 to Q449. New callers: HelpBook by HelpFile, HelpFile by the pane and New project rows, HelpBox by OnStepHelp and OnRowHelp. A guide change needs python/build_help.py. I own the pane file tonight. Blocked: none
+- Lane D PARAM-3NOV-D, 3 Nov 21:30, branch param/3nov-d: R506 to R508, Q411 closed. Gate green on a15d58c. Now: the past job half of parity, the PR, then the Revit check on a copy. Next: known issues, MASS-3NOV-D, TOPO-3NOV-D. Ids R530 to R539, R570 to R579, Q470 to Q479. No lock. Blocked: none
+  New callers: SetupCheck.ConfigSheet by SetupCheck.Run and DiskProbe.ConfigSheet. IInputProbe.ConfigSheet, ReadSheet by PaneViewModel.RefreshSheet by RefreshOnce. ParameterSheet.Counts by Source and ReadSheet. ParameterSpec.LinksOnly by BoundOn, SetUpPlanner.Changes, RevitSiteDocument.BindParameters. BoundOn by SetUpPlanner.Changes, BindParameters. SetUpChanges.RemovalAlone, RunContext.KeepsLastRun by SetUpRun.Apply, ButtonFlow. SetUpTexts.TakesOff by SetUpPlanner, SetUpRun. NoRuleId by RefreshSheet.
 
-Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane D MASS-2NOV-D, 3 Nov 2026.
+Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane D PARAM-3NOV-D, 3 Nov 2026.
 
 ## Repo map
 

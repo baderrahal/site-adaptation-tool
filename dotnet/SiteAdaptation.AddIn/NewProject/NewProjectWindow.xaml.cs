@@ -20,6 +20,15 @@ namespace SiteAdaptation.AddIn.NewProject
             model.ViewScan();
         }
 
+        // R540. The i of a row
+        private void OnRowHelp(object sender, RoutedEventArgs e)
+        {
+            if (sender is FrameworkElement source && source.DataContext is SetupRowViewModel row)
+            {
+                Help.HelpBox.Show(row.Row.Id, source);
+            }
+        }
+
         private void OnBrowse(object sender, RoutedEventArgs e)
         {
             if ((sender as FrameworkElement)?.DataContext is SetupRowViewModel row)

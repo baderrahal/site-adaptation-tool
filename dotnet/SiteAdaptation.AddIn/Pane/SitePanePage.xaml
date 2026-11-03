@@ -1,7 +1,8 @@
 <Page x:Class="SiteAdaptation.AddIn.Pane.SitePanePage"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-      xmlns:pane="clr-namespace:SiteAdaptation.AddIn.Pane">
+      xmlns:pane="clr-namespace:SiteAdaptation.AddIn.Pane"
+      xmlns:help="clr-namespace:SiteAdaptation.AddIn.Help">
   <!-- R372, docs/design/12-ui-spec.md 7.2 top to bottom. Every colour, size and font by StaticResource of Theme.xaml, every
        text in docs/design/14-ui-labels.md -->
   <Page.Resources>
@@ -45,24 +46,23 @@
               <ColumnDefinition Width="{StaticResource SA.Grid.Label}" />
               <ColumnDefinition Width="*" />
               <ColumnDefinition Width="Auto" />
-              <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <ContentControl Content="{Binding}" ContentTemplate="{StaticResource RowMark}" />
             <TextBlock Grid.Column="1" Style="{StaticResource SA.Type.Body}" VerticalAlignment="Center" TextWrapping="Wrap" Text="{Binding Label}" />
             <TextBlock Grid.Column="2" Style="{StaticResource SA.Type.Body}" VerticalAlignment="Center" Margin="{StaticResource SA.Gap.Right8}"
                        TextTrimming="CharacterEllipsis" ToolTip="{Binding ToolTip}" Text="{Binding FileName}" />
-            <!-- R492. Pick surfaces of the row Road surface, grey with its reason as the tooltip under a past job -->
-            <Button Grid.Column="3" Style="{StaticResource SA.Button.Base}" VerticalAlignment="Center" Margin="{StaticResource SA.Gap.Right8}" Content="{x:Static pane:PaneText.PickSurfaces}" Click="OnPickSurfaces"
-                    Visibility="{Binding HasSurfaces, Converter={StaticResource Shown}}" IsEnabled="{Binding SurfacesEnabled}"
-                    ToolTip="{Binding SurfacesTip}" ToolTipService.ShowOnDisabled="True" />
-            <Button Grid.Column="4" Style="{StaticResource SA.Button.Base}" VerticalAlignment="Center" Content="Browse" Click="OnBrowse" />
+            <Button Grid.Column="3" Style="{StaticResource SA.Button.Base}" VerticalAlignment="Center" Content="Browse" Click="OnBrowse" />
           </Grid>
           <Grid Visibility="{Binding HasSurfaces, Converter={StaticResource Shown}}">
             <Grid.ColumnDefinitions>
               <ColumnDefinition Width="{StaticResource SA.Grid.Mark}" />
               <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <TextBlock Grid.Column="1" Style="{StaticResource SA.Pane.Help}" Margin="{StaticResource SA.Gap.Row}" Text="{Binding SurfacesLine}" />
+            <TextBlock Grid.Column="1" Style="{StaticResource SA.Pane.Help}" Margin="{StaticResource SA.Gap.Row}" TextWrapping="Wrap" Text="{Binding SurfacesLine}" />
+            <!-- R492, Q403. Pick surfaces of the row Road surface, grey with its reason as the tooltip under a past job. On its own line, beside Browse it cut the row at the pane edge -->
+            <Button Grid.Column="2" Style="{StaticResource SA.Button.Base}" VerticalAlignment="Center" Margin="{StaticResource SA.Gap.Row}" Content="{x:Static pane:PaneText.PickSurfaces}" Click="OnPickSurfaces"
+                    IsEnabled="{Binding SurfacesEnabled}" ToolTip="{Binding SurfacesTip}" ToolTipService.ShowOnDisabled="True" />
           </Grid>
           <!-- R505. A fixed line under a row, what the row is for -->
           <Grid Visibility="{Binding HasHint, Converter={StaticResource Shown}}">
@@ -104,7 +104,10 @@
             <ColumnDefinition Width="{StaticResource SA.Grid.StepMark}" />
             <ColumnDefinition Width="*" />
             <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="Auto" />
           </Grid.ColumnDefinitions>
+          <!-- R540. One line on hover, the side box on a click -->
+          <Button Grid.Column="3" Style="{StaticResource SA.Button.Info}" Margin="{StaticResource SA.Gap.Left8}" Content="{x:Static help:HelpText.Mark}" ToolTip="{Binding HelpLine}" Click="OnStepHelp" />
           <Grid Width="{StaticResource SA.Size.StepMark}" Height="{StaticResource SA.Size.StepMark}" HorizontalAlignment="Left" VerticalAlignment="Center">
             <Ellipse StrokeThickness="{StaticResource SA.Size.MarkStroke}">
               <Ellipse.Style>
