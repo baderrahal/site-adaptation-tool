@@ -86,6 +86,8 @@ Not run in Revit yet. Lane B held the lock and the test host applies nothing, so
 3. Press Use these picks and wait for the read to end.
 4. Open 3 Review data and find that plot.
 
+Trap: the Plot column of Conflicts shows the CAD label, not Plot No. On Lane B's run Plot No 2291 has CAD label 2281, and another plot reads Plot No 2281. Find the plot in 3 Review data by the label you picked, steps/check-2nov.md row 8. The fix of the column is not built.
+
 Look for: that plot's Villa type is the value you picked, and every plot you left alone keeps its value. The file read.json in <work>\read_<hash> has "sources", with plotOutline MP_PLOT_LINE + MP_PLOT_SUBD from proposal, villaBlock and villaType from default unless a saved pick applies, and your plot under "conflicts". Known: the build still reads plots.csv, so a picked plot can differ from the build (Q349). A saved project that holds a villa block or villa type pick ends the read with 2 issue lines saying why (Q346).
 
 ## 9. Update from report (Lane A2, PR 130, R472)
@@ -230,6 +232,15 @@ Lane B's script saw Revit crash once, 16 s after OK on Browse For Folder of the 
 2. Do step 1 twice more, picking Desktop\Pictures as the script did at least once.
 
 Look for: Revit still open after each try. If it crashes, note which try and which folder and tell Lane C.
+
+## 21. The front edge and the parted walls (Lane A, PR 149)
+
+Not run in Revit.
+
+1. Press 4 Check on a project with plots 1553, 1172, 2626, 2665, 727 and 469.
+2. Look at those plots in the check table.
+
+Look for: those plots written, one Position row frontEdge with Use Past, past value {"edge": n}. Walls of a parted cluster read MEASURED weak on walls.ends.
 
 ## Questions for Bader
 
