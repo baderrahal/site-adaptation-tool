@@ -511,7 +511,7 @@ namespace SiteAdaptation.AddIn.NewProject
 
         private SetupCheckResult Refresh()
         {
-            SetupCheckResult result = SetupCheck.Run(Next(), there);
+            SetupCheckResult result = SetupCheck.Run(Next(), there, readText);
             foreach (SetupRowViewModel row in Rows)
             {
                 row.Show(result.Rows.Single(item => item.Row.Id == row.Row.Id));
