@@ -955,7 +955,7 @@ namespace SiteAdaptation.Tests
         }
 
         // R497. SPB2 and SPMM ended as changed inputs only for the log Revit writes beside a prototype it opens
-        [Theory]
+        [WindowsTheory]
         [InlineData(@"C:\Work\prototypes_2024\A_backup\A.slog", true)]
         [InlineData(@"C:\Work\prototypes_2024\A_BACKUP\A.SLOG", true)]
         [InlineData(@"C:\Work\prototypes_2024\A.slog", false)]
@@ -978,7 +978,7 @@ namespace SiteAdaptation.Tests
         }
 
         // Breaker 1. The list is made before the run, so a file new under an input root was never seen and the line read changed 0
-        [Fact]
+        [WindowsFact]
         public void R497_a_file_new_under_an_input_root_counts_and_one_outside_does_not()
         {
             string input = Path.Combine(root, "input");
