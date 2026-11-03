@@ -22,6 +22,8 @@ LEVELS, PLACED, SETTINGS = "Levels", "Placed", "Settings"
 LEVEL_COLUMNS = ("Plot No", "Unit", "Cluster", "Road at front", "El @ Entry", "FFL", "SSL", "Height", "Steps", "Source")
 PLACED_COLUMNS = ("Plot", "Kind", "Type", "Mirror", "Element id")
 LINK = "link"
+BOUNDARY_WALL = "boundaryWall"
+NOT_A_WALL_EDIT = "a wall row is not editable"
 NO_CLUSTER = "none"
 NO_BUILD = "none, the plan holds no run stamp"
 BUILD_ID, PLAN_SHA = "Plan build id", "Plan SHA-256"
@@ -213,6 +215,12 @@ def changes_of(books, plan, sha, rules, profile, overrides=None):
                 if plot is None:
                     break
                 kind = cell(row, 1) if isinstance(cell(row, 1), str) else None
+                # Q307. A wall row says what stands, so it is passed over before the key of a second row, and only a typed cell is listed
+                if kind == BOUNDARY_WALL:
+                    for column, name in ((2, "Type"), (3, "Mirror")):
+                        if cell(row, column) is not None:
+                            ignore(book, PLACED, index, plot, name, None, cell(row, column), NOT_A_WALL_EDIT)
+                    continue
                 first = (plot, kind) not in seen
                 seen.add((plot, kind))
                 planned = written.get(plot) if first else None

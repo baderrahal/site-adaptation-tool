@@ -2,6 +2,31 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Lane B REPORT-3NOV-B, 2026-11-03, the report in BIM layout
+
+Goal:
+- Why the report failed in the dry run, Q307, Q408, ISO name and BIM sheets
+
+Done:
+- R550 to R555. Cover, Plot schedule, Floors, Walls first, walls in Placed, one count for pane and report (R554, ButtonRun.IssueCount)
+- Dry run report: no failure in the logs, UNKNOWN what Bader saw, see the PR
+
+Checked:
+- python/report_excel_check.py on the real book: 105,411 matches, 0 mismatches. 336 villas, 1,003 floors, 778 walls from the model read
+- Update from report by the worker: 0 changes on the plain book, 1 on an edited one
+
+Remains:
+- New project fields, Lane C after this merges. The window of Update from report not seen in Revit
+- Element ids not opened by id in Revit, the screen was in use
+
+Known bugs:
+- C:\SA-demo\config holds no fileName block, so its models keep 012_Report.xlsx until it is refreshed
+
+Next:
+- 6b
+
+Your turn:
+- Opened Q450 Report defaults of old number, revision, status. Q451 Report Issues column against its sheets. Closed Q307 What the report Summary shows after a run. See steps/questions-open.md
 ## Lane D PARAM-3NOV-D, 2026-11-03, shared parameters shown right, on links only
 
 Goal:

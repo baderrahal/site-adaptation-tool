@@ -492,3 +492,12 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R513 No usable CAD asks the user.
 - R514 Where the position came from.
 - R523 No move with placed content.
+
+## 14-report-r550-up.md
+
+- R550 Report file name by ISO.
+- R551 Report sheets in BIM order.
+- R552 Plot schedule, one row per plot.
+- R553 Lists freeze and filter.
+- R554 Run facts for the report.
+- R555 Changed rules are marked.

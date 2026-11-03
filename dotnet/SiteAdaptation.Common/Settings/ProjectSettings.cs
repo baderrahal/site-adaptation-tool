@@ -50,6 +50,9 @@ namespace SiteAdaptation.Common.Settings
 
         // R513. The position file picked in the window, null while addin.position.file of config stands
         public string PositionFile { get; set; }
+
+        // R550. The fields of the report file name the user set, over addin.report.fileName of config, null until a pick
+        public SortedDictionary<string, string> ReportFields { get; set; }
     }
 
     public sealed class SettingsInput
@@ -86,6 +89,17 @@ namespace SiteAdaptation.Common.Settings
                 InputHashes = new SortedDictionary<string, string>(inputHashes.ToDictionary(pair => pair.Key, pair => pair.Value), StringComparer.Ordinal),
                 Issues = issues.ToList(),
             };
+        }
+
+        // Q307. The one count of a step, what the pane shows and the report writes: its issues and the warnings it accepted
+        [Newtonsoft.Json.JsonIgnore]
+        public int IssueCount
+        {
+            get
+            {
+                Counts.TryGetValue(WarningsCount, out int warnings);
+                return Issues.Count + warnings;
+            }
         }
 
         // ISO 8601 in UTC

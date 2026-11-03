@@ -895,7 +895,10 @@ namespace SiteAdaptation.Common
         public static List<string> UpdateFiles(string workFolder, string nbh, out string missing)
         {
             string[] levels = Directory.Exists(workFolder) ? Directory.GetFiles(workFolder, Floors.LevelsRun.ExcelName(nbh, "*"), SearchOption.TopDirectoryOnly) : new string[0];
-            string report = Path.Combine(workFolder, Report.ReportRun.ReportName(nbh));
+            // R550. The report goes by the name its fields give, so it is found by the NBH its name holds, the newest where a change of the fields left two
+            string report = Directory.Exists(workFolder) ? Directory.GetFiles(workFolder, "*.xlsx", SearchOption.TopDirectoryOnly)
+                .Where(path => Update.UpdateWorkerRequest.NbhOf(path) == nbh && !levels.Contains(path)).OrderByDescending(File.GetLastWriteTimeUtc).FirstOrDefault() : null;
+            report = report ?? Path.Combine(workFolder, Report.ReportRun.ReportName(nbh));
             if (levels.Length != 1)
             {
                 missing = levels.Length == 0 ? "no " + Floors.LevelsRun.ExcelName(nbh, "<profile>") + " in the work folder"
