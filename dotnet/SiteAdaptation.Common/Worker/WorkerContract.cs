@@ -36,6 +36,10 @@ namespace SiteAdaptation.Common
         // request of a project that holds none stays byte-equal
         public string ProjectMode { get; set; }
 
+        // R511. The site source and the position file the settings of the project hold, for the new project check. Null is left out of the JSON, as for the mode
+        public string CoordinateSource { get; set; }
+        public string PositionFile { get; set; }
+
         public WorkerScope Scope { get; set; }
         public string OutputFolder { get; set; }
 

@@ -30,6 +30,75 @@ namespace SiteAdaptation.AddIn.SetUpSite
 
         public string Badge { get; private set; }
 
+        // R510. The line of a model with no site coordinates, as Common gives it
+        public string NoCoordinatesLine => view.NoCoordinatesLine ?? "";
+
+        public bool NoCoordinatesShown => NoCoordinatesLine.Length > 0;
+
+        // R510. The place of the template, named as that
+        public string TemplatePlaceLine => view.TemplatePlaceLine ?? "";
+
+        public bool TemplatePlaceShown => TemplatePlaceLine.Length > 0;
+
+        // R513. Why CAD gives no usable coordinates, as Common gives it
+        public string NoSourceLine => view.NoSourceLine ?? "";
+
+        public bool NoSourceShown => NoSourceLine.Length > 0;
+
+        // R441, R513. The help says what the gate does, it waits for the site drawing only while CAD is or may be the source
+        public string CurrentHelpLine => DrawingAsked ? SetUpSiteText.CurrentHelp : SetUpSiteText.CurrentHelpOther;
+
+        // R512. Why the check against the position file did not run, as Common gives it
+        public string CheckLine => view.CheckLine ?? "";
+
+        public bool CheckLineShown => CheckLine.Length > 0;
+
+        // Q422. The words of the window follow the source, a head that says CAD over a position file would say where the numbers do not come from
+        public string IntroLine => BySource(SetUpSiteText.Intro, SetUpSiteText.IntroFile, SetUpSiteText.IntroTyped, SetUpSiteText.IntroNone);
+
+        public string CheckTitle => BySource(SetUpSiteText.CheckTitleCad, SetUpSiteText.CheckTitleFile, SetUpSiteText.CheckTitleTyped, SetUpSiteText.CheckTitleNone);
+
+        public string CheckColumn => BySource(SetUpSiteText.CompareCad, SetUpSiteText.CompareFile, SetUpSiteText.CheckColumnTyped, SetUpSiteText.CompareCad);
+
+        private string BySource(string cad, string file, string typed, string none)
+        {
+            switch (view.PositionSource)
+            {
+                case SiteSources.Cad:
+                    return cad;
+                case SiteSources.PositionFile:
+                    return file;
+                case SiteSources.Typed:
+                    return typed;
+                default:
+                    return none;
+            }
+        }
+
+        // R512
+        public IReadOnlyList<SourceRow> SourceRows => view.SourceRows;
+
+        public bool SourceRowsShown => view.SourceRows.Count > 0;
+
+        // R513. The three boxes as typed, kept across the views the buttons give back
+        public string TypedEast { get; set; } = "";
+
+        public string TypedNorth { get; set; } = "";
+
+        public string TypedAngle { get; set; } = "";
+
+        public bool TypedValues(out double east, out double north, out double angle)
+        {
+            north = 0.0;
+            angle = 0.0;
+            return Number(TypedEast, out east) && Number(TypedNorth, out north) && Number(TypedAngle, out angle);
+        }
+
+        private static bool Number(string text, out double value)
+        {
+            return double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value) && !double.IsNaN(value) && !double.IsInfinity(value);
+        }
+
         public string SignsLine { get; private set; }
 
         public bool SignsShown => SignsLine.Length > 0;
@@ -75,10 +144,13 @@ namespace SiteAdaptation.AddIn.SetUpSite
         public bool CurrentShown => view.CurrentFiles != null;
 
         // Breaker of SCAN-UI: with no site drawing to tick Apply can never turn on, so the section says why
-        public bool NoSiteShown => view.CurrentFiles != null && !CurrentFiles.Any(row => row.Site);
+        public bool NoSiteShown => view.CurrentFiles != null && DrawingAsked && !CurrentFiles.Any(row => row.Site);
+
+        // R441, R513. Only CAD reads the site drawing, so a position file or typed values never wait for its tick, else no drawing in the setup would be a dead end
+        private bool DrawingAsked => view.PositionSource != SiteSources.PositionFile && view.PositionSource != SiteSources.Typed;
 
         // Apply stays grey until the site drawing is ticked Current (R441)
-        public bool SiteTicked => view.CurrentFiles == null || Common.SetUp.CurrentFiles.CanApply(CurrentFiles.Select(row => new CurrentFileRow { Site = row.Site, Current = row.Current }));
+        public bool SiteTicked => view.CurrentFiles == null || !DrawingAsked || Common.SetUp.CurrentFiles.CanApply(CurrentFiles.Select(row => new CurrentFileRow { Site = row.Site, Current = row.Current }));
 
         public IReadOnlyList<string> RulesChoices { get; private set; }
 
@@ -198,7 +270,9 @@ namespace SiteAdaptation.AddIn.SetUpSite
 
         private string StopsText()
         {
-            return string.Join(Environment.NewLine, view.Stops.Concat(problem.Length > 0 ? new[] { problem } : new string[0]));
+            // R513. Why no source works stands in the section Position source beside the ways out of it, so it is not said again here. It still keeps Apply off through view.Stops
+            IEnumerable<string> others = view.Stops.Where(stop => string.IsNullOrEmpty(view.NoSourceLine) || !view.NoSourceLine.Contains(stop));
+            return string.Join(Environment.NewLine, others.Concat(problem.Length > 0 ? new[] { problem } : new string[0]));
         }
 
         private List<SetUpRowViewModel> Ordered(List<SetUpRow> rows, string[] order, bool will)

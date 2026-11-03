@@ -42,6 +42,8 @@ namespace SiteAdaptation.Common
         public string Template { get; set; }
         // Lane B 5b. An addinRun job that runs button 1 on the four copies of 3.1 in place of the checks of 5a
         public bool? SetUp { get; set; }
+        // R513. The source the window of button 1 takes before its dry run, as a click of the window does, null keeps the one the press starts on
+        public SetUp.SiteSourcePick SiteSource { get; set; }
         // Lane B 5c (R384). An addinRun job that runs these buttons in this order on one NBH of one copy, in place of the checks of 5a.
         // villaMode is the mode of button 7, linksAfterMasses runs 7 again in links after masses, paneSettings the settings JSON of
         // R367 the run script writes for the pane of the copy

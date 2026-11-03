@@ -159,7 +159,6 @@
    ],
    "limits": [
     "Q277 Footprint block names unlike the unit.",
-    "Q391 Twin masses overlap along one side.",
     "Q337 Swap back in the same model unproven.",
     "Q332 FFL bound but never written."
    ]

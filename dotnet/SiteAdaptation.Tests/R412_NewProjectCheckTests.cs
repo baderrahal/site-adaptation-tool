@@ -194,6 +194,35 @@ namespace SiteAdaptation.Tests
             Assert.Equal("Inputs opened: 8, none changed", text[text.Length - 2]);
         }
 
+        // R511. The source the project holds decides, not the default of a new project in config, so a past job with its position file still gets the line. The same cases in the Python
+        private CheckLine PositionOf(string source, string file = null)
+        {
+            return NewProjectCheck.Check(Path.Combine(config, "project.json"), Path.Combine(config, "rules.json"), Path.Combine(config, "prototype_offsets.json"), work, root, WorkerReads.CheckReaders(), source, file)
+                .Lines.Single(line => line.Input == "position file");
+        }
+
+        [Fact]
+        public void R511_the_new_project_check_reads_the_source_the_project_holds()
+        {
+            Build();
+            File.Delete(Path.Combine(work, "pos.json"));
+            JObject held = JObject.Parse(File.ReadAllText(Path.Combine(config, "project.json")));
+            held["coordinates"] = new JObject { ["source"] = "positionFile", ["newProjectSource"] = "cad" };
+            File.WriteAllText(Path.Combine(config, "project.json"), held.ToString());
+
+            Assert.Equal("missing", PositionOf(null).Status);
+            Assert.Equal("missing", PositionOf("positionFile").Status);
+            Assert.Equal("ok", PositionOf("cad").Status);
+            Assert.Equal("not asked, this project takes its position from CAD", PositionOf("cad").Text);
+            Assert.Equal("not asked, this project takes its position from typed values", PositionOf("typed").Text);
+
+            held["coordinates"]["source"] = "cad";
+            File.WriteAllText(Path.Combine(config, "project.json"), held.ToString());
+            Assert.Equal("ok", PositionOf(null).Status);
+            Assert.Equal("missing", PositionOf("positionFile").Status);
+            Assert.Equal("gone.json is not there", PositionOf("positionFile", Path.Combine(work, "gone.json")).Text);
+        }
+
         [Fact]
         public void R412_an_input_that_is_not_there_is_missing_and_one_that_cannot_be_read_does_not_fit()
         {

@@ -19,6 +19,7 @@ namespace SiteAdaptation.Common.SetUp
         public const string SiteFile = "site.json";
         public const string SiteFormat = "site-adaptation-site-facts";
         public const int SiteFormatVersion = 1;
+        public const string PositionSourceKey = "positionSource";
 
         // docs/design/06-settings.md, the schema of the Settings entity on ProjectInformation, a sign of an existing site file
         public const string SettingsSchema = "SiteAdaptation_Settings";
@@ -36,7 +37,7 @@ namespace SiteAdaptation.Common.SetUp
 
         private JObject config;
         private JObject rules;
-        private JObject position;
+        private SiteChoice site;
         private ParameterSheet sheet;
 
         // R508. The line said after the run that removed an old binding, null for any other run
@@ -48,7 +49,6 @@ namespace SiteAdaptation.Common.SetUp
         private string readBack;
         private Func<RunContext, CoordinateRead> readCad;
         private Func<StepRun> readLastRun;
-        private CadSite cad;
 
         // settingsInput is the name of the input of the Settings file in the pane, sheetInput that of the parameter sheet, null when the
         // pane gives none
@@ -97,7 +97,7 @@ namespace SiteAdaptation.Common.SetUp
 
         public ButtonBody Body()
         {
-            return new ButtonBody { Preview = Preview, Confirm = Confirm, Outside = Outside, Apply = Apply, ReadBack = context => readBack, Done = context => removedLine };
+            return new ButtonBody { Preview = Preview, Confirm = Confirm, Outside = Outside, Apply = Apply, ReadBack = context => readBack, AfterCommit = context => site.Hold(settingsNow?.Invoke()), Done = context => removedLine };
         }
 
         private RunSummary Preview(RunContext context)
@@ -113,8 +113,8 @@ namespace SiteAdaptation.Common.SetUp
             // The paths of config are relative to the repo root, the folder above the one config is in (its note)
             string rulesPath = Path.IsPathRooted(profile) ? profile : Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(Path.GetFullPath(settings.Path))), profile);
             rules = Json(rulesPath, "the rules profile");
-            position = Json(PositionSettings.From(config).File, "the position file");
-            cad = SiteFromCad.Load(config, context, readCad);
+            site = new SiteChoice(config, readCad, path => Json(path, "the position file"), settingsNow?.Invoke());
+            site.Start(context, document.Read());
             slope = RampSlopes.Default(rules, null);
             // R461. The parameter sheet addin.parameterSheet of config names, the one every button reads. A sheet the pane names that is
             // another file stops the run, so button 1 never binds GUIDs button 7 does not write by
@@ -145,6 +145,13 @@ namespace SiteAdaptation.Common.SetUp
                 {
                     otherSheet = SameSheet(path) ? null : path;
                     return View = Viewed(View.DryRunDone ? (Func<double[], double[]>)DryShared : null);
+                },
+                // R513. Another source asks for a new dry run, the check points of the last one held another position
+                SourceChosen = pick =>
+                {
+                    site.Choose(context, pick);
+                    target = Make();
+                    return View = Viewed(null);
                 },
             };
             SetUpSiteAnswer answer = dialog.Show(View, callbacks);
@@ -196,7 +203,15 @@ namespace SiteAdaptation.Common.SetUp
             var steps = new Dictionary<int, StepNow> { [context.Button] = new StepNow(run, StepHash.Combine(context.InputHashes), StepHash.OnDisk(run.Outputs.Keys)) };
             StepStateKind line = StepStates.Of(true, new SettingsScope(), steps)[context.Button - 1].Kind;
             return (line == StepStateKind.Done || line == StepStateKind.DoneWithIssues) && SameSetup(held, settingsNow())
-                && SiteFileAgrees(Path.Combine(context.WorkFolder, SiteFile), document.Read());
+                && SiteFileAgrees(Path.Combine(context.WorkFolder, SiteFile), document.Read()) && SameSource(Path.Combine(context.WorkFolder, SiteFile));
+        }
+
+        // R514. A press that changes only the source still writes, so site.json and the settings name it. A file of before the key was written under the source of config
+        private bool SameSource(string path)
+        {
+            JToken written = JObject.Parse(WorkFiles.ReadText(path))[PositionSourceKey];
+            string source = written != null && written.Type == JTokenType.String ? (string)written : SiteSources.OfConfig(config) ?? SiteSources.PositionFile;
+            return source == target.PositionSource;
         }
 
         private static bool SameSetup(ProjectSettings held, ProjectSettings now)
@@ -207,7 +222,7 @@ namespace SiteAdaptation.Common.SetUp
 
         // Q158, CHOSEN by the main session: a file left from another state of the model would give the build a wrong survey point, angle and levels,
         // so a press holds site.json to the facts of the model, in the tolerance of the diff, whatever its run id. A file that does not read disagrees
-        public static bool SiteFileAgrees(string path, SiteState now)
+        public static bool SiteFileAgrees(string path, SiteState now, string source = null)
         {
             if (!File.Exists(path))
             {
@@ -224,6 +239,12 @@ namespace SiteAdaptation.Common.SetUp
             }
             JObject facts = SiteJson(now, null);
             facts["runId"] = file["runId"]?.DeepClone();
+            // R514. The source is held only when the caller names one, a file of before the key agrees on the facts alone
+            JToken written = source != null ? new JValue(source) : file[PositionSourceKey]?.DeepClone();
+            if (written != null)
+            {
+                facts[PositionSourceKey] = written;
+            }
             return SameFacts(file, facts, null);
         }
 
@@ -350,9 +371,9 @@ namespace SiteAdaptation.Common.SetUp
             {
                 return issues;
             }
-            if (changes.Any || !SiteFileAgrees(Path.Combine(context.WorkFolder, SiteFile), after))
+            if (changes.Any || !SiteFileAgrees(Path.Combine(context.WorkFolder, SiteFile), after, target.PositionSource))
             {
-                context.WriteText(SiteFile, SiteJson(after, context.RunId).ToString(Newtonsoft.Json.Formatting.Indented));
+                context.WriteText(SiteFile, SiteJson(after, context.RunId, target.PositionSource).ToString(Newtonsoft.Json.Formatting.Indented));
             }
             if (store == null)
             {
@@ -360,8 +381,16 @@ namespace SiteAdaptation.Common.SetUp
                 return issues;
             }
             // Written last, so a read back that differs above writes no entity, and the roll back of the flow takes this write back
-            store.Record(settingsNow(), context.Button, LastRun(context, changing, issues), RunKind.Real, context.Transaction);
+            store.Record(HeldSettings(), context.Button, LastRun(context, changing, issues), RunKind.Real, context.Transaction);
             return issues;
+        }
+
+        // R511, R513. The record carries the source, so a commit holds it in the entity and a roll back takes it back. The settings in memory take it only after the commit (AfterCommit)
+        private ProjectSettings HeldSettings()
+        {
+            ProjectSettings copy = SettingsJson.Read(SettingsJson.Write(settingsNow()));
+            site.Hold(copy);
+            return copy;
         }
 
         // R367. Button 1 always works on the whole project (R366). The mode follows the tick of the settings, since the flow runs the
@@ -373,10 +402,10 @@ namespace SiteAdaptation.Common.SetUp
             return run;
         }
 
-        // R311. The site facts read back from the document, in the shape plan_from_book.py takes by --site
-        public static JObject SiteJson(SiteState after, string runId)
+        // R311. The site facts read back from the document, in the shape plan_from_book.py takes by --site. R514: the source under a key of its own, so the pane can read it
+        public static JObject SiteJson(SiteState after, string runId, string source = null)
         {
-            return new JObject
+            JObject facts = new JObject
             {
                 ["format"] = SiteFormat, ["formatVersion"] = SiteFormatVersion, ["runId"] = runId,
                 ["projectPosition"] = new JObject { ["eastM"] = after.Position.EastM, ["northM"] = after.Position.NorthM, ["elevationM"] = after.Position.ElevationM, ["angleDeg"] = after.Position.AngleDeg },
@@ -386,6 +415,11 @@ namespace SiteAdaptation.Common.SetUp
                 ["levels"] = new JArray(after.Levels.Select(level => new JObject { ["name"] = level.Name, ["elevationM"] = level.ElevationM, ["projectElevationM"] = level.ProjectElevationM, ["elevationBase"] = level.Base })),
                 ["units"] = new JObject { ["system"] = after.Units.System, ["length"] = after.Units.Length, ["lengthAccuracy"] = after.Units.LengthAccuracy, ["area"] = after.Units.Area, ["angle"] = after.Units.Angle, ["slope"] = after.Units.Slope },
             };
+            if (source != null)
+            {
+                facts[PositionSourceKey] = source;
+            }
+            return facts;
         }
 
         private double[] DryShared(double[] internalM)
@@ -395,7 +429,7 @@ namespace SiteAdaptation.Common.SetUp
 
         private SetUpTarget Make()
         {
-            return SetUpTarget.From(config, rules, null, position, slope, sheet, cad);
+            return SetUpTarget.From(config, rules, null, site.Position, slope, sheet, site.Cad, site.Problem, site.PickedFile);
         }
 
         private bool SameSheet(string path)
@@ -408,6 +442,8 @@ namespace SiteAdaptation.Common.SetUp
         {
             SetUpSiteView view = SetUpPlanner.View(document.Read(), target, dry);
             view.Stops = SheetStops(view.Stops);
+            view.SourceRows = site.Rows();
+            view.CheckLine = site.CheckLine;
             return view;
         }
 

@@ -316,7 +316,6 @@ Do not click anywhere while the Revit box is open. A press waits behind it and f
 **Limits today.**
 
 - Q277 Footprint block names unlike the unit.
-- Q391 Twin masses overlap along one side.
 - Q337 Swap back in the same model unproven.
 - Q332 FFL bound but never written.
 
@@ -357,6 +356,20 @@ Do not click anywhere while the Revit box is open. A press waits behind it and f
 - Q307 Summary shows [file name].rvt and other gaps, Placed holds no wall rows, and the pane counts differ from Summary.
 - Q385 Accepted warnings return after a save.
 
+## Site Adaptation Rules
+
+The ribbon button opens a table of the values the team may change: rule, name, manual value, project value, unit, manual page. Manual rules opens the full list of the manual.
+
+- Type a project value. A changed value shows amber. A value past its limits, or a smallest over its largest, blocks Save.
+- Save writes a copy for this project in Work root\New projects\<model name>_<8 letters>\rules, and changed_rules.json beside it. It never writes the shipped set or the file it read. 4 Check then reads Ready and the steps after it wait on it.
+- Reset to manual sets every row back, then Save.
+- Export writes the table to a file you pick, Import reads it back. A file with a line missing changes nothing.
+
+Limits today:
+
+- Q419 Under the past job the ramp slope limit changes no plan.
+- Q440 The table is not yet proven inside Revit.
+
 ## Files from start to end
 
 | Order | File | Folder | Read or written by |
@@ -387,6 +400,8 @@ Do not click anywhere while the Revit box is open. A press waits behind it and f
 | Step 4 | check_<run>\plan_<NBH>.json, checks_<NBH>.json, steps | Work folder | 4 writes. 5 to 9 read the plan |
 | Step 4 | run_<run>.json | Work folder | 4 writes. 9 reads |
 | Step 4 | roshn-makkah.json, override list | C:\SA-demo\config\overrides | 4 reads, Save overrides writes. 6 and 9 read |
+| Rules | Rules copy, changed_rules.json | Work root\New projects\<model name>_<8 letters>\rules | Save of Site Adaptation Rules writes. 4 reads the copy |
+| Rules | rule_values.json, the rows of the table | Install\ShippedSet\config | Site Adaptation Rules reads |
 | Step 5 | floors_<NBH>.json, floors_<NBH>_accepted.json, run_<run>.json | Work folder | 5 writes. 9 reads the log |
 | Step 6 | <NBH>_Levels_<profile>.xlsx, levels_<run>.json, run_<run>.json | Work folder | 6 writes. 9 reads the log |
 | Step 7 | Mass files | Work root\masses | 7 reads, writes when stale |

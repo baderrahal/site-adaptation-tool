@@ -104,6 +104,8 @@ namespace SiteAdaptation.Common
         public const string Ok = "ok";
         public const string Missing = "missing";
         public const string DoesNotFit = "does not fit";
+        public const string PositionFromCad = "not asked, this project takes its position from CAD";
+        public const string PositionTyped = "not asked, this project takes its position from typed values";
         public const string ConfigRole = "config";
         public const string RulesRole = "rules";
         public const string OffsetsRole = "offsets";
@@ -262,10 +264,20 @@ namespace SiteAdaptation.Common
             }
         }
 
-        private static CheckLine PositionLine(JObject settings, Run run)
+        // R511. The source the project holds, else coordinates.source of config, never the default of a new project, so a past job with its position file still gets its line
+        private static CheckLine PositionLine(JObject settings, Run run, string coordinateSource, string positionFile)
         {
             const string name = "position file";
-            string file = Str(settings, "addin.position.file", run.WorkRoot);
+            string source = coordinateSource ?? SetUp.SiteSources.OfConfig(settings);
+            if (source == SetUp.SiteSources.Cad)
+            {
+                return Line(name, Ok, PositionFromCad);
+            }
+            if (source == SetUp.SiteSources.Typed)
+            {
+                return Line(name, Ok, PositionTyped);
+            }
+            string file = positionFile ?? Str(settings, "addin.position.file", run.WorkRoot);
             if (file == null || !file.ToLowerInvariant().EndsWith(".json", StringComparison.Ordinal))
             {
                 return Line(name, DoesNotFit, "config names no .json file in addin.position.file");
@@ -680,7 +692,7 @@ namespace SiteAdaptation.Common
         }
 
         // The report of the check. The inputs are marked before their first read and again at the end, a change throws
-        public static NewProjectReport Check(string configPath, string rulesPath, string offsetsPath, string workRoot, string inputRoot, NewProjectReaders readers)
+        public static NewProjectReport Check(string configPath, string rulesPath, string offsetsPath, string workRoot, string inputRoot, NewProjectReaders readers, string coordinateSource = null, string positionFile = null)
         {
             var settings = JObject.Parse(File.ReadAllText(configPath).TrimStart('﻿'));
             JObject rules = null;
@@ -709,7 +721,7 @@ namespace SiteAdaptation.Common
             run.Opened(rulesPath);
             string folder = PrototypeFolder(settings, root);
             string work = DataBookWork(settings, workRoot);
-            var lines = new List<CheckLine> { PositionLine(settings, run), ParameterLine(configPath, settings, rules, run), OffsetsLine(settings, rules, offsetsPath, run), HandsLine(rules, folder), PrototypeLine(rules, folder) };
+            var lines = new List<CheckLine> { PositionLine(settings, run, coordinateSource, positionFile), ParameterLine(configPath, settings, rules, run), OffsetsLine(settings, rules, offsetsPath, run), HandsLine(rules, folder), PrototypeLine(rules, folder) };
             lines.AddRange(ExcelBlocks.Select(block => ExcelLine(settings, block, run, work)));
             lines.AddRange(ScheduleLines(settings, run, root));
             lines.Add(PdfLine(settings, run, work));

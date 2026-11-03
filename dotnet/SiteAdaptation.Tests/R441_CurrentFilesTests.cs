@@ -135,10 +135,12 @@ namespace SiteAdaptation.Tests
             ProjectSettings kept = null;
             var inner = new FakeDialog { Answer = new SetUpSiteAnswer { Apply = true, CurrentFiles = new List<string> { InputNames.Baseplan }, RulesFile = Path.Combine(RulesFolder, "a.json") } };
             var dialog = new CurrentFilesDialog(inner, () => settings, next => kept = next, folder => new string[0], path => "{}");
-            var callbacks = new SetUpSiteCallbacks { DryRun = slope => new SetUpSiteView() };
+            var callbacks = new SetUpSiteCallbacks { DryRun = slope => new SetUpSiteView(), SourceChosen = pick => new SetUpSiteView() };
             dialog.Show(new SetUpSiteView(), callbacks);
             Assert.Equal(2, inner.Shown.CurrentFiles.Count);
             Assert.Equal(2, inner.Callbacks.DryRun(0.5).CurrentFiles.Count);
+            // R513. The view a source gives back holds the section Current files too
+            Assert.Equal(2, inner.Callbacks.SourceChosen(new SiteSourcePick { Source = SiteSources.Cad }).CurrentFiles.Count);
             Assert.Equal(new[] { "baseplan|site.dwg" }, kept.CurrentFiles);
             Assert.Equal(Path.Combine(RulesFolder, "a.json"), kept.RulesFile);
 

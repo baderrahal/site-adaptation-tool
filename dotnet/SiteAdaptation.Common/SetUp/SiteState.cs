@@ -34,6 +34,11 @@ namespace SiteAdaptation.Common.SetUp
         public double? LatitudeDeg { get; set; }
         public double? LongitudeDeg { get; set; }
         public string PlaceName { get; set; }
+
+        // R523. What is placed in the model: the Revit links, the masses and the floors of each type, which button 1 holds to the floor types of the tool
+        public int PlacedLinks { get; set; }
+        public int Masses { get; set; }
+        public Dictionary<string, int> FloorsByType { get; set; } = new Dictionary<string, int>();
     }
 
     // The unit names as SiteFacts.UnitName gives them from the type id, such as meters, squareMeters, degrees

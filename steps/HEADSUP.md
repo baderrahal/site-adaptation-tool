@@ -4,15 +4,15 @@
 
 ### Lane A
 
-- Lane: A, 3 Nov 21:45, branches fix/known-3nov-a, fix/coord-3nov-a, fix/ramp-3nov-a. Blocked: none. No lock held
-- Done: KNOWN fixes, new callers SavedStarts.CameFrom by NewProjectViewModel
-- Now: KNOWN PR, COORD and RAMP building in their worktrees
-- Next: one Revit window for COORD with the window fixes not seen yet, then RAMP
+- Lane: A, 4 Nov 01:50, branches fix/coord-3nov-a, fix/ramp-3nov-a. Blocked: none. No lock held
+- Done: KNOWN PR 166. COORD built, its gate, the blank line in Revit by the test host
+- Now: COORD PR. Then RAMP PR
+- Next: on main in the second slot, CAD Apply, typed, move stop, the step 5 probe of RAMP
 
 ### Lane B, C and D
 
-- Lane B 01:05, 4 Nov, branch check/lane-b-6b: PR 168 merged. Now: 6b, 10 jobs, waits for Lane A "released" on COORD, then installs main with R556. New: TestHostJob.NoTemplate by ButtonsRunHost.Open and Run-TestHost.ps1. No lock held. Blocked: none
-- Lane C, 3 Nov, branch feat/help-3nov-c: PR 160, 161, 162 merged, HELP PR going up, next RULES-3NOV-C. Ids R540 to R549, Q416 to Q419, Q440 to Q449. New callers: HelpBook by HelpFile, HelpFile by the pane and New project rows, HelpBox by OnStepHelp and OnRowHelp. A guide change needs python/build_help.py. I own the pane file tonight. Blocked: none
+- Lane B 01:40, 4 Nov, branch check/lane-b-6b: PR 168 merged. Now: 6b, 10 jobs, install of main 57b548e with R556, then the lock. New: TestHostJob.NoTemplate by ButtonsRunHost.Open and Run-TestHost.ps1. Blocked: none
+- Lane C, 4 Nov 01:20, branch feat/rules-3nov-c: HELP and RULES built, RULES PR going up (R541, Q419, Q440). New callers: RuleValues by RuleValuesViewModel, PaneHost.OpenRuleValues by Buttons.Rules. Revit pass not done, screen locked. Next: pane texts of Lanes A, B, D. Lock free. Blocked: none
 - Lane D MASS-3NOV-D, 4 Nov 00:20, branch mass/3nov-d: Revit checks done, lock free. Over 1 mm 45 to 0 on NBH 012. Now: gate, the PR. Next: TOPO-3NOV-D on topo/3nov-d. Ids R530 to R539, R570 to R579, Q470 to Q479. Blocked: none
   New callers: MassCut.Apply by MassFileSet.Make. MassFileConfig.PartyLineOf by MassFileSet.Make. MassBase.UncutAreaM2, NotCut by MassFiles.Sidecar, Check.
 
@@ -30,12 +30,12 @@ Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane
 
 - Lane C DEMO-FIX, PR 124 (R444): step rows of the pane run steps, a loader on every button, Confirm all, idle buttons hidden. AddIn/Loader, Pane, ReviewData
 - Lane D FIX-1NOV-D, PR 126 (R460 to R465): config/shared_parameters.xlsx is the one parameter source of button 1. Common/SetUp/ParameterSheet.cs, ParameterBook.cs, SetUpPlanner.cs, RevitSiteDocument.cs
-- Lane B FIX-1NOV-B, PR 127: masses as one linked file per prototype (R450 to R453), coordinates from CAD with three control points (R454 to R456). Common/PlaceVillas/MassFiles.cs, RevitMassFileMaker.cs, Common/SetUp/SitePosition.cs, CoordinateSystems.cs, ControlPoints.cs
+- Lane B 01:40, 4 Nov, branch check/lane-b-6b: PR 168 merged. Now: 6b, 10 jobs, install of main 57b548e with R556, then the lock. New: TestHostJob.NoTemplate by ButtonsRunHost.Open and Run-TestHost.ps1. Blocked: none
 - Lane A FIX-1NOV-A, PR 128 (R470, R471): shared ramp corners behind floors.rampJoint.join, false, and joint rows in 4 Check. No code builds a curb, curbs are read only (R355). Common/Plan/CheckRows.cs
 - Lane D D2, PR 129 (R466): a test host job takes the design values from the repo config, the sheet takes group Text (Q336)
 - Lane C FIX-1NOV-C (R445): Save setup writes the model at once in its own transaction, an undo or redo reloads the pane settings, Q280 closed. Review data column fix. Folder cleanup, steps/cleanup-1nov.md
 - Lane A FIX-1NOV-A2, PR 130 (R472 to R474): button 2 takes the scan picks (Q292), Update from report finds the plan of 4 Check by its run log (Q278)
-- Lane B Task 6, PR 131 (R457): the demo by hand, two passes, steps/demo-check.md, a neighbourhood kept when the list refills
+- Lane B 01:40, 4 Nov, branch check/lane-b-6b: PR 168 merged. Now: 6b, 10 jobs, install of main 57b548e with R556, then the lock. New: TestHostJob.NoTemplate by ButtonsRunHost.Open and Run-TestHost.ps1. Blocked: none
 - Lane C FIX-2NOV-C (R446): Review data Close and ask, no idle button, Run complete in the pane, the export refused in the input folder, Dry run off before 4 Check
 - Lane D D3, PR 134 (R467, R468): Links mode proven by the test host on NBH 012, Q275 closed. Through the pane the Prototypes row names the link folder (part 11)
 - Lane D FIX-2NOV-D (R490 to R493): designBasis.roadLevel.surfaces, ProjectSettings.RoadSurfaces, WorkerRequest.RoadSurfaces, the window Road surfaces. A new function and its caller: design_basis.surfaces_of, stop_share_of, not_taken_why, named_surfaces by basis_of, no_road_stop and road_gaps by plan_from_book.run_build, road_order by level_excel_check.expected. DesignBasis.SurfacesOf, StopShareOf by Of, TakePick by BuildSteps.Run, NoRoadStop, NoRoadLine by BuildPlan.NoRoadCheck by BuildPlan.Write, IsNoRoad by CheckRun. RoadSurfaceChoices.Named, IsRev6, OrderText, ForRequest, NotTakenWhy by ReadInputs.Make, CheckRun.Plan, ReadDataRun.Start, PaneRunState.InputsOf, ReadSettings.ReadRoads. ReadSettings.ReadRoads by WorkerReads.Surfaces, LevelWorkbook.Command. RoadSurfacesDialog.Show by NewProjectDialog.Show and PaneHost.Register, RoadSurfacesViewModel by the dialog, RoadPickState by both view models, PickSurfaces by NewProjectWindow and SitePanePage

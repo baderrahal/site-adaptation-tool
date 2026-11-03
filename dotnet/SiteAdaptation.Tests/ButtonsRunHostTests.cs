@@ -713,7 +713,7 @@ namespace SiteAdaptation.Tests
             Assert.Contains("RevitShots.Window(", host);
             Assert.Contains("job.Shots == true", host);
             int setUp = host.IndexOf("ButtonShots.SetUpSite", StringComparison.Ordinal);
-            Assert.True(setUp < host.IndexOf("new SetUpSiteRun.AnswerWindow()", StringComparison.Ordinal));
+            Assert.True(setUp < host.IndexOf("new SetUpSiteRun.AnswerWindow {", StringComparison.Ordinal));
             Assert.DoesNotContain("CopyFromScreen", host);
             Assert.DoesNotContain("GetDesktopWindow", host);
             string script = Text("dotnet", "SiteAdaptation.TestHost", "Run-TestHost.ps1");

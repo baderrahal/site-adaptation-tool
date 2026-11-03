@@ -734,6 +734,14 @@ Q418. Empty project keeps old rules on a set up model (Lane C GUIDE-3NOV-C, R486
 - Recommended: A line in the window says this model keeps its rules, under Empty project.
 - Other: Copy the set over, the old override list is lost.
 
+Q419. Ramp slope limit does nothing under the past job (Lane C RULES-3NOV-C, R541). Front ramp slope, largest lists plots outside the manual only under Rev 06 (BuildPlan, IsRev6). Under the past job the plan stays the same (RAN, worker build on NBH 012). A Save of a model also leaves a Save As sharing that copy, as Q397.
+- Recommended: Keep it in the table and let the row say Rev 06 only, in Part 2.
+- Other: Hide the two rows under the past job.
+
+Q440. Rules table not yet proven in Revit (Lane C RULES-3NOV-C, R541). The pass on a copy of the dry run stopped each time before the table opened. The last stop was a locked PC screen, LogonUI running, no foreground window (RAN). Save, reset and the plan change hold in the tests and the worker build, not by a press in Revit.
+- Recommended: Keep the PC unlocked for one 20 minute pass, Lane C runs it and reports the five plans.
+- Other: Bader checks the table by hand in his check of Part 1.
+
 Q450. Report defaults of old number, revision, status (Lane B, R550, R552). CHOSEN: Old Plot No. is baseplanLabel of plots.csv, v9PlotNumber differs, revision P01, status S0.
 - Recommended: keep these, addin.report in config changes them.
 - Other: name the column and codes.
@@ -749,3 +757,7 @@ Q470. Plots a mass of its unit does not fit (Lane D MASS-3NOV-D, R530). One cut 
 Q471. Free ends that lose a wall they had room for (Lane D MASS-3NOV-D, R530). The cut is per prototype, so a free end is cut too. On 10 plots nothing needed it, the plot had room and no mass stands beside: DP1 2374, 2391 by 301 mm, DT3 552, 1280, 1485, 1763, 1764, 2271 by 77 mm, TH1 1402, 1403 by 76 mm. NBH 012 holds 2 of them. Elsewhere a free side ends at the plot line and needs the cut.
 - Recommended: Keep one mass per prototype. A mass is a check volume, 300 mm on 10 plots changes no build.
 - Other: A second mass file for a free end, picked per plot.
+
+Q420. Moving a model with placed content (R523, COORD-3NOV-A). Button 1 moves position and survey point and no element, so a model with placed links, masses or floors would stand off CAD by the move, 828 m between CAD and the position file on this job (RAN). Lane A built the stop.
+- Recommended: keep the stop, a move starts from a model with nothing placed.
+- Other: allow it after a plain warning.
