@@ -11,7 +11,7 @@
 
 ### Lane B, C and D
 
-- Lane B STOPPED 15:50, 3 Nov, for Bader's dry run, resume after 19:00. Lock released 15:49, Revit closed, no helper or background run. Dry run GO, steps/dryrun-3nov.md. Q384, Q382 merged PR 154, overlaps merged PR 155. Next: task 4 undo in Revit, then 6b, specs in lane_b_check\p6b.
+- Lane B resumed 19:50, 3 Nov, branch check/lane-b-3nov-undo. No lock held, Revit closed. Stopped 15:50 at the undo check. Now: undo in Revit (R499) on a copy of the fallback. Next: known issues, REPORT-3NOV-B, then 6b. Blocked: none
 - Lane C GUIDE-3NOV-C, 3 Nov, branch records/buttons-guide-c: steps/buttons-guide.md, records only, no new function, Q414, Q415. Next: a second small PR when PARAM-3NOV-D merges. Blocked: none
 - Lane D MASS-2NOV-D, 3 Nov, branch mass/2nov-d: the mass outline by the outer wall faces, R500 to R504, closed Q279, Q321, opened Q390 to Q393. Revit proof done, lock free.
   Now: the PR, merge when green. Nothing queued after it. Blocked: none
