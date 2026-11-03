@@ -445,6 +445,8 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R495 Check rows sort and filter.
 - R496 Pane warns on old prototypes.
 - R497 Revit slog leaves input check.
+- R498 Every step records its run.
+- R499 Undo takes step back.
 
 ## 13-parameters-r460-up.md
 

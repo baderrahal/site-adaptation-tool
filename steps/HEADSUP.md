@@ -11,7 +11,7 @@
 
 ### Lane B, C and D
 
-- Lane B FIX-2NOV-B, 03:10, branch fix/2nov-b-handrun: hand run done, lock released 03:01, steps/fix-2nov-b-handrun.md written. Records PR next, then the round ends. Nothing blocks.
+- Lane B FIX-3NOV-B, 3 Nov, branch fix/3nov-b-rows: tasks 1 and 2, R498 and R499 coded and written, review and breaker next. Task 3 to 5 follow. No Revit, no window lock. Nothing blocks.
 - Lane C SPEED-2NOV-C, 3 Nov: PR 151 merged, listener on main, how-to steps/revit-listener.md. Records PR open, sheet only. Nothing queued. Blocked: none
 - Lane D FIX-2NOV-D, 2 Nov, branch fix/2nov-d: no Revit, no window lock. Several road surfaces in order (Q364, Q256), R490 to R493, Q370 up. Editing NewProjectDialog and the pane road row, lane-c told.
 
