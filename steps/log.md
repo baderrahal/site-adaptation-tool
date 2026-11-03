@@ -2,6 +2,32 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Lane D PARAM-3NOV-D, 2026-11-03, shared parameters shown right, on links only
+
+Goal:
+- Bader's dry run: the pane row read Not chosen, New project said the sheet is missing, Q411 floors bound but empty
+
+Done:
+- R506: the pane row shows the sheet of config, green, 11 parameters, 12 left out, New project reads Found. R507: config/shared_parameters.xlsx, the 9 RRE_ZZ_SP_ rows and CASE on RVT Links alone, Plot on Floors. An old sheet stops button 1 and the pane says why
+- R508: button 1 takes other categories off a links row and says so before Apply and after. A removal alone keeps the last run, so steps 2 to 9 stay done
+- CHOSEN: CASE also leaves Detail Items, Bader's check asks links only. The stop on an old sheet is CHOSEN too
+
+Checked:
+- GATELINE
+- Review 1: chosen sheet green though button 1 stops, line gone after the run, code names in the note. Breaker 1: the rebind took Done off 2 to 9, the stop's advice could not be followed. All fixed with tests. The rest in steps/latent.md
+
+Remains:
+- The Revit check, waits for Bader to say the dry run is over: no Revit, no lock, no install, no C:\SA-demo until then. So UNKNOWN: BindParameters in Revit, whether link values survive ReInsert on fewer categories, the windows in Revit
+
+Known bugs:
+- C:\SA-demo\config and New projects\SA-3nova_8130b48d hold the old sheet (RAN by breaker, same SHA-256 as main before). After an install from this main, button 1 stops on them with 4 lines until the sheet is replaced. A model keeps the old binding until a press of 1
+
+Next:
+- Bader says the dry run is over, then the Revit check on a copy of SA-dryrun3nov-done.rvt and a records PR
+
+Your turn:
+- Closed: Q411 Floor parameters bound but never filled. 183 open, steps/questions-open.md
+
 ## Lane B DRY-RUN 3 Nov, 2026-11-03, the presenter check on frozen main b1a27d9, Lane B on the laptop
 
 Goal:
@@ -1373,52 +1399,3 @@ Your turn:
 - Closed: Q126 to Q145, the Lane B QL1 to QL20, answered by Bader on 28 and 29 Oct 2026
 - 71 questions open, full text: steps/questions-open.md
 
-## Older rounds
-
-- Round ADDIN 4h-2, 2026-10-29, R366, R369 and the join items, Lane A on the laptop: steps/history/log-addin-4h-fold.md line 5
-- Lane B 5b, 2026-10-29, button 1 Set up site, the watcher before Revit and the freeze guard: steps/history/log-addin-4h-fold.md line 44
-- Round ADDIN 4h-1, 2026-10-29, Q122, R367, R368 and the join items, Lane A on the laptop: steps/history/log-addin-4h-fold.md line 80
-- Round FOLD, 2026-10-29, the fold in, D9 to D19, the answer pass and the manual rules: steps/history/log-addin-4h-fold.md line 118
-- Round ADDIN 4g3, 2026-10-29, 4g3 done on the laptop, R365 and the C# checks of Q111: steps/history/log-addin-4g2-4g3.md line 5
-- Round ADDIN 4g3, 2026-10-28, 4g3 paused, moved to the laptop: steps/history/log-addin-4g2-4g3.md line 50
-- Round ADDIN 4g2, 2026-10-28, Q105, Q107, Q109, Q110, the walls and the check rows: steps/history/log-addin-4g2-4g3.md line 94
-- Round ADDIN 4g1, 2026-10-27, Q098, Q099 and the status of each plotted value: steps/history/log-addin-4f-4g1.md line 5
-- Round AUDIT-RULES, 2026-10-27, AI MAX version 4 and the status of every rule value: steps/history/log-addin-4f-4g1.md line 50
-- Round ADDIN 4f, 2026-10-27, Q089 and steps 8, 10, 12 and 13 in C#: steps/history/log-addin-4f-4g1.md line 92
-- Round REC, 2026-10-27, the records diet and Q095 to Q097: steps/history/log-addin-4f-4g1.md line 135
-
-One line per entry before Round REC, each moved byte for byte to the line named.
-
-- Round ADDIN Part 1, 2026-10-25, the add-in: steps/history/log-before-rec.md line 1
-- Round 17, 2026-10-25, the past models of all four sub-phases, the majority rule and the IMC rebuild: steps/history/log-before-rec.md line 53
-- Round DATA-5, 2026-10-25, the audit of DATA-4, the missing xrefs, the reader counts, the area key, the IFC and the coverage table: steps/history/log-before-rec.md line 104
-- Round DATA-4, 2026-10-25, the Rev 9 parcels in Civil 3D, the VL6 hand in Revit and where the past El @ Entry came from: steps/history/log-before-rec.md line 150
-- Round 16, 2026-10-24, links against the CAD footprint, the corner front, two past jobs and a full IMC file from CAD: steps/history/log-before-rec.md line 156
-- Round DATA-3, 2026-10-24, the Master Plan Rev 9 folder, El @ Entry by terms, the units on no plot and the location plan DWG: steps/history/log-before-rec.md line 162
-- Round Z4, 2026-10-24, a new site file for one neighbourhood from CAD only, compared with the past site model: steps/history/log-before-rec.md line 168
-- Round DATA-2, 2026-10-24, the full Civil 3D read, the analysis fixes, the wiring (Part W) and the location plan (Part L): steps/history/log-before-rec.md line 230
-- Round DATA, 2026-10-24, the data book of Phase 1: steps/history/log-before-rec.md line 236
-- Round 14c Part B, 2026-10-24, floors in the CAD plan: steps/history/log-before-rec.md line 277
-- Round 14c Part A, 2026-10-24, villa mirror, CASE and FFL split tested on the data: steps/history/log-before-rec.md line 314
-- Round C3D, 2026-10-24, the road drawings in Civil 3D 2026 tied to the plots: steps/history/log-before-rec.md line 351
-- Round 14 Part B, 2026-10-24, clusters and levels for the computed plan: steps/history/log-before-rec.md line 394
-- Round 14 Part A, 2026-10-24, links from CAD for IMC: steps/history/log-before-rec.md line 430
-- Round 15b, 2026-10-24, placer step 2, Generic, yard and ramp floors, eight scenarios in Revit: steps/history/log-before-rec.md line 468
-- Round 15a test, 2026-10-24, the test host drives Revit, one prototype per run: steps/history/log-before-rec.md line 514
-- Round 13, 2026-10-24, unit codes, road levels, entry level per plot, block to link offset: steps/history/log-before-rec.md line 563
-- Round 12b, 2026-10-24, villa blocks from Makkah Building Footprint, unit codes into the clusters: steps/history/log-before-rec.md line 569
-- Round 15a, 2026-10-24, plan.json from the past IMC job and the placer step 1: steps/history/log-before-rec.md line 575
-- Round 12, 2026-10-24, villa blocks, row split, road fronts, levels, master plan V9: steps/history/log-before-rec.md line 581
-- Round 11, 2026-10-24, project settings, cluster derivation, checks 1 and 2: steps/history/log-before-rec.md line 587
-- Round 10, 2026-10-24, ROSHN Makkah rules profile and loader: steps/history/log-before-rec.md line 593
-- Round 9, 2026-10-23, floor, ramp and link relations: steps/history/log-before-rec.md line 599
-- Round 8, 2026-10-23, ramp levels from the real corners, surface roles, floor count, one error line: steps/history/log-before-rec.md line 605
-- Round 7 Revit, 2026-10-22, ramp corners, spot elevations, plot numbers, link names: steps/history/log-before-rec.md line 611
-- Round 7 road, 2026-10-22, LandXML road surfaces and the ramp level test: steps/history/log-before-rec.md line 617
-- Round 6, 2026-10-22, plot number shift, second source, no type check: steps/history/log-before-rec.md line 623
-- Round 5, 2026-10-22, Revit link names, shared parameters and floors: steps/history/log-before-rec.md line 629
-- Round 4, 2026-10-22, explode, label join, PDF rows, full run: steps/history/log-before-rec.md line 635
-- Round 4, 2026-10-22, Revit links, walls and ramps: steps/history/log-before-rec.md line 641
-- Round 3, 2026-10-22, fixes against the real files: steps/history/log-before-rec.md line 647
-- Round 2, 2026-10-22, readers run on real ROSHN Makkah files: steps/history/log-before-rec.md line 652
-- Round 1, 2026-10-22, read-only readers: steps/history/log-before-rec.md line 657
