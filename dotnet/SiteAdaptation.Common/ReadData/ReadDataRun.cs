@@ -224,10 +224,30 @@ namespace SiteAdaptation.Common.ReadData
         {
             foreach (JToken row in table["plots"] as JArray ?? new JArray())
             {
-                string number = row["officialNumber"]?.Type == JTokenType.String ? (string)row["officialNumber"] : null;
+                string number = UnitNumber(row);
                 string nbh = row["nbhId"] == null || row["nbhId"].Type == JTokenType.Null ? null : row["nbhId"].ToString();
                 yield return new ScopePlot(number, nbh, number != null);
             }
+        }
+
+        // R557. The official number needs a shift per neighbourhood, config holds two of seven, so 5 NBHs had no unit plot and 6b stopped at
+        // button 2. A new code of the location plan marks a unit on exactly the same 747 plots of 012 and 013, and its one number finds every
+        // plot of the 7 keys. Two numbers name no plot (Q355), so such a plot still needs its official number
+        public static string UnitNumber(JToken row)
+        {
+            string official = Text(row, "officialNumber");
+            if (official != null)
+            {
+                return official;
+            }
+            string located = Text(row, "locationPlanNumber");
+            return Text(row, "locationPlanNewCode") == null || located == null || located.Contains("|") ? null : located;
+        }
+
+        private static string Text(JToken row, string field)
+        {
+            JToken value = row[field];
+            return value?.Type == JTokenType.String && ((string)value).Trim().Length > 0 ? (string)value : null;
         }
 
         private ReadPlan Plan(RunContext context)

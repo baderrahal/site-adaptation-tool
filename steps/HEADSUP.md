@@ -11,7 +11,7 @@
 
 ### Lane B, C and D
 
-- Lane B 01:55, 4 Nov, branch check/lane-b-6b: PR 168 merged. Now: 6b, 10 jobs, install of main 57b548e with R556, then the lock. New: TestHostJob.NoTemplate by ButtonsRunHost.Open and Run-TestHost.ps1. Blocked: none
+- Lane B 02:05, 4 Nov, branch check/lane-b-6b: 6b found NBH 02, 03, 01A, 021, 022 stop at button 2, no official number. R557 fixes it, second install after ZC, LD, ND, KD end. New: ReadDataRun.UnitNumber by ScopePlots and DrawingFacts, TestHostJob.NoTemplate by ButtonsRunHost.Open and Run-TestHost.ps1. Slot 1 held. Blocked: none
 - Lane C, 4 Nov 01:20, branch feat/rules-3nov-c: HELP and RULES built, RULES PR going up (R541, Q419, Q440). New callers: RuleValues by RuleValuesViewModel, PaneHost.OpenRuleValues by Buttons.Rules. Revit pass not done, screen locked. Next: pane texts of Lanes A, B, D. Lock free. Blocked: none
 - Lane D MASS-3NOV-D, 4 Nov 00:20, branch mass/3nov-d: Revit checks done, lock free. Over 1 mm 45 to 0 on NBH 012. Now: gate, the PR. Next: TOPO-3NOV-D on topo/3nov-d. Ids R530 to R539, R570 to R579, Q470 to Q479. Blocked: none
   New callers: MassCut.Apply by MassFileSet.Make. MassFileConfig.PartyLineOf by MassFileSet.Make. MassBase.UncutAreaM2, NotCut by MassFiles.Sidecar, Check.
