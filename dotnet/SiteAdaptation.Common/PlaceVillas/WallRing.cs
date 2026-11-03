@@ -6,68 +6,86 @@ using System.Linq;
 
 namespace SiteAdaptation.Common.PlaceVillas
 {
-    // R451. The base of a mass in the internal plan coordinates of its prototype, metres, with where it came from and why
+    // R451, R503. The base of a mass in the internal plan coordinates of its prototype, metres, with where it came from and why. Ring is the
+    // points R404, the footprint check and the sidecar read, Edges the same ring with its arcs kept for the mass file, one line per edge
+    // for a slab
     public sealed class MassBase
     {
-        public MassBase(IReadOnlyList<double[]> ring, string source, string reason)
+        public MassBase(IReadOnlyList<double[]> ring, string source, string reason, IReadOnlyList<RingEdge> edges = null)
         {
             Ring = ring;
             Source = source;
             Reason = reason;
+            Edges = edges ?? Enumerable.Range(0, ring.Count).Select(i => new RingEdge(ring[i], ring[(i + 1) % ring.Count])).ToList();
         }
 
         public IReadOnlyList<double[]> Ring { get; }
+        public IReadOnlyList<RingEdge> Edges { get; }
 
         // WallRing.FromWalls or WallRing.FromSlab
         public string Source { get; }
         public string Reason { get; }
 
+        // The walls of the ring and the walls left out with why, null for a base read back from a sidecar
+        public WallRingBuild Build { get; set; }
+
+        // The ids of the walls with a face that sees the outside that the walk of this ring passed by, each a doubt on the ring (R502)
+        public IReadOnlyList<string> Skipped { get; set; } = new List<string>();
+
+        // The ids of the ring walls whose far face is the outer one, their Orientation faces the house (R501)
+        public IReadOnlyList<string> BackFace { get; set; } = new List<string>();
+
+        // R504, for the table per prototype of the sidecar. Built is the area of the ring the walls gave, null when they gave none, also
+        // when the slab was chosen over it
+        public double? BuiltAreaM2 { get; set; }
+        public double SlabAreaM2 { get; set; }
+
         // A base taken from the slab since the walls do not close, flagged with Q279
         public bool Flagged => Source == WallRing.FromSlab;
     }
 
-    // R451. The mass base follows the outer face of the exterior walls at ground level, every corner. The walls close into a ring when
-    // the outer loop of their union holds the middle of the largest ground slab and covers minShare to maxShare of its area (CHOSEN, both
-    // in config), maxShare so a garden wall of Exterior function in the union is not taken for the house. Else the base is the slab, the
-    // base of R404, and the prototype is flagged
+    // R504, Q321. The one place of the slab fallback. A ring of WallRingBuilder is the base when it closed, is one simple ring, holds the
+    // middle of the largest ground slab and covers minShare to maxShare of its area, maxShare so a ring that took in a garden wall of
+    // Exterior function is not taken for the house. Else the base is the slab, the base of R404, flagged with the reason
     public static class WallRing
     {
         public const string FromWalls = "wallRing";
         public const string FromSlab = "slab";
 
-        public static MassBase Choose(IEnumerable<IReadOnlyList<double[]>> loops, IReadOnlyList<double[]> slab, double minShare, double maxShare)
+        public static MassBase Choose(WallRingBuild build, IReadOnlyList<double[]> slab, double minShare, double maxShare, double arcStepM)
         {
             List<double[]> slabRing = Ring(slab);
             if (slabRing.Count < 3)
             {
-                throw new InvalidDataException("the largest ground slab holds " + slabRing.Count + " corners, a mass base needs 3 (R451)");
+                throw new InvalidDataException("the largest ground slab holds " + slabRing.Count + " corners, a mass base needs 3 (R504)");
             }
             double slabArea = Math.Abs(RingMath.Area(slabRing));
-            List<double[]> outer = (loops ?? Enumerable.Empty<IReadOnlyList<double[]>>()).Where(loop => loop != null).Select(Ring).Where(ring => ring.Count >= 3)
-                .OrderByDescending(ring => Math.Abs(RingMath.Area(ring))).FirstOrDefault();
+            List<double[]> outer = build != null && build.Edges.Count > 0 ? RingEdges.Points(build.Edges, arcStepM) : null;
+            double? built = outer == null ? (double?)null : Math.Abs(RingMath.Area(outer));
+            MassBase Flag(string reason) => new MassBase(slabRing, FromSlab, reason) { Build = build, BuiltAreaM2 = built, SlabAreaM2 = slabArea };
             if (outer == null)
             {
-                return new MassBase(slabRing, FromSlab, "no exterior wall stands at the ground level");
+                return Flag(build?.Reason ?? "no exterior wall stands at the ground level");
             }
             if (!FaceRings.IsSimple(outer))
             {
-                return new MassBase(slabRing, FromSlab, "the outer loop of the exterior walls is not a simple ring");
+                return Flag("the ring of the exterior walls crosses itself");
             }
             if (!RingMath.Holds(outer, RingMath.Centroid(slabRing)))
             {
-                return new MassBase(slabRing, FromSlab, "the outer loop of the exterior walls does not hold the middle of the slab, the walls do not close into a ring");
+                return Flag("the ring of the exterior walls does not hold the middle of the slab");
             }
-            double share = slabArea == 0 ? 0 : Math.Abs(RingMath.Area(outer)) / slabArea;
+            double share = slabArea == 0 ? 0 : built.Value / slabArea;
             string shown = share.ToString("0.###", CultureInfo.InvariantCulture);
             if (share < minShare)
             {
-                return new MassBase(slabRing, FromSlab, "the outer loop of the exterior walls covers " + shown + " of the slab area, under minShare " + minShare.ToString(CultureInfo.InvariantCulture));
+                return Flag("the ring of the exterior walls covers " + shown + " of the slab area, under wallRingMinShare " + minShare.ToString(CultureInfo.InvariantCulture));
             }
             if (share > maxShare)
             {
-                return new MassBase(slabRing, FromSlab, "the outer loop of the exterior walls covers " + shown + " of the slab area, over maxShare " + maxShare.ToString(CultureInfo.InvariantCulture));
+                return Flag("the ring of the exterior walls covers " + shown + " of the slab area, over wallRingMaxShare " + maxShare.ToString(CultureInfo.InvariantCulture));
             }
-            return new MassBase(outer, FromWalls, "the exterior walls close into a ring of " + shown + " of the slab area");
+            return new MassBase(outer, FromWalls, "the exterior walls close into a ring of " + shown + " of the slab area", build.Edges) { Build = build, Skipped = build.Skipped.Select(wall => wall.Id).ToList(), BackFace = build.BackFace.ToList(), BuiltAreaM2 = built, SlabAreaM2 = slabArea };
         }
 
         private static List<double[]> Ring(IReadOnlyList<double[]> points)
