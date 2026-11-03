@@ -161,3 +161,22 @@ function Resolve-WorkRootPath([string]$Path, [string]$Docs) {
     }
     return $at
 }
+
+# R497, as R458 for the step hash. Revit writes <model>_backup\<model>.slog when it opens a workshared prototype to make a mass, so the
+# check of a run counts it only under an input root, where any write is still a change (D19)
+function Test-RevitWorksharingLog([string]$Path, [string[]]$InputRoots) {
+    $full = [IO.Path]::GetFullPath($Path)
+    if ([IO.Path]::GetExtension($full) -ine '.slog' -or -not ([IO.Path]::GetFileName([IO.Path]::GetDirectoryName($full)) -ilike '*_backup')) {
+        return $false
+    }
+    foreach ($root in @($InputRoots | Where-Object { $_ })) {
+        if ($full.StartsWith([IO.Path]::GetFullPath($root).TrimEnd('\') + '\', [StringComparison]::OrdinalIgnoreCase)) {
+            return $false
+        }
+    }
+    return $true
+}
+
+function Get-RunInputRoots($Config) {
+    return @(@($env:SITE_ADAPTATION_INPUT, [string]$Config.inputRoot) + @($Config.testHost.listener.inputRoots | ForEach-Object { [string]$_ }) | Where-Object { $_ })
+}

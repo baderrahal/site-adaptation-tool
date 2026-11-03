@@ -178,11 +178,11 @@ $buttonsBefore = $null
 
 # Lane B 5c (R384). The real files a buttons run reads in place: each input of the pane settings, every file of a folder input, the
 # template and the key copy. Each is held by its size, write time and SHA-256 before and after the run (D19)
-function Get-ButtonsInputs($paths) {
+function Get-ButtonsInputs($paths, $inputRoots) {
     $files = [Collections.Generic.List[string]]::new()
     foreach ($path in @($paths | Where-Object { $_ })) {
         if (Test-Path -LiteralPath $path -PathType Container) {
-            Get-ChildItem -LiteralPath $path -File -Recurse | ForEach-Object { $files.Add($_.FullName) }
+            Get-ChildItem -LiteralPath $path -File -Recurse | Where-Object { -not (Test-RevitWorksharingLog -Path $_.FullName -InputRoots $inputRoots) } | ForEach-Object { $files.Add($_.FullName) }
         }
         elseif (Test-Path -LiteralPath $path -PathType Leaf) {
             $files.Add((Get-Item -LiteralPath $path).FullName)
@@ -380,7 +380,7 @@ if ($round) {
                 if ($round.villaLinkFolder) {
                     $settingsCopy.addin.lightMode.linkFolder = [string]$round.villaLinkFolder
                 }
-                $buttonsInputs = Get-ButtonsInputs $buttonsSources
+                $buttonsInputs = Get-ButtonsInputs $buttonsSources (Get-RunInputRoots -Config $config)
                 $buttonsBefore = Get-InputHashes $buttonsInputs
                 if ($round.keyCopy) {
                     Copy-Item -LiteralPath ([string]$round.keyCopy) -Destination $copy

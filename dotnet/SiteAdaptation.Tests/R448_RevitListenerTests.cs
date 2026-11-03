@@ -925,6 +925,29 @@ namespace SiteAdaptation.Tests
             Assert.Contains("$session | Add-Member", File.ReadAllText(HostFile("ListenerPaths.ps1")));
         }
 
+        // R497. SPB2 and SPMM ended as changed inputs only for the log Revit writes beside a prototype it opens
+        [Theory]
+        [InlineData(@"C:\Work\prototypes_2024\A_backup\A.slog", true)]
+        [InlineData(@"C:\Work\prototypes_2024\A_BACKUP\A.SLOG", true)]
+        [InlineData(@"C:\Work\prototypes_2024\A.slog", false)]
+        [InlineData(@"C:\Work\prototypes_2024\A_backup\A.0001.rvt", false)]
+        [InlineData(@"C:\Input Root\protos\A_backup\A.slog", false)]
+        [InlineData(@"C:\Input Root Copy\A_backup\A.slog", true)]
+        public void R497_only_a_slog_of_a_backup_folder_outside_the_input_roots_leaves_the_input_check(string path, bool leaves)
+        {
+            Tuple<int, string, string> run = Pwsh("Test-RevitWorksharingLog -Path " + Quoted(path) + " -InputRoots @('C:\\Input Root')");
+            Assert.True(run.Item1 == 0, run.Item3);
+            Assert.Equal(leaves.ToString(), run.Item2.Trim());
+        }
+
+        [Fact]
+        public void R497_the_input_list_of_a_buttons_run_uses_the_check_with_the_roots_of_config()
+        {
+            string script = File.ReadAllText(HostFile("Run-TestHost.ps1"));
+            Assert.Contains("Test-RevitWorksharingLog -Path $_.FullName -InputRoots $inputRoots", script);
+            Assert.Contains("Get-ButtonsInputs $buttonsSources (Get-RunInputRoots -Config $config)", script);
+        }
+
         // First run in Revit, SPL1: with no job variable button 2 opened the window What the tool read, and nobody answers it in a job
         [Fact]
         public void R448_the_job_variable_stands_while_a_job_runs_and_goes_with_it()
