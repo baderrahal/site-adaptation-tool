@@ -104,14 +104,14 @@ namespace SiteAdaptation.Tests
                     List<double> lefts = inputs.Select(input => input.TransformToAncestor(page).Transform(new Point(0, 0)).X).ToList();
                     Assert.All(lefts, left => Assert.Equal(lefts[0], left, 3));
 
-                    // Review 1 of PR 90: one section after the other at 16, a value of the spacing scale of the spec
-                    List<StackPanel> sections = all.OfType<StackPanel>().Where(panel => panel.Margin == (Thickness)page.FindResource("SA.Pad.Section") && Shown(panel)).ToList();
+                    // R498. One section after the other with a line between, each with the 16 of the spacing scale inside its box
+                    List<Border> sections = all.OfType<Border>().Where(box => box.Padding == (Thickness)page.FindResource("SA.Pad.SectionBox") && Shown(box)).ToList();
                     Assert.Equal(inUse ? 4 : 3, sections.Count);
                     for (int at = 1; at < sections.Count; at++)
                     {
                         double bottom = sections[at - 1].TransformToAncestor(page).Transform(new Point(0, sections[at - 1].ActualHeight)).Y;
                         double top = sections[at].TransformToAncestor(page).Transform(new Point(0, 0)).Y;
-                        Assert.Equal(16.0, top - bottom, 3);
+                        Assert.Equal(0.0, top - bottom, 3);
                     }
 
                     TextBlock name = all.OfType<TextBlock>().Single(block => block.Text == "01101-PSN-IMC-R17B-TEST-NEW");

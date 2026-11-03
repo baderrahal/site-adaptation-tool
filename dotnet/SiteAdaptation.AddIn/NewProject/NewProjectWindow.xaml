@@ -73,14 +73,11 @@
                          Visibility="{Binding HasSurfaces, Converter={StaticResource Shown}}" />
             </StackPanel>
             <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Top">
-              <Grid Width="{StaticResource SA.Size.RowMark}" Height="{StaticResource SA.Size.RowMark}" Margin="{StaticResource SA.Gap.Right8}">
-                <Path Data="{StaticResource SA.Mark.Found}" Stroke="{StaticResource SA.Ok}" StrokeThickness="{StaticResource SA.Size.MarkStroke}"
+              <Grid Width="{StaticResource SA.Size.StatusMark}" Height="{StaticResource SA.Size.StatusMark}" Margin="{StaticResource SA.Gap.Right8}">
+                <Path Data="{StaticResource SA.Mark.StatusFound}" Stroke="{StaticResource SA.Ok}" StrokeThickness="{StaticResource SA.Size.MarkStroke}"
                       StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Visibility="{Binding IsFound, Converter={StaticResource Shown}}" />
-                <Grid Visibility="{Binding IsMissing, Converter={StaticResource Shown}}">
-                  <Path Data="{StaticResource SA.Mark.Missing}" Fill="{StaticResource SA.Warn}" />
-                  <Path Data="{StaticResource SA.Mark.MissingSign}" Stroke="{StaticResource SA.Surface}" StrokeThickness="{StaticResource SA.Size.MarkStroke}"
-                        StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
-                </Grid>
+                <Path Data="{StaticResource SA.Mark.StatusMissing}" Stroke="{StaticResource SA.Warn}" StrokeThickness="{StaticResource SA.Size.MarkStroke}"
+                      StrokeStartLineCap="Round" StrokeEndLineCap="Round" Visibility="{Binding IsMissing, Converter={StaticResource Shown}}" />
               </Grid>
               <TextBlock VerticalAlignment="Center" Text="{Binding StatusText}">
                 <TextBlock.Style>
@@ -139,7 +136,7 @@
               <TextBlock Style="{StaticResource SA.Type.Small}" FontWeight="{StaticResource SA.Type.Label.Weight}" Foreground="{StaticResource SA.Band}" Text="{x:Static np:NewProjectText.Badge}" />
             </Border>
           </StackPanel>
-          <TextBlock Style="{StaticResource SA.Type.Step}" Foreground="{StaticResource SA.BandText}" Margin="{StaticResource SA.Gap.Top4}" TextWrapping="Wrap" Text="{x:Static np:NewProjectText.Line}" />
+          <TextBlock Style="{StaticResource SA.Type.Step}" Foreground="{StaticResource SA.BandText}" Margin="{StaticResource SA.Gap.Top4}" TextWrapping="Wrap" MaxWidth="{StaticResource SA.Size.NewProjectLine}" HorizontalAlignment="Left" Text="{x:Static np:NewProjectText.Line}" />
           <TextBlock Style="{StaticResource SA.Type.Body}" Foreground="{StaticResource SA.BandAccent}" Margin="{StaticResource SA.Gap.Top4}" Text="{x:Static np:NewProjectText.StartHint}" />
         </StackPanel>
         <StackPanel Grid.Column="1" HorizontalAlignment="Right">
@@ -248,7 +245,7 @@
           </StackPanel>
 
           <StackPanel Grid.Column="1" VerticalAlignment="Top">
-            <Border Background="{StaticResource SA.WarnGround}" BorderBrush="{StaticResource SA.Border}" BorderThickness="{StaticResource SA.Line.All}"
+            <Border Background="{StaticResource SA.WarnGround}" BorderBrush="{StaticResource SA.WarnBorder}" BorderThickness="{StaticResource SA.Line.All}"
                     CornerRadius="{StaticResource SA.Radius.Control}" Padding="{StaticResource SA.Pad.Box}" Visibility="{Binding StopShown, Converter={StaticResource Shown}}">
               <StackPanel>
                 <TextBlock Style="{StaticResource SA.Type.Step}" FontWeight="{StaticResource SA.Type.Label.Weight}" Foreground="{StaticResource SA.Warn}" Text="{x:Static np:NewProjectText.StopTitle}" />

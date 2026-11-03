@@ -13,11 +13,13 @@
 
       <!-- The found or missing mark of a row, the file rows and the Setup and Rules rows of NEWPROJ-UI -->
       <DataTemplate x:Key="RowMark" DataType="{x:Type pane:FileRowViewModel}">
-          <Grid Width="{StaticResource SA.Size.RowMark}" Height="{StaticResource SA.Size.RowMark}" HorizontalAlignment="Left" VerticalAlignment="Center"
+          <Grid Width="{StaticResource SA.Size.PaneMark}" Height="{StaticResource SA.Size.PaneMark}" HorizontalAlignment="Left" VerticalAlignment="Center"
                 Visibility="{Binding Shown, Converter={StaticResource Shown}}">
-            <Path Data="{StaticResource SA.Mark.Found}" Stroke="{StaticResource SA.Ok}" StrokeThickness="{StaticResource SA.Size.MarkStroke}"
-                  StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
-                  Visibility="{Binding Found, Converter={StaticResource Shown}}" />
+            <Grid Visibility="{Binding Found, Converter={StaticResource Shown}}">
+              <Path Data="{StaticResource SA.Mark.PaneDisc}" Fill="{StaticResource SA.Found}" />
+              <Path Data="{StaticResource SA.Mark.PaneTick}" Stroke="{StaticResource SA.Surface}" StrokeThickness="{StaticResource SA.Size.MarkStroke}"
+                    StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" />
+            </Grid>
             <Grid>
               <Grid.Style>
                 <Style TargetType="Grid">
@@ -28,8 +30,8 @@
                   </Style.Triggers>
                 </Style>
               </Grid.Style>
-              <Path Data="{StaticResource SA.Mark.Missing}" Fill="{StaticResource SA.Warn}" />
-              <Path Data="{StaticResource SA.Mark.MissingSign}" Stroke="{StaticResource SA.Surface}" StrokeThickness="{StaticResource SA.Size.MarkStroke}"
+              <Path Data="{StaticResource SA.Mark.PaneMissingRing}" Stroke="{StaticResource SA.Warn}" StrokeThickness="{StaticResource SA.Size.MarkStroke}" />
+              <Path Data="{StaticResource SA.Mark.PaneMissingSign}" Stroke="{StaticResource SA.Warn}" StrokeThickness="{StaticResource SA.Size.MarkStroke}"
                     StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
             </Grid>
           </Grid>
@@ -68,7 +70,7 @@
               <ColumnDefinition Width="{StaticResource SA.Grid.Mark}" />
               <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
-            <Border Grid.Column="1" Margin="{StaticResource SA.Gap.Row}" Background="{StaticResource SA.WarnGround}" Padding="{StaticResource SA.Pad.Box}">
+            <Border Grid.Column="1" Margin="{StaticResource SA.Gap.Row}" Background="{StaticResource SA.WarnGround}" BorderBrush="{StaticResource SA.WarnBorder}" BorderThickness="{StaticResource SA.Line.All}" Padding="{StaticResource SA.Pad.Box}">
               <TextBlock Style="{StaticResource SA.Pane.Help}" Foreground="{StaticResource SA.Warn}" TextWrapping="Wrap" Text="{Binding Note}" />
             </Border>
           </Grid>
@@ -137,14 +139,29 @@
             </TextBlock>
           </Grid>
           <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="{StaticResource SA.Gap.Right8}">
-            <TextBlock Style="{StaticResource SA.Type.Step}" Text="{Binding Name}" />
+            <TextBlock Text="{Binding Name}">
+              <TextBlock.Style>
+                <Style TargetType="TextBlock" BasedOn="{StaticResource SA.Type.Step}">
+                  <Setter Property="FontWeight" Value="{StaticResource SA.Type.StepName.Weight}" />
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding Mark}" Value="{x:Static pane:MarkKind.Next}">
+                      <Setter Property="FontWeight" Value="{StaticResource SA.Type.Label.Weight}" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding DataContext.FirstOpen, RelativeSource={RelativeSource AncestorType=Page}}" Value="True">
+                      <Setter Property="FontWeight" Value="{StaticResource SA.Type.Step.Weight}" />
+                      <Setter Property="Foreground" Value="{StaticResource SA.StepWaitName}" />
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </TextBlock.Style>
+            </TextBlock>
             <TextBlock Style="{StaticResource SA.Pane.Detail}" TextWrapping="NoWrap" Text="{Binding Line}" ToolTip="{Binding Line}" />
           </StackPanel>
-          <Border Grid.Column="2" VerticalAlignment="Center" CornerRadius="{StaticResource SA.Radius.Chip}" Padding="{StaticResource SA.Pad.Chip}"
-                  ToolTip="{Binding ChipTip}">
+          <Border Grid.Column="2" VerticalAlignment="Center" CornerRadius="{StaticResource SA.Radius.Chip}" ToolTip="{Binding ChipTip}">
             <Border.Style>
               <Style TargetType="Border">
                 <Setter Property="Background" Value="{StaticResource SA.WaitGround}" />
+                <Setter Property="Padding" Value="{StaticResource SA.Pad.Chip}" />
                 <Style.Triggers>
                   <DataTrigger Binding="{Binding Chip}" Value="{x:Static pane:StepKind.None}">
                     <Setter Property="Visibility" Value="Collapsed" />
@@ -158,12 +175,17 @@
                   <DataTrigger Binding="{Binding Chip}" Value="{x:Static pane:StepKind.Ready}">
                     <Setter Property="Background" Value="{StaticResource SA.InfoGround}" />
                   </DataTrigger>
+                  <!-- The PaneFirst board: a plain status in grey text, no chip -->
+                  <DataTrigger Binding="{Binding DataContext.FirstOpen, RelativeSource={RelativeSource AncestorType=Page}}" Value="True">
+                    <Setter Property="Background" Value="{x:Null}" />
+                    <Setter Property="Padding" Value="0" />
+                  </DataTrigger>
                 </Style.Triggers>
               </Style>
             </Border.Style>
             <TextBlock Text="{Binding ChipText}">
               <TextBlock.Style>
-                <Style TargetType="TextBlock" BasedOn="{StaticResource SA.Type.Small}">
+                <Style TargetType="TextBlock" BasedOn="{StaticResource SA.Pane.Chip}">
                   <Setter Property="Foreground" Value="{StaticResource SA.Wait}" />
                   <Style.Triggers>
                     <DataTrigger Binding="{Binding Chip}" Value="{x:Static pane:StepKind.Done}">
@@ -174,6 +196,9 @@
                     </DataTrigger>
                     <DataTrigger Binding="{Binding Chip}" Value="{x:Static pane:StepKind.Ready}">
                       <Setter Property="Foreground" Value="{StaticResource SA.Info}" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding DataContext.FirstOpen, RelativeSource={RelativeSource AncestorType=Page}}" Value="True">
+                      <Setter Property="FontWeight" Value="{StaticResource SA.Type.Small.Weight}" />
                     </DataTrigger>
                   </Style.Triggers>
                 </Style>
@@ -200,19 +225,20 @@
       <StackPanel>
         <TextBlock Style="{StaticResource SA.Type.Label}" Foreground="{StaticResource SA.Info}" Text="{Binding BoxLabel}" />
         <TextBlock Style="{StaticResource SA.Type.Next}" Margin="{StaticResource SA.Gap.Top4}" TextWrapping="Wrap" Text="{Binding BoxName}" />
-        <TextBlock Style="{StaticResource SA.Pane.Help}" Text="{Binding BoxLine}" />
+        <TextBlock Style="{StaticResource SA.Pane.Help}" Foreground="{StaticResource SA.Text}" Text="{Binding BoxLine}" />
         <Button Style="{StaticResource SA.Button.Primary}" Margin="{StaticResource SA.Gap.Top12}" HorizontalAlignment="Left"
                 Content="{Binding BoxButton}" Command="{Binding BoxCommand}"
                 Visibility="{Binding BoxButtonShown, Converter={StaticResource Shown}}" />
         <!-- PaneFirst board: a saved project by Use a saved project, which runs Import of a pre-setting, and How it works -->
-        <TextBlock Style="{StaticResource SA.Pane.Help}" Margin="{StaticResource SA.Gap.Top12}" TextWrapping="Wrap"
+        <TextBlock Style="{StaticResource SA.Pane.Help}" Foreground="{StaticResource SA.Text}" Margin="{StaticResource SA.Gap.Top12}" TextWrapping="Wrap"
                    Visibility="{Binding FirstOpen, Converter={StaticResource Shown}}"><Run Text="{Binding StartSavedLine, Mode=OneWay}" /> <Hyperlink Style="{StaticResource SA.Pane.Link}" Command="{Binding ImportCommand}"><Run Text="{x:Static pane:PaneText.UseSaved}" /></Hyperlink><Run Text="{x:Static pane:PaneText.NewHere}" /> <Hyperlink Style="{StaticResource SA.Pane.Link}" Command="{Binding HowItWorksCommand}"><Run Text="{x:Static pane:PaneText.HowItWorks}" /></Hyperlink> <Run Text="{x:Static pane:PaneText.FirstSuffix}" /></TextBlock>
       </StackPanel>
     </Border>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-      <StackPanel IsEnabled="{Binding HasDocument}" Margin="{StaticResource SA.Gap.Bottom16}">
-        <StackPanel Margin="{StaticResource SA.Pad.Section}">
+      <StackPanel IsEnabled="{Binding HasDocument}">
+        <Border Padding="{StaticResource SA.Pad.SectionBox}">
+        <StackPanel>
           <TextBlock Style="{StaticResource SA.Pane.Section}" Text="Project" />
           <TextBlock Style="{StaticResource SA.Pane.Help}" Text="Rules and settings for this job. Set once." Visibility="{Binding InUse, Converter={StaticResource Shown}}" />
           <!-- NEWPROJ-UI: the Setup row opens New project, Edit in use and Open on first open. No file name of the settings is shown -->
@@ -291,16 +317,20 @@
             </StackPanel>
           </Grid>
         </StackPanel>
+        </Border>
 
-        <StackPanel Margin="{StaticResource SA.Pad.Section}">
+        <Border BorderBrush="{StaticResource SA.Border}" BorderThickness="{StaticResource SA.Line.Over}" Padding="{StaticResource SA.Pad.SectionBox}">
+        <StackPanel>
           <TextBlock Style="{StaticResource SA.Pane.Section}" Text="Input files" />
           <TextBlock Style="{StaticResource SA.Pane.Help}" Text="{Binding InputHelp}" />
           <ItemsControl Margin="{StaticResource SA.Gap.Top8}" ItemsSource="{Binding InputRows}" ItemTemplate="{StaticResource FileRow}"
                         Visibility="{Binding InUse, Converter={StaticResource Shown}}" />
         </StackPanel>
+        </Border>
 
         <!-- PaneFirst board: no Scope section on first open -->
-        <StackPanel Margin="{StaticResource SA.Pad.Section}" Visibility="{Binding InUse, Converter={StaticResource Shown}}">
+        <Border BorderBrush="{StaticResource SA.Border}" BorderThickness="{StaticResource SA.Line.Over}" Padding="{StaticResource SA.Pad.SectionBox}" Visibility="{Binding InUse, Converter={StaticResource Shown}}">
+        <StackPanel>
           <TextBlock Style="{StaticResource SA.Pane.Section}" Text="Scope" />
           <TextBlock Style="{StaticResource SA.Pane.Help}" Text="Which plots the next button works on." />
           <RadioButton Margin="{StaticResource SA.Gap.Top8}" Style="{StaticResource SA.Pane.Radio}" GroupName="Scope" Content="Whole project" IsChecked="{Binding ScopeWhole}" />
@@ -323,7 +353,7 @@
             <RadioButton Grid.ColumnSpan="2" Style="{StaticResource SA.Pane.Radio}" GroupName="Scope" Content="Plot list" IsChecked="{Binding ScopePlots}" />
             <TextBox Grid.Column="2" Style="{StaticResource SA.Pane.Entry}" Text="{Binding Plots, UpdateSourceTrigger=PropertyChanged}" />
           </Grid>
-          <Border Margin="{StaticResource SA.Gap.Top8}" Background="{StaticResource SA.Panel}" CornerRadius="{StaticResource SA.Radius.Control}" Padding="{StaticResource SA.Pad.Panel}">
+          <Border Margin="{StaticResource SA.Gap.Top8}" Background="{StaticResource SA.Panel}" BorderBrush="{StaticResource SA.Border}" BorderThickness="{StaticResource SA.Line.All}" CornerRadius="{StaticResource SA.Radius.Control}" Padding="{StaticResource SA.Pad.Panel}">
             <StackPanel>
               <CheckBox Style="{StaticResource SA.Pane.Check}" Content="Dry run first, change nothing" IsChecked="{Binding DryRun}" />
               <TextBlock Style="{StaticResource SA.Pane.Help}" TextWrapping="Wrap" Text="{Binding DryRunNote}" Visibility="{Binding DryRunNoteShown, Converter={StaticResource Shown}}" />
@@ -335,12 +365,15 @@
             </StackPanel>
           </Border>
         </StackPanel>
+        </Border>
 
-        <StackPanel Margin="{StaticResource SA.Pad.Section}">
+        <Border BorderBrush="{StaticResource SA.Border}" BorderThickness="{StaticResource SA.Line.Over}" Padding="{StaticResource SA.Pad.SectionBox}">
+        <StackPanel>
           <TextBlock Style="{StaticResource SA.Pane.Section}" Text="Steps" />
           <TextBlock Style="{StaticResource SA.Pane.Help}" Text="Run them in order. Each one waits for the one before." Visibility="{Binding InUse, Converter={StaticResource Shown}}" />
           <ItemsControl Margin="{StaticResource SA.Gap.Top8}" ItemsSource="{Binding ShownSteps}" ItemTemplate="{StaticResource StepRow}" />
         </StackPanel>
+        </Border>
       </StackPanel>
     </ScrollViewer>
   </DockPanel>

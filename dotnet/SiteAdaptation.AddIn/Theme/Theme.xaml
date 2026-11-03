@@ -26,6 +26,14 @@
   <SolidColorBrush x:Key="SA.OkGround" Color="#E6F4EA" />
   <SolidColorBrush x:Key="SA.Warn" Color="#7A4B00" />
   <SolidColorBrush x:Key="SA.WarnGround" Color="#FFF4D6" />
+  <!-- R498, the colours the boards of Lane C hold that the spec has no name for -->
+  <SolidColorBrush x:Key="SA.WarnBorder" Color="#E8D08A" />
+  <SolidColorBrush x:Key="SA.ConflictCount" Color="#FFD580" />
+  <SolidColorBrush x:Key="SA.Found" Color="#0B7A3E" />
+  <SolidColorBrush x:Key="SA.StepWaitName" Color="#6B7682" />
+  <SolidColorBrush x:Key="SA.ButtonHover" Color="#EEF3FA" />
+  <SolidColorBrush x:Key="SA.ButtonHoverBorder" Color="#8FA6C4" />
+  <SolidColorBrush x:Key="SA.AccentHover" Color="#003F9E" />
   <SolidColorBrush x:Key="SA.Info" Color="#0A3D91" />
   <SolidColorBrush x:Key="SA.InfoGround" Color="#E6EEFB" />
   <SolidColorBrush x:Key="SA.Wait" Color="#4A5663" />
@@ -53,6 +61,7 @@
   <FontWeight x:Key="SA.Type.Project.Weight">SemiBold</FontWeight>
   <sys:Double x:Key="SA.Type.Step.Size">14</sys:Double>
   <FontWeight x:Key="SA.Type.Step.Weight">Regular</FontWeight>
+  <FontWeight x:Key="SA.Type.StepName.Weight">Medium</FontWeight>
   <sys:Double x:Key="SA.Type.Count.Size">28</sys:Double>
   <FontWeight x:Key="SA.Type.Count.Weight">SemiBold</FontWeight>
   <sys:Double x:Key="SA.Type.Label.Size">13</sys:Double>
@@ -139,6 +148,7 @@
   <Thickness x:Key="SA.Gap.Left8">8,0,0,0</Thickness>
   <Thickness x:Key="SA.Gap.Left24">24,0,0,0</Thickness>
   <Thickness x:Key="SA.Line.Under">0,0,0,1</Thickness>
+  <Thickness x:Key="SA.Pad.SectionBox">16,16,16,16</Thickness>
   <Thickness x:Key="SA.Line.All">1</Thickness>
   <sys:Double x:Key="SA.Size.RowMark">16</sys:Double>
   <sys:Double x:Key="SA.Size.MarkStroke">2</sys:Double>
@@ -150,6 +160,15 @@
   <GridLength x:Key="SA.Grid.Label">124</GridLength>
   <GridLength x:Key="SA.Grid.StepMark">38</GridLength>
   <Geometry x:Key="SA.Mark.Found">M3 8.5l3.5 3.5l6.5-8</Geometry>
+  <!-- R498, the marks of the boards at 18 in the pane and 14 in New project -->
+  <sys:Double x:Key="SA.Size.PaneMark">18</sys:Double>
+  <sys:Double x:Key="SA.Size.StatusMark">14</sys:Double>
+  <Geometry x:Key="SA.Mark.PaneDisc">M1 9a8 8 0 1 0 16 0a8 8 0 1 0 -16 0z</Geometry>
+  <Geometry x:Key="SA.Mark.PaneTick">M5 9.2l2.6 2.6L13 6.4</Geometry>
+  <Geometry x:Key="SA.Mark.PaneMissingRing">M1.5 9a7.5 7.5 0 1 0 15 0a7.5 7.5 0 1 0 -15 0z</Geometry>
+  <Geometry x:Key="SA.Mark.PaneMissingSign">M9 5v5M9 12.8v0.01</Geometry>
+  <Geometry x:Key="SA.Mark.StatusFound">M2.5 7.5l3 3 6-7</Geometry>
+  <Geometry x:Key="SA.Mark.StatusMissing">M7 3v5M7 10.5v0.01</Geometry>
   <!-- R495. The arrow of a sorted header of the check table, 8 wide and 5 high -->
   <Geometry x:Key="SA.Mark.SortUp">M0 5l4-5l4 5z</Geometry>
   <Geometry x:Key="SA.Mark.SortDown">M0 0l8 0l-4 5z</Geometry>
@@ -170,6 +189,7 @@
        no underline, so it does not ask for a click it cannot take -->
   <Style x:Key="SA.Pane.Link" TargetType="Hyperlink">
     <Setter Property="Foreground" Value="{StaticResource SA.Accent}" />
+    <Setter Property="FontWeight" Value="{StaticResource SA.Type.Label.Weight}" />
     <Setter Property="TextDecorations" Value="Underline" />
     <Style.Triggers>
       <Trigger Property="IsEnabled" Value="False">
@@ -177,6 +197,9 @@
         <Setter Property="TextDecorations" Value="{x:Null}" />
       </Trigger>
     </Style.Triggers>
+  </Style>
+  <Style x:Key="SA.Pane.Chip" TargetType="TextBlock" BasedOn="{StaticResource SA.Type.Small}">
+    <Setter Property="FontWeight" Value="{StaticResource SA.Type.Label.Weight}" />
   </Style>
   <Style x:Key="SA.Pane.Detail" TargetType="TextBlock" BasedOn="{StaticResource SA.Type.Small}">
     <Setter Property="Foreground" Value="{StaticResource SA.TextMuted}" />
@@ -207,6 +230,11 @@
             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
           </Border>
           <ControlTemplate.Triggers>
+            <!-- R498. The hover of the board comes before the disabled look, so a disabled button keeps its grey -->
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="Box" Property="Background" Value="{StaticResource SA.ButtonHover}" />
+              <Setter TargetName="Box" Property="BorderBrush" Value="{StaticResource SA.ButtonHoverBorder}" />
+            </Trigger>
             <Trigger Property="IsEnabled" Value="False">
               <Setter TargetName="Box" Property="Background" Value="{StaticResource SA.WaitGround}" />
               <Setter TargetName="Box" Property="BorderBrush" Value="{StaticResource SA.Border}" />
@@ -218,6 +246,28 @@
     </Setter>
   </Style>
   <Style x:Key="SA.Button.Primary" TargetType="Button" BasedOn="{StaticResource SA.Button.Base}">
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="Button">
+          <Border x:Name="Box" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                  BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{StaticResource SA.Radius.Control}"
+                  Padding="{TemplateBinding Padding}">
+            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="Box" Property="Background" Value="{StaticResource SA.AccentHover}" />
+              <Setter TargetName="Box" Property="BorderBrush" Value="{StaticResource SA.AccentHover}" />
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+              <Setter TargetName="Box" Property="Background" Value="{StaticResource SA.WaitGround}" />
+              <Setter TargetName="Box" Property="BorderBrush" Value="{StaticResource SA.Border}" />
+              <Setter Property="Foreground" Value="{StaticResource SA.Wait}" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
     <Setter Property="Foreground" Value="{StaticResource SA.Surface}" />
     <Setter Property="Background" Value="{StaticResource SA.Accent}" />
     <Setter Property="BorderBrush" Value="{StaticResource SA.Accent}" />
@@ -642,6 +692,8 @@
   <GridLength x:Key="SA.Grid.ScanSide">400</GridLength>
   <sys:Double x:Key="SA.Size.ScanList">300</sys:Double>
   <sys:Double x:Key="SA.Size.ScanLine">760</sys:Double>
+  <sys:Double x:Key="SA.Size.NewProjectLine">640</sys:Double>
+  <sys:Double x:Key="SA.Size.HowLine">660</sys:Double>
   <GridLength x:Key="SA.Grid.ScanValue">150</GridLength>
   <GridLength x:Key="SA.Grid.ScanCovers">120</GridLength>
   <GridLength x:Key="SA.Grid.ScanChecks">110</GridLength>
