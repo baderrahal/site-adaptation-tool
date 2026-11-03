@@ -34,8 +34,7 @@ CODE_NAMES = re.compile(r"\bR\d{3}\b|\.json\b|\baddin\.|\bcoordinates\.|\bdesign
 
 def plain_names():
     """R540. The plain name of each file of the guide, in config since the names belong to the project."""
-    config = json.loads((ROOT / "config" / "project.json").read_text(encoding="utf-8-sig"))
-    return config["addin"]["helpFileNames"]
+    return json.loads((ROOT / "config" / "help_file_names.json").read_text(encoding="utf-8"))["names"]
 
 
 class HelpError(Exception):
