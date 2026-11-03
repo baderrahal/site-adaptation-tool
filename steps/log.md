@@ -2,6 +2,32 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Lane B FIX-2NOV-B task 4, 2026-11-03, the hand run of main on NBH 012, Lane B on the laptop
+
+Goal:
+- Bader's task 4: buttons 1 to 9 by hand on main with PR 139 and R459, read back, compare with PR 139, check Q158
+
+Done:
+- steps/fix-2nov-b-handrun.md. Through the real windows on a new model from a named copy, not the test host
+- 1,003 floors, 0 refused, 336 masses, 778 walls. Step 5: 688 accepted, 443 overlap and 42 off axis shown, all 443 of two plots
+- Q158 in Revit: the dead end of part 4 gone, also after a new Revit. No number worse than PR 139
+
+Checked:
+- Inputs same 44 by SHA-256 (RAN). Warnings, accepted file, sheet and Placed read by a second script, 0 mismatches (RAN)
+- No code in this record. Gate of the code: PR 146 and PR 148
+
+Remains:
+- Q382, Q383, Q384, Q385. Button 6 moving floors with no list, UNKNOWN
+
+Known bugs:
+- Accepted warnings return by the first save (Q385). Step rows lost on a reopen (Q384). Chip press shows an empty table
+
+Next:
+- Lane D holds the lock since 03:03. Lane C reuses the handler
+
+Your turn:
+- Q384 Step rows lost on a reopen. Q385 Accepted warnings return after a save. 164 open, steps/questions-open.md
+
 ## FIX-2NOV-A3, 2026-11-03, the split test, the ends of parted walls and notched fronts
 
 Goal:
