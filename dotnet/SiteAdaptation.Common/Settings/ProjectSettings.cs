@@ -43,6 +43,15 @@ namespace SiteAdaptation.Common.Settings
         // R484. The project mode, one of designBasis.modes of config, null in a file written before it, which reads designBasis.mode of config. Save setup
         // of New project writes it, every worker request carries it and it is laid over the config where a run loads it (ProjectModes)
         public string ProjectMode { get; set; }
+
+        // R574. The tick Road topography of 5 Floors and ramps, on by default
+        public bool RoadTopography { get; set; } = true;
+
+        // R574. Left out of the JSON while on, so a file of a project that never took it off stays as it was and formatVersion stays 1
+        public bool ShouldSerializeRoadTopography()
+        {
+            return !RoadTopography;
+        }
     }
 
     public sealed class SettingsInput

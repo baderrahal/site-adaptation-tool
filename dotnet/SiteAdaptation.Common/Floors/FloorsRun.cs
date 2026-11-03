@@ -22,6 +22,9 @@ namespace SiteAdaptation.Common.Floors
         private string acceptedNbh;
         private HashSet<string> standingBefore;
 
+        // R572. The surface of the last read of this run, so the preview and the transaction read the file once
+        private RoadSurfaceRead surfaceRead;
+
         public FloorsRun(IFloorDocument document, Func<RunContext, FloorInputs> load)
         {
             this.document = document;
@@ -79,7 +82,9 @@ namespace SiteAdaptation.Common.Floors
         {
             Decision decision = Decide(context);
             string counts = "Floors: place " + decision.Count(Act.Place) + ", move " + decision.Count(Act.Move) + ", already placed " + decision.Count(Act.Keep) + ", skip " + decision.Count(Act.Skip) + ", listed " + decision.Listed.Count;
-            return new RunSummary(counts, decision.Steps.Select(What).Concat(decision.Listed).ToList());
+            List<string> lines = decision.Steps.Select(What).Concat(decision.Listed).ToList();
+            lines.AddRange(PreviewToposolid(context, decision));
+            return new RunSummary(counts, lines);
         }
 
         // R116. Every floor is made with its height offset and plot value, then the ramps are shaped, then all are read back, so the model
@@ -161,7 +166,143 @@ namespace SiteAdaptation.Common.Floors
                 ["counts"] = new JObject(new[] { Act.Place, Act.Move, Act.Keep, Act.Skip }.Select(act => new JProperty(act.ToString().ToLowerInvariant(), decision.Count(act)))),
             };
             context.WriteText(RecordName(inputs.Plan.Neighbourhood ?? "all"), record.ToString(Newtonsoft.Json.Formatting.Indented));
+            issues.AddRange(ApplyToposolid(context, decision));
             return issues;
+        }
+
+        private sealed class ToposolidStep
+        {
+            public RoadSurfaceRead Read;
+            public ToposolidPlan Plan;
+            public string Problem;
+            public string Element;
+            public bool ReadBack;
+        }
+
+        // R571. From the plots of the scope, and no failure here reaches the floors of the run
+        private ToposolidStep PlanToposolid(Decision decision)
+        {
+            var step = new ToposolidStep();
+            try
+            {
+                surfaceRead = surfaceRead ?? decision.Inputs.RoadTopography();
+                step.Read = surfaceRead;
+                List<PlannedFloor> scoped = decision.View.Floors.Where(floor => floor.InScope).ToList();
+                IEnumerable<double[]> outlines = scoped.SelectMany(floor => floor.Candidate.Floor.Outline.Value.Loops).SelectMany(loop => loop.Points);
+                // R340. The plan writes the two front corners of a ramp first
+                IEnumerable<RampEdge> edges = scoped.Where(floor => floor.IsRamp && floor.Candidate.Floor.Corners?.Value?.Count >= 2)
+                    .Select(floor => new RampEdge { Plot = floor.Plot, Start = floor.Candidate.Floor.Corners.Value[0], End = floor.Candidate.Floor.Corners.Value[1] });
+                step.Plan = RoadTopography.Plan(step.Read.Surface, outlines, edges, step.Read.Settings);
+                step.Problem = step.Plan.Refused;
+            }
+            catch (Exception failure) when (!(failure is OutOfMemoryException))
+            {
+                step.Problem = failure.Message;
+            }
+            return step;
+        }
+
+        // R572. A dry run writes the report to its own folder and nothing into the model
+        private IEnumerable<string> PreviewToposolid(RunContext context, Decision decision)
+        {
+            if (decision.Inputs.RoadTopography == null)
+            {
+                return new string[0];
+            }
+            ToposolidStep step = PlanToposolid(decision);
+            if (context.DryRun)
+            {
+                WriteToposolid(context, decision, step);
+            }
+            return new[] { step.Problem != null ? RoadTopography.NoToposolid(step.Problem) : RoadTopography.PreviewLine(step.Plan, step.Read.Settings) };
+        }
+
+        // R572. After the floors. The new one is made before the old one goes, so a refusal leaves the toposolid of the last run standing,
+        // and a failure at any step is an issue line, so the floors of the run stay
+        private IEnumerable<string> ApplyToposolid(RunContext context, Decision decision)
+        {
+            if (decision.Inputs.RoadTopography == null)
+            {
+                return new string[0];
+            }
+            var lines = new List<string>();
+            ToposolidStep step = PlanToposolid(decision);
+            string nbh = decision.Inputs.Plan.Neighbourhood ?? "all";
+            if (step.Problem == null)
+            {
+                try
+                {
+                    List<ToposolidElement> own = document.Toposolids().Where(element => RoadTopography.IsOwn(element, nbh)).ToList();
+                    step.Element = MakeToposolid(context, decision, step, nbh);
+                    foreach (ToposolidElement old in own)
+                    {
+                        Attempt(() => document.DeleteToposolid(old.UniqueId), "the toposolid " + old.UniqueId + " of the last run stays, ", lines);
+                    }
+                    Attempt(() =>
+                    {
+                        RoadTopography.ReadBack(step.Plan.Edges, document.ToposolidTriangles(step.Element), decision.View.Offset);
+                        step.ReadBack = true;
+                    }, "the toposolid was not read back, ", lines);
+                }
+                catch (Exception failure) when (!(failure is OutOfMemoryException))
+                {
+                    step.Problem = failure.Message;
+                }
+            }
+            if (step.Problem != null)
+            {
+                lines.Add(RoadTopography.NoToposolid(step.Problem));
+            }
+            else
+            {
+                string limit = RoadTopography.LimitLine(step.Plan, step.Read.Settings, nbh);
+                if (limit != null)
+                {
+                    lines.Add(limit);
+                }
+            }
+            WriteToposolid(context, decision, step);
+            return lines;
+        }
+
+        private string MakeToposolid(RunContext context, Decision decision, ToposolidStep step, string nbh)
+        {
+            string levelName = decision.View.Settings.Levels[FloorPlacer.Ramp];
+            LevelEntry level = document.Levels().FirstOrDefault(item => item.Name == levelName)
+                ?? throw new InvalidDataException("the document has no level " + levelName);
+            double[] offset = decision.View.Offset;
+            List<double[]> boundary = step.Plan.Boundary.Select(corner => new[] { corner[0] - offset[0], corner[1] - offset[1], level.ElevationM }).ToList();
+            List<double[]> points = step.Plan.Points.Select(point => PlacementMath.InternalPoint(point, offset)).ToList();
+            string made = document.CreateToposolid(boundary, points, step.Read.Settings.TypeName, level.Key);
+            try
+            {
+                document.Tag(made, RoadTopography.Tag(nbh, context.RunId, decision.Inputs.Profile, made, step.Plan));
+            }
+            catch (Exception failure) when (!(failure is OutOfMemoryException))
+            {
+                // With no tag a later run could not replace it, so it does not stay
+                document.DeleteToposolid(made);
+                throw new InvalidOperationException("its tag was not written: " + failure.Message);
+            }
+            return made;
+        }
+
+        private static void Attempt(Action action, string what, List<string> lines)
+        {
+            try
+            {
+                action();
+            }
+            catch (Exception failure) when (!(failure is OutOfMemoryException))
+            {
+                lines.Add(RoadTopography.Line + what + failure.Message);
+            }
+        }
+
+        private static void WriteToposolid(RunContext context, Decision decision, ToposolidStep step)
+        {
+            string nbh = decision.Inputs.Plan.Neighbourhood ?? "all";
+            context.WriteText(RoadTopography.RecordName(nbh), RoadTopography.Report(context.RunId, nbh, step.Read, step.Plan, step.Element, step.ReadBack, step.Problem).ToString(Newtonsoft.Json.Formatting.Indented));
         }
 
         // R459. A floor deleted by hand since an earlier run takes its pairs off the list

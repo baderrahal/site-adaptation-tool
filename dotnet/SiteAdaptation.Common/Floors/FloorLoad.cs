@@ -21,7 +21,7 @@ namespace SiteAdaptation.Common.Floors
         public static readonly string[] BuildRoles = { "config", "rules", CheckRun.OverridesRole, "plotsCsv" };
         public static readonly string[] StepRoles = { SiteClusters.StepName, KeyLevels.StepName, Hands.StepName };
 
-        public static FloorInputs Floors(RunContext context, SettingsScope scope)
+        public static FloorInputs Floors(RunContext context, SettingsScope scope, bool roadTopography = false)
         {
             Tuple<string, Func<string, bool>> chosen = Scope(context, scope);
             string nbh = chosen.Item1;
@@ -30,7 +30,33 @@ namespace SiteAdaptation.Common.Floors
             string lastPath = Path.Combine(context.WorkFolder, FloorsRun.RecordName(nbh));
             JObject last = File.Exists(lastPath) ? JObject.Parse(WorkFiles.ReadText(lastPath)) : null;
             WorkerRequest request = Request(named.Item1);
-            return new FloorInputs { Plan = plan, PlanPath = named.Item1, Profile = request.LevelProfile, InScope = chosen.Item2, LastPlaced = FloorsRun.Placed(last), KnownWarnings = KnownWarnings(request) };
+            return new FloorInputs { Plan = plan, PlanPath = named.Item1, Profile = request.LevelProfile, InScope = chosen.Item2, LastPlaced = FloorsRun.Placed(last), KnownWarnings = KnownWarnings(request),
+                RoadTopography = roadTopography ? () => RoadSurface(request, named.Item1) : (Func<RoadSurfaceRead>)null };
+        }
+
+        // R570, R572. The settings of the config the build read and the surface they name, from the file the build read it from, held against
+        // the SHA-256 it read and marked before and after as every read of a real input is (D19)
+        private static RoadSurfaceRead RoadSurface(WorkerRequest request, string planPath)
+        {
+            List<WorkerFile> inputs = request.Inputs ?? new List<WorkerFile>();
+            WorkerFile configFile = inputs.FirstOrDefault(item => item.Role == "config")
+                ?? throw new InvalidDataException("the run of 4 Check that built " + Path.GetFileName(planPath) + " names no config");
+            RoadTopographySettings settings = RoadTopographySettings.Of(JObject.Parse(WorkFiles.ReadText(configFile.Path)));
+            WorkerFile input = inputs.FirstOrDefault(item => item.Role == WorkerRunner.RoadSurfaceRole + settings.Surface)
+                ?? throw new InvalidDataException("the run of 4 Check that built " + Path.GetFileName(planPath) + " read no road surface " + settings.Surface + ", pick it in Road surfaces and run 4 Check again");
+            Held(input.Role, input.Path, input.Sha256, planPath);
+            InputMark before = InputGuard.Mark(input.Path);
+            LandXmlFile file = LandXmlReader.Read(input.Path);
+            string changed = InputGuard.Change(before, InputGuard.Mark(input.Path));
+            if (changed != null)
+            {
+                throw new InvalidDataException("the road surface " + before.Name + " changed while it was read, its " + changed + " differs");
+            }
+            if (file.Surfaces.Count == 0)
+            {
+                throw new InvalidDataException(file.File + " holds no surface");
+            }
+            return new RoadSurfaceRead { Settings = settings, Surface = file.Surfaces[0], Mark = before };
         }
 
         // R459. From the config the build read. No config on disk is no list, so every warning shows as it did

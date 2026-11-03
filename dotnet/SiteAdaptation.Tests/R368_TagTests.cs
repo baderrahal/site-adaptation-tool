@@ -76,7 +76,7 @@ namespace SiteAdaptation.Tests
         [Fact]
         public void R368_the_kinds_are_link_generic_yard_ramp_and_boundary_wall()
         {
-            Assert.Equal(new[] { "link", "generic", "yard", "ramp", "boundaryWall" }, PlacedKinds.All);
+            Assert.Equal(new[] { "link", "generic", "yard", "ramp", "boundaryWall", "toposolid" }, PlacedKinds.All);
             Assert.Throws<ArgumentException>(() => new TagKey("2290", "floor", ""));
         }
 

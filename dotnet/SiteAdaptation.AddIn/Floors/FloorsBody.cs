@@ -17,7 +17,7 @@ namespace SiteAdaptation.AddIn.Floors
         {
             Document document = application.ActiveUIDocument.Document;
             SettingsScope scope = settings?.Scope;
-            return new FloorsRun(new RevitFloorDocument(document), context => FloorLoad.Floors(context, scope)).Body();
+            return new FloorsRun(new RevitFloorDocument(document), context => FloorLoad.Floors(context, scope, settings?.Project.RoadTopography ?? true)).Body();
         }
     }
 

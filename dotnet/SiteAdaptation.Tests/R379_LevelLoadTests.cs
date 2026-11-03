@@ -124,5 +124,53 @@ namespace SiteAdaptation.Tests
             var none = Assert.Throws<InvalidDataException>(() => FloorLoad.Floors(Context(5), new SettingsScope { Kind = ScopeKinds.Project }));
             Assert.Contains("works on one NBH", none.Message);
         }
+
+        // A LandXML of one triangle and the config that names it, in the request of the build as the road surface of the role
+        private string RoadSurfaceInRequest(bool inRequest = true)
+        {
+            string xml = Write(Path.Combine(work, "Road.xml"), "<LandXML><Units><Metric linearUnit=\"meter\" /></Units><Surfaces><Surface name=\"Road\"><Definition><Pnts><P id=\"1\">0 0 1</P><P id=\"2\">0 10 1</P><P id=\"3\">10 10 1</P></Pnts><Faces><F>1 2 3</F></Faces></Definition></Surface></Surfaces></LandXML>");
+            string config = Path.Combine(work, "config", "project.json");
+            JObject read = JObject.Parse(File.ReadAllText(config));
+            read["siteBuild"] = new JObject { ["snapM"] = 0.005 };
+            read["floors"] = new JObject { ["roadTopography"] = new JObject { ["typeName"] = "Road surface", ["surface"] = "Road", ["marginM"] = 5.0, ["limitMm"] = 5.0, ["minCoverShare"] = 0.5, ["pointGapM"] = 0.01, ["maxPoints"] = 100 } };
+            File.WriteAllText(config, read.ToString());
+            if (inRequest)
+            {
+                WorkerRequest request = WorkerRequest.Read(WorkerFiles.RequestPath(folder, RunId));
+                request.Inputs = request.Inputs.Concat(new[] { new WorkerFile { Role = WorkerRunner.RoadSurfaceRole + "Road", Path = xml, Sha256 = FileHash.Sha256(xml) } }).ToList();
+                request.Write(folder);
+            }
+            return xml;
+        }
+
+        [Fact]
+        public void R572_floors_take_the_surface_the_build_read_with_its_mark_only_with_the_tick_on()
+        {
+            string xml = RoadSurfaceInRequest();
+
+            Assert.Null(FloorLoad.Floors(Context(5), Nbh).RoadTopography);
+            RoadSurfaceRead read = FloorLoad.Floors(Context(5), Nbh, true).RoadTopography();
+
+            Assert.Equal("Road surface", read.Settings.TypeName);
+            Assert.Equal(1, read.Surface.VisibleFaceCount);
+            Assert.Equal("Road.xml", read.Mark.Name);
+            Assert.Equal(FileHash.Sha256(xml), read.Mark.Sha256);
+        }
+
+        [Fact]
+        public void R572_a_surface_the_build_did_not_read_or_one_changed_since_is_refused_by_name()
+        {
+            RoadSurfaceInRequest(false);
+            Assert.Contains("read no road surface Road", Assert.Throws<InvalidDataException>(() => FloorLoad.Floors(Context(5), Nbh, true).RoadTopography()).Message);
+
+            File.AppendAllText(RoadSurfaceInRequest(), " ");
+            Assert.Contains("changed since the run of 4 Check", Assert.Throws<InvalidDataException>(() => FloorLoad.Floors(Context(5), Nbh, true).RoadTopography()).Message);
+        }
+
+        [Fact]
+        public void R572_a_config_with_no_block_is_refused_by_the_name_of_the_key()
+        {
+            Assert.Contains("floors.roadTopography.typeName", Assert.Throws<InvalidDataException>(() => FloorLoad.Floors(Context(5), Nbh, true).RoadTopography()).Message);
+        }
     }
 }

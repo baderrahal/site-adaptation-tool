@@ -189,6 +189,20 @@ namespace SiteAdaptation.AddIn.Pane
             }
         }
 
+        // R574. The tick Road topography of 5 Floors and ramps, on with no document as on in a new project
+        public bool RoadTopography
+        {
+            get { return document == null || document.Settings.Project.RoadTopography; }
+            set
+            {
+                if (document != null && document.Settings.Project.RoadTopography != value)
+                {
+                    document.Settings.Project.RoadTopography = value;
+                    Changed();
+                }
+            }
+        }
+
         public bool VillaMasses { get { return VillaModeIs(VillaModes.Masses); } set { SetVillaMode(VillaModes.Masses, value); } }
         public bool VillaLinks { get { return VillaModeIs(VillaModes.Links); } set { SetVillaMode(VillaModes.Links, value); } }
 
@@ -517,7 +531,7 @@ namespace SiteAdaptation.AddIn.Pane
             ImportCommand.Refresh();
             ExportCommand.Refresh();
             NewProjectCommand.Refresh();
-            foreach (string name in new[] { nameof(HasDocument), nameof(FirstOpen), nameof(InUse), nameof(ShownSteps), nameof(Settings), nameof(ScopeWhole), nameof(ScopeNbh), nameof(ScopePlots), nameof(Nbh), nameof(Plots), nameof(DryRun), nameof(VillaMasses), nameof(VillaLinks) })
+            foreach (string name in new[] { nameof(HasDocument), nameof(FirstOpen), nameof(InUse), nameof(ShownSteps), nameof(Settings), nameof(ScopeWhole), nameof(ScopeNbh), nameof(ScopePlots), nameof(Nbh), nameof(Plots), nameof(DryRun), nameof(RoadTopography), nameof(VillaMasses), nameof(VillaLinks) })
             {
                 Changed(name);
             }
