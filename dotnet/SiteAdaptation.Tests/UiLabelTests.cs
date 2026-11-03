@@ -181,7 +181,7 @@ namespace SiteAdaptation.Tests
             // FIX-2NOV-C-CHECK added 2: the panel Pane and the refusal line of Show pane (R494). It added 4 more: Field, All fields, Find plot or note and Showing of Check table (R495)
             // SPEED-2NOV-C added 1, the line under the row Prototypes for files older than the running Revit (R496)
             // Q158 added 1, the short line of a grey Apply
-            Assert.Equal(253, chosen);
+            Assert.Equal(256, chosen);
             Assert.True(matched > 100, matched.ToString());
         }
 

@@ -333,7 +333,7 @@ namespace SiteAdaptation.Tests
 
         // The request CheckRun really makes, run by the real worker build: the runner the add-in starts, on made up files in the folders of a project
 
-        private sealed class RealWorker : IWorkerStart
+        internal sealed class RealWorker : IWorkerStart
         {
             public WorkerRequest Request { get; private set; }
             public int Exit { get; private set; }
@@ -356,6 +356,11 @@ namespace SiteAdaptation.Tests
 
         private string CopyTo(string path, params string[] parts)
         {
+            return CopyInto(root, path, parts);
+        }
+
+        private static string CopyInto(string root, string path, params string[] parts)
+        {
             string target = Path.Combine(new[] { root }.Concat(parts).ToArray());
             Directory.CreateDirectory(Path.GetDirectoryName(target));
             File.Copy(path, target, true);
@@ -363,6 +368,11 @@ namespace SiteAdaptation.Tests
         }
 
         private string WriteTo(string text, params string[] parts)
+        {
+            return WriteInto(root, text, parts);
+        }
+
+        private static string WriteInto(string root, string text, params string[] parts)
         {
             string target = Path.Combine(new[] { root }.Concat(parts).ToArray());
             Directory.CreateDirectory(Path.GetDirectoryName(target));
@@ -374,13 +384,19 @@ namespace SiteAdaptation.Tests
         private RealWorker RunCheck(LevelFloorStepTests steps, string runId, string mode, out RunLater end)
         {
             WorkerRequest seed = steps.Request("seed", BuildPlan.Steps);
-            string Seeded(string role) => seed.Inputs.Single(input => input.Role == role).Path;
             string shipped = Path.GetDirectoryName(WorkerRunTests.RepoConfig());
-            string config = CopyTo(Seeded("config"), "repo", "config", "project.json");
+            string config = CopyTo(seed.Inputs.Single(input => input.Role == "config").Path, "repo", "config", "project.json");
             CopyTo(Path.Combine(shipped, "floor_outlines.json"), "repo", "config", "floor_outlines.json");
             CopyTo(Path.Combine(shipped, "prototype_offsets.json"), "repo", "config", "prototype_offsets.json");
-            string rules = CopyTo(Seeded("rules"), "repo", "rules", "made-up.json");
+            string rules = CopyTo(seed.Inputs.Single(input => input.Role == "rules").Path, "repo", "rules", "made-up.json");
             WriteTo(new JObject { ["overrides"] = new JArray(new JObject { ["plot"] = "3", ["field"] = "heightM", ["value"] = JObject.Parse("{\"gapToRuleM\": 0.1}"), ["source"] = "parsons", ["model"] = "a.rvt", ["key"] = "imc" }) }.ToString(), "repo", "config", "overrides", "made-up.json");
+            return CheckOn(root, seed, config, rules, null, runId, mode, out end);
+        }
+
+        // 4 Check of a project at this config and rules file on the read files of a seed request of the made up site, by the real worker
+        internal static RealWorker CheckOn(string root, WorkerRequest seed, string config, string rules, string levelProfile, string runId, string mode, out RunLater end)
+        {
+            string Seeded(string role) => seed.Inputs.Single(input => input.Role == role).Path;
             string prototypes = Path.GetDirectoryName(seed.Inputs.First(input => input.Role.StartsWith(BuildSteps.PrototypeRole, StringComparison.Ordinal)).Path);
             string work = Path.Combine(root, "work");
             JObject values = JObject.Parse(File.ReadAllText(config));
@@ -389,16 +405,16 @@ namespace SiteAdaptation.Tests
             {
                 levels[(string)values["floors"]["levels"][kind]] = 0.0;
             }
-            WriteTo(new JObject { ["levels"] = levels, ["surveyPoint"] = JObject.Parse("{ 'position': [0, 0, 0], 'sharedPosition': [0, 0, 0] }"), ["angleToTrueNorthDeg"] = 0.0 }.ToString(), "work", Common.SetUp.SetUpRun.SiteFile);
+            WriteInto(root, new JObject { ["levels"] = levels, ["surveyPoint"] = JObject.Parse("{ 'position': [0, 0, 0], 'sharedPosition': [0, 0, 0] }"), ["angleToTrueNorthDeg"] = 0.0 }.ToString(), "work", Common.SetUp.SetUpRun.SiteFile);
             string read = ReadDataRun.FolderPrefix + "0123";
             foreach (KeyValuePair<string, string> file in CheckRun.ReadFiles)
             {
-                CopyTo(Seeded(file.Key), "work", read, file.Value);
+                CopyInto(root, Seeded(file.Key), "work", read, file.Value);
             }
-            WriteTo("{ \"plots\": [] }", "work", read, ReadDataRun.PlotTableFile);
+            WriteInto(root, "{ \"plots\": [] }", "work", read, ReadDataRun.PlotTableFile);
             var listed = new List<Tuple<string, string>> { Tuple.Create("config", config), Tuple.Create("plotsCsv", Seeded("plotsCsv")), Tuple.Create("labels", Seeded("labels")) };
             listed.AddRange(seed.Inputs.Where(input => input.Role.StartsWith(WorkerRunner.RoadSurfaceRole, StringComparison.Ordinal)).Select(input => Tuple.Create(input.Role, input.Path)));
-            WriteTo(new JObject
+            WriteInto(root, new JObject
             {
                 ["format"] = ReadDataRun.RecordFormat, ["runId"] = "R2-1",
                 ["inputs"] = new JArray(listed.Select(item => new JObject { ["role"] = item.Item1, ["path"] = item.Item2, ["sha256"] = FileHash.Sha256(item.Item2) })),
@@ -406,7 +422,7 @@ namespace SiteAdaptation.Tests
 
             var worker = new RealWorker();
             var roles = new Dictionary<string, string> { ["Settings"] = CheckRun.Config, ["Rules"] = CheckRun.Rules, ["Prototypes"] = CheckRun.Prototypes };
-            var run = new CheckRun(roles, worker, null, new WorkerDocument { Path = @"C:\Projects\a.rvt", SessionId = "s1" }, () => new SettingsScope(), new NoTable(), null, null) { ModePick = () => mode };
+            var run = new CheckRun(roles, worker, null, new WorkerDocument { Path = @"C:\Projects\a.rvt", SessionId = "s1" }, () => new SettingsScope(), new NoTable(), null, levelProfile) { ModePick = () => mode };
             var pane = new[] { new RunInput("Settings", config, false), new RunInput("Rules", rules, false), new RunInput("Prototypes", prototypes, true) };
             RunLater ended = null;
             run.Body().Start(new RunContext(4, "4 Check", runId, work, null, true, pane, new Dictionary<string, string>()), later => ended = later);
@@ -537,10 +553,12 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R484_start_from_empty_in_a_window_with_empty_settings_shows_the_rev6_line_and_waits_for_a_config()
+        public void R484_R486_start_from_empty_with_no_config_and_no_shipped_set_shows_no_mode_line_and_the_stop()
         {
             NewProjectViewModel model = Window(new ProjectSettings(), new SavedStart[0], path => Config("pastMade"));
-            Assert.Equal("New project rules, Rev 06", model.ModeLine);
+            Assert.Equal(string.Empty, model.ModeLine);
+            Assert.True(model.StopShown);
+            Assert.Equal(NewProjectText.NoStart, model.StopLine);
             Assert.False(RoadRow(model).SurfacesEnabled);
             model.Save();
             Assert.Null(model.Result.ProjectMode);
@@ -551,14 +569,14 @@ namespace SiteAdaptation.Tests
         {
             string saved = PreSetting.Export(new ProjectSettings { ConfigFile = "cfg" });
             NewProjectViewModel model = Window(new ProjectSettings(), new[] { new SavedStart("Past", "p.json", saved) }, path => Config("pastMade"));
-            Assert.Equal("New project rules, Rev 06", model.ModeLine);
+            Assert.Equal(string.Empty, model.ModeLine);
             model.Start = model.Starts[1];
             Assert.Equal("ROSHN past job", model.ModeLine);
             Assert.False(RoadRow(model).SurfacesEnabled);
             model.Save();
             Assert.Equal("pastMade", model.Result.ProjectMode);
             model.Start = model.Starts[0];
-            Assert.Equal("New project rules, Rev 06", model.ModeLine);
+            Assert.Equal(string.Empty, model.ModeLine);
         }
 
         [Fact]

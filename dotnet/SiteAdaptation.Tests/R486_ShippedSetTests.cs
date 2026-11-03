@@ -1,0 +1,334 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using Newtonsoft.Json.Linq;
+using SiteAdaptation.Common;
+using SiteAdaptation.Common.Settings;
+using Xunit;
+
+namespace SiteAdaptation.Tests
+{
+    // R486, R487. Empty project takes the shipped set: copied once, an override list with no entries, the mode of a new project. Made up names on the shipped config
+    public sealed class R486_ShippedSetTests : IDisposable
+    {
+        private readonly string root = Path.Combine(Path.GetTempPath(), "r486-" + Guid.NewGuid().ToString("N"));
+        private readonly string shipped;
+        private readonly string work;
+
+        public R486_ShippedSetTests()
+        {
+            shipped = Path.Combine(root, "addin", ShippedSet.FolderName);
+            work = Path.Combine(root, "work root");
+            MakeShipped(shipped);
+        }
+
+        public void Dispose()
+        {
+            Directory.Delete(root, true);
+        }
+
+        // A made up set: its config names a made up rules file by the key profile, so no file name of a project stands in the code
+        internal static void MakeShipped(string folder)
+        {
+            Directory.CreateDirectory(Path.Combine(folder, "config"));
+            Directory.CreateDirectory(Path.Combine(folder, "rules made up"));
+            File.WriteAllText(Path.Combine(folder, "config", "project.json"), new JObject
+            {
+                ["profile"] = "rules made up/made-up.json",
+                ["majority"] = JObject.Parse("{ 'groups': { 'parsons': ['kx'] }, 'overrideDefaultSources': ['parsons'] }"),
+                ["designBasis"] = new JObject { ["mode"] = "pastMade", ["modes"] = new JArray(DesignBasis.Rev6, "pastMade"), ["newProjectMode"] = DesignBasis.Rev6 },
+            }.ToString());
+            File.WriteAllText(Path.Combine(folder, "config", "floor_outlines.json"), "{}");
+            File.WriteAllText(Path.Combine(folder, "rules made up", "made-up.json"), "{ 'levelProfiles': { 'default': 'madeProfile', 'madeProfile': { 'job': 'parsons' } } }");
+        }
+
+        private ShippedSet Set(string name = "Site A", bool saved = true)
+        {
+            return new ShippedSet(shipped, work, name, saved);
+        }
+
+        private string ProjectFile(params string[] parts)
+        {
+            return Path.Combine(new[] { work, ShippedSet.ProjectsFolder, "Site A" }.Concat(parts).ToArray());
+        }
+
+        [Fact]
+        public void R486_the_set_is_copied_to_the_folder_of_the_project_and_names_config_rules_and_level_profile()
+        {
+            ProjectSet set = Set().Take(File.ReadAllText);
+            Assert.Equal(ProjectFile("config", "project.json"), set.ConfigFile);
+            Assert.Equal(Path.GetFullPath(ProjectFile("rules made up", "made-up.json")), set.RulesFile);
+            Assert.Equal("madeProfile", set.LevelProfile);
+            Assert.True(File.Exists(ProjectFile("config", "floor_outlines.json")));
+            Assert.Empty(Directory.GetDirectories(Path.Combine(work, ShippedSet.ProjectsFolder)).Where(path => path.Contains(".tmp-")));
+        }
+
+        [Fact]
+        public void R486_a_second_take_keeps_a_hand_edit_of_the_config_and_what_save_overrides_wrote()
+        {
+            ProjectSet first = Set().Take(File.ReadAllText);
+            JObject edited = JObject.Parse(File.ReadAllText(first.ConfigFile));
+            edited["handEdit"] = "stays";
+            File.WriteAllText(first.ConfigFile, edited.ToString());
+            string list = ProjectFile("config", "overrides", "made-up.json");
+            File.WriteAllText(list, "{ \"overrides\": [ { \"plot\": \"3\" } ] }");
+
+            Set().Take(File.ReadAllText);
+            Assert.Equal("stays", (string)JObject.Parse(File.ReadAllText(first.ConfigFile))["handEdit"]);
+            Assert.Contains("\"plot\": \"3\"", File.ReadAllText(list));
+        }
+
+        [Fact]
+        public void R487_the_copy_holds_a_list_with_no_entries_at_the_path_of_check_run_that_the_build_accepts()
+        {
+            ProjectSet set = Set().Take(File.ReadAllText);
+            JObject config = JObject.Parse(File.ReadAllText(set.ConfigFile));
+            string list = Common.CheckTable.CheckRun.OverridesPath(config, set.ConfigFile, set.RulesFile);
+            Assert.Equal(ProjectFile("config", "overrides", "made-up.json"), list);
+            Assert.Empty((JArray)JObject.Parse(File.ReadAllText(list))["overrides"]);
+            JObject level = (JObject)JObject.Parse(File.ReadAllText(set.RulesFile))["levelProfiles"]["madeProfile"];
+            OverrideList loaded = PlanOverrides.Load(list, config, level, "madeProfile", "project.json");
+            Assert.NotNull(loaded);
+        }
+
+        [Fact]
+        public void R487_a_list_with_entries_of_another_source_is_still_refused()
+        {
+            ProjectSet set = Set().Take(File.ReadAllText);
+            JObject config = JObject.Parse(File.ReadAllText(set.ConfigFile));
+            config["majority"]["groups"]["native"] = new JArray("n1");
+            string list = ProjectFile("config", "overrides", "made-up.json");
+            File.WriteAllText(list, new JObject { ["overrides"] = new JArray(JObject.Parse("{ 'plot': '5', 'field': 'mirrored', 'value': true, 'source': 'native', 'model': 'a.rvt', 'key': 'n1' }")) }.ToString());
+            JObject level = (JObject)JObject.Parse(File.ReadAllText(set.RulesFile))["levelProfiles"]["madeProfile"];
+            Assert.Contains("holds no override of parsons", Assert.Throws<InvalidDataException>(() => PlanOverrides.Load(list, config, level, "madeProfile", "project.json")).Message);
+        }
+
+        [Fact]
+        public void R486_with_no_shipped_set_it_is_not_there()
+        {
+            Assert.False(new ShippedSet(Path.Combine(root, "none"), work, "Site A", true).There);
+            Assert.False(new ShippedSet(null, work, "Site A", true).There);
+            Assert.True(Set().There);
+            Assert.Equal(DesignBasis.Rev6, Set().NewMode(File.ReadAllText));
+        }
+
+        [Theory]
+        [InlineData("Site A", true)]
+        [InlineData("Site.A", true)]
+        [InlineData("", false)]
+        [InlineData("  ", false)]
+        [InlineData("a/b", false)]
+        [InlineData("a\\b", false)]
+        [InlineData("..", false)]
+        [InlineData("name.", false)]
+        [InlineData(" name", false)]
+        [InlineData("a:b", false)]
+        [InlineData("CON", false)]
+        [InlineData("nul.txt", false)]
+        public void R486_a_project_name_makes_a_safe_folder_name_or_is_refused(string name, bool safe)
+        {
+            Assert.Equal(safe, ShippedSet.SafeName(name));
+            Assert.Equal(safe ? ShippedSetRefusal.None : ShippedSetRefusal.NoSafeName, Set(name).Refusal);
+        }
+
+        [Fact]
+        public void R486_an_unsaved_model_is_refused_and_the_extension_of_a_title_is_no_part_of_the_name()
+        {
+            Assert.Equal(ShippedSetRefusal.NotSaved, Set("Site A", false).Refusal);
+            Assert.Equal(ProjectFile(), Set("Site A.rvt").ProjectFolder);
+        }
+
+        [Fact]
+        public void R486_a_folder_that_holds_files_but_no_settings_stops_and_nothing_is_written()
+        {
+            Directory.CreateDirectory(ProjectFile());
+            File.WriteAllText(ProjectFile("left.txt"), "left");
+            Assert.Throws<IOException>(() => Set().Take(File.ReadAllText));
+            Assert.Equal(new[] { ProjectFile("left.txt") }, Directory.GetFiles(ProjectFile(), "*", SearchOption.AllDirectories));
+            Assert.Equal(new[] { ProjectFile() }, Directory.GetDirectories(Path.GetDirectoryName(ProjectFile())));
+        }
+
+        // Save setup
+
+        [Fact]
+        public void R486_R484_save_on_empty_with_no_config_takes_the_set_and_the_new_project_mode()
+        {
+            ProjectSet set = Set().Take(File.ReadAllText);
+            ProjectSettings saved = SetupSave.Apply(new SetupDraft { NewSet = set }, new ProjectSettings(), File.ReadAllText);
+            Assert.Equal(set.ConfigFile, saved.ConfigFile);
+            Assert.Equal(set.RulesFile, saved.RulesFile);
+            Assert.Equal("madeProfile", saved.LevelProfile);
+            Assert.Equal(DesignBasis.Rev6, saved.ProjectMode);
+        }
+
+        [Fact]
+        public void R486_settings_that_name_a_config_do_not_take_the_set()
+        {
+            ProjectSet set = Set().Take(File.ReadAllText);
+            string other = Path.Combine(root, "other.json");
+            File.WriteAllText(other, new JObject { ["designBasis"] = new JObject { ["mode"] = "pastMade", ["modes"] = new JArray(DesignBasis.Rev6, "pastMade"), ["newProjectMode"] = DesignBasis.Rev6 } }.ToString());
+            ProjectSettings saved = SetupSave.Apply(new SetupDraft { NewSet = set }, new ProjectSettings { ConfigFile = other, LevelProfile = "own" }, File.ReadAllText);
+            Assert.Equal(other, saved.ConfigFile);
+            Assert.Equal("own", saved.LevelProfile);
+            Assert.Null(saved.ProjectMode);
+        }
+
+        // Item 5: a project on rev6 by Empty goes back through Start from and does not get rev6 again
+
+        [Fact]
+        public void R486_R484_a_project_on_rev6_by_empty_then_a_saved_project_with_no_mode_ends_on_its_config_mode_and_a_second_save_keeps_it()
+        {
+            ProjectSet set = Set().Take(File.ReadAllText);
+            ProjectSettings rev6 = SetupSave.Apply(new SetupDraft { NewSet = set }, new ProjectSettings(), File.ReadAllText);
+            Assert.Equal(DesignBasis.Rev6, rev6.ProjectMode);
+
+            string past = Path.Combine(root, "past.json");
+            File.WriteAllText(past, new JObject { ["designBasis"] = new JObject { ["mode"] = "pastMade", ["modes"] = new JArray(DesignBasis.Rev6, "pastMade"), ["newProjectMode"] = DesignBasis.Rev6 } }.ToString());
+            string start = PreSetting.Export(new ProjectSettings { ConfigFile = past });
+
+            ProjectSettings back = SetupSave.Apply(new SetupDraft { StartText = start }, rev6, File.ReadAllText);
+            Assert.Equal(past, back.ConfigFile);
+            Assert.Equal("pastMade", back.ProjectMode);
+
+            ProjectSettings again = SetupSave.Apply(new SetupDraft(), back, File.ReadAllText);
+            Assert.Equal(past, again.ConfigFile);
+            Assert.Equal("pastMade", again.ProjectMode);
+        }
+    }
+}
+
+#if NET48
+namespace SiteAdaptation.Tests
+{
+    using SiteAdaptation.AddIn.NewProject;
+
+    // R486, the window, net48 alone as the add-in is
+    public sealed class R486_ShippedSetWindowTests : IDisposable
+    {
+        private readonly string root = Path.Combine(Path.GetTempPath(), "r486w-" + Guid.NewGuid().ToString("N"));
+        private readonly string shipped;
+        private readonly string work;
+
+        public R486_ShippedSetWindowTests()
+        {
+            shipped = Path.Combine(root, "addin", ShippedSet.FolderName);
+            work = Path.Combine(root, "work");
+            R486_ShippedSetTests.MakeShipped(shipped);
+        }
+
+        public void Dispose()
+        {
+            Directory.Delete(root, true);
+        }
+
+        private NewProjectViewModel Window(ProjectSettings settings, ShippedSet set, IReadOnlyList<SavedStart> starts = null)
+        {
+            return new NewProjectViewModel(settings, "Site", starts ?? new SavedStart[0], null, (path, isFolder) => File.Exists(path), null, path => File.Exists(path) ? File.ReadAllText(path) : null, null, true, (inFolder, effective) => null, set);
+        }
+
+        private ShippedSet Set(string name = "Site A", bool saved = true)
+        {
+            return new ShippedSet(shipped, work, name, saved);
+        }
+
+        private string ProjectFolder => Path.Combine(work, ShippedSet.ProjectsFolder, "Site A");
+
+        private static SetupRowViewModel RoadRow(NewProjectViewModel model)
+        {
+            return model.Rows.Single(item => item.Row.Id == SetupRows.RoadLevels);
+        }
+
+        [Fact]
+        public void R486_empty_with_a_shipped_set_shows_the_rev6_line_no_stop_of_a_saved_project_and_copies_nothing_before_save()
+        {
+            NewProjectViewModel model = Window(new ProjectSettings(), Set());
+            Assert.Equal("New project rules, Rev 06", model.ModeLine);
+            Assert.NotEqual(NewProjectText.NoStart, model.StopLine);
+            Assert.False(Directory.Exists(ProjectFolder));
+        }
+
+        [Fact]
+        public void R486_save_takes_the_set_and_the_road_pick_is_active_once_save_has_it()
+        {
+            NewProjectViewModel model = Window(new ProjectSettings(), Set());
+            Assert.False(RoadRow(model).SurfacesEnabled);
+            model.Save();
+            Assert.Equal(DesignBasis.Rev6, model.Result.ProjectMode);
+            Assert.StartsWith(ProjectFolder, model.Result.ConfigFile);
+            Assert.Equal(RoadPickWhy.Ready, RoadPickState.Of(model.Result, File.ReadAllText).Why);
+
+            // Reopened on the settings that Save gave: the same set, no second copy, the line by the mode the project holds
+            File.WriteAllText(Path.Combine(ProjectFolder, "mark.txt"), "stays");
+            NewProjectViewModel again = Window(model.Result, Set());
+            Assert.Equal("New project rules, Rev 06", again.ModeLine);
+            Assert.True(RoadRow(again).SurfacesEnabled);
+            again.Save();
+            Assert.Equal(model.Result.ConfigFile, again.Result.ConfigFile);
+            Assert.True(File.Exists(Path.Combine(ProjectFolder, "mark.txt")));
+        }
+
+        [Fact]
+        public void R486_no_shipped_set_on_empty_gives_the_stop_and_no_mode_line()
+        {
+            NewProjectViewModel model = Window(new ProjectSettings(), new ShippedSet(Path.Combine(root, "none"), work, "Site A", true));
+            Assert.Equal(string.Empty, model.ModeLine);
+            Assert.Equal(NewProjectText.NoStart, model.StopLine);
+            Assert.True(model.StopShown);
+        }
+
+        [Theory]
+        [InlineData("a:b", true, NewProjectText.SetNoName)]
+        [InlineData("Site A", false, NewProjectText.SetNotSaved)]
+        public void R486_a_name_with_no_safe_folder_or_an_unsaved_model_gets_one_line_and_nothing_is_written(string name, bool saved, string line)
+        {
+            NewProjectViewModel model = Window(new ProjectSettings(), Set(name, saved));
+            Assert.True(model.StopShown);
+            Assert.Equal(line, model.StopLine);
+            Assert.Equal(string.Empty, model.TodoLine);
+            Assert.Equal(string.Empty, model.ModeLine);
+            model.Save();
+            Assert.Null(model.Result);
+            Assert.False(Directory.Exists(work));
+        }
+
+        [Fact]
+        public void R486_a_copy_that_fails_gets_one_line_and_the_window_stays()
+        {
+            Directory.CreateDirectory(ProjectFolder);
+            File.WriteAllText(Path.Combine(ProjectFolder, "left.txt"), "left");
+            NewProjectViewModel model = Window(new ProjectSettings(), Set());
+            model.Save();
+            Assert.Null(model.Result);
+            Assert.StartsWith("The project files were not copied: ", model.StopLine);
+        }
+
+        [Fact]
+        public void R486_settings_that_name_a_config_are_untouched_with_no_copy()
+        {
+            string past = Path.Combine(root, "past.json");
+            File.WriteAllText(past, new JObject { ["designBasis"] = new JObject { ["mode"] = "pastMade", ["modes"] = new JArray(DesignBasis.Rev6, "pastMade"), ["newProjectMode"] = DesignBasis.Rev6 } }.ToString());
+            NewProjectViewModel model = Window(new ProjectSettings { ConfigFile = past }, Set());
+            Assert.Equal("ROSHN past job", model.ModeLine);
+            model.Save();
+            Assert.Equal(past, model.Result.ConfigFile);
+            Assert.Null(model.Result.ProjectMode);
+            Assert.False(Directory.Exists(work));
+        }
+
+        [Fact]
+        public void R486_a_saved_project_chosen_with_a_set_shipped_copies_nothing()
+        {
+            string past = Path.Combine(root, "past.json");
+            File.WriteAllText(past, new JObject { ["designBasis"] = new JObject { ["mode"] = "pastMade", ["modes"] = new JArray(DesignBasis.Rev6, "pastMade") } }.ToString());
+            var starts = new[] { new SavedStart("Past", "p.json", PreSetting.Export(new ProjectSettings { ConfigFile = past })) };
+            NewProjectViewModel model = Window(new ProjectSettings(), Set(), starts);
+            model.Start = model.Starts[1];
+            Assert.Equal("ROSHN past job", model.ModeLine);
+            model.Save();
+            Assert.Equal("pastMade", model.Result.ProjectMode);
+            Assert.False(Directory.Exists(work));
+        }
+    }
+}
+#endif

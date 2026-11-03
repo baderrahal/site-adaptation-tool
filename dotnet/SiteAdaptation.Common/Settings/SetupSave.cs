@@ -17,6 +17,9 @@ namespace SiteAdaptation.Common.Settings
 
         // R492. The road surfaces of the window in their order, null keeps what the settings hold
         public IReadOnlyList<string> RoadSurfaces { get; set; }
+
+        // R486. The shipped set the window copied for Empty project, null for none. A project that names a config never takes it
+        public ProjectSet NewSet { get; set; }
     }
 
     // R432, Save setup. The settings of the project with the draft laid over them, in the settings JSON of R367 and nothing else, so
@@ -50,6 +53,12 @@ namespace SiteAdaptation.Common.Settings
             }
             else
             {
+                if (draft.NewSet != null && string.IsNullOrEmpty(current?.ConfigFile))
+                {
+                    next.ConfigFile = draft.NewSet.ConfigFile;
+                    next.RulesFile = draft.NewSet.RulesFile;
+                    next.LevelProfile = draft.NewSet.LevelProfile;
+                }
                 ProjectModes.TakeNewProject(current?.ConfigFile, next, readText);
             }
             foreach (KeyValuePair<string, string> pick in draft.Picks)

@@ -134,6 +134,10 @@ namespace SiteAdaptation.AddIn.NewProject
         private string templateLine = string.Empty;
         private string modeLine = string.Empty;
 
+        // R486. The shipped set of the install, null where the window has none, and what Save took from it
+        private readonly ShippedSet shipped;
+        private ProjectSet taken;
+
         // R440, Q283. The scan the facts came from, the window What the tool read it opens, and the picks of the dropdowns and the window
         private readonly DrawingFactsResult facts;
         private readonly Func<string, ProjectSettings, ProjectSettings> viewScan;
@@ -148,8 +152,9 @@ namespace SiteAdaptation.AddIn.NewProject
         private List<string> surfaces;
 
         public NewProjectViewModel(ProjectSettings current, string projectName, IReadOnlyList<SavedStart> starts, DrawingFactsResult facts, Func<string, bool, bool> there,
-            IPathPicker picker, Func<string, string> readText, Func<string, ProjectSettings, ProjectSettings> viewScan = null, bool modelOpen = true, SurfacePicker pickSurfaces = null)
+            IPathPicker picker, Func<string, string> readText, Func<string, ProjectSettings, ProjectSettings> viewScan = null, bool modelOpen = true, SurfacePicker pickSurfaces = null, ShippedSet shipped = null)
         {
+            this.shipped = shipped;
             this.pickSurfaces = pickSurfaces;
             NoModelShown = !modelOpen;
             this.viewScan = viewScan;
@@ -343,7 +348,8 @@ namespace SiteAdaptation.AddIn.NewProject
         // R431. Read only, the statuses and the stop box of the settings Save setup would give
         public void CheckFiles()
         {
-            CheckedOk = Refresh().Ok;
+            SetupCheckResult result = Refresh();
+            CheckedOk = (result.HasStart || Takes) && !result.Stops.Any();
         }
 
         public void GetTemplate(SetupRowViewModel row)
@@ -393,8 +399,34 @@ namespace SiteAdaptation.AddIn.NewProject
             }
         }
 
+        // R486. Empty project of settings that name no config, with a set shipped
+        private bool Wants => start?.Start == null && string.IsNullOrEmpty(current.ConfigFile) && shipped != null && shipped.There;
+
+        private bool Takes => Wants && shipped.Refusal == ShippedSetRefusal.None;
+
+        private string RefusedLine => !Wants ? null : shipped.Refusal == ShippedSetRefusal.NotSaved ? NewProjectText.SetNotSaved : shipped.Refusal == ShippedSetRefusal.NoSafeName ? NewProjectText.SetNoName : null;
+
         public void Save()
         {
+            // R486. The copy is made here where the work root is known, SetupSave lays the result over the settings. A refusal leaves the window open and nothing written
+            if (RefusedLine != null)
+            {
+                return;
+            }
+            if (Takes)
+            {
+                try
+                {
+                    taken = shipped.Take(readText);
+                }
+                catch (Exception error) when (error is IOException || error is UnauthorizedAccessException || error is InvalidDataException || error is JsonException || error is ArgumentException || error is NotSupportedException)
+                {
+                    StopShown = true;
+                    StopLine = TextTemplate.Fill(NewProjectText.SetNotCopied, error.Message);
+                    TodoLine = string.Empty;
+                    return;
+                }
+            }
             Result = Next();
             Finished?.Invoke();
         }
@@ -407,7 +439,7 @@ namespace SiteAdaptation.AddIn.NewProject
 
         private SetupDraft Draft()
         {
-            var draft = new SetupDraft { StartText = start?.Start?.Text, ScanPicks = new Dictionary<string, string>(scanPicks), ConflictPicks = conflictPicks, RoadSurfaces = surfaces };
+            var draft = new SetupDraft { StartText = start?.Start?.Text, ScanPicks = new Dictionary<string, string>(scanPicks), ConflictPicks = conflictPicks, RoadSurfaces = surfaces, NewSet = taken };
             foreach (KeyValuePair<string, string> pick in picks)
             {
                 draft.Picks[pick.Key] = pick.Value;
@@ -420,12 +452,13 @@ namespace SiteAdaptation.AddIn.NewProject
             return SetupSave.Apply(Draft(), current, readText);
         }
 
-        // By rev6 against the other, the name of the past job lives in config alone. With no config known yet Empty project starts on the rules of a new project
+        // What the Save would give, by rev6 against the other, the name of the past job lives in config alone. No mode known and no set to take shows no line, so it
+        // never promises a build the project can not do (R486)
         private void ShowMode()
         {
             ProjectSettings next = Next();
-            string mode = next.ProjectMode ?? ProjectModes.OfConfig(ProjectModes.ReadConfig(next.ConfigFile, readText));
-            ModeLine = (mode == null ? start?.Start == null : mode == Common.DesignBasis.Rev6) ? NewProjectText.ModeRev6 : NewProjectText.ModePast;
+            string mode = next.ProjectMode ?? ProjectModes.OfConfig(ProjectModes.ReadConfig(next.ConfigFile, readText)) ?? (Takes ? shipped.NewMode(readText) : null);
+            ModeLine = mode == null ? string.Empty : mode == Common.DesignBasis.Rev6 ? NewProjectText.ModeRev6 : NewProjectText.ModePast;
         }
 
         private void ShowSurfaces()
@@ -450,9 +483,10 @@ namespace SiteAdaptation.AddIn.NewProject
             ShowMode();
             Ready = TextTemplate.Fill(NewProjectText.Ready, result.Ready, result.Total);
             SetupRowViewModel stop = result.Stops.Select(item => Rows.Single(row => row.Row.Id == item.Row.Id)).FirstOrDefault();
-            StopShown = !result.HasStart || stop != null;
-            StopLine = !result.HasStart ? (result.StartNamed ? NewProjectText.StartGone : NewProjectText.NoStart) : stop?.StopLine ?? string.Empty;
-            TodoLine = !result.HasStart ? NewProjectText.NoStartTodo : stop?.TodoLine ?? string.Empty;
+            bool noStart = !result.HasStart && !Takes;
+            StopShown = noStart || stop != null;
+            StopLine = RefusedLine ?? (noStart ? (result.StartNamed ? NewProjectText.StartGone : NewProjectText.NoStart) : stop?.StopLine ?? string.Empty);
+            TodoLine = RefusedLine != null ? string.Empty : noStart ? NewProjectText.NoStartTodo : stop?.TodoLine ?? string.Empty;
             return result;
         }
     }

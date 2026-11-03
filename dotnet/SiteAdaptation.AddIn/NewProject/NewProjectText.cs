@@ -19,6 +19,9 @@ namespace SiteAdaptation.AddIn.NewProject
         public const string EmptyProject = "Empty project";
         public const string ModeRev6 = "New project rules, Rev 06";
         public const string ModePast = "ROSHN past job";
+        public const string SetNotSaved = "Save the model first, the folder of a new project is named by it.";
+        public const string SetNoName = "The name of this model makes no folder name, save it under another name.";
+        public const string SetNotCopied = "The project files were not copied: <name>";
         public const string SavedName = "<name> (saved)";
         public const string SavedHint = "<name> is kept as a saved start, not built in.";
 

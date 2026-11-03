@@ -57,11 +57,27 @@ $addInFiles += Join-Path $AddInBuild 'Theme\Fonts\OFL.txt'
 Copy-Files $AddInBuild $addInFolder $addInFiles
 
 # The worker runs as its own process with the redirects of its exe.config, in a folder Revit does not load, so it takes every
-# library of its build. A config file of the repo stays out, the user picks config/project.json in the pane
+# library of its build
 $workerFiles = Get-ChildItem -LiteralPath $WorkerBuild -File |
     Where-Object { $_.Name -in 'CadReader.exe', 'CadReader.exe.config' -or $_.Extension -in '.dll', '.pdb' } |
     ForEach-Object { $_.FullName }
 Copy-Files $WorkerBuild $workerFolder $workerFiles
+
+# R486, Q377. The set Empty project copies for a new project, in its layout under the repo root: the files the C# of a build reads by name. CheckRun.BesideConfig, the layer
+# list of ReadInputs, the sheet of ParameterSheet and the rules profile, the last three by their keys in config. No override list (R487). Data files only in a subfolder, so
+# Revit loads nothing from it, it loads the manifest and the assemblies that name
+$setFolder = Join-Path $addInFolder 'ShippedSet'
+$projectFile = Join-Path $repo 'config\project.json'
+$project = Get-Content -Raw -LiteralPath $projectFile | ConvertFrom-Json -AsHashtable
+$setFiles = @('config/project.json', 'config/floor_outlines.json', 'config/prototype_offsets.json', "config/$($project.addin.readData.cadLayers)", $project.addin.parameterSheet, $project.profile)
+if (Test-Path -LiteralPath $setFolder) {
+    Remove-Item -LiteralPath $setFolder -Recurse -Force
+}
+foreach ($file in $setFiles) {
+    $target = Join-Path $setFolder $file
+    New-Item -ItemType Directory -Force (Split-Path $target -Parent) | Out-Null
+    Copy-Item -LiteralPath (Join-Path $repo $file) -Destination $target -Force
+}
 
 # The manifest takes its fixed AddInId and the rest from the repo, and the full path of the DLL of this machine
 [xml]$manifest = Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot 'SiteAdaptationAddIn_Revit2024.addin')
