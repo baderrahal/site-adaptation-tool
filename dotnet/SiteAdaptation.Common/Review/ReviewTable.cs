@@ -10,7 +10,7 @@ namespace SiteAdaptation.Common.Review
     // NBH. plotTable is the plot table as a JSON object keyed by the baseplan label. plan holds what the build of button 4 knows per
     // baseplan label and rings the baseplan ring of each plot per label, both null before that, and site is site.json of button 1
     // (SetUpRun.SiteJson). Plot No is the location plan number, the plot of R208, and the official number when the face holds none
-    // (CHOSEN by Code). Mirror is the one of the plan when it has one, else the mirror of the footprint block (CHOSEN)
+    // (CHOSEN by Code), and R521 the official number where the location plan gives two, the number 4 Check holds. Mirror is the one of the plan when it has one, else the mirror of the footprint block (CHOSEN)
     public static class ReviewTable
     {
         public static List<ReviewRow> Rows(JObject plotTable, string nbh, IReadOnlyDictionary<string, ReviewPlanFact> plan, IReadOnlyDictionary<string, double[][]> rings, JObject site)
@@ -33,7 +33,8 @@ namespace SiteAdaptation.Common.Review
                     continue;
                 }
                 string label = Text(face["baseplanLabel"]) ?? entry.Name;
-                string number = Text(face["locationPlanNumber"]) ?? Text(face["officialNumber"]);
+                string located = Text(face["locationPlanNumber"]), official = Text(face["officialNumber"]);
+                string number = located == null || located.Contains("|") ? official ?? located : located;
                 if (number == null)
                 {
                     continue;
@@ -47,6 +48,7 @@ namespace SiteAdaptation.Common.Review
                 var row = new ReviewRow
                 {
                     PlotNo = number,
+                    OldPlotNo = located != null && located != number ? located : null,
                     CadLabel = label,
                     Nbh = nbh,
                     VillaType = Text(face["typologyRev9"]),

@@ -100,7 +100,7 @@ namespace SiteAdaptation.AddIn.NewProject
         }
     }
 
-    // A choice of Start from: Empty project, which keeps the settings as they are, or a saved project of R434
+    // A choice of Start from: Empty project, which keeps the settings as they are, or a saved project of R434. R520: the window opens on the one the setup came from
     public sealed class StartChoice
     {
         public StartChoice(string name, SavedStart start)
@@ -130,6 +130,10 @@ namespace SiteAdaptation.AddIn.NewProject
         private readonly Func<string, string> readText;
         private readonly Dictionary<string, string> picks = new Dictionary<string, string>(StringComparer.Ordinal);
         private StartChoice start;
+
+        // R520. The choice of the saved project the setup came from, null for none. The settings hold it already, so Save setup does not import it over the picks
+        private StartChoice cameFrom;
+        private readonly string savedHint;
         private string ready = string.Empty;
         private bool stopShown;
         private string stopLine = string.Empty;
@@ -171,7 +175,9 @@ namespace SiteAdaptation.AddIn.NewProject
             ProjectName = projectName ?? string.Empty;
             Starts = new[] { new StartChoice(NewProjectText.EmptyProject, null) }
                 .Concat((starts ?? new SavedStart[0]).Select(saved => new StartChoice(TextTemplate.Fill(NewProjectText.SavedName, saved.Name), saved))).ToList();
-            SavedHint = starts == null || starts.Count == 0 ? string.Empty : TextTemplate.Fill(NewProjectText.SavedHint, starts[0].Name);
+            savedHint = starts == null || starts.Count == 0 ? string.Empty : TextTemplate.Fill(NewProjectText.SavedHint, starts[0].Name);
+            SavedStart origin = SavedStarts.CameFrom(this.current, starts);
+            cameFrom = origin == null ? null : Starts.First(choice => choice.Start == origin);
             Rows = SetupRows.All.Select(row => new SetupRowViewModel(row)).ToList();
             facts = facts ?? new DrawingFactsResult();
             this.facts = facts;
@@ -188,13 +194,16 @@ namespace SiteAdaptation.AddIn.NewProject
             SurveyPoint = facts.SurveyPoint ?? NewProjectText.FromScan;
             PlotsFound = facts.Plots == null ? NewProjectText.NotRead : TextTemplate.Fill(NewProjectText.PlotsOnLayer, TextTemplate.Count(facts.Plots.Value), facts.PlotLayer ?? NewProjectText.FromScan);
             VillaTypes = facts.VillaTypes == null ? NewProjectText.NotRead : TextTemplate.Fill(NewProjectText.Types, TextTemplate.Count(facts.VillaTypes.Value));
-            start = Starts[0];
+            start = cameFrom ?? Starts[0];
             Refresh();
         }
 
         public string ProjectName { get; }
         public IReadOnlyList<StartChoice> Starts { get; }
-        public string SavedHint { get; }
+
+        // The hint speaks for Empty project, a saved project chosen needs it no more (R520)
+        public string SavedHint => start?.Start != null ? string.Empty : savedHint;
+
         public IReadOnlyList<SetupRowViewModel> Rows { get; }
         public string SurveyPoint { get; }
         public string PlotsFound { get; }
@@ -308,9 +317,12 @@ namespace SiteAdaptation.AddIn.NewProject
             {
                 if (value != null && Set(ref start, value))
                 {
+                    // R520. Only the start the window opened on is not imported again, a start a person picks is, also the same one picked back
+                    cameFrom = null;
                     // R492. A pick made for the project before would hide the list of the chosen one
                     surfaces = null;
                     CheckedOk = false;
+                    Changed(nameof(SavedHint));
                     Refresh();
                 }
             }
@@ -464,7 +476,7 @@ namespace SiteAdaptation.AddIn.NewProject
 
         private SetupDraft Draft()
         {
-            var draft = new SetupDraft { StartText = start?.Start?.Text, ScanPicks = new Dictionary<string, string>(scanPicks), ConflictPicks = conflictPicks, RoadSurfaces = surfaces, NewSet = taken ?? Previewed() };
+            var draft = new SetupDraft { StartText = start == cameFrom ? null : start?.Start?.Text, ScanPicks = new Dictionary<string, string>(scanPicks), ConflictPicks = conflictPicks, RoadSurfaces = surfaces, NewSet = taken ?? Previewed() };
             foreach (KeyValuePair<string, string> pick in picks)
             {
                 draft.Picks[pick.Key] = pick.Value;

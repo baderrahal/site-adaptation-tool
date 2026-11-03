@@ -534,12 +534,13 @@ namespace SiteAdaptation.Common.CheckTable
             }
         }
 
-        // 7.4 of the mock, the line under the title: the level profile the build took, the override list and its entries
+        // 7.4 of the mock, the line under the title: the level profile the build took, the override list and its entries. The list with its folder, as its file
+        // name reads the same for every project (R486, Q397)
         private static CheckTableInfo Info(CheckPlan plan, JObject step, JObject list, string levelProfile)
         {
             string rulesPath = plan.Inputs.Where(input => input.Role == Rules).Select(input => input.Path).FirstOrDefault();
             JObject rules = JObject.Parse(WorkFiles.ReadText(rulesPath));
-            return CheckTableInfo.Of(BuildRules.ProfileName(rules, levelProfile), Path.GetFileName(plan.OverridesPath), list, step, plan.Nbh);
+            return CheckTableInfo.Of(BuildRules.ProfileName(rules, levelProfile), plan.OverridesPath, list, step, plan.Nbh);
         }
 
         public static JObject Record(string runId, IReadOnlyDictionary<string, string> outputs)
