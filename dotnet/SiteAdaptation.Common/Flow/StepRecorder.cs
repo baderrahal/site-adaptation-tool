@@ -1,7 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
 using SiteAdaptation.Common.Settings;
 
 namespace SiteAdaptation.Common.Flow
@@ -40,14 +38,7 @@ namespace SiteAdaptation.Common.Flow
             }
             before = store.LastRun(context.Button);
             SettingsScope scope = settings.Scope ?? new SettingsScope();
-            written = new ButtonRun
-            {
-                Time = clock().ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'", CultureInfo.InvariantCulture),
-                Mode = settings.DryRunFirst ? RunModes.AfterDryRun : RunModes.Direct,
-                Scope = new SettingsScope { Kind = scope.Kind, Nbh = scope.Nbh, Plots = scope.Plots },
-                InputHashes = new SortedDictionary<string, string>(context.InputHashes.ToDictionary(pair => pair.Key, pair => pair.Value), StringComparer.Ordinal),
-                Issues = (issues ?? new string[0]).ToList(),
-            };
+            written = ButtonRun.Of(clock(), settings, new SettingsScope { Kind = scope.Kind, Nbh = scope.Nbh, Plots = scope.Plots }, context.InputHashes, issues ?? new string[0]);
             store.Record(settings, context.Button, written, RunKind.Real, transaction);
         }
 

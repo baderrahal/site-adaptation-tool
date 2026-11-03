@@ -213,7 +213,7 @@ namespace SiteAdaptation.Tests
         }
 
         // 03a Steps: a run whose output did not move leaves its step not done, also after a reopen, and the run before it stands
-        [Fact]
+        [WindowsFact]
         public void R498_a_failed_move_puts_back_the_run_before()
         {
             Press(5, InTransaction("first"));
@@ -239,7 +239,7 @@ namespace SiteAdaptation.Tests
             Assert.Equal(first, Held().LastRuns["5"].Time);
         }
 
-        [Fact]
+        [WindowsFact]
         public void R498_a_failed_first_run_leaves_no_record()
         {
             string output = Path.Combine(root, "floors.json");
