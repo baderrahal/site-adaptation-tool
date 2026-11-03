@@ -25,6 +25,8 @@ namespace CadReader
         public const string RevitCountsRole = "revitCounts";
         // R459. What step 5 accepted, an input only when step 5 left the file
         public const string AcceptedWarningsRole = "acceptedWarnings";
+        // R554. What button 9 knows of the run, ReportRun.FactsRole
+        public const string FactsRole = "reportFacts";
 
         public static void Command(WorkerContext run)
         {
@@ -60,6 +62,7 @@ namespace CadReader
                     throw run.Refusal(notAccepted);
                 }
             }
+            JObject facts = request.Inputs.Any(item => item.Role == FactsRole) ? PyJson.Parse(WorkFiles.ReadText(run.Input(FactsRole))) as JObject : null;
             string overridesPath = run.Input(OverridesRole);
             var inputs = new ReportInputs
             {
@@ -76,6 +79,7 @@ namespace CadReader
                 PlotRows = CsvRows.Read(run.Input("plotsCsv"), "locationPlanNumber", "zone", "nbhId", "typologyRev9"),
                 RevitCounts = revitCounts,
                 AcceptedWarnings = accepted,
+                RunFacts = facts,
                 RunId = request.RunId,
                 Profile = request.LevelProfile,
                 Now = DateTime.UtcNow,
@@ -90,6 +94,20 @@ namespace CadReader
             {
                 run.WriteFile(request.OutputFolder, book.FileName, stream => Write(stream, book));
             }
+        }
+
+        // R553. Placed keeps the plot as text, Update from report reads it as its key (R402), and the sheets of 7.6 Bader did not name stay as they were
+        private static readonly string[] NumberSheets = { ReportExcelText.ScheduleSheet, ReportExcelText.FloorsSheet, ReportExcelText.WallsSheet, ReportExcelText.IssuesSheet, ReportExcelText.OverridesSheet };
+
+        private static int[] PlotColumns(string[] header)
+        {
+            return header.Select((name, column) => name == ReportExcelText.Plot || name == ReportExcelText.PlotNumber || name == ReportExcelText.OldPlotNumber ? column : -1).Where(column => column >= 0).ToArray();
+        }
+
+        // R553. A plot number is a number in Excel, a number with a letter or a leading zero stays text
+        private static object PlotNumber(object value)
+        {
+            return value is string text && text.Length > 0 && text[0] != '0' && text.All(char.IsDigit) && long.TryParse(text, out long number) ? number : value;
         }
 
         // Each sheet in order: the top line in one merged bold cell and a blank row under it, then each table, its bold title, its header with the
@@ -125,13 +143,31 @@ namespace CadReader
                             data.Append(XlsxCells.MakeRow(index++, new object[] { table.Title }, column => XlsxCells.Bold));
                         }
                         data.Append(XlsxCells.MakeRow(index++, table.Header, column => table.Editable.Contains(table.Header[column]) ? XlsxCells.Editable : table.Bordered ? XlsxCells.Boxed : XlsxCells.Plain));
-                        foreach (object[] values in table.Rows)
+                        int[] plotColumns = NumberSheets.Contains(sheet.Name) ? PlotColumns(table.Header) : new int[0];
+                        foreach (object[] given in table.Rows)
                         {
+                            object[] values = plotColumns.Length == 0 ? given : given.Select((value, column) => plotColumns.Contains(column) ? PlotNumber(value) : value).ToArray();
                             data.Append(XlsxCells.MakeRow(index++, values, column => table.Formats[column] != null && !(values[column] is string) && values[column] != null
                                 ? (table.Bordered ? XlsxCells.BoxedThree : XlsxCells.FormatStyle[table.Formats[column]]) : table.Bordered ? XlsxCells.Boxed : XlsxCells.Plain));
                         }
                     }
-                    var worksheet = new Worksheet(data);
+                    var worksheet = new Worksheet();
+                    ReportTable list = sheet.IsList && sheet.TopLine == null && sheet.Tables.Count == 1 ? sheet.Tables[0] : null;
+                    // R553. The header stays in view and every column filters, the width from the header so the units read whole
+                    if (list != null)
+                    {
+                        worksheet.Append(new SheetViews(new SheetView(new Pane { VerticalSplit = 1D, TopLeftCell = "A2", ActivePane = PaneValues.BottomLeft, State = PaneStateValues.Frozen }) { WorkbookViewId = 0U }));
+                    }
+                    if (sheet.Tables.Count > 0)
+                    {
+                        string[] header = sheet.Tables[0].Header;
+                        worksheet.Append(new Columns(header.Select((name, column) => new Column { Min = (uint)column + 1, Max = (uint)column + 1, Width = Math.Max(12, name.Length + 4), CustomWidth = true })));
+                    }
+                    worksheet.Append(data);
+                    if (list != null)
+                    {
+                        worksheet.Append(new AutoFilter { Reference = "A1:" + XlsxSheet.ColumnLetters(list.Header.Length) + (list.Rows.Count + 1).ToString(System.Globalization.CultureInfo.InvariantCulture) });
+                    }
                     if (sheet.TopLine != null)
                     {
                         int width = sheet.Tables.Count == 0 ? 1 : sheet.Tables[0].Header.Length;

@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using Newtonsoft.Json.Linq;
+using SiteAdaptation.Common.Tags;
 
 namespace SiteAdaptation.Common.Update
 {
@@ -410,6 +411,11 @@ namespace SiteAdaptation.Common.Update
                     break;
                 }
                 string kind = Cell(row, 1) as string;
+                // Q307. A wall row says what stands, nothing of it is editable
+                if (kind == PlacedKinds.BoundaryWall)
+                {
+                    continue;
+                }
                 bool first = seen.Add(plot + "\n" + kind);
                 JObject planned = null;
                 JObject floor = null;

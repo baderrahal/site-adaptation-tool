@@ -222,7 +222,7 @@ namespace SiteAdaptation.Tests
             Assert.Equal(RunId + "-012", asked1.RunId);
             Assert.Equal("parsons2024Rev6", asked1.LevelProfile);
             Assert.Equal("012", asked1.Scope.Nbh);
-            Assert.Equal(new[] { "config", "rules", "plan", "checkRows", "summary", "plotsCsv", "overrides", "revitCounts", "runLog1", "runLog4", "runLog6" },
+            Assert.Equal(new[] { "config", "rules", "plan", "checkRows", "summary", "plotsCsv", "overrides", "revitCounts", "runLog1", "runLog4", "runLog6", ReportRun.FactsRole },
                 asked1.Inputs.Select(input => input.Role).ToArray());
             Assert.Equal(Path.Combine(work, "plan_012.json"), asked1.Inputs.Single(input => input.Role == "plan").Path);
             Assert.Equal(log1, asked1.Inputs.Single(input => input.Role == "runLog1").Path);
@@ -238,7 +238,7 @@ namespace SiteAdaptation.Tests
             Assert.Equal(1, model.Started);
             LevelExcelTests.Book book = LevelExcelTests.Book.Read(report);
             Assert.Equal(new object[] { "Links", 0.0, 2.0 }, book.Row("Summary", 15).Take(3).ToArray());
-            Assert.Equal(new object[] { "Levels", 2.0, "no run of button 6 yet" }, book.Row("Summary", 17).Take(3).ToArray());
+            Assert.Equal(new object[] { "Levels", 2.0, 2.0 }, book.Row("Summary", 17).Take(3).ToArray());
         }
 
         [Fact]

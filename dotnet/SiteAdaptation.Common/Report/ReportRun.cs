@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using SiteAdaptation.Common.Settings;
 using SiteAdaptation.Common.Flow;
 
 namespace SiteAdaptation.Common.Report
@@ -29,6 +30,9 @@ namespace SiteAdaptation.Common.Report
         // R459. What step 5 accepted, an input only when step 5 left the file
         public const string AcceptedWarningsRole = "acceptedWarnings";
         public const string RunLogRolePrefix = "runLog";
+        // R554. What this run knows and the worker does not: the model, the file name, its fields, the step records and the time of the build
+        public const string FactsRole = "reportFacts";
+        public const string ChangedRulesName = "changed_rules.json";
 
         private const int Check = 4;
         private const int Levels = 6;
@@ -43,6 +47,7 @@ namespace SiteAdaptation.Common.Report
         private string configPath;
         private string rulesPath;
         private string profile;
+        private IReadOnlyDictionary<string, string> fields;
         private CheckRun check;
         private readonly List<string> issues = new List<string>();
         private readonly List<string> written = new List<string>();
@@ -66,6 +71,15 @@ namespace SiteAdaptation.Common.Report
         // R484. The project mode of the settings, null where no pane gives one or the settings hold none, which reads the mode of config
         public Func<string> ModePick { get; set; }
 
+        // R550. The fields of the file name the user set, null where the pane gives none
+        public Func<IReadOnlyDictionary<string, string>> FieldsPick { get; set; }
+
+        // Q307. The last run of each button as the settings hold them, what the pane counts from
+        public Func<IReadOnlyDictionary<string, ButtonRun>> LastRuns { get; set; }
+
+        // RulesFile of the settings, null where the pane gives none
+        public Func<string> RulesPick { get; set; }
+
         public ButtonBody Body()
         {
             return new ButtonBody { Preview = Preview, Outside = Outside, Apply = Apply };
@@ -78,7 +92,7 @@ namespace SiteAdaptation.Common.Report
 
         public static string ReportName(string nbh)
         {
-            return nbh + "_Report.xlsx";
+            return ReportFile.Name(nbh, null);
         }
 
         // Where the earlier file of a name goes: earlier\<its last write time>\<name> in the folder of the name
@@ -99,18 +113,31 @@ namespace SiteAdaptation.Common.Report
             JObject config = Json(configPath, "the settings file");
             string name = config["profile"]?.Type == JTokenType.String ? (string)config["profile"] : throw new InvalidDataException("config names no rules profile, profile (R277)");
             rulesPath = Path.IsPathRooted(name) ? name : Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(Path.GetFullPath(configPath))), name);
+            // Lane C RULES-3NOV-C. The project copy of the rules the settings name goes over the profile of config, so the sheet Rules used reads what the build took
+            string picked = RulesPick?.Invoke();
+            if (!string.IsNullOrEmpty(picked) && File.Exists(picked))
+            {
+                rulesPath = picked;
+            }
             JObject rules = Json(rulesPath, "the rules profile");
             profile = rules["levelProfiles"]?["default"]?.Type == JTokenType.String ? (string)rules["levelProfiles"]["default"] : throw new InvalidDataException("the rules profile names no levelProfiles.default (R277)");
             check = CheckRun.Find(context.WorkFolder, readText);
 
+            fields = ReportFile.Fields(config, FieldsPick?.Invoke());
+            List<string> same = check.Nbhs.GroupBy(nbh => ReportFile.Name(nbh, fields), StringComparer.OrdinalIgnoreCase).Where(group => group.Count() > 1).Select(group => group.Key).ToList();
+            if (same.Count > 0)
+            {
+                throw new InvalidOperationException("the file name fields give one name to two neighbourhoods, " + same[0] + ", keep " + ReportFile.NbhToken + " in the volume field (R550)");
+            }
+
             var lines = new List<string>();
             foreach (string nbh in check.Nbhs)
             {
-                string target = Path.Combine(context.WorkFolder, ReportName(nbh));
+                string target = Path.Combine(context.WorkFolder, ReportFile.Name(nbh, fields));
                 lines.Add("Writes " + target);
                 if (File.Exists(target))
                 {
-                    lines.Add("Moves the earlier " + ReportName(nbh) + " to " + EarlierPath(target, File.GetLastWriteTime(target)));
+                    lines.Add("Moves the earlier " + ReportFile.Name(nbh, fields) + " to " + EarlierPath(target, File.GetLastWriteTime(target)));
                 }
             }
             return new RunSummary("Report Excel files: " + check.Nbhs.Count.ToString(CultureInfo.InvariantCulture), lines);
@@ -143,7 +170,7 @@ namespace SiteAdaptation.Common.Report
             {
                 foreach (string nbh in check.Nbhs)
                 {
-                    string name = ReportName(nbh);
+                    string name = ReportFile.Name(nbh, fields);
                     var inputs = new List<WorkerFile> { Input("config", configPath), Input("rules", rulesPath) };
                     inputs.AddRange(check.Files(nbh));
                     inputs.Add(Input(RevitCountsRole, countsPath));
@@ -153,6 +180,7 @@ namespace SiteAdaptation.Common.Report
                         inputs.Add(Input(AcceptedWarningsRole, accepted));
                     }
                     inputs.AddRange(logs);
+                    inputs.Add(Input(FactsRole, WorkFiles.WriteText(Path.Combine(context.WorkFolder, "report_facts_" + context.RunId + "_" + nbh + ".json"), context.RunId, Facts(context, levels).ToString(Formatting.Indented))));
                     var request = new WorkerRequest
                     {
                         FormatVersion = WorkerRequest.CurrentFormatVersion, RunId = context.RunId + "-" + nbh, Command = Command, Document = document, Inputs = inputs,
@@ -187,6 +215,78 @@ namespace SiteAdaptation.Common.Report
                 }
             }
             return null;
+        }
+
+        // R554, Q307. One file per book, so the worker writes what only the add-in knows
+        private JObject Facts(RunContext context, RunLog levels)
+        {
+            var steps = new JObject();
+            foreach (KeyValuePair<string, ButtonRun> run in LastRuns?.Invoke() ?? new Dictionary<string, ButtonRun>())
+            {
+                if (run.Value != null)
+                {
+                    run.Value.Counts.TryGetValue(ButtonRun.WarningsCount, out int warnings);
+                    steps[run.Key] = new JObject { ["time"] = run.Value.Time, ["issues"] = run.Value.Issues.Count + warnings };
+                }
+            }
+            var facts = new JObject
+            {
+                ["model"] = string.IsNullOrEmpty(document?.Path) ? null : Path.GetFileName(document.Path),
+                ["toolVersion"] = ToolVersion(),
+                ["steps"] = steps,
+                ["runSeconds"] = RunSeconds(context.WorkFolder),
+            };
+            if (fields != null)
+            {
+                facts["fields"] = JObject.FromObject(fields);
+            }
+            // R555. The list the rules window leaves beside the rules file, no file means nothing changed
+            string changed = Path.Combine(Path.GetDirectoryName(rulesPath), ChangedRulesName);
+            if (File.Exists(changed))
+            {
+                facts["changedRules"] = Json(changed, "the list of changed rules")["changed"];
+            }
+            if (levels != null)
+            {
+                facts["levelPlots"] = levels.LevelPlots.Count;
+            }
+            return facts;
+        }
+
+        private static string ToolVersion()
+        {
+            System.Reflection.Assembly assembly = typeof(ReportRun).Assembly;
+            return assembly.GetName().Version + ", build " + FileHash.Sha256(assembly.Location).Substring(0, 12);
+        }
+
+        // The seconds of the last committed run of buttons 1 to 8 by their timing files, without the wait on the confirm box. Null when none reads
+        private double? RunSeconds(string workFolder)
+        {
+            double? total = null;
+            for (int button = 1; button <= LastBuildStep; button++)
+            {
+                string[] names = Directory.GetFiles(workFolder, "run_timing_" + button.ToString(CultureInfo.InvariantCulture) + "_*.json").OrderByDescending(path => Path.GetFileName(path), StringComparer.Ordinal).ToArray();
+                foreach (string path in names)
+                {
+                    JObject timing;
+                    try
+                    {
+                        timing = PyJson.Parse(readText(path)) as JObject;
+                    }
+                    catch (Exception failure) when (failure is IOException || failure is JsonException || failure is FormatException)
+                    {
+                        continue;
+                    }
+                    if ((string)timing?["end"] != "Committed" || timing["totalSeconds"]?.Type != JTokenType.Float)
+                    {
+                        continue;
+                    }
+                    double confirm = (timing["steps"] as JArray ?? new JArray()).OfType<JObject>().Where(step => (string)step["step"] == "confirm" && step["totalSeconds"]?.Type == JTokenType.Float).Sum(step => (double)step["totalSeconds"]);
+                    total = (total ?? 0) + (double)timing["totalSeconds"] - confirm;
+                    break;
+                }
+            }
+            return total;
         }
 
         // R459. A copy with the pairs that stand beside the counts of this run, as the file of step 5 stays with the hash its run recorded. A file
