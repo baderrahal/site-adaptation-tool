@@ -570,6 +570,14 @@ namespace SiteAdaptation.Common.PlaceVillas
                 {
                     decision.Listed.Add("prototype " + Path.GetFileName(mass.Key) + ": the mass base is the largest ground slab, " + mass.Value.Reason + ", flagged (R451, Q279)");
                 }
+                foreach (KeyValuePair<string, MassBase> mass in decision.MassBases.Where(item => item.Value != null && item.Value.Skipped.Count > 0))
+                {
+                    decision.Listed.Add("prototype " + Path.GetFileName(mass.Key) + ": the ring of the mass passed by walls that see the outside, " + string.Join(", ", mass.Value.Skipped) + " (R502)");
+                }
+                foreach (KeyValuePair<string, MassBase> mass in decision.MassBases.Where(item => item.Value != null && item.Value.BackFace.Count > 0))
+                {
+                    decision.Listed.Add("prototype " + Path.GetFileName(mass.Key) + ": the ring takes the far face of walls modelled with their exterior to the house, " + string.Join(", ", mass.Value.BackFace) + " (R501)");
+                }
             }
             return decision;
         }

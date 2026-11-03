@@ -466,6 +466,11 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R491 Each corner takes first surface.
 - R492 Road surfaces picked in Set up.
 - R493 Stop on plots with no road.
+- R500 Ring walls by distance and height.
+- R501 Face line from width and orientation.
+- R502 Corners by line intersection.
+- R503 Short edges merged, arcs kept.
+- R504 Ring accepted or slab flagged.
 
 ## 13-site-coords-r454-up.md
 

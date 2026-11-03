@@ -44,6 +44,25 @@ namespace SiteAdaptation.Tests
         // The outer face of the walls 0.6 m outside the slab and their inner face on it, the two loops of a closed ring
         private static readonly double[][] Outer = { new[] { -0.6, -0.6 }, new[] { 8.6, -0.6 }, new[] { 8.6, 15.6 }, new[] { -0.6, 15.6 } };
 
+        // A wall with its exterior face on each edge of a counter clockwise ring
+        private static List<RingWall> WallsRound(double[][] ring)
+        {
+            return Enumerable.Range(0, ring.Length).Select(i =>
+            {
+                double[] a = ring[i], b = ring[(i + 1) % ring.Length];
+                double dx = b[0] - a[0], dy = b[1] - a[1], length = Math.Sqrt(dx * dx + dy * dy), ex = dy / length, ey = -dx / length;
+                return new RingWall
+                {
+                    Id = "wall" + i, Function = "Exterior", Start = new[] { a[0] - ex * 0.1, a[1] - ey * 0.1 }, End = new[] { b[0] - ex * 0.1, b[1] - ey * 0.1 }, Width = 0.2, Exterior = new[] { ex, ey }, HeightM = 3,
+                };
+            }).ToList();
+        }
+
+        private static WallRingBuild RingOf(double[][] corners)
+        {
+            return new WallRingBuild { Edges = Enumerable.Range(0, corners.Length).Select(i => new RingEdge(corners[i], corners[(i + 1) % corners.Length])).ToList() };
+        }
+
         private static double[][] Strip(double x0, double y0, double x1, double y1)
         {
             return new[] { new[] { x0, y0 }, new[] { x1, y0 }, new[] { x1, y1 }, new[] { x0, y1 } };
@@ -51,7 +70,7 @@ namespace SiteAdaptation.Tests
 
         private sealed class FakeMaker : IMassFileMaker
         {
-            public List<IReadOnlyList<double[]>> Loops = new List<IReadOnlyList<double[]>> { Outer, Slab };
+            public List<RingWall> Walls = WallsRound(Outer);
             public int Reads;
             public readonly List<string> Written = new List<string>();
 
@@ -62,10 +81,10 @@ namespace SiteAdaptation.Tests
             public MassBaseRead ReadBase(string prototypePath, LightModeConfig config)
             {
                 Reads++;
-                return new MassBaseRead { WallLoops = Loops, Slab = Slab };
+                return new MassBaseRead { Walls = Walls, Slab = Slab };
             }
 
-            public void Write(string massPath, IReadOnlyList<double[]> ring, double heightM)
+            public void Write(string massPath, IReadOnlyList<RingEdge> ring, double heightM)
             {
                 if (LoadedInSite(massPath))
                 {
@@ -87,8 +106,9 @@ namespace SiteAdaptation.Tests
             {
                 ["villaModeDefault"] = "masses", ["solidHeightM"] = 3.0, ["baseBoundary"] = "lowestFloor", ["baseBoundaryFloorType"] = null,
                 ["footprintLimitMm"] = 100.0, ["footprintSampleStepMm"] = 10.0,
-                ["linkFolder"] = linkFolder, ["massFolder"] = massFolder ?? masses, ["wallCutHeightM"] = 1.0,
-                ["wallRingMinShare"] = 0.9, ["wallRingMaxShare"] = 1.3,
+                ["linkFolder"] = linkFolder, ["massFolder"] = massFolder ?? masses,
+                ["wallRingMinShare"] = 0.9, ["wallRingMaxShare"] = 1.3, ["wallRingOutsideM"] = 1.0, ["wallRingInsideM"] = 0.5, ["wallRingMinHeightM"] = 2.3,
+                ["wallRingShortestEdgeM"] = 0.004, ["wallRingCornerGapM"] = 1.0, ["wallRingSlotM"] = 0.3, ["wallRingArcStepM"] = 0.1, ["wallRingBottomAboveM"] = 0.1, ["wallRingSampleM"] = 0.05, ["wallRingParallelSine"] = 0.001, ["wallRingOnLineM"] = 0.001,
             };
             if (houses)
             {
@@ -168,7 +188,7 @@ namespace SiteAdaptation.Tests
         {
             double[][] lShape = { new[] { -0.6, -0.6 }, new[] { 8.6, -0.6 }, new[] { 8.6, 8.0 }, new[] { 6.0, 8.0 }, new[] { 6.0, 15.6 }, new[] { -0.6, 15.6 } };
             double[][] lSlab = { new[] { 0.0, 0.0 }, new[] { 8.0, 0.0 }, new[] { 8.0, 7.4 }, new[] { 5.4, 7.4 }, new[] { 5.4, 15.0 }, new[] { 0.0, 15.0 } };
-            MassBase mass = WallRing.Choose(new List<IReadOnlyList<double[]>> { lSlab, lShape }, lSlab, 0.9, 1.3);
+            MassBase mass = WallRing.Choose(RingOf(lShape), lSlab, 0.9, 1.3, 0.1);
             Assert.Equal(WallRing.FromWalls, mass.Source);
             Assert.False(mass.Flagged);
             Assert.Equal(6, mass.Ring.Count);
@@ -178,14 +198,13 @@ namespace SiteAdaptation.Tests
         [Fact]
         public void R451_walls_that_do_not_close_into_a_ring_give_the_largest_slab_flagged()
         {
-            var strips = new List<IReadOnlyList<double[]>> { Strip(-0.6, -0.6, 8.6, 0.0), Strip(-0.6, 0.0, 0.0, 15.6) };
-            MassBase open = WallRing.Choose(strips, Slab, 0.9, 1.3);
+            MassBase open = WallRing.Choose(WallRingBuilder.Build(WallsRound(Outer).Take(3), Slab, Config(LinkFolders.Masses).MassFiles.Limits), Slab, 0.9, 1.3, 0.1);
             Assert.Equal(WallRing.FromSlab, open.Source);
             Assert.True(open.Flagged);
-            Assert.Contains("middle of the slab", open.Reason);
+            Assert.Contains("do not close", open.Reason);
             Assert.Equal(Slab.Length, open.Ring.Count);
 
-            MassBase none = WallRing.Choose(new List<IReadOnlyList<double[]>>(), Slab, 0.9, 1.3);
+            MassBase none = WallRing.Choose(new WallRingBuild(), Slab, 0.9, 1.3, 0.1);
             Assert.Equal(WallRing.FromSlab, none.Source);
             Assert.Contains("no exterior wall", none.Reason);
         }
@@ -193,10 +212,10 @@ namespace SiteAdaptation.Tests
         [Fact]
         public void R451_a_ring_under_min_share_of_the_slab_area_gives_the_slab()
         {
-            MassBase small = WallRing.Choose(new List<IReadOnlyList<double[]>> { Strip(2.0, 5.0, 6.0, 10.0) }, Slab, 0.9, 1.3);
+            MassBase small = WallRing.Choose(RingOf(Strip(2.0, 5.0, 6.0, 10.0)), Slab, 0.9, 1.3, 0.1);
             Assert.Equal(WallRing.FromSlab, small.Source);
-            Assert.Contains("minShare", small.Reason);
-            Assert.Equal(WallRing.FromWalls, WallRing.Choose(new List<IReadOnlyList<double[]>> { Strip(0.1, 0.1, 7.9, 14.9) }, Slab, 0.9, 1.3).Source);
+            Assert.Contains("wallRingMinShare", small.Reason);
+            Assert.Equal(WallRing.FromWalls, WallRing.Choose(RingOf(Strip(0.1, 0.1, 7.9, 14.9)), Slab, 0.9, 1.3, 0.1).Source);
         }
 
         [Fact]
@@ -204,7 +223,6 @@ namespace SiteAdaptation.Tests
         {
             MassFileConfig config = Config(LinkFolders.Masses, "{workRoot}\\masses").MassFiles;
             Assert.True(config.AsLinks);
-            Assert.Equal(1.0, config.WallCutHeightM);
             Assert.Equal(0.9, config.WallRingMinShare);
             Assert.Equal(Path.Combine(work, "masses"), config.FolderFor(prototypes, () => work));
             Assert.Equal(prototypes, Config(LinkFolders.Prototypes).MassFiles.FolderFor(prototypes, () => work));
@@ -241,7 +259,8 @@ namespace SiteAdaptation.Tests
             Assert.Equal(WallRing.FromWalls, made.Source);
             MassState state = set.State(prototype, config);
             Assert.False(state.Stale);
-            Assert.Equal(Outer.Select(point => point[0]), state.Base.Ring.Select(point => point[0]));
+            Assert.Equal(Outer.Select(point => point[0]).OrderBy(x => x), state.Base.Ring.Select(point => Math.Round(point[0], 9)).OrderBy(x => x));
+            Assert.Equal(4, state.Base.Edges.Count);
             Assert.Equal("prototype", File.ReadAllText(prototype));
         }
 
@@ -344,7 +363,7 @@ namespace SiteAdaptation.Tests
             Run first = Make(Plan(Plot("101", 1100, 0, false)), VillaModes.Masses, Config(LinkFolders.Masses));
             Apply(first, Context("r1"));
             string mass = Path.Combine(masses, "VD4.rvt");
-            Assert.Throws<InvalidOperationException>(() => first.Maker.Write(mass, Slab, 3.0));
+            Assert.Throws<InvalidOperationException>(() => first.Maker.Write(mass, new List<RingEdge>(), 3.0));
 
             File.WriteAllText(Path.Combine(prototypes, "VD4.rvt"), "prototype changed");
             Run second = Make(Plan(Plot("101", 1100, 0, false)), VillaModes.Masses, Config(LinkFolders.Masses), first.Document);
@@ -394,11 +413,54 @@ namespace SiteAdaptation.Tests
             Assert.Equal(Path.Combine(prototypes, "VD4.rvt"), masses.Document.Created[1]);
         }
 
+        // Task 6 of MASS-2NOV-D. A house outline on the ring measures 0 where the slab, 0.6 m inside it, would measure 600 mm, and the
+        // run after the masses are made reads the ring from the sidecar, no code of the check changed
+        [Fact]
+        public void R504_the_footprint_check_measures_the_ring_and_not_the_slab()
+        {
+            var house = new List<double[][]> { Outer.Select(point => new[] { point[0] + 1100, point[1] + 2000 }).ToArray() };
+            Run run = Make(Plan(Plot("101", 1100, 0, false)), VillaModes.Masses, Config(LinkFolders.Masses), footprint: house);
+            Apply(run, Context("r1"));
+            JObject footprint = JObject.Parse(File.ReadAllText(Directory.GetFiles(work, "footprint_012.json*").Single()));
+            Assert.Equal(WallRing.FromWalls, (string)footprint["masses"][0]["source"]);
+            Assert.False((bool)footprint["masses"][0]["flagged"]);
+            Assert.True((double)footprint["rows"][0]["distanceMm"] < 20, (string)footprint["rows"][0]["distanceMm"]);
+        }
+
+        // A far face is a reading of the file, so the walls it took stand where Bader reads, not in the sidecar alone
+        [Fact]
+        public void R501_a_ring_on_a_far_face_names_the_walls_in_the_run_lines_and_the_footprint_file()
+        {
+            Run run = Make(Plan(Plot("101", 1100, 0, false)), VillaModes.Masses, Config(LinkFolders.Masses));
+            run.Maker.Walls = WallsRound(Outer);
+            RingWall west = run.Maker.Walls[3];
+            west.Exterior = new[] { -west.Exterior[0], -west.Exterior[1] };
+            IReadOnlyList<string> issues = Apply(run, Context("r1"));
+            Assert.Contains(issues, line => line.Contains("prototype VD4.rvt") && line.Contains("far face") && line.Contains(west.Id));
+            JObject footprint = JObject.Parse(File.ReadAllText(Directory.GetFiles(work, "footprint_012.json*").Single()));
+            Assert.Equal(WallRing.FromWalls, (string)footprint["masses"][0]["source"]);
+            Assert.Equal(west.Id, (string)footprint["masses"][0]["wallsBackFace"][0]);
+        }
+
+        // Fix pass of MASS-2NOV-D. A ring that stands with a wall skipped says so where Bader reads it, not in the sidecar alone
+        [Fact]
+        public void R502_a_ring_that_passed_a_wall_by_says_so_in_the_run_lines_and_the_footprint_file()
+        {
+            Run run = Make(Plan(Plot("101", 1100, 0, false)), VillaModes.Masses, Config(LinkFolders.Masses));
+            run.Maker.Walls = WallsRound(Outer);
+            run.Maker.Walls.Add(new RingWall { Id = "fin", Function = "Exterior", Start = new[] { 3.0, -0.97 }, End = new[] { 4.0, -0.97 }, Width = 0.04, Exterior = new[] { 0.0, -1.0 }, HeightM = 3 });
+            IReadOnlyList<string> issues = Apply(run, Context("r1"));
+            Assert.Contains(issues, line => line.Contains("prototype VD4.rvt") && line.Contains("passed by walls") && line.Contains("fin"));
+            JObject footprint = JObject.Parse(File.ReadAllText(Directory.GetFiles(work, "footprint_012.json*").Single()));
+            Assert.Equal(WallRing.FromWalls, (string)footprint["masses"][0]["source"]);
+            Assert.Equal("fin", (string)footprint["masses"][0]["wallsSkipped"][0]);
+        }
+
         [Fact]
         public void R452_R451_a_slab_base_flags_its_prototype_in_the_run_lines_and_the_footprint_file()
         {
             Run run = Make(Plan(Plot("101", 1100, 0, false)), VillaModes.Masses, Config(LinkFolders.Masses));
-            run.Maker.Loops = new List<IReadOnlyList<double[]>> { Strip(-0.6, -0.6, 8.6, 0.0) };
+            run.Maker.Walls = WallsRound(Outer).Take(2).ToList();
             IReadOnlyList<string> issues = Apply(run, Context("r1"));
             Assert.Contains(issues, line => line.Contains("prototype VD4.rvt") && line.Contains("Q279"));
             JObject footprint = JObject.Parse(File.ReadAllText(Directory.GetFiles(work, "footprint_012.json*").Single()));
@@ -592,54 +654,14 @@ namespace SiteAdaptation.Tests
         [Fact]
         public void R451_a_wall_ring_over_max_share_of_the_slab_gives_the_slab()
         {
-            MassBase big = WallRing.Choose(new List<IReadOnlyList<double[]>> { Strip(-5, -5, 13, 20) }, Slab, 0.9, 1.3);
+            MassBase big = WallRing.Choose(RingOf(Strip(-5, -5, 13, 20)), Slab, 0.9, 1.3, 0.1);
             Assert.Equal(WallRing.FromSlab, big.Source);
-            Assert.Contains("maxShare", big.Reason);
-            Assert.Equal(WallRing.FromWalls, WallRing.Choose(new List<IReadOnlyList<double[]>> { Outer }, Slab, 0.9, 1.3).Source);
+            Assert.Contains("wallRingMaxShare", big.Reason);
+            Assert.Equal(WallRing.FromWalls, WallRing.Choose(RingOf(Outer), Slab, 0.9, 1.3, 0.1).Source);
             Assert.Equal(1.3, Config(LinkFolders.Masses).MassFiles.WallRingMaxShare);
             JObject under = Block(LinkFolders.Masses);
             under["wallRingMaxShare"] = 0.5;
             Assert.Contains("wallRingMaxShare", Assert.Throws<InvalidDataException>(() => LightModeConfig.From(new JObject { ["addin"] = new JObject { ["lightMode"] = under } })).Message);
-        }
-
-        // Fix pass finding 6. The outline of a wall from its location line, the openings never cut it
-        [Fact]
-        public void R451_a_straight_wall_gives_its_full_width_from_the_exterior_face_extended_by_half_the_width_at_both_ends()
-        {
-            double[][] centre = WallStrips.Outline(new List<double[]> { new[] { 0.0, 0.0 }, new[] { 10.0, 0.0 } }, 0.3, 0, new[] { 0.0, -1.0 });
-            Assert.Equal(new[] { -0.15, -0.15, 10.15, 0.15 }, Box(centre));
-            Assert.Equal(0.3 * 10.3, RingMath.Area(centre), 9);
-            double[][] face = WallStrips.Outline(new List<double[]> { new[] { 0.0, 0.0 }, new[] { 10.0, 0.0 } }, 0.3, WallStrips.LocationOffset(WallStrips.FinishFaceExterior, 0.3, null, -1, -1), new[] { 0.0, 1.0 });
-            Assert.Equal(new[] { -0.15, -0.3, 10.15, 0.0 }, Box(face));
-        }
-
-        [Fact]
-        public void R451_the_location_line_of_a_wall_is_held_from_its_centre_by_its_layers()
-        {
-            double[] layers = { 0.02, 0.2, 0.03 };
-            Assert.Equal(0, WallStrips.LocationOffset(WallStrips.WallCenterline, 0.25, layers, 1, 1), 9);
-            Assert.Equal(0.125, WallStrips.LocationOffset(WallStrips.FinishFaceExterior, 0.25, layers, 1, 1), 9);
-            Assert.Equal(-0.125, WallStrips.LocationOffset(WallStrips.FinishFaceInterior, 0.25, layers, 1, 1), 9);
-            Assert.Equal(0.105, WallStrips.LocationOffset(WallStrips.CoreExterior, 0.25, layers, 1, 1), 9);
-            Assert.Equal(-0.095, WallStrips.LocationOffset(WallStrips.CoreInterior, 0.25, layers, 1, 1), 9);
-            Assert.Equal(0.005, WallStrips.LocationOffset(WallStrips.CoreCenterline, 0.25, layers, 1, 1), 9);
-        }
-
-        [Fact]
-        public void R451_an_arc_wall_tessellated_gives_one_mitred_outline_at_its_width()
-        {
-            var arc = Enumerable.Range(0, 9).Select(step => new[] { 5 * Math.Cos(step * Math.PI / 16), 5 * Math.Sin(step * Math.PI / 16) }).ToList();
-            double[][] outline = WallStrips.Outline(arc, 0.2, 0, new[] { Math.Cos(Math.PI / 4), Math.Sin(Math.PI / 4) });
-            Assert.Equal(18, outline.Length);
-            Assert.Equal(0.2 * (16 * 5 * Math.Sin(Math.PI / 32) + 0.2), RingMath.Area(outline), 9);
-            Assert.True(FaceRings.IsSimple(outline));
-            double[] middle = outline[4];
-            Assert.Equal(5.1, Math.Sqrt(middle[0] * middle[0] + middle[1] * middle[1]), 2);
-        }
-
-        private static double[] Box(double[][] ring)
-        {
-            return new[] { ring.Min(point => point[0]), ring.Min(point => point[1]), ring.Max(point => point[0]), ring.Max(point => point[1]) }.Select(value => Math.Round(value, 9)).ToArray();
         }
 
         // Fix pass finding 8. A footprint read of before R453 holds no rings, one line says so and no plot is flagged for it
