@@ -572,6 +572,9 @@ Round SPEED-2NOV-C, breaker 1 of the delta, 3 Nov 2026:
 - A person's click on button 2 during a listener job skips the scan gate and its worker counts in that job. The lanes only send.
 - R496 stays silent: a 2021 file past the 20 files it reads, a file from before Revit wrote Format, a file locked with no share, an empty row Prototypes where the build falls back to config. Real folders hold 13 files, 2021 or 2024 (RAN).
 
+Round SPEED-2NOV-C records, 3 Nov 2026:
+- R347_the_launch_returns_at_once_and_a_worker_past_its_time_limit failed once on the Windows CI runner on net8.0, status failed, the worker ended with code 0, on PR 152, records only. Same flake as the R347 lines above, net48 passed in that run. Test left as it is.
+
 ## Lane D MASS-2NOV-D, review and breakers, 3 Nov 2026
 
 - Arcs: no arc wall in the 13. Not tested: a clockwise arc wall, a concave one, a far face arc, arcs meeting at an angle, a full circle, a radius under half the width. What Wall.Orientation gives on a curved wall is UNKNOWN.
