@@ -212,6 +212,33 @@
     </Style.Triggers>
   </Style>
 
+  <!-- R540. The small round i of a step row and a New project row -->
+  <sys:Double x:Key="SA.Size.Info">16</sys:Double>
+  <sys:Double x:Key="SA.Size.HelpBox">340</sys:Double>
+  <Style x:Key="SA.Button.Info" TargetType="Button">
+    <Setter Property="Width" Value="{StaticResource SA.Size.Info}" />
+    <Setter Property="Height" Value="{StaticResource SA.Size.Info}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Focusable" Value="False" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Foreground" Value="{StaticResource SA.TextMuted}" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="Button">
+          <Grid>
+            <Ellipse x:Name="Round" Fill="{StaticResource SA.Surface}" Stroke="{StaticResource SA.BorderStrong}" />
+            <TextBlock Style="{StaticResource SA.Type.Small}" Foreground="{TemplateBinding Foreground}" HorizontalAlignment="Center" VerticalAlignment="Center" Text="{TemplateBinding Content}" />
+          </Grid>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="Round" Property="Fill" Value="{StaticResource SA.ButtonHover}" />
+              <Setter TargetName="Round" Property="Stroke" Value="{StaticResource SA.ButtonHoverBorder}" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
   <Style x:Key="SA.Button.Base" TargetType="Button">
     <Setter Property="FontFamily" Value="{StaticResource SA.Font}" />
     <Setter Property="FontSize" Value="{StaticResource SA.Type.Body.Size}" />

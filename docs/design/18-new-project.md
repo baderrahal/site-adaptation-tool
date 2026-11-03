@@ -82,7 +82,7 @@ R492 Road surfaces picked in Set up. A new project picks its road surfaces from 
 
 ### What the user does
 
-- On the row Road levels of New project, and on the row Road surface of the pane, the button Pick surfaces sits next to Browse. One line under the row gives the count and the short names in order. A short name is the part of the file name after the double underscore.
+- On the row Road levels of New project, the button Pick surfaces sits next to Browse. On the row Road surface of the pane it sits on the line under the row (Q403). One line under the row gives the count and the short names in order. A short name is the part of the file name after the double underscore.
 - The window Road surfaces holds one list, a tick box and the short name on each row. Ticked rows stand first in their order, the rest below in sorted order. Up and Down move the selected ticked row and are grey at the ends and on an unticked row. Use these picks keeps the order, Cancel keeps what was there. With no tick Use is grey and one line says to tick one.
 - The window does not offer a file that siteBuild.roadFolder.notTaken of config says is no road, as ground or grading (R490). A saved pick naming one is refused with its reason by 2 Read data.
 - A change of Start from in New project clears the pick of the row, so the line and the window show the list of the chosen project. A pick made after it stays. A saved project with no pick clears the pick when it is imported, its settings replace those of the project.

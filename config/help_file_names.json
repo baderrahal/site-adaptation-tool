@@ -1,0 +1,49 @@
+{
+ "note": "R540. The plain name python/build_help.py gives a file of steps/buttons-guide.md in the help of the add-in, no window text names a json file.",
+ "names": [
+  {
+   "file": "plan_<NBH>.json",
+   "name": "the plan"
+  },
+  {
+   "file": "review_<NBH>.json",
+   "name": "the review file"
+  },
+  {
+   "file": "read_plotTable.json",
+   "name": "the plot table"
+  },
+  {
+   "file": "project.json",
+   "name": "the project settings file"
+  },
+  {
+   "file": "roshn-makkah.json",
+   "name": "the rules file"
+  },
+  {
+   "file": "position_parsons.json",
+   "name": "the position file"
+  },
+  {
+   "file": "cad_layers.json",
+   "name": "the layer list"
+  },
+  {
+   "file": "floor_outlines.json",
+   "name": "the floor outlines file"
+  },
+  {
+   "file": "prototype_offsets.json",
+   "name": "the prototype offsets file"
+  },
+  {
+   "file": "site.json",
+   "name": "the site file of step 1"
+  },
+  {
+   "file": "read_baseplan, read_villaBlocks, read_curbs, read_workbooks",
+   "name": "the reads of step 2"
+  }
+ ]
+}

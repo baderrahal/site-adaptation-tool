@@ -13,7 +13,7 @@ Done:
 - CHOSEN: CASE also leaves Detail Items, Bader's check asks links only
 
 Checked:
-- GATELINE
+- RAN on a15d58c: pytest 2,509 passed, 1 skipped. dotnet 2,563 net48, 2,238 net8.0. Past plans byte equal whole project and IMC. 62 inputs the same. Parity: PARITYLINE
 - Review 1: chosen sheet green though button 1 stops, line gone after the run, code names in the note. Breaker 1: the rebind took Done off 2 to 9. The stop on an old sheet taken out at Bader's fix step 1. All fixed with tests. The rest in steps/latent.md
 
 Remains:
@@ -26,7 +26,77 @@ Next:
 - Bader says the dry run is over, then the Revit check on a copy of SA-dryrun3nov-done.rvt and a records PR
 
 Your turn:
-- Closed: Q411 Floor parameters bound but never filled. 185 open, steps/questions-open.md
+- Closed: Q411 Floor parameters bound but never filled. 183 open, steps/questions-open.md
+## Lane C HELP-3NOV-C, 2026-11-03, i beside each step
+
+Goal:
+- Hover line and side box on steps 1 to 9 and New project rows, text from the guide
+
+Done:
+- R540: python/build_help.py, help file in the DLL, side box
+
+Checked:
+- Touched tests on net48 and net8.0, the pane and New project PNGs read. Not seen in Revit yet
+
+Remains:
+- RULES-3NOV-C. Second guide PR when PARAM merges, then rebuild the help file
+
+Known bugs:
+- None new
+
+Next:
+- RULES-3NOV-C
+
+Your turn:
+- Opened none. Closed none.
+- 184 open, steps/questions-open.md
+## Lane B FIX-3NOV-B end, 2026-11-03, undo in Revit
+
+Goal:
+- Finish task 4, the undo check of R499 in Revit
+
+Done:
+- steps/investigations/undo-3nov.md. steps/dryrun-3nov.md: the step 1 line (Q415) and the undo line
+
+Checked:
+- One undo and one redo on 9, one undo on 3, read in the pane and the journal. Records only, no code
+
+Remains:
+- 4 not proven, it stopped on picks.json of the copy. Save prompt after 3, 4, 9 alone
+
+Known bugs:
+- none new
+
+Next:
+- Known issues, REPORT-3NOV-B, 6b
+
+Your turn:
+- Opened none. Closed none. See steps/questions-open.md
+
+## Lane C known issues, 2026-11-03, FIX-KNOWN-3NOV-C
+
+Goal:
+- The issues of the guide with a clear answer
+
+Done:
+- Pick surfaces under the row (Q403), plain band (Q404), CAD label (Q406), No changes line (Q408), Ramp joint name (Q410), step 8 Boundary walls (Q415)
+
+Checked:
+- Touched tests on net48 and net8.0, text and window only, no parity
+
+Remains:
+- Not seen in Revit. Step 1 text of Q415 from Lane A. Then HELP-3NOV-C, RULES-3NOV-C
+
+Known bugs:
+- Q400, Q416, Q417, Q418
+
+Next:
+- HELP-3NOV-C
+
+Your turn:
+- Opened Q416 Road row reads optional, step 2 needs it. Q417 Whole project stops at step 3. Q418 Empty project keeps old rules on a set up model. Closed Q403, Q404, Q406, Q408, Q410.
+- 184 open, steps/questions-open.md
+
 ## Lane C GUIDE-3NOV-C, 2026-11-03, plain guide to the 9 buttons
 
 Goal:
@@ -1306,119 +1376,54 @@ Your turn:
   NEWPROJ-UI. Q287 Button messages that name a work file. Closed: none
 - 84 questions open, full text: steps/questions-open.md
 
-## Lane B 5c, 2026-10-31, buttons 2, 3, 4 and 7 and the Revit run after 5c, Lane B on the laptop
+## Older rounds
 
-Goal:
-- 5c of steps/01_next.md with the Revit run after 5c on NBH 012 in Masses mode, one PR (D20)
+- Lane B 5c, ADDIN 5e and 5f, L0 and 5a: steps/history/log-addin-5c-l0.md
 
-Done:
-- D15 (RAN): 7 read steps, 14 parity lines, 0 failures. Q126 manifest 528 of 837 equal, 0 differ. Border made, 747 of 747 plots
-- Buttons 2, 3, 4 and 7, review data, read data, rules window, plan file, check table, pane. Rules R375 to R377, R403 to R406
-- Fixed with a test: pane hashed wrong folders, plot list scope, scope on the IM letter, 2 plan yard faults, worker path
-- D20 reviews: reviewer, breaker and a second pass of both. 4 REAL faults, all fixed. The fixes after the second pass carry tests and the Revit run, no third pass
-- R405 fix (c66b512): button 2 alone in a fresh session committed, 42 of 42 unchanged
-- Step shape fix of the check table: 1237 rows on NBH 012 in window 10. Host fixes: layer list, data book, config folder, prototype folder, base shapes, host loops on copies
+- Round ADDIN 4h-2, 2026-10-29, R366, R369 and the join items, Lane A on the laptop: steps/history/log-addin-4h-fold.md line 5
+- Lane B 5b, 2026-10-29, button 1 Set up site, the watcher before Revit and the freeze guard: steps/history/log-addin-4h-fold.md line 44
+- Round ADDIN 4h-1, 2026-10-29, Q122, R367, R368 and the join items, Lane A on the laptop: steps/history/log-addin-4h-fold.md line 80
+- Round FOLD, 2026-10-29, the fold in, D9 to D19, the answer pass and the manual rules: steps/history/log-addin-4h-fold.md line 118
+- Round ADDIN 4g3, 2026-10-29, 4g3 done on the laptop, R365 and the C# checks of Q111: steps/history/log-addin-4g2-4g3.md line 5
+- Round ADDIN 4g3, 2026-10-28, 4g3 paused, moved to the laptop: steps/history/log-addin-4g2-4g3.md line 50
+- Round ADDIN 4g2, 2026-10-28, Q105, Q107, Q109, Q110, the walls and the check rows: steps/history/log-addin-4g2-4g3.md line 94
+- Round ADDIN 4g1, 2026-10-27, Q098, Q099 and the status of each plotted value: steps/history/log-addin-4f-4g1.md line 5
+- Round AUDIT-RULES, 2026-10-27, AI MAX version 4 and the status of every rule value: steps/history/log-addin-4f-4g1.md line 50
+- Round ADDIN 4f, 2026-10-27, Q089 and steps 8, 10, 12 and 13 in C#: steps/history/log-addin-4f-4g1.md line 92
+- Round REC, 2026-10-27, the records diet and Q095 to Q097: steps/history/log-addin-4f-4g1.md line 135
 
-Checked:
-- Gate at 52a9b26, RAN: net48 1503, net8.0 1326, pytest 2110 passed, 1 skipped
-- Plan parity, RAN: 754,451 values equal, 0 differ, 8 covers, both runtimes. 248 inputs unchanged by hash
-- Windows, RAN: probes 1, buttons 10, judge 3, button 2 check 1. Window 10 (exit 0): 336 solids placed and read back, 201.6 s for 7
-- Plain judge second run: held 18, not held 2 (J10), not measured 1, peak 2145 MiB private. Button peak private 3906 MiB, least free 31.57 GiB
-- Base boundary (Q206): other elements read on 13 of 13 prototypes, 0 of 336 solids hold at 1 mm
+One line per entry before Round REC, each moved byte for byte to the line named.
 
-Remains:
-- J10 measured, not held as before: a detached document keeps PathName and Title '_detached' (Q220)
-- Q146 UNKNOWN. Q147 save stop held, pane first show and 16 px icons not measured (Q221)
-- NBH 03 image of Q063 not run (Q222). Links not run (Q215). 5d, 6a to 6c, J11 and J14
-
-Known bugs:
-- The build ignores the pane Prototypes row (Q214). Host raise not retried (Q223). Latent lines: steps/latent.md
-
-Next:
-- 5d on Lane B after the PR of 5c merges
-
-Your turn:
-- Opened Q180 to Q223:
-  Q180 designValues status in the R401 block. Q181 Timing of the labels J11 and J14. Q182 Side band of majority.side_neighbours. Q183 Time cap of a buttons job. Q184 Plain rule names of
-  the check table. Q185 A plot list over two NBHs. Q186 Close J2 as no work. Q187 Prefill of a new project, J16. Q188 Entity load on a session unseen. Q189 Check table modal or modeless.
-  Q190 Where buttons 5 to 8 find the plan. Q191 The plan name of a plot list. Q192 Solid height of light mode. Q193 Footprint limit of the base. Q194 RRE parameters on Generic Models.
-  Q195 Dry run of button 4. Q196 addin.overrideFile in config. Q197 key_join.json and key reads as inputs. Q198 Past gaps of the missing and question rows. Q199 What the tool does per
-  manual rule. Q200 Export to Excel of the two windows. Q201 Data book files with no Python. Q202 The schedule folder in config. Q203 A worker end on a document not active. Q204 Manual
-  rule of a Review data row. Q205 Corner table coordinates of Review data. Q206 Base boundary of a prototype. Q207 No foot and no Esc in the windows. Q208 How to use line of Rules. Q209
-  Manual column mixes section and revision. Q210 Q015 in a past job text. Q211 7 after a plot list 4 Check. Q212 4 Check stops 7 on another NBH. Q213 Use of an override entry under Skip.
-  Q214 The build reads pastJob, not the pane. Q215 Where the 2024 prototypes come from. Q216 Rows of 4 Check with no past job. Q217 Follow every rule count, table against chip. Q218
-  Config files beside a user's config. Q219 First run of 7 against the step limit. Q220 Judge rows of J10 test the old claim. Q221 Judge rows for Q146 and Q147. Q222 The NBH 03 image of
-  Q063. Q223 The test host gives up after a refused raise.
-- 76 questions open, full text: steps/questions-open.md
-
-## Round ADDIN 5e and 5f, 2026-10-30, button 9 Report and Update from report, Lane A on the laptop
-
-Goal:
-- 5e (R381) and 5f (R402) of steps/01_next.md in one PR (D20), the last Lane A phases of Phase 4 and 5
-
-Done:
-- R381: the report Excel in the 9 steps (J12), a Manual rule cell on each line (W7), Q123 faces, Q124 Revit counts, Q125
-- R381: the body of button 9, it stops with needs step 4 until 4 Check writes a run log (Q175)
-- R402: Update from report, read back, refusal of another build, change list, rule checks, overrides, python/update_check.py
-- The window Update from report (W8), its worker command, its labels and steps/ui-shots/update-from-report.png, Draft
-- Open item 12 measured: 2 of 4 shots in our own Revit (5a run 3), the dialog and the check table after 5c
-
-Checked:
-- Gate, RAN after a laptop restart: Python 2,056 passed, 3 skipped. C# net48 1,262, net8.0 1,137, 0 failed. One R310 process test failed once before the restart and passed after it, both runtimes
-- Report, whole project, RAN: 461,749 matches, 0 mismatches per runtime, 431,245 cells equal across runtimes and inputs
-- NBH 012 Summary, RAN: 2 Read data 337 and 43 as 7.6 (Q123). 5 random plots at seed 21, 15 of 15 equal to the plan
-- Update, RAN: real copy and probes, 13 cases, 127,844 cells equal, 0 mismatches between the C# and Python routes
-- Reviewer and breaker (D20): pass 1 REAL faults fixed with tests, breaker pass 2 found 3 more, fixed with tests
-- Breaker passes ran Python only, the C# side of the fixes rests on the tests and the route compare (UNKNOWN in Revit)
-- CI of PR 110: the NBH of a file name now parts at either separator and the held open test runs on Windows only. R347 timing tests flaked once (latent)
-
-Remains:
-- Manual rule IDs read no block until Lane B 5c writes manualRules (W3, Q165). No button writes a run log yet (R383)
-- No Revit run of 9 or of Update from report. docs/rules/07 is near the 100 KB cap, the next rule text needs a new part
-
-Known bugs:
-- R402 LATENT findings in steps/latent.md under 5e and 5f, the stale list on a hand edit while the window is open
-- The window lacks the guide line, side box and row mark of the UI spec (Q179)
-
-Next:
-- Lane A is done for Phase 4 and 5. Lane B runs 5c, 5d. Phase 6 after them
-
-Your turn:
-- Opened: Q164 Levels count and the link Z of 7. Q165 Shape of the block manualRules. Q166 Manual rule of a check row
-- Q167 Manual rule on the other sheets. Q168 The villa type of Update from report. Q169 Key of an update entry with none of its job
-- Q170 updateChecks of manualRules. Q171 Which breaks untick a change. Q172 heightM gap with an El @ Entry edit
-- Q173 Level profile of Update from report. Q174 The plan Update from report reads. Q175 Run log format 9 Report reads
-- Q176 Plain names of the update rule checks. Q177 Manual rule ids in Rule check. Q178 A computed mirror edit breaks the hand rule
-- Q179 Guide line, side box and row mark of Update. Closed: none
-- 32 questions open, full text and the recommended answers: steps/questions-open.md
-
-## Lane B L0 and 5a, 2026-10-28 to 2026-10-29, folded in by Round FOLD
-
-Goal:
-- L0 the laptop check, light mode and the UI spec. 5a the install, ribbon, pane and one transaction per button
-
-Done:
-- L0: steps/laptop-check.md, docs/design/11-light-mode.md, 12-ui-spec.md, D1 to D3 and U1 to U7
-- 5a: PR 84, 86, 87, 89, 90, 92 (the 9 steps, the ribbon of four panels), 97 the fix of Q145 and Revit run 3, 99 the detached document
-- The full end reports: steps/history/lane-b-2026-10-29.md
-
-Checked:
-- Revit run 3, RAN: 3.4 min, exit 0, peak 2,146 MiB private, 18 of 18 steps ok, judge held 17, not held 2, not measured 2
-- Open item 1 held in full. The raised ExternalEvent ran on the Home screen with 0 documents open (RAN)
-- Open item 2: a detached document never saved has a bare file name as PathName (RAN), fixed in PR 99 by SavedPath.Is
-
-Remains:
-- 5a close waits for Q147. Not seen in Revit: the save stop on a detached document, the first show of a hidden pane, the 16 px icons
-- Bader's final approval of revit-ribbon.png and revit-pane.png
-
-Known bugs:
-- The tab title sits behind the overflow mark at 1536 logical px (Q146). The latent findings: steps/latent.md, part Lane B
-
-Next:
-- 5b Button 1 Set up site on Lane B
-
-Your turn:
-- Opened: Q146 Tab title hidden behind the overflow mark. Q147 Close 5a with three items not seen in Revit
-- Closed: Q126 to Q145, the Lane B QL1 to QL20, answered by Bader on 28 and 29 Oct 2026
-- 71 questions open, full text: steps/questions-open.md
-
+- Round ADDIN Part 1, 2026-10-25, the add-in: steps/history/log-before-rec.md line 1
+- Round 17, 2026-10-25, the past models of all four sub-phases, the majority rule and the IMC rebuild: steps/history/log-before-rec.md line 53
+- Round DATA-5, 2026-10-25, the audit of DATA-4, the missing xrefs, the reader counts, the area key, the IFC and the coverage table: steps/history/log-before-rec.md line 104
+- Round DATA-4, 2026-10-25, the Rev 9 parcels in Civil 3D, the VL6 hand in Revit and where the past El @ Entry came from: steps/history/log-before-rec.md line 150
+- Round 16, 2026-10-24, links against the CAD footprint, the corner front, two past jobs and a full IMC file from CAD: steps/history/log-before-rec.md line 156
+- Round DATA-3, 2026-10-24, the Master Plan Rev 9 folder, El @ Entry by terms, the units on no plot and the location plan DWG: steps/history/log-before-rec.md line 162
+- Round Z4, 2026-10-24, a new site file for one neighbourhood from CAD only, compared with the past site model: steps/history/log-before-rec.md line 168
+- Round DATA-2, 2026-10-24, the full Civil 3D read, the analysis fixes, the wiring (Part W) and the location plan (Part L): steps/history/log-before-rec.md line 230
+- Round DATA, 2026-10-24, the data book of Phase 1: steps/history/log-before-rec.md line 236
+- Round 14c Part B, 2026-10-24, floors in the CAD plan: steps/history/log-before-rec.md line 277
+- Round 14c Part A, 2026-10-24, villa mirror, CASE and FFL split tested on the data: steps/history/log-before-rec.md line 314
+- Round C3D, 2026-10-24, the road drawings in Civil 3D 2026 tied to the plots: steps/history/log-before-rec.md line 351
+- Round 14 Part B, 2026-10-24, clusters and levels for the computed plan: steps/history/log-before-rec.md line 394
+- Round 14 Part A, 2026-10-24, links from CAD for IMC: steps/history/log-before-rec.md line 430
+- Round 15b, 2026-10-24, placer step 2, Generic, yard and ramp floors, eight scenarios in Revit: steps/history/log-before-rec.md line 468
+- Round 15a test, 2026-10-24, the test host drives Revit, one prototype per run: steps/history/log-before-rec.md line 514
+- Round 13, 2026-10-24, unit codes, road levels, entry level per plot, block to link offset: steps/history/log-before-rec.md line 563
+- Round 12b, 2026-10-24, villa blocks from Makkah Building Footprint, unit codes into the clusters: steps/history/log-before-rec.md line 569
+- Round 15a, 2026-10-24, plan.json from the past IMC job and the placer step 1: steps/history/log-before-rec.md line 575
+- Round 12, 2026-10-24, villa blocks, row split, road fronts, levels, master plan V9: steps/history/log-before-rec.md line 581
+- Round 11, 2026-10-24, project settings, cluster derivation, checks 1 and 2: steps/history/log-before-rec.md line 587
+- Round 10, 2026-10-24, ROSHN Makkah rules profile and loader: steps/history/log-before-rec.md line 593
+- Round 9, 2026-10-23, floor, ramp and link relations: steps/history/log-before-rec.md line 599
+- Round 8, 2026-10-23, ramp levels from the real corners, surface roles, floor count, one error line: steps/history/log-before-rec.md line 605
+- Round 7 Revit, 2026-10-22, ramp corners, spot elevations, plot numbers, link names: steps/history/log-before-rec.md line 611
+- Round 7 road, 2026-10-22, LandXML road surfaces and the ramp level test: steps/history/log-before-rec.md line 617
+- Round 6, 2026-10-22, plot number shift, second source, no type check: steps/history/log-before-rec.md line 623
+- Round 5, 2026-10-22, Revit link names, shared parameters and floors: steps/history/log-before-rec.md line 629
+- Round 4, 2026-10-22, explode, label join, PDF rows, full run: steps/history/log-before-rec.md line 635
+- Round 4, 2026-10-22, Revit links, walls and ramps: steps/history/log-before-rec.md line 641
+- Round 3, 2026-10-22, fixes against the real files: steps/history/log-before-rec.md line 647
+- Round 2, 2026-10-22, readers run on real ROSHN Makkah files: steps/history/log-before-rec.md line 652
+- Round 1, 2026-10-22, read-only readers: steps/history/log-before-rec.md line 657

@@ -11,9 +11,9 @@
 
 ### Lane B, C and D
 
-- Lane B STOPPED 15:50, 3 Nov, for Bader's dry run, resume after 19:00. Lock released 15:49, Revit closed, no helper or background run. Dry run GO, steps/dryrun-3nov.md. Q384, Q382 merged PR 154, overlaps merged PR 155. Next: task 4 undo in Revit, then 6b, specs in lane_b_check\p6b.
-- Lane C GUIDE-3NOV-C, 3 Nov, branch records/buttons-guide-c: steps/buttons-guide.md, records only, no new function, Q414, Q415. Next: a second small PR when PARAM-3NOV-D merges. Blocked: none
-- Lane D PARAM-3NOV-D, 3 Nov 19:50, branch param/3nov-d: stopped at the restart with the gate not finished. R506 to R508, Q411 closed. Now: gate and parity on the head, then the PR, then the Revit check on a copy. Next: known issues, MASS-3NOV-D, TOPO-3NOV-D. No lock held. Blocked: none
+- Lane B 20:55, 3 Nov. Undo proven in Revit (R499), steps/investigations/undo-3nov.md, lock free. Next: known issues, REPORT-3NOV-B, 6b. Ids R550 to R569, Q450 to Q469. Blocked: none
+- Lane C, 3 Nov, branch feat/help-3nov-c: PR 160, 161, 162 merged, HELP PR going up, next RULES-3NOV-C. Ids R540 to R549, Q416 to Q419, Q440 to Q449. New callers: HelpBook by HelpFile, HelpFile by the pane and New project rows, HelpBox by OnStepHelp and OnRowHelp. A guide change needs python/build_help.py. I own the pane file tonight. Blocked: none
+- Lane D PARAM-3NOV-D, 3 Nov 21:30, branch param/3nov-d: R506 to R508, Q411 closed. Gate green on a15d58c. Now: the past job half of parity, the PR, then the Revit check on a copy. Next: known issues, MASS-3NOV-D, TOPO-3NOV-D. Ids R530 to R539, R570 to R579, Q470 to Q479. No lock. Blocked: none
   New callers: SetupCheck.ConfigSheet by SetupCheck.Run and DiskProbe.ConfigSheet. IInputProbe.ConfigSheet, ReadSheet by PaneViewModel.RefreshSheet by RefreshOnce. ParameterSheet.Counts by Source and ReadSheet. ParameterSpec.LinksOnly by BoundOn, SetUpPlanner.Changes, RevitSiteDocument.BindParameters. BoundOn by SetUpPlanner.Changes, BindParameters. SetUpChanges.RemovalAlone, RunContext.KeepsLastRun by SetUpRun.Apply, ButtonFlow. SetUpTexts.TakesOff by SetUpPlanner, SetUpRun. NoRuleId by RefreshSheet.
 
 Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane D PARAM-3NOV-D, 3 Nov 2026.

@@ -712,7 +712,7 @@ Q398. The 443 hairline floor overlaps at step 5 (Lane B report steps/investigati
 - Other: leave it, R459 already accepts the known overlaps at step 5.
 
 Q400. New project reopens on Empty project (Lane C 6C-3NOV-C, seen in Revit, Lane A asked for a question). New project opened again on a project with a saved setup reads Start from Empty project and its hint still names ROSHN Makkah task6, on SA-part2 with SA-6c saved (RAN, shot p2-064). Save setup from there is not tried.
-- Recommended: Start from reads the saved project the setup came from, and the hint goes when one is chosen. Lane A, in NewProjectViewModel.
+- Recommended: Start from reads the saved project the setup came from, and Save setup does not import it again, today a chosen start overwrites the picks (READ SetupSave.Apply). Lane A, in NewProjectViewModel.
 - Other: Leave it, a person rarely opens New project twice.
 
 Q401. 12 plots differ from the past FFL (Lane C 6C-3NOV-C, steps/investigations/6c-excel.md). Against the IMC schedule 324 FFL equal, 12 differ up to 187 mm, 1 blank (plot 2312), two methods (RAN). All 12 read Rule with no override, 8 in four clusters. 2377 and 2388 also differ by one step. Whether the schedule or the key is right is UNKNOWN.
@@ -723,37 +723,18 @@ Q402. Plots 2301 and 2302 read VD4 (Lane C 6C-3NOV-C, steps/investigations/6c-ex
 - Recommended: Lane A traces 2301 and 2302 to their source and adds an override if the key reads DP4. TH1-IM stays as it is.
 - Other: Accept VD4.
 
-Q403. Road surface row cut in the pane (Lane C 6C-3NOV-C, R492, Lane D). Pick surfaces and Browse take the whole width, so the name landxml never shows and Browse is cut at the pane edge (RAN, shot p2-059, Lane B saw it too). R492 says next to Browse. The window Road surfaces is not seen in Revit, Pick surfaces is grey under a past job.
-- Recommended: Pick surfaces moves to the line under the row with its surfaces line, R492 changes with it, and Lane D opens the window once on a project with no past job.
-- Other: Keep it beside Browse and narrow the label column.
-
-Q404. Set up site band shows a code name (Lane C 6C-3NOV-C, Lane B window). The band of 1 Set up site on an existing file reads the Settings entity SiteAdaptation_Settings, a developer name (RAN, shot p1-022).
-- Recommended: Lane B replaces it with Saved in this model.
-- Other: Leave it, it says where the settings live.
-
 Q405. Export to Excel hidden in Rules (Lane C 6C-3NOV-C, R444 against docs/design/13-workflow-changes.md line 43). Your changes of 28 Oct ask for Export to Excel in Site Adaptation Rules. R444 hid it as an idle button, line 137 of RulesWindow.xaml is Collapsed always (READ).
 - Recommended: Build the export in Part 2, hidden until then.
 - Other: Drop it from the design, the rules are in the manual and the report sheet Rules.
-
-Q406. Conflicts Plot column shows the CAD label (Lane C 6C-3NOV-C, CHECK-2NOV part 8). What the tool read runs before the plot table, so its Plot column holds the CAD label: Plot No 2291 has label 2281 (READ steps/check-2nov.md row 8). A pick lands on the right plot, the words mislead.
-- Recommended: The head reads CAD label, as 3 Review data does. ScanView.ConflictKey stays.
-- Other: Show both once the plot numbers are read, more work in the scan.
 
 Q407. Amber in the spec or the boards (Lane C 6C-3NOV-C, docs/design/12-ui-spec.md line 34 against boards). The spec says amber is SA.Warn #7A4B00, the boards draw marks in #B26B00 (READ). The XAML follows the spec, so the missing marks read brown beside the board. Button text and padding differ the same way.
 - Recommended: The spec holds, the boards are drafts of the words and layout, say so in Q286.
 - Other: The boards hold, change SA.Warn, button text 14 and the padding scale, which moves every window.
 
-Q408. Update from report shows nothing after a pick (Lane C 6C-3NOV-C, Lane B window). A real report picked by Browse: 26 s later the window stood empty, no tile, no message, Apply grey (RAN, shot p2-082, an unedited copy). An edited copy failed twice on my driver, so the filled state is not seen. Slow, or silent on an Excel with no change, is UNKNOWN.
-- Recommended: Lane B runs part 9 of steps/bader-fix-1nov.md once on main, and the window says No changes found when an Excel has none.
-- Other: Leave it, a person only picks an Excel they edited.
-
 Q409. Two greens and the step name weight (Lane C 6C-3NOV-C, review 1, docs/design/12-ui-spec.md lines 28, 34, 75). The pane found mark takes #0B7A3E from the Pane board, the spec has SA.Ok #0B6B2E, so two greens show. The step name takes weight 500 from the board where the spec says Regular, the font holds Regular and SemiBold only (UNKNOWN).
 - Recommended: One green, SA.Ok, and Regular step names, the spec holds. Change with Q286.
 - Other: The board holds, the spec takes both.
 
-Q410. Rule column shows R471 on joint rows (Lane C 6C-3NOV-C, review 1, Lane A rule R471). 4 Check shows the id R471 as the Rule cell on the Floor rows, the most common kind, where docs/design/12-ui-spec.md line 94 says the plain name with the id as tooltip (RAN, shot p3-047). 14-ui-labels.md has no plain name for it.
-- Recommended: Lane A adds the plain name Ramp joint by the rule.
-- Other: Leave the id.
 
 Q412. Level 1 is empty after the build (Lane B dry run). Floor plan Level 1 shows only the elevation marks, also after a zoom to fit (READ, shots). The floors stand above its view range.
 - Recommended: button 1 or 5 sets the view range of the plan, or opens a 3D view at the end of the run.
@@ -767,6 +748,18 @@ Q414. How long a whole project takes (Lane C GUIDE-3NOV-C). steps/buttons-guide.
 - Recommended: Lane B times one whole project run on a copy and the guide takes the numbers.
 - Other: Leave Not known until Part 2.
 
-Q415. Pane lines say more than is built (Lane C GUIDE-3NOV-C, R362, Q328). Step 1 reads from CAD, coordinates.source is positionFile. Step 8 reads garden walls, none is placed (READ).
+Q415. Pane lines say more than is built (Lane C GUIDE-3NOV-C, R362, Q328). Step 1 reads from CAD, coordinates.source is positionFile. Lane A sends the step 1 text, step 8 now reads Boundary walls.
 - Recommended: Keep step 1 until Q328 switches, step 8 reads Boundary walls.
 - Other: Leave both.
+
+Q416. Road row reads optional, step 2 needs it (Lane C GUIDE-3NOV-C, R430). New project marks Road levels optional, Without it the tool uses road level plus slope. ButtonFlow.Absent stops step 2 with no folder (READ).
+- Recommended: The row loses Optional and that line until a build without roads exists.
+- Other: Build the road level plus slope path.
+
+Q417. Whole project stops at step 3 (Lane C GUIDE-3NOV-C, R406). ReviewLoad.Load wants one NBH, Plot list and Whole project stop it, and 4 needs 3 (READ). Steps 4 to 8 can take a project scope, so the scope radios promise more than runs.
+- Recommended: Step 3 under Whole project lists all NBH in one table, for Part 2. Until then the pane says Neighbourhood only at step 3.
+- Other: Step 3 is passed by hand for those scopes.
+
+Q418. Empty project keeps old rules on a set up model (Lane C GUIDE-3NOV-C, R486). SetupSave and NewProjectViewModel.Wants copy the set only when no config is named, a model with settings keeps its rules and list, no message (READ).
+- Recommended: A line in the window says this model keeps its rules, under Empty project.
+- Other: Copy the set over, the old override list is lost.

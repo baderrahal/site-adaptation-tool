@@ -25,6 +25,7 @@ namespace SiteAdaptation.AddIn.NewProject
             Row = row;
             string[] words = NewProjectText.Rows[row.Id];
             File = words[0];
+            HelpLine = SiteAdaptation.AddIn.Help.HelpFile.Book.Find(row.Id)?.Line;
             Who = words[1];
             UsedBy = words[2];
             Help = words[3];
@@ -36,6 +37,9 @@ namespace SiteAdaptation.AddIn.NewProject
         public string File { get; }
         public string Who { get; }
         public string UsedBy { get; }
+
+        // R540. Its one line on hover, Row.Id is the key of the help file
+        public string HelpLine { get; }
         public string Help { get; private set; }
         public string StopLine { get; }
         public string TodoLine { get; }

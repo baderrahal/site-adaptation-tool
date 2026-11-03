@@ -33,7 +33,7 @@ In file names, <run> is the button and the time, such as 4_20261103-141015-492, 
 | 8 Walls | Places boundary walls, no garden walls yet | Plan of step 4 | Step 4 | Walls in Revit. walls_<NBH>.json in the work folder | 5 s |
 | 9 Report | Writes the report Excel | Plan and logs of step 4, counts of the model | Step 4, the model | <NBH>_Report.xlsx in the work folder | 5 s |
 
-Only a Neighbourhood scope passes step 3 today, see 3 Review data. Times for New project and a whole project are not known (Q414).
+Only a Neighbourhood scope passes step 3 today, see 3 Review data (Q417). Times for New project and a whole project are not known (Q414).
 
 ## What every button shares
 
@@ -57,7 +57,7 @@ Only a Neighbourhood scope passes step 3 today, see 3 Review data. Times for New
 | Site drawing (CAD) | Plots, roads, curb lines. It fills Baseplan | Civil team | Buttons 1 to 4 | User picks, Inputs\ROSHN Makkah Baseplan.dwg |
 | Plot list (Excel) | Plot, code and cluster. It fills the Sales schedule | Sales team | Button 3 | User picks, Inputs\PSN-ZZZ-XXX-SCH-TM-000201- DLUS Schedule_(Rev9)_Accomodation_Schedule.xlsx |
 | Villa levels (Excel) | Floor level and door level per villa type. Reads Comes later, no file is taken yet | Architect | Buttons 4 and 5 | Nothing today |
-| Road levels (civil file) | Road surfaces. The row reads optional, but step 2 stops with no folder picked | Civil team | Button 4 | User picks, Inputs\landxml |
+| Road levels (civil file) | Road surfaces. The row reads optional, but step 2 stops with no folder picked (Q416) | Civil team | Button 4 | User picks, Inputs\landxml |
 | Parameter sheet (Excel) | The shared parameters | BIM team | Button 1 | The set: C:\SA-demo\config\shared_parameters.xlsx |
 
 Start from also reads:
@@ -80,14 +80,15 @@ Boxes:
 - The tool stops here, no saved project is chosen: pick one under Start from.
 - A template refused because it would lie in the input folder: pick another folder.
 
-**What it writes.** No element in Revit. The setup goes on Project Information. Empty project copies the set once to Work root\New projects\<model name>_<8 letters>, with an override list holding no entries. This happens only on a model with no settings yet. On a model that already has settings, Empty project keeps its old rules and override list, with no message.
+**What it writes.** No element in Revit. The setup goes on Project Information. Empty project copies the set once to Work root\New projects\<model name>_<8 letters>, with an override list holding no entries. This happens only on a model with no settings yet. On a model that already has settings, Empty project keeps its old rules and override list, with no message (Q418).
 
 **Limits today.**
 
 - Q400 It reopens on Empty project.
 - Q379 A new project on another PC needs the inputs of this job.
 - Q394 to Q397 Empty project with Update, modes, past values and Save As.
-- Q403 The Road surfaces window is not seen in Revit.
+- Q416 The road row reads optional, step 2 stops without it.
+- Q418 Empty project on a model with settings keeps its old rules.
 - The Shared parameters row reads Not chosen with an amber mark though button 1 finds the sheet (steps/dryrun-3nov.md).
 
 ## Input files and Prototypes rows
@@ -117,12 +118,11 @@ Boxes:
 **Limits today.**
 
 - Q413 A model saved after picks and before step 1 loses them.
-- Q403 Browse is cut at the pane edge in the road row.
 - Q372 When a road pick is kept.
 
 ## 1 Set up site
 
-**What it does.** Makes this model ready. It sets units, position, survey point, project base point, Level 1 and Level 2, floor types, wall types and the shared parameters. It sets only what differs. The position comes from a position file today, not from CAD, since coordinates.source reads positionFile in the settings (Q415).
+**What it does.** Makes this model ready. It sets units, position, survey point, project base point, Level 1 and Level 2, floor types, wall types and the shared parameters. It sets only what differs. The position comes from a position file today, not from CAD, as the settings say (Q415).
 
 **Files it needs.**
 
@@ -130,8 +130,8 @@ Boxes:
 |---|---|---|---|
 | project.json | Project settings | The setup | C:\SA-demo\config |
 | roshn-makkah.json | Rules and the site values | The setup | C:\SA-demo\rules |
-| position_parsons.json | Site position | Settings, addin.position.file | Inputs\position in the kit, Work root\round_addin\position in the shipped set |
-| shared_parameters.xlsx | 23 rows, 11 marked Keep | Settings, addin.parameterSheet | C:\SA-demo\config |
+| position_parsons.json | Site position | Settings | Inputs\position in the kit, Work root\round_addin\position in the shipped set |
+| shared_parameters.xlsx | 23 rows, 11 marked Keep | Settings | C:\SA-demo\config |
 
 **Before it.** New project. The Baseplan row picked.
 
@@ -152,7 +152,6 @@ Boxes: No site drawing in the setup, pick the Baseplan in the pane first. Nothin
 **Limits today.**
 
 - Q415 The pane says from CAD, the position comes from the file.
-- Q404 The band shows a code name.
 - Q336 Group of the link parameters.
 - Q379 Another PC needs its own inputs.
 
@@ -185,7 +184,6 @@ Boxes: a missing file names it, for example needs Villa blocks, the file is not 
 
 **Limits today.**
 
-- Q406 Conflicts Plot column shows the CAD label.
 - Q306 A neighbourhood picked after the first read.
 - Q345 to Q349 Conflict picks.
 
@@ -210,6 +208,7 @@ Zoom to plot and Export to Excel are there if needed. Boxes: closing unsaved ask
 
 **Limits today.**
 
+- Q417 Whole project and Plot list stop here.
 - Q355 A Wrong on a plot of two numbers.
 - Q300 Plots with no cluster proposal.
 - Q305 Hide Confirmed under the past job.
@@ -248,7 +247,6 @@ Zoom to plot and Export to Excel are there if needed. Boxes: closing unsaved ask
 - Q402 Plots 2301 and 2302 read VD4.
 - Q386 Override list changes leave steps Done.
 - Q382 Step 4 builds on a site.json off the model.
-- Q410 Rule column shows R471 on joint rows.
 
 ## 5 Floors and ramps
 
@@ -327,7 +325,7 @@ Do not click anywhere while the Revit box is open. A press waits behind it and f
 
 ## 8 Walls
 
-**What it does.** Places the boundary walls of each plot in the scope. Garden walls are not placed, they have no measured rule (R362), though the pane line says Boundary and garden walls (Q415). Dry run on NBH 012: 778 walls.
+**What it does.** Places the boundary walls of each plot in the scope. Garden walls are not placed, they have no measured rule. Dry run on NBH 012: 778 walls.
 
 **Files it needs.** plan_<NBH>.json of step 4 in the work folder. project.json for the BW wall pattern. The wall types of step 1.
 
@@ -361,7 +359,6 @@ Do not click anywhere while the Revit box is open. A press waits behind it and f
 
 - Q307 Summary shows [file name].rvt and other gaps, Placed holds no wall rows, and the pane counts differ from Summary.
 - Q385 Accepted warnings return after a save.
-- Q408 Update from report shows nothing after a pick.
 
 ## Files from start to end
 

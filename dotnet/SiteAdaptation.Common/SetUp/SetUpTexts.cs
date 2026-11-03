@@ -23,7 +23,7 @@ namespace SiteAdaptation.Common.SetUp
         public const string RampSlopeLine = "Default 0.5%. Choices 0.5%, 1%, 2%, then 3% to 15%";
         public const string WallTypes = "Wall types";
 
-        public const string SignSettings = "the Settings entity SiteAdaptation_Settings";
+        public const string SignSettings = "settings saved in this model";
         public const string SignPosition = "a project position other than zero";
         public const string SignSurvey = "the survey point off the internal origin";
         public const string SignBase = "the project base point off the internal origin";
