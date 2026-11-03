@@ -26,7 +26,30 @@ Next:
 - Bader says the dry run is over, then the Revit check on a copy of SA-dryrun3nov-done.rvt and a records PR
 
 Your turn:
-- Closed: Q411 Floor parameters bound but never filled. 183 open, steps/questions-open.md
+- Closed: Q411 Floor parameters bound but never filled. 185 open, steps/questions-open.md
+## Lane C GUIDE-3NOV-C, 2026-11-03, plain guide to the 9 buttons
+
+Goal:
+- A plain guide to the 9 buttons for Bader and the team, records only, no code change
+
+Done:
+- steps/buttons-guide.md: the table, one part per button and pane row, every file from start to end
+
+Checked:
+- Each line against its class or config key and the files of the rehearsal run, READ. The list is in the PR body
+
+Remains:
+- Shared parameters row and New project change with Lane D PARAM-3NOV-D, a second small PR when it merges
+
+Known bugs:
+- Pane lines say more than is built, Q415. Whole project times not known, Q414
+
+Next:
+- Bader's answers. The second PR after PARAM-3NOV-D
+
+Your turn:
+- Opened Q414 How long a whole project takes. Q415 Pane lines say more than is built. Closed none.
+- 186 open, steps/questions-open.md
 
 ## Lane B DRY-RUN 3 Nov, 2026-11-03, the presenter check on frozen main b1a27d9, Lane B on the laptop
 

@@ -9,7 +9,7 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 - Lane B FIX-1NOV-B on 2026-11-01: masses as linked files (R450 to R453), coordinates from CAD (R454 to R456), proven in Revit on NBH 012
 - Lane B dry run: steps/dryrun-3nov.md. FIX-3NOV-B: R498, R499. FIX-2NOV-B: R459, Q158, steps/fix-2nov-b-handrun.md. CHECK-2NOV: R458. Task 6: R457
 - Lane B 6a on 31 Oct: NBH 012 through 1 to 9 from a new project, no click. 5d, PR 113: 5, 6, 8, 7 at the FFL. 5c, PR 111: 2, 3, 4, 7
-- Lane C SCAN-UI PR 117, 119. DEMO-FIX R444. FIX-1NOV-C PR 132 (R445). FIX-2NOV-C (R446). CHECK: R494, R495. SPEED: R447 to R449, R496, R497. 6c: R505
+- Lane C SCAN-UI PR 117, 119. DEMO-FIX R444. FIX-1NOV-C PR 132 (R445). FIX-2NOV-C (R446). CHECK: R494, R495. SPEED: R447 to R449, R496, R497. 6c: R505. Guide: Q414, Q415
 - Lane A: 5e and 5f on 2026-10-30, one PR (D20), R381 button 9 Report, R402 Update from report. Phase 4 and 5: 4h-1 PR 107, 4h-2 PR 109, 4g3
 - Round FOLD done on 2026-10-29: the fold in of steps/lane-b.md, D9 to D19, the answer pass, M01 to M15. D20 on 29 Oct for Phase 4 and 5
 - ADDIN Part 1 (R300 to R399): the add-in inside Revit 2024 in C#, net48, option B, parsons2024Rev6 for every build (Q050)
@@ -51,7 +51,7 @@ shown. Q293 Approve the three drafts of SCAN-UI. Q294 Rules chosen in Set up sit
 proposal. Q301 The build takes the door level pick. Q302 Door level row under the past job. Q305 Hide Confirmed under the past job.
 Opened in FIX-1NOV-D, Lane D: Q330 Group of the key link parameters unread. Q331 Plot is no link parameter of the keys. Q332 FFL bound but never written.
 Q333 to Q335. Closed: Q155. D2: Q336, closed Q330. D3: Q337 to Q339, closed Q275. 6B-DATA: Q360 to Q363. FIX-2NOV-D: Q370 to Q374. MASS: Q390 to Q393, closed Q279, Q321. PARAM: closed Q411.
-A3: Q375, Q376. 3NOV-A: Q379, Q394 to Q398, closed Q371, Q373, Q377, Q378. 183 open, steps/questions-open.md. Q286, Q293: steps/ui-shots/drafts-for-bader.md. Asks: steps/waiting-on-others.md.
+A3: Q375, Q376. 3NOV-A: Q379, Q394 to Q398, closed Q371, Q373, Q377, Q378. 185 open, steps/questions-open.md. Q286, Q293: steps/ui-shots/drafts-for-bader.md. Asks: steps/waiting-on-others.md.
 
 ## Next three steps
 

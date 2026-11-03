@@ -12,8 +12,8 @@
 ### Lane B, C and D
 
 - Lane B STOPPED 15:50, 3 Nov, for Bader's dry run, resume after 19:00. Lock released 15:49, Revit closed, no helper or background run. Dry run GO, steps/dryrun-3nov.md. Q384, Q382 merged PR 154, overlaps merged PR 155. Next: task 4 undo in Revit, then 6b, specs in lane_b_check\p6b.
-- Lane C 6C-3NOV-C, 3 Nov 13:30, branch check/6c-3nov-c: R505, row Plot fronts (curb lines), steps/part1-check.md short form, PR going up, merge before 14:00. New callers: FileRowViewModel.Hint and HasHint by PaneViewModel and SitePanePage.xaml. Blocked: none
-- Lane D PARAM-3NOV-D, 3 Nov 17:30, branch param/3nov-d: sheet in use shown, villa parameters on links only, R506 to R508, Q411 closed. Bader's fix of step 1: an old sheet no longer stops button 1. Now: gate and parity on the head, then the PR. Revit check only after Bader says the dry run is over. Blocked: none
+- Lane C GUIDE-3NOV-C, 3 Nov, branch records/buttons-guide-c: steps/buttons-guide.md, records only, no new function, Q414, Q415. Next: a second small PR when PARAM-3NOV-D merges. Blocked: none
+- Lane D PARAM-3NOV-D, 3 Nov 19:50, branch param/3nov-d: stopped at the restart with the gate not finished. R506 to R508, Q411 closed. Now: gate and parity on the head, then the PR, then the Revit check on a copy. Next: known issues, MASS-3NOV-D, TOPO-3NOV-D. No lock held. Blocked: none
   New callers: SetupCheck.ConfigSheet by SetupCheck.Run and DiskProbe.ConfigSheet. IInputProbe.ConfigSheet, ReadSheet by PaneViewModel.RefreshSheet by RefreshOnce. ParameterSheet.Counts by Source and ReadSheet. ParameterSpec.LinksOnly by BoundOn, SetUpPlanner.Changes, RevitSiteDocument.BindParameters. BoundOn by SetUpPlanner.Changes, BindParameters. SetUpChanges.RemovalAlone, RunContext.KeepsLastRun by SetUpRun.Apply, ButtonFlow. SetUpTexts.TakesOff by SetUpPlanner, SetUpRun. NoRuleId by RefreshSheet.
 
 Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane D PARAM-3NOV-D, 3 Nov 2026.
