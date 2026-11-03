@@ -36,7 +36,7 @@ Time is from the press to the end, by the driver.
 | Yard past plot, plan | 0.87 m2 | 0.87 m2, corrected to 0.90 m2 below | RAN yards.py on plan_012 |
 | Yard past plot, model | none | UNKNOWN, no window or tool file holds placed outlines | READ floors_012.json |
 
-Correction, FIX-3NOV-B: yards.py took the first loop of a sketch as the outer one, and 47 yards have two loops. Read as one sketch the plan gives 0.90 m2 (steps/investigations/two-plot-overlaps.md). Whether PR 139's 0.87 m2 has the same error is UNKNOWN.
+Correction, FIX-3NOV-B: yards.py took the first loop of a sketch as the outer one, and 47 yards have two loops apart. Read as one sketch the plan gives 0.90 m2 (steps/investigations/two-plot-overlaps.md). This is no worsening: the old reading gives 0.865 on every plan with these yards, whether PR 139's plan is of that kind is UNKNOWN.
 
 Bader asked for a read back from the model. The yard area is not one: PR 139's 0.87 m2 is a plan figure too, so the plan compare is like for like and the model read stays open. Floors refused and the overlap count are read from the model's own run.
 
