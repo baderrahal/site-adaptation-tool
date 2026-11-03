@@ -78,7 +78,7 @@ def test_r470_a_plot_with_no_joint_or_a_joint_with_no_override_is_left_out():
 def joined_settings(*args, **kwargs):
     """The project settings with the front joints of R470 alone under every mode at 1 cm, the back corners left to R515."""
     settings = LOAD_SETTINGS(*args, **kwargs)
-    settings.values["floors"]["rampJoint"].update(join=True, nearM=NEAR, joinBack=False, modes=["rev6", "roshnPastJob"])
+    settings.values["floors"]["rampJoint"].update(join=True, nearM=NEAR, joinBack=False, modes=list(settings.get("designBasis.modes")))
     return settings
 
 

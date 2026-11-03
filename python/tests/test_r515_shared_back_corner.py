@@ -96,19 +96,20 @@ def test_r515_a_row_under_the_mode_holds_one_level_at_every_shared_corner_and_it
 
 
 def test_r515_under_rev6_a_two_percent_unit_in_a_row_takes_the_slope_of_the_joint_and_its_door_level_type_and_ffl_follow(monkeypatch):
-    settings = basis_settings(mode="rev6", join=True, door={"source": "roadPlusSlope", "slopePercent": {"default": 0.5, "VL4": 2.0}})
-    built = rev6_build(monkeypatch, settings, units={"5": "VL4"})
-    five = built["levels"]["5"]
-    # 5 shares its back corners with 4 and 6, so it takes 0.5 percent and not the 2 percent of a VL4, by the slope of the joint in config
-    assert five["slopePercent"] == pytest.approx(0.5, abs=1e-12) and built["floors"]["5"]["rampType"] == "Ramps 0.5%"
-    assert built["plan"]["5"]["floors"]["ramp"]["type"]["value"] == "Ramps 0.5%"
-    levels = row_levels(built, ("4", "5", "6"))
-    assert levels["4"][2] == levels["5"][3] and levels["5"][2] == levels["6"][3]
+    door = {"source": "roadPlusSlope", "slopePercent": {"default": 0.5, "VD2": 2.0}}
+    built = rev6_build(monkeypatch, basis_settings(mode="rev6", join=True, door=door))
+    one = built["levels"]["1"]
+    # 1, a VD2, shares its back corner with 2, so it takes 0.5 percent and not the 2 percent of a VD2, by the slope of the joint in config
+    assert one["slopePercent"] == pytest.approx(0.5, abs=1e-12) and built["floors"]["1"]["rampType"] == "Ramps 0.5%"
+    assert built["plan"]["1"]["floors"]["ramp"]["type"]["value"] == "Ramps 0.5%"
+    levels = row_levels(built, ("1", "2"))
+    assert levels["1"][2] == levels["2"][3]
     # With the joint off the same unit holds its 2 percent and its back corners stand apart
-    apart = rev6_build(monkeypatch, basis_settings(mode="rev6", door={"source": "roadPlusSlope", "slopePercent": {"default": 0.5, "VL4": 2.0}}), units={"5": "VL4"})
-    assert apart["levels"]["5"]["slopePercent"] == pytest.approx(2.0, abs=1e-12)
-    far = row_levels(apart, ("4", "5"))
-    assert abs(far["4"][2] - far["5"][3]) > 0.05
+    apart = rev6_build(monkeypatch, basis_settings(mode="rev6", door=door))
+    assert apart["levels"]["1"]["slopePercent"] == pytest.approx(2.0, abs=1e-12)
+    assert apart["levels"]["1"]["ffl"] > built["levels"]["1"]["ffl"]
+    far = row_levels(apart, ("1", "2"))
+    assert abs(far["1"][2] - far["2"][3]) > 0.05
 
 
 def test_r516_an_entry_and_a_front_override_of_a_shared_ramp_are_left_with_why(monkeypatch):

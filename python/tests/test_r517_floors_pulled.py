@@ -4,6 +4,7 @@ import copy
 
 import pytest
 
+import check_rows
 import floor_fit
 import plan_from_book
 import project_profile
@@ -44,6 +45,18 @@ def test_r517_the_pull_is_read_from_config_and_a_bad_one_refused():
         refused.values["floors"]["plotPull"]["pullM"] = bad
         with pytest.raises(project_profile.ProfileError, match="floors.plotPull.pullM"):
             floor_fit.plot_pull(refused)
+
+
+def test_r517_a_copy_of_config_from_before_this_round_builds_as_it_did():
+    settings = project_profile.load_settings()
+    del settings.values["floors"]["plotPull"]
+    assert floor_fit.plot_pull(settings) == 0
+    block = settings.values["floors"]["rampJoint"]
+    block.update(join=False, nearM=0.01)
+    for name in ("joinBack", "slopePercent", "modes", "checkNearM"):
+        del block[name]
+    assert plan_from_book.joint_rule(settings, {"mode": "rev6"}) is None
+    assert check_rows.joint_limits(settings.values) == (0.01, block["passGapM"])
 
 
 def test_r517_the_floors_of_a_build_stand_inside_and_the_ramp_corners_move_with_the_outline(monkeypatch):

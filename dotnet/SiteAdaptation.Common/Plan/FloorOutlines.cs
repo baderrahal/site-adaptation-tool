@@ -45,7 +45,12 @@ namespace SiteAdaptation.Common
         // R517. floor_fit.plot_pull: floors.plotPull.pullM of config, how far every floor of a plot stands inside its outline, a length of 0 or more
         public static double PlotPull(JObject config, string configName)
         {
-            JToken pull = config["floors"]?["plotPull"]?["pullM"];
+            // A saved project with a copy of config from before this round holds no block plotPull and builds as it did
+            if (config["floors"]?["plotPull"] == null)
+            {
+                return 0;
+            }
+            JToken pull = config["floors"]["plotPull"]["pullM"];
             if (pull == null || (pull.Type != JTokenType.Integer && pull.Type != JTokenType.Float) || BuildFace.Number(pull) < 0)
             {
                 throw new InvalidDataException(configName + " floors.plotPull.pullM must be a length of 0 or more (R517)");
@@ -100,6 +105,11 @@ namespace SiteAdaptation.Common
         public static JointRule JointRuleOf(JObject config, string configName, string mode)
         {
             double? near = JointNear(config, configName);
+            // A saved project with a copy of config from before this round holds join false and none of the keys below, and builds as it did
+            if (near == null)
+            {
+                return null;
+            }
             JToken block = config["floors"]?["rampJoint"];
             HashSet<string> known = new HashSet<string>(((config["designBasis"]?["modes"] as JArray) ?? new JArray()).Where(item => item.Type == JTokenType.String).Select(item => (string)item));
             JArray modes = block?["modes"] as JArray;
@@ -117,7 +127,7 @@ namespace SiteAdaptation.Common
             {
                 throw new InvalidDataException(configName + " floors.rampJoint.slopePercent must be a number of 0 or more (R515)");
             }
-            return near != null && mode != null && modes.Any(item => (string)item == mode) ? new JointRule { Near = near.Value, Back = (bool)back, Slope = BuildFace.Number(slope) } : null;
+            return mode != null && modes.Any(item => (string)item == mode) ? new JointRule { Near = near.Value, Back = (bool)back, Slope = BuildFace.Number(slope) } : null;
         }
 
         // R470. plan_from_book.joint_near: floors.rampJoint.nearM of config, a length above 0, null while floors.rampJoint.join is false (Q340)

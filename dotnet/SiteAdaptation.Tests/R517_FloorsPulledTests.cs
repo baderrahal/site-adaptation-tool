@@ -71,6 +71,23 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
+        public void R517_a_copy_of_config_from_before_this_round_builds_as_it_did()
+        {
+            JObject config = JObject.Parse(File.ReadAllText(WorkerRunTests.RepoConfig()));
+            ((JObject)config["floors"]).Remove("plotPull");
+            Assert.Equal(0, FloorOutlines.PlotPull(config, "project.json"));
+            var block = (JObject)config["floors"]["rampJoint"];
+            block["join"] = false;
+            block["nearM"] = 0.01;
+            foreach (string name in new[] { "joinBack", "slopePercent", "modes", "checkNearM" })
+            {
+                block.Remove(name);
+            }
+            Assert.Null(FloorOutlines.JointRuleOf(config, "project.json", "rev6"));
+            Assert.Equal(0.01, CheckRows.JointLimits(config).Item1);
+        }
+
+        [Fact]
         public void R517_the_floors_of_a_build_stand_inside_and_the_ramp_corners_move_with_the_outline()
         {
             OverrideParameterStepTests.Built built = OverrideParameterStepTests.Build(new OverrideList(new Dictionary<string, JObject>()), pull: Pull);

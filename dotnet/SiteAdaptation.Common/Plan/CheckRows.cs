@@ -180,7 +180,8 @@ namespace SiteAdaptation.Common
         public static Tuple<double, double> JointLimits(JObject config)
         {
             JToken block = config["floors"]?["rampJoint"];
-            JToken near = block?["checkNearM"], pass = block?["passGapM"];
+            // A saved project with a copy of config from before this round holds nearM alone and no pull
+            JToken near = block?["checkNearM"] ?? block?["nearM"], pass = block?["passGapM"];
             bool Length(JToken value) => value != null && (value.Type == JTokenType.Integer || value.Type == JTokenType.Float);
             if (!Length(near) || !Length(pass) || (double)near <= 0 || (double)pass < 0)
             {

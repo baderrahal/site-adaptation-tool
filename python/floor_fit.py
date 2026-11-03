@@ -319,7 +319,10 @@ def fixed_rings(rings):
 
 
 def plot_pull(settings):
-    """R517. floors.plotPull.pullM of the project settings, how far every floor of a plot stands inside its outline, a length of 0 or more."""
+    """R517. floors.plotPull.pullM of the project settings, how far every floor of a plot stands inside its outline, a length of 0 or more, 0 with no block plotPull, a
+    saved project with a copy of config from before this round, which builds as it did."""
+    if "plotPull" not in settings.get("floors"):
+        return 0
     pull = settings.get("floors.plotPull.pullM")
     if not plan_from_past.is_number(pull) or pull < 0:
         raise project_profile.ProfileError(settings.path.name + " floors.plotPull.pullM must be a length of 0 or more (R517)")

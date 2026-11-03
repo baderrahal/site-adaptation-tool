@@ -91,7 +91,8 @@ def ramp_corners(plan):
 def joint_limits(settings):
     """R471, R518. checkNearM and passGapM of floors.rampJoint, refused unless checkNearM is a length above 0 and passGapM one of 0 or more."""
     block = (settings.get("floors") or {}).get("rampJoint") or {}
-    limits = tuple(block.get(name) for name in ("checkNearM", "passGapM"))
+    # A saved project with a copy of config from before this round holds nearM alone and no pull
+    limits = (block.get("checkNearM", block.get("nearM")), block.get("passGapM"))
     if any(isinstance(value, bool) or not isinstance(value, (int, float)) for value in limits) or limits[0] <= 0 or limits[1] < 0:
         raise project_profile.ProfileError(NO_JOINT)
     return limits

@@ -683,12 +683,6 @@ def entry_estimate(front, unit, profile, steep, depth):
     return (front[0] + front[1]) / 2.0 + slope / 100.0 * depth, slope
 
 
-def face_loops(face):
-    """The whole baseplan face as plan loops, the outer ring and any hole, the first point not repeated."""
-    rings = [face.exterior] + list(face.interiors)
-    return [[plan_from_past.point(point[:2]) for point in list(ring.coords)[:-1]] for ring in rings]
-
-
 def pulled_rings(face, pull):
     """R517. The rings of a face as raw plan points, the outer ring pulled inside by pull, any hole as it stands, a face of a build is one ring with no hole (R354)."""
     rings = [[list(point[:2]) for point in list(ring.coords)[:-1]] for ring in [face.exterior] + list(face.interiors)]
@@ -703,7 +697,7 @@ def generic_floor(builder, face, inputs, z):
         builder.lack("floors.generic", "the new site file has no level " + level)
         return None
     return {"type": sourced(inputs["floors"]["types"]["generic"][0]), "level": sourced(level), "levelElevation": sourced(common.r3(elevation)),
-            "outline": sourced({"loops": [{"points": [plan_from_past.point(point) for point in loop], "arcs": []} for loop in pulled_rings(face, inputs["pull"])]}),
+            "outline": sourced({"loops": [{"points": [plan_from_past.point(point) for point in loop], "arcs": []} for loop in pulled_rings(face, inputs.get("pull"))]}),
             "plotValue": sourced(builder.entry["unit"]["value"] + "-" + builder.plot), "z": sourced(common.r3(z), ESTIMATE),
             "heightOffset": sourced(common.r3(z - elevation), ESTIMATE)}
 
@@ -731,6 +725,9 @@ def joint_rule(settings, basis):
     """R515. The joint rule of a build of the mode of basis, None with no joint: near of floors.rampJoint (R470), back with joinBack, the back corners joined as well,
     and slope, slopePercent, what a door level of a plot with a shared back corner takes. Off under a mode modes does not name, as the past job proof breaks with it."""
     near = joint_near(settings)
+    # A saved project with a copy of config from before this round holds join false and none of the keys below, and builds as it did
+    if near is None:
+        return None
     modes = settings.get("floors.rampJoint.modes")
     if not isinstance(modes, list) or not all(isinstance(mode, str) and mode in settings.get("designBasis.modes") for mode in modes):
         raise project_profile.ProfileError(settings.path.name + " floors.rampJoint.modes must list modes of designBasis.modes (R515)")
@@ -740,7 +737,7 @@ def joint_rule(settings, basis):
     slope = settings.get("floors.rampJoint.slopePercent")
     if not plan_from_past.is_number(slope) or slope < 0:
         raise project_profile.ProfileError(settings.path.name + " floors.rampJoint.slopePercent must be a number of 0 or more (R515)")
-    return {"near": near, "back": back, "slope": slope} if near is not None and basis is not None and basis["mode"] in modes else None
+    return {"near": near, "back": back, "slope": slope} if basis is not None and basis["mode"] in modes else None
 
 
 def corner_joints(corners, near):
@@ -807,7 +804,7 @@ def ramp_floor(builder, frame, corners, front, entry, slope, inputs, kind=None):
     R278: the ramp type the level profile names, else the type of its slope band."""
     heights = ramp_heights(front, entry)
     # R517. The floor of the plan stands inside the rule outline, the corners move with it and hold their levels
-    corners = floor_fit.pulled_ring(corners, inputs["pull"])
+    corners = floor_fit.pulled_ring(corners, inputs.get("pull"))
     kind = kind or floor_fit.type_of(slope, inputs["bands"])
     level = inputs["floors"]["levels"]["ramp"]
     elevation = inputs["levels"].get(level)
