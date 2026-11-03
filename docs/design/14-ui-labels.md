@@ -139,6 +139,7 @@ An entry marked CHOSEN in 5a was worded in 5a PR 2 or PR 5, where docs/design/ g
 - `The run failed: <n>` CHOSEN in 5a
 - `The read back does not match: <n>` CHOSEN in 5a
 - `Revit refused the change: <n>` CHOSEN in 5a
+- `The step is done, but its record did not reach the model, so a reopen asks for it again: <n>` CHOSEN in FIX-3NOV-B
 - `Revit did not commit the change.` CHOSEN in 5a
 - `<n> changed the model, but <n> was not saved: another program holds it open. Close it and run the button again.` CHOSEN in 5a
 - `<n> was not saved: another program holds it open.` CHOSEN in 5a

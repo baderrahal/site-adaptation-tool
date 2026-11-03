@@ -40,7 +40,8 @@ namespace SiteAdaptation.Tests
             Assert.Contains(shown[UiLabels.Messages], found => found.Text == " needs step " && found.Where.EndsWith("RunTexts.cs", StringComparison.Ordinal));
             Assert.Contains(shown[UiLabels.Messages], found => found.Text == "Cancel" && found.Where.EndsWith("RevitModel.cs", StringComparison.Ordinal));
             // 31 since Lane B 5c, the 11 messages of 2 Read data (R375)
-            Assert.Equal(31, list[UiLabels.Messages].Entries.Count);
+            // FIX-3NOV-B added 1, the record of a step that did not reach the model (R498)
+            Assert.Equal(32, list[UiLabels.Messages].Entries.Count);
             Assert.Contains(shown["Update from report"], found => found.Text == "follows the rules" && found.Where.EndsWith("UpdateText.cs", StringComparison.Ordinal));
             Assert.Contains(shown["Update from report"], found => found.Text == "<name> <n>" && found.Where.EndsWith("UpdateFromReportText.cs", StringComparison.Ordinal));
 
@@ -181,7 +182,8 @@ namespace SiteAdaptation.Tests
             // FIX-2NOV-C-CHECK added 2: the panel Pane and the refusal line of Show pane (R494). It added 4 more: Field, All fields, Find plot or note and Showing of Check table (R495)
             // SPEED-2NOV-C added 1, the line under the row Prototypes for files older than the running Revit (R496)
             // Q158 added 1, the short line of a grey Apply
-            Assert.Equal(256, chosen);
+            // FIX-3NOV-B added 1, the record of a step that did not reach the model (R498)
+            Assert.Equal(257, chosen);
             Assert.True(matched > 100, matched.ToString());
         }
 
