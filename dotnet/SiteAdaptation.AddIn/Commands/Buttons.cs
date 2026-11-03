@@ -65,7 +65,8 @@ namespace SiteAdaptation.AddIn
             }
             try
             {
-                RulesWindow.RulesWindowBody.Show(application.MainWindowHandle, session?.Settings?.RulesFile);
+                // R541. The table of values first, the manual rules one press away
+                PaneHost.Current.OpenRuleValues(application, document, session, owner => RulesWindow.RulesWindowBody.Show(owner, session.Settings.RulesFile));
             }
             catch (FileNotFoundException error)
             {

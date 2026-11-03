@@ -156,6 +156,23 @@ namespace SiteAdaptation.AddIn
             SavedStartsChanged();
         }
 
+        // R541. The rule values of the document. A Save names its rules copy in the settings and writes them at once as Save setup does, so the
+        // hash of the Rules input moves and 4 Check goes back to Ready, the steps after it wait on it
+        internal void OpenRuleValues(UIApplication application, Document revit, DocumentSession session, Action<IntPtr> manualRules)
+        {
+            string root = WorkRoot();
+            string saved = RuleValues.RuleValuesBody.Show(application.MainWindowHandle, session.Settings, root, WorkFolder.For(root, session.Path), manualRules, line => TaskDialog.Show(RibbonLayout.Tab, line));
+            if (saved != null)
+            {
+                session.Settings.RulesFile = saved;
+                var settings = new PaneSettings(Written(revit.IsReadOnly ? null : revit, session.Settings.Project));
+                if (model.Document == session)
+                {
+                    model.LoadSettings(settings);
+                }
+            }
+        }
+
         // The setup as the model holds it after the commit, the setup as saved with no model to write to, else the setup as saved with
         // the reason in the TaskDialog of the buttons
         private static ProjectSettings Written(Document revit, ProjectSettings saved)

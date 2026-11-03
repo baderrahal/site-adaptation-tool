@@ -1,0 +1,104 @@
+<Window x:Class="SiteAdaptation.AddIn.RuleValues.RuleValuesWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:rv="clr-namespace:SiteAdaptation.AddIn.RuleValues"
+        Title="{x:Static rv:RuleValuesText.Title}" Width="{DynamicResource SA.Size.SetupWidth}" MaxHeight="{DynamicResource SA.Size.DialogMax}"
+        SizeToContent="Height" ResizeMode="NoResize" ShowInTaskbar="False" WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource SA.Surface}">
+  <!-- R541. Every colour, size and font by Theme.xaml, every text in docs/design/14-ui-labels.md under Rule values -->
+  <Window.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="/SiteAdaptation.AddIn;component/Theme/Theme.xaml" />
+      </ResourceDictionary.MergedDictionaries>
+      <BooleanToVisibilityConverter x:Key="Shown" />
+      <Style x:Key="HeadText" TargetType="TextBlock" BasedOn="{StaticResource SA.Type.Label}">
+        <Setter Property="Foreground" Value="{StaticResource SA.Heading}" />
+      </Style>
+      <Style x:Key="CellText" TargetType="TextBlock" BasedOn="{StaticResource SA.Type.Body}">
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Margin" Value="{StaticResource SA.Gap.Right8}" />
+      </Style>
+    </ResourceDictionary>
+  </Window.Resources>
+  <DockPanel Background="{StaticResource SA.Surface}">
+    <Border DockPanel.Dock="Bottom" Background="{StaticResource SA.Panel}" Padding="{StaticResource SA.Pad.Foot}">
+      <DockPanel>
+        <Button DockPanel.Dock="Left" Style="{StaticResource SA.Button.Base}" Content="{x:Static rv:RuleValuesText.ManualRules}" Click="OnManualRules" />
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+          <Button Style="{StaticResource SA.Button.Base}" Content="{x:Static rv:RuleValuesText.Export}" Click="OnExport" />
+          <Button Style="{StaticResource SA.Button.Base}" Margin="{StaticResource SA.Gap.Left8}" Content="{x:Static rv:RuleValuesText.Import}" Click="OnImport" />
+          <Button Style="{StaticResource SA.Button.Base}" Margin="{StaticResource SA.Gap.Left8}" Content="{x:Static rv:RuleValuesText.Reset}" Click="OnReset" />
+          <Button Style="{StaticResource SA.Button.Base}" Margin="{StaticResource SA.Gap.Left8}" Content="{x:Static rv:RuleValuesText.Close}" Click="OnClose" />
+          <Button Style="{StaticResource SA.Button.Primary}" Margin="{StaticResource SA.Gap.Left8}" Content="{x:Static rv:RuleValuesText.Save}" IsEnabled="{Binding CanSave}" Click="OnSave" />
+        </StackPanel>
+      </DockPanel>
+    </Border>
+    <Border DockPanel.Dock="Bottom" Padding="{StaticResource SA.Pad.Box}" Visibility="{Binding HasLine, Converter={StaticResource Shown}}">
+      <TextBlock TextWrapping="Wrap" Text="{Binding Line}">
+        <TextBlock.Style>
+          <Style TargetType="TextBlock" BasedOn="{StaticResource SA.Type.Body}">
+            <Style.Triggers>
+              <DataTrigger Binding="{Binding LineIsProblem}" Value="True">
+                <Setter Property="Foreground" Value="{StaticResource SA.Error}" />
+              </DataTrigger>
+            </Style.Triggers>
+          </Style>
+        </TextBlock.Style>
+      </TextBlock>
+    </Border>
+    <StackPanel Margin="{StaticResource SA.Pad.Box}">
+      <TextBlock Style="{StaticResource SA.Type.Body}" TextWrapping="Wrap" Text="{x:Static rv:RuleValuesText.Line}" />
+      <Grid Margin="{StaticResource SA.Gap.Top8}">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="{StaticResource SA.Grid.RuleId}" />
+          <ColumnDefinition Width="{StaticResource SA.Grid.RuleName}" />
+          <ColumnDefinition Width="{StaticResource SA.Grid.RuleValue}" />
+          <ColumnDefinition Width="{StaticResource SA.Grid.RuleValue}" />
+          <ColumnDefinition Width="{StaticResource SA.Grid.RuleId}" />
+          <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <TextBlock Style="{StaticResource HeadText}" Text="{x:Static rv:RuleValuesText.ColumnId}" />
+        <TextBlock Grid.Column="1" Style="{StaticResource HeadText}" Text="{x:Static rv:RuleValuesText.ColumnName}" />
+        <TextBlock Grid.Column="2" Style="{StaticResource HeadText}" Text="{x:Static rv:RuleValuesText.ColumnManual}" />
+        <TextBlock Grid.Column="3" Style="{StaticResource HeadText}" Text="{x:Static rv:RuleValuesText.ColumnProject}" />
+        <TextBlock Grid.Column="4" Style="{StaticResource HeadText}" Text="{x:Static rv:RuleValuesText.ColumnUnit}" />
+        <TextBlock Grid.Column="5" Style="{StaticResource HeadText}" Text="{x:Static rv:RuleValuesText.ColumnPage}" />
+      </Grid>
+      <ItemsControl ItemsSource="{Binding Rows}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate DataType="{x:Type rv:RuleValueRow}">
+            <Border Padding="{StaticResource SA.Pad.Cell}" BorderBrush="{StaticResource SA.Border}" BorderThickness="{StaticResource SA.Line.Under}">
+              <Border.Style>
+                <Style TargetType="Border">
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding Changed}" Value="True">
+                      <Setter Property="Background" Value="{StaticResource SA.WarnGround}" />
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </Border.Style>
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="{StaticResource SA.Grid.RuleId}" />
+                  <ColumnDefinition Width="{StaticResource SA.Grid.RuleName}" />
+                  <ColumnDefinition Width="{StaticResource SA.Grid.RuleValue}" />
+                  <ColumnDefinition Width="{StaticResource SA.Grid.RuleValue}" />
+                  <ColumnDefinition Width="{StaticResource SA.Grid.RuleId}" />
+                  <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Style="{StaticResource CellText}" Text="{Binding Id}" />
+                <TextBlock Grid.Column="1" Style="{StaticResource CellText}" Text="{Binding Name}" />
+                <TextBlock Grid.Column="2" Style="{StaticResource CellText}" Text="{Binding Manual}" />
+                <TextBox Grid.Column="3" Style="{StaticResource SA.Pane.Entry}" Margin="{StaticResource SA.Gap.Right8}" Text="{Binding Project, UpdateSourceTrigger=PropertyChanged}" />
+                <TextBlock Grid.Column="4" Style="{StaticResource CellText}" Text="{Binding Unit}" />
+                <TextBlock Grid.Column="5" Style="{StaticResource CellText}" Text="{Binding Page}" />
+              </Grid>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </StackPanel>
+  </DockPanel>
+</Window>
