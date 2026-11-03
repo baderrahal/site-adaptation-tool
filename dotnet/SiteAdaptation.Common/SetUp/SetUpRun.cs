@@ -38,6 +38,9 @@ namespace SiteAdaptation.Common.SetUp
         private JObject rules;
         private JObject position;
         private ParameterSheet sheet;
+
+        // R508. The line said after the run that removed an old binding, null for any other run
+        private string removedLine;
         private string configSheet;
         private string otherSheet;
         private double slope;
@@ -94,7 +97,7 @@ namespace SiteAdaptation.Common.SetUp
 
         public ButtonBody Body()
         {
-            return new ButtonBody { Preview = Preview, Confirm = Confirm, Outside = Outside, Apply = Apply, ReadBack = context => readBack };
+            return new ButtonBody { Preview = Preview, Confirm = Confirm, Outside = Outside, Apply = Apply, ReadBack = context => readBack, Done = context => removedLine };
         }
 
         private RunSummary Preview(RunContext context)
@@ -296,6 +299,10 @@ namespace SiteAdaptation.Common.SetUp
                 throw new InvalidOperationException(string.Join(". ", stops));
             }
             SetUpChanges changes = SetUpPlanner.Changes(now, target);
+            // R508. A removal alone changes nothing steps 2 to 9 read, so on a step that holds they stay done
+            bool removalAlone = changes.RemovalAlone && StepHolds(context);
+            context.KeepsLastRun = removalAlone;
+            removedLine = changes.TakenOff.Count == 0 ? null : SetUpTexts.TakesOff(changes.TakenOff);
             int changing = View == null ? 0 : View.WillSet.Count(row => row.Differs);
             if (changes.Units)
             {
@@ -322,7 +329,7 @@ namespace SiteAdaptation.Common.SetUp
                 document.BindParameters(target, changes.Parameters);
             }
             // Q158. Nothing to set changes no element, so nothing is tagged
-            var issues = changes.Any ? new List<string>(tags.Tag(context.RunId, context.Button) ?? new string[0]) : new List<string>();
+            var issues = changes.Any && !removalAlone ? new List<string>(tags.Tag(context.RunId, context.Button) ?? new string[0]) : new List<string>();
 
             SiteState after = document.Read();
             View = SetUpPlanner.View(after, target, document.SharedNow);
@@ -339,6 +346,10 @@ namespace SiteAdaptation.Common.SetUp
                 return issues;
             }
             // Q158. With nothing set a file that holds the facts of the model stays as it is, one missing or off them is written again
+            if (removalAlone)
+            {
+                return issues;
+            }
             if (changes.Any || !SiteFileAgrees(Path.Combine(context.WorkFolder, SiteFile), after))
             {
                 context.WriteText(SiteFile, SiteJson(after, context.RunId).ToString(Newtonsoft.Json.Formatting.Indented));
