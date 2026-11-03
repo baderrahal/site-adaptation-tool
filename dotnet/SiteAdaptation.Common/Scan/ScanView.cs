@@ -193,7 +193,7 @@ namespace SiteAdaptation.Common.Scan
                 }
                 if (xrefs > 0)
                 {
-                    file.Found += " " + Fill(ScanViewText.XrefsNotRead, Count(xrefs));
+                    file.Found += ". " + Fill(ScanViewText.XrefsNotRead, Count(xrefs));
                 }
                 data.Files.Add(file);
             }

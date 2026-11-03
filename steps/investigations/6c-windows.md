@@ -23,7 +23,7 @@ Labels are the literals not in 14-ui-labels.md. "Pressed" is RAN in the real win
 | 5 to 8 run boxes | Loader by R444, bar, clock, Hide | The boxes are Revit dialogs and take no theme, against 12-ui-spec.md line 9 | 0. Pressed: Apply, Close, Revit OK | none of its own |
 | 9 Report | Run complete, name, Open folder | None. Summary reads not run yet for 1 and 3 (Q307) | 0 | 0 |
 | Rules | Title, band, chips, columns | Export to Excel hidden by R444 against 13-workflow-changes.md (Q405). No guide line, no foot | 0. Pressed: chips. Open the manual PDF not pressed | 0 |
-| Update from report | Pick line, columns, foot words | Foot lacks its line, Cancel and Dry run 28 high, chip style of its own. Filled state: see below | 0. Pressed: Browse, Cancel | 0 |
+| Update from report | Pick line, columns, foot words | Foot lacks its line, Cancel and Dry run 28 high, chip style of its own. Filled state not seen (Q408) | 0. Pressed: Browse, Cancel | 0 |
 | New project | Words, marks, band, box, foot | Reopen shows Empty project (Q400). Villa types without the count "without a level", Comes later. Change buttons hidden, CanChange is false | 0 shown. Change has no handler and never shows. Pressed: Browse, Get template, Check files, Save setup, Cancel | 0 |
 | Road surfaces | Not seen in Revit | Unknown in Revit (Q403). Static: no band, where docs/design/18-new-project.md says the style of New project | Pick surfaces grey under a past job. Handlers READ only | 0 |
 | How it works | Every word, columns, marks, notes | None | 0. Pressed: Close, Open New project | 0 |
@@ -49,6 +49,12 @@ Lane C's differences, each with a test seen failing first. PNGs rendered again.
 | Bader, drafts | Q284, Q286, Q293 |
 
 Board and spec disagree on spacing, Tokens padding 20, 18, 14 against the scale of 12-ui-spec.md, and the XAML keeps the spec, as control 4 says no difference is fixed by changing it. Button text 13 against 14 on the boards and the title bar words stay as they are for the same reason, listed for Q286.
+
+## Re-check of the fixes in Revit
+
+RAN on 58ed3bc, a third run on a fresh copy, New project and buttons 1 to 9, the steps of steps/part1-check.md. Seen in the real windows: Not checked whole, Tool value (rule) clear of Past job, combos end in an ellipsis before the arrow, the Baseplan reads Read with 3 external references. 1,003 floors, 336 villas, 778 walls, 1,339 Placed rows, 688 accepted, box 485. 43 inputs the same by SHA-256. A separator between the found text and the references line was added after this run, tested, not seen again in Revit. Hover and the pane section lines were read from the shots or the XAML, hover cannot show in a still shot, so UNKNOWN in Revit.
+
+The first attempt of this run stopped at button 4: the private config copy had lost its override list, as make_cfg.py removed the folder first and Windows refused a held directory. It now copies over and checks the sizes. The sheet line is that script.
 
 ## Found on the way
 

@@ -724,3 +724,7 @@ Q406. Conflicts Plot column shows the CAD label (Lane C 6C-3NOV-C, CHECK-2NOV pa
 Q407. Amber in the spec or the boards (Lane C 6C-3NOV-C, docs/design/12-ui-spec.md line 34 against boards). The spec says amber is SA.Warn #7A4B00, the boards draw marks in #B26B00 (READ). The XAML follows the spec, so the missing marks read brown beside the board. Button text 13 against the boards' 14, padding on the 4 to 24 scale against the boards' 18 and 20, the same kind.
 - Recommended: The spec holds, the boards are drafts of the words and layout, say so in Q286.
 - Other: The boards hold, change SA.Warn, button text 14 and the padding scale, which moves every window.
+
+Q408. Update from report shows nothing after a pick (Lane C 6C-3NOV-C, Lane B window). A real report picked by Browse in Update from report: the file dialog closed, and 26 s later the window stood empty, no tile, no message, Apply 0 changes grey (RAN, shot p2-082, an unedited copy). The try with an edited copy failed twice on my driver, not on the window, so the filled state is not seen in this round. Lane B's CHECK-2NOV covered the flow on an earlier main. Whether the window is slow, or silent on an Excel with no change, is UNKNOWN.
+- Recommended: Lane B runs part 9 of steps/bader-fix-1nov.md once on main, and the window says No changes found when an Excel has none.
+- Other: Leave it, a person only picks an Excel they edited.

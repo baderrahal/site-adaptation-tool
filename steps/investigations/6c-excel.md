@@ -5,6 +5,7 @@ The Level Excel and the Report Excel of NBH 012 against the past job Excel of th
 ## What was compared
 
 - Tool (RAN): 012_Levels_parsons2024Rev6.xlsx and 012_Report.xlsx of a real run through the Revit pane, buttons 1 to 9, 3 Nov 2026, on check/6c-3nov-c at 6380769, which is main 708e0fd plus the window changes of this round. No build logic changed on that branch. Config of the branch with the demo input paths, level profile parsons2024Rev6, scope NBH 012. Files outside git in Documents\SiteAdaptation\SA-part2_56ba52e4.
+- Second run (RAN): the same run on 58ed3bc, with main ed5d318 and the R505 fixes, gives the same counts on every row of the table below. Files in Documents\SiteAdaptation\SA-part3_a855d621.
 - Past job (READ): 00101-PSN-IMC-XXX-SCH-TU-090000.xlsx in 01_Output\1.11 References, sheet MP_Phase 1_Zone21, header on row 39. NBH 012 is IMC by config/area_codes.json. Read on a copy, SHA-256 the same before and after (RAN).
 - SEARCHED: it is the only past Excel found for this neighbourhood, by file name under C:\02-Site Adaptation and C:\10- ROSHEN MECCA, depth 6. The other copy under C:\10- ROSHEN MECCA carries the same name, not compared byte for byte.
 - No past Report Excel was found, so the Report has no past file to compare against. Its Placed sheet is compared with the past Unit column instead, below.

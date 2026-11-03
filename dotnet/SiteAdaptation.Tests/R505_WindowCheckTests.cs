@@ -235,7 +235,7 @@ namespace SiteAdaptation.Tests
             var settings = new SiteAdaptation.Common.Settings.ProjectSettings();
             var file = SiteAdaptation.Common.Scan.ScanView.Read(ScanWith("site.dwg|xref a", "site.dwg|xref b", "site.dwg|xref c"), settings).Files.Single();
             Assert.Equal("Read", file.Status);
-            Assert.EndsWith("External references not read: 3.", file.Found);
+            Assert.EndsWith(". External references not read: 3.", file.Found);
             Assert.StartsWith("1 layers, 4 closed outlines", file.Found);
         }
 

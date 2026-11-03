@@ -27,6 +27,7 @@ Do not chase these. Each has a question in steps/questions-open.md.
 | Rules has no Export to Excel button, hidden on purpose since R444 | Rules | Q405 |
 | The Plot column of Conflicts shows the CAD label, not Plot No. Plot No 2291 has CAD label 2281, and another plot has Plot No 2281 | 2 Read data | Q406 |
 | 12 plots differ from the past schedule on FFL, up to 187 mm, and plot 2312 is blank | Level Excel | Q401, Q402 |
+| Update from report showed nothing after a report was picked, in the one try of this round. Its filled state is not seen by this round. Lane B ran the same flow in CHECK-2NOV | Update from report | Q408 |
 | A file dialog can take over a minute to appear or close, its inside black meanwhile. Wait, do not press again | Every Browse | none, seen once per dialog in this round, cause UNKNOWN |
 
 The 4 masses questions Q390 to Q393 are about the wall ring, they change no step below.
@@ -49,7 +50,7 @@ C:\Users\p003653k\Tools\pwsh\pwsh.exe -File dotnet\SiteAdaptation.AddIn\Install-
 
 The last line copies the config and rules of what you just pulled to Documents\SiteAdaptation\check_6c, keeps the demo input paths and writes the saved project SA-6c. It writes nothing under C:\SA-demo or the repo. Do not use ROSHN Makkah (saved) for this check: its config C:\SA-demo\config\project.json is older than PR 153 and button 7 stops on addin.lightMode.wallRingOutsideM (seen in this round).
 
-Look for: the build ends with "0 Error(s)". The install shows no red line. make_cfg prints wallRingOutsideM 1.0.
+Look for: the build ends with "0 Error(s)". The install shows no red line. make_cfg ends with config and rules copied, saved project SA-6c written. If it ends in a red error, stop and tell Lane C, button 4 cannot run without its copy.
 
 ## Page 1. New project (PR 112, 117, 132, 133)
 
@@ -99,7 +100,7 @@ Look for: 2 of 2 check points pass on an existing site file with Diff 0.00 (this
 6. Press Close on the box.
 7. In the pane under Scope, pick Neighbourhood and then 012 in its list.
 
-Look for: 18 files read, 2,964 plots found, 386 conflicts on What the tool read (hand run, this round). About 155 s in the hand run, 109 s in this round. Plot outline and Plot number read 2,964 plots, Clear. The Neighbourhood list holds 012 and 013 after this step (PR 131). The row reads 2 issues (this round).
+Look for: 18 files read, 2,964 plots found, 386 conflicts on What the tool read (hand run, this round). About 155 s in the hand run, 109 s in this round. Plot outline and Plot number read 2,964 plots, Clear. The Baseplan row reads Read and External references not read: 3 (R505, this round). The Neighbourhood list holds 012 and 013 after this step (PR 131). The row reads 2 issues (this round).
 
 ## Page 4. 3 Review data (PR 111, 119, 124, 133)
 
@@ -110,7 +111,7 @@ Look for: 18 files read, 2,964 plots found, 386 conflicts on What the tool read 
 5. The band goes back to Read data (Q306). Press Run 2 Read data, Apply and Close on the box. The read is reused, about 8 s (this round).
 6. Press Run 3 Review data again, Save review if asked, then Close.
 
-Look for: the title 3 Review data, NBH 012, 337 plots. 337 of 337 checked by the team after Confirm all, OK 337 (this round). Team check reads the whole words Not checked before it (PR of this round). The hand run counted 379 of 379 under a wider scope, not a fault. The row reads Done, the band Next step, Check, and the line under the tick says the tool unticks Dry run for 4 Check (PR 133).
+Look for: the title 3 Review data, NBH 012, 337 plots. 337 of 337 checked by the team after Confirm all, OK 337 (this round). Team check reads the whole words Not checked before it (R505, this round). The hand run counted 379 of 379 under a wider scope, not a fault. The row reads Done, the band Next step, Check, and the line under the tick says the tool unticks Dry run for 4 Check (PR 133).
 
 ## Page 5. 4 Check (PR 111, 119, 147, 149)
 
@@ -164,7 +165,7 @@ Look for: 778 placed, listed 779 (hand run). About 7 s. The row reads 779 issues
 4. Press Open folder in the band.
 5. Open 012_Report.xlsx.
 
-Look for: the band reads Run complete, 012_Report.xlsx, The report is in the work folder. About 6 s. Sheets Summary, Placed, Skipped, Overrides, Assumed, Issues, Accepted warnings, Rules, Settings (this round). Placed has 1,339 rows: link 336, generic 336, ramp 336, yard 331, with 1,339 distinct element ids (hand run, this round for the rows). Summary reads 1,003 for floors, 336 for levels and villas, 778 for walls (this round). Accepted warnings has 688 rows (hand run).
+Look for: the band reads Run complete, 012_Report.xlsx, The report is in the work folder. About 6 s. Sheets Summary, Placed, Skipped, Overrides, Assumed, Issues, Accepted warnings, Rules, Settings (this round). Placed has 1,339 rows: link 336, generic 336, ramp 336, yard 331, with 1,339 distinct element ids (hand run, this round for the rows). Summary reads 1,003 for floors, 336 for levels and villas, 778 for walls (this round). Accepted warnings has 688 rows (hand run, this round).
 
 6. Save the model.
 7. Close it and open it again.
@@ -175,7 +176,7 @@ Look for: the rows keep Done and their issue counts, the band stays Run complete
 
 1. Press How it works in the pane. Look for: 9 steps, one row per button, then press Close (PR 112).
 2. On the Site Adaptation tab press Site Adaptation Rules. Look for: 15 rules, M06 reads Differs, then close it with its X (PR 111).
-3. On the tab press Update from report. Look for: Pick the edited report Excel, then press Cancel (PR 110).
+3. On the tab press Update from report. Look for: Pick the edited report Excel and Apply 0 changes grey, then press Cancel (PR 110). The flow with an edited Excel is Q408.
 
 ## What to send back
 
