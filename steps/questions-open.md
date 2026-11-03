@@ -734,6 +734,14 @@ Q418. Empty project keeps old rules on a set up model (Lane C GUIDE-3NOV-C, R486
 - Recommended: A line in the window says this model keeps its rules, under Empty project.
 - Other: Copy the set over, the old override list is lost.
 
+Q419. Ramp slope limit does nothing under the past job (Lane C RULES-3NOV-C, R541). Front ramp slope, largest lists plots outside the manual only under Rev 06 (BuildPlan, IsRev6). Under the past job the plan stays the same (RAN, worker build on NBH 012). A Save of a model also leaves a Save As sharing that copy, as Q397.
+- Recommended: Keep it in the table and let the row say Rev 06 only, in Part 2.
+- Other: Hide the two rows under the past job.
+
+Q440. Rules table not yet proven in Revit (Lane C RULES-3NOV-C, R541). The pass on a copy of the dry run stopped each time before the table opened. The last stop was a locked PC screen, LogonUI running, no foreground window (RAN). Save, reset and the plan change hold in the tests and the worker build, not by a press in Revit.
+- Recommended: Keep the PC unlocked for one 20 minute pass, Lane C runs it and reports the five plans.
+- Other: Bader checks the table by hand in his check of Part 1.
+
 Q450. Report defaults of old number, revision, status (Lane B, R550, R552). CHOSEN: Old Plot No. is baseplanLabel of plots.csv, v9PlotNumber differs, revision P01, status S0.
 - Recommended: keep these, addin.report in config changes them.
 - Other: name the column and codes.

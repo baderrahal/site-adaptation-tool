@@ -65,13 +65,18 @@ namespace SiteAdaptation.AddIn
             }
             try
             {
-                RulesWindow.RulesWindowBody.Show(application.MainWindowHandle, session?.Settings?.RulesFile);
+                // R541. The table of values first, the manual rules one press away
+                PaneHost.Current.OpenRuleValues(application, document, session, owner => RulesWindow.RulesWindowBody.Show(owner, session.Settings.RulesFile));
             }
             catch (FileNotFoundException error)
             {
                 TaskDialog.Show(RibbonLayout.Tab, error.Message + ": " + error.FileName);
             }
             catch (InvalidDataException error)
+            {
+                TaskDialog.Show(RibbonLayout.Tab, error.Message);
+            }
+            catch (Newtonsoft.Json.JsonException error)
             {
                 TaskDialog.Show(RibbonLayout.Tab, error.Message);
             }

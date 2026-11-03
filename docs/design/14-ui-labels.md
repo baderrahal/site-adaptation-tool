@@ -578,6 +578,34 @@ The window New project of Lane C NEWPROJ-UI, word for word from docs/design/boar
 - `Not in the folder any more: <name>. It stays unticked.` CHOSEN, DRAFT, the line naming the saved surfaces the folder no longer holds (R492)
 - `The road surface folder holds no road surface files. Pick the folder in the row Road levels, then open this window again.` CHOSEN, DRAFT, the line of a folder with nothing to pick (R492)
 
+### Rule values
+
+The table of the button Site Adaptation Rules (R541). Rows come from config/rule_values.json.
+
+- `Site Adaptation Rules`
+- `Change a value here, the rule itself stays as it is. A changed value shows amber, and 4 Check goes back to Ready after Save.` CHOSEN, R541
+- `Rule`
+- `Name` CHOSEN, R541
+- `Manual value` CHOSEN, R541, by Bader's round RULES-3NOV-C
+- `Project value` CHOSEN, R541, by Bader's round RULES-3NOV-C
+- `Unit` CHOSEN, R541, by Bader's round RULES-3NOV-C
+- `Manual page` CHOSEN, R541, by Bader's round RULES-3NOV-C
+- `Save`
+- `Reset to manual` CHOSEN, R541, by Bader's round RULES-3NOV-C
+- `Export`
+- `Import` CHOSEN, R541, by Bader's round RULES-3NOV-C
+- `Manual rules` CHOSEN, R541
+- `Close`
+- `Saved for this project.` CHOSEN, R541
+- `No value changed, nothing was saved.` CHOSEN, R541
+- `This model is read only, so its rules can not be saved.` CHOSEN, R541
+- `Save the model first, the rules of a project are kept by its file name.` CHOSEN, R541
+- `The rules were not saved: <name>` CHOSEN, R541
+- `Not imported: <name>` CHOSEN, R541
+- `it would lie in the input folder, which the tool never writes` CHOSEN, R541
+- `Exported: <name>` CHOSEN, R541
+- `The list of rule values is not there. Reinstall the add-in.` CHOSEN, R541
+
 ### Help box
 
 The side box of the i of a step row and a New project row (R540). Its text comes from the help file, built from steps/buttons-guide.md by python/build_help.py. Only the headings stand here.

@@ -1,0 +1,14 @@
+{
+ "note": "R541. The rule values the team may change in Site Adaptation Rules: each row is a value of the rules profile by its path, read by the code, with the value and page of the manual. Rule logic is not here and can not change. min and max are the limits a project value may take, CHOSEN by Lane C from the choices of the profile. atMost names the row a value may not pass, whole a value that counts.",
+ "rows": [
+  {"key": "frontSlopeMin", "id": "M05", "name": "Front ramp slope, smallest", "path": ["slopes_percent", "front_min"], "manual": 0.5, "unit": "%", "page": "2.3.A, p. 10 (PDF 13)", "min": 0, "max": 15, "atMost": "frontSlopeMax"},
+  {"key": "frontSlopeMax", "id": "M05", "name": "Front ramp slope, largest", "path": ["slopes_percent", "front_max"], "manual": 2, "unit": "%", "page": "2.3.A, p. 10 (PDF 13)", "min": 0, "max": 15},
+  {"key": "stepsMax", "id": "M08", "name": "Added steps, most", "path": ["steps", "front_max"], "manual": 3, "unit": "steps", "page": "2.4.A, p. 13 (PDF 16)", "min": 1, "max": 6, "whole": true},
+  {"key": "riserAdded", "id": "M08", "name": "Height of an added step", "path": ["steps", "riser_added"], "manual": 170, "unit": "mm", "page": "Appendix A, p. 40 (PDF 43)", "min": 100, "max": 180, "atMost": "riserMax"},
+  {"key": "riserMin", "id": "M09", "name": "Riser, smallest", "path": ["steps", "riser_min"], "manual": 100, "unit": "mm", "page": "2.4.A, p. 13 (PDF 16)", "min": 50, "max": 300, "atMost": "riserMax"},
+  {"key": "riserMax", "id": "M09", "name": "Riser, largest", "path": ["steps", "riser_max"], "manual": 180, "unit": "mm", "page": "2.4.A, p. 13 (PDF 16)", "min": 50, "max": 300},
+  {"key": "wallTop", "id": "M11", "name": "Boundary wall top above FFL", "path": ["rev6", "boundary_wall_top_above_ffl"], "manual": 1700, "unit": "mm", "page": "2.5.C, p. 15 (PDF 18)", "min": 0, "max": 4000},
+  {"key": "wallThickness", "id": "M14", "name": "Boundary wall thickness", "path": ["plot", "boundary_wall_thickness"], "manual": 200, "unit": "mm", "page": "2.8.A, p. 20 (PDF 23)", "min": 50, "max": 500},
+  {"key": "irregularTolerance", "id": "M14", "name": "Irregular plot, corner tolerance", "path": ["rev6", "irregular_tolerance_deg"], "manual": 2, "unit": "degrees", "page": "2.8.A, p. 20 (PDF 23), the degrees measured on the 7 keys", "min": 0.1, "max": 44}
+ ]
+}

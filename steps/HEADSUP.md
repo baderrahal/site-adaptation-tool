@@ -12,7 +12,7 @@
 ### Lane B, C and D
 
 - Lane B 23:00, 3 Nov, branch report/lane-b-3nov: R550 to R555, real book 105,411 matches 0 mismatches. New: ReportFile.Fields, Name by ReportRun and Book, the sheet tables by Book, ReportRun.Facts by Outside, ButtonRun.IssueCount by StepRun.From and Facts. Now: breaker, gate, PR. Next: 6b. Blocked: none
-- Lane C, 3 Nov, branch feat/help-3nov-c: PR 160, 161, 162 merged, HELP PR going up, next RULES-3NOV-C. Ids R540 to R549, Q416 to Q419, Q440 to Q449. New callers: HelpBook by HelpFile, HelpFile by the pane and New project rows, HelpBox by OnStepHelp and OnRowHelp. A guide change needs python/build_help.py. I own the pane file tonight. Blocked: none
+- Lane C, 4 Nov 01:20, branch feat/rules-3nov-c: HELP and RULES built, RULES PR going up (R541, Q419, Q440). New callers: RuleValues by RuleValuesViewModel, PaneHost.OpenRuleValues by Buttons.Rules. Revit pass not done, screen locked. Next: pane texts of Lanes A, B, D. Lock free. Blocked: none
 - Lane D MASS-3NOV-D, 4 Nov 00:20, branch mass/3nov-d: Revit checks done, lock free. Over 1 mm 45 to 0 on NBH 012. Now: gate, the PR. Next: TOPO-3NOV-D on topo/3nov-d. Ids R530 to R539, R570 to R579, Q470 to Q479. Blocked: none
   New callers: MassCut.Apply by MassFileSet.Make. MassFileConfig.PartyLineOf by MassFileSet.Make. MassBase.UncutAreaM2, NotCut by MassFiles.Sidecar, Check.
 
