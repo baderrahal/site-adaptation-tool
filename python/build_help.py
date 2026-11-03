@@ -28,21 +28,14 @@ ROWS = {
     "Road levels (civil file)": "roadLevels",
     "Parameter sheet (Excel)": "parameterSheet",
 }
-PLAIN_NAMES = [
-    (r"plan_<NBH>\.json", "the plan"),
-    (r"review_<NBH>\.json", "the review file"),
-    (r"read_plotTable\.json", "the plot table"),
-    (r"project\.json", "the project settings file"),
-    (r"roshn-makkah\.json", "the rules file"),
-    (r"position_parsons\.json", "the position file"),
-    (r"cad_layers\.json", "the layer list"),
-    (r"floor_outlines\.json", "the floor outlines file"),
-    (r"prototype_offsets\.json", "the prototype offsets file"),
-    (r"site\.json", "the site file of step 1"),
-    (r"read_baseplan, read_villaBlocks, read_curbs, read_workbooks", "The reads of step 2"),
-]
 LEADS = {"Where it comes from": "From: ", "Folder": "Folder: "}
-CODE_NAMES = re.compile(r"\bR\d{3}\b|\.json\b|\baddin\.|\bcoordinates\.|\bdesignBasis\b|\bpositionFile\b|\brev6\b|\bread_[a-zA-Z]+")
+CODE_NAMES = re.compile(r"\bR\d{3}\b|\.json\b|\baddin\.|\bcoordinates\.|\bdesignBasis\b|\bpositionFile\b|\bread_[a-zA-Z]+")
+
+
+def plain_names():
+    """R540. The plain name of each file of the guide, in config since the names belong to the project."""
+    config = json.loads((ROOT / "config" / "project.json").read_text(encoding="utf-8-sig"))
+    return config["addin"]["helpFileNames"]
 
 
 class HelpError(Exception):
@@ -51,8 +44,8 @@ class HelpError(Exception):
 
 def plain(text):
     text = text.replace("**", "").strip()
-    for pattern, name in PLAIN_NAMES:
-        text = re.sub(pattern, name, text)
+    for item in plain_names():
+        text = text.replace(item["file"], item["name"])
     found = CODE_NAMES.search(text)
     if found:
         raise HelpError("code name %r in the guide line: %s" % (found.group(0), text))
