@@ -8,19 +8,19 @@ Goal:
 - Bader's dry run: the pane row read Not chosen, New project said the sheet is missing, Q411 floors bound but empty
 
 Done:
-- R506: the pane row shows the sheet of config, green, 11 parameters, 12 left out, New project reads Found. R507: config/shared_parameters.xlsx, the 9 RRE_ZZ_SP_ rows and CASE on RVT Links alone, Plot on Floors. An old sheet stops button 1 and the pane says why
+- R506: the pane row shows the sheet of config, green, 11 parameters, 12 left out, New project reads Found. R507: config/shared_parameters.xlsx, the 9 RRE_ZZ_SP_ rows and CASE on RVT Links alone, Plot on Floors. An old sheet stops nothing, a button 7 row binds on links alone whatever it names, so C:\SA-demo needs no edit
 - R508: button 1 takes other categories off a links row and says so before Apply and after. A removal alone keeps the last run, so steps 2 to 9 stay done
-- CHOSEN: CASE also leaves Detail Items, Bader's check asks links only. The stop on an old sheet is CHOSEN too
+- CHOSEN: CASE also leaves Detail Items, Bader's check asks links only
 
 Checked:
 - GATELINE
-- Review 1: chosen sheet green though button 1 stops, line gone after the run, code names in the note. Breaker 1: the rebind took Done off 2 to 9, the stop's advice could not be followed. All fixed with tests. The rest in steps/latent.md
+- Review 1: chosen sheet green though button 1 stops, line gone after the run, code names in the note. Breaker 1: the rebind took Done off 2 to 9. The stop on an old sheet taken out at Bader's fix step 1. All fixed with tests. The rest in steps/latent.md
 
 Remains:
 - The Revit check, waits for Bader to say the dry run is over: no Revit, no lock, no install, no C:\SA-demo until then. So UNKNOWN: BindParameters in Revit, whether link values survive ReInsert on fewer categories, the windows in Revit
 
 Known bugs:
-- C:\SA-demo\config and New projects\SA-3nova_8130b48d hold the old sheet (RAN by breaker, same SHA-256 as main before). After an install from this main, button 1 stops on them with 4 lines until the sheet is replaced. A model keeps the old binding until a press of 1
+- A model keeps the old binding until a press of 1
 
 Next:
 - Bader says the dry run is over, then the Revit check on a copy of SA-dryrun3nov-done.rvt and a records PR

@@ -70,10 +70,10 @@ namespace SiteAdaptation.Tests
             Assert.Contains(links, item => item.Name == "CASE");
             Assert.All(links, item => Assert.True(item.LinksOnly, item.Name));
             ParameterSpec plot = sheet.Parameters.Single(item => item.Name == "Plot");
-            Assert.Equal(new[] { ParameterSheet.FloorCategory }, plot.Categories);
+            Assert.Equal(new[] { "Floors" }, plot.Categories);
             Assert.False(plot.LinksOnly);
             // R465. Button 7 fills link rows only, so no parameter it writes can stand on a floor
-            Assert.DoesNotContain(sheet.Parameters.Where(item => item.FilledBy == ParameterSheet.PlaceVillasButton), item => item.Categories.Contains(ParameterSheet.FloorCategory));
+            Assert.DoesNotContain(sheet.Parameters.Where(item => item.FilledBy == ParameterSheet.PlaceVillasButton), item => item.Categories.Contains("Floors"));
         }
 
         [Fact]
@@ -142,15 +142,6 @@ namespace SiteAdaptation.Tests
             // Button 1 stops on it, so the row says why and shows no code name
             Assert.True(row.Found);
             Assert.Equal("mine.xlsx is not the parameter sheet of config, shared_parameters.xlsx, the one every button reads. Edit shared_parameters.xlsx instead", row.Note);
-        }
-
-        [Fact]
-        public void R507_a_sheet_from_before_the_rule_stays_green_with_the_reason_button_1_stops()
-        {
-            FileRowViewModel row = PaneRow(new ProjectSettings { ConfigFile = "cfg" }, new SheetProbe { Config = Sheet, Read = new SheetRead { Line = "11 parameters, 12 left out", Warning = "old sheet" } });
-            Assert.True(row.Found);
-            Assert.Equal("11 parameters, 12 left out", row.Hint);
-            Assert.Equal("old sheet", row.Note);
         }
 
         [Fact]

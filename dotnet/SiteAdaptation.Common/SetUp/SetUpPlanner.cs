@@ -116,10 +116,6 @@ namespace SiteAdaptation.Common.SetUp
                 {
                     stops.Add(SetUpTexts.FloorsOwn(item.Name, ParameterSheet.FloorsButton));
                 }
-                if (item.Name != target.PlotParameter && target.Parameters.VillaRowsOnFloors.Contains(item))
-                {
-                    stops.Add(SetUpTexts.VillaRowOnFloors(target.Parameters.Sheet, item.Name));
-                }
             }
             SetUpChanges changes = Changes(now, target);
             if (changes.FloorTypes.Count > 0 && now.FloorTypes.Count == 0)
@@ -187,7 +183,7 @@ namespace SiteAdaptation.Common.SetUp
                 // R464. A binding under another group than the sheet names is put again under that of the sheet
                 bool otherGroup = have?.Group != null && item.Group != null && !string.Equals(have.Group, item.Group, StringComparison.OrdinalIgnoreCase);
                 // R508. A model set up before R507 holds the row on more than the links
-                List<string> extra = have != null && item.LinksOnly ? have.Categories.Where(category => !item.Categories.Contains(category)).ToList() : new List<string>();
+                List<string> extra = have != null && item.LinksOnly ? have.Categories.Where(category => !item.BoundOn.Contains(category)).ToList() : new List<string>();
                 foreach (string category in extra)
                 {
                     if (!changes.TakenOff.TryGetValue(category, out List<string> names))
@@ -196,7 +192,7 @@ namespace SiteAdaptation.Common.SetUp
                     }
                     names.Add(item.Name);
                 }
-                if (have == null || otherGroup || extra.Count > 0 || item.Categories.Any(category => !have.Categories.Contains(category)))
+                if (have == null || otherGroup || extra.Count > 0 || item.BoundOn.Any(category => !have.Categories.Contains(category)))
                 {
                     changes.Parameters.Add(item);
                 }

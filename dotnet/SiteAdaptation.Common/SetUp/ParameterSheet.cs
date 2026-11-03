@@ -18,10 +18,20 @@ namespace SiteAdaptation.Common.SetUp
         public List<string> Categories { get; set; } = new List<string>();
         public int? FilledBy { get; set; }
 
-        // R507. A row bound on the villa links alone holds that binding exactly, button 1 takes any other category off it
+        // R507. A row bound on the villa links alone holds that binding exactly, button 1 takes any other category off it. Button 7 writes
+        // villa links only, so a row it fills is such a row also where a sheet from before the rule names more
         public bool LinksOnly
         {
-            get { return Categories.Count == 1 && Categories[0] == ParameterSheet.LinkCategory; }
+            get
+            {
+                return Categories.Contains(ParameterSheet.LinkCategory) && (Categories.Count == 1 || FilledBy == ParameterSheet.PlaceVillasButton);
+            }
+        }
+
+        // R507. The categories button 1 binds the row on
+        public List<string> BoundOn
+        {
+            get { return LinksOnly ? new List<string> { ParameterSheet.LinkCategory } : Categories; }
         }
     }
 
@@ -36,9 +46,8 @@ namespace SiteAdaptation.Common.SetUp
         public const string TextType = "TEXT";
         public const string FilledByNone = "none";
 
-        // R507. The Revit categories of the rule, by the names the Category column gives
+        // R507. The Revit category of the villa links, by the name the Category column gives
         public const string LinkCategory = "RVT Links";
-        public const string FloorCategory = "Floors";
 
         // R465. The buttons that write a parameter of the sheet, Floors the floor parameter of floors.plotParameter and Place villas
         // every link parameter it owns
@@ -52,12 +61,6 @@ namespace SiteAdaptation.Common.SetUp
 
         // The names of the rows of Keep No
         public List<string> LeftOut { get; private set; } = new List<string>();
-
-        // R507. The rows button 7 fills that a sheet from before the rule still binds on Floors
-        public List<ParameterSpec> VillaRowsOnFloors
-        {
-            get { return Parameters.Where(item => item.FilledBy == PlaceVillasButton && item.Categories.Contains(FloorCategory)).ToList(); }
-        }
 
         // R506. The line under the pane row Shared parameters
         public string Counts

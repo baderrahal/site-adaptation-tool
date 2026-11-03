@@ -260,7 +260,7 @@ namespace SiteAdaptation.AddIn.Revit
                 {
                     categories.Insert(category);
                 }
-                foreach (string name in item.Categories)
+                foreach (string name in item.BoundOn)
                 {
                     categories.Insert(document.Settings.Categories.get_Item(name) ?? throw new InvalidOperationException("the project holds no category " + name + " to bind " + item.Name + " on"));
                 }

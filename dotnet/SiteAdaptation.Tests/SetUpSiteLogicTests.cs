@@ -116,11 +116,19 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R507_a_sheet_that_still_binds_a_villa_row_on_floors_stops_button_1_with_the_reason()
+        public void R507_a_sheet_from_before_the_rule_does_not_stop_button_1_and_binds_its_villa_rows_on_the_links_alone()
         {
-            SetUpTarget target = Target(sheet: ParameterSheet.FromRows("old.xlsx", Sheet(new[] { "CASE", CaseGuid, "Text", "Floors, RVT Links", "7", "Yes" }, new[] { "Plot", NameGuid, "Text", "Floors", "5", "Yes" })));
-            List<string> stops = SetUpPlanner.Stops(Template(), target);
-            Assert.Equal(new[] { "old.xlsx binds CASE on Floors. Shared parameters are for the villa links only, so set its Category to RVT Links in that file" }, stops);
+            SetUpTarget target = Target(sheet: ParameterSheet.FromRows("old.xlsx", Sheet(new[] { "CASE", CaseGuid, "Text", "Detail Items, RVT Links", "7", "Yes" }, new[] { "AA_Name", NameGuid, "Text", "Floors, RVT Links", "7", "Yes" }, new[] { "Plot", "faecae98-f82c-46b5-bd80-489380545236", "Text", "Floors", "5", "Yes" })));
+            ParameterSpec old = target.Parameters.Parameters[1];
+            Assert.Equal(new[] { "Floors", "RVT Links" }, old.Categories);
+            Assert.Equal(new[] { "RVT Links" }, old.BoundOn);
+            Assert.Equal(new[] { "Floors" }, target.Parameters.Parameters[2].BoundOn);
+            SiteState site = Template();
+            Assert.Empty(SetUpPlanner.Stops(site, target));
+            site.SharedParameters.Add(new ParameterState { Name = "AA_Name", Guid = NameGuid, Group = "Text", Categories = { "Floors", "RVT Links" } });
+            Assert.Equal(new[] { "AA_Name" }, SetUpPlanner.Changes(site, target).TakenOff["Floors"]);
+            site.SharedParameters.Single(item => item.Name == "AA_Name").Categories = new List<string> { "RVT Links" };
+            Assert.False(SetUpPlanner.Changes(site, target).TakenOff.ContainsKey("Floors"));
         }
 
         private SetUpTarget Target(double slope = 0.5, ParameterSheet sheet = null)
@@ -1303,7 +1311,7 @@ namespace SiteAdaptation.Tests
                 foreach (ParameterSpec item in parameters)
                 {
                     State.SharedParameters.RemoveAll(found => found.Guid == item.Guid);
-                    State.SharedParameters.Add(new ParameterState { Name = item.Name, Guid = item.Guid, Categories = item.Categories.ToList(), Group = item.Group });
+                    State.SharedParameters.Add(new ParameterState { Name = item.Name, Guid = item.Guid, Categories = item.BoundOn.ToList(), Group = item.Group });
                 }
             }
 
@@ -1332,7 +1340,7 @@ namespace SiteAdaptation.Tests
             {
                 foreach (ParameterSpec item in target.Parameters.Parameters)
                 {
-                    State.SharedParameters.Add(new ParameterState { Name = item.Name, Guid = item.Guid, Categories = item.Categories.ToList(), Group = item.Group });
+                    State.SharedParameters.Add(new ParameterState { Name = item.Name, Guid = item.Guid, Categories = item.BoundOn.ToList(), Group = item.Group });
                 }
             }
 

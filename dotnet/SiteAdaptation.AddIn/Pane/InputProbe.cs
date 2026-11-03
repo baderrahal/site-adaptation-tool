@@ -79,9 +79,6 @@ namespace SiteAdaptation.AddIn.Pane
     {
         public string Line { get; set; }
         public string Refused { get; set; }
-
-        // R507. Why button 1 would stop on a sheet that reads
-        public string Warning { get; set; }
     }
 
     // The dialogs of Browse, so a test picks its own paths. Each gives null on Cancel. title is null for a dialog with no title of
@@ -213,9 +210,7 @@ namespace SiteAdaptation.AddIn.Pane
         {
             try
             {
-                Common.SetUp.ParameterSheet sheet = Common.SetUp.ParameterSheet.FromFile(path);
-                List<Common.SetUp.ParameterSpec> old = sheet.VillaRowsOnFloors;
-                return new SheetRead { Line = sheet.Counts, Warning = old.Count == 0 ? null : string.Join(". ", old.Select(item => Common.SetUp.SetUpTexts.VillaRowOnFloors(sheet.Sheet, item.Name))) };
+                return new SheetRead { Line = Common.SetUp.ParameterSheet.FromFile(path).Counts };
             }
             catch (Exception error) when (error is IOException || error is UnauthorizedAccessException || error is InvalidDataException || error is ArgumentException || error is NotSupportedException)
             {

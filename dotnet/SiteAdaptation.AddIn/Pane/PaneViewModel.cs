@@ -524,7 +524,7 @@ namespace SiteAdaptation.AddIn.Pane
         }
 
         // R506. The row Shared parameters shows the sheet of the project, the one chosen, else the one config names, with its counts under
-        // it. A sheet that does not read is amber with its reason. One button 1 would stop on stays green, as it is found, with the reason
+        // it. A sheet that does not read is amber with its reason. A chosen one button 1 would stop on stays green, as it is found, with the reason
         private void RefreshSheet()
         {
             FileRowViewModel row = InputRows.First(item => item.Keys.Contains(InputKeys.ParameterSheet));
@@ -544,7 +544,7 @@ namespace SiteAdaptation.AddIn.Pane
             row.Hint = read?.Line ?? string.Empty;
             string config = string.IsNullOrEmpty(chosen) ? path : probe.ConfigSheet(document.Settings.ConfigFile);
             bool other = row.Found && !string.IsNullOrEmpty(chosen) && !string.IsNullOrEmpty(config) && !string.Equals(Path.GetFullPath(chosen), Path.GetFullPath(config), StringComparison.OrdinalIgnoreCase);
-            string note = read?.Refused ?? (other ? Common.SetUp.SetUpTexts.OtherSheet(Path.GetFileName(chosen), Path.GetFileName(config)) : read?.Warning);
+            string note = read?.Refused ?? (other ? Common.SetUp.SetUpTexts.OtherSheet(Path.GetFileName(chosen), Path.GetFileName(config)) : null);
             row.ShowNote(Common.SetUp.SetUpTexts.NoRuleId(note));
             if (read?.Refused != null)
             {

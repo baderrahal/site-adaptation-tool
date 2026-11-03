@@ -101,12 +101,6 @@ namespace SiteAdaptation.Common.SetUp
             return text == null ? string.Empty : System.Text.RegularExpressions.Regex.Replace(text, @"\s*\(R\d+\)$", string.Empty);
         }
 
-        // R507. A sheet from before the rule, it would bind the row on Floors again
-        public static string VillaRowOnFloors(string sheet, string name)
-        {
-            return sheet + " binds " + name + " on " + ParameterSheet.FloorCategory + ". Shared parameters are for the villa links only, so set its Category to " + ParameterSheet.LinkCategory + " in that file";
-        }
-
         // The line under the check points at addin.position.revitCheckPointLimitMm, the key of its own of Q142 (W2)
         public static string PassLine(double limitMm, int passing, int count)
         {
