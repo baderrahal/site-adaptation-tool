@@ -6,17 +6,18 @@ namespace SiteAdaptation.Common.PlaceVillas
     // choosing the base itself
     public interface IMassFileMaker
     {
-        // The prototype opened detached from a copy, never written: the loops of the union of the WallStrips outlines of its exterior
-        // walls at the ground level, and the outer loop of its largest ground slab, both in internal plan metres
+        // The prototype opened detached from a copy, never written: every wall as WallRingBuilder takes it, and the outer loop of its
+        // largest ground slab, both in internal plan metres
         MassBaseRead ReadBase(string prototypePath, LightModeConfig config);
 
-        // A new Revit project holding one DirectShape of Generic Models, the ring extruded up by heightM from Z 0, saved as massPath
-        void Write(string massPath, IReadOnlyList<double[]> ring, double heightM);
+        // A new Revit project holding one DirectShape of Generic Models, the ring extruded up by heightM from Z 0, an arc kept as an arc
+        // (R503), saved as massPath
+        void Write(string massPath, IReadOnlyList<RingEdge> edges, double heightM);
     }
 
     public sealed class MassBaseRead
     {
-        public IReadOnlyList<IReadOnlyList<double[]>> WallLoops { get; set; } = new List<IReadOnlyList<double[]>>();
+        public IReadOnlyList<RingWall> Walls { get; set; } = new List<RingWall>();
         public IReadOnlyList<double[]> Slab { get; set; }
     }
 }

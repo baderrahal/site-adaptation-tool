@@ -32,7 +32,7 @@ namespace SiteAdaptation.Common.PlaceVillas
     public sealed class ShapeCache
     {
         // Raised whenever the Revit reader of the shape changes what it gives, so every cached shape is read again
-        public const int ReaderVersion = 1;
+        public const int ReaderVersion = 2;
         public const string Folder = "base_shapes";
         public const string Format = "site-adaptation-base-shape";
 

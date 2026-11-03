@@ -12,6 +12,7 @@ Bader's decision D2 of 28 Oct 2026, steps/decisions-2026-10-28.md, written in La
 ### The solid of a villa
 
 - One solid per villa. Its base follows the exact base boundary shape of its prototype, every corner, never a bounding rectangle. This shape is what Bader cares about most.
+- Under linkFolder masses the shape is the ring of the exterior wall faces with exact corners, the slab only as flagged where the walls do not close (R500 to R504, Q321).
 - The shape is read once per prototype file and cached in the work folder by the prototype file hash. Every villa of that prototype reuses it with its own point, rotation and mirror, the transform button 4 gives the link.
 - The height of the solid comes from config/project.json, a key added at the fold in.
 - The solid carries the same shared parameters and element tags as the link: plot, unit code, Prototype-FFL and link name. A later button finds a solid the way it finds a link (R368, R383).

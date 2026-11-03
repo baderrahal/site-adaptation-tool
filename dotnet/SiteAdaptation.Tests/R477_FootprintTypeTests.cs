@@ -75,6 +75,21 @@ namespace SiteAdaptation.Tests
         }
 
         // The base lies shifted east of its house by the given metres, so the gap of the check is that shift
+        [Fact]
+        public void R477_the_middle_of_a_base_does_not_move_with_the_count_of_its_corners()
+        {
+            double[][] block = { new[] { 3.0, 3.0 }, new[] { 7.0, 3.0 }, new[] { 7.0, 7.0 }, new[] { 3.0, 7.0 } };
+            var plain = new List<double[]> { new[] { 0.0, 0.0 }, new[] { 10.0, 0.0 }, new[] { 10.0, 10.0 }, new[] { 0.0, 10.0 } };
+            var stepped = new List<double[]> { new[] { 0.0, 0.0 }, new[] { 10.0, 0.0 } };
+            stepped.AddRange(Enumerable.Range(1, 40).Select(step => new[] { 10.0, step / 4.0 }));
+            stepped.Add(new[] { 0.0, 10.0 });
+            FootprintRow first = FootprintCheck.Row("1", plain, new[] { block }, Config());
+            FootprintRow second = FootprintCheck.Row("1", stepped, new[] { block }, Config());
+            Assert.Equal(first.Flagged, second.Flagged);
+            Assert.Equal(first.DistanceMm, second.DistanceMm);
+            Assert.DoesNotContain("holds the middle", second.Why ?? string.Empty);
+        }
+
         private static FootprintRow RowOf(string block, string unit, double shiftM = 0.0, string prototype = "x.rvt")
         {
             var read = new JObject { ["blocks"] = new JArray(ReadBlock(block, Shape)) };
