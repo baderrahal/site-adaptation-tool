@@ -12,7 +12,7 @@
 ### Lane B, C and D
 
 - Lane B FIX-3NOV-B, 3 Nov, branch fix/3nov-b-rows: tasks 1 and 2, gate green, parity rerun of rev6 running, past job 16 of 16 with 0 failures. PR when it ends. No Revit, no window lock.
-- Lane C 6C-3NOV-C, 3 Nov 13:30, branch check/6c-3nov-c: R505, row Plot fronts (curb lines), steps/part1-check.md short form, PR going up, merge before 14:00. New callers: FileRowViewModel.Hint and HasHint by PaneViewModel and SitePanePage.xaml. Blocked: none
+- Lane C 6C-3NOV-C, 3 Nov 13:35: stopped at a clean point. PR 157 merged, e2b720a, R505, row Plot fronts (curb lines), steps/part1-check.md short form. Holds no Revit, no lock, no helper. Next after Bader resumes: answers on Q400 to Q410, Road surfaces first sight from Lane A (Q403), the rename seen in Revit. Blocked: none
 - Lane D MASS-2NOV-D, 3 Nov, branch mass/2nov-d: the mass outline by the outer wall faces, R500 to R504, closed Q279, Q321, opened Q390 to Q393. Revit proof done, lock free.
   Now: the PR, merge when green. Nothing queued after it. Blocked: none
 
