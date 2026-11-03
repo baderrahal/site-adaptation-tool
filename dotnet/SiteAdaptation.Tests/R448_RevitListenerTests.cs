@@ -924,5 +924,47 @@ namespace SiteAdaptation.Tests
             Assert.Contains("application.ControlledApplication.RecordingJournalFilename", listener);
             Assert.Contains("$session | Add-Member", File.ReadAllText(HostFile("ListenerPaths.ps1")));
         }
+
+        // First run in Revit, SPL1: with no job variable button 2 opened the window What the tool read, and nobody answers it in a job
+        [Fact]
+        public void R448_the_job_variable_stands_while_a_job_runs_and_goes_with_it()
+        {
+            string before = Environment.GetEnvironmentVariable(TestHostGuard.JobVariable);
+            Environment.SetEnvironmentVariable(TestHostGuard.JobVariable, null);
+            try
+            {
+                using (RevitListenerJobVariable.Set("SPL1_1"))
+                {
+                    Assert.Equal("SPL1_1", Environment.GetEnvironmentVariable(TestHostGuard.JobVariable));
+                }
+                Assert.Null(Environment.GetEnvironmentVariable(TestHostGuard.JobVariable));
+            }
+            finally
+            {
+                Environment.SetEnvironmentVariable(TestHostGuard.JobVariable, before);
+            }
+        }
+
+        [Fact]
+        public void R448_each_job_of_the_listener_sets_the_job_variable_and_gives_it_back()
+        {
+            string listener = File.ReadAllText(HostFile("RevitListener.cs"));
+            int set = listener.IndexOf("RevitListenerJobVariable.Set(", StringComparison.Ordinal);
+            Assert.True(set > listener.IndexOf("Host = new ButtonsRunHost(job, Runner);", StringComparison.Ordinal), "the variable is set last in the job, so a job that fails to start leaves none");
+            Assert.Contains("variable.Dispose();", listener);
+        }
+
+        // Revit stays open behind a job past its limit, so its log must not say the test host stopped it, nor count a late exit
+        [Fact]
+        public void R448_a_job_past_its_limit_in_a_revit_that_stays_open_says_so()
+        {
+            var log = new TestHostLog { StartedUtc = Start };
+            var runner = new TestHostRunner(log, value => { }, () => now) { RevitStaysOpen = true };
+
+            Assert.Equal("the job ran over its total limit", runner.Overrun(Start.AddHours(2), Start.AddHours(1)));
+            Assert.Null(runner.Overrun(Start.AddHours(3), Start.AddHours(1)));
+
+            Assert.Equal(new[] { "the job ran over its total limit, Revit stays open" }, log.Notes);
+        }
     }
 }

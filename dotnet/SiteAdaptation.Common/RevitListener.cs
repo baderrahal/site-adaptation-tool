@@ -121,6 +121,33 @@ namespace SiteAdaptation.Common
         }
     }
 
+    // R448. The add-in runs a job of the test host with no window of a person when this variable is set, as a Revit of Run-TestHost.ps1
+    // has it from its start. A listener gets its jobs later, so it stands in Revit while a job runs
+    public static class RevitListenerJobVariable
+    {
+        public static IDisposable Set(string job)
+        {
+            string before = Environment.GetEnvironmentVariable(TestHostGuard.JobVariable);
+            Environment.SetEnvironmentVariable(TestHostGuard.JobVariable, job);
+            return new Scope(before);
+        }
+
+        private sealed class Scope : IDisposable
+        {
+            private readonly string before;
+
+            public Scope(string before)
+            {
+                this.before = before;
+            }
+
+            public void Dispose()
+            {
+                Environment.SetEnvironmentVariable(TestHostGuard.JobVariable, before);
+            }
+        }
+    }
+
     public sealed class RevitListenerClaim
     {
         public string Stem { get; set; }

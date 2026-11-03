@@ -10,6 +10,7 @@ Each Revit start and model open is waiting time. The listener keeps one Revit op
 - Off unless Start-RevitListener.ps1 started that Revit. A Revit started any other way does what it did before.
 - Folders: root in testHost.listener of config/project.json, then in-<slot> and out-<slot> under it. The slot comes from the window lock.
 - One job at a time, first in first out. A job that fails writes its error and the next job runs.
+- SITEADAPT_JOB stands in Revit while a job runs, as it does from the start of an own run, so button 2 opens no window What the tool read. First Revit run, SPL1: without it that window stayed open with nobody to answer.
 - Each job gets a new run folder under the work root, as a run of its own does. Real inputs are only read, the result holds their SHA-256 before and after.
 - A job waiting in the queue still runs however long it waits. Its age is checked at its arrival, and queueSeconds counts from the send.
 - Before a job starts the listener looks at free memory against siteBuild.minFreeGB. Under it the job gets a refused result and the queue goes on.

@@ -396,6 +396,7 @@ namespace SiteAdaptation.TestHost
         private sealed class Job : IDisposable
         {
             private readonly TestHostWatchdog watchdog;
+            private readonly IDisposable variable;
             private readonly RevitListener listener;
             private int pastLimit;
 
@@ -406,7 +407,7 @@ namespace SiteAdaptation.TestHost
                 RevitListenerJob job = run.Job;
                 string logPath = listener.LoopLog(run);
                 var log = new TestHostLog { Code = job.Code, Kind = job.Kind, Model = job.Model, StartedUtc = DateTime.UtcNow, Guard = "run " + job.RunId + " of the listener" };
-                Runner = new TestHostRunner(log, value => JsonOut.Write(logPath, value), () => DateTime.UtcNow);
+                Runner = new TestHostRunner(log, value => JsonOut.Write(logPath, value), () => DateTime.UtcNow) { RevitStaysOpen = true };
                 Events = new JobEvents(Runner);
                 Schedule = new AddinRunSchedule();
                 string designRefused = DesignValues.UseConfigFile(job.Config);
@@ -414,6 +415,7 @@ namespace SiteAdaptation.TestHost
                 Probe = AddinProbe.Find(log.Notes);
                 Host = new ButtonsRunHost(job, Runner);
                 watchdog = new TestHostWatchdog(Runner, log.StartedUtc.AddMinutes(TestHostGuard.TotalMinutesOf(job)), () => DateTime.UtcNow, PastTheLimit, TimeSpan.FromSeconds(10));
+                variable = RevitListenerJobVariable.Set(job.RunId);
             }
 
             public RevitListenerRun Run { get; }
@@ -440,6 +442,7 @@ namespace SiteAdaptation.TestHost
             public void Dispose()
             {
                 watchdog.Dispose();
+                variable.Dispose();
             }
         }
 
