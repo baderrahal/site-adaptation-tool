@@ -12,6 +12,7 @@ Done:
 - Warnings, issues after the commit and outputs go in by a second write, one undo entry by a transaction group
 - R499: an undo or redo drops the runs of the session, each step reads the entity
 - Breaker: the record keeps its outputs under the work folder, so a copy or a Save As of the model is not Done
+- Task 3: steps/investigations/two-plot-overlaps.md, the 443 are hairline laps, deepest 1.47 mm. Ramps fit the 1 mm rounding, 71 yard corners do not, cause UNKNOWN. Not run in Revit, sent to lane-a, nothing fixed
 
 Checked:
 - Parity 32 runs, 416 lines, 0 failures. Gate dotnet 2,404 and 2,109 passed. Review 1, breaker 2 passes. Fakes only so far: the group and the undo in Revit are task 4
