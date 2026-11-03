@@ -180,10 +180,11 @@ namespace SiteAdaptation.TestHost
             Stopwatch opening = Stopwatch.StartNew();
             if (!File.Exists(job.Model))
             {
-                Document fresh = ui.Application.NewProjectDocument(job.Template);
+                // R556. Phase 6b asks for one zone from no template, imperial as docs/design/03a-buttons-shared-and-1.md measures it
+                Document fresh = job.NoTemplate == true ? ui.Application.NewProjectDocument(UnitSystem.Imperial) : ui.Application.NewProjectDocument(job.Template);
                 fresh.SaveAs(job.Model, new SaveAsOptions { OverwriteExistingFile = false });
                 fresh.Close(false);
-                made = "made from the template and opened";
+                made = job.NoTemplate == true ? "made from no template and opened" : "made from the template and opened";
             }
             document = ui.OpenAndActivateDocument(job.Model).Document;
             RunTiming.BeforeRun(null, opening.Elapsed.TotalSeconds);

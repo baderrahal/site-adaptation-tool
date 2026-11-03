@@ -50,6 +50,8 @@ namespace SiteAdaptation.Common
         public string VillaMode { get; set; }
         public bool? LinksAfterMasses { get; set; }
         public bool? DryRunFirst { get; set; }
+        // R556. A buttons job with no key copy makes its project from no template, imperial
+        public bool? NoTemplate { get; set; }
         public string PaneSettings { get; set; }
         // R404, D19. The JSON file under the work root that keeps the loop of each prototype the host reads for its corner compare
         // after 7, across runs, by the SHA-256 of the file. With none the host keeps it in the work folder of the run

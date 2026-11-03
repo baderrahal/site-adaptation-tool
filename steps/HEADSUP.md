@@ -11,7 +11,7 @@
 
 ### Lane B, C and D
 
-- Lane B 23:40, 3 Nov, branch check/lane-b-6b: PR 168 REPORT-3NOV-B merged, R550 to R555, Q450, Q451. Now: Phase 6b, 7 zones in Masses, one NBH in Links, queued for the Revit lock. Blocked: none
+- Lane B 01:05, 4 Nov, branch check/lane-b-6b: PR 168 merged. Now: 6b, 10 jobs, waits for Lane A "released" on COORD, then installs main with R556. New: TestHostJob.NoTemplate by ButtonsRunHost.Open and Run-TestHost.ps1. No lock held. Blocked: none
 - Lane C, 3 Nov, branch feat/help-3nov-c: PR 160, 161, 162 merged, HELP PR going up, next RULES-3NOV-C. Ids R540 to R549, Q416 to Q419, Q440 to Q449. New callers: HelpBook by HelpFile, HelpFile by the pane and New project rows, HelpBox by OnStepHelp and OnRowHelp. A guide change needs python/build_help.py. I own the pane file tonight. Blocked: none
 - Lane D MASS-3NOV-D, 4 Nov 00:20, branch mass/3nov-d: Revit checks done, lock free. Over 1 mm 45 to 0 on NBH 012. Now: gate, the PR. Next: TOPO-3NOV-D on topo/3nov-d. Ids R530 to R539, R570 to R579, Q470 to Q479. Blocked: none
   New callers: MassCut.Apply by MassFileSet.Make. MassFileConfig.PartyLineOf by MassFileSet.Make. MassBase.UncutAreaM2, NotCut by MassFiles.Sidecar, Check.
