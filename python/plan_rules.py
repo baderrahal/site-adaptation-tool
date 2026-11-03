@@ -467,17 +467,23 @@ class Overrides(dict):
         self.skip, self.ruled = dict(skip or {}), {plot: dict(fields) for plot, fields in (ruled or {}).items()}
 
 
-def load_overrides(path, sources, fields=FIELDS, groups=None, name=None, lp=None, models=None):
+def load_overrides(path, sources, fields=FIELDS, groups=None, name=None, lp=None, models=None, rev6=False):
     """R280, R330. The overrides of the list whose source, the job of their key, is one of sources and whose field is one of
     fields, by plot and field, with models only those of the past model files named. Every entry must hold the job of its key as
     source and its model apart (override_source.check_entries), groups from majority.groups of config/project.json when not
     given. A source or a model named with no override in the list is refused, never applied as none. With lp the job of each
     source must be the job of the level profile first (check_override_jobs). A mirror of a past model that links other
     prototype files than the plan is no mirror of the plan, so a build may leave it out by fields. R386: an entry marked "use": "rule"
-    is left with why in ruled and the plots of the skip list come back in skip, so the build leaves them out and lists them."""
+    is left with why in ruled and the plots of the skip list come back in skip, so the build leaves them out and lists them. R487: with
+    rev6, the applied mode of config, a real list with none of a source applies nothing and locks no project, the past job refuses it."""
     import override_source
     data = json.loads(Path(path).read_text(encoding="utf-8"))
-    entries = data.get("overrides") or []
+    if not isinstance(data, dict):
+        raise project_profile.ProfileError("the input overrides is no JSON object: %s" % path)
+    listed = data.get("overrides")
+    if listed is not None and listed != {} and not isinstance(listed, list):
+        raise project_profile.ProfileError("%s: overrides of the override list is no list of entries (R330)" % path)
+    entries = listed or []
     if groups is None:
         groups = project_profile.load_settings().get("majority.groups")
     try:
@@ -488,8 +494,8 @@ def load_overrides(path, sources, fields=FIELDS, groups=None, name=None, lp=None
     if lp is not None:
         check_override_jobs(name, lp, sources)
     chosen = [item for item in entries if item["source"] in sources and (models is None or item["model"] in models)]
-    # R487. A list with no entries is the list of a new project, nothing to apply. A list with entries none of a source is still refused
-    missing = (sorted(set(sources) - {item["source"] for item in chosen}) if entries else []) + sorted(set(models or ()) - {item["model"] for item in chosen})
+    free = rev6 and isinstance(listed, list)
+    missing = ([] if free else sorted(set(sources) - {item["source"] for item in chosen})) + sorted(set(models or ()) - {item["model"] for item in chosen})
     if missing:
         raise project_profile.ProfileError("the override list holds no override of %s among the sources %s (R280, R330)" % (", ".join(missing), ", ".join(sorted(sources))))
     # R280. An override with no value is no value to apply, a build refuses it, never writes it as the text None or counts it applied

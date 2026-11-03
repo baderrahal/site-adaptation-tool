@@ -81,6 +81,12 @@ def take_mode(values, mode):
     return values
 
 
+def holds_rev6(settings):
+    """R487. Whether the applied mode of a config, its values or its profile, is rev6, RoadSurfaceChoices.IsRev6 of the C#."""
+    block = (settings.values if isinstance(settings, project_profile.ProjectProfile) else settings).get("designBasis")
+    return isinstance(block, dict) and block.get("mode") == REV6
+
+
 def finite(value):
     return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
 

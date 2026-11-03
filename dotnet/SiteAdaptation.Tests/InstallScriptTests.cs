@@ -113,6 +113,37 @@ namespace SiteAdaptation.Tests
             }
         }
 
+        // Breaker 2, 1. Save overrides on the list of the installed set: Skip on a rule row, Past on a key row, and the real worker builds on the result
+        [Fact]
+        public void R487_save_overrides_on_the_list_of_the_installed_set_and_the_real_worker_builds_on_it()
+        {
+            Assert.Equal(0, Install(NoRevit).Item1);
+            ProjectSet set = new ShippedSet(SetFolder, Path.Combine(root, "work root"), "Site A", true).Take(File.ReadAllText);
+            ProjectSettings settings = SetupSave.Apply(new SetupDraft { NewSet = set }, new ProjectSettings(), File.ReadAllText);
+            Newtonsoft.Json.Linq.JObject config = ProjectModes.Apply(Newtonsoft.Json.Linq.JObject.Parse(File.ReadAllText(set.ConfigFile)), settings.ProjectMode);
+            string list = Common.CheckTable.CheckRun.OverridesPath(config, set.ConfigFile, set.RulesFile);
+            string key = (string)config["majority"]["groups"]["parsons"][0];
+            var rows = new System.Collections.Generic.List<Common.CheckTable.CheckRow>
+            {
+                new Common.CheckTable.CheckRow { Index = 0, Plot = "3", Check = "Team check", From = "team", OpenUse = Common.CheckTable.CheckUse.Rule, PastWhy = "the team marked it" },
+                new Common.CheckTable.CheckRow { Index = 1, Plot = "5", Check = "Level", Field = "steps", From = "missing", OpenUse = Common.CheckTable.CheckUse.Rule, PastForm = "wholeNumber", PastValue = 2, PastOffered = true, Key = key, Model = "a.rvt" },
+            };
+            var uses = new[] { new Common.CheckTable.CheckChoice(0, Common.CheckTable.CheckUse.Skip), new Common.CheckTable.CheckChoice(1, Common.CheckTable.CheckUse.Past) };
+            Assert.Equal(2, Common.CheckTable.OverrideEdits.Save(list, rows, uses, config, "R4-1"));
+            using (var steps = new LevelFloorStepTests())
+            {
+                WorkerRequest seed = steps.Request("seed", BuildPlan.Steps);
+                SiteAdaptation.Common.Flow.RunLater end;
+                R484_ProjectModeTests.RealWorker worker = R484_ProjectModeTests.CheckOn(Path.Combine(root, "site"), seed, settings.ConfigFile, settings.RulesFile, settings.LevelProfile, "4_list", settings.ProjectMode, out end);
+                Assert.True(worker.Exit == 0, "exit " + worker.Exit + ": " + WorkerAnswer.Read(WorkerFiles.AnswerPath(worker.Request.OutputFolder, worker.Request.RunId)).Message);
+                Assert.Null(end.Failure);
+                Newtonsoft.Json.Linq.JObject plan = Newtonsoft.Json.Linq.JObject.Parse(File.ReadAllText(Path.Combine(worker.Request.OutputFolder, BuildPlan.FileName(null))));
+                string[] written = plan["plots"].Select(item => (string)item["plot"]).ToArray();
+                Assert.DoesNotContain("3", written);
+                Assert.Contains("5", written);
+            }
+        }
+
         private static string Checks()
         {
             return Path.Combine(ThemeGateTests.RepoRoot(), "dotnet", "SiteAdaptation.AddIn", "InstallChecks.ps1");

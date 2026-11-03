@@ -58,6 +58,11 @@ namespace SiteAdaptation.Common.Settings
                     next.ConfigFile = draft.NewSet.ConfigFile;
                     next.RulesFile = draft.NewSet.RulesFile;
                     next.LevelProfile = draft.NewSet.LevelProfile;
+                    // The row reads Found and button 1 reads the same file, a sheet the project holds stays and a pick of the window is laid over it below
+                    if (!next.Inputs.TryGetValue(InputNames.ParameterSheet, out SettingsInput held) || held == null || string.IsNullOrEmpty(held.Path))
+                    {
+                        next.Inputs[InputNames.ParameterSheet] = new SettingsInput { Path = draft.NewSet.ParameterSheet };
+                    }
                 }
                 ProjectModes.TakeNewProject(current?.ConfigFile, next, readText);
             }

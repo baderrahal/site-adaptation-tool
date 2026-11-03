@@ -1656,7 +1656,7 @@ def override_inputs(args, settings, name, lp, key, block):
     # R330. With no source named a build applies majority.overrideDefaultSources, parsons, so native overrides never apply by default
     sources = list(named_sources) if named_sources else override_source.default_sources(settings)
     # R280. Only the overrides of a source of the job of the level profile
-    return plan_rules.load_overrides(args.overrides, set(sources), fields, block["groups"], name, lp, set(models) or None), sources
+    return plan_rules.load_overrides(args.overrides, set(sources), fields, block["groups"], name, lp, set(models) or None, design_basis.holds_rev6(settings)), sources
 
 
 def rule_inputs(args, settings, profile, numbers, rows, faces, roads, sales, clusters=(), files=None, basis=None):

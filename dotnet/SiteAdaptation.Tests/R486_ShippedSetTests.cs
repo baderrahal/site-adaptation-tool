@@ -36,10 +36,12 @@ namespace SiteAdaptation.Tests
             File.WriteAllText(Path.Combine(folder, "config", "project.json"), new JObject
             {
                 ["profile"] = "rules made up/made-up.json",
-                ["majority"] = JObject.Parse("{ 'groups': { 'parsons': ['kx'] }, 'overrideDefaultSources': ['parsons'] }"),
+                ["majority"] = JObject.Parse("{ 'groups': { 'native': ['n1'], 'parsons': ['kx'] }, 'overrideDefaultSources': ['parsons'] }"),
+                ["addin"] = JObject.Parse("{ 'parameterSheet': 'config/made_up_sheet.xlsx' }"),
                 ["designBasis"] = new JObject { ["mode"] = "pastMade", ["modes"] = new JArray(DesignBasis.Rev6, "pastMade"), ["newProjectMode"] = DesignBasis.Rev6 },
             }.ToString());
             File.WriteAllText(Path.Combine(folder, "config", "floor_outlines.json"), "{}");
+            File.WriteAllText(Path.Combine(folder, "config", "made_up_sheet.xlsx"), "made up");
             File.WriteAllText(Path.Combine(folder, "rules made up", "made-up.json"), "{ 'levelProfiles': { 'default': 'madeProfile', 'madeProfile': { 'job': 'parsons' } } }");
         }
 
@@ -83,7 +85,7 @@ namespace SiteAdaptation.Tests
         public void R487_the_copy_holds_a_list_with_no_entries_at_the_path_of_check_run_that_the_build_accepts()
         {
             ProjectSet set = Set().Take(File.ReadAllText);
-            JObject config = JObject.Parse(File.ReadAllText(set.ConfigFile));
+            JObject config = ProjectModes.Apply(JObject.Parse(File.ReadAllText(set.ConfigFile)), DesignBasis.Rev6);
             string list = Common.CheckTable.CheckRun.OverridesPath(config, set.ConfigFile, set.RulesFile);
             Assert.Equal(ProjectFile("config", "overrides", "made-up.json"), list);
             Assert.Empty((JArray)JObject.Parse(File.ReadAllText(list))["overrides"]);
@@ -133,10 +135,159 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R486_an_unsaved_model_is_refused_and_the_extension_of_a_title_is_no_part_of_the_name()
+        public void R486_an_unsaved_model_is_refused_and_a_saved_one_names_its_folder()
         {
-            Assert.Equal(ShippedSetRefusal.NotSaved, Set("Site A", false).Refusal);
-            Assert.Equal(ProjectFile(), Set("Site A.rvt").ProjectFolder);
+            Assert.Equal(ShippedSetRefusal.NotSaved, Set(null, false).Refusal);
+            Assert.Equal(ProjectFile(), Set("Site A").ProjectFolder);
+        }
+
+        // Breaker 2, 1. The list Take writes, in the shape majority.overrides_text writes, through OverrideEdits itself
+
+        private static JObject Rev6Config(ProjectSet set)
+        {
+            return ProjectModes.Apply(JObject.Parse(File.ReadAllText(set.ConfigFile)), DesignBasis.Rev6);
+        }
+
+        private static JObject Level(ProjectSet set)
+        {
+            return (JObject)JObject.Parse(File.ReadAllText(set.RulesFile))["levelProfiles"]["madeProfile"];
+        }
+
+        [Fact]
+        public void R487_the_list_of_take_has_the_two_line_form_of_majority_overrides_text()
+        {
+            ProjectSet set = Set().Take(File.ReadAllText);
+            string text = File.ReadAllText(ProjectFile("config", "overrides", "made-up.json"));
+            Assert.Equal("{\n  \"note\": " + Newtonsoft.Json.JsonConvert.ToString(JObject.Parse(text)["note"].ToString()) + ",\n  \"overrides\": [\n  ]\n}\n", text);
+            Assert.NotNull(set);
+        }
+
+        [Fact]
+        public void R487_save_overrides_writes_skip_on_a_rule_row_and_past_on_a_key_row_into_the_list_of_take_and_the_build_reads_them()
+        {
+            ProjectSet set = Set().Take(File.ReadAllText);
+            string list = ProjectFile("config", "overrides", "made-up.json");
+            var rows = new List<Common.CheckTable.CheckRow>
+            {
+                new Common.CheckTable.CheckRow { Index = 0, Plot = "3", Check = "Team check", From = "team", OpenUse = Common.CheckTable.CheckUse.Rule, PastWhy = "the team marked it" },
+                new Common.CheckTable.CheckRow { Index = 1, Plot = "2", Check = "Hand", Field = "mirrored", From = "missing", OpenUse = Common.CheckTable.CheckUse.Rule, PastForm = "trueOrFalse", PastValue = true, PastOffered = true, Key = "kx", Model = "kx-site.rvt" },
+            };
+            var uses = new[] { new Common.CheckTable.CheckChoice(0, Common.CheckTable.CheckUse.Skip), new Common.CheckTable.CheckChoice(1, Common.CheckTable.CheckUse.Past) };
+            Assert.Equal(2, Common.CheckTable.OverrideEdits.Save(list, rows, uses, Rev6Config(set), "R4-1"));
+            OverrideList read = PlanOverrides.Load(list, Rev6Config(set), Level(set), "madeProfile", "project.json");
+            Assert.Equal("3", read.Skip.Keys.Single());
+            Assert.Equal(true, read.Of("2")["mirrored"].Value<bool>());
+        }
+
+        // Breaker 2, 3 and 4. What a list holds, the applied mode and the same words as plan_rules.load_overrides
+
+        private string ListOf(string text)
+        {
+            string path = Path.Combine(root, "list.json");
+            File.WriteAllText(path, text);
+            return path;
+        }
+
+        private static JObject Modes(string mode)
+        {
+            return JObject.Parse("{ 'majority': { 'groups': { 'native': ['n1'], 'parsons': ['kx'] }, 'overrideDefaultSources': ['parsons'] }, 'designBasis': { 'mode': '" + mode + "' } }");
+        }
+
+        private OverrideList Load(string text, string mode)
+        {
+            return PlanOverrides.Load(ListOf(text), Modes(mode), JObject.Parse("{ 'job': 'parsons' }"), "p", "project.json");
+        }
+
+        private const string NoSource = "the override list holds no override of parsons among the sources parsons (R280, R330)";
+
+        [Fact]
+        public void R487_an_empty_real_list_passes_under_rev6_and_under_the_past_job_is_refused_with_the_old_line()
+        {
+            Assert.Empty(Load("{ \"overrides\": [] }", DesignBasis.Rev6).Skip);
+            Assert.Equal(NoSource, Assert.Throws<InvalidDataException>(() => Load("{ \"overrides\": [] }", "pastMade")).Message);
+        }
+
+        [Theory]
+        [InlineData("{}")]
+        [InlineData("{ \"note\": \"x\" }")]
+        [InlineData("{ \"overrides\": null }")]
+        [InlineData("{ \"overrides\": {} }")]
+        public void R487_a_file_with_no_real_list_is_refused_under_both_modes_as_no_override(string text)
+        {
+            Assert.Equal(NoSource, Assert.Throws<InvalidDataException>(() => Load(text, DesignBasis.Rev6)).Message);
+            Assert.Equal(NoSource, Assert.Throws<InvalidDataException>(() => Load(text, "pastMade")).Message);
+        }
+
+        [Theory]
+        [InlineData("{ \"overrides\": \"\" }")]
+        [InlineData("{ \"overrides\": 0 }")]
+        [InlineData("{ \"overrides\": false }")]
+        public void R487_overrides_that_is_no_list_is_refused_under_both_modes_by_the_line_of_python(string text)
+        {
+            string line = Path.Combine(root, "list.json") + ": overrides of the override list is no list of entries (R330)";
+            Assert.Equal(line, Assert.Throws<InvalidDataException>(() => Load(text, DesignBasis.Rev6)).Message);
+            Assert.Equal(line, Assert.Throws<InvalidDataException>(() => Load(text, "pastMade")).Message);
+        }
+
+        [Theory]
+        [InlineData("0")]
+        [InlineData("false")]
+        public void R487_a_file_that_is_no_object_is_refused_under_both_modes_by_the_line_of_python(string text)
+        {
+            string line = "the input overrides is no JSON object: " + Path.Combine(root, "list.json");
+            Assert.Equal(line, Assert.Throws<InvalidDataException>(() => Load(text, DesignBasis.Rev6)).Message);
+            Assert.Equal(line, Assert.Throws<InvalidDataException>(() => Load(text, "pastMade")).Message);
+        }
+
+        private const string NativeEntry = "{ \"overrides\": [ {\"plot\": \"5\", \"field\": \"mirrored\", \"value\": true, \"source\": \"native\", \"model\": \"n1.rvt\", \"key\": \"n1\"} ] }";
+
+        [Fact]
+        public void R487_entries_of_another_source_do_not_lock_a_rev6_project_and_apply_nothing_and_the_past_job_still_refuses()
+        {
+            OverrideList read = Load(NativeEntry, DesignBasis.Rev6);
+            Assert.Empty(read.Of("5"));
+            Assert.Equal(NoSource, Assert.Throws<InvalidDataException>(() => Load(NativeEntry, "pastMade")).Message);
+        }
+
+        [Fact]
+        public void R487_a_first_past_on_a_plot_only_a_native_key_holds_leaves_the_list_of_a_new_project_loading()
+        {
+            ProjectSet set = Set().Take(File.ReadAllText);
+            string list = ProjectFile("config", "overrides", "made-up.json");
+            var rows = new List<Common.CheckTable.CheckRow>
+            {
+                new Common.CheckTable.CheckRow { Index = 0, Plot = "2", Check = "Hand", Field = "mirrored", From = "missing", OpenUse = Common.CheckTable.CheckUse.Rule, PastForm = "trueOrFalse", PastValue = true, PastOffered = true, Key = "n1", Model = "n1-site.rvt" },
+            };
+            Common.CheckTable.OverrideEdits.Save(list, rows, new[] { new Common.CheckTable.CheckChoice(0, Common.CheckTable.CheckUse.Past) }, Rev6Config(set), "R4-1");
+            Assert.Contains("\"source\": \"native\"", File.ReadAllText(list));
+            Assert.NotNull(PlanOverrides.Load(list, Rev6Config(set), Level(set), "madeProfile", "project.json"));
+        }
+
+        // Breaker 2, 5. The copied sheet is the input of the row
+
+        [Fact]
+        public void R486_the_save_that_takes_the_set_names_the_copied_sheet_as_the_row_and_button_1_read_it()
+        {
+            ProjectSet set = Set().Take(File.ReadAllText);
+            ProjectSettings saved = SetupSave.Apply(new SetupDraft { NewSet = set }, new ProjectSettings(), File.ReadAllText);
+            string path = Common.SetUp.ParameterSheet.PathOf(saved.ConfigFile, JObject.Parse(File.ReadAllText(saved.ConfigFile)));
+            Assert.Equal(path, saved.Inputs[InputNames.ParameterSheet].Path);
+            Assert.True(File.Exists(path));
+            SetupRowState row = SetupCheck.Run(saved, (name, folder) => File.Exists(name)).Rows.Single(item => item.Row.Id == SetupRows.ParameterSheet);
+            Assert.Equal(SetupState.Found, row.State);
+        }
+
+        [Fact]
+        public void R486_a_sheet_the_user_picked_stays_on_the_save_that_takes_the_set()
+        {
+            ProjectSet set = Set().Take(File.ReadAllText);
+            var draft = new SetupDraft { NewSet = set };
+            draft.Picks[InputNames.ParameterSheet] = "picked.xlsx";
+            Assert.Equal("picked.xlsx", SetupSave.Apply(draft, new ProjectSettings(), File.ReadAllText).Inputs[InputNames.ParameterSheet].Path);
+
+            var held = new ProjectSettings();
+            held.Inputs[InputNames.ParameterSheet] = new SettingsInput { Path = "held.xlsx" };
+            Assert.Equal("held.xlsx", SetupSave.Apply(new SetupDraft { NewSet = set }, held, File.ReadAllText).Inputs[InputNames.ParameterSheet].Path);
         }
 
         [Fact]
@@ -202,6 +353,7 @@ namespace SiteAdaptation.Tests
 namespace SiteAdaptation.Tests
 {
     using SiteAdaptation.AddIn.NewProject;
+    using SiteAdaptation.AddIn.Pane;
 
     // R486, the window, net48 alone as the add-in is
     public sealed class R486_ShippedSetWindowTests : IDisposable
@@ -290,6 +442,44 @@ namespace SiteAdaptation.Tests
             model.Save();
             Assert.Null(model.Result);
             Assert.False(Directory.Exists(work));
+        }
+
+        // Breaker 2, 2. Two models of one name in two folders, the folder of the project by the path as the work folder is
+
+        [Fact]
+        public void R486_two_models_of_one_name_in_two_folders_hold_their_own_set_and_an_override_does_not_cross()
+        {
+            string one = WorkFolder.For(work, Path.Combine(root, "one", "Site.rvt")), two = WorkFolder.For(work, Path.Combine(root, "two", "Site.rvt"));
+            ProjectSet first = NewProjectDialog.SetFor(shipped, work, one).Take(File.ReadAllText);
+            ProjectSet second = NewProjectDialog.SetFor(shipped, work, two).Take(File.ReadAllText);
+            Assert.NotEqual(first.ConfigFile, second.ConfigFile);
+            Assert.Equal(Path.Combine(work, ShippedSet.ProjectsFolder, Path.GetFileName(one), "config", "project.json"), first.ConfigFile);
+
+            string listOne = Path.Combine(Path.GetDirectoryName(first.ConfigFile), "overrides", "made-up.json");
+            string listTwo = Path.Combine(Path.GetDirectoryName(second.ConfigFile), "overrides", "made-up.json");
+            File.WriteAllText(listOne, "{ \"overrides\": [ {\"plot\": \"3\"} ] }");
+            Assert.DoesNotContain("\"plot\"", File.ReadAllText(listTwo));
+
+            // The same model at a second Save setup keeps its own copy
+            ProjectSet again = NewProjectDialog.SetFor(shipped, work, one).Take(File.ReadAllText);
+            Assert.Equal(first.ConfigFile, again.ConfigFile);
+            Assert.Contains("\"plot\"", File.ReadAllText(listOne));
+        }
+
+        [Fact]
+        public void R486_a_model_with_no_work_folder_is_a_model_not_saved()
+        {
+            Assert.Equal(ShippedSetRefusal.NotSaved, NewProjectDialog.SetFor(shipped, work, null).Refusal);
+        }
+
+        [Fact]
+        public void R486_before_the_save_the_sheet_row_stays_as_it_is_and_after_it_reads_found()
+        {
+            NewProjectViewModel model = Window(new ProjectSettings(), Set());
+            Assert.Equal(SetupState.Missing, model.Rows.Single(row => row.Row.Id == SetupRows.ParameterSheet).State);
+            Assert.False(Directory.Exists(ProjectFolder));
+            model.Save();
+            Assert.Equal(SetupState.Found, SetupCheck.Run(model.Result, (path, folder) => File.Exists(path)).Rows.Single(item => item.Row.Id == SetupRows.ParameterSheet).State);
         }
 
         [Fact]

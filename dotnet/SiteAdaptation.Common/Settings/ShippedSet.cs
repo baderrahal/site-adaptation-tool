@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace SiteAdaptation.Common.Settings
@@ -11,6 +10,9 @@ namespace SiteAdaptation.Common.Settings
         public string ConfigFile { get; set; }
         public string RulesFile { get; set; }
         public string LevelProfile { get; set; }
+
+        // The copied parameter sheet, the file button 1 reads by addin.parameterSheet of the config
+        public string ParameterSheet { get; set; }
     }
 
     // Why a project can not take the shipped set
@@ -40,19 +42,13 @@ namespace SiteAdaptation.Common.Settings
         private readonly string name;
         private readonly bool saved;
 
-        public ShippedSet(string shippedFolder, string workRoot, string projectName, bool modelSaved)
+        // folderName is the name of the folder of this model, the last part of its work folder of WorkFolder.For, so two models of one name in two folders never share a set
+        public ShippedSet(string shippedFolder, string workRoot, string folderName, bool modelSaved)
         {
             shipped = shippedFolder;
             this.workRoot = workRoot;
-            name = StemOf(projectName);
+            name = folderName ?? string.Empty;
             saved = modelSaved;
-        }
-
-        // The Title of a model may hold its extension
-        private static string StemOf(string projectName)
-        {
-            string text = projectName ?? string.Empty;
-            return text.EndsWith(".rvt", StringComparison.OrdinalIgnoreCase) ? text.Substring(0, text.Length - 4) : text;
         }
 
         private string ShippedConfig => Path.Combine(shipped ?? string.Empty, ConfigFolder, ConfigName);
@@ -107,9 +103,9 @@ namespace SiteAdaptation.Common.Settings
             if (!File.Exists(list))
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(list));
-                File.WriteAllText(list, new JObject { ["note"] = EmptyListNote, ["overrides"] = new JArray() }.ToString(Formatting.Indented));
+                File.WriteAllText(list, CheckTable.OverrideEdits.EmptyList(EmptyListNote));
             }
-            return new ProjectSet { ConfigFile = configPath, RulesFile = rulesPath, LevelProfile = (string)level };
+            return new ProjectSet { ConfigFile = configPath, RulesFile = rulesPath, LevelProfile = (string)level, ParameterSheet = SetUp.ParameterSheet.PathOf(configPath, config) };
         }
 
         private void CopyOnce()
