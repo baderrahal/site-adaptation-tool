@@ -618,6 +618,7 @@ Round RULES-3NOV-C, review 1 and breaker 1, 3 Nov 2026:
 KNOWN-3NOV-A, review and breaker, no real input reaches these:
 - CheckTableBuild.cs:33 reads overrideDefaultSources with no check. A config with no such key would grey every Past, PlanOverrides.Load stops such a run first with the line of R330.
 - A key listed in two groups of majority.groups: OverrideEdits takes the first group, OtherJobKeys the last. The groups of config are apart.
+- REPORT-3NOV-B: ReportFields has no writer until Lane C's New project section. A volume with no <nbh> passes on one NBH and Update then stops. A report left under a name of fields since removed is not named. A plot of two numbers has no old number in Plot schedule (0 such plots on 7 NBH, RAN). Old revit counts give no Walls line.
 
 ## Lane D PARAM-3NOV-D, review 1 and breaker 1, 3 Nov 2026
 
@@ -627,3 +628,9 @@ KNOWN-3NOV-A, review and breaker, no real input reaches these:
 - RefreshSheet reads the config and the xlsx on the UI thread on each refresh, uncached, not measured. A swallowed config failure reads Not chosen with no reason.
 - docs/design/07-mock.md still says Plot on floors and walls. R507 prevails.
 - A rebind of a links row that also lacks the link category counts as a removal alone. No model holds a row off the links and on Floors.
+
+## Lane D MASS-3NOV-D, 3 Nov 2026
+
+- R530 builds no cut across an arc, no prototype has an arc wall. A concave side crossed twice stays whole. Neither is in the 13. A new prototype needs its own party lines in config, none means no cut.
+- MassCut.NoShortEdge drops the next corner and keeps no longer neighbour's line, unlike R503, so a long edge would slant by up to 4 mm. No corner goes on any of the 9 cut rings, shortest 20 mm.
+- After a cut wallRingMinShare and the slab middle are not tested again, real shares stay over 0.9. A read back drops NotCut and UncutAreaM2, no run line lists a refused cut, none of the 9 is refused. A misspelt maxX cuts nothing and says nothing. A revised prototype is remade against the old line.

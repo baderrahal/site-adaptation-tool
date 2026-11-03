@@ -7,6 +7,8 @@ using Newtonsoft.Json.Linq;
 using SiteAdaptation.Common;
 using SiteAdaptation.Common.Flow;
 using SiteAdaptation.Common.Report;
+using SiteAdaptation.Common.Settings;
+using SiteAdaptation.Common.Steps;
 using SiteAdaptation.Common.Tags;
 using Xunit;
 
@@ -222,7 +224,7 @@ namespace SiteAdaptation.Tests
             Assert.Equal(RunId + "-012", asked1.RunId);
             Assert.Equal("parsons2024Rev6", asked1.LevelProfile);
             Assert.Equal("012", asked1.Scope.Nbh);
-            Assert.Equal(new[] { "config", "rules", "plan", "checkRows", "summary", "plotsCsv", "overrides", "revitCounts", "runLog1", "runLog4", "runLog6" },
+            Assert.Equal(new[] { "config", "rules", "plan", "checkRows", "summary", "plotsCsv", "overrides", "revitCounts", "runLog1", "runLog4", "runLog6", ReportRun.FactsRole },
                 asked1.Inputs.Select(input => input.Role).ToArray());
             Assert.Equal(Path.Combine(work, "plan_012.json"), asked1.Inputs.Single(input => input.Role == "plan").Path);
             Assert.Equal(log1, asked1.Inputs.Single(input => input.Role == "runLog1").Path);
@@ -308,7 +310,7 @@ namespace SiteAdaptation.Tests
         }
 
         // The run log of a real run of 4 Check as ReportRun reads it, the plan, the step files and the inputs it read in the work folder
-        private void CheckRunLog(bool committed = true)
+        private void CheckRunLog(bool committed = true, bool twoNbhs = false)
         {
             string plan = Write("plan_012.json", ReportExcelTests.MadePlan().ToString());
             string rows = Write(Path.Combine("steps", "step_checkRows_csharp_012.json"), ReportExcelTests.MadeCheckRows().ToString());
@@ -330,6 +332,15 @@ namespace SiteAdaptation.Tests
                 ["inputs"] = new JArray(item("plotsCsv", null, plots), item("overrides", null, overrides)),
                 ["outputs"] = new JArray(item("plan", "012", plan), item("checkRows", "012", rows), item("summary", "012", summary)),
             };
+            if (twoNbhs)
+            {
+                foreach (JObject output in ((JArray)log["outputs"]).ToArray().Cast<JObject>())
+                {
+                    var other = (JObject)output.DeepClone();
+                    other["nbh"] = "013";
+                    ((JArray)log["outputs"]).Add(other);
+                }
+            }
             Write("run_4_20261030-110000-000.json", log.ToString());
         }
 
@@ -373,12 +384,111 @@ namespace SiteAdaptation.Tests
         }
 
         private string projectMode;
+        private IReadOnlyDictionary<string, string> fieldsPick;
+        private IReadOnlyDictionary<int, StepRun> lastRuns;
+
+        private void FileNameBlock(string volume)
+        {
+            JObject made = ReportExcelTests.MadeConfig();
+            made["addin"]["report"]["fileName"] = new JObject { ["project"] = "00101", ["originator"] = "PSN", ["volume"] = volume, ["level"] = "XXX", ["type"] = "SCH", ["role"] = "TU", ["number"] = "090000" };
+            File.WriteAllText(config, made.ToString());
+        }
+
+        private JObject FactsOf(WorkerRequest request)
+        {
+            return PyJson.Parse(File.ReadAllText(request.Inputs.Single(input => input.Role == ReportRun.FactsRole).Path)) as JObject;
+        }
+
+        [Fact]
+        public void R554_the_facts_hold_the_model_the_pane_counts_the_level_plots_and_the_time_without_the_wait_on_a_person()
+        {
+            CheckRunLog();
+            RunLog(6, "6_20261030-115000-000", new JArray("101", "102"));
+            Write("run_timing_5_20261030-110000-000.json", new JObject { ["end"] = "Committed", ["totalSeconds"] = 100.5, ["steps"] = new JArray(new JObject { ["step"] = "confirm", ["totalSeconds"] = 30.0 }, new JObject { ["step"] = "window", ["totalSeconds"] = 10.0 }) }.ToString());
+            Write("run_timing_5_20261030-100000-000.json", new JObject { ["end"] = "Committed", ["totalSeconds"] = 999.5 }.ToString());
+            Write("run_timing_7_20261030-110000-000.json", new JObject { ["end"] = "Cancelled", ["totalSeconds"] = 999.5 }.ToString());
+            Write("run_timing_8_20261030-110000-000.json", new JObject { ["end"] = "Committed", ["totalSeconds"] = 9.5 }.ToString());
+            lastRuns = new Dictionary<int, StepRun> { [5] = new StepRun(new DateTime(2026, 10, 30, 10, 0, 0, DateTimeKind.Utc), "h", null, 5, null) };
+            var asked = new List<WorkerRequest>();
+            string factsText = null;
+            Func<WorkerRequest, string, WorkerAnswer> stand = Stand(asked);
+            RunOutcome outcome = Run(false, true, (request, folder) => { factsText = FactsOf(request).ToString(); return stand(request, folder); }, out Model model, out State state);
+
+            Assert.True(outcome.End == RunEnd.Committed, outcome.End + " " + outcome.Message);
+            JObject facts = PyJson.Parse(factsText) as JObject;
+            Assert.Equal("Site.rvt", (string)facts["model"]);
+            Assert.Equal(5, (int)facts["steps"]["5"]["issues"]);
+            Assert.Equal(70.0, (double)facts["runSeconds"]);
+            Assert.Equal("2026-10-30T10:00:00.000Z", (string)facts["steps"]["5"]["time"]);
+            Assert.Null(facts["changedRules"]);
+            Assert.Null(facts["fields"]);
+        }
+
+        // R550. The whole road with the worker: the iso name on disk, the old report named and kept, a second press moves the first to earlier
+        [Fact]
+        public void R550_a_press_under_the_block_writes_the_iso_name_and_leaves_the_old_report_named()
+        {
+            CheckRunLog();
+            FileNameBlock("<nbh>");
+            string old = Path.Combine(work, "012_Report.xlsx");
+            File.WriteAllBytes(old, new byte[] { 1, 2, 3 });
+            Func<WorkerRequest, string, WorkerAnswer> worker = (request, folder) =>
+            {
+                int code = WorkerRunner.Run(request.Write(folder), WorkerReads.Commands(), () => 90000.0, () => 0.0);
+                WorkerAnswer answer = WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, request.RunId));
+                Assert.True(code == 0, "exit " + code + ": " + answer.Message);
+                return answer;
+            };
+            var confirm = new Confirm { Answer = true };
+            RunOutcome outcome = Run(true, confirm, worker, out Model model, out State state);
+
+            Assert.True(outcome.End == RunEnd.Committed, outcome.End + " " + outcome.Message);
+            string name = "00101-PSN-012-XXX-SCH-TU-090000.xlsx";
+            Assert.True(File.Exists(Path.Combine(work, name)));
+            Assert.Equal(new byte[] { 1, 2, 3 }, File.ReadAllBytes(old));
+            Assert.Contains(confirm.Summary.PerPlot, line => line.Contains("012_Report.xlsx stays in the work folder"));
+            Assert.Contains(confirm.Summary.PerPlot, line => line == "Writes " + Path.Combine(work, name));
+        }
+
+        [Fact]
+        public void R550_one_name_for_two_neighbourhoods_stops_the_button_by_name()
+        {
+            CheckRunLog(twoNbhs: true);
+            FileNameBlock("IMC");
+            var asked = new List<WorkerRequest>();
+            RunOutcome outcome = Run(false, true, Stand(asked), out Model model, out State state);
+            Assert.NotEqual(RunEnd.Committed, outcome.End);
+            Assert.Contains("00101-PSN-IMC-XXX-SCH-TU-090000.xlsx", outcome.Message);
+            Assert.Empty(asked);
+        }
+
+        [Fact]
+        public void R555_a_list_of_changed_rules_that_holds_no_list_stops_by_name()
+        {
+            CheckRunLog();
+            File.WriteAllText(Path.Combine(root, "rules", ReportRun.ChangedRulesName), "{}");
+            RunOutcome outcome = Run(false, true, Stand(new List<WorkerRequest>()), out Model model, out State state);
+            Assert.NotEqual(RunEnd.Committed, outcome.End);
+            Assert.Contains("R555", outcome.Message);
+        }
+
+        [Fact]
+        public void R555_the_list_beside_the_rules_reaches_the_facts()
+        {
+            CheckRunLog();
+            File.WriteAllText(Path.Combine(root, "rules", ReportRun.ChangedRulesName), new JObject { ["changed"] = new JArray(new JObject { ["id"] = "M05" }) }.ToString());
+            string factsText = null;
+            Func<WorkerRequest, string, WorkerAnswer> stand = Stand(new List<WorkerRequest>());
+            RunOutcome outcome = Run(false, true, (request, folder) => { factsText = FactsOf(request).ToString(); return stand(request, folder); }, out Model model, out State state);
+            Assert.True(outcome.End == RunEnd.Committed, outcome.End + " " + outcome.Message);
+            Assert.Equal("M05", (string)JObject.Parse(factsText)["changedRules"][0]["id"]);
+        }
 
         private RunOutcome Run(bool dryFirst, Confirm confirm, Func<WorkerRequest, string, WorkerAnswer> worker, out Model model, out State state,
             Func<ICollection<string>, string, JObject> counts = null)
         {
             var run = new ReportRun("Settings", WorkFiles.ReadText, counts ?? ((plots, levelRun) => RevitCounts.FromTags(new PlacedTag[0], plots, levelRun)), worker,
-                new WorkerDocument { Path = @"C:\Models\Site.rvt", SessionId = "s" }) { StandingFloors = standing, ModePick = () => projectMode };
+                new WorkerDocument { Path = @"C:\Models\Site.rvt", SessionId = "s" }) { StandingFloors = standing, ModePick = () => projectMode, FieldsPick = () => fieldsPick, LastRun = step => lastRuns != null && lastRuns.TryGetValue(step, out StepRun found) ? found : null };
             model = new Model();
             state = new State { Work = work, Config = config, DryFirst = dryFirst };
             var flow = new ButtonFlow(state, model, confirm, InputHash.Of, () => RunId);

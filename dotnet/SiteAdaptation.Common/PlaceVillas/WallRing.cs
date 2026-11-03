@@ -40,6 +40,10 @@ namespace SiteAdaptation.Common.PlaceVillas
         public double? BuiltAreaM2 { get; set; }
         public double SlabAreaM2 { get; set; }
 
+        // R530. The area before the cut at the party lines, null when none was made, and why a cut the unit names was not made
+        public double? UncutAreaM2 { get; set; }
+        public string NotCut { get; set; }
+
         // A base taken from the slab since the walls do not close, flagged with Q279
         public bool Flagged => Source == WallRing.FromSlab;
     }

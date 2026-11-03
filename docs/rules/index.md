@@ -481,9 +481,19 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R506 Sheet in use shown.
 - R507 Shared parameters on links only.
 - R508 Old binding removed by button 1.
+- R530 Mass cut at party line.
 
 ## 13-site-coords-r454-up.md
 
 - R454 Coordinate system of the inputs.
 - R455 Site position from CAD.
 - R456 Three CAD control points.
+
+## 14-report-r550-up.md
+
+- R550 Report file name by ISO.
+- R551 Report sheets in BIM order.
+- R552 Plot schedule, one row per plot.
+- R553 Lists freeze and filter.
+- R554 Run facts for the report.
+- R555 Changed rules are marked.
