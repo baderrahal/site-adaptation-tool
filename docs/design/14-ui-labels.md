@@ -578,6 +578,17 @@ The window New project of Lane C NEWPROJ-UI, word for word from docs/design/boar
 - `Not in the folder any more: <name>. It stays unticked.` CHOSEN, DRAFT, the line naming the saved surfaces the folder no longer holds (R492)
 - `The road surface folder holds no road surface files. Pick the folder in the row Road levels, then open this window again.` CHOSEN, DRAFT, the line of a folder with nothing to pick (R492)
 
+- `Report file name` CHOSEN, R542
+- `Used by 9 Report. Leave a field empty to use the value of the project settings.` CHOSEN, R542
+- `File name: ` CHOSEN, R542
+- `These fields make no file name. Take out any of \ / : * ? " | from them.` CHOSEN, R542
+- `Originator` CHOSEN, R542
+- `Volume (keep <nbh>)` CHOSEN, R542
+- `Role` CHOSEN, R542
+- `Number` CHOSEN, R542
+- `Revision` CHOSEN, R542
+- `Status code` CHOSEN, R542
+
 ### Rule values
 
 The table of the button Site Adaptation Rules (R541). Rows come from config/rule_values.json.
