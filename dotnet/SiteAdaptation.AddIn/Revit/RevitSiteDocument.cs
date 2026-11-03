@@ -255,7 +255,8 @@ namespace SiteAdaptation.AddIn.Revit
                 CategorySet categories = application.Create.NewCategorySet();
                 SharedParameterElement element = SharedParameterElement.Lookup(document, guid);
                 ElementBinding had = element == null ? null : document.ParameterBindings.get_Item(element.GetDefinition()) as ElementBinding;
-                foreach (Category category in had == null ? new Category[0] : had.Categories.Cast<Category>())
+                // R508. A row of the links alone drops what the model held besides, any other row keeps it
+                foreach (Category category in had == null || item.LinksOnly ? new Category[0] : had.Categories.Cast<Category>())
                 {
                     categories.Insert(category);
                 }

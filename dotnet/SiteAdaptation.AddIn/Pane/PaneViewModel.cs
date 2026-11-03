@@ -502,6 +502,7 @@ namespace SiteAdaptation.AddIn.Pane
             {
                 RefreshRow(row, document == null ? null : row.Keys.Select(key => document.Settings.InputPath(key)).ToArray());
             }
+            RefreshSheet();
             RefreshSurfaces();
             RefreshFormat();
             RefreshHelp();
@@ -519,6 +520,32 @@ namespace SiteAdaptation.AddIn.Pane
             foreach (string name in new[] { nameof(HasDocument), nameof(FirstOpen), nameof(InUse), nameof(ShownSteps), nameof(Settings), nameof(ScopeWhole), nameof(ScopeNbh), nameof(ScopePlots), nameof(Nbh), nameof(Plots), nameof(DryRun), nameof(VillaMasses), nameof(VillaLinks) })
             {
                 Changed(name);
+            }
+        }
+
+        // R506. The row Shared parameters shows the sheet button 1 reads, the one chosen, else the one config names, with its counts
+        // under it. A sheet that does not read is amber with its reason
+        private void RefreshSheet()
+        {
+            FileRowViewModel row = InputRows.First(item => item.Keys.Contains(InputKeys.ParameterSheet));
+            if (document == null)
+            {
+                row.Hint = string.Empty;
+                row.ShowNote(string.Empty);
+                return;
+            }
+            string chosen = document.Settings.InputPath(InputKeys.ParameterSheet);
+            string path = string.IsNullOrEmpty(chosen) ? probe.ConfigSheet(document.Settings.ConfigFile) : chosen;
+            if (string.IsNullOrEmpty(chosen))
+            {
+                RefreshRow(row, new[] { path });
+            }
+            SheetRead read = row.Found ? probe.ReadSheet(path) : null;
+            row.Hint = read?.Line ?? string.Empty;
+            row.ShowNote(read?.Refused ?? string.Empty);
+            if (read?.Refused != null)
+            {
+                row.Show(true, false, row.FileName, row.ToolTip);
             }
         }
 
@@ -869,6 +896,7 @@ namespace SiteAdaptation.AddIn.Pane
         private string surfacesTip;
         private string surfacesLine = string.Empty;
         private string note = string.Empty;
+        private string hint = string.Empty;
 
         public FileRowViewModel(string label, bool folder, params string[] keys)
         {
@@ -885,8 +913,8 @@ namespace SiteAdaptation.AddIn.Pane
         public string FileName { get { return fileName; } private set { Set(ref fileName, value); } }
         public string ToolTip { get { return toolTip; } private set { Set(ref toolTip, value); } }
 
-        // R505. A fixed line under the row, what the row is for
-        public string Hint { get; set; } = string.Empty;
+        // R505, R506. A line under the row, what the row is for or the counts of the sheet in use
+        public string Hint { get { return hint; } set { Set(ref hint, value); Changed(nameof(HasHint)); } }
         public bool HasHint { get { return !string.IsNullOrEmpty(Hint); } }
 
         // R492. The button Pick surfaces and the line under the row Road surface

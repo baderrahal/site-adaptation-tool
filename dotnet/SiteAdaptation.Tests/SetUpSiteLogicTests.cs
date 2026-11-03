@@ -74,6 +74,55 @@ namespace SiteAdaptation.Tests
             };
         }
 
+        private const string CaseGuid = "c0b2c4ee-e129-4a42-bcb6-225759b874eb";
+        private const string NameGuid = "6e8e827b-cc9a-4da2-9ddb-c8e3f09ffa36";
+
+        [Fact]
+        public void R508_a_model_set_up_before_loses_the_floors_binding_of_a_links_row_and_says_so_in_one_line()
+        {
+            SetUpTarget target = Target(sheet: ParameterSheet.FromRows("p.xlsx", Sheet(new[] { "CASE", CaseGuid, "Text", "RVT Links", "7", "Yes" }, new[] { "AA_Name", NameGuid, "Text", "RVT Links", "7", "Yes" })));
+            SiteState site = Template();
+            site.SharedParameters.Add(new ParameterState { Name = "CASE", Guid = CaseGuid, Group = "Text", Categories = { "Detail Items", "RVT Links" } });
+            site.SharedParameters.Add(new ParameterState { Name = "AA_Name", Guid = NameGuid, Group = "Text", Categories = { "Floors", "RVT Links" } });
+
+            SetUpChanges changes = SetUpPlanner.Changes(site, target);
+
+            Assert.Equal(new[] { "CASE", "AA_Name" }, changes.Parameters.Select(item => item.Name));
+            Assert.Equal(new[] { "Detail Items", "Floors" }, changes.TakenOff.Keys);
+            SetUpRow row = SetUpPlanner.View(site, target, null).WillSet.Single(item => item.Label == SetUpTexts.SharedParameters);
+            Assert.True(row.Differs);
+            Assert.Equal("From the parameter sheet: p.xlsx, 2 parameters. Removes the Detail Items binding of CASE. Removes the Floors binding of AA_Name.", row.Value);
+
+            // After the rebind the same model has nothing to change and no line
+            site.SharedParameters.ForEach(item => item.Categories = new List<string> { "RVT Links" });
+            SetUpChanges after = SetUpPlanner.Changes(site, target);
+            Assert.Empty(after.Parameters);
+            Assert.Empty(after.TakenOff);
+            Assert.Equal("From the parameter sheet: p.xlsx, 2 parameters", SetUpPlanner.View(site, target, null).WillSet.Single(item => item.Label == SetUpTexts.SharedParameters).Value);
+        }
+
+        [Fact]
+        public void R508_plot_on_floors_and_a_row_of_more_categories_keep_what_the_model_holds()
+        {
+            SetUpTarget target = Target(sheet: ParameterSheet.FromRows("p.xlsx", Sheet(new[] { "Plot", CaseGuid, "Text", "Floors", "5", "Yes" }, new[] { "AA_Two", NameGuid, "Text", "RVT Links, Walls", "none", "Yes" })));
+            SiteState site = Template();
+            site.SharedParameters.Add(new ParameterState { Name = "Plot", Guid = CaseGuid, Group = "Text", Categories = { "Floors", "Walls" } });
+            site.SharedParameters.Add(new ParameterState { Name = "AA_Two", Guid = NameGuid, Group = "Text", Categories = { "Doors", "RVT Links", "Walls" } });
+
+            SetUpChanges changes = SetUpPlanner.Changes(site, target);
+
+            Assert.Empty(changes.Parameters);
+            Assert.Empty(changes.TakenOff);
+        }
+
+        [Fact]
+        public void R507_a_sheet_that_still_binds_a_villa_row_on_floors_stops_button_1_with_the_reason()
+        {
+            SetUpTarget target = Target(sheet: ParameterSheet.FromRows("old.xlsx", Sheet(new[] { "CASE", CaseGuid, "Text", "Floors, RVT Links", "7", "Yes" }, new[] { "Plot", NameGuid, "Text", "Floors", "5", "Yes" })));
+            List<string> stops = SetUpPlanner.Stops(Template(), target);
+            Assert.Equal(new[] { "The parameter sheet binds CASE on Floors. Shared parameters are for the villa links only, so use the sheet of this version (R507)" }, stops);
+        }
+
         private SetUpTarget Target(double slope = 0.5, ParameterSheet sheet = null)
         {
             return SetUpTarget.From(config, Rules(), null, PositionFile(), slope, sheet ?? ParameterSheet.FromConfig(configPath, config));
@@ -193,7 +242,7 @@ namespace SiteAdaptation.Tests
             Assert.Equal(ParameterSheet.FloorsButton, plot.FilledBy);
             Assert.Null(sheet.Parameters.Single(item => item.Name == Placer.FflParameter).FilledBy);
             Assert.Equal(9, sheet.GuidsFilledBy(ParameterSheet.PlaceVillasButton).Count);
-            Assert.Equal(new[] { "Detail Items", "RVT Links" }, sheet.Parameters.First(item => item.Name == "CASE").Categories);
+            Assert.Equal(new[] { "RVT Links" }, sheet.Parameters.First(item => item.Name == "CASE").Categories);
             Assert.Equal("From the parameter sheet: shared_parameters.xlsx, 11 parameters, 12 left out", SetUpTexts.FromSheet(sheet.Source));
             SetUpSiteView view = SetUpPlanner.View(Template(), Target(), null);
             Assert.Empty(view.Waiting);

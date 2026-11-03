@@ -66,6 +66,19 @@ namespace SiteAdaptation.AddIn.Pane
 
         // R404. villaModeDefault of addin.lightMode of the config file, null when the file is not chosen, not read or holds none
         string VillaModeDefault(string configFile);
+
+        // R506. The path of the parameter sheet the config file names, null when it names none or is not read
+        string ConfigSheet(string configFile);
+
+        // R506. The counts of the sheet, or why it does not read
+        SheetRead ReadSheet(string path);
+    }
+
+    // R506. The line under the row Shared parameters, or the reason the sheet is refused
+    public sealed class SheetRead
+    {
+        public string Line { get; set; }
+        public string Refused { get; set; }
     }
 
     // The dialogs of Browse, so a test picks its own paths. Each gives null on Cancel. title is null for a dialog with no title of
@@ -185,6 +198,23 @@ namespace SiteAdaptation.AddIn.Pane
             catch (Exception error) when (error is IOException || error is UnauthorizedAccessException || error is Newtonsoft.Json.JsonException)
             {
                 return null;
+            }
+        }
+
+        public string ConfigSheet(string configFile)
+        {
+            return Common.Settings.SetupCheck.ConfigSheet(configFile, File.ReadAllText);
+        }
+
+        public SheetRead ReadSheet(string path)
+        {
+            try
+            {
+                return new SheetRead { Line = Common.SetUp.ParameterSheet.FromFile(path).Counts };
+            }
+            catch (Exception error) when (error is IOException || error is UnauthorizedAccessException || error is InvalidDataException || error is ArgumentException || error is NotSupportedException)
+            {
+                return new SheetRead { Refused = error.Message };
             }
         }
 

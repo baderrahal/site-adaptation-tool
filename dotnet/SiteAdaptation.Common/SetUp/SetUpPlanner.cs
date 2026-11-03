@@ -26,6 +26,9 @@ namespace SiteAdaptation.Common.SetUp
         // Each parameter bound by its GUID on the categories of the sheet, also one already there on fewer of them
         public List<ParameterSpec> Parameters { get; set; } = new List<ParameterSpec>();
 
+        // R508. By category, in name order, the parameters a rebind takes off it
+        public SortedDictionary<string, List<string>> TakenOff { get; set; } = new SortedDictionary<string, List<string>>(StringComparer.Ordinal);
+
         public bool Any
         {
             get { return Units || Location || Position || SurveyPoint || BasePoint || LevelBase || Levels.Count > 0 || FloorTypes.Count > 0 || WallTypes.Count > 0 || Parameters.Count > 0; }
@@ -103,6 +106,10 @@ namespace SiteAdaptation.Common.SetUp
                 {
                     stops.Add(SetUpTexts.FloorsOwn(item.Name, ParameterSheet.FloorsButton));
                 }
+                if (item.FilledBy == ParameterSheet.PlaceVillasButton && item.Categories.Contains(ParameterSheet.FloorCategory))
+                {
+                    stops.Add(SetUpTexts.VillaRowOnFloors(item.Name, ParameterSheet.FloorCategory));
+                }
             }
             SetUpChanges changes = Changes(now, target);
             if (changes.FloorTypes.Count > 0 && now.FloorTypes.Count == 0)
@@ -169,7 +176,17 @@ namespace SiteAdaptation.Common.SetUp
                 ParameterState have = now.SharedParameters.FirstOrDefault(other => string.Equals(other.Guid, item.Guid, StringComparison.OrdinalIgnoreCase));
                 // R464. A binding under another group than the sheet names is put again under that of the sheet
                 bool otherGroup = have?.Group != null && item.Group != null && !string.Equals(have.Group, item.Group, StringComparison.OrdinalIgnoreCase);
-                if (have == null || otherGroup || item.Categories.Any(category => !have.Categories.Contains(category)))
+                // R508. A model set up before R507 holds the row on more than the links
+                List<string> extra = have != null && item.LinksOnly ? have.Categories.Where(category => !item.Categories.Contains(category)).ToList() : new List<string>();
+                foreach (string category in extra)
+                {
+                    if (!changes.TakenOff.TryGetValue(category, out List<string> names))
+                    {
+                        changes.TakenOff[category] = names = new List<string>();
+                    }
+                    names.Add(item.Name);
+                }
+                if (have == null || otherGroup || extra.Count > 0 || item.Categories.Any(category => !have.Categories.Contains(category)))
                 {
                     changes.Parameters.Add(item);
                 }
@@ -298,7 +315,7 @@ namespace SiteAdaptation.Common.SetUp
                 new SetUpRow { Label = SetUpTexts.FloorTypes, Value = SetUpTexts.FloorTypesRow, Differs = changes.FloorTypes.Count > 0 },
                 new SetUpRow { Label = SetUpTexts.RampSlope, Value = RampSlopes.Text(target.RampSlope) + "%", Differs = changes.FloorTypes.Contains(target.RampType) },
                 new SetUpRow { Label = SetUpTexts.WallTypes, Value = string.Join(", ", target.WallTypes), Differs = changes.WallTypes.Count > 0 },
-                new SetUpRow { Label = SetUpTexts.SharedParameters, Value = SetUpTexts.FromSheet(target.Parameters.Source), Differs = changes.Parameters.Count > 0 },
+                new SetUpRow { Label = SetUpTexts.SharedParameters, Value = changes.TakenOff.Count == 0 ? SetUpTexts.FromSheet(target.Parameters.Source) : SetUpTexts.FromSheet(target.Parameters.Source) + ". " + SetUpTexts.TakesOff(changes.TakenOff), Differs = changes.Parameters.Count > 0 },
                 new SetUpRow { Label = SetUpTexts.Units, Value = SetUpTexts.UnitsText(target.Units), Differs = changes.Units },
             };
         }

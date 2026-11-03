@@ -17,6 +17,12 @@ namespace SiteAdaptation.Common.SetUp
         public string Group { get; set; }
         public List<string> Categories { get; set; } = new List<string>();
         public int? FilledBy { get; set; }
+
+        // R507. A row bound on the villa links alone holds that binding exactly, button 1 takes any other category off it
+        public bool LinksOnly
+        {
+            get { return Categories.Count == 1 && Categories[0] == ParameterSheet.LinkCategory; }
+        }
     }
 
     // R461, R373, Q155. The shared parameters of button 1 come from one source, the parameter sheet: config/shared_parameters.xlsx
@@ -29,6 +35,10 @@ namespace SiteAdaptation.Common.SetUp
         public const string SheetName = "Parameters";
         public const string TextType = "TEXT";
         public const string FilledByNone = "none";
+
+        // R507. The Revit categories of the rule, by the names the Category column gives
+        public const string LinkCategory = "RVT Links";
+        public const string FloorCategory = "Floors";
 
         // R465. The buttons that write a parameter of the sheet, Floors the floor parameter of floors.plotParameter and Place villas
         // every link parameter it owns
@@ -43,14 +53,20 @@ namespace SiteAdaptation.Common.SetUp
         // The names of the rows of Keep No
         public List<string> LeftOut { get; private set; } = new List<string>();
 
-        // The text after "From the parameter sheet: "
-        public string Source
+        // R506. The line under the pane row Shared parameters
+        public string Counts
         {
             get
             {
-                string text = Sheet + ", " + Parameters.Count.ToString(CultureInfo.InvariantCulture) + " parameters";
+                string text = Parameters.Count.ToString(CultureInfo.InvariantCulture) + " parameters";
                 return LeftOut.Count == 0 ? text : text + ", " + LeftOut.Count.ToString(CultureInfo.InvariantCulture) + " left out";
             }
+        }
+
+        // The text after "From the parameter sheet: "
+        public string Source
+        {
+            get { return Sheet + ", " + Counts; }
         }
 
         // R465. The GUID of each parameter a button fills, by name

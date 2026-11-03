@@ -610,6 +610,16 @@ namespace SiteAdaptation.UiShots
             }
         }
 
+        public string ConfigSheet(string configFile)
+        {
+            return null;
+        }
+
+        public SheetRead ReadSheet(string path)
+        {
+            return null;
+        }
+
         public string VillaModeDefault(string configFile)
         {
             return VillaModes.Masses;

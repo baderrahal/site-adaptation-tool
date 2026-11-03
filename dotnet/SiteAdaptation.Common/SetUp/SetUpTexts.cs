@@ -89,6 +89,18 @@ namespace SiteAdaptation.Common.SetUp
             return "From the parameter sheet: " + source;
         }
 
+        // R508. The line of the row Shared parameters on a model set up before R507, one sentence per category
+        public static string TakesOff(IEnumerable<KeyValuePair<string, List<string>>> taken)
+        {
+            return string.Join(" ", taken.Select(each => "Removes the " + each.Key + " binding of " + string.Join(", ", each.Value) + "."));
+        }
+
+        // R507. A sheet from before the rule, it would bind the row on Floors again
+        public static string VillaRowOnFloors(string name, string floors)
+        {
+            return "The parameter sheet binds " + name + " on " + floors + ". Shared parameters are for the villa links only, so use the sheet of this version (R507)";
+        }
+
         // The line under the check points at addin.position.revitCheckPointLimitMm, the key of its own of Q142 (W2)
         public static string PassLine(double limitMm, int passing, int count)
         {
