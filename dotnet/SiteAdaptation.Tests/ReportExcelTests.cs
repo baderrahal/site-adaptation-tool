@@ -298,7 +298,7 @@ namespace SiteAdaptation.Tests
             var fields = new JObject { ["projectName"] = "P", ["project"] = "00101", ["originator"] = "PSN", ["volume"] = "<nbh>", ["level"] = "XXX", ["type"] = "SCH", ["role"] = "TU", ["number"] = "090000", ["revision"] = "P01", ["status"] = "S0" };
             var facts = new JObject
             {
-                ["model"] = "a.rvt", ["toolVersion"] = "1.0.0.0, build abc", ["fields"] = fields, ["runSeconds"] = 150.0, ["levelPlots"] = new JArray("101"),
+                ["model"] = "a.rvt", ["toolVersion"] = "1.0.0.0, build abc", ["fields"] = fields, ["runSeconds"] = 150.0,
                 ["steps"] = new JObject { ["1"] = new JObject { ["time"] = "2026-11-03T14:01:00.000Z", ["issues"] = 0 }, ["5"] = new JObject { ["time"] = "2026-11-03T14:12:00.000Z", ["issues"] = 490 } },
                 ["changedRules"] = new JArray(new JObject { ["id"] = "M05", ["name"] = "Ramp slope", ["manual"] = 2, ["project"] = 3, ["unit"] = "%" }),
             };
@@ -316,10 +316,48 @@ namespace SiteAdaptation.Tests
             Assert.Equal(ReportExcelText.ScheduleColumns.Cast<object>().ToArray(), book.Row("Plot schedule", 1).ToArray());
             Assert.Equal("101-VD4", book.Row("Plot schedule", 2)[0]);
             Assert.Equal(101.0, book.Row("Plot schedule", 2)[1]);
+            // R552. Every plot of the top line has its row, the one the plan could not write with its number alone
+            Assert.Equal(4, book.Sheets["Plot schedule"].Count);
+            Assert.Equal(103.0, book.Row("Plot schedule", 4)[1]);
+            Assert.Equal(2, book.Row("Plot schedule", 4).Count);
             Assert.Equal(ReportExcelText.FloorColumns.Cast<object>().ToArray(), book.Row("Floors", 1).ToArray());
             Assert.Equal(ReportExcelText.WallColumns.Cast<object>().ToArray(), book.Row("Walls", 1).ToArray());
             Assert.Equal("Changed", book.Row("Rules used", 1)[5]);
             Assert.Equal(new object[] { "M05 Ramp slope", null, null, null, "manual 2, project 3 %", "Changed" }, book.Sheets["Rules used"].Keys.Select(row => book.Row("Rules used", row)).Last().ToArray());
+        }
+
+        // R552. A wall tagged under the plot beside it is on the row of both plots
+        [Fact]
+        public void R552_a_shared_wall_is_on_the_row_of_both_plots()
+        {
+            JObject counts = RevitCounts.FromTags(new SiteAdaptation.Common.Tags.PlacedTag[0], new string[0], null);
+            counts["walls"] = new JObject { ["101|101+102|e1|p1"] = new JArray(77L) };
+            WorkerAnswer answer = Run(MadePlan(), out int code, out string plan, revitCounts: counts);
+            Assert.True(code == 0, "exit " + code + ": " + answer.Message);
+            LevelExcelTests.Book book = LevelExcelTests.Book.Read(answer.Outputs[0].Path);
+            int ids = ReportExcelText.ScheduleColumns.Length - 1;
+            Assert.Equal(77.0, book.Row("Plot schedule", 2)[ids]);
+            Assert.Equal(77.0, book.Row("Plot schedule", 3)[ids]);
+        }
+
+        // R554. The plot numbers of the level Excel are read from its sheet, text or number
+        [Fact]
+        public void R554_the_level_plots_are_read_from_the_sheet_levels()
+        {
+            var sheet = new ReportSheet { Name = LevelExcelText.LevelsSheet, TopLine = "top" };
+            var table = new ReportTable { Header = new[] { LevelExcelText.PlotNo, "Unit" }, Formats = new string[2] };
+            table.Rows.Add(new object[] { "101", "VD4" });
+            table.Rows.Add(new object[] { 102L, "DP1" });
+            sheet.Tables.Add(table);
+            var made = new ReportBook { Nbh = "012", FileName = "levels.xlsx" };
+            made.Sheets.Add(sheet);
+            string path = Path.Combine(folder, "levels.xlsx");
+            Directory.CreateDirectory(folder);
+            using (var stream = File.Create(path))
+            {
+                ReportWorkbook.Write(stream, made);
+            }
+            Assert.Equal(new[] { "101", "102" }, ReportWorkbook.LevelPlots(path).ToArray());
         }
 
         // R555. An empty list keeps the five columns

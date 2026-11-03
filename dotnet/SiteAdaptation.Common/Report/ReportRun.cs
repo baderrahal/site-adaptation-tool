@@ -6,6 +6,7 @@ using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using SiteAdaptation.Common.Settings;
+using SiteAdaptation.Common.Steps;
 using SiteAdaptation.Common.Flow;
 
 namespace SiteAdaptation.Common.Report
@@ -33,6 +34,7 @@ namespace SiteAdaptation.Common.Report
         // R554. What this run knows and the worker does not: the model, the file name, its fields, the step records and the time of the build
         public const string FactsRole = "reportFacts";
         public const string ChangedRulesName = "changed_rules.json";
+        public const string LevelExcelRole = "levelExcel";
 
         private const int Check = 4;
         private const int Levels = 6;
@@ -74,8 +76,8 @@ namespace SiteAdaptation.Common.Report
         // R550. The fields of the file name the user set, null where the pane gives none
         public Func<IReadOnlyDictionary<string, string>> FieldsPick { get; set; }
 
-        // Q307. The last run of each button as the settings hold them, what the pane counts from
-        public Func<IReadOnlyDictionary<string, ButtonRun>> LastRuns { get; set; }
+        // Q307. The last run of a step as the pane reads it, the one of this session first, so the report never says other than the pane
+        public Func<int, StepRun> LastRun { get; set; }
 
         // RulesFile of the settings, null where the pane gives none
         public Func<string> RulesPick { get; set; }
@@ -140,6 +142,7 @@ namespace SiteAdaptation.Common.Report
                     lines.Add("Moves the earlier " + ReportFile.Name(nbh, fields) + " to " + EarlierPath(target, File.GetLastWriteTime(target)));
                 }
             }
+            lines.AddRange(LeftBehind(context.WorkFolder));
             return new RunSummary("Report Excel files: " + check.Nbhs.Count.ToString(CultureInfo.InvariantCulture), lines);
         }
 
@@ -180,7 +183,12 @@ namespace SiteAdaptation.Common.Report
                         inputs.Add(Input(AcceptedWarningsRole, accepted));
                     }
                     inputs.AddRange(logs);
-                    inputs.Add(Input(FactsRole, WorkFiles.WriteText(Path.Combine(context.WorkFolder, "report_facts_" + context.RunId + "_" + nbh + ".json"), context.RunId, Facts(context, levels).ToString(Formatting.Indented))));
+                    string levelExcel = LevelExcelOf(context.WorkFolder, levels, nbh);
+                    if (levelExcel != null)
+                    {
+                        inputs.Add(Input(LevelExcelRole, levelExcel));
+                    }
+                    inputs.Add(Input(FactsRole, WorkFiles.WriteText(Path.Combine(context.WorkFolder, "report_facts_" + context.RunId + "_" + nbh + ".json"), context.RunId, Facts(context, levelExcel).ToString(Formatting.Indented))));
                     var request = new WorkerRequest
                     {
                         FormatVersion = WorkerRequest.CurrentFormatVersion, RunId = context.RunId + "-" + nbh, Command = Command, Document = document, Inputs = inputs,
@@ -209,6 +217,7 @@ namespace SiteAdaptation.Common.Report
             }
             finally
             {
+                issues.AddRange(LeftBehind(context.WorkFolder));
                 if (Directory.Exists(stage))
                 {
                     Directory.Delete(stage, true);
@@ -217,15 +226,23 @@ namespace SiteAdaptation.Common.Report
             return null;
         }
 
+        // R550. A change of the fields leaves the report of the old name where it was, nothing is deleted, so the run says it stays
+        private IEnumerable<string> LeftBehind(string workFolder)
+        {
+            return fields == null ? new string[0] : check.Nbhs.Select(ReportName).Where(name => File.Exists(Path.Combine(workFolder, name)))
+                .Select(name => name + " stays in the work folder under its old name, the new report goes by the file name fields (R550)");
+        }
+
         // R554, Q307. One file per book, so the worker writes what only the add-in knows
-        private JObject Facts(RunContext context, RunLog levels)
+        private JObject Facts(RunContext context, string levelExcel)
         {
             var steps = new JObject();
-            foreach (KeyValuePair<string, ButtonRun> run in LastRuns?.Invoke() ?? new Dictionary<string, ButtonRun>())
+            for (int button = 1; button <= LastBuildStep; button++)
             {
-                if (run.Value != null)
+                StepRun run = LastRun?.Invoke(button);
+                if (run != null)
                 {
-                    steps[run.Key] = new JObject { ["time"] = run.Value.Time, ["issues"] = run.Value.IssueCount };
+                    steps[button.ToString(CultureInfo.InvariantCulture)] = new JObject { ["time"] = run.TimeUtc.ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'", CultureInfo.InvariantCulture), ["issues"] = run.Issues };
                 }
             }
             var facts = new JObject
@@ -245,11 +262,20 @@ namespace SiteAdaptation.Common.Report
             {
                 facts["changedRules"] = Json(changed, "the list of changed rules")["changed"] as JArray ?? throw new InvalidDataException(ChangedRulesName + " holds no list changed (R555): " + changed);
             }
-            if (levels != null)
+            if (levelExcel != null)
             {
-                facts["levelPlots"] = new JArray(levels.LevelPlots);
+                facts["levelExcel"] = levelExcel;
             }
             return facts;
+        }
+
+        // R554. The level Excel the last committed run of 6 wrote for the NBH, null when it wrote none or the file is gone
+        private static string LevelExcelOf(string workFolder, RunLog levels, string nbh)
+        {
+            string name = (levels?.Json["outputs"] as JArray ?? new JArray()).OfType<JObject>().Where(item => (string)item["role"] == LevelExcelRole)
+                .Select(item => (string)item["path"]).FirstOrDefault(path => path != null && Update.UpdateWorkerRequest.NbhOf(path) == nbh);
+            string path2 = name == null ? null : Path.Combine(workFolder, name);
+            return path2 != null && File.Exists(path2) ? path2 : null;
         }
 
         private static string ToolVersion()
@@ -258,7 +284,10 @@ namespace SiteAdaptation.Common.Report
             return assembly.GetName().Version + ", build " + FileHash.Sha256(assembly.Location).Substring(0, 12);
         }
 
-        // The seconds of the last committed run of buttons 1 to 8 by their timing files, without the wait on the confirm box. Null when none reads
+        // The steps of a timing file that wait on a person, the confirm box and an open window (R447)
+        private static readonly string[] WaitSteps = { "confirm", RunTiming.WindowStep };
+
+        // The seconds of the last committed run of buttons 1 to 8 by their timing files, without the waits on a person. Null when none reads
         private double? RunSeconds(string workFolder)
         {
             double? total = null;
@@ -280,8 +309,8 @@ namespace SiteAdaptation.Common.Report
                     {
                         continue;
                     }
-                    double confirm = (timing["steps"] as JArray ?? new JArray()).OfType<JObject>().Where(step => (string)step["step"] == "confirm" && step["totalSeconds"]?.Type == JTokenType.Float).Sum(step => (double)step["totalSeconds"]);
-                    total = (total ?? 0) + (double)timing["totalSeconds"] - confirm;
+                    double waits = (timing["steps"] as JArray ?? new JArray()).OfType<JObject>().Where(step => WaitSteps.Contains((string)step["step"]) && step["totalSeconds"]?.Type == JTokenType.Float).Sum(step => (double)step["totalSeconds"]);
+                    total = (total ?? 0) + (double)timing["totalSeconds"] - waits;
                     break;
                 }
             }

@@ -37,6 +37,7 @@ namespace SiteAdaptation.Tests
             Assert.Equal("012", UpdateWorkerRequest.NbhOf(@"C:\w\00101-PSN-012-XXX-SCH-TU-090000.xlsx"));
             Assert.Equal("012", UpdateWorkerRequest.NbhOf(@"C:\w\012_Report.xlsx"));
             Assert.Equal("012", UpdateWorkerRequest.NbhOf(@"C:\w\012_Levels_parsons2024Rev6.xlsx"));
+            Assert.Equal("012", UpdateWorkerRequest.NbhOf(@"C:\w\00101-PSN-012-XXX-SCH-TU-090000 - Copy.xlsx"));
             Assert.Null(UpdateWorkerRequest.NbhOf(@"C:\w\report.xlsx"));
         }
 

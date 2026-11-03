@@ -27,6 +27,7 @@ namespace CadReader
         public const string AcceptedWarningsRole = "acceptedWarnings";
         // R554. What button 9 knows of the run, ReportRun.FactsRole
         public const string FactsRole = "reportFacts";
+        public const string LevelExcelRole = "levelExcel";
 
         public static void Command(WorkerContext run)
         {
@@ -80,6 +81,7 @@ namespace CadReader
                 RevitCounts = revitCounts,
                 AcceptedWarnings = accepted,
                 RunFacts = facts,
+                LevelExcelPlots = request.Inputs.Any(item => item.Role == LevelExcelRole) ? LevelPlots(run.Input(LevelExcelRole)) : null,
                 RunId = request.RunId,
                 Profile = request.LevelProfile,
                 Now = DateTime.UtcNow,
@@ -98,6 +100,19 @@ namespace CadReader
 
         // R553. Placed keeps the plot as text, Update from report reads it as its key (R402), and the sheets of 7.6 Bader did not name stay as they were
         private static readonly string[] NumberSheets = { ReportExcelText.ScheduleSheet, ReportExcelText.FloorsSheet, ReportExcelText.WallsSheet, ReportExcelText.IssuesSheet, ReportExcelText.OverridesSheet };
+
+        // R554. The plot numbers under the header Plot No of the sheet Levels
+        public static List<string> LevelPlots(string path)
+        {
+            List<object[]> rows = XlsxSheet.Read(path, LevelExcelText.LevelsSheet).Rows.ToList();
+            int header = rows.FindIndex(row => row != null && row.Length > 0 && row[0] as string == LevelExcelText.PlotNo);
+            if (header < 0)
+            {
+                throw new InvalidDataException(Path.GetFileName(path) + " holds no header " + LevelExcelText.PlotNo + " on the sheet " + LevelExcelText.LevelsSheet + " (R554)");
+            }
+            return rows.Skip(header + 1).Select(row => row == null || row.Length == 0 ? null : row[0]).TakeWhile(cell => cell != null)
+                .Select(cell => cell is double number ? number.ToString("R", System.Globalization.CultureInfo.InvariantCulture) : cell.ToString()).ToList();
+        }
 
         private static int[] PlotColumns(string[] header)
         {

@@ -615,3 +615,4 @@ Round 6C-3NOV-C, review 1, 3 Nov 2026:
 KNOWN-3NOV-A, review and breaker, no real input reaches these:
 - CheckTableBuild.cs:33 reads overrideDefaultSources with no check. A config with no such key would grey every Past, PlanOverrides.Load stops such a run first with the line of R330.
 - A key listed in two groups of majority.groups: OverrideEdits takes the first group, OtherJobKeys the last. The groups of config are apart.
+- REPORT-3NOV-B: ReportFields has no writer until Lane C's New project section. A volume with no <nbh> passes on one NBH and Update then stops. A report left under a name of fields since removed is not named. A plot of two numbers has no old number in Plot schedule (0 such plots on 7 NBH, RAN). Old revit counts give no Walls line.

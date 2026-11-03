@@ -26,7 +26,8 @@ namespace SiteAdaptation.Common.Update
             }
             // R550. A report by its ISO name holds the NBH as its volume, the third of the fields
             string[] parts = name.Split('-');
-            return parts.Length == ReportFile.NameFields.Length ? parts[Array.IndexOf(ReportFile.NameFields, "volume")] : null;
+            // A copy Windows or OneDrive named adds to the end, so more fields than the name holds still read
+            return parts.Length >= ReportFile.NameFields.Length ? parts[Array.IndexOf(ReportFile.NameFields, "volume")] : null;
         }
 
         // The one NBH of the files, or why they have none or two

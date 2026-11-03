@@ -22,7 +22,7 @@ namespace SiteAdaptation.AddIn
             var run = new ReportRun(PaneText.Settings, WorkFiles.ReadText, (levelPlots, levelRun) => RevitCountsReader.Read(document, levelPlots, levelRun),
                 ReportWorkerClient.Run, new WorkerDocument { Path = document.PathName, SessionId = "report" }) { StandingFloors = () => RevitCountsReader.FloorIds(document), ModePick = () => session.Settings.Project.ProjectMode };
             run.FieldsPick = () => session.Settings.Project.ReportFields;
-            run.LastRuns = () => session.Settings.Project.LastRuns;
+            run.LastRun = step => session.LastRun(step);
             run.RulesPick = () => session.Settings.RulesFile;
             // R441, the line Current files of the setup after the lines of the report
             return CurrentFiles.WithReportLine(run.Body(), () => session.Settings.Project);

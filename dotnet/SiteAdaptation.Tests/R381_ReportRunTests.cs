@@ -8,6 +8,7 @@ using SiteAdaptation.Common;
 using SiteAdaptation.Common.Flow;
 using SiteAdaptation.Common.Report;
 using SiteAdaptation.Common.Settings;
+using SiteAdaptation.Common.Steps;
 using SiteAdaptation.Common.Tags;
 using Xunit;
 
@@ -239,7 +240,7 @@ namespace SiteAdaptation.Tests
             Assert.Equal(1, model.Started);
             LevelExcelTests.Book book = LevelExcelTests.Book.Read(report);
             Assert.Equal(new object[] { "Links", 0.0, 2.0 }, book.Row("Summary", 15).Take(3).ToArray());
-            Assert.Equal(new object[] { "Levels", 2.0, 2.0 }, book.Row("Summary", 17).Take(3).ToArray());
+            Assert.Equal(new object[] { "Levels", 2.0, "no run of button 6 yet" }, book.Row("Summary", 17).Take(3).ToArray());
         }
 
         [Fact]
@@ -384,7 +385,7 @@ namespace SiteAdaptation.Tests
 
         private string projectMode;
         private IReadOnlyDictionary<string, string> fieldsPick;
-        private IReadOnlyDictionary<string, ButtonRun> lastRuns;
+        private IReadOnlyDictionary<int, StepRun> lastRuns;
 
         private void FileNameBlock(string volume)
         {
@@ -395,7 +396,7 @@ namespace SiteAdaptation.Tests
 
         private JObject FactsOf(WorkerRequest request)
         {
-            return JObject.Parse(File.ReadAllText(request.Inputs.Single(input => input.Role == ReportRun.FactsRole).Path));
+            return PyJson.Parse(File.ReadAllText(request.Inputs.Single(input => input.Role == ReportRun.FactsRole).Path)) as JObject;
         }
 
         [Fact]
@@ -403,24 +404,22 @@ namespace SiteAdaptation.Tests
         {
             CheckRunLog();
             RunLog(6, "6_20261030-115000-000", new JArray("101", "102"));
-            Write("run_timing_5_20261030-110000-000.json", new JObject { ["end"] = "Committed", ["totalSeconds"] = 100.5, ["steps"] = new JArray(new JObject { ["step"] = "confirm", ["totalSeconds"] = 40.0 }) }.ToString());
+            Write("run_timing_5_20261030-110000-000.json", new JObject { ["end"] = "Committed", ["totalSeconds"] = 100.5, ["steps"] = new JArray(new JObject { ["step"] = "confirm", ["totalSeconds"] = 30.0 }, new JObject { ["step"] = "window", ["totalSeconds"] = 10.0 }) }.ToString());
             Write("run_timing_5_20261030-100000-000.json", new JObject { ["end"] = "Committed", ["totalSeconds"] = 999.5 }.ToString());
             Write("run_timing_7_20261030-110000-000.json", new JObject { ["end"] = "Cancelled", ["totalSeconds"] = 999.5 }.ToString());
             Write("run_timing_8_20261030-110000-000.json", new JObject { ["end"] = "Committed", ["totalSeconds"] = 9.5 }.ToString());
-            var five = new ButtonRun { Time = "2026-10-30T10:00:00.000Z", Issues = new List<string> { "a" } };
-            five.Counts[ButtonRun.WarningsCount] = 4;
-            lastRuns = new Dictionary<string, ButtonRun> { ["5"] = five };
+            lastRuns = new Dictionary<int, StepRun> { [5] = new StepRun(new DateTime(2026, 10, 30, 10, 0, 0, DateTimeKind.Utc), "h", null, 5, null) };
             var asked = new List<WorkerRequest>();
             string factsText = null;
             Func<WorkerRequest, string, WorkerAnswer> stand = Stand(asked);
             RunOutcome outcome = Run(false, true, (request, folder) => { factsText = FactsOf(request).ToString(); return stand(request, folder); }, out Model model, out State state);
 
             Assert.True(outcome.End == RunEnd.Committed, outcome.End + " " + outcome.Message);
-            JObject facts = JObject.Parse(factsText);
+            JObject facts = PyJson.Parse(factsText) as JObject;
             Assert.Equal("Site.rvt", (string)facts["model"]);
             Assert.Equal(5, (int)facts["steps"]["5"]["issues"]);
             Assert.Equal(70.0, (double)facts["runSeconds"]);
-            Assert.Equal(new[] { "101", "102" }, facts["levelPlots"].Select(item => (string)item).ToArray());
+            Assert.Equal("2026-10-30T10:00:00.000Z", (string)facts["steps"]["5"]["time"]);
             Assert.Null(facts["changedRules"]);
             Assert.Null(facts["fields"]);
         }
@@ -463,7 +462,7 @@ namespace SiteAdaptation.Tests
             Func<ICollection<string>, string, JObject> counts = null)
         {
             var run = new ReportRun("Settings", WorkFiles.ReadText, counts ?? ((plots, levelRun) => RevitCounts.FromTags(new PlacedTag[0], plots, levelRun)), worker,
-                new WorkerDocument { Path = @"C:\Models\Site.rvt", SessionId = "s" }) { StandingFloors = standing, ModePick = () => projectMode, FieldsPick = () => fieldsPick, LastRuns = () => lastRuns };
+                new WorkerDocument { Path = @"C:\Models\Site.rvt", SessionId = "s" }) { StandingFloors = standing, ModePick = () => projectMode, FieldsPick = () => fieldsPick, LastRun = step => lastRuns != null && lastRuns.TryGetValue(step, out StepRun found) ? found : null };
             model = new Model();
             state = new State { Work = work, Config = config, DryFirst = dryFirst };
             var flow = new ButtonFlow(state, model, confirm, InputHash.Of, () => RunId);

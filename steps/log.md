@@ -26,7 +26,7 @@ Next:
 - 6b
 
 Your turn:
-- Opened Q450 Report defaults of old number, revision, status. Closed Q307 What the report Summary shows after a run. See steps/questions-open.md
+- Opened Q450 Report defaults of old number, revision, status. Q451 Report Issues column against its sheets. Closed Q307 What the report Summary shows after a run. See steps/questions-open.md
 ## Lane A KNOWN-3NOV-A, 2026-11-03, the known issues with a clear answer
 
 Goal:

@@ -62,23 +62,41 @@ namespace SiteAdaptation.Common
     public static partial class ReportSheets
     {
         // R552. The columns the past job schedule holds keep its order, the columns it lacks follow
-        private static ReportTable ScheduleTable(ReportInputs inputs, Made made, List<JObject> written, List<JObject> walls)
+        private static ReportTable ScheduleTable(ReportInputs inputs, Made made, List<JObject> written, List<string> order, ReportResult result)
         {
             var table = new ReportTable { Header = ReportExcelText.ScheduleColumns, Formats = new string[ReportExcelText.ScheduleColumns.Length] };
             string oldColumn = Text(inputs.Config["addin"]?["report"]?["oldPlotColumn"]);
-            ILookup<string, JObject> wallsOf = walls.ToLookup(wall => (string)wall["plot"]);
-            Dictionary<JObject, string> parts = WallParts(made);
-            foreach (JObject plot in written)
+            if (oldColumn != null && !made.Faces.Any(row => row.ContainsKey(oldColumn)))
             {
-                string number = (string)plot["plot"];
-                string unit = Text(plot["unit"]?["value"]);
-                JObject levels = plot["levels"] as JObject ?? new JObject();
-                JArray corners = plot["floors"]?["ramp"]?["corners"]?["value"] as JArray;
+                result.Issues.Add("addin.report.oldPlotColumn names " + oldColumn + ", which plots.csv does not hold, so Old Plot No. is empty (R552)");
+            }
+            // A wall on the boundary of two plots belongs on both rows, it is tagged under one
+            Dictionary<JObject, string> parts = WallParts(made);
+            ILookup<string, JObject> wallsOf = made.Walls.SelectMany(wall => (wall["plots"]?["value"] as JArray ?? new JArray()).Select(item => ((string)item).Trim()).Concat(new[] { (string)wall["plot"] }).Distinct()
+                .Select(number => new { number, wall })).ToLookup(item => item.number, item => item.wall);
+            Dictionary<string, JObject> plots = written.ToDictionary(plot => (string)plot["plot"]);
+            int width = ReportExcelText.ScheduleColumns.Length;
+            int oldAt = Array.IndexOf(ReportExcelText.ScheduleColumns, ReportExcelText.OldPlotNumber);
+            foreach (string number in order)
+            {
                 string oldNumber = null;
                 if (oldColumn != null && made.Rows.TryGetValue(number, out Dictionary<string, string> row))
                 {
                     row.TryGetValue(oldColumn, out oldNumber);
                 }
+                // A plot the plan could not write keeps its row, the sheet Skipped says why
+                if (!plots.TryGetValue(number, out JObject plot))
+                {
+                    var empty = new object[width];
+                    empty[0] = number;
+                    empty[1] = number;
+                    empty[oldAt] = oldNumber;
+                    table.Rows.Add(empty);
+                    continue;
+                }
+                string unit = Text(plot["unit"]?["value"]);
+                JObject levels = plot["levels"] as JObject ?? new JObject();
+                JArray corners = plot["floors"]?["ramp"]?["corners"]?["value"] as JArray;
                 string file = Text(plot["prototypeFile"]?["value"]);
                 var cells = new List<object>
                 {
@@ -94,7 +112,7 @@ namespace SiteAdaptation.Common
                 cells.Add(RevitCounts.ElementId(inputs.RevitCounts, number, PlacedKinds.Generic));
                 cells.Add(RevitCounts.ElementId(inputs.RevitCounts, number, PlacedKinds.Yard));
                 cells.Add(RevitCounts.ElementId(inputs.RevitCounts, number, PlacedKinds.Ramp));
-                List<long> wallIds = wallsOf[number].SelectMany(wall => RevitCounts.WallIds(inputs.RevitCounts, number, parts[wall])).ToList();
+                List<long> wallIds = wallsOf[number].SelectMany(wall => RevitCounts.WallIds(inputs.RevitCounts, (string)wall["plot"], parts[wall])).ToList();
                 cells.Add(wallIds.Count == 0 ? null : wallIds.Count == 1 ? (object)wallIds[0] : string.Join(ReportExcelText.ListJoin, wallIds));
                 table.Rows.Add(cells.ToArray());
             }
@@ -172,7 +190,7 @@ namespace SiteAdaptation.Common
                 new[] { ReportExcelText.CoverNbh, nbh },
                 new[] { ReportExcelText.CoverRevision, field(ReportFile.Revision) },
                 new[] { ReportExcelText.CoverStatus, field(ReportFile.Status) },
-                new[] { ReportExcelText.CoverDate, inputs.Now.ToUniversalTime().ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) },
+                new[] { ReportExcelText.CoverDate, inputs.Now.ToLocalTime().ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) },
                 new[] { ReportExcelText.CoverTool, Text(inputs.RunFacts?["toolVersion"]) ?? ReportExcelText.NotSet },
                 new[] { ReportExcelText.CoverModel, Text(inputs.RunFacts?["model"]) ?? ReportExcelText.NotSet },
                 new[] { ReportExcelText.CoverFile, fileName },

@@ -411,9 +411,17 @@ namespace SiteAdaptation.Common.Update
                     break;
                 }
                 string kind = Cell(row, 1) as string;
-                // Q307. A wall row says what stands, nothing of it is editable
+                // Q307. A wall row says what stands, nothing of it is editable, and a typed cell is listed as a floor's is
                 if (kind == PlacedKinds.BoundaryWall)
                 {
+                    if (Cell(row, type) != null)
+                    {
+                        Ignore(made, book, sheet, index, plot, ReportExcelText.Type, null, Cell(row, type), "a wall row is not editable");
+                    }
+                    if (Cell(row, mirror) != null)
+                    {
+                        Ignore(made, book, sheet, index, plot, ReportExcelText.Mirror, null, Cell(row, mirror), "a wall row is not editable");
+                    }
                     continue;
                 }
                 bool first = seen.Add(plot + "\n" + kind);

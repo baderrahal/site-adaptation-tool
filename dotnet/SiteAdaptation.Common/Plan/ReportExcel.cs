@@ -224,6 +224,8 @@ namespace SiteAdaptation.Common
         public JObject AcceptedWarnings { get; set; }
         // R554: what button 9 knows of the run and the worker does not, ReportRun.FactsRole, null when the request gives none
         public JObject RunFacts { get; set; }
+        // R554: the plot numbers of the sheet Levels of the level Excel of the last run of 6, null when the request gives none
+        public ICollection<string> LevelExcelPlots { get; set; }
         public string RunId { get; set; }
         public string Profile { get; set; }
         public DateTime Now { get; set; }
@@ -509,7 +511,7 @@ namespace SiteAdaptation.Common
             var sheets = new Dictionary<string, ReportSheet> { [ReportExcelText.CoverSheet] = cover, [ReportExcelText.SummarySheet] = summary };
             foreach (var item in new[]
             {
-                Tuple.Create(ReportExcelText.ScheduleSheet, ScheduleTable(inputs, made, written, walls)), Tuple.Create(ReportExcelText.FloorsSheet, FloorsTable(inputs, written)),
+                Tuple.Create(ReportExcelText.ScheduleSheet, ScheduleTable(inputs, made, written, order, result)), Tuple.Create(ReportExcelText.FloorsSheet, FloorsTable(inputs, written)),
                 Tuple.Create(ReportExcelText.WallsSheet, WallsTable(inputs, made, walls)),
                 Tuple.Create(ReportExcelText.PlacedSheet, placed), Tuple.Create(ReportExcelText.SkippedSheet, skipped), Tuple.Create(ReportExcelText.OverridesSheet, overrides),
                 Tuple.Create(ReportExcelText.AssumedSheet, assumed), Tuple.Create(ReportExcelText.IssuesSheet, issues), Tuple.Create(ReportExcelText.AcceptedSheet, AcceptedTable(inputs, nbh)),
@@ -838,9 +840,9 @@ namespace SiteAdaptation.Common
             long links = placed.Rows.Count(row => (string)row[1] == ReportExcelText.LinkKind);
             long floors = placed.Rows.Count(row => SiteCoordinates.FloorKinds.Contains((string)row[1]));
             long planFloors = written.Sum(plot => (plot["floors"] as JObject ?? new JObject()).Count);
-            // R554. The plots button 6 set of the whole run, counted for this book as the Revit column is
+            // R554. The plots the level Excel holds, read from the file, so the box compares it with what the model read says
             var scopeOfBook = new HashSet<string>(written.Select(plot => (string)plot["plot"]));
-            long? levelPlots = (inputs?.RunFacts?["levelPlots"] as JArray)?.Select(item => (string)item).Count(scopeOfBook.Contains);
+            long? levelPlots = inputs?.LevelExcelPlots?.Count(scopeOfBook.Contains);
             var items = new List<object[]>
             {
                 new object[] { ReportExcelText.Links, (long)written.Count, revit == null ? (object)ReportExcelText.NotPlaced : revit[0], links },
