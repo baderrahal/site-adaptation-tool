@@ -136,12 +136,17 @@ def whole(value):
     return int(found) if found.is_integer() else None
 
 
-def load_inputs(plan_path, overrides_path, clusters_path, levels_path, hands_path, plots_csv, rules_path, config_path):
+def read_config(config_path, project_mode):
+    """R484. The config of the build under the project mode of its request, the mode of config when it holds none."""
+    return design_basis.take_mode(json.loads(Path(config_path).read_text(encoding="utf-8")), project_mode)
+
+
+def load_inputs(plan_path, overrides_path, clusters_path, levels_path, hands_path, plots_csv, rules_path, config_path, project_mode=None):
     read = lambda path: json.loads(Path(path).read_text(encoding="utf-8"))
     with open(plots_csv, encoding="utf-8-sig", newline="") as handle:
         rows = {row["locationPlanNumber"]: row for row in csv.DictReader(handle) if row.get("locationPlanNumber")}
     return {"plan": read(plan_path), "planBytes": Path(plan_path).read_bytes(), "overrides": read(overrides_path), "clusters": read(clusters_path),
-            "levels": read(levels_path), "hands": read(hands_path), "rows": rows, "rules": read(rules_path), "config": read(config_path),
+            "levels": read(levels_path), "hands": read(hands_path), "rows": rows, "rules": read(rules_path), "config": read_config(config_path, project_mode),
             "sha": {name: hashlib.sha256(Path(path).read_bytes()).hexdigest() for name, path in (("rules", rules_path), ("overrides", overrides_path))}}
 
 
@@ -386,7 +391,7 @@ def check_folder(folder, want, mock):
 
 def run(args):
     mock = mock_labels()
-    inputs = load_inputs(args.plan, args.overrides, args.clusters, args.levels, args.hands, args.plots_csv, args.rules, args.config)
+    inputs = load_inputs(args.plan, args.overrides, args.clusters, args.levels, args.hands, args.plots_csv, args.rules, args.config, getattr(args, "project_mode", None))
     want = expected(inputs, args.profile, mock)
     books = want["books"]
     report = {"plan": Path(args.plan).name, "workbooks": sorted(book["file"] for book in books.values()), "heightRule": want["rule"],
@@ -412,6 +417,7 @@ def main(argv=None):
     parser.add_argument("--plots-csv", required=True)
     parser.add_argument("--rules", help="the rules profile, by default the one config names")
     parser.add_argument("--config", default=str(project_profile.SETTINGS_PATH))
+    parser.add_argument("--project-mode", help="R484. the project mode of the request of the build, the mode of config when left out")
     parser.add_argument("--profile", default="parsons2024Rev6")
     parser.add_argument("--xlsx-folder", help="the folder of the level Excel files the worker wrote of this plan, left out to check the plan side alone")
     parser.add_argument("--out", required=True, help="the report, outside the repo")

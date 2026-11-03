@@ -1656,7 +1656,7 @@ def override_inputs(args, settings, name, lp, key, block):
     # R330. With no source named a build applies majority.overrideDefaultSources, parsons, so native overrides never apply by default
     sources = list(named_sources) if named_sources else override_source.default_sources(settings)
     # R280. Only the overrides of a source of the job of the level profile
-    return plan_rules.load_overrides(args.overrides, set(sources), fields, block["groups"], name, lp, set(models) or None), sources
+    return plan_rules.load_overrides(args.overrides, set(sources), fields, block["groups"], name, lp, set(models) or None, design_basis.holds_rev6(settings)), sources
 
 
 def rule_inputs(args, settings, profile, numbers, rows, faces, roads, sales, clusters=(), files=None, basis=None):
@@ -1733,6 +1733,7 @@ def main(argv=None):
     parser.add_argument("--floors", default=str(floor_fit.DEFAULT_PATH))
     parser.add_argument("--scratch", required=True, help="a folder outside the repo for the LandXML reader")
     parser.add_argument("--level-profile", help="R277, R278. a level profile of the rules profile, levelProfiles.default when left out")
+    parser.add_argument("--project-mode", help="R484. the project mode of the settings, laid over designBasis.mode of config, the mode of config when left out")
     parser.add_argument("--overrides", help="R280. the override list in config/overrides")
     parser.add_argument("--override-source", nargs="*", help="R330. the jobs whose overrides apply, majority.overrideDefaultSources (parsons) when left out")
     parser.add_argument("--override-model", nargs="*", default=[], help="R280, R330. only the overrides of these past model files")
@@ -1756,6 +1757,8 @@ def run_build(args):
         if args.analysis:
             raise project_profile.ProfileError(ANALYSIS_REFUSED)
         settings = project_profile.load_settings(args.settings)
+        # R484. Laid once here, so every reader of the mode in this run takes it
+        design_basis.take_mode(settings.values, getattr(args, "project_mode", None))
         profile = project_profile.load_profile(project_profile.profile_path(settings))
         block = settings.get("siteBuild")
         # R407. The design basis read once for the whole run, a mode outside designBasis.modes refused before any step

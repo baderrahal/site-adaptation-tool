@@ -152,8 +152,10 @@
           <TextBlock Style="{StaticResource HeadText}" Margin="{StaticResource SA.Gap.Right8}" Text="{x:Static np:NewProjectText.ProjectName}" />
           <TextBox Style="{StaticResource SA.Pane.Entry}" Width="{StaticResource SA.Size.SetupName}" IsReadOnly="True" Text="{Binding ProjectName, Mode=OneWay}" />
           <TextBlock Style="{StaticResource HeadText}" Margin="{StaticResource SA.Gap.Left16}" Text="{x:Static np:NewProjectText.StartFrom}" />
-          <ComboBox Style="{StaticResource SA.Pane.Combo}" Width="{StaticResource SA.Size.SetupStart}" Margin="{StaticResource SA.Gap.Left8}"
-                    ItemsSource="{Binding Starts}" SelectedItem="{Binding Start}" />
+          <StackPanel Margin="{StaticResource SA.Gap.Left8}">
+            <ComboBox Style="{StaticResource SA.Pane.Combo}" Width="{StaticResource SA.Size.SetupStart}" ItemsSource="{Binding Starts}" SelectedItem="{Binding Start}" />
+            <TextBlock Style="{StaticResource SA.Pane.Detail}" Margin="{StaticResource SA.Gap.Top4}" Text="{Binding ModeLine}" />
+          </StackPanel>
           <TextBlock Style="{StaticResource HelpText}" Margin="{StaticResource SA.Gap.Left8}" VerticalAlignment="Center" Text="{Binding SavedHint}" />
         </StackPanel>
 

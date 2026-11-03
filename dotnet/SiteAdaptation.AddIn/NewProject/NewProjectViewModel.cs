@@ -132,6 +132,13 @@ namespace SiteAdaptation.AddIn.NewProject
         private string todoLine = string.Empty;
         private bool checkedOk;
         private string templateLine = string.Empty;
+        private string modeLine = string.Empty;
+
+        // R486. The shipped set of the install, null where the window has none, and what Save took from it
+        private readonly ShippedSet shipped;
+        private ProjectSet taken;
+        private ProjectSet preview;
+        private bool previewRead;
 
         // R440, Q283. The scan the facts came from, the window What the tool read it opens, and the picks of the dropdowns and the window
         private readonly DrawingFactsResult facts;
@@ -147,8 +154,9 @@ namespace SiteAdaptation.AddIn.NewProject
         private List<string> surfaces;
 
         public NewProjectViewModel(ProjectSettings current, string projectName, IReadOnlyList<SavedStart> starts, DrawingFactsResult facts, Func<string, bool, bool> there,
-            IPathPicker picker, Func<string, string> readText, Func<string, ProjectSettings, ProjectSettings> viewScan = null, bool modelOpen = true, SurfacePicker pickSurfaces = null)
+            IPathPicker picker, Func<string, string> readText, Func<string, ProjectSettings, ProjectSettings> viewScan = null, bool modelOpen = true, SurfacePicker pickSurfaces = null, ShippedSet shipped = null)
         {
+            this.shipped = shipped;
             this.pickSurfaces = pickSurfaces;
             NoModelShown = !modelOpen;
             this.viewScan = viewScan;
@@ -278,6 +286,9 @@ namespace SiteAdaptation.AddIn.NewProject
         public bool CheckedOk { get { return checkedOk; } private set { Set(ref checkedOk, value); } }
         public string TemplateLine { get { return templateLine; } private set { Set(ref templateLine, value); } }
 
+        // R484. The one plain line under Start from, the rules the settings of Save setup would build under. Refreshed with every pick, empty where no mode is known
+        public string ModeLine { get { return modeLine; } private set { Set(ref modeLine, value); } }
+
         // R445. True when Save setup has no model to write to, so the foot says the next button run writes the setup
         public bool NoModelShown { get; }
 
@@ -339,7 +350,8 @@ namespace SiteAdaptation.AddIn.NewProject
         // R431. Read only, the statuses and the stop box of the settings Save setup would give
         public void CheckFiles()
         {
-            CheckedOk = Refresh().Ok;
+            SetupCheckResult result = Refresh();
+            CheckedOk = (result.HasStart || Takes) && !result.Stops.Any() && !Unread;
         }
 
         public void GetTemplate(SetupRowViewModel row)
@@ -389,8 +401,53 @@ namespace SiteAdaptation.AddIn.NewProject
             }
         }
 
+        // R486. Empty project of settings that name no config, with a set shipped
+        private bool Wants => start?.Start == null && string.IsNullOrEmpty(current.ConfigFile) && shipped != null && shipped.There;
+
+        private bool Takes => Wants && shipped.Refusal == ShippedSetRefusal.None;
+
+        private string RefusedLine => !Wants ? null : shipped.Refusal == ShippedSetRefusal.NotSaved ? NewProjectText.SetNotSaved : shipped.Refusal == ShippedSetRefusal.NoSafeName ? NewProjectText.SetNoName : null;
+
+        // R486. The set is there and its files do not read, so the window does not read as all found
+        private bool Unread => Takes && taken == null && Previewed() == null;
+
+        // R486. Before Save the window reads the shipped set as the Save will give it, so the road pick and the sheet row work, nothing is copied. Read once
+        private ProjectSet Previewed()
+        {
+            if (!Takes)
+            {
+                return null;
+            }
+            if (!previewRead)
+            {
+                preview = shipped.Preview(readText);
+                previewRead = true;
+            }
+            return preview;
+        }
+
         public void Save()
         {
+            // R486. The copy is made here where the work root is known, SetupSave lays the result over the settings. A refusal leaves the window open and nothing written
+            if (RefusedLine != null)
+            {
+                return;
+            }
+            if (Takes)
+            {
+                try
+                {
+                    taken = shipped.Take(readText);
+                }
+                catch (Exception error) when (error is IOException || error is UnauthorizedAccessException || error is InvalidDataException || error is JsonException || error is ArgumentException || error is NotSupportedException || error is InvalidOperationException)
+                {
+                    // The reason stays out of the window, the add-in has no log to put it in
+                    StopShown = true;
+                    StopLine = NewProjectText.SetNotCopied;
+                    TodoLine = NewProjectText.SetNotCopiedTodo;
+                    return;
+                }
+            }
             Result = Next();
             Finished?.Invoke();
         }
@@ -403,7 +460,7 @@ namespace SiteAdaptation.AddIn.NewProject
 
         private SetupDraft Draft()
         {
-            var draft = new SetupDraft { StartText = start?.Start?.Text, ScanPicks = new Dictionary<string, string>(scanPicks), ConflictPicks = conflictPicks, RoadSurfaces = surfaces };
+            var draft = new SetupDraft { StartText = start?.Start?.Text, ScanPicks = new Dictionary<string, string>(scanPicks), ConflictPicks = conflictPicks, RoadSurfaces = surfaces, NewSet = taken ?? Previewed() };
             foreach (KeyValuePair<string, string> pick in picks)
             {
                 draft.Picks[pick.Key] = pick.Value;
@@ -413,7 +470,16 @@ namespace SiteAdaptation.AddIn.NewProject
 
         private ProjectSettings Next()
         {
-            return SetupSave.Apply(Draft(), current);
+            return SetupSave.Apply(Draft(), current, readText);
+        }
+
+        // What the Save would give, by rev6 against the other, the name of the past job lives in config alone. No mode known and no set to take shows no line, so it
+        // never promises a build the project can not do (R486)
+        private void ShowMode()
+        {
+            ProjectSettings next = Next();
+            string mode = next.ProjectMode ?? ProjectModes.OfConfig(ProjectModes.ReadConfig(next.ConfigFile, readText)) ?? (Takes ? shipped.NewMode(readText) : null);
+            ModeLine = mode == null ? string.Empty : mode == Common.DesignBasis.Rev6 ? NewProjectText.ModeRev6 : NewProjectText.ModePast;
         }
 
         private void ShowSurfaces()
@@ -435,11 +501,14 @@ namespace SiteAdaptation.AddIn.NewProject
                 row.Show(result.Rows.Single(item => item.Row.Id == row.Row.Id));
             }
             ShowSurfaces();
+            ShowMode();
             Ready = TextTemplate.Fill(NewProjectText.Ready, result.Ready, result.Total);
             SetupRowViewModel stop = result.Stops.Select(item => Rows.Single(row => row.Row.Id == item.Row.Id)).FirstOrDefault();
-            StopShown = !result.HasStart || stop != null;
-            StopLine = !result.HasStart ? (result.StartNamed ? NewProjectText.StartGone : NewProjectText.NoStart) : stop?.StopLine ?? string.Empty;
-            TodoLine = !result.HasStart ? NewProjectText.NoStartTodo : stop?.TodoLine ?? string.Empty;
+            bool noStart = !result.HasStart && !Takes;
+            bool unread = Unread;
+            StopShown = noStart || stop != null || unread;
+            StopLine = RefusedLine ?? (unread ? NewProjectText.SetNotRead : noStart ? (result.StartNamed ? NewProjectText.StartGone : NewProjectText.NoStart) : stop?.StopLine ?? string.Empty);
+            TodoLine = RefusedLine != null ? string.Empty : unread ? NewProjectText.SetNotReadTodo : noStart ? NewProjectText.NoStartTodo : stop?.TodoLine ?? string.Empty;
             return result;
         }
     }

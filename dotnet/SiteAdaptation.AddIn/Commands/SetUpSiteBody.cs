@@ -31,7 +31,7 @@ namespace SiteAdaptation.AddIn
                 .Recording(() => session.Settings.Project, new SettingsEntity(document), () => DateTime.UtcNow)
                 .ReadingLastRun(() => session.LastRun(1))
                 .ReadingCad(context => CoordinateRequest.Run(context, ReadDataBody.Inputs(session.Settings), ReadDataBody.Roles, PaneText.Settings,
-                    new WorkerDocument { Path = session.Path, SessionId = session.SessionId }, Report.ReportWorkerClient.Run));
+                    new WorkerDocument { Path = session.Path, SessionId = session.SessionId }, Report.ReportWorkerClient.Run, session.Settings.Project.ProjectMode));
             return run.Body();
         }
     }

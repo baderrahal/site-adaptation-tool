@@ -7,6 +7,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using Newtonsoft.Json.Linq;
+using SiteAdaptation.Common.Settings;
 using SiteAdaptation.Common;
 
 namespace CadReader
@@ -37,7 +38,8 @@ namespace CadReader
             }
             string overridesPath = run.Input(OverridesRole);
             string configPath = run.Input("config");
-            ReadSettings settings = ReadSettings.Load(configPath);
+            // R484. The project mode of the request, the mode the build took
+            ReadSettings settings = ReadSettings.Load(configPath, request.ProjectMode);
             var inputs = new LevelInputs
             {
                 Plan = plan,
@@ -46,7 +48,7 @@ namespace CadReader
                 Rules = rules,
                 RulesName = Path.GetFileName(rulesPath),
                 RulesSha256 = FileHash.Sha256(rulesPath),
-                Config = PyJson.Parse(WorkFiles.ReadText(configPath)) as JObject,
+                Config = ProjectModes.Apply(PyJson.Parse(WorkFiles.ReadText(configPath)) as JObject, request.ProjectMode),
                 // R492. Under rev6 the order the build took, the pick its request carries or designBasis.roadLevel, never siteBuild.roadSurfaces
                 RoadOrder = settings.IsRev6 ? settings.ReadRoads(request.RoadSurfaces) : Fronts.RoadNames((JObject)rules["levelProfiles"][request.LevelProfile], settings),
                 Overrides = PyJson.Parse(WorkFiles.ReadText(overridesPath)) as JObject,

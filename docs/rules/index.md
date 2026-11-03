@@ -408,6 +408,10 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R481 Parted walls read weak measured.
 - R482 Front edge by override.
 - R483 Placed names its element.
+- R484 Project mode in the settings.
+- R485 Grading files are no roads.
+- R486 Empty project takes the shipped set.
+- R487 New project has no list.
 
 ## 11-scanner-r420-up.md
 

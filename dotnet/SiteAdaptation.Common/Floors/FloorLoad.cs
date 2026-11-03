@@ -71,6 +71,7 @@ namespace SiteAdaptation.Common.Floors
             {
                 Plan = plan, PlanPath = planPath, NoFfl = NoFfl(JObject.Parse(WorkFiles.ReadText(planPath))), Profile = request.LevelProfile, InScope = chosen.Item2,
                 ExcelInputs = files, TimeLimitS = AddinConfig.Load(configPath).WorkerTimeLimitS(LevelsRun.Command), Document = document, RoadSurfaces = request.RoadSurfaces,
+                ProjectMode = request.ProjectMode,
             };
         }
 

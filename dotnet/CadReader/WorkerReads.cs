@@ -62,7 +62,7 @@ namespace CadReader
             {
                 throw run.Refusal("a read names no output folder for its outputs");
             }
-            ReadSettings settings = ReadSettings.Load(run.Input("config"));
+            ReadSettings settings = run.ConfigSettings();
             // R352. The decimals of the block order of the plot table, addin.plotTable, its own setting and never a tolerance of the parity,
             // held before any read
             int overlapDecimals = 0;
@@ -300,7 +300,7 @@ namespace CadReader
                 {
                     throw run.Refusal(refused.Message);
                 }
-                JObject baseplan = Drawing(run, "baseplan", LayerConfig.Load(run.Input("cadLayers")), ReadSettings.Load(run.Input("config")), true);
+                JObject baseplan = Drawing(run, "baseplan", LayerConfig.Load(run.Input("cadLayers")), run.ConfigSettings(), true);
                 AddinConfig addin = AddinConfig.Load(run.Input("config"));
                 Dictionary<string, Dictionary<string, object>> rows;
                 try
@@ -427,6 +427,11 @@ namespace CadReader
                 throw run.Refusal(refused.Message);
             }
             List<string> order = settings.ReadRoads(request.RoadSurfaces);
+            string notRoad = settings.NotRoadRefusal(order);
+            if (notRoad != null)
+            {
+                throw run.Refusal(notRoad);
+            }
             List<string> extra = roles.Where(role => !order.Contains(role.Substring(WorkerRunner.RoadSurfaceRole.Length))).ToList();
             List<string> missing = order.Where(name => !roles.Contains(WorkerRunner.RoadSurfaceRole + name)).ToList();
             if (extra.Count > 0 || missing.Count > 0)

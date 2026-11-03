@@ -54,6 +54,8 @@ namespace SiteAdaptation.AddIn.CheckTable
             run.DoorPicked = source => settings.Project.DoorLevelSource = source;
             // R492. The road surfaces picked in Set up, null while none was picked
             run.RoadPick = () => settings.Project.RoadSurfaces;
+            // R484. The project mode of the settings, null while they hold none
+            run.ModePick = () => settings.Project.ProjectMode;
             return run;
         }
     }

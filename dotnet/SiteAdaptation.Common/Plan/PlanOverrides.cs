@@ -379,7 +379,10 @@ namespace SiteAdaptation.Common
                     + " job: name --override-source " + Text(job) + " on a build of " + profileName + ", native overrides are never applied by default (R280, R330)");
             }
             List<JObject> chosen = entries.OfType<JObject>().Where(item => sources.Contains((string)item["source"])).ToList();
-            List<string> missing = sources.Except(chosen.Select(item => (string)item["source"])).OrderBy(source => source, StringComparer.Ordinal).ToList();
+            // R487. Under rev6 a real list with none of the source, no entries or only those of another key, applies nothing and locks no project. Under the past job it is
+            // refused, so a mistyped mode of a new project stops here
+            bool free = listed is JArray && Settings.RoadSurfaceChoices.IsRev6(config);
+            List<string> missing = free ? new List<string>() : sources.Except(chosen.Select(item => (string)item["source"])).OrderBy(source => source, StringComparer.Ordinal).ToList();
             if (missing.Count > 0)
             {
                 throw new InvalidDataException("the override list holds no override of " + string.Join(", ", missing) + " among the sources " + string.Join(", ", sources.OrderBy(source => source, StringComparer.Ordinal)) + " (R280, R330)");

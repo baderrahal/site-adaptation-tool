@@ -12,7 +12,7 @@ namespace SiteAdaptation.Common.Settings
     public static class RoadSurfaceChoices
     {
         // The stems of the LandXML files of the Road surface folder sorted ordinal, none for no folder, with no name siteBuild.roadFolder.notTaken
-        // of config refuses. GetFiles of *.xml on Windows also finds longer extensions, so the extension is held again
+        // of config refuses and under rev6 no name designBasis.roadLevel.notRoad lists (R485). GetFiles of *.xml on Windows also finds longer extensions, so the extension is held again
         public static IReadOnlyList<string> InFolder(string folder, JObject config)
         {
             if (string.IsNullOrEmpty(folder) || !Directory.Exists(folder))
@@ -20,7 +20,7 @@ namespace SiteAdaptation.Common.Settings
                 return new string[0];
             }
             return Directory.GetFiles(folder, "*.xml").Where(file => string.Equals(Path.GetExtension(file), ".xml", StringComparison.OrdinalIgnoreCase))
-                .Select(Path.GetFileNameWithoutExtension).Where(name => NotTakenWhy(config, name) == null).OrderBy(name => name, StringComparer.Ordinal).ToList();
+                .Select(Path.GetFileNameWithoutExtension).Where(name => NotTakenWhy(config, name) == null && NotRoadWhy(config, name) == null).OrderBy(name => name, StringComparer.Ordinal).ToList();
         }
 
         // design_basis.not_taken_why. The reason of siteBuild.roadFolder.notTaken that names this surface by its short name, as a whole name, null for
@@ -34,6 +34,23 @@ namespace SiteAdaptation.Common.Settings
             }
             var whole = new Regex(@"(?<!\w)" + Regex.Escape(ReadSettings.RoadName(name)) + @"(?!\w)", RegexOptions.CultureInvariant);
             return reasons.Properties().Where(item => item.Value.Type == JTokenType.String).Select(item => (string)item.Value).FirstOrDefault(reason => whole.IsMatch(reason));
+        }
+
+        // R485. The why of designBasis.roadLevel.notRoad for this file stem under rev6, null for none and under the past job
+        public static string NotRoadWhy(JObject config, string name)
+        {
+            JObject reasons = ((config?["designBasis"] as JObject)?["roadLevel"] as JObject)?["notRoad"] as JObject;
+            if (reasons == null || string.IsNullOrEmpty(name) || !IsRev6(config))
+            {
+                return null;
+            }
+            return reasons.Properties().Where(item => item.Value.Type == JTokenType.String && ((string)item.Value).Length > 0 && string.Equals(item.Name, name, StringComparison.OrdinalIgnoreCase)).Select(item => (string)item.Value).FirstOrDefault();
+        }
+
+        // R485. design_basis.NOT_ROAD, the line a read and a build refuse a grading file with
+        public static string NotRoadLine(string name, string why)
+        {
+            return name + " is no road surface: " + why + " (R485)";
         }
 
         // R492. The effective road order as one text under rev6, null otherwise, so what the past job hashes stays as it was

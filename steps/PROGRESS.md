@@ -5,7 +5,7 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 ## State
 
 - Lane D MASS-2NOV-D 3 Nov: mass base on the outer wall faces, 12 of 13 rings, R500 to R504. FIX-2NOV-D: R490 to R493. 6B-DATA: R469. D3: R467, R468. FIX-1NOV-D: R460 to R466. 4j-1: R420 to R429
-- Lane A 4i to FIX-2NOV-A2, one PR each: R407 to R416, R470 to R477, R478 wall compare by centre, R479 one villa by file, R480 C10 side walls
+- Lane A 4i to FIX-3NOV-A, one PR each: R407 to R416, R470 to R487. FIX-3NOV-A: R484 to R487, Empty project takes a shipped set under rev6
 - Lane B FIX-1NOV-B on 2026-11-01: masses as linked files (R450 to R453), coordinates from CAD (R454 to R456), proven in Revit on NBH 012
 - Lane B FIX-3NOV-B: R498 steps record runs, R499 undo. FIX-2NOV-B: R459, Q158, steps/fix-2nov-b-handrun.md. CHECK-2NOV: steps/check-2nov.md, R458. Task 6: R457
 - Lane B 6a on 31 Oct: NBH 012 through 1 to 9 from a new project, no click. 5d, PR 113: 5, 6, 8, 7 at the FFL. 5c, PR 111: 2, 3, 4, 7
@@ -27,7 +27,7 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 
 - Scan: a large drawing past scan.pairTimeCapS is scanned in part, a notRead row lists it (Q258). No villa type source at the strong share (Q254)
 - Full text at 73b8c42: steps/history/progress-addin-4e.md. Bugs no real input reaches: steps/latent.md (Q095)
-- Footprint by house outline: 271 of 336 plots of NBH 012 sit in a block of another unit type (Q277, R477)
+- Footprint by house outline: 269 of 336 plots of NBH 012 sit in a block of another unit type (Q277, R477)
 - The wall rule keyRules.wallOpen is weak, 2,539 of 3,427 walls hold on the keys, 0.7409 (Q115, Q266)
 - Q063: the whole NBH 03 image runs past the 30 minute step, I25 did not respond at 10,732 MiB private memory
 - R310 logs free memory in every window with no stop at the floor. In 2a it fell to 0.53 to 1.42 GiB per read window, cause UNKNOWN
@@ -37,7 +37,7 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 - The reader angleToTrueNorthDeg has 3 decimals and is not brought into 0 to 360, the placer takes 0 only
 - 4 yards that stand only by a mirror override read a status stronger than their evidence (Q163)
 - The tab title of the ribbon sits behind the overflow mark at 1536 logical px (Q146). 4 Check dry run has no worker start (Q195)
-- New project stays on the past job, the road pick grey (Q373). Under rev6 the past overrides apply (Q255). R414 off, 43 of 82. No R417 (Q259)
+- A new site needs the inputs of this job (Q379). Under rev6 a saved project takes the past list (Q255). R414 off, 43 of 82. No R417 (Q259)
 
 ## Bader's turn
 
@@ -51,7 +51,7 @@ shown. Q293 Approve the three drafts of SCAN-UI. Q294 Rules chosen in Set up sit
 proposal. Q301 The build takes the door level pick. Q302 Door level row under the past job. Q305 Hide Confirmed under the past job.
 Opened in FIX-1NOV-D, Lane D: Q330 Group of the key link parameters unread. Q331 Plot is no link parameter of the keys. Q332 FFL bound but never written.
 Q333 to Q335. Closed: Q155. D2: Q336, closed Q330. D3: Q337 to Q339, closed Q275. 6B-DATA: Q360 to Q363. FIX-2NOV-D: Q370 to Q374. MASS: Q390 to Q393, closed Q279, Q321.
-A3: closed Q265, Q299, Q303, Q304, new Q375, Q376. 2 Nov: 20 closed, steps/log.md. 177 open, steps/questions-open.md. Q286, Q293: steps/ui-shots/drafts-for-bader.md. Asks: steps/waiting-on-others.md.
+A3: Q375, Q376. 3NOV-A: Q379, Q394 to Q398, closed Q371, Q373, Q377, Q378. 181 open, steps/questions-open.md. Q286, Q293: steps/ui-shots/drafts-for-bader.md. Asks: steps/waiting-on-others.md.
 
 ## Next three steps
 

@@ -431,6 +431,45 @@ namespace SiteAdaptation.Tests
             Assert.Equal(6, RoadRoles(past.Inputs.Select(input => input.Role)).Count);
         }
 
+        // R484. The read of 2 Read data under the mode of the settings on a config of the past job: the road roles of the rev6 list, the mode in the request
+
+        [Fact]
+        public void R484_the_read_run_takes_the_mode_of_the_settings_on_a_past_job_config_and_a_project_with_none_reads_the_config()
+        {
+            string work = Path.Combine(root, "SiteAdaptation", "site_0123abcd");
+            WorkerRequest Started(string mode)
+            {
+                List<RunInput> pane = ReadPane(work, PastMode(), First, Second);
+                var worker = new HeldWorker();
+                var run = new ReadDataRun(ReadRoles, worker, new WorkerDocument { Path = @"C:\Models\site.rvt", SessionId = "s1" }, () => new SettingsScope(), () => new ProjectSettings()) { ModePick = () => mode };
+                run.Body().Start(new RunContext(2, "2 Read data", "2_20261103-000001-001", work, null, true, pane, new Dictionary<string, string>()), later => { });
+                return Assert.Single(worker.Requests);
+            }
+
+            WorkerRequest rev6 = Started(DesignBasis.Rev6);
+            Assert.Equal(DesignBasis.Rev6, rev6.ProjectMode);
+            Assert.Equal(new[] { First, Second }, RoadRoles(rev6.Inputs.Select(input => input.Role)));
+            WorkerRequest none = Started(null);
+            Assert.DoesNotContain("projectMode", none.ToJson());
+            Assert.Equal(6, RoadRoles(none.Inputs.Select(input => input.Role)).Count);
+        }
+
+        [Fact]
+        public void R484_a_change_of_mode_gives_a_new_read_folder_as_a_change_of_order_does()
+        {
+            string work = Path.Combine(root, "SiteAdaptation", "site_0123abcd");
+            List<RunInput> pane = ReadPane(work, PastMode(), First, Second);
+            Assert.NotEqual(ReadInputs.Make(pane, ReadRoles, work).Hash, ReadInputs.Make(pane, ReadRoles, work, null, DesignBasis.Rev6).Hash);
+            Assert.Equal(ReadInputs.Make(pane, ReadRoles, work).Hash, ReadInputs.Make(pane, ReadRoles, work, null, PastMode()).Hash);
+        }
+
+        [Fact]
+        public void R484_read_inputs_stop_on_a_mode_outside_the_modes_by_name()
+        {
+            string work = Path.Combine(root, "SiteAdaptation", "site_0123abcd");
+            Assert.StartsWith("the project mode manual7 is no mode of designBasis.modes", Assert.Single(ReadInputs.Make(ReadPane(work, PastMode(), First), ReadRoles, work, null, "manual7").Stops));
+        }
+
         // 4 Check on made up files as R376_CheckRunTests makes them, the worker a stand-in, the read holding the three made up surfaces
 
         private sealed class Builder : IWorkerStart
@@ -472,7 +511,7 @@ namespace SiteAdaptation.Tests
                 ["majority"] = JObject.Parse("{ 'groups': { 'native': ['n1'], 'parsons': ['kx'] }, 'overrideDefaultSources': ['parsons'], 'linkPlotParameter': 'Plot' }"),
                 ["addin"] = JObject.Parse("{ 'workerTimeLimitS': { 'build': 60 } }"),
                 ["checkRows"] = R376_CheckTableTests.Block(),
-                ["designBasis"] = new JObject { ["mode"] = mode, ["roadLevel"] = new JObject { ["surfaces"] = new JArray(named.Cast<object>().ToArray()) } },
+                ["designBasis"] = new JObject { ["mode"] = mode, ["modes"] = new JArray(DesignBasis.Rev6, "pastMade"), ["roadLevel"] = new JObject { ["surfaces"] = new JArray(named.Cast<object>().ToArray()) } },
             };
             Write(files.Config, settings.ToString());
             Write(Path.Combine(config, "floor_outlines.json"), "{}");
@@ -554,6 +593,47 @@ namespace SiteAdaptation.Tests
             WorkerRequest request = Assert.Single(builder.Requests);
             Assert.Equal(new[] { Third, First }, RoadRoles(request.Inputs.Select(input => input.Role)));
             Assert.Equal(new[] { Third, First }, request.RoadSurfaces);
+        }
+
+        [Fact]
+        public void R484_check_takes_the_mode_of_the_settings_on_a_past_job_config_and_names_it_in_the_request()
+        {
+            CheckFiles files = CheckSite("pastMade", Second, First);
+            var builder = new Builder();
+            RunLater end = null;
+            CheckRun run = Check(builder, new[] { Third, First });
+            run.ModePick = () => DesignBasis.Rev6;
+            run.Body().Start(CheckContext(files, "R4-m1"), later => end = later);
+            Assert.Null(end.Failure);
+            WorkerRequest request = Assert.Single(builder.Requests);
+            Assert.Equal(DesignBasis.Rev6, request.ProjectMode);
+            Assert.Equal(new[] { Third, First }, request.RoadSurfaces);
+            Assert.Equal(new[] { Third, First }, RoadRoles(request.Inputs.Select(input => input.Role)));
+        }
+
+        [Fact]
+        public void R484_check_under_the_past_job_mode_on_a_rev6_config_takes_every_road_role_and_no_pick()
+        {
+            CheckFiles files = CheckSite(DesignBasis.Rev6, Second);
+            var builder = new Builder();
+            RunLater end = null;
+            CheckRun run = Check(builder, new[] { Third });
+            run.ModePick = () => "pastMade";
+            run.Body().Start(CheckContext(files, "R4-m2"), later => end = later);
+            Assert.Null(end.Failure);
+            WorkerRequest request = Assert.Single(builder.Requests);
+            Assert.Equal("pastMade", request.ProjectMode);
+            Assert.Null(request.RoadSurfaces);
+            Assert.Equal(new[] { First, Second, Third }, RoadRoles(request.Inputs.Select(input => input.Role)));
+        }
+
+        [Fact]
+        public void R484_check_stops_on_a_mode_outside_the_modes_by_name()
+        {
+            CheckFiles files = CheckSite("pastMade", First);
+            CheckRun run = Check(new Builder(), null);
+            run.ModePick = () => "manual7";
+            Assert.StartsWith("the project mode manual7 is no mode of designBasis.modes", Assert.Single(run.Plan(CheckContext(files, "R4-m3")).Stops));
         }
 
         [Fact]

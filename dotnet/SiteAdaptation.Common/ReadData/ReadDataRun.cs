@@ -56,6 +56,9 @@ namespace SiteAdaptation.Common.ReadData
         // R492. The road surfaces picked in Set up, read under rev6 alone. Null where no pane gives one, or a pick not made, takes those of config
         public Func<IReadOnlyList<string>> RoadPick { get; set; }
 
+        // R484. The project mode of the settings, null where no pane gives one or the settings hold none, which reads the mode of config
+        public Func<string> ModePick { get; set; }
+
         public ButtonBody Body()
         {
             return new ButtonBody { Preview = Preview, Start = Start };
@@ -139,7 +142,8 @@ namespace SiteAdaptation.Common.ReadData
                     Scope = new WorkerScope { Kind = "project" },
                     OutputFolder = folder, Steps = plan.Steps.ToList(), StepsFolder = Path.Combine(folder, "steps"),
                     TimeLimitS = AddinConfig.Load(plan.ConfigPath).WorkerTimeLimitS(Command),
-                    RoadSurfaces = RoadSurfaceChoices.ForRequest(JObject.Parse(WorkFiles.ReadText(plan.ConfigPath)), RoadPick?.Invoke()),
+                    RoadSurfaces = RoadSurfaceChoices.ForRequest(ProjectModes.Apply(JObject.Parse(WorkFiles.ReadText(plan.ConfigPath)), ModePick?.Invoke()), RoadPick?.Invoke()),
+                    ProjectMode = ModePick?.Invoke(),
                 };
                 Directory.CreateDirectory(work);
                 string requestPath = request.Write(work);
@@ -228,7 +232,7 @@ namespace SiteAdaptation.Common.ReadData
 
         private ReadPlan Plan(RunContext context)
         {
-            ReadPlan plan = ReadInputs.Make(context.Inputs, roles, context.WorkFolder, RoadPick?.Invoke());
+            ReadPlan plan = ReadInputs.Make(context.Inputs, roles, context.WorkFolder, RoadPick?.Invoke(), ModePick?.Invoke());
             if (plan.Stops.Count > 0)
             {
                 throw new InvalidDataException(string.Join(". ", plan.Stops));

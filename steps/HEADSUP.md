@@ -4,10 +4,10 @@
 
 ### Lane A
 
-- Lane: A, round FIX-2NOV-A3, branch fix/2nov-a3. Time: 2026-11-03 01:20. Blocked: none
-- Done: R414 off at 43 of 82, R481, R482, review 1, breaker 1 and 2, parity 32 runs 0 failures
-- Now: gate on aa15d7d green, the PR
-- Next: FIX-3NOV-A, Q373 and Q371, tells lane-c before NewProjectDialog
+- Lane: A, round FIX-3NOV-A, branch fix/3nov-a. Time: 13:25. Blocked: none
+- Done: R484 to R487, parity, gate, Revit on 84e1e69 to 4 Check. Records written
+- Now: the PR, merge only if green by 14:00
+- Next: a short Revit pass of the window fixes after the restart, not seen in Revit yet
 
 ### Lane B, C and D
 
@@ -47,6 +47,8 @@ Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane
 
 ## Wiring
 
+- Project mode, R484: ProjectModes.Apply called by BuildSteps, ReadSettings, ReadInputs, CheckRun, LevelWorkbook, ReportWorkbook, PaneRunState, RoadPickState. take_mode by plan_from_book, level_excel_check
+- Shipped set, R486: ShippedSet.Take and Preview called by NewProjectViewModel, SetFor by NewProjectDialog, TakeNewProject by SetupSave. Install lands SiteAdaptationAddIn\ShippedSet. notRoad, R485: RoadSurfaceChoices.NotRoadWhy by DesignBasis, ReadInputs, ReadSettings
 - Known warnings, R459: a step calls RunContext.AcceptKnownWarnings with its KnownWarningList (KnownWarningList.Parse takes its config block), WarningCollector deletes each accepted one at commit. FloorsRun.Apply is the first caller.
 - Pane to a button: a step row or the box raises RunRequested, RunButtonHandler calls Buttons.Run, the path of the ribbon. Buttons.Run starts RunLoader
 - Closing Review data: the X and Close, Window.Closing, ReviewDataSession.CanClose, ReviewCloseWindow.Ask. Run complete: PaneViewModel.RefreshBox, ReportFiles, OpenFolderRequested, PaneHost starts Explorer. Dry run: Buttons.Run, PaneRunState.BeforeRun, PaneViewModel.UntickDryRunFor. Export: ScanResultsSession.Export, InsideInputs, ScanGate.PickExportFor

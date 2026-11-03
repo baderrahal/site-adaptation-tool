@@ -17,6 +17,9 @@ namespace SiteAdaptation.Common.Settings
 
         // R492. The road surfaces of the window in their order, null keeps what the settings hold
         public IReadOnlyList<string> RoadSurfaces { get; set; }
+
+        // R486. The shipped set the window copied for Empty project, null for none. A project that names a config never takes it
+        public ProjectSet NewSet { get; set; }
     }
 
     // R432, Save setup. The settings of the project with the draft laid over them, in the settings JSON of R367 and nothing else, so
@@ -26,7 +29,8 @@ namespace SiteAdaptation.Common.Settings
     // the model at once (R445, Q280)
     public static class SetupSave
     {
-        public static ProjectSettings Apply(SetupDraft draft, ProjectSettings current)
+        // readText reads the config for the project mode of R484, null leaves the mode as Import and the settings give it
+        public static ProjectSettings Apply(SetupDraft draft, ProjectSettings current, Func<string, string> readText = null)
         {
             if (draft == null)
             {
@@ -44,6 +48,23 @@ namespace SiteAdaptation.Common.Settings
                 {
                     next.Inputs[InputNames.ParameterSheet] = sheet;
                 }
+                // R484. A saved project with none reads the mode of its config, written so the project keeps it
+                next.ProjectMode = next.ProjectMode ?? ProjectModes.SavedMode(ProjectModes.ReadConfig(next.ConfigFile, readText));
+            }
+            else
+            {
+                if (draft.NewSet != null && string.IsNullOrEmpty(current?.ConfigFile))
+                {
+                    next.ConfigFile = draft.NewSet.ConfigFile;
+                    next.RulesFile = draft.NewSet.RulesFile;
+                    next.LevelProfile = draft.NewSet.LevelProfile;
+                    // The row reads Found and button 1 reads the same file, a sheet the project holds stays and a pick of the window is laid over it below
+                    if (!next.Inputs.TryGetValue(InputNames.ParameterSheet, out SettingsInput held) || held == null || string.IsNullOrEmpty(held.Path))
+                    {
+                        next.Inputs[InputNames.ParameterSheet] = new SettingsInput { Path = draft.NewSet.ParameterSheet };
+                    }
+                }
+                ProjectModes.TakeNewProject(current?.ConfigFile, next, readText);
             }
             foreach (KeyValuePair<string, string> pick in draft.Picks)
             {

@@ -19,9 +19,11 @@ namespace SiteAdaptation.AddIn.NewProject
         {
             IReadOnlyList<SavedStart> starts = SavedStarts.List(SavedStarts.Folder(workRoot));
             DrawingFactsResult facts = Facts.Read(current?.ConfigFile, workFolder);
+            // R486. The set the install ships beside the add-in
+            ShippedSet shipped = SetFor(Path.Combine(Path.GetDirectoryName(typeof(NewProjectDialog).Assembly.Location), ShippedSet.FolderName), workRoot, workFolder);
             var model = new NewProjectViewModel(current, projectName, starts, facts, There, picker, WorkFolder.ReadIfThere,
                 (path, settings) => ScanResults.ScanResultsDialog.Show(owner, path, settings, ScanResults.ScanGate.PickExportFor(path)), modelOpen,
-                (inFolder, effective) => RoadSurfacesDialog.Show(owner, inFolder, effective));
+                (inFolder, effective) => RoadSurfacesDialog.Show(owner, inFolder, effective), shipped);
             var window = new NewProjectWindow(model);
             if (owner != IntPtr.Zero)
             {
@@ -30,6 +32,12 @@ namespace SiteAdaptation.AddIn.NewProject
             model.Finished += () => window.Close();
             window.ShowDialog();
             return model.Result;
+        }
+
+        // The folder of a new project takes the name of the work folder of its model, the file name and the hash of WorkFolder.For, a model with no work folder has no saved path
+        public static ShippedSet SetFor(string shippedFolder, string workRoot, string workFolder)
+        {
+            return new ShippedSet(shippedFolder, workRoot, workFolder == null ? null : Path.GetFileName(workFolder), workFolder != null);
         }
 
         public static bool There(string path, bool folder)

@@ -44,9 +44,10 @@ namespace SiteAdaptation.AddIn.NewProject
             {
                 try
                 {
-                    config = JObject.Parse(text);
+                    // R484. The mode of the settings and through them of the draft, the window shows any config and refuses nothing
+                    config = ProjectModes.Apply(JObject.Parse(text), settings.ProjectMode);
                 }
-                catch (JsonException)
+                catch (Exception failure) when (failure is JsonException || failure is InvalidDataException)
                 {
                     config = null;
                 }

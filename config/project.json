@@ -836,6 +836,16 @@
       "surfaces": ["Makkah Phase 1_Road Surface C3D__Top Surface-02", "Makkah Phase 1_Road Surface C3D__Top Surface-01", "Makkah Phase 1_Road Surface C3D__Part 4 Top Surfaces", "Makkah Phase 1_Road Surface C3D__Compiled West_MM", "Makkah Phase 1_Road Surface C3D__Top Surface Part 2 East Of East", "Makkah Phase 1_Road Surface C3D__Missed from Paste"],
       "noRoadStopShare": 0.10,
       "noRoadStopWhy": "A zone mostly off the named surfaces means a missing surface, not odd plots, a few plots are listed instead in summary.noRoadLevel",
+      "notRoadNote": "R485, Q371, Bader 3 Nov 2026. The files of the road folder that are grading and no road, each by its file stem with why. Read under rev6 only: the road window leaves them out and a build or read that names one is refused with its why. The past job does not read it.",
+      "notRoad": {
+        "Makkah Phase 1_Road Layout__Grading - North (1)": "The Grading - North surface of the Road Layout drawing is grading, not finished road, so no build takes it and the road window does not offer it (Q371, Bader, R485)",
+        "Makkah Phase 1_Road Layout__New Existing (1)": "The New Existing surface of the Road Layout drawing is existing ground and grading, not finished road, so no build takes it and the road window does not offer it (Q371, Bader, R485)",
+        "Makkah Phase 1_Rough Grading__CHR-10 - (26)": "A rough grading of the CHR-10 part of the Rough Grading drawing is grading, not finished road, so no build takes it and the road window does not offer it (Q371, Bader, R485)",
+        "Makkah Phase 1_Rough Grading__CHR-4 - (29)": "A rough grading of the CHR-4 part of the Rough Grading drawing is grading, not finished road, so no build takes it and the road window does not offer it (Q371, Bader, R485)",
+        "Makkah Phase 1_Rough Grading__CHR-5 - (28)": "A rough grading of the CHR-5 part of the Rough Grading drawing is grading, not finished road, so no build takes it and the road window does not offer it (Q371, Bader, R485)",
+        "Makkah Phase 1_Rough Grading__CHR-9 - (27)": "A rough grading of the CHR-9 part of the Rough Grading drawing is grading, not finished road, so no build takes it and the road window does not offer it (Q371, Bader, R485)",
+        "Makkah Phase 1_Rough Grading__compiled CEC RG": "The compiled rough grading of the CEC in the Rough Grading drawing is grading, not finished road, so no build takes it and the road window does not offer it (Q371, Bader, R485)"
+      },
       "oldJobOffsetM": 0.21,
       "oldJobOffsetSource": "steps/investigations/data-book.md Part X: the ramp corners of the 1.4 key on NBH 022, 294 plots, a median 212 mm under Top Surface-02 and 164 within 5 mm once 0.212 m is taken off (R242, R247 to R249)"
     },

@@ -32,6 +32,9 @@ namespace SiteAdaptation.Common.Settings
 
                 // R492. The road surfaces picked go with a saved project as the scan picks do
                 RoadSurfaces = job.RoadSurfaces == null ? null : new System.Collections.Generic.List<string>(job.RoadSurfaces),
+
+                // R484. A saved project keeps its own mode
+                ProjectMode = job.ProjectMode,
             };
             foreach (string name in Inputs)
             {
@@ -74,6 +77,8 @@ namespace SiteAdaptation.Common.Settings
             }
             // R492. The settings of the pre-setting replace those of the project, so one with no pick clears the pick and the list of its config shows
             into.RoadSurfaces = read.RoadSurfaces;
+            // R484. As the pick, a pre-setting with no mode leaves the mode of the project to its config
+            into.ProjectMode = read.ProjectMode;
             foreach (string name in Inputs)
             {
                 if (read.Inputs.TryGetValue(name, out SettingsInput input))

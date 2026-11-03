@@ -164,7 +164,7 @@ namespace SiteAdaptation.Tests
             Assert.Equal("build", first.Command);
             Assert.Equal("012", first.Scope.Nbh);
             Assert.Equal(new[] { "faces" }.Concat(BuildSteps.Names), first.Steps);
-            Assert.Equal(new[] { "baseplanRead", "config", "curbsRead", "labels", "overrides", "plotsCsv", "prototype:P-ARC-VL4-A.rvt", "rules", "site", "villaBlocksRead", "workbooksRead" },
+            Assert.Equal(new[] { "baseplanRead", "config", "curbsRead", "floorOutlines", "labels", "overrides", "plotsCsv", "prototype:P-ARC-VL4-A.rvt", "rules", "site", "villaBlocksRead", "workbooksRead" },
                 first.Inputs.Select(input => input.Role).OrderBy(role => role, StringComparer.Ordinal));
             // R80. site.json of button 1 gives the plan its survey point, angle and level elevations, and buttons 5 to 8 read the plan by its name
             Assert.Equal("plan_012.json", CheckRun.PlanName(first.Scope.Nbh));

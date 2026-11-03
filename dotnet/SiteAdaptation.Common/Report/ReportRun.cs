@@ -63,6 +63,9 @@ namespace SiteAdaptation.Common.Report
         // R459. The ids of the floors the document holds now, so the sheet does not contradict the counts of the same model. Unset lists every pair
         public Func<ICollection<string>> StandingFloors { get; set; }
 
+        // R484. The project mode of the settings, null where no pane gives one or the settings hold none, which reads the mode of config
+        public Func<string> ModePick { get; set; }
+
         public ButtonBody Body()
         {
             return new ButtonBody { Preview = Preview, Outside = Outside, Apply = Apply };
@@ -154,6 +157,7 @@ namespace SiteAdaptation.Common.Report
                     {
                         FormatVersion = WorkerRequest.CurrentFormatVersion, RunId = context.RunId + "-" + nbh, Command = Command, Document = document, Inputs = inputs,
                         LevelProfile = profile, Scope = new WorkerScope { Kind = "nbh", Nbh = nbh }, OutputFolder = stage, TimeLimitS = AddinConfig.Load(configPath).WorkerTimeLimitS(Command),
+                        ProjectMode = ModePick?.Invoke(),
                     };
                     WorkerAnswer answer;
                     try

@@ -304,7 +304,7 @@ namespace SiteAdaptation.Tests
             asked = requests;
             var dialog = new ScriptedDialog { Script = script, Pick = repo.Excel };
             var run = new UpdateFromReportRun(dialog, WorkFiles.ReadText, (request, work) => { requests.Add(request); return UpdateFromReport.ResultJson(WorkerList(), null); },
-                new WorkerDocument { Path = @"C:\Models\Site.rvt", SessionId = "s" });
+                new WorkerDocument { Path = @"C:\Models\Site.rvt", SessionId = "s" }) { ModePick = () => "rev6" };
             model = new Model();
             state = new State { Work = repo.Work, Config = repo.Config, DryFirst = dryFirst };
             var flow = new ButtonFlow(state, model, new Never(), InputHash.Of, () => "0_run1");
@@ -352,6 +352,8 @@ namespace SiteAdaptation.Tests
             Assert.Equal(1, written["overrides"].Count(item => (string)item["decision"] == "Update from report"));
             Assert.Empty(Directory.EnumerateFiles(Path.GetDirectoryName(repo.Overrides), "*.tmp-*"));
             Assert.Equal("updateFromReport", asked.Last().Command);
+            // R484. The request carries the mode of the settings
+            Assert.Equal("rev6", asked.Last().ProjectMode);
             Assert.Equal(new[] { "config", "rules", "plan", "overrides", "excel1" }, asked.Last().Inputs.Select(item => item.Role).ToArray());
             Assert.Equal(repo.Overrides, asked.Last().Inputs.Single(item => item.Role == "overrides").Path);
         }

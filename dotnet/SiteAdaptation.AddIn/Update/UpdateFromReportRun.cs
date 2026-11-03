@@ -48,6 +48,9 @@ namespace SiteAdaptation.AddIn.Update
             this.document = document;
         }
 
+        // R484. The project mode of the settings, null where no pane gives one or the settings hold none, which reads the mode of config
+        public Func<string> ModePick { get; set; }
+
         public ButtonBody Body()
         {
             return new ButtonBody { Preview = Preview, Confirm = Confirm, Apply = Apply, ReadBack = ReadBack, Done = Done };
@@ -104,7 +107,7 @@ namespace SiteAdaptation.AddIn.Update
             string planPath = ReportRun.CheckRun.PlanOf(context.WorkFolder, nbh, WorkFiles.ReadText).Path;
             string runId = context.RunId + "-r" + (++reads).ToString(System.Globalization.CultureInfo.InvariantCulture);
             string output = Path.Combine(context.WorkFolder, "update_" + runId);
-            WorkerRequest request = UpdateWorkerRequest.Make(runId, document, configPath, rulesPath, planPath, overridesPath, profile, nbh, files, output);
+            WorkerRequest request = UpdateWorkerRequest.Make(runId, document, configPath, rulesPath, planPath, overridesPath, profile, nbh, files, output, ModePick?.Invoke());
             JObject json = worker(request, context.WorkFolder);
             plan = Json(planPath, "the plan");
             return UpdateListJson.Read(json);

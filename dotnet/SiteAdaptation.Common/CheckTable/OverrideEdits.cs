@@ -23,6 +23,15 @@ namespace SiteAdaptation.Common.CheckTable
         private const string CannotHead = "  \"cannot\": [";
         private const string SkipHead = "  \"skip\": [";
 
+        // R487. The list with no entries of a new project, in the parts Save overrides reads back
+        public static string EmptyList(string note)
+        {
+            var parts = new Parts();
+            parts.Head.Add("{");
+            parts.Head.Add("  \"note\": " + JsonConvert.ToString(note) + ",");
+            return parts.Text();
+        }
+
         // The number of changes written, 0 writes nothing
         public static int Save(string path, IReadOnlyList<CheckRow> rows, IReadOnlyList<CheckChoice> uses, JObject config, string runId)
         {

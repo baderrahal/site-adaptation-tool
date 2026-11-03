@@ -2,6 +2,40 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Lane A FIX-3NOV-A, 2026-11-03, a new project runs rev6 and grading files are no roads
+
+Goal:
+- Bader: Q373 project mode in the settings, Q371 notRoad list, an Empty project with no JSON edit reaches 4 Check under rev6
+
+Done:
+- R484 mode in the settings, on the request of all 7 sites. R485 7 grading files are left out and refused under rev6
+- Breaker 1 and my check: an Empty project had no config at all, so it told Rev 06 and could not build. Bader closed Q377, Q378
+- R486 the install ships a set, Empty project copies it per model. R487 its override list is empty, R330 gives way under rev6 alone
+- Fixed by the breakers: button 4 under rev6 always stopped on the role floorOutlines, a saved past job moved to rev6 on a plain Save, Save overrides refused on an empty list, two models of one name shared a list
+- The window before Save: Pick surfaces grey and a false parameter sheet stop, found by a Revit shot, fixed, the line now under Start from
+
+Checked:
+- 5 TU zones with the set, RAN: 1,759 of 1,791, the same 32 left out as PR 145, 0 changed. Recount from the plan files equal
+- ROSHN saved project, RAN: IMC and whole project byte-equal to main, with and with no mode
+- Parity on f225518, RAN: 32 runs, 416 lines, 0 failures, past job plan byte-equal. No Python, plan, CadReader, config or rules change after it
+- Gate on 183ef5f: dotnet net48 2,526 and net8.0 2,206 passed at 183ef5f, pytest 2,509 passed, 1 skipped at 59692e9, no Python change after
+- Revit on 84e1e69, RAN, 36 minutes under the lock: Empty project, Save setup, 1 dry run, 2, 3, 4 on a copy of NBH 012. Requests hold rev6, plan 336 plots, 0 overrides, inputs 43 of 43 same. One line edited, inputRoot in the project copy, to keep inputs on copies
+- Review 1 and window review, breaker 1 and 2
+
+Remains:
+- Not seen in Revit: the window fixes after 84e1e69 (Pick surfaces active, Found sheet row, the line's place), Road surfaces window, Apply of button 1. Lane B holds the lock to the freeze. Tests only so far
+
+Known bugs:
+- A new site still needs the inputs of this job (Q379). Update from report saves nothing on a new project (Q394)
+
+Next:
+- A short Revit pass of the items in Remains after the restart
+
+Your turn:
+- Closed: Q371 Seven non road files still offered. Q373 New project does not start under rev6. Q377 Where Empty project gets its config. Q378 Override list of a new project
+- Opened: Q379 A new project on another PC. Q394 Update from report on a new project. Q395 A mode in memory lost on reopen. Q396 Past of a native key on new project. Q397 Save As of a new project keeps one list. Q398 The 443 hairline floor overlaps at step 5
+- 181 open, steps/questions-open.md
+
 ## Lane C 6C-3NOV-C, 2026-11-03, window check, Excel compare, check sheet
 
 Goal:

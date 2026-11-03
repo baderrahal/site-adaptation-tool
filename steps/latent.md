@@ -595,6 +595,17 @@ Round FIX-3NOV-B, R498 and R499, review 1 and breaker 1, 3 Nov 2026:
 - Button 1 keeps no outputs: site.json deleted by hand shows row 1 Ready in the session, Done after a reopen, row 2 holds by its own. Next to Q382.
 - The test host keeps its work folder apart from WorkRoot, so after an undo or reload every row with outputs reads Ready in a host run. A false fail, no job reads the rows today, a Revit proof of a reopen goes through the windows.
 - A hand edited entity with output keys that differ by case or hold an invalid path character throws from StepRun.FromSettings. A machine file broken while Revit runs now throws from a pane refresh. A work folder copied by hand keeps absolute names in read.json.
+FIX-3NOV-A, breaker and review, no real input reaches these:
+- CheckRun never adds the role civilFile, so under rev6 with doorLevel.source civilFile button 4 stops as floorOutlines did. The shipped source is roadPlusSlope.
+- python/zone_compare.py:205 reads the mode with no project mode, an offline compare of the past job (Q224).
+- CheckRun.cs:476 wraps a worker refusal of R485 as the build ended refused, R493 passes plain. The read and the plan stop it first.
+- design_basis.py:159 lower against OrdinalIgnoreCase of RoadSurfaceChoices.cs:47 differ on odd Unicode, the stems are ASCII.
+- A settings file with a mode its config does not list is refused whole, SavedStarts leaves such a file out. It needs a second project whose past mode has another name.
+- A config with no notRoad reads as an empty list under rev6. All 4 older copies of Saved projects lack it, none reaches rev6 since a project that names a config stays on its mode.
+- A reinstall leaves every project copy of R486 as it was, a later rule fix in config does not reach it, and nothing records the install that made the copy.
+- Settings hold the absolute path of the copy, a work root that moves keeps writing under the old root while that folder stands.
+- A model name of about 92 characters or more can reach the name limit of R486, not tested.
+- PickConfig has no production caller, the pane never picks a settings file.
 
 Round 6C-3NOV-C, review 1, 3 Nov 2026:
 - ScanView.cs about line 170, StartsWith |xref repeats the form CadScan.cs line 190 writes, with no shared constant. A rename shows the file Not read, the safe side.

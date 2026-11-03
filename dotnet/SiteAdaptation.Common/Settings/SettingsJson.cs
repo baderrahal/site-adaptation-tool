@@ -73,6 +73,11 @@ namespace SiteAdaptation.Common.Settings
             {
                 throw new InvalidDataException("the settings JSON names roadSurfaces that are no list of non empty unique texts");
             }
+            // R484. As above, a number or a bool would read as its text
+            if (root["projectMode"] is JToken named && named.Type != JTokenType.Null && (named.Type != JTokenType.String || ((string)named).Length == 0))
+            {
+                throw new InvalidDataException("the settings JSON names a projectMode that is no text");
+            }
             ProjectSettings settings;
             try
             {
@@ -117,6 +122,7 @@ namespace SiteAdaptation.Common.Settings
             {
                 throw new InvalidDataException("the settings JSON names roadSurfaces that are no list of non empty unique texts");
             }
+            ModeOfConfig(settings);
             foreach (string entry in settings.CurrentFiles ?? new List<string>())
             {
                 string name = (entry ?? "").Split('|')[0];
@@ -152,6 +158,29 @@ namespace SiteAdaptation.Common.Settings
                 {
                     throw new InvalidDataException("the settings JSON gives the count " + count.Key + " of the last run of button " + last.Key + " the value " + count.Value.ToString(CultureInfo.InvariantCulture));
                 }
+            }
+        }
+
+        // R484. The modes live in the config the settings name, so a mode is held when that file is on disk and reads. One that is not leaves the hold to
+        // ProjectModes.Apply, which refuses the mode by the same name when a run loads the config
+        private static void ModeOfConfig(ProjectSettings settings)
+        {
+            if (settings.ProjectMode == null || string.IsNullOrEmpty(settings.ConfigFile) || !File.Exists(settings.ConfigFile))
+            {
+                return;
+            }
+            JObject config;
+            try
+            {
+                config = JObject.Parse(WorkFiles.ReadText(settings.ConfigFile));
+            }
+            catch (Exception failure) when (failure is JsonException || failure is IOException || failure is UnauthorizedAccessException)
+            {
+                return;
+            }
+            if ((config["designBasis"] as JObject)?["modes"] is JArray modes)
+            {
+                OneOf(settings.ProjectMode, modes.Select(item => item.ToString()).ToArray(), "projectMode");
             }
         }
 

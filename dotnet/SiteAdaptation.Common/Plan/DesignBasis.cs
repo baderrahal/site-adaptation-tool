@@ -36,6 +36,7 @@ namespace SiteAdaptation.Common
         public const string BothSurfaces = "designBasis.roadLevel holds both surface and surfaces, a build under rev6 takes its road surfaces from surfaces alone (R490)";
         public const string NoSurfaces = "designBasis.roadLevel names no road surface, a build under rev6 takes the road level from designBasis.roadLevel.surfaces in their order (R490)";
         public const string BadSurfaces = "designBasis.roadLevel.surfaces must be a list in order, not empty, of non empty unique texts (R490)";
+        public const string NotRoadShape = "designBasis.roadLevel.notRoad must be an object of file stem to why (R485)";
         public const string BadPick = "the road surfaces of the request must be a list in order, not empty, of non empty unique texts (R492)";
 
         // The config the basis was read from, for the reasons of siteBuild.roadFolder.notTaken a pick is held to
@@ -218,12 +219,22 @@ namespace SiteAdaptation.Common
             }
             JObject road = block["roadLevel"] as JObject ?? new JObject();
             basis.Surfaces = SurfacesOf(road);
+            JToken notRoad = road["notRoad"];
+            if (notRoad != null && !(notRoad is JObject listed && listed.Properties().All(item => item.Name.Length > 0 && item.Value.Type == JTokenType.String && ((string)item.Value).Length > 0)))
+            {
+                throw Refuse(NotRoadShape);
+            }
             foreach (string name in basis.Surfaces)
             {
                 string why = Settings.RoadSurfaceChoices.NotTakenWhy(settings, name);
                 if (why != null)
                 {
                     throw Refuse("designBasis.roadLevel.surfaces names " + name + ", which is no road surface: " + why + " (R490)");
+                }
+                why = Settings.RoadSurfaceChoices.NotRoadWhy(settings, name);
+                if (why != null)
+                {
+                    throw Refuse(Settings.RoadSurfaceChoices.NotRoadLine(name, why));
                 }
             }
             basis.NoRoadStopShare = StopShareOf(road);
@@ -299,6 +310,11 @@ namespace SiteAdaptation.Common
                 if (why != null)
                 {
                     throw Refuse("the road surfaces of the request name " + name + ", which is no road surface: " + why + " (R492)");
+                }
+                why = Settings.RoadSurfaceChoices.NotRoadWhy(read, name);
+                if (why != null)
+                {
+                    throw Refuse(Settings.RoadSurfaceChoices.NotRoadLine(name, why));
                 }
             }
             Surfaces = picked.ToList();

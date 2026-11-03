@@ -15,9 +15,11 @@ namespace SiteAdaptation.AddIn
 
         public static ButtonBody For(UIApplication application)
         {
-            string path = application.ActiveUIDocument.Document.PathName;
+            Autodesk.Revit.DB.Document document = application.ActiveUIDocument.Document;
+            string path = document.PathName;
+            Pane.DocumentSession session = PaneHost.Current.Sessions.Seen(document, document.PathName, document.Title);
             var run = new UpdateFromReportRun(Dialog(application.MainWindowHandle), WorkFiles.ReadText, UpdateWorkerClient.Read,
-                new WorkerDocument { Path = path, SessionId = "update-from-report" });
+                new WorkerDocument { Path = path, SessionId = "update-from-report" }) { ModePick = () => session.Settings.Project.ProjectMode };
             return run.Body();
         }
     }

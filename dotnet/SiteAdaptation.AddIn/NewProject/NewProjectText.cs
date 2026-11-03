@@ -17,6 +17,14 @@ namespace SiteAdaptation.AddIn.NewProject
         public const string ProjectName = "Project name";
         public const string StartFrom = "Start from";
         public const string EmptyProject = "Empty project";
+        public const string ModeRev6 = "New project rules, Rev 06";
+        public const string ModePast = "ROSHN past job";
+        public const string SetNotSaved = "Save the model first, the folder of a new project is named by it.";
+        public const string SetNoName = "The name of this model makes no folder name, save it under another name.";
+        public const string SetNotCopied = "The project files were not copied.";
+        public const string SetNotCopiedTodo = "Move or delete the folder of this project under New projects in the work folder, then press Save setup again.";
+        public const string SetNotRead = "The shipped project files could not be read.";
+        public const string SetNotReadTodo = "Reinstall the add-in, then open New project again.";
         public const string SavedName = "<name> (saved)";
         public const string SavedHint = "<name> is kept as a saved start, not built in.";
 

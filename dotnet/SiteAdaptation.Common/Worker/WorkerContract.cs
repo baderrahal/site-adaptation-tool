@@ -32,6 +32,10 @@ namespace SiteAdaptation.Common
         // out of the JSON, so a request of the past job stays byte-equal, and the past job ignores any value
         public List<string> RoadSurfaces { get; set; }
 
+        // R484. The project mode of the settings, laid over designBasis.mode where the worker loads the config. Null is left out of the JSON, so a
+        // request of a project that holds none stays byte-equal
+        public string ProjectMode { get; set; }
+
         public WorkerScope Scope { get; set; }
         public string OutputFolder { get; set; }
 
