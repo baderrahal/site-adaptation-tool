@@ -14,7 +14,7 @@
 - Lane B FIX-2NOV-B, 03:10, branch fix/2nov-b-handrun: hand run done, lock released 03:01, steps/fix-2nov-b-handrun.md written. Records PR next, then the round ends. Nothing blocks.
 - Lane C SPEED-2NOV-C, branch speed/2nov-c: gate and parity clean, PR going up. Touches Run-TestHost.ps1, TestHostPaths.ps1, Send-RevitJob.ps1. Blocked: none
 - Lane D MASS-2NOV-D, 3 Nov, branch mass/2nov-d: the mass outline by the outer wall faces, R500 to R504, closed Q279, Q321, opened Q390 to Q393. Revit proof done, lock free.
-  Now: the gate, the PR, merge when green. Blocked: none
+  Now: the PR, merge when green. Nothing queued after it. Blocked: none
 
 Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane D MASS-2NOV-D, 3 Nov 2026.
 

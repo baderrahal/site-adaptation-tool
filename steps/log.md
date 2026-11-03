@@ -17,7 +17,7 @@ Checked:
 - Breaker 1 found 7 of 12 rings wrong on real data, offline and silent: FFL based walls dropped, up to 430 mm, a recess filled, a mixed option. All fixed. Breaker 2 found the footprint fault, fixed, and no exterior stretch outside a ring. Review 1: values moved to config
 - Footprint: main 59 same type, 269 other, 8 none. Now 58, 271, 7, over the limit 0
 - Parity: 13 steps, net48 and net8.0, whole project and the 7 keys, past job and rev6, 32 runs, 416 lines, 0 failures. Past job plans byte equal on the whole project and IMC. 62 inputs the same by SHA-256, 13 prototypes unchanged by time and size, the first Masses run stopped on 13 .slog (Q338), the second 275 of 275
-- GATE_LINE
+- Gate on the head: pytest 2,464 passed, 1 skipped. dotnet 2,377 on net48 and 2,087 on net8.0 passed. Parity ran before the merge of PR 151, which adds timing lines. Past job byte equal on the head too
 
 Remains:
 - Q390 to Q393. No read job gives a mass outline. The listener of Lane C came after these runs, they went through window_lock with one slot
