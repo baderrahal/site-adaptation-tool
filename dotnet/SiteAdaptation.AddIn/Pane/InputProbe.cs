@@ -7,6 +7,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using SiteAdaptation.Common;
 using SiteAdaptation.Common.Flow;
 using SiteAdaptation.Common.PlaceVillas;
 
@@ -139,6 +140,18 @@ namespace SiteAdaptation.AddIn.Pane
                     hash = null;
                 }
                 post(() => done(hash));
+            }, CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+        }
+
+        // R496. The oldest Revit format among the files of a folder, read off the UI thread on a thread of its own as the hash is, since
+        // the folder may lie on a slow disk. done gets null when no file was read, and it comes back through post
+        public void LookFormat(string folder, Action<int?> done)
+        {
+            Action<Action> post = Post;
+            Task.Factory.StartNew(() =>
+            {
+                int? oldest = PrototypeFormats.Oldest(folder);
+                post(() => done(oldest));
             }, CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
         }
 

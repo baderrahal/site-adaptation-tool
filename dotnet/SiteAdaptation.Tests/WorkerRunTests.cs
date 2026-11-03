@@ -375,7 +375,7 @@ namespace SiteAdaptation.Tests
             WorkerAnswer answer = Launch(Sleeping(30), request, out returned);
 
             Assert.True(returned < TimeSpan.FromSeconds(1), "Start waited " + returned);
-            Assert.Equal("timedOut", answer.Status);
+            Assert.True(answer.Status == "timedOut", answer.Status + ": " + answer.Message);
             Assert.Null(answer.ExitCode);
             Assert.Contains("time limit of 1 s", answer.Message);
             Assert.False(File.Exists(own));

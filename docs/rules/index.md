@@ -438,8 +438,13 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R444 Pane drives steps, loader, no idle button.
 - R445 Save setup writes the model at once.
 - R446 No dead end in the windows.
+- R449 Two Revit window slots.
+- R447 Run timing per step.
+- R448 Revit listener job folder.
 - R494 Pane returns on document open.
 - R495 Check rows sort and filter.
+- R496 Pane warns on old prototypes.
+- R497 Revit slog leaves input check.
 
 ## 13-parameters-r460-up.md
 

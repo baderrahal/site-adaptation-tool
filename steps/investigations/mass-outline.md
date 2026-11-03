@@ -68,3 +68,47 @@ Levels: SSL at 0 and FFL at +75 for the ground floor, first floor SSL at +3200 (
 - The 649 mm of DT3 of 1 Nov against the 546 mm here, not reconciled, the 1 Nov figure may include walls above the lowest level.
 - Whether the 80 mm pieces are one wall in the design intent.
 - The reason of the 1 Nov fallback of DP2, DP3, DT1, DT3 and TH3.
+
+## The proof in Revit, 3 Nov 2026
+
+All RAN. Run folders round_addin\logs\p_mass\proof, addin_run\MASS_20261103-045802, MASS_20261103-065119 and LNKP_20261103-051103. Masses of NBH 012, 336 plots, the 13 prototypes made again by the code of the round. Each row from the check block of its sidecar.
+
+| Prototype | Base | Ring m2 | Slab m2 | Share | Corners | Far face walls |
+|---|---|---|---|---|---|---|
+| C10 | ring | 154.34 | 153.91 | 1.003 | 12 | 0 |
+| DP1 | ring | 98.16 | 96.82 | 1.014 | 12 | 0 |
+| DP2 | ring | 103.60 | 111.78 | 0.927 | 6 | 1 |
+| DP3 | slab, flagged | | 112.50 | | | 0 |
+| DP4 | ring | 112.20 | 121.03 | 0.927 | 6 | 1 |
+| DT1 | ring | 80.58 | 78.84 | 1.022 | 10 | 2 |
+| DT3 | ring | 82.57 | 78.57 | 1.051 | 8 | 0 |
+| TH1 | ring | 80.39 | 78.84 | 1.020 | 8 | 0 |
+| TH3 | ring | 80.38 | 78.57 | 1.023 | 8 | 0 |
+| VD2 | ring | 105.02 | 111.78 | 0.939 | 6 | 0 |
+| VD4 | ring | 114.19 | 121.03 | 0.944 | 6 | 0 |
+| VL4 | ring | 140.60 | 140.60 | 1.000 | 6 | 0 |
+| VL6 | ring | 145.07 | 144.62 | 1.003 | 6 | 0 |
+
+DP3 falls back: the ring stops at the end of wall 6273202, no face starts within wallRingCornerGapM of it. In DP3 the primary walls on that side stand 400 mm out of the slab, why they do not close is UNKNOWN.
+
+### The 1 mm target
+
+Second method, proof\faces_check2.py, plain code: each ring edge of the sidecars against the side faces of the first probe, a read that shares no code with the builder. Of 94 ring edges 89 lie on the line of a used wall's face, largest off the line 0.000 mm. 5 are connecting edges with no wall face along them, a step between two wall lines, C10 1 of 540 mm, DP1 3 of up to 430 mm, DT1 1 of 10 mm. Stretches of an edge no face covers: at corners up to 330 mm, the thickness of the neighbour, in the middle of an edge up to 35 mm.
+
+What this does not show: it takes the walls the builder used, so it cannot catch a wrong wall. For that, breaker 2 held every main and primary wall of any function at the ground against the rings, not using that list: no exterior face stretch of 200 mm or more stands within 1 m outside a ring (RAN). A wall end can still run past a corner: DP2 and DP4 walls reach 90 and 120 mm past the ring, DT1 pieces 110 mm, C10 a pier 90 by 540 mm is cut off.
+
+### Mass against link
+
+D3 method, proof\compare_links.txt: the links of the Links run against those of the Masses run on 336 of 336 plots: largest distance 0.000 mm, largest turn 0.0000 degrees, mirror differs on 0. This holds the placement. Whether a link's shape equals its mass in Revit was not read, no read job gives a mass outline, UNKNOWN. By the rule both show the main model and the primary option.
+
+### Footprint, R477, NBH 012
+
+| Run | Same type | Over limit | Other type | No outline |
+|---|---|---|---|---|
+| Main, Lane B hand run of 3 Nov, steps/fix-2nov-b-handrun.md | 59 | 0 | 269 | 8 |
+| This round, the middle a mean of corners, as main | 59 | 0 | 258 | 19 |
+| This round, the middle the centre of the area | 58 | 0 | 271 | 7 |
+
+The 19 was false: the mean of the corners moved when the count of corners changed, 14 VL6 plots lost their block with the house unchanged. Fixed, R477. C10 2447 goes from same type to no outline under the area centre, and DP2 2614 from other type to no outline.
+
+Both Masses runs: 5.9 and 7.1 minutes, least free 27 GiB or more. The first made 13 masses, ended exit 1 with 275 inputs, 262 unchanged, 13 new .slog files in prototypes_2024 _backup (RAN, by time, the guard names none): Q338 again. The second made none and ended exit 0 with 275 of 275.

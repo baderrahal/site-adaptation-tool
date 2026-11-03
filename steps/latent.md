@@ -46,48 +46,7 @@ Moved with no word changed to steps/history/latent-addin-4g2.md on 2026-11-02 (R
 
 ## Round ADDIN 4g3
 
-- 4g3 PR 2 review 1 (PR 85), python/tests/test_value_status.py l.29: the test map still holds a movedBy key that no code reads since Q113 removed it. Nothing reads it (reviewer F2)
-- 4g3 PR 2 review 1 (PR 85), ValueStatus.cs Of: within one overrideReads list the C# drops a repeated entry, as AddRange over a lazy Where sees what it just added, where Python keeps it. No list of config/project.json holds a repeat (breaker)
-- 4g3 PR 2 review 1 (PR 85), python/value_status.py and ValueStatus.cs: an override name with a space would split the "by" part of the detail key. No name of overrideSets holds a space (breaker)
-- 4g3 PR 3 review 1 (PR 88), PlanSummary.cs l.169 and python/plan_from_book.py l.1170: C# always writes the steps line as keyRules.steps of the profile, where Python writes stepBands of the level profile for a profile with no key levels. No C# build reaches that case, it builds parsons2024Rev6 alone (reviewer)
-- 4g3 PR 3 review 1 (PR 88), PlanSummary.cs l.145: C# counts a generic floor on every written plot, where Python counts it only when the site file holds the generic level. On the real data the generic count is 2,518 of 2,518 written plots (reviewer, breaker)
-- 4g3 PR 3 review 1 (PR 88), BuildSteps.cs l.506 and l.457: the C# conflicts take build.Fronts and the C# walls the link fronts, where Python takes one front for both. Both come from Fronts.Of on the same faces and roads (reviewer)
-- 4g3 PR 3 review 1 (PR 88), python/plan_from_book.py l.1196 and PlanSummary.cs l.79: the Q116 test compares the open edge under the rule rotation with the one under the override rotation, never with the R355 front, so a front cut into two edges on one line would not be listed. On the real data the rule edge equals the front on 21 of 21 turned plots (breaker)
-- 4g3 PR 3 review 1 (PR 88), ValueStatus.cs l.296: C# counts levels.roadAtFrontM on every written plot, where Python writes it only when the keyRules hold level rules and the front is known. No real profile lacks level rules (breaker)
-- 4g3 PR 3 review 1 (PR 88), PlanSummary.cs l.150: a yard type that is no text gives "yard: " with nothing after it. Every real yard type is a text (breaker)
-- 4g3 PR 3 review 2 (PR 88), ValueStatus.cs l.336 and l.328, BuildSteps.cs l.438: a second copy of AppliedOf, and a cast of written that throws on a missing key. PlanOverrides.cs l.576 and l.820 always write a bool, so no plan reaches it (reviewer)
-- 4g3 PR 3 review 2 (PR 88), PlanSummaryTests.cs l.16 and python/tests/test_level_floor_steps.py l.75: the C# summary test takes plots 1 to 6 and the Python one 1 to 7, so no C# test holds the summary of a plot in scope with no row. The real scopes are held by Python on the real data (reviewer)
-- 4g3 PR 4 review 1 (PR 91), LevelExcel.cs SourceText: two entries of one plot and field list the first with an issue, where a build refuses them (R280). No real list holds two, 3,670 of 3,670 applied level overrides of the whole project have one (reviewer L1)
-- 4g3 PR 4 review 1 (PR 91), WorkerContext.cs WriteFile: a write that throws leaves its temporary file out of written, so the runner does not delete it. No real plan made the writer throw (reviewer L2)
-- 4g3 PR 4 review 1 (PR 91), LevelWorkbook.cs: the scope of the request is not held against the neighbourhood of the plan. Every real request named the plan it was built for (reviewer L3)
-- 4g3 PR 4 review 1 (PR 91), LevelWorkbook.cs: the step clusters, levels and hands are read with no check of their run stamp against the plan. The real steps and plans came from one build each (reviewer L4)
-- 4g3 PR 4 review 1 (PR 91), LevelExcel.cs: a level key that holds a bare value and no value object would throw. Every real level is an object with value (reviewer L5)
-- 4g3 PR 4 review 1 (PR 91): the inputs are not tied to the build by the override SHA-256 of the step stamps, so a list edited after the build gives reasons of the new list. The real list was the one of the build (breaker 6)
-- 4g3 PR 4 review 1 (PR 91): a rerun replaces a level Excel the team edited, with no warning. No edited Excel exists before the button Update from report of 5f (breaker 7)
-- 4g3 PR 4 review 1 (PR 91), LevelExcel.cs and python/level_excel_check.py: a null unit, reason or FFL of the rule is written or skipped differently by the two sides. No real plot holds one (breaker 8)
-- 4g3 PR 4 review 1 (PR 91), config/project.json addin.workerPeakMiB: no peak for the command levelExcel, which took 621.8 MiB on net48 and 656.8 MiB on net8.0 on the whole project, under the floor of free memory (breaker 9)
-- 4g3 PR 4 review 2 (PR 91), LevelExcel.cs and python/level_excel_check.py: a front corner whose surface is null is counted apart by both routes, by the two tests of null and none. No written plot of the real plans holds one (reviewer 6)
-- 4g3 PR 4 review 2 (PR 91), LevelExcel.cs Entries: an override entry whose plot is a number and no text is never matched. Every real entry holds its plot as text (reviewer 7)
-- 4g3 PR 4 review 2 (PR 91), LevelExcelTests.cs Dispose: the cleanup catches IOException only, so a locked file of another kind fails the test run. No run met one (reviewer 8)
-- 4g3 PR 4 review 2 (PR 91), LevelWorkbook.cs: a plan with no plot writes 0 workbooks and the run reads done. No real plan is empty (breaker L1)
-- 4g3 PR 4 review 2 (PR 91), LevelExcel.cs ClusterSheet: a piece whose written plots hold no FFL of the rule gives no row. Every real written plot holds levelRule.ffl (breaker L2)
-- 4g3 PR 4 review 2 (PR 91), LevelExcel.cs ClusterSheet: a not written plot with no piece at a cluster end gives no cut there. No real cluster has one where the split differs (breaker L3)
-- 4g3 PR 4 review 2 (PR 91), LevelExcel.cs: a cluster across two NBHs is listed in the workbook of its first written plot only. No real cluster spans two NBHs (breaker L4)
-- 4g3 PR 4 review 2 (PR 91), LevelExcel.cs RowsByNumber: a repeated locationPlanNumber of plots.csv keeps the last row. No real number repeats (breaker L5)
-- 4g3 PR 4 review 2 (PR 91), LevelWorkbook.cs: the file name holds no run id, so two runs into one shared folder replace each other. Every run writes into its own output folder (breaker L6)
-- 4g3 PR 4 review 2 (PR 91), LevelExcel.cs ClusterSheet: the walk per cluster scans the written plots again, which grows with the square of the plots. The whole project took 4.0 s (breaker L7)
-- 4g3 PR 4 review 2 (PR 91), Fronts.RoadNames: a level profile with no surface name gives a road order of one empty name. Both profiles of the rules name a surface, parsons2024Rev6 roadLevel and native2022 one LandXML surface (breaker L8)
-- 4g3 PR 5 review 1 (PR 96), ReportExcel.cs Editable: the Settings sheet and the header fill mark Type editable on the floor rows too, where D4 makes only the villa type editable. No reader of 5f exists yet (reviewer F5)
-- 4g3 PR 5 review 1 (PR 96), ReportWorkbook.cs: the SHA-256 of the rules and the override list are of the files passed now, never held against the inputs of the build, and the checkRows step file is not tied to the plan. The real list and steps were those of the build (breaker 5)
-- 4g3 PR 5 review 1 (PR 96), ReportExcel.cs: a plan with no plot writes no workbook and the run reads done with no issue. No real plan is empty (breaker)
-- 4g3 PR 5 review 1 (PR 96), ReportExcel.cs: two nbhIds that differ by case only give one file name on Windows, so one workbook replaces the other. The 9 real nbhIds hold no case clash (breaker)
-- 4g3 PR 5 review 1 (PR 96), ReportWorkbook.cs: a workbook of an NBH no longer in the plan stays in the output folder. Every run writes into its own output folder (breaker)
-- 4g3 PR 5 review 1 (PR 96), ReportExcel.cs: the 8 Report Counts rows join Issues after the Step 3 Issues count, and the checker does not model them. No real run gives a Counts row (breaker)
-- 4g3 PR 5 review 1 (PR 96), ReportExcel.cs and python/report_excel_check.py: an entry whose plot is a number is dropped in C# and counted in Python, and an empty written object of checkRows gives no rows in C# where Python takes raw. All 12,421 real entries hold a text plot (breaker)
-- 4g3 PR 5 review 2 (PR 96), ReportExcel.cs StepTable: 7 Walls Issues counts the weak decisions, so an NBH with no wall still reads 1. Every real NBH has walls (breaker C)
-- 4g3 PR 5 review 2 (PR 96), ReportExcel.cs StepOf: an override field missing from addin.report.stepOfField falls to button 4 with no issue, and the checker reads the same block. All 16 real fields are mapped (breaker D)
-- 4g3 PR 5 review 2 (PR 96), ReportWorkbook.cs SummaryRole: the step summary is not tied to the plan, so a summary of another build with the same plots gives a wrong Done and Skipped. The real summary came from the build (breaker E)
-- 4g3 PR 5 review 2 (PR 96): an empty written object of the step summary is read as raw in C# and as written in Python. All 2,704 real entries hold a written unit equal to raw (breaker F)
+Moved with no word changed to steps/history/latent-addin-4g3.md on 2026-11-03 (R400).
 
 ## Lane B L0 and 5a, moved at the fold in
 
@@ -578,3 +537,47 @@ Round FIX-2NOV-C-CHECK, review 1 and the gate, 2 Nov 2026:
 - Seven WPF tests failed once in a full net48 run while Revit started on the machine, all passed alone (RAN, 66 of 66).
 - Plural by count stays open where no real input reaches it: Review data title, New project plots and types, ScanView plots and files, 0 of 1 rows.
 - CheckTableState.Filter of two arguments has only test callers.
+
+Round SPEED-2NOV-C, review 1 and breaker 1 of R447, R448, R449, 3 Nov 2026:
+- test_window_lock.py leaves SITE_ADAPTATION_WINDOW_SLOT set in the test process, no other test reads it.
+- A crashed holder of slot 2 is not cleaned while any window process runs, it clears when all windows end. It takes a killed terminal.
+- With SITEADAPT_LISTENER_INPUT_ROOTS unset the C# side of the listener refuses no input root, only Start-RevitListener.ps1 sets it, and it always does.
+- If every result write fails, the listener logs to Trace and retries each second, and the queue stands behind that job. Disk full or a read-only out folder.
+- A failed SaveAs of listener_home.rvt leaves the small project open.
+- AddinRunSession reads the start time of its process with no guard, test host only.
+- A worker thread that ends before NextStep(WorkerStep) gets a wrong category in the timing, never a wrong outcome.
+- A refusal the out folder blocks for one moment leaves the job in claimed with no result, the send exits 2 (RAN). A job that passed its check retries.
+- A hand-made job naming a used run folder reports the old run_timing as its own (RAN). Send always makes a new folder.
+- InsideRoot of the listener compares text only: forward slashes, a parent step, the long prefix and an 8.3 name pass it (RAN). IsPlainFullPath and CheckPlace stop them for a model. prototypeLoops and junctions as in or out folders are hand-made holes.
+- Revit does not wait for Civil 3D on the slot side, Civil 3D waits for Revit. python/c3d_probe.json names a lock of another machine, so no Civil 3D run takes it today.
+- A new process with the pid of a hard killed listener reads as a listener already there, until that process ends.
+
+Round SPEED-2NOV-C, review 1 of the delta, 3 Nov 2026:
+- A step past its limit that returns later overwrites its timeout line with ok in the job log. The result file keeps timeout.
+- A result file removed by hand during the second marks stops the queue until Revit restarts. No script removes it.
+- A heartbeat file held open makes that look of the listener skip its work, retried each second.
+- The second marks of a job past its limit can repeat the D19 line in the error.
+- A steps entry of buttons_result.json that is no JSON object would throw out of the look each second, ButtonsRunHost writes objects only.
+- RevitFormat.cs is a port of python/rvt_info.py with no parity test. Two small drifts in how it reads the Format key, neither on a real prototype read.
+- Three copies of the input root list: Start-RevitListener.ps1, Get-RunInputRoots, Run-TestHost.ps1. They agree today.
+- Timing labels only: the second Decide runs under villaMassFiles, a wait on the load dialog is billed to the step before.
+- The pane lists the Prototypes folder twice per refresh. RevitFormat walks a long chain only on a corrupt file.
+
+Round SPEED-2NOV-C, breaker 1 of the delta, 3 Nov 2026:
+- A person's Cancel on the load dialog of button 7 ends as RolledBack with the failed text, the catch of ButtonFlow is older than this round. No recorded run reached it.
+- The long prefix and a UNC path of an input root read as outside it in the check of a .slog (RAN, strings only). The real specs name plain drive paths.
+- A config with no input root leaves every .slog of a backup folder out of the check. The real config gives 3 entries (RAN).
+- A file removed during an own run stops the after check with Get-Item's error, loud with the wrong cause. The listener says could not be marked.
+- The scope of RevitListenerJobVariable disposed twice would clear the variable of the next job (RAN). Only Finish disposes it, once per job.
+- A person's click on button 2 during a listener job skips the scan gate and its worker counts in that job. The lanes only send.
+- R496 stays silent: a 2021 file past the 20 files it reads, a file from before Revit wrote Format, a file locked with no share, an empty row Prototypes where the build falls back to config. Real folders hold 13 files, 2021 or 2024 (RAN).
+
+## Lane D MASS-2NOV-D, review and breakers, 3 Nov 2026
+
+- Arcs: no arc wall in the 13. Not tested: a clockwise arc wall, a concave one, a far face arc, arcs meeting at an angle, a full circle, a radius under half the width. What Wall.Orientation gives on a curved wall is UNKNOWN.
+- WallRingBuilder.Walk is greedy and stops on its first edge. A wrong early close that skips a part passes when the share stays at 0.90. None of the 13 does it.
+- A join 1 to 5 degrees off parallel crosses beyond the corner gap, the ring is refused. Real angles are 90 and 180. At an acute corner the end of one wall pokes through its neighbour and splits that edge.
+- Start corner of the points moves with the order of walls on a tie of two equal sides, TH1 and TH3, same shape. Only the point order of the sidecar changes.
+- A rejected ring keeps its build, so a sidecar could list wallsUsed under source slab. A null slab throws a bare null error, the reader throws first. None of the 13 reaches them.
+- MassFiles.Stale tests the reader version by not equal on one shared folder, so a build of another version and this one remake each other's masses. It ends at the merge.
+- faces_check2.py takes the whole face of a wall at all heights, so an edited profile counts as covering above its ground stretch. Breaker 2 read the profiles and found no fault.

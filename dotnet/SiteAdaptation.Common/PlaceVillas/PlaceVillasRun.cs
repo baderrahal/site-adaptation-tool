@@ -151,12 +151,15 @@ namespace SiteAdaptation.Common.PlaceVillas
         // 03b 7, Link types to load: a step of its own before the transaction, after Load on the dialog that names each type
         private IDisposable Outside(RunContext context)
         {
+            // R447. What stands before the transaction of button 7 is most of its time, so each part has a step of its own
+            context.Timing?.NextStep(RunTiming.VillaDecideStep);
             Decision decision = Decide(context);
             var reloaded = new HashSet<string>(StringComparer.Ordinal);
             if (decision.Makes.Count > 0)
             {
                 // R450. The mass files are new documents of their own, made before any transaction of the site and before the link
                 // types load
+                context.Timing?.NextStep(RunTiming.VillaMassFilesStep);
                 MassFileSet set = massFiles(context);
                 reloaded = MakeUnloaded(set, decision);
                 decision = Decide(context);
@@ -177,6 +180,7 @@ namespace SiteAdaptation.Common.PlaceVillas
             {
                 throw new OperationCanceledException("Cancel on the link types to load, nothing was loaded or placed");
             }
+            context.Timing?.NextStep(RunTiming.VillaLoadTypesStep);
             foreach (KeyValuePair<string, TypeUse> use in loads)
             {
                 string result = use.Value.Load ? document.LoadType(use.Value.Existing.Key) : document.ReloadType(use.Value.Existing.Key);

@@ -31,6 +31,7 @@ namespace SiteAdaptation.TestHost
     // folder before its answer, the pane after 1 and at the end, the ribbon, New project and How it works at the end (ButtonShots)
     internal sealed class ButtonsRunHost
     {
+        public const string OpenStep = "open";
         private const BindingFlags Any = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance;
         // What a worker end may take past the time limit of its worker, for the exit and the ExternalEvent. A tool timing
         private const double WaitMarginSeconds = 60;
@@ -98,6 +99,20 @@ namespace SiteAdaptation.TestHost
 
         public bool Done { get; private set; }
 
+        // R448. The document of the job, for the listener that closes it and stays open
+        public Document Model
+        {
+            get { return document; }
+        }
+
+        // R448. Past its limit no step is left but the write, which puts the add-in back. A worker that still runs is not waited for
+        public void Stop()
+        {
+            stopped = true;
+            waiting = null;
+            WaitSeconds = null;
+        }
+
         private string Settings
         {
             get { return Path.Combine(folder, "config", "project.json"); }
@@ -130,7 +145,7 @@ namespace SiteAdaptation.TestHost
             WaitSeconds = null;
             if (document == null && !stopped)
             {
-                yield return Step("open", 10, Open);
+                yield return Step(OpenStep, 10, Open);
             }
             if (waiting != null)
             {
@@ -161,6 +176,8 @@ namespace SiteAdaptation.TestHost
             addIn = AppDomain.CurrentDomain.GetAssemblies().First(each => each.GetName().Name == AddinRunNames.Assembly);
             Directory.CreateDirectory(work);
             string made = "opened the key copy";
+            // A project made from the template and saved here is part of what the job waits for before its first button
+            Stopwatch opening = Stopwatch.StartNew();
             if (!File.Exists(job.Model))
             {
                 Document fresh = ui.Application.NewProjectDocument(job.Template);
@@ -169,6 +186,7 @@ namespace SiteAdaptation.TestHost
                 made = "made from the template and opened";
             }
             document = ui.OpenAndActivateDocument(job.Model).Document;
+            RunTiming.BeforeRun(null, opening.Elapsed.TotalSeconds);
             config = JObject.Parse(File.ReadAllText(Settings));
             DesignValues.UseConfigOf(config);
             stateBefore = Get(AddinRunNames.Buttons, AddinRunNames.State);
@@ -276,8 +294,11 @@ namespace SiteAdaptation.TestHost
             {
                 try
                 {
+                    // R447. The run_timing file is written before this save, so its seconds stand in the entry of the step
+                    Stopwatch saving = Stopwatch.StartNew();
                     document.Save();
                     entry["savedAfter"] = true;
+                    entry["saveSeconds"] = Math.Round(saving.Elapsed.TotalSeconds, 3);
                 }
                 catch (Exception failure)
                 {
@@ -386,8 +407,10 @@ namespace SiteAdaptation.TestHost
             // The copy keeps what the buttons did, for a look after the run. It lies in the run folder under the work root
             if (document != null && document.IsValidObject && document.IsModified)
             {
+                Stopwatch saving = Stopwatch.StartNew();
                 document.Save();
                 result["saved"] = true;
+                result["saveSeconds"] = Math.Round(saving.Elapsed.TotalSeconds, 3);
             }
             result["finishedUtc"] = DateTime.UtcNow;
             result["privateMiB"] = PrivateMiB();

@@ -854,7 +854,7 @@ namespace SiteAdaptation.Tests
         [Fact]
         public void R104_errors_roll_back_only_in_the_test_host_transactions_and_unload_never_saves_link_positions()
         {
-            string session = RepoText("dotnet", "SiteAdaptation.TestHost", "JobSession.cs");
+            string session = RepoText("dotnet", "SiteAdaptation.TestHost", "JobEvents.cs");
             string steps = RepoText("dotnet", "SiteAdaptation.TestHost", "JobSteps.cs");
 
             Assert.Contains("RollBackSteps = new HashSet<string>(StringComparer.Ordinal) { \"removePrototypeType\", \"realRun\", \"deleteFloors\", \"realRun2\", \"coordinates\", \"levels\", \"floorTypes\", \"parameters\", \"image\" }", session);

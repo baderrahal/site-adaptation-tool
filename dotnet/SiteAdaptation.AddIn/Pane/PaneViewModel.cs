@@ -8,6 +8,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using SiteAdaptation.AddIn.NewProject;
+using SiteAdaptation.Common;
 using SiteAdaptation.Common.Flow;
 using SiteAdaptation.Common.Settings;
 using SiteAdaptation.Common.Steps;
@@ -314,6 +315,69 @@ namespace SiteAdaptation.AddIn.Pane
             RefreshAll();
         }
 
+        // R496. The Revit the add-in runs on, set by the host. Null in a test and for a version that does not read, then no row warns
+        public int? RunningRevit { get; set; }
+
+        // R496. Looks at the format of the files of a folder off the UI thread and gives the oldest year to done, null for none read.
+        // Null in a test with no disk. The host gives DiskProbe.LookFormat
+        public Action<string, Action<int?>> FormatLook { get; set; }
+
+        private readonly Dictionary<string, KnownFormat> formats = new Dictionary<string, KnownFormat>(StringComparer.OrdinalIgnoreCase);
+        private readonly HashSet<string> looking = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        private sealed class KnownFormat
+        {
+            public KnownFormat(long size, long stamp, int? oldest)
+            {
+                Size = size;
+                Stamp = stamp;
+                Oldest = oldest;
+            }
+
+            public long Size { get; }
+            public long Stamp { get; }
+            public int? Oldest { get; }
+        }
+
+        // R496. The line under the row Prototypes when the folder holds files older than the running Revit. It stops nothing. The look
+        // is kept by folder with the size and stamp of the folder, so it runs again only when the folder changed
+        private void RefreshFormat()
+        {
+            FileRowViewModel row = InputRows.Single(item => item.Keys.Contains(InputKeys.Prototypes));
+            string path = document == null ? null : document.Settings.InputPath(InputKeys.Prototypes);
+            if (string.IsNullOrEmpty(path) || FormatLook == null || RunningRevit == null)
+            {
+                row.ShowNote(string.Empty);
+                return;
+            }
+            InputFacts facts = probe.Look(path, true);
+            if (!facts.Found)
+            {
+                row.ShowNote(string.Empty);
+                return;
+            }
+            if (formats.TryGetValue(path, out KnownFormat known) && known.Size == facts.Size && known.Stamp == facts.Stamp)
+            {
+                int? year = PrototypeFormats.OldYear(known.Oldest, RunningRevit.Value);
+                row.ShowNote(year == null ? string.Empty : TextTemplate.Fill(PaneText.OldPrototypes, year.Value, RunningRevit.Value));
+                return;
+            }
+            row.ShowNote(string.Empty);
+            if (!looking.Add(path))
+            {
+                return;
+            }
+            FormatLook(path, oldest =>
+            {
+                looking.Remove(path);
+                formats[path] = new KnownFormat(facts.Size, facts.Stamp, oldest);
+                if (document != null)
+                {
+                    RefreshAll();
+                }
+            });
+        }
+
         private void RefreshSurfaces()
         {
             FileRowViewModel row = InputRows.Single(item => item.HasSurfaces);
@@ -436,6 +500,7 @@ namespace SiteAdaptation.AddIn.Pane
                 RefreshRow(row, document == null ? null : row.Keys.Select(key => document.Settings.InputPath(key)).ToArray());
             }
             RefreshSurfaces();
+            RefreshFormat();
             RefreshHelp();
             RefreshProfiles();
             if (document != null && !string.IsNullOrEmpty(document.Settings.Scope.Nbh) && !NbhCodes.Contains(document.Settings.Scope.Nbh))
@@ -799,6 +864,7 @@ namespace SiteAdaptation.AddIn.Pane
         private bool surfacesEnabled;
         private string surfacesTip;
         private string surfacesLine = string.Empty;
+        private string note = string.Empty;
 
         public FileRowViewModel(string label, bool folder, params string[] keys)
         {
@@ -820,6 +886,15 @@ namespace SiteAdaptation.AddIn.Pane
         public bool SurfacesEnabled { get { return surfacesEnabled; } private set { Set(ref surfacesEnabled, value); } }
         public string SurfacesTip { get { return surfacesTip; } private set { Set(ref surfacesTip, value); } }
         public string SurfacesLine { get { return surfacesLine; } private set { Set(ref surfacesLine, value); } }
+
+        // R496. A warning line under the row, empty when there is none
+        public string Note { get { return note; } private set { Set(ref note, value); Changed(nameof(HasNote)); } }
+        public bool HasNote { get { return !string.IsNullOrEmpty(note); } }
+
+        internal void ShowNote(string line)
+        {
+            Note = line;
+        }
 
         internal void ShowSurfaces(bool enabled, string tip, string line)
         {

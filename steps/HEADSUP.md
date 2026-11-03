@@ -12,9 +12,9 @@
 ### Lane B, C and D
 
 - Lane B FIX-2NOV-B, 03:10, branch fix/2nov-b-handrun: hand run done, lock released 03:01, steps/fix-2nov-b-handrun.md written. Records PR next, then the round ends. Nothing blocks.
-- Lane C FIX-2NOV-C-CHECK, branch fix/2nov-c-check: R494 pane, R495 Check sort and filter, Save As owner, sheet parts 17 to 20. SPEED-2NOV-C paused on speed/2nov-c. Blocked: none
-- Lane D MASS-2NOV-D, 3 Nov, branch mass/2nov-d: the mass outline by the outer wall faces (Q321, Q279), R500 to R504, Q390 up.
-  Now: review fixes in, design options and edited profiles read. The Revit proof waits on Lane C's turn. Blocked: none
+- Lane C SPEED-2NOV-C, branch speed/2nov-c: gate and parity clean, PR going up. Touches Run-TestHost.ps1, TestHostPaths.ps1, Send-RevitJob.ps1. Blocked: none
+- Lane D MASS-2NOV-D, 3 Nov, branch mass/2nov-d: the mass outline by the outer wall faces, R500 to R504, closed Q279, Q321, opened Q390 to Q393. Revit proof done, lock free.
+  Now: the gate, the PR, merge when green. Blocked: none
 
 Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane D MASS-2NOV-D, 3 Nov 2026.
 
@@ -39,6 +39,7 @@ Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane
 - Lane C FIX-2NOV-C (R446): Review data Close and ask, no idle button, Run complete in the pane, the export refused in the input folder, Dry run off before 4 Check
 - Lane D D3, PR 134 (R467, R468): Links mode proven by the test host on NBH 012, Q275 closed. Through the pane the Prototypes row names the link folder (part 11)
 - Lane D FIX-2NOV-D (R490 to R493): designBasis.roadLevel.surfaces, ProjectSettings.RoadSurfaces, WorkerRequest.RoadSurfaces, the window Road surfaces. A new function and its caller: design_basis.surfaces_of, stop_share_of, not_taken_why, named_surfaces by basis_of, no_road_stop and road_gaps by plan_from_book.run_build, road_order by level_excel_check.expected. DesignBasis.SurfacesOf, StopShareOf by Of, TakePick by BuildSteps.Run, NoRoadStop, NoRoadLine by BuildPlan.NoRoadCheck by BuildPlan.Write, IsNoRoad by CheckRun. RoadSurfaceChoices.Named, IsRev6, OrderText, ForRequest, NotTakenWhy by ReadInputs.Make, CheckRun.Plan, ReadDataRun.Start, PaneRunState.InputsOf, ReadSettings.ReadRoads. ReadSettings.ReadRoads by WorkerReads.Surfaces, LevelWorkbook.Command. RoadSurfacesDialog.Show by NewProjectDialog.Show and PaneHost.Register, RoadSurfacesViewModel by the dialog, RoadPickState by both view models, PickSurfaces by NewProjectWindow and SitePanePage
+- Lane D MASS-2NOV-D (R500 to R504): the mass base is a ring of the outer wall faces, corners by intersection. A new function and its caller: WallRingBuilder.Build and WallRing.Choose by MassFileSet.Make, DesignOptions.Shown by WallRingBuilder.Build and RevitBaseShapeReader.GroundFloors, WallProfiles.GroundStretches by WallRingBuilder.OnTheGround, RingEdges.Points by WallRing.Choose, RingEdges.CounterClockwise and Middle by RevitVillaDocument.Extrusion(edges), that by RevitMassFileMaker.Write, RevitBaseShapeReader.RingWalls by RevitMassFileMaker.ReadBase, ProfileLines and SideFace by RingWalls, MassFiles.EdgeJson by Sidecar, EdgeOf by Base, MassFileConfig.Limits by MassFileSet.Make and SourceKey. Removed: WallStrips, WallLoops, wallCutHeightM. FootprintCheck.Row takes the centre of the area. Mass files remade once, reader version 5
 
 ## New rules
 
