@@ -4,7 +4,7 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 
 ## State
 
-- Lane D PARAM-3NOV-D 3 Nov: links only, R506 to R508. MASS: 12 of 13 rings, R500 to R504. FIX-2NOV-D: R490 to R493. 6B-DATA: R469. D3: R467, R468. FIX-1NOV-D: R460 to R466. 4j-1: R420 to R429
+- Lane D PARAM: links only, R506 to R508. MASS: 12 of 13 rings, R500 to R504. FIX-2NOV-D: R490 to R493. 6B-DATA: R469. D3: R467, R468. FIX-1NOV-D: R460 to R466. 4j-1: R420 to R429
 - Lane A 4i to FIX-3NOV-A, one PR each: R407 to R416, R470 to R487. FIX-3NOV-A: R484 to R487, Empty project takes a shipped set under rev6
 - Lane B FIX-1NOV-B on 2026-11-01: masses as linked files (R450 to R453), coordinates from CAD (R454 to R456), proven in Revit on NBH 012
 - Lane B dry run: steps/dryrun-3nov.md. FIX-3NOV-B: R498, R499. FIX-2NOV-B: R459, Q158, steps/fix-2nov-b-handrun.md. CHECK-2NOV: R458. Task 6: R457
