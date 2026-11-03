@@ -38,7 +38,7 @@ namespace SiteAdaptation.AddIn.HowItWorks
             "Generic, yard and ramp floors",
             "Floor level, entry level and steps of each villa",
             "Villas on their plots at their floor level",
-            "Boundary and garden walls, corner plots included",
+            "Boundary walls, corner plots included",
             "Excel report the team can edit and read back",
         };
 

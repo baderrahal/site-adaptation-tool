@@ -61,6 +61,11 @@ namespace SiteAdaptation.AddIn.Update
 
         public bool CanDryRun => Loaded && list.Changes.Count > 0;
 
+        // Q408. A pick of an Excel with no change left the window empty, as if nothing had happened
+        public bool NoChangesShown => Loaded && list.Changes.Count == 0;
+
+        public string NoChangesLine => UpdateFromReportText.NoChanges;
+
         public void Load(UpdateList next, IReadOnlyList<string> files)
         {
             list = next ?? new UpdateList();

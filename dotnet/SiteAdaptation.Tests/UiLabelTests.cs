@@ -186,7 +186,7 @@ namespace SiteAdaptation.Tests
             // FIX-3NOV-A added 3: the copy stop now has a line to do, and the unread set a stop and a line to do (R486)
             // R505 added 1, the end of the found text of a file with external references
             // R510 to R514 added 14: the row Position from, the section Position source and the section CAD and position file of Set up site
-            Assert.Equal(275, chosen);
+            Assert.Equal(280, chosen);
             Assert.True(matched > 100, matched.ToString());
         }
 

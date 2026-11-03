@@ -14,6 +14,7 @@ namespace SiteAdaptation.Common.CheckTable
         public const string LinkRotation = "Link rotation by the rule";
         public const string YardOutline = "Yard outline by the rule";
         public const string RampOutline = "Ramp outline by the rule";
+        public const string RampJoint = "Ramp joint by the rule";
         public const string GenericFloor = "Generic floor by the rule";
         public const string Steps = "Steps by the rule";
         public const string VillaHand = "Villa hand by the rule";

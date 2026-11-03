@@ -37,7 +37,7 @@ namespace SiteAdaptation.Common.SetUp
         public const string InsidePlots = "inside the box";
         public const string OutsidePlots = "outside the box";
 
-        public const string SignSettings = "the Settings entity SiteAdaptation_Settings";
+        public const string SignSettings = "settings saved in this model";
         public const string SignPosition = "a project position other than zero";
         public const string SignSurvey = "the survey point off the internal origin";
         public const string SignBase = "the project base point off the internal origin";

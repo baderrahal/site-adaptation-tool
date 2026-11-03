@@ -80,7 +80,7 @@ namespace SiteAdaptation.AddIn.Pane
         public const string StepLine5 = "Generic, yard and ramp floors";
         public const string StepLine6 = "Sets FFL and entry levels";
         public const string StepLine7 = "Places a villa on each plot at its FFL";
-        public const string StepLine8 = "Boundary and garden walls";
+        public const string StepLine8 = "Boundary walls";
         public const string StepLine9 = "Excel report of the run";
 
         public const string Done = "Done";
