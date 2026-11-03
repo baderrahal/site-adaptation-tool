@@ -316,7 +316,6 @@ Do not click anywhere while the Revit box is open. A press waits behind it and f
 **Limits today.**
 
 - Q277 Footprint block names unlike the unit.
-- Q391 Twin masses overlap along one side.
 - Q337 Swap back in the same model unproven.
 - Q332 FFL bound but never written.
 
@@ -369,6 +368,7 @@ The ribbon button opens a table of the values the team may change: rule, name, m
 Limits today:
 
 - Q419 Under the past job the ramp slope limit changes no plan.
+- Q440 The table is not yet proven inside Revit.
 
 ## Files from start to end
 

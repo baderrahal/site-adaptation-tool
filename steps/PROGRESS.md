@@ -9,7 +9,7 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 - Lane B FIX-1NOV-B on 2026-11-01: masses as linked files (R450 to R453), coordinates from CAD (R454 to R456), proven in Revit on NBH 012
 - Lane B REPORT-3NOV-B: R550 to R555. Undo proven (R499). Dry run: steps/dryrun-3nov.md. FIX-3NOV-B: R498, R499. FIX-2NOV-B: R459, Q158
 - Lane B 6a on 31 Oct: NBH 012 through 1 to 9 from a new project, no click. 5d, PR 113: 5, 6, 8, 7 at the FFL. 5c, PR 111: 2, 3, 4, 7
-- Lane C SCAN-UI PR 117, 119. DEMO-FIX R444. FIX-1NOV-C PR 132 (R445). FIX-2NOV-C (R446). CHECK: R494, R495. SPEED: R447 to R449, R496, R497. 6c: R505. HELP: R540
+- Lane C SCAN-UI PR 117, 119. DEMO-FIX R444. FIX-1NOV-C PR 132 (R445). FIX-2NOV-C (R446). CHECK: R494, R495. SPEED: R447 to R449, R496, R497. 6c: R505. HELP: R540. RULES: R541
 - Lane A: 5e and 5f on 2026-10-30, one PR (D20), R381 button 9 Report, R402 Update from report. Phase 4 and 5: 4h-1 PR 107, 4h-2 PR 109, 4g3
 - Round FOLD done on 2026-10-29: the fold in of steps/lane-b.md, D9 to D19, the answer pass, M01 to M15. D20 on 29 Oct for Phase 4 and 5
 - ADDIN Part 1 (R300 to R399): the add-in inside Revit 2024 in C#, net48, option B, parsons2024Rev6 for every build (Q050)
