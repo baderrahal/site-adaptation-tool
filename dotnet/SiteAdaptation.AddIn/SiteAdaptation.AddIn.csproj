@@ -17,6 +17,8 @@
   <!-- Libre Franklin under the SIL Open Font License, docs/licences.md. The font is a resource of the DLL, its licence ships beside it -->
   <ItemGroup>
     <Resource Include="Theme\Fonts\LibreFranklin-Variable.ttf" />
+    <!-- R540. Built by python/build_help.py from steps/buttons-guide.md -->
+    <EmbeddedResource Include="Help\help.json" LogicalName="SiteAdaptation.AddIn.Help.help.json" />
     <None Include="Theme\Fonts\OFL.txt" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

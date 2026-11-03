@@ -12,7 +12,7 @@
 ### Lane B, C and D
 
 - Lane B 20:55, 3 Nov. Undo proven in Revit (R499), steps/investigations/undo-3nov.md, lock free. Next: known issues, REPORT-3NOV-B, 6b. Ids R550 to R569, Q450 to Q469. Blocked: none
-- Lane C, 3 Nov, branch fix/known-3nov-c: PR 160, 161 merged, known issues PR going up, next HELP-3NOV-C, then RULES-3NOV-C. Ids R540 to R549, Q416 to Q419, Q440 to Q449. New: NoChangesShown, NoChangesLine, by UpdateFromReportWindow.xaml. I own the pane file tonight. Blocked: none
+- Lane C, 3 Nov, branch feat/help-3nov-c: PR 160, 161, 162 merged, HELP PR going up, next RULES-3NOV-C. Ids R540 to R549, Q416 to Q419, Q440 to Q449. New callers: HelpBook by HelpFile, HelpFile by the pane and New project rows, HelpBox by OnStepHelp and OnRowHelp. A guide change needs python/build_help.py. I own the pane file tonight. Blocked: none
 - Lane D MASS-2NOV-D, 3 Nov, branch mass/2nov-d: the mass outline by the outer wall faces, R500 to R504, closed Q279, Q321, opened Q390 to Q393. Revit proof done, lock free.
   Now: the PR, merge when green. Nothing queued after it. Blocked: none
 

@@ -24,6 +24,14 @@ namespace SiteAdaptation.UiShots
             return Draw(Body(LaidOutRoadSurfaces()));
         }
 
+        // R540. The side box of step 1, the fullest entry of the help file
+        private static BitmapSource HelpBoxPage()
+        {
+            var window = new SiteAdaptation.AddIn.Help.HelpBoxWindow(SiteAdaptation.AddIn.Help.HelpFile.Book.Find("step1"));
+            LayOut(window);
+            return Draw(Body(window));
+        }
+
         private static BitmapSource HowItWorksPage()
         {
             return Draw(Body(LaidOutHowItWorks()));

@@ -2,6 +2,29 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Lane C HELP-3NOV-C, 2026-11-03, i beside each step
+
+Goal:
+- Hover line and side box on steps 1 to 9 and New project rows, text from the guide
+
+Done:
+- R540: python/build_help.py, help file in the DLL, side box
+
+Checked:
+- Touched tests on net48 and net8.0, the pane and New project PNGs read. Not seen in Revit yet
+
+Remains:
+- RULES-3NOV-C. Second guide PR when PARAM merges, then rebuild the help file
+
+Known bugs:
+- None new
+
+Next:
+- RULES-3NOV-C
+
+Your turn:
+- Opened none. Closed none.
+- 184 open, steps/questions-open.md
 ## Lane B FIX-3NOV-B end, 2026-11-03, undo in Revit
 
 Goal:

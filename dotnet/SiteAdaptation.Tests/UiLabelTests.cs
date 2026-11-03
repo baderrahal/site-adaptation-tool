@@ -31,8 +31,8 @@ namespace SiteAdaptation.Tests
                     [Path.Combine(root, "dotnet", "SiteAdaptation.Common", "Review", "ClusterConfirmText.cs")] = "Review data",
                 });
 
-            Assert.Equal(new[] { "Ribbon", "Pane", "Button messages", "Set up site", "Review data", "Site Adaptation Rules", "Check table", "Update from report", "New project", "How it works", "What the tool read", "Loader" }, list.Keys.ToArray());
-            Assert.Equal(new[] { "Ribbon", "Pane", "Button messages", "Set up site", "Review data", "Site Adaptation Rules", "Check table", "Update from report", "New project", "How it works", "What the tool read", "Loader" }, list.Values.Where(window => window.Built).Select(window => window.Name).ToArray());
+            Assert.Equal(new[] { "Ribbon", "Pane", "Button messages", "Set up site", "Review data", "Site Adaptation Rules", "Check table", "Update from report", "New project", "Help box", "How it works", "What the tool read", "Loader" }, list.Keys.ToArray());
+            Assert.Equal(new[] { "Ribbon", "Pane", "Button messages", "Set up site", "Review data", "Site Adaptation Rules", "Check table", "Update from report", "New project", "Help box", "How it works", "What the tool read", "Loader" }, list.Values.Where(window => window.Built).Select(window => window.Name).ToArray());
             Assert.Equal(18, list["Ribbon"].Entries.Count);
             Assert.Contains(shown["Ribbon"], found => found.Text == "Update from report");
             Assert.Contains(shown["Pane"], found => found.Text == "Browse" && found.Where.EndsWith(".xaml", StringComparison.Ordinal));
@@ -186,7 +186,8 @@ namespace SiteAdaptation.Tests
             // FIX-3NOV-A added 3: the copy stop now has a line to do, and the unread set a stop and a line to do (R486)
             // R505 added 1, the end of the found text of a file with external references
             // KNOWN-3NOV-A added 2: Front edge by hand and the past value of a front edge (R482, Q376)
-            Assert.Equal(269, chosen);
+            // and the folder of the override list (Q397)
+            Assert.Equal(276, chosen);
             Assert.True(matched > 100, matched.ToString());
         }
 
@@ -248,6 +249,7 @@ namespace SiteAdaptation.Tests
             { "Update from report", "Update" },
             { "New project", "NewProject" },
             { "How it works", "HowItWorks" },
+            { "Help box", "Help" },
             { "What the tool read", "ScanResults" },
             { "Loader", "Loader" },
         };
