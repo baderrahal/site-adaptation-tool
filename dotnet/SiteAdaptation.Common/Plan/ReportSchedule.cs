@@ -88,14 +88,14 @@ namespace SiteAdaptation.Common
                 };
                 for (int index = 0; index < ReportExcelText.RampCorners; index++)
                 {
-                    cells.Add(corners != null && index < corners.Count ? Cell((corners[index] as JArray)?.LastOrDefault()) : null);
+                    cells.Add(corners != null && index < corners.Count ? Cell((corners[index] as JArray)?.ElementAtOrDefault(2)) : null);
                 }
                 cells.Add(RevitCounts.ElementId(inputs.RevitCounts, number, PlacedKinds.Link));
                 cells.Add(RevitCounts.ElementId(inputs.RevitCounts, number, PlacedKinds.Generic));
                 cells.Add(RevitCounts.ElementId(inputs.RevitCounts, number, PlacedKinds.Yard));
                 cells.Add(RevitCounts.ElementId(inputs.RevitCounts, number, PlacedKinds.Ramp));
                 List<long> wallIds = wallsOf[number].SelectMany(wall => RevitCounts.WallIds(inputs.RevitCounts, number, parts[wall])).ToList();
-                cells.Add(wallIds.Count == 0 ? null : string.Join(ReportExcelText.ListJoin, wallIds));
+                cells.Add(wallIds.Count == 0 ? null : wallIds.Count == 1 ? (object)wallIds[0] : string.Join(ReportExcelText.ListJoin, wallIds));
                 table.Rows.Add(cells.ToArray());
             }
             return table;

@@ -71,7 +71,7 @@ namespace SiteAdaptation.Common
                 }
                 ids[kind.Key.Kind] = new JArray(kind.Select(element => element.Key).Distinct().OrderBy(id => id));
             }
-            // Q307. The walls by "<plot>|<part>", apart from plots, as a wall counts in no plot row of the box and may stand on a plot with no villa
+            // Q307. The walls by "<plot>|<part>", apart from plots, as a wall counts in no plot row of the box
             var walls = new JObject();
             foreach (var wall in elements.Where(element => element.Value.Key.Kind == PlacedKinds.BoundaryWall).GroupBy(element => element.Value.Key.Plot + "|" + element.Value.Key.Part))
             {

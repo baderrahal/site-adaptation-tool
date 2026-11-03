@@ -531,6 +531,11 @@ namespace SiteAdaptation.Common
             return inputs.RunFacts?["fields"] is JObject fields ? new SortedDictionary<string, string>(fields.Properties().ToDictionary(item => item.Name, item => (string)item.Value), StringComparer.Ordinal) : null;
         }
 
+        private static string Invariant(JToken value)
+        {
+            return value is JValue plain ? Convert.ToString(plain.Value, CultureInfo.InvariantCulture) ?? "" : "";
+        }
+
         // R555. The rules changed in the rules window of the project, rule id, name and the two values, with the column Changed. A project with none keeps the five columns
         private static ReportTable MarkChanged(ReportTable table, ReportInputs inputs)
         {
@@ -550,7 +555,7 @@ namespace SiteAdaptation.Common
                 marked.Rows.Add(new object[]
                 {
                     Text(rule["id"]) + " " + Text(rule["name"]), null, null, null,
-                    Fill(ReportExcelText.ChangedValues, "manual", rule["manual"]?.ToString() ?? "", "project", rule["project"]?.ToString() ?? "", "unit", unit ?? "").Trim(), ReportExcelText.Changed,
+                    Fill(ReportExcelText.ChangedValues, "manual", Invariant(rule["manual"]), "project", Invariant(rule["project"]), "unit", unit ?? "").Trim(), ReportExcelText.Changed,
                 });
             }
             return marked;

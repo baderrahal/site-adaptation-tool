@@ -3,18 +3,24 @@ openpyxl, every label and its order held against the words of docs/addin-mock.md
 7.7, read from those files and never from the C#, and every cell held against the plan, its override list, the step checkRows of the build and
 plots.csv, worked out again here by its own walk with json and csv only.
 
-- workbooks: one per NBH of the plan by nbhId of plots.csv, each named <NBH>_Report.xlsx, no other xlsx in the folder
-- labels: the sheets of 7.6 with Assumed after Overrides (7.7 item 9) and Settings last (item 12), the Summary table and its steps 1 to 8 by
-  the order of docs/design/13-workflow-changes.md with the column Manual rule of 7.6 (R381), the two boxes with their columns and items, the
-  columns of Placed with Mirror after type (item 11) and of Skipped
+- workbooks: one per NBH of the plan by nbhId of plots.csv, each named <NBH>_Report.xlsx, or by the fields of the facts of the run (R550), no
+  other xlsx in the folder
+- labels: the sheets in the order of SHEET_ORDER (R551), the sheets of 7.6 all among them, the Summary table and its steps 1 to 8 by the order
+  of docs/design/13-workflow-changes.md with the column Manual rule of 7.6 (R381), the two boxes with their columns and items, the columns of
+  Placed with Mirror after type (item 11) and of Skipped
+- R551, R552: Cover, Plot schedule, Floors and Walls each worked out here from the plan, plots.csv, the counts and the facts of the run
+- R553: row 1 frozen and a filter over every row of each list, plot numbers as numbers on the sheets of NUMBER_SHEETS
+- R554: --report-facts, the top line, the Summary rows of steps 1 and 3, the Issues of each step with a record and Levels of the box
+- R555: the column Changed of Rules used and one row per changed rule of the facts
 - R381: the manual rule IDs of each Summary and Issues line from the block manualRules of the rules profile, the faces of plots.csv in the
   scope for 2 Read data (Q123), one Issues row per weak wall decision (Q125) and the Revit column from the counts the add-in read (Q124)
 - Summary: the top line as the filled example of 7.6 words it, the table from row 3 with its counts walked again from the plan, the box
   Counts agree across outputs with the plan held against the rows of Placed, the box Rules applied with the plots that took each rule
   counted here from the status details, the boxes bordered and the share in its format
-- Placed: plot in column A, one row per written plot and kind, the villa type and mirror flag of a link, no blank row, no merged range,
-  the headers of type and Mirror alone in the light fill (D4, items 10 and 11)
-- Skipped, Overrides, Assumed, Issues, Rules: each row worked out again from the plan, the list, the status and the check rows
+- Placed: plot as text in column A, one row per written plot and kind, then one row per wall of the plan of the book with its id from the
+  counts (Q307), the villa type and mirror flag of a link, no blank row, no merged range, the headers of type and Mirror alone in the light
+  fill (D4, items 10 and 11)
+- Skipped, Overrides, Assumed, Issues, Rules used: each row worked out again from the plan, the list, the status and the check rows
 - Accepted warnings: the sheet of item 38 of 7.7 with the rows of the file step 5 left for the NBH, none with no file (R459)
 - Settings: the editable columns against the fills, the build id against the run stamp of the plan, the SHA-256 of the plan file bytes by
   hashlib, the SHA-256 of the rules and the list
@@ -25,10 +31,12 @@ import argparse
 import csv
 import hashlib
 import json
+import math
 import re
 import sys
 from collections import Counter
-from pathlib import Path
+from decimal import ROUND_HALF_UP, Decimal
+from pathlib import Path, PureWindowsPath
 
 import area_key
 import check_rows
@@ -64,6 +72,35 @@ NO_REPORT_BLOCK = ("the settings hold no block addin.report with stepOfField, de
                    "button and the weak wall decisions by it (R365)")
 SETTINGS = ("Run id", "Profile", "Rules SHA-256", "Override list SHA-256", "Run time", "Editable columns", "Plan build id", "Plan SHA-256")
 SHARE_FORMAT = "0.000"
+BOUNDARY_WALL = "boundaryWall"
+# R551. Bader's change of 3 Nov 2026 goes over the sheet list of docs/addin-mock.md item 6 and 7.6, which stay as they were, so the order is held
+# here and mock_labels only checks that each sheet of those files is still among these, by its new name
+SHEET_ORDER = ("Cover", "Plot schedule", "Floors", "Walls", "Issues", "Overrides", "Rules used", "Summary", "Placed", "Skipped", "Assumed", ACCEPTED_SHEET, "Settings")
+RENAMED_SHEETS = {"Rules": "Rules used"}
+RULES_SHEET = "Rules used"
+NOT_LIST_SHEETS = ("Cover", "Summary")
+# R553. Placed keeps the plot as text, it is the key of Update from report (R402), the other lists of 7.6 stay as they were
+NUMBER_SHEETS = ("Plot schedule", "Floors", "Walls", "Issues", "Overrides")
+PLOT_COLUMNS = ("Plot", "Plot No.", "Old Plot No.")
+FROZEN = "A2"
+# R550 to R555, CHOSEN in REPORT-3NOV-B, the mock does not word them, held here word for word against what the worker writes
+NAME_FIELDS = ("project", "originator", "volume", "level", "type", "role", "number")
+NBH_TOKEN = "<nbh>"
+NOT_SET = "not set"
+COVER_COLUMNS = ("Item", "Value")
+COVER_DATE = "Date"
+WALLS_ITEM = "Walls"
+ID_JOIN = ", "
+SCHEDULE_COLUMNS = ("Plot & Unit", "Plot No.", "Unit", "FFL (m)", "SSL (m)", "El @ Entry, door level (m)", "Height (m)", "Site Steps Needed", "Steps Needed",
+                    "Old Plot No.", "Prototype", "Mirror", "Rotation (deg)", "Ramp corner 1 (m)", "Ramp corner 2 (m)", "Ramp corner 3 (m)", "Ramp corner 4 (m)",
+                    "Villa ID", "Generic floor ID", "Yard floor ID", "Ramp ID", "Wall IDs")
+RAMP_CORNERS = 4
+FLOOR_COLUMNS = ("Plot", "Kind", "Type", "Level", "Level elevation (m)", "Z (m)", "Height offset (m)", "Slope (%)", "Element id")
+WALL_COLUMNS = ("Plot", "Edge", "Other plot", "Base (m)", "Top (m)", "Length (m)", "Element id")
+CHANGED = "Changed"
+# A length here comes by another formula than the one of the worker, so the two may part in the last bit of the double
+LENGTH_SLACK = 1e-9
+NOT_WALLS = "the walls of the input revitCounts are no ids by <plot>|<part>, each a list of whole numbers (Q307)"
 
 
 def title(word):
@@ -109,17 +146,22 @@ def mock_labels(root=ROOT):
     disagree = [key for key in found if found[key] != mine[key]]
     if disagree:
         raise ValueError("docs/addin-mock.md item 6 and 7.6 of docs/design/07-mock.md differ on " + ", ".join(disagree))
+    # R551. A sheet of those two files that left the order means one of them moved on, the order of Bader's change does not follow them by itself
+    renamed = [RENAMED_SHEETS.get(name, name) for name in found["sheets"]]
+    if not set(renamed) <= set(SHEET_ORDER):
+        raise ValueError("docs/addin-mock.md item 6 names a sheet that is not in SHEET_ORDER: " + ", ".join(sorted(set(renamed) - set(SHEET_ORDER))))
     if any(row[1] != NOT_PLACED for name in found["countItems"] for row in rows(name + " |")):
         raise ValueError("7.6 no longer writes the Revit count as " + NOT_PLACED)
     filled = re.search(r'Filled: "(\[file name\]\.rvt, NBH .*?)"', part).group(1)
     items = {int(match.group(1)): match.group(2) for match in re.finditer(r"^(\d+)\. (.*)$", extra, re.M)}
     if "the sheet after Overrides" not in items[9] or "after its sheets of 7.6 and the sheet Assumed" not in items[12]:
         raise ValueError("items 9 and 12 of 7.7 no longer place the sheets Assumed and Settings")
-    sheets = list(found["sheets"])
-    sheets.insert(sheets.index("Overrides") + 1, "Assumed")
-    sheets.append("Settings")
     accepted_item = next(item for item in items.values() if item.startswith('The sheet "%s"' % ACCEPTED_SHEET))
-    sheets.insert(sheets.index(re.search(r"the sheet after (\w+)", accepted_item).group(1)) + 1, ACCEPTED_SHEET)
+    if not {"Assumed", "Settings", ACCEPTED_SHEET} <= set(SHEET_ORDER):
+        raise ValueError("SHEET_ORDER lacks a sheet items 9, 12 or 38 of 7.7 add")
+    # R554. The top line keeps the words of 7.6, the two open values of the filled example are what the facts of the run now give
+    if "[file name].rvt" not in filled or "[n] min" not in filled:
+        raise ValueError("7.6 no longer words the open values of the top line as [file name].rvt and [n] min")
     placed = [title(word) for word in listed(re.search(r"Placed: one row per placed element, (.*?)\.", part).group(1).replace("the element id", "element id"))]
     mirror = re.search(r"The column (\w+) of the sheet Placed, after (\w+)", items[11])
     placed.insert(placed.index(title(mirror.group(2))) + 1, mirror.group(1))
@@ -127,11 +169,11 @@ def mock_labels(root=ROOT):
     manual = re.search(r'the column "(.*?)" after Issues', part).group(1)
     found.update(
         stepColumns=found["stepColumns"] + [manual], issueColumns=list(ISSUE_COLUMNS) + [manual], reportStep=nine[-1],
-        sheets=sheets, placed=placed, editable=editable, accepted=re.split(r", | and ", re.search(r"its columns (.*?), not counted", accepted_item).group(1)),
+        sheets=list(SHEET_ORDER), placed=placed, editable=editable, accepted=re.split(r", | and ", re.search(r"its columns (.*?), not counted", accepted_item).group(1)),
         skipped=[title(word) for word in listed(re.search(r"Skipped: (.*?)\.", part).group(1))],
         assumed=[title(word) for word in re.split(r", | and ", re.search(r"its columns (.*?) and the Q ID", items[9]).group(1))] + [BASIS],
         plotCount=re.search(r'the count written "(.*?)"', items[9]).group(1),
-        filled=re.sub(r"NBH \S+, [\d,]+ plots, \S+, ", "NBH %(nbh)s, %(n)d plots, %(profile)s, ", filled))
+        filled=re.sub(r"NBH \S+, [\d,]+ plots, \S+, ", "NBH %(nbh)s, %(n)d plots, %(profile)s, ", filled).replace("[file name].rvt", "%(model)s").replace("[n] min", "%(time)s"))
     return found
 
 
@@ -165,13 +207,14 @@ def accepted_rows(accepted, nbh):
     return [[item["plot"], item["firstType"], item["secondType"], item["text"]] for item in accepted["accepted"]]
 
 
-def load_inputs(plan_path, overrides_path, check_rows_path, summary_path, plots_csv, rules_path, config_path, revit_path=None, accepted_path=None):
+def load_inputs(plan_path, overrides_path, check_rows_path, summary_path, plots_csv, rules_path, config_path, revit_path=None, accepted_path=None, facts_path=None):
     read = lambda path: json.loads(Path(path).read_text(encoding="utf-8"))
     with open(plots_csv, encoding="utf-8-sig", newline="") as handle:
         table = [row for row in csv.DictReader(handle)]
     return {"plan": read(plan_path), "planBytes": Path(plan_path).read_bytes(), "overrides": read(overrides_path), "checkRows": read(check_rows_path), "summary": read(summary_path),
             "table": table, "rows": {row["locationPlanNumber"]: row for row in table if row.get("locationPlanNumber")}, "rules": read(rules_path),
             "config": read(config_path), "revit": read(revit_path) if revit_path else None, "accepted": read(accepted_path) if accepted_path else None,
+            "facts": read(facts_path) if facts_path else None,
             "sha": {name: hashlib.sha256(Path(path).read_bytes()).hexdigest() for name, path in (("rules", rules_path), ("overrides", overrides_path))}}
 
 
@@ -218,22 +261,153 @@ def revit_counts(counts):
     return plots
 
 
-def element_id(plots, number, kind):
-    """R483: the Element id cell of a plot and kind from the ids of the counts file, the id, the ids joined in order, None with none."""
-    ids = sorted(set((((plots or {}).get(number) or {}).get("ids") or {}).get(kind) or []))
+def revit_walls(counts):
+    """Q307: the ids of each wall the add-in read by "<plot>|<part>", None when the counts hold no walls, refused when they are not of that form."""
+    walls = counts.get("walls") if isinstance(counts, dict) else None
+    if walls is None:
+        return None
+    if not isinstance(walls, dict) or not all(isinstance(ids, list) and all(type(item) is int for item in ids) for ids in walls.values()):
+        raise ValueError(NOT_WALLS)
+    return walls
+
+
+def id_cell(ids):
+    """A single id as a number, several joined in order, None with none, in a cell of Element id or of the ids of a plot."""
     if not ids:
         return None
-    return ids[0] if len(ids) == 1 else ", ".join(str(item) for item in ids)
+    return ids[0] if len(ids) == 1 else ID_JOIN.join(str(item) for item in ids)
 
 
-def counts_box(placed, written, mock, revit=None, manual=NO_MANUAL_BLOCK):
+def element_id(plots, number, kind):
+    """R483: the Element id cell of a plot and kind from the ids of the counts file, the id, the ids joined in order, None with none."""
+    return id_cell(sorted(set((((plots or {}).get(number) or {}).get("ids") or {}).get(kind) or [])))
+
+
+def wall_parts(walls):
+    """Q307, WallPlan.Parts of the C#: the part of the tag of each wall of the plan by its place in the plan, "<plots joined +>|e<edge>|p<piece>", the
+    piece counting the walls of one plot and stem over all the plan, as a build tags them."""
+    seen, parts = Counter(), {}
+    for index, wall in enumerate(walls):
+        stem = "%s|e%s" % ("+".join((wall.get("plots") or {}).get("value") or []), wall.get("edge") or 0)
+        seen[(wall.get("plot"), stem)] += 1
+        parts[index] = "%s|p%d" % (stem, seen[(wall.get("plot"), stem)])
+    return parts
+
+
+def plot_cell(value):
+    """R553. A plot as Excel holds it on NUMBER_SHEETS: digits with no leading zero a number, anything else as it is."""
+    return int(value) if isinstance(value, str) and re.fullmatch(r"[1-9][0-9]*", value) else value
+
+
+def text_of(value):
+    return value if isinstance(value, str) else None
+
+
+def run_time(seconds):
+    """R554. The minutes of the top line, the rule of a custom format of .NET: 15 digits first, then half away from zero, which %.1f is not."""
+    if not is_number(seconds):
+        return NOT_SET
+    return "%s min" % Decimal("%.15g" % (seconds / 60.0)).quantize(Decimal("0.1"), rounding=ROUND_HALF_UP)
+
+
+def book_file(nbh, fields, mock):
+    """R550. The name of a book by the fields of the run, <NBH>_Report.xlsx of the mock with none."""
+    if not isinstance(fields, dict):
+        return mock["file"].replace("<NBH>", nbh)
+    lacking = [name for name in NAME_FIELDS if not isinstance(fields.get(name), str)]
+    if lacking:
+        raise ValueError("the fields of the report facts hold no " + ", ".join(lacking) + " (R550)")
+    return "-".join(fields[name].replace(NBH_TOKEN, nbh) for name in NAME_FIELDS) + ".xlsx"
+
+
+def fact_text(value):
+    """A value of a changed rule as its text in the C#: no text for none, a whole double with no decimals."""
+    if value is None:
+        return ""
+    if isinstance(value, bool):
+        return str(value)
+    if isinstance(value, float) and value.is_integer():
+        return str(int(value))
+    return str(value)
+
+
+def changed_rows(rule_rows, facts):
+    """R555. Rules used with the column Changed and one row per changed rule of the facts, as they were with none. True beside the rows when the column stands."""
+    changed = [item for item in facts.get("changedRules") or [] if isinstance(item, dict)]
+    if not changed:
+        return rule_rows, False
+    marks = []
+    for rule in changed:
+        name = "%s %s" % (text_of(rule.get("id")) or "", text_of(rule.get("name")) or "")
+        values = "manual %s, project %s %s" % (fact_text(rule.get("manual")), fact_text(rule.get("project")), text_of(rule.get("unit")) or "")
+        marks.append([name, None, None, None, values.strip(), CHANGED])
+    return [row + [None] for row in rule_rows] + marks, True
+
+
+def schedule_row(plot, old_number, plots, ids_of_walls):
+    """R552. One row of Plot schedule from the entry of the plan, its old number of plots.csv and the ids of the model."""
+    number, unit = plot["plot"], text_of((plot.get("unit") or {}).get("value"))
+    levels, mirrored = plot.get("levels") or {}, plot.get("mirrored") or {}
+    level = lambda name: cell((levels.get(name) or {}).get("value"))
+    corners = (((plot.get("floors") or {}).get("ramp") or {}).get("corners") or {}).get("value")
+    corners = corners if isinstance(corners, list) else []
+    heights = [corners[index][2] if index < len(corners) and isinstance(corners[index], list) and len(corners[index]) > 2 else None for index in range(RAMP_CORNERS)]
+    prototype = text_of((plot.get("prototypeFile") or {}).get("value"))
+    return ["%s-%s" % (number, unit or ""), number, unit, level("ffl"), level("ssl"), level("entry"), level("height"), cell((plot.get("levelRule") or {}).get("steps")),
+            level("steps"), old_number, None if prototype is None else PureWindowsPath(prototype).stem, cell(mirrored.get("value")),
+            cell((plot.get("rotationDeg") or {}).get("value"))] + heights \
+        + [element_id(plots, number, kind) for kind in (LINK,) + FLOOR_KINDS] + [id_cell(ids_of_walls)]
+
+
+def floor_rows(plot, plots):
+    """R552. One row of Floors per floor of the plot in the order of the plan."""
+    rows = []
+    for kind, floor in (plot.get("floors") or {}).items():
+        field = lambda name: cell(((floor or {}).get(name) or {}).get("value"))
+        rows.append([plot["plot"], kind, field("type"), field("level"), field("levelElevation"), field("z"), field("heightOffset"), field("slopePercent"),
+                     element_id(plots, plot["plot"], kind)])
+    return rows
+
+
+def wall_length(wall):
+    """R552. The length in plan from the two ends of the wall, None with no two ends."""
+    ends = (wall.get("ends") or {}).get("value")
+    if not isinstance(ends, list) or len(ends) != 2:
+        return None
+    return ("near", math.hypot(ends[1][0] - ends[0][0], ends[1][1] - ends[0][1]))
+
+
+def wall_row(wall, ids):
+    """R552. One row of Walls, the other plots it stands on as text, base and top as the plan writes them."""
+    others = [item for item in (wall.get("plots") or {}).get("value") or [] if item != wall["plot"]]
+    return [wall["plot"], cell(wall.get("edge")), ID_JOIN.join(others) or None, cell((wall.get("base") or {}).get("value")), cell((wall.get("top") or {}).get("value")),
+            wall_length(wall), id_cell(ids)]
+
+
+def as_numbers(rows, header):
+    """R553. The rows of a sheet of NUMBER_SHEETS with each plot column as Excel holds it."""
+    columns = [index for index, name in enumerate(header) if name in PLOT_COLUMNS]
+    return [[plot_cell(value) if index in columns else value for index, value in enumerate(row)] for row in rows]
+
+
+def sheet_headers(mock, want):
+    """The header of each list of a book of this plan, the column Changed with changed rules (R555). Settings stands apart, by its names."""
+    return {"Plot schedule": list(SCHEDULE_COLUMNS), "Floors": list(FLOOR_COLUMNS), "Walls": list(WALL_COLUMNS), "Issues": mock["issueColumns"], "Overrides": list(OVERRIDE_COLUMNS),
+            RULES_SHEET: list(RULE_SHEET_COLUMNS) + ([CHANGED] if want["changed"] else []), "Placed": mock["placed"], "Skipped": mock["skipped"], "Assumed": mock["assumed"],
+            ACCEPTED_SHEET: mock["accepted"]}
+
+
+def counts_box(placed, written, mock, revit=None, manual=NO_MANUAL_BLOCK, level_plots=None, walls=None):
     """The box Counts agree across outputs: Revit the totals the add-in read or not placed yet, Excel the rows of the Placed sheet, and one Issues
-    row per item whose plan, Revit and Excel counts differ on any two, a text count compared with none."""
+    row per item whose plan, Revit and Excel counts differ on any two, a text count compared with none. Excel of Levels the plots of the run of
+    button 6 when the facts give them (R554), and the row Walls only when the counts name walls, walls as the plan count and the count of the model (Q307)."""
     links = sum(1 for row in placed if row[1] == LINK)
     floors = sum(1 for row in placed if row[1] in FLOOR_KINDS)
     shown = list(revit) if revit is not None else [NOT_PLACED] * 3
     items = [(mock["countItems"][0], len(written), shown[0], links), (mock["countItems"][1], sum(len(plot.get("floors") or {}) for plot in written), shown[1], floors),
-             (mock["countItems"][2], len(written), shown[2], NO_LEVEL_RUN)]
+             (mock["countItems"][2], len(written), shown[2], NO_LEVEL_RUN if level_plots is None else level_plots)]
+    if walls is not None:
+        items.append((WALLS_ITEM, walls[0], walls[1], sum(1 for row in placed if row[1] == BOUNDARY_WALL)))
     rows = [[item, revit_count, excel] for item, held, revit_count, excel in items]
     issues = []
     for item, held, revit_count, excel in items:
@@ -273,6 +447,15 @@ def expected(inputs, profile_name, mock):
     block = report_block(config)
     manual = manual_block(inputs["rules"])
     revit = revit_counts(inputs["revit"]) if inputs.get("revit") is not None else None
+    standing = revit_walls(inputs.get("revit"))
+    facts = inputs.get("facts") or {}
+    fields = facts.get("fields") if isinstance(facts.get("fields"), dict) else None
+    records = facts.get("steps") if isinstance(facts.get("steps"), dict) else {}
+    plan_walls = plan.get("walls") or []
+    parts = wall_parts(plan_walls)
+    # Q307. The ids of a wall by its place in the plan, so two pieces of one edge keep their own ids
+    ids_of_wall = {index: sorted(set((standing or {}).get("%s|%s" % (wall.get("plot"), parts[index])) or [])) for index, wall in enumerate(plan_walls)}
+    old_column = block.get("oldPlotColumn")
     scope = {number: item.get("written") or item.get("raw") or {} for number, item in (inputs["summary"].get("plots") or {}).items()}
     scope_kind = inputs["summary"].get("scope")
     books = {}
@@ -282,12 +465,22 @@ def expected(inputs, profile_name, mock):
         mine_not = [item for item in not_written if nbh_of[item["plot"]] == nbh]
         names = {plot["plot"] for plot in mine_written}
         order = [plot["plot"] for plot in mine_written] + [item["plot"] for item in mine_not]
-        walls = [wall for wall in plan.get("walls") or [] if wall.get("plot") in names]
+        mine_walls = [(index, wall) for index, wall in enumerate(plan_walls) if wall.get("plot") in names]
+        walls = [wall for _, wall in mine_walls]
         placed = []
         for plot in mine_written:
             placed.append([plot["plot"], LINK, (plot.get("unit") or {}).get("value"), (plot.get("mirrored") or {}).get("value"), element_id(revit, plot["plot"], LINK)])
             for kind, floor in (plot.get("floors") or {}).items():
                 placed.append([plot["plot"], kind, ((floor or {}).get("type") or {}).get("value"), None, element_id(revit, plot["plot"], kind)])
+        placed.extend([wall["plot"], BOUNDARY_WALL, None, None, id_cell(ids_of_wall[index])] for index, wall in mine_walls)
+        schedule, floors_rows = [], []
+        for plot in mine_written:
+            mine_ids = [item for index, wall in mine_walls if wall["plot"] == plot["plot"] for item in ids_of_wall[index]]
+            # An empty cell of plots.csv is an empty cell of the book, whether the writer leaves it out or writes no text in it
+            old_number = (rows.get(plot["plot"]) or {}).get(old_column) if old_column else None
+            schedule.append(schedule_row(plot, old_number or ("blank",), revit, mine_ids))
+            floors_rows.extend(floor_rows(plot, revit))
+        walls_rows = [wall_row(wall, ids_of_wall[index]) for index, wall in mine_walls]
         skipped = []
         for item in mine_missing:
             lacks = item.get("missing") or []
@@ -349,7 +542,8 @@ def expected(inputs, profile_name, mock):
             totals = [sum(item["links"] for item in here), sum(sum(item["floors"].values()) for item in here), sum(1 for item in here if item["level"])]
         placed_links = sum(1 for row in placed if row[1] == LINK)
         placed_floors = sum(1 for row in placed if row[1] in FLOOR_KINDS)
-        counts, unequal = counts_box(placed, mine_written, mock, totals, manual_of(manual, mock["reportStep"]))
+        wall_counts = None if standing is None else (len(walls), sum(len(ids) for key, ids in standing.items() if key.split("|")[0] in names))
+        counts, unequal = counts_box(placed, mine_written, mock, totals, manual_of(manual, mock["reportStep"]), facts.get("levelPlots"), wall_counts)
         gaps["count boxes with a mismatch"] += 1 if unequal else 0
         outcome = lambda step, word: sum(1 for row in overrides if row[2] == word and step_of(row[1], block) == step)
         moved = sum(1 for wall in walls if any((details.get(value.get("statusFrom")) or {}).get("overrides") for value in wall.values()
@@ -366,20 +560,35 @@ def expected(inputs, profile_name, mock):
             share = key_rules[name].get("share")
             issues.append([mock["steps"][7], None, WEAK_CHECK, name, prefix + name + ".rule", None,
                            "%s share %s, weak" % (key_rules[name].get("rule") or "", short(share) if is_number(share) else NOT_MEASURED), manual_of(manual, mock["steps"][7])])
-        not_run = [NOT_RUN] * 4
-        steps = [not_run, [with_unit, len(faces) - with_unit, 0, 0], not_run,
+        record_of = lambda step: records.get(str(step)) if isinstance(records.get(str(step)), dict) else {}
+        # R554. A step the tool has no plan count of reads its record, its time as Done and nothing to count as Skipped or Override
+        by_record = lambda step: [text_of(record_of(step).get("time")), None, None, record_of(step).get("issues")] if text_of(record_of(step).get("time")) is not None else [NOT_RUN] * 4
+        steps = [by_record(1), [with_unit, len(faces) - with_unit, 0, 0], by_record(3),
                  [len(order), sum(1 for number in order if number in skipped_list), sum(1 for item in entries if str(item.get("plot")) in set(order)), checked],
                  [placed_floors, sum(1 for row in skipped if row[1] in FLOOR_KINDS), outcome(5, "Applied"), outcome(5, "Left")],
                  [len(mine_written), len(mine_not), outcome(6, "Applied"), outcome(6, "Left")],
                  [placed_links, sum(1 for row in skipped if row[1] == LINK), outcome(7, "Applied"), outcome(7, "Left")],
                  [len(walls), 0, moved, len(weak)]]
+        # Q307. One count for pane and report: the Issues of a step with a record is what the pane says
+        for index, line in enumerate(steps):
+            if record_of(index + 1).get("issues") is not None:
+                line[3] = record_of(index + 1)["issues"]
         steps = [[name] + values + [manual_of(manual, name)] for name, values in zip(mock["steps"], steps)]
         issues.extend(unequal)
         stamp = plan.get("run")
-        books[nbh] = {"file": mock["file"].replace("<NBH>", nbh), "topLine": mock["filled"] % {"nbh": nbh, "n": len(order), "profile": profile_name},
-                      "steps": steps, "counts": counts, "box": box,
-                      "sheets": {"Placed": placed, "Skipped": skipped, "Overrides": overrides, "Assumed": assumed_rows, "Issues": issues, "Rules": rule_rows,
-                                 ACCEPTED_SHEET: accepted_rows(inputs.get("accepted"), nbh)},
+        name = book_file(nbh, fields, mock)
+        model = text_of(facts.get("model"))
+        field = lambda key: NOT_SET if text_of((fields or {}).get(key)) is None else fields[key]
+        tool = text_of(facts.get("toolVersion"))
+        rule_sheet, marked = changed_rows(rule_rows, facts)
+        books[nbh] = {"file": name, "topLine": mock["filled"] % {"model": NOT_SET if model is None else model, "nbh": nbh, "n": len(order), "profile": profile_name, "time": run_time(facts.get("runSeconds"))},
+                      "steps": steps, "counts": counts, "box": box, "changed": marked,
+                      # The date is the day of the run time of Settings, which the writer stamps once, so check_xlsx holds it against that cell
+                      "cover": [["Project", field("projectName")], ["NBH", nbh], ["Revision", field("revision")], ["Status code", field("status")], [COVER_DATE, None],
+                                ["Tool version", NOT_SET if tool is None else tool], ["Model name", NOT_SET if model is None else model], ["File name", name]],
+                      "sheets": {"Plot schedule": as_numbers(schedule, SCHEDULE_COLUMNS), "Floors": as_numbers(floors_rows, FLOOR_COLUMNS), "Walls": as_numbers(walls_rows, WALL_COLUMNS),
+                                 "Placed": placed, "Skipped": skipped, "Overrides": as_numbers(overrides, OVERRIDE_COLUMNS), "Assumed": assumed_rows,
+                                 "Issues": as_numbers(issues, mock["issueColumns"]), RULES_SHEET: rule_sheet, ACCEPTED_SHEET: accepted_rows(inputs.get("accepted"), nbh)},
                       "settings": {"Profile": profile_name, "Rules SHA-256": inputs["sha"]["rules"], "Override list SHA-256": inputs["sha"]["overrides"],
                                    "Editable columns": ", ".join(name for name in mock["placed"] if name in mock["editable"]),
                                    "Plan build id": stamp["runId"] if isinstance(stamp, dict) and isinstance(stamp.get("runId"), str) else NO_BUILD_ID,
@@ -388,7 +597,12 @@ def expected(inputs, profile_name, mock):
 
 
 def same(found, wanted):
-    """A cell against its value: a flag as a flag, a number as the same double, a list or an object by its JSON read back."""
+    """A cell against its value: a flag as a flag, a number as the same double, a list or an object by its JSON read back, a length within its slack,
+    no text in a cell that may be left out."""
+    if isinstance(wanted, tuple) and wanted[:1] == ("near",):
+        return is_number(found) and abs(found - wanted[1]) <= LENGTH_SLACK
+    if isinstance(wanted, tuple) and wanted[:1] == ("blank",):
+        return found is None or found == ""
     if isinstance(wanted, tuple) and wanted[:1] == ("json",):
         try:
             return isinstance(found, str) and json.loads(found) == wanted[1]
@@ -434,9 +648,10 @@ def check_xlsx(path, want, mock, run_id=None):
     hold("row 2 blank", all(value is None for value in row_values(summary, 2, 8)), "Summary row 2")
     hold("step columns from row 3", row_values(summary, 3, len(columns)) == columns, "Summary row 3")
     rows(summary, 4, want["steps"], columns, "Summary")
-    # R381: the rows after the step table move with its count of steps, one blank row before each box
+    # R381: the rows after the step table move with its count of steps, one blank row before each box, Q307: and with the rows of the box Counts
     blank = 4 + len(want["steps"])
-    counts_at, rules_at = blank + 1, blank + 7
+    counts_at = blank + 1
+    rules_at = counts_at + 3 + len(want["counts"])
     hold("row %d blank" % blank, all(value is None for value in row_values(summary, blank, 8)), "Summary row %d" % blank)
     hold("counts box title", summary.cell(row=counts_at, column=1).value == mock["countsBox"] and bool(summary.cell(row=counts_at, column=1).font.bold), "Summary row %d" % counts_at)
     hold("counts box columns", row_values(summary, counts_at + 1, 3) == mock["countColumns"], "Summary row %d" % (counts_at + 1))
@@ -446,7 +661,7 @@ def check_xlsx(path, want, mock, run_id=None):
     hold("rules box columns", row_values(summary, rules_at + 1, len(RULE_COLUMNS)) == list(RULE_COLUMNS), "Summary row %d" % (rules_at + 1))
     rows(summary, rules_at + 2, want["box"], RULE_COLUMNS, "Rules applied")
     hold("Summary rows", summary.max_row == rules_at + 1 + len(want["box"]), "Summary max_row %d against %d" % (summary.max_row, rules_at + 1 + len(want["box"])))
-    boxed = [(row, column) for row in range(counts_at + 1, counts_at + 5) for column in range(1, 4)] \
+    boxed = [(row, column) for row in range(counts_at + 1, counts_at + 2 + len(want["counts"])) for column in range(1, 4)] \
         + [(row, column) for row in range(rules_at + 1, rules_at + 2 + len(want["box"])) for column in range(1, 6)]
     thin = lambda side: side is not None and side.style == "thin"
     hold("boxes bordered", all(thin(summary.cell(row=row, column=column).border.left) and thin(summary.cell(row=row, column=column).border.bottom)
@@ -455,18 +670,29 @@ def check_xlsx(path, want, mock, run_id=None):
     for index, row in enumerate(want["box"]):
         if is_number(row[2]):
             hold("share format", summary.cell(row=rules_at + 2 + index, column=3).number_format == SHARE_FORMAT, "Rules applied row %d format" % (rules_at + 2 + index))
-    headers = {"Placed": mock["placed"], "Skipped": mock["skipped"], "Overrides": list(OVERRIDE_COLUMNS), "Assumed": mock["assumed"],
-               "Issues": mock["issueColumns"], "Rules": list(RULE_SHEET_COLUMNS), ACCEPTED_SHEET: mock["accepted"]}
+    headers = sheet_headers(mock, want)
     for name, header in headers.items():
         sheet, wanted = book[name], want["sheets"][name]
         hold(name + " header", row_values(sheet, 1, len(header)) == header, name + " row 1")
         hold(name + " rows", sheet.max_row == 1 + len(wanted), "%s max_row %d against %d" % (name, sheet.max_row, 1 + len(wanted)))
+        hold(name + " columns", sheet.max_column == len(header), "%s max_column %d against %d" % (name, sheet.max_column, len(header)))
         hold(name + " no merged range", not sheet.merged_cells.ranges, name + " merged")
         rows(sheet, 2, wanted, header, name)
+    # R553. Every sheet of one table, the two that are no list neither frozen nor filtered
+    for name in book.sheetnames:
+        sheet = book[name]
+        if name in NOT_LIST_SHEETS:
+            hold(name + " no freeze and no filter", sheet.freeze_panes is None and sheet.auto_filter.ref is None, name + " frozen or filtered")
+            continue
+        width = 2 if name == "Settings" else len(headers[name])
+        reach = "A1:%s%d" % (openpyxl.utils.get_column_letter(width), sheet.max_row)
+        hold(name + " row 1 frozen", sheet.freeze_panes == FROZEN, "%s freeze %s" % (name, sheet.freeze_panes))
+        hold(name + " filter over its rows", sheet.auto_filter.ref == reach, "%s filter %s against %s" % (name, sheet.auto_filter.ref, reach))
     placed = book["Placed"]
     keys = [(placed.cell(row=row, column=1).value, placed.cell(row=row, column=2).value) for row in range(2, placed.max_row + 1)]
     hold("Placed plot key in column A", all(isinstance(key[0], str) and key[0] for key in keys), "Placed column A blank")
-    hold("Placed one row per plot and kind", len(keys) == len(set(keys)), "Placed plot and kind repeated")
+    plain_keys = [key for key in keys if key[1] != BOUNDARY_WALL]
+    hold("Placed one row per plot and kind", len(plain_keys) == len(set(plain_keys)), "Placed plot and kind repeated")
     hold("Placed mirror only on links", all((placed.cell(row=row, column=4).value is None) != (placed.cell(row=row, column=2).value == LINK)
                                            for row in range(2, placed.max_row + 1)), "Placed Mirror off a link or missing on one")
     fills = [placed.cell(row=1, column=column).value for column in range(1, len(mock["placed"]) + 1) if placed.cell(row=1, column=column).fill.fill_type == "solid"]
@@ -488,6 +714,11 @@ def check_xlsx(path, want, mock, run_id=None):
     hold("Settings sha256 lowercase hex", bool(re.fullmatch(r"[0-9a-f]{64}", values.get("Plan SHA-256") or "")), "Settings Plan SHA-256 form")
     hold("Settings run time", bool(re.fullmatch(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ", values.get("Run time") or "")), "Settings Run time form")
     hold("Settings editable against the fills", values.get("Editable columns") == ", ".join(fills), "Settings Editable columns against the fills")
+    cover = book["Cover"]
+    hold("Cover header", row_values(cover, 1, 2) == list(COVER_COLUMNS), "Cover row 1")
+    hold("Cover rows", cover.max_row == 1 + len(want["cover"]), "Cover max_row %d against %d" % (cover.max_row, 1 + len(want["cover"])))
+    hold("Cover no merged range", not cover.merged_cells.ranges, "Cover merged")
+    rows(cover, 2, [[item, (values.get("Run time") or "")[:10] if item == COVER_DATE else value] for item, value in want["cover"]], COVER_COLUMNS, "Cover")
     return result, bad
 
 
@@ -510,12 +741,12 @@ def check_folder(folder, want, mock, run_id=None):
 
 def run(args):
     mock = mock_labels()
-    inputs = load_inputs(args.plan, args.overrides, args.check_rows, args.summary, args.plots_csv, args.rules, args.config, args.revit_counts, args.accepted_warnings)
+    inputs = load_inputs(args.plan, args.overrides, args.check_rows, args.summary, args.plots_csv, args.rules, args.config, args.revit_counts, args.accepted_warnings, args.report_facts)
     want = expected(inputs, args.profile, mock)
     books = want["books"]
     report = {"plan": Path(args.plan).name, "workbooks": sorted(book["file"] for book in books.values()),
               "rows": {"written": want["written"], "notWritten": want["notWritten"],
-                       **{name: sum(len(book["sheets"][name]) for book in books.values()) for name in ("Placed", "Skipped", "Overrides", "Assumed", "Issues", "Rules", ACCEPTED_SHEET)}},
+                       **{name: sum(len(book["sheets"][name]) for book in books.values()) for name in ("Plot schedule", "Floors", "Walls", "Placed", "Skipped", "Overrides", "Assumed", "Issues", RULES_SHEET, ACCEPTED_SHEET)}},
               "gaps": dict(sorted(want["gaps"].items()))}
     if args.xlsx_folder:
         result, bad = check_folder(args.xlsx_folder, want, mock, args.run_id)
@@ -537,6 +768,7 @@ def main(argv=None):
     parser.add_argument("--profile", default="parsons2024Rev6")
     parser.add_argument("--revit-counts", help="the counts the add-in read from the model, the input revitCounts of the request when it gives one (R381)")
     parser.add_argument("--accepted-warnings", help="the input acceptedWarnings of the request, when it gives one, the pairs of step 5 whose floors stood at report time (R459)")
+    parser.add_argument("--report-facts", help="the input reportFacts of the request, report_facts_<run id>_<nbh>.json the add-in wrote, when it gives one (R554)")
     parser.add_argument("--run-id", help="the run id of the reportExcel request, held against Settings when given")
     parser.add_argument("--xlsx-folder", help="the folder of the report Excel files the worker wrote of this plan, left out to check the plan side alone")
     parser.add_argument("--out", required=True, help="the report, outside the repo")

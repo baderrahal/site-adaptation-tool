@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -19,7 +20,13 @@ namespace SiteAdaptation.Common.Update
             string path = excelPath ?? "";
             string name = Path.GetFileNameWithoutExtension(path.Substring(path.LastIndexOfAny(new[] { '\\', '/' }) + 1));
             int at = name.IndexOf('_');
-            return at > 0 ? name.Substring(0, at) : null;
+            if (at > 0)
+            {
+                return name.Substring(0, at);
+            }
+            // R550. A report by its ISO name holds the NBH as its volume, the third of the fields
+            string[] parts = name.Split('-');
+            return parts.Length == ReportFile.NameFields.Length ? parts[Array.IndexOf(ReportFile.NameFields, "volume")] : null;
         }
 
         // The one NBH of the files, or why they have none or two

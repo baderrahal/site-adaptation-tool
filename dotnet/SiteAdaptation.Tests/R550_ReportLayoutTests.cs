@@ -31,6 +31,17 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
+        public void R550_update_from_report_finds_the_nbh_in_the_iso_name_and_the_old_names()
+        {
+            Assert.Equal("012", SiteAdaptation.Common.Update.UpdateWorkerRequest.NbhOf(@"C:\w01-PSN-012-XXX-SCH-TU-090000.xlsx"));
+            Assert.Equal("012", SiteAdaptation.Common.Update.UpdateWorkerRequest.NbhOf(@"C:\w
+_Report.xlsx"));
+            Assert.Equal("012", SiteAdaptation.Common.Update.UpdateWorkerRequest.NbhOf(@"C:\w
+_Levels_parsons2024Rev6.xlsx"));
+            Assert.Null(SiteAdaptation.Common.Update.UpdateWorkerRequest.NbhOf(@"C:\weport.xlsx"));
+        }
+
+        [Fact]
         public void R550_a_config_with_no_block_keeps_the_old_name()
         {
             Assert.Null(ReportFile.Fields(new JObject(), null));
