@@ -54,6 +54,24 @@ namespace SiteAdaptation.Common.SetUp
 
         public static readonly string[] All = { Cad, PositionFile, Typed };
 
+        // R543. The source a site.json names, null for no file, a file that does not read or a file of before the key
+        public static string Written(string siteText)
+        {
+            if (string.IsNullOrEmpty(siteText))
+            {
+                return null;
+            }
+            try
+            {
+                JToken written = JObject.Parse(siteText)[SetUpRun.PositionSourceKey];
+                return written != null && written.Type == JTokenType.String ? (string)written : null;
+            }
+            catch (JsonException)
+            {
+                return null;
+            }
+        }
+
         // Null for a config of before the keys, a shipped set copied once keeps its own, so such a project says nothing and runs as before
         public static BlankLimits Limits(JObject config)
         {

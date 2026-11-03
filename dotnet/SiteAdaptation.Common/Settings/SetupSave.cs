@@ -18,6 +18,9 @@ namespace SiteAdaptation.Common.Settings
         // R492. The road surfaces of the window in their order, null keeps what the settings hold
         public IReadOnlyList<string> RoadSurfaces { get; set; }
 
+        // R542. The report name fields edited in the window, an empty one goes back to config, null keeps what the settings hold
+        public IDictionary<string, string> ReportFields { get; set; }
+
         // R486. The shipped set the window copied for Empty project, null for none. A project that names a config never takes it
         public ProjectSet NewSet { get; set; }
     }
@@ -81,6 +84,22 @@ namespace SiteAdaptation.Common.Settings
                 {
                     next.Inputs[pick.Key] = new SettingsInput { Path = pick.Value };
                 }
+            }
+            if (draft.ReportFields != null && draft.ReportFields.Count > 0)
+            {
+                next.ReportFields = next.ReportFields ?? new SortedDictionary<string, string>(StringComparer.Ordinal);
+                foreach (KeyValuePair<string, string> field in draft.ReportFields)
+                {
+                    if (string.IsNullOrWhiteSpace(field.Value))
+                    {
+                        next.ReportFields.Remove(field.Key);
+                    }
+                    else
+                    {
+                        next.ReportFields[field.Key] = field.Value;
+                    }
+                }
+                next.ReportFields = next.ReportFields.Count == 0 ? null : next.ReportFields;
             }
             if (draft.ScanPicks != null && draft.ScanPicks.Count > 0)
             {

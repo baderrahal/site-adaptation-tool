@@ -5,6 +5,7 @@ using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using SiteAdaptation.AddIn.Pane;
+using SiteAdaptation.Common;
 using SiteAdaptation.Common.Scan;
 using SiteAdaptation.Common.Settings;
 
@@ -101,6 +102,45 @@ namespace SiteAdaptation.AddIn.NewProject
     }
 
     // A choice of Start from: Empty project, which keeps the settings as they are, or a saved project of R434. R520: the window opens on the one the setup came from
+    // R542. One field of the report file name, Value is what the window shows, its edit goes back to the window through edited
+    public sealed class ReportFieldRow : Bindable
+    {
+        private readonly Action<ReportFieldRow> edited;
+        private string value = string.Empty;
+
+        public ReportFieldRow(string key, string label, Action<ReportFieldRow> edited)
+        {
+            Key = key;
+            Label = label;
+            this.edited = edited;
+        }
+
+        public string Key { get; }
+        public string Label { get; }
+
+        public string Value
+        {
+            get { return value; }
+            set
+            {
+                if (Set(ref this.value, value ?? string.Empty))
+                {
+                    edited(this);
+                }
+            }
+        }
+
+        // From the settings, no edit
+        public void Show(string text)
+        {
+            if (value != (text ?? string.Empty))
+            {
+                value = text ?? string.Empty;
+                Changed(nameof(Value));
+            }
+        }
+    }
+
     public sealed class StartChoice
     {
         public StartChoice(string name, SavedStart start)
@@ -161,6 +201,12 @@ namespace SiteAdaptation.AddIn.NewProject
         private readonly SurfacePicker pickSurfaces;
         private List<string> surfaces;
 
+        // R542. The report name fields as the settings give them, null when config holds no block, and the edits of the window over them
+        private readonly Dictionary<string, string> reportEdits = new Dictionary<string, string>(StringComparer.Ordinal);
+        private SortedDictionary<string, string> reportBase;
+        private bool reportShown;
+        private string reportLine = string.Empty;
+
         public NewProjectViewModel(ProjectSettings current, string projectName, IReadOnlyList<SavedStart> starts, DrawingFactsResult facts, Func<string, bool, bool> there,
             IPathPicker picker, Func<string, string> readText, Func<string, ProjectSettings, ProjectSettings> viewScan = null, bool modelOpen = true, SurfacePicker pickSurfaces = null, ShippedSet shipped = null)
         {
@@ -179,6 +225,8 @@ namespace SiteAdaptation.AddIn.NewProject
             SavedStart origin = SavedStarts.CameFrom(this.current, starts);
             cameFrom = origin == null ? null : Starts.First(choice => choice.Start == origin);
             Rows = SetupRows.All.Select(row => new SetupRowViewModel(row)).ToList();
+            ReportRows = ReportFile.NameFields.Concat(new[] { ReportFile.Revision, ReportFile.Status, ReportFile.ProjectName })
+                .Select((key, index) => new ReportFieldRow(key, NewProjectText.ReportLabels[index], ReportEdited)).ToList();
             facts = facts ?? new DrawingFactsResult();
             this.facts = facts;
             ScanFactsData scan = facts.Scan;
@@ -205,6 +253,13 @@ namespace SiteAdaptation.AddIn.NewProject
         public string SavedHint => start?.Start != null ? string.Empty : savedHint;
 
         public IReadOnlyList<SetupRowViewModel> Rows { get; }
+        public IReadOnlyList<ReportFieldRow> ReportRows { get; }
+
+        // R542. Hidden when config holds no block, the report then names its file by the neighbourhood and reads no field
+        public bool ReportShown { get { return reportShown; } private set { Set(ref reportShown, value); } }
+
+        public string ReportLine { get { return reportLine; } private set { Set(ref reportLine, value); } }
+
         public string SurveyPoint { get; }
         public string PlotsFound { get; }
         public string VillaTypes { get; }
@@ -476,7 +531,7 @@ namespace SiteAdaptation.AddIn.NewProject
 
         private SetupDraft Draft()
         {
-            var draft = new SetupDraft { StartText = start == cameFrom ? null : start?.Start?.Text, ScanPicks = new Dictionary<string, string>(scanPicks), ConflictPicks = conflictPicks, RoadSurfaces = surfaces, NewSet = taken ?? Previewed() };
+            var draft = new SetupDraft { ReportFields = reportEdits, StartText = start == cameFrom ? null : start?.Start?.Text, ScanPicks = new Dictionary<string, string>(scanPicks), ConflictPicks = conflictPicks, RoadSurfaces = surfaces, NewSet = taken ?? Previewed() };
             foreach (KeyValuePair<string, string> pick in picks)
             {
                 draft.Picks[pick.Key] = pick.Value;
@@ -496,6 +551,52 @@ namespace SiteAdaptation.AddIn.NewProject
             ProjectSettings next = Next();
             string mode = next.ProjectMode ?? ProjectModes.OfConfig(ProjectModes.ReadConfig(next.ConfigFile, readText)) ?? (Takes ? shipped.NewMode(readText) : null);
             ModeLine = mode == null ? string.Empty : mode == Common.DesignBasis.Rev6 ? NewProjectText.ModeRev6 : NewProjectText.ModePast;
+        }
+
+        // An edit back to the value of the settings is no edit, so the project keeps following config
+        private void ReportEdited(ReportFieldRow row)
+        {
+            string held = null;
+            reportBase?.TryGetValue(row.Key, out held);
+            if (row.Value == (held ?? string.Empty))
+            {
+                reportEdits.Remove(row.Key);
+            }
+            else
+            {
+                reportEdits[row.Key] = row.Value;
+            }
+            ShowReportLine();
+        }
+
+        private void ShowReport(ProjectSettings next)
+        {
+            string file = !string.IsNullOrEmpty(next.ConfigFile) ? next.ConfigFile : Previewed()?.ConfigFile;
+            reportBase = ReportFile.Laid(ProjectModes.ReadConfig(file, readText), next.ReportFields);
+            ReportShown = reportBase != null;
+            foreach (ReportFieldRow row in ReportRows.Where(item => !reportEdits.ContainsKey(item.Key)))
+            {
+                string held = null;
+                reportBase?.TryGetValue(row.Key, out held);
+                row.Show(held);
+            }
+            ShowReportLine();
+        }
+
+        // What the Save gives: an edit over the settings, so the line reads the name 9 Report will write
+        private void ShowReportLine()
+        {
+            if (reportBase == null)
+            {
+                ReportLine = string.Empty;
+                return;
+            }
+            var fields = new SortedDictionary<string, string>(reportBase, StringComparer.Ordinal);
+            foreach (KeyValuePair<string, string> edit in reportEdits.Where(item => !string.IsNullOrWhiteSpace(item.Value)))
+            {
+                fields[edit.Key] = edit.Value;
+            }
+            ReportLine = ReportFile.Refused(fields) ? NewProjectText.ReportNameRefused : NewProjectText.ReportNameLine + ReportFile.Shown(fields);
         }
 
         private void ShowSurfaces()
@@ -518,6 +619,7 @@ namespace SiteAdaptation.AddIn.NewProject
             }
             ShowSurfaces();
             ShowMode();
+            ShowReport(Next());
             Ready = TextTemplate.Fill(NewProjectText.Ready, result.Ready, result.Total);
             SetupRowViewModel stop = result.Stops.Select(item => Rows.Single(row => row.Row.Id == item.Row.Id)).FirstOrDefault();
             bool noStart = !result.HasStart && !Takes;
