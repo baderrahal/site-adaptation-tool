@@ -284,3 +284,8 @@ One phase per session (Q096). Two lanes run the phases (D10, D17): tools/run-lan
 
 - Status: done, Lane A, laptop, 2026-11-02, branch fix/2nov-a2, one PR with code, tests and records (D20)
 - Task 1: R478 the compare by wall centre, no tool line changes (Q360). Task 2: R480 C10 side walls by hand, 229 of 250, the rest Q358, Q359, Q366. Task 3: R479 one villa type by prototype file
+
+## FIX-2NOV-A3, the split test, the ends of parted walls and notched fronts
+
+- Status: done, Lane A, 2026-11-03, branch fix/2nov-a3, R414 stays off at 43 of 82
+- Task 1: R414 steps alone, walls from the high road end (Q303, Q304). Task 2: R481 walls.ends weak measured for parted walls (Q265). Task 3: R482 front edge override on the 6 notched plots (Q299)

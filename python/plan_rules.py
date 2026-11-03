@@ -26,7 +26,9 @@ import project_profile
 
 FIELDS = ("mirrored", "rampType", "entryM", "heightM", "rampFrontM")
 # R337. The override fields a build by keyRules applies besides FIELDS, the link parameters by their field "parameter <name>"
-KEY_FIELDS = ("insert", "rotationDeg", "steps")
+KEY_FIELDS = ("insert", "rotationDeg", "steps", "frontEdge")
+# R482. The override field that names the front of a plot by the number of an edge of its ring
+FRONT_EDGE = "frontEdge"
 PARAMETER = "parameter "
 # R337. The candidates of majority.py a build can give: the hand factors, the factors of a parameter table, its formulas and levels
 HAND_FACTORS = ("all", "blockMirror", "clusterSide", "openEnd", "roadSide", "blockMirrorOpenEnd", "blockMirrorRoadSide", "rowPairSide",
@@ -520,6 +522,11 @@ def load_overrides(path, sources, fields=FIELDS, groups=None, name=None, lp=None
     return Overrides(found, skip, ruled)
 
 
+def front_edges(overrides):
+    """R482. The value of each override frontEdge of a build by plot, read before the first front of the build is taken."""
+    return {plot: fields[FRONT_EDGE] for plot, fields in overrides.items() if FRONT_EDGE in fields}
+
+
 def whole_number(value):
     """The whole number a step count holds, as a number or its text, None for any other value such as 2.6 or two."""
     try:
@@ -678,37 +685,49 @@ def wall_name(wall, count):
     return MIDDLE if count % 2 == 0 and wall == count // 2 else WALLS + str(wall)
 
 
-def part_fits(part, entries, slopes, key, profile, lp):
-    """R414, manual 2.3.A and 2.4.A. True when every unit of part holds its front yard slope inside slopes_percent front_min to front_max as
-    the plan writes it, on the slope of the unrounded El @ Entry (design_basis.outside_manual), and its steps at most steps.front_max, the
-    steps of keyRules.steps on the FFL of the part by piece_ffl less El @ Entry by the rule, as key_level_rows takes them."""
+def part_fits(part, entries, key, profile, lp):
+    """R414, manual 2.4.A, Q303. True when every unit of part holds its steps at most steps.front_max, the steps of keyRules.steps on the FFL of
+    the part by piece_ffl less El @ Entry by the rule, as key_level_rows takes them. The front yard slope is no part of it, a build reports it
+    per unit (design_basis.outside_manual, summary slopeOutsideManual)."""
     base_rule = key.get("baseHeight")
     ffl = piece_ffl([(rule_entry(entries[plot]), entries[plot]["unit"]) for plot in part], profile, base_rule)
     for plot in part:
         height = common.fixed(ffl - rule_entry(entries[plot]), ENTRY_DECIMALS)
         steps = steps_by_rule(key["steps"]["rule"], height, entries[plot]["unit"], profile, lp, base_rule)
-        if design_basis.outside_manual(slopes[plot], profile.get("slopes_percent")) or steps is None or steps > profile.get("steps.front_max"):
+        if steps is None or steps > profile.get("steps.front_max"):
             return False
     return True
 
 
-def split_test(entries, slopes, roles, split, key, profile, lp):
+def row_wall(wall, ordered, roads):
+    """R414, Q304. The wall in row order of a wall of split walls, which count from the high road end of the row, so an uneven split leaves its
+    lone unit at the low end, as the keys do. The high end is that of the first and last unit whose road at front is the higher, as the plan
+    writes the road at 4 decimals, so a rise no plan shows is a tie, and a tie or no road counts from the first unit."""
+    first, last = roads.get(ordered[0]), roads.get(ordered[-1])
+    if first is None or last is None or common.fixed(last, ENTRY_DECIMALS) <= common.fixed(first, ENTRY_DECIMALS):
+        return wall
+    return len(ordered) - wall
+
+
+def split_test(entries, roads, roles, split, key, profile, lp):
     """R414, manual 2.2.B. The pieces of each cluster of split units (the roles of R236, its plots in row order) whose plots all hold El @ Entry:
-    whole when every unit fits (part_fits), else the first wall of split walls where both parts fit, each part its own FFL by piece_top,
-    else whole as noFit. The mark of each plot names the result, none, walls n, middle or noFit, a split the place of a double wall and
-    construction joint. A cluster of another size or with a plot with no El @ Entry is not tested and keeps the pieces of key_pieces."""
+    whole when every unit fits (part_fits), else the first wall of split walls, each counted from the high road end by the road at front in
+    roads (row_wall), where both parts fit, each part its own FFL by piece_top, else whole as noFit. The mark of each plot names the result,
+    none, walls n, middle or noFit, always from the first unit as split_pattern names it, a split the place of a double wall and construction
+    joint. A cluster of another size or with a plot with no El @ Entry is not tested and keeps the pieces of key_pieces."""
     pieces, marks = {}, {}
     for role in roles.values():
         ordered = list(role["plots"])
-        if ordered[0] in marks or len(ordered) != split["units"] or not all(plot in entries and plot in slopes for plot in ordered):
+        if ordered[0] in marks or len(ordered) != split["units"] or not all(plot in entries for plot in ordered):
             continue
         parts, mark = [ordered], NO_SPLIT
-        if not part_fits(ordered, entries, slopes, key, profile, lp):
+        if not part_fits(ordered, entries, key, profile, lp):
             mark = NO_FIT
             for wall in split["walls"]:
-                cut = [ordered[:wall], ordered[wall:]]
-                if all(part_fits(part, entries, slopes, key, profile, lp) for part in cut):
-                    parts, mark = cut, wall_name(wall, len(ordered))
+                at = row_wall(wall, ordered, roads)
+                cut = [ordered[:at], ordered[at:]]
+                if all(part_fits(part, entries, key, profile, lp) for part in cut):
+                    parts, mark = cut, wall_name(at, len(ordered))
                     break
         for part in parts:
             for plot in part:

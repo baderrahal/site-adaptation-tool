@@ -71,6 +71,9 @@ namespace SiteAdaptation.Common
         // R416. The move of the centre line inside an irregular plot under rev6, 0.0 or half the thickness, null under the past job
         public double? LineInsideM { get; set; }
 
+        // R481. True for a part keyRules.wallOpen parted, not one of the side span of R480
+        public bool Parted { get; set; }
+
         public Dictionary<string, string[]> Status { get; } = new Dictionary<string, string[]>(StringComparer.Ordinal);
     }
 
@@ -86,7 +89,7 @@ namespace SiteAdaptation.Common
 
         public static readonly string[] Fields = { "plots", "ends", "base", "top" };
 
-        public static readonly string[] StepFields = { "unit", "written", "edges", "plots", "ends", "base", "top", "levelPlots", "status", "irregular", "lineInsideM" };
+        public static readonly string[] StepFields = { "unit", "written", "edges", "plots", "ends", "base", "top", "levelPlots", "status", "irregular", "lineInsideM", "endsSource" };
 
         internal const string Source = "keyRules";
         internal const string PlotsSource = "locationPlan";
@@ -94,6 +97,9 @@ namespace SiteAdaptation.Common
         // R416, plan_walls.INSIDE_SOURCE. The source of the ends of a wall moved inside an irregular plot, its line by Manual Rev 06 2.8.A and no
         // longer keyRules.wallLine
         internal const string InsideSource = "manualInside";
+
+        // R481, plan_walls.OPEN_SOURCE, Q265. The source of the ends of a wall keyRules.wallOpen parted, measured weak by that rule
+        internal const string OpenSource = "wallOpen";
 
         // The override of the list that turns a link, plan_walls.ROTATION
         private const string Rotation = "rotationDeg";
@@ -429,7 +435,10 @@ namespace SiteAdaptation.Common
                 }
                 string basePlot = Pick(writers, ffls, rules.HigherBase), topPlot = Pick(writers, ffls, rules.HigherTop);
                 // R480. An edge of a pair the table of Q115 holds keeps that rule
-                double[] gap = Opening(part.Owners, written, a, b, length, rules, kin, ownFront) ?? SideOpening(part.Owners, a, b, length, near, sides);
+                double[] opened = Opening(part.Owners, written, a, b, length, rules, kin, ownFront);
+                double[] gap = opened ?? SideOpening(part.Owners, a, b, length, near, sides);
+                // R481. Only the span of keyRules.wallOpen counts, a part of the side span of R480 keeps the old source, and a span clear of this part parts nothing
+                bool parted = opened != null && !ClearOf(part.Start, part.End, opened);
                 foreach (double[] piece in Pieces(part.Start, part.End, gap, near))
                 {
                     double start = piece[0], end = piece[1];
@@ -438,7 +447,7 @@ namespace SiteAdaptation.Common
                     yield return new PlanWall
                     {
                         Plot = plot, Edge = edge, Plots = part.Owners, Ends = new[] { first, last }, Base = ffls[basePlot] - rules.Depth, Top = ffls[topPlot] + rules.Rise,
-                        BasePlot = basePlot, TopPlot = topPlot, Turned = part.Owners.Where(part.Moved.Contains).ToList(),
+                        BasePlot = basePlot, TopPlot = topPlot, Turned = part.Owners.Where(part.Moved.Contains).ToList(), Parted = parted,
                     };
                 }
             }
@@ -559,9 +568,15 @@ namespace SiteAdaptation.Common
         }
 
         // plan_walls.pieces, Q115: the part start to end less the open gap, each piece left longer than near
+        // plan_walls.clear_of, Q115: true for an open gap that lies wholly outside the part start to end
+        private static bool ClearOf(double start, double end, double[] gap)
+        {
+            return gap[1] <= start || gap[0] >= end;
+        }
+
         private static List<double[]> Pieces(double start, double end, double[] gap, double near)
         {
-            if (gap == null || gap[1] <= start || gap[0] >= end)
+            if (gap == null || ClearOf(start, end, gap))
             {
                 return new List<double[]> { new[] { start, end } };
             }
@@ -874,10 +889,11 @@ namespace SiteAdaptation.Common
             return plan?.AppliedOrder ?? plan?.Overrides["applied"] as List<string> ?? new List<string>();
         }
 
-        // plan_walls.entry, R416: the ends of a wall moved inside an irregular plot take the source of the move, every other wall keyRules
-        internal static string EndsSource(double? lineInsideM)
+        // plan_walls.entry, R416, R481: the ends of a wall moved inside an irregular plot take the source of the move, a wall keyRules.wallOpen parted that
+        // rule, every other wall keyRules
+        internal static string EndsSource(double? lineInsideM, bool parted)
         {
-            return lineInsideM.HasValue && lineInsideM.Value != 0.0 ? InsideSource : Source;
+            return lineInsideM.HasValue && lineInsideM.Value != 0.0 ? InsideSource : parted ? OpenSource : Source;
         }
 
         // plan_walls.mark: the status of each value of a wall. The base and the top take the FFL of the highest or lowest of the written plots of
@@ -893,7 +909,7 @@ namespace SiteAdaptation.Common
             var reading = new Dictionary<string, List<string>> { ["base"] = kept(wall.BasePlot), ["top"] = kept(wall.TopPlot) };
             foreach (string field in Fields)
             {
-                string source = field == "plots" ? PlotsSource : field == "ends" ? EndsSource(wall.LineInsideM) : Source;
+                string source = field == "plots" ? PlotsSource : field == "ends" ? EndsSource(wall.LineInsideM, wall.Parted) : Source;
                 Tuple<string, JObject, string> status = table.Of("walls." + field, source, null, done, null, null, reading.TryGetValue(field, out List<string> setters) ? setters : null);
                 // Q107. The source stays that of the value, an override that moved it named in the key alone
                 wall.Status[field] = new[] { source, status.Item1, status.Item3 };
@@ -919,6 +935,7 @@ namespace SiteAdaptation.Common
                     ["status"] = new JArray(mine.Select(wall => new JObject(Fields.Select(field => new JProperty(field, new JObject { ["status"] = wall.Status[field][1], ["statusFrom"] = wall.Status[field][2] }))))),
                     ["irregular"] = irregular != null && irregular.TryGetValue(number, out bool odd) ? (object)odd : null,
                     ["lineInsideM"] = irregular == null ? null : mine.Select(wall => wall.LineInsideM ?? 0.0).ToList(),
+                    ["endsSource"] = mine.Select(wall => EndsSource(wall.LineInsideM, wall.Parted)).ToList(),
                 };
             }
             return found;
