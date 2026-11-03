@@ -574,3 +574,11 @@ Round SPEED-2NOV-C, breaker 1 of the delta, 3 Nov 2026:
 
 Round SPEED-2NOV-C records, 3 Nov 2026:
 - R347_the_launch_returns_at_once_and_a_worker_past_its_time_limit failed once on the Windows CI runner on net8.0, status failed, the worker ended with code 0, on PR 152, records only. Same flake as the R347 lines above, net48 passed in that run. Test left as it is.
+
+Round FIX-3NOV-B, R498 and R499, review 1 and breaker 1, 3 Nov 2026:
+- A failed move puts back the run before while the model keeps the new one, so a rerun of 5 to 8 with an output held open shows the old run Done. The HeldOpen message says so. No real output of 5 to 8 was found with a name another program holds.
+- An exception other than an IO or access fault between the commit and Keep disposes the group, which rolls back a committed run, loud. The status of Assimilate is not read. No real input known.
+- The settle write failing after a failed move says the step is done though it is not, and the first write stands. Needs a held file and a refused transaction at once.
+- The record can roll back a step: a workshared model with ProjectInformation held by another user, whether SetEntity throws is UNKNOWN, the host runs one user. An empty roadSurfaces pick, whether the window can give one is UNKNOWN. Issue text with no cap, the size limit of a Revit string field is UNKNOWN. All loud.
+- Clocks of two PCs: a rerun of 3 on a slow clock stays older than 4, and 4 stays Done. An entity of a later formatVersion is overwritten by any button 2 to 9. A session made by Seen with no LoadFrom holds defaults, the flow stops first with no config chosen.
+- Scope of a worker while the pane stays live: the session run keeps the scope at the end (PaneRunState.RunOf), so the row reads Done for a pick made during the run until a reopen, the record holds the scope of its start. Press 1 during a worker: found by reading, not run.

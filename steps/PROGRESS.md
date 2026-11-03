@@ -7,7 +7,7 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 - Lane D FIX-2NOV-D 2 Nov: road surfaces in order, a stop on plots with no road, R490 to R493. 6B-DATA, REV6: R469. D3: R467, R468. D2: R466. FIX-1NOV-D: R460 to R465. 4j-1, 4j-1b: R420 to R429
 - Lane A 4i to FIX-2NOV-A2, one PR each: R407 to R416, R470 to R477, R478 wall compare by centre, R479 one villa by file, R480 C10 side walls
 - Lane B FIX-1NOV-B on 2026-11-01: masses as linked files (R450 to R453), coordinates from CAD (R454 to R456), proven in Revit on NBH 012
-- Lane B FIX-2NOV-B: R459 box 485 not 1,173, Q158, hand run steps/fix-2nov-b-handrun.md. CHECK-2NOV: steps/check-2nov.md, R458. Task 6: R457
+- Lane B FIX-3NOV-B: R498 steps record runs, R499 undo. FIX-2NOV-B: R459, Q158, steps/fix-2nov-b-handrun.md. CHECK-2NOV: steps/check-2nov.md, R458. Task 6: R457
 - Lane B 6a on 31 Oct: NBH 012 through 1 to 9 from a new project, no click. 5d, PR 113: 5, 6, 8, 7 at the FFL. 5c, PR 111: 2, 3, 4, 7
 - Lane C SCAN-UI PR 117, 119. DEMO-FIX R444. FIX-1NOV-C PR 132 (R445). FIX-2NOV-C (R446). CHECK: R494, R495. SPEED: R447 to R449, R496, R497
 - Lane A: 5e and 5f on 2026-10-30, one PR (D20), R381 button 9 Report, R402 Update from report. Phase 4 and 5: 4h-1 PR 107, 4h-2 PR 109, 4g3
