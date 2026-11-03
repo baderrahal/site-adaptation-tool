@@ -631,3 +631,13 @@ KNOWN-3NOV-A, review and breaker, no real input reaches these:
 - R530 builds no cut across an arc, no prototype has an arc wall. A concave side crossed twice stays whole. Neither is in the 13. A new prototype needs its own party lines in config, none means no cut.
 - MassCut.NoShortEdge drops the next corner and keeps no longer neighbour's line, unlike R503, so a long edge would slant by up to 4 mm. No corner goes on any of the 9 cut rings, shortest 20 mm.
 - After a cut wallRingMinShare and the slab middle are not tested again, real shares stay over 0.9. A read back drops NotCut and UncutAreaM2, no run line lists a refused cut, none of the 9 is refused. A misspelt maxX cuts nothing and says nothing. A revised prototype is remade against the old line.
+
+COORD-3NOV-A, review and breaker, no real input reaches these:
+- newProjectCheck has no sender in the add-in. WorkerRequest.CoordinateSource and PositionFile wait for one, until then the check reads coordinates.source of config.
+- ProjectElevationM once coordinates.originElevationM is not 0: ReadRules adds that height to every level, no test holds it against Revit. Config holds 0.
+- A corrupt position file under CAD: the check line covers a JSON, format or IO failure, a parser failure of another type fails the run.
+- A picked position file of another job: any file of the format is accepted. Under CAD the row File origin to the plots shows the distance, under the file nothing does.
+- A baseplan revision on a held CAD model: a new plot box moves the rounded centre, only Will change says so, unless R523 stops it.
+- More than one named location: the read and the check take the active one.
+- Under CAD the levels come from the profile of config, not the rules file picked in the window.
+- A baseplan in local coordinates whose box falls inside the UTM range passes OutsideZone.

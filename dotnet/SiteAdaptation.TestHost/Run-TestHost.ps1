@@ -287,6 +287,10 @@ if ($round) {
             $original = $build.template
             $roundJob.model = $copy
             $roundJob.template = $build.template
+            # R513. The source a click of the Set up site window takes, as the job has no window
+            if ($round.siteSource) {
+                $roundJob.siteSource = $round.siteSource
+            }
             # Lane B 5b. With setUp the job runs button 1 on the four copies of 3.1. The answer key copy is taken into the run folder by
             # a file copy, its source hashed before and after (D19). The settings are config with the position file of this machine
             # (J5 joins the paths at 5c) and the rules profile beside it, as the settings of a project are read

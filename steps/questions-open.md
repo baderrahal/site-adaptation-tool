@@ -749,3 +749,7 @@ Q470. Plots a mass of its unit does not fit (Lane D MASS-3NOV-D, R530). One cut 
 Q471. Free ends that lose a wall they had room for (Lane D MASS-3NOV-D, R530). The cut is per prototype, so a free end is cut too. On 10 plots nothing needed it, the plot had room and no mass stands beside: DP1 2374, 2391 by 301 mm, DT3 552, 1280, 1485, 1763, 1764, 2271 by 77 mm, TH1 1402, 1403 by 76 mm. NBH 012 holds 2 of them. Elsewhere a free side ends at the plot line and needs the cut.
 - Recommended: Keep one mass per prototype. A mass is a check volume, 300 mm on 10 plots changes no build.
 - Other: A second mass file for a free end, picked per plot.
+
+Q420. Moving a model with placed content (R523, COORD-3NOV-A). Button 1 moves position and survey point and no element, so a model with placed links, masses or floors would stand off CAD by the move, 828 m between CAD and the position file on this job (RAN). Lane A built the stop.
+- Recommended: keep the stop, a move starts from a model with nothing placed.
+- Other: allow it after a plain warning.
