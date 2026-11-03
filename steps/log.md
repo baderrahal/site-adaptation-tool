@@ -17,6 +17,7 @@ Checked:
 - Revit, RAN: whole run 6.8 minutes own run, 2.0 minutes second listener job. Timed buttons 232.6 and 305.5 s against 110.2 s, first job 184.2 s
 - Model, RAN against SPB3: floors, place, walls, footprint 0 differences, levels and accepted differ only in element ids, plan body equal. Second method, the Levels workbook: 8,298 of 8,302 cells equal, 4 run stamps
 - Real inputs 276, changed 0 on SPM1, SPM2, SPM4
+- Parity, RAN: 13 steps, net48 and net8.0, whole project and the 7 keys, past job and rev6, 416 reports, 0 failures, 16 of 16 plans byte-equal to main
 - Review 1, breaker 1 on 3329b5a and on the delta, REAL fixed. Test-first slipped on the first review's R496 only, said in the PR
 
 Remains:
