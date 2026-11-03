@@ -12,7 +12,7 @@
 ### Lane B, C and D
 
 - Lane B FIX-2NOV-B, 03:10, branch fix/2nov-b-handrun: hand run done, lock released 03:01, steps/fix-2nov-b-handrun.md written. Records PR next, then the round ends. Nothing blocks.
-- Lane C SPEED-2NOV-C, branch speed/2nov-c: gate and parity clean, PR going up. Touches Run-TestHost.ps1, TestHostPaths.ps1, Send-RevitJob.ps1. Blocked: none
+- Lane C SPEED-2NOV-C, 3 Nov: PR 151 merged, listener on main, how-to steps/revit-listener.md. Records PR open, sheet only. Nothing queued. Blocked: none
 - Lane D FIX-2NOV-D, 2 Nov, branch fix/2nov-d: no Revit, no window lock. Several road surfaces in order (Q364, Q256), R490 to R493, Q370 up. Editing NewProjectDialog and the pane road row, lane-c told.
 
 Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane D FIX-2NOV-D, 2 Nov 2026.
