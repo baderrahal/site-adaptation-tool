@@ -179,8 +179,9 @@ namespace SiteAdaptation.Tests
             // project, the no model line and the TaskDialog of a Save setup that rolls back (R445). FIX-2NOV-C added 13: 6 of the Close and
             // the ask of Review data, 6 of the pane, Run complete and Dry run before 4 Check, 1 of the refused export (R446). FIX-2NOV-D added 18 of the road surface pick: 13 of New project and its window, 5 of the pane (R492)
             // FIX-2NOV-C-CHECK added 2: the panel Pane and the refusal line of Show pane (R494). It added 4 more: Field, All fields, Find plot or note and Showing of Check table (R495)
+            // SPEED-2NOV-C added 1, the line under the row Prototypes for files older than the running Revit (R496)
             // Q158 added 1, the short line of a grey Apply
-            Assert.Equal(252, chosen);
+            Assert.Equal(253, chosen);
             Assert.True(matched > 100, matched.ToString());
         }
 

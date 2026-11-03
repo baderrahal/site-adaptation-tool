@@ -55,6 +55,17 @@ function Get-ToolAddIns([string]$Repo, [string]$Addins) {
     }
 }
 
+# Revit.exe of the Revit 2024 install folder, found by its own version and not guessed
+function Get-Revit2024Exe {
+    $found = @(Get-ChildItem (Join-Path $env:ProgramFiles 'Autodesk') -Directory | ForEach-Object { Join-Path $_.FullName 'Revit.exe' } |
+        Where-Object { Test-Path $_ } | Where-Object { $v = (Get-Item $_).VersionInfo
+            $v.ProductName -eq 'Autodesk Revit' -and $v.ProductMajorPart -eq 24 })
+    if ($found.Count -ne 1) {
+        throw "Found $($found.Count) Revit.exe files of version 24, one is needed: $($found -join ', ')"
+    }
+    $found[0]
+}
+
 # Lane B 5b. A probe of one Revit fact runs through the test host as every Revit start does, so the watcher is up before Revit.
 # Its manifest is given from the folder the run starts in and is read here, the code is the file name of the manifest
 function Get-ProbeAddIn([string]$Manifest) {
@@ -149,4 +160,56 @@ function Resolve-WorkRootPath([string]$Path, [string]$Docs) {
         $at = Join-Path $at $part
     }
     return $at
+}
+
+# R497, as R458 for the step hash. Revit writes <model>_backup\<model>.slog when it opens a workshared prototype to make a mass, so the
+# check of a run counts it only under an input root, where any write is still a change (D19)
+function Test-RevitWorksharingLog([string]$Path, [string[]]$InputRoots) {
+    $full = [IO.Path]::GetFullPath($Path)
+    if ([IO.Path]::GetExtension($full) -ine '.slog' -or -not ([IO.Path]::GetFileName([IO.Path]::GetDirectoryName($full)) -ilike '*_backup')) {
+        return $false
+    }
+    return -not (Test-UnderInputRoot -Path $full -InputRoots $InputRoots)
+}
+
+function Test-UnderInputRoot([string]$Path, [string[]]$InputRoots) {
+    $full = [IO.Path]::GetFullPath($Path)
+    foreach ($root in @($InputRoots | Where-Object { $_ })) {
+        if ($full.StartsWith([IO.Path]::GetFullPath($root).TrimEnd('\') + '\', [StringComparison]::OrdinalIgnoreCase)) {
+            return $true
+        }
+    }
+    return $false
+}
+
+function Get-RunInputRoots($Config) {
+    return @(@($env:SITE_ADAPTATION_INPUT, [string]$Config.inputRoot) + @($Config.testHost.listener.inputRoots | ForEach-Object { [string]$_ }) | Where-Object { $_ })
+}
+
+# R497. The list of real inputs is made before the run, so the files a run added under an input root are looked for after it (D19).
+# A run may add files outside one, as Revit does in the prototype folder of the work root
+function Get-NewInputFiles([string[]]$Sources, [string[]]$Before, [string[]]$InputRoots) {
+    $known = [Collections.Generic.HashSet[string]]::new([string[]]@($Before), [StringComparer]::OrdinalIgnoreCase)
+    $new = foreach ($source in @($Sources | Where-Object { $_ -and (Test-Path -LiteralPath $_ -PathType Container) })) {
+        Get-ChildItem -LiteralPath $source -File -Recurse | Where-Object { -not $known.Contains($_.FullName) -and (Test-UnderInputRoot -Path $_.FullName -InputRoots $InputRoots) } | ForEach-Object { $_.FullName }
+    }
+    return @($new | Sort-Object -Unique)
+}
+
+# Lane B 5c (R384). The real files a buttons run reads in place: each input of the pane settings, every file of a folder input, the
+# template and the key copy. Each is held by its size, write time and SHA-256 before and after the run (D19)
+function Get-ButtonsInputs($paths, $inputRoots) {
+    $files = [Collections.Generic.List[string]]::new()
+    foreach ($path in @($paths | Where-Object { $_ })) {
+        if (Test-Path -LiteralPath $path -PathType Container) {
+            Get-ChildItem -LiteralPath $path -File -Recurse | Where-Object { -not (Test-RevitWorksharingLog -Path $_.FullName -InputRoots $inputRoots) } | ForEach-Object { $files.Add($_.FullName) }
+        }
+        elseif (Test-Path -LiteralPath $path -PathType Leaf) {
+            $files.Add((Get-Item -LiteralPath $path).FullName)
+        }
+        else {
+            throw "A real input of the buttons run is not there: $path"
+        }
+    }
+    return @($files | Sort-Object -Unique)
 }

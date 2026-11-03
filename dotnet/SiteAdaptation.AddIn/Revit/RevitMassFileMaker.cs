@@ -6,6 +6,7 @@ using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
 using SiteAdaptation.Common;
 using SiteAdaptation.Common.PlaceVillas;
+using SiteAdaptation.Common.Flow;
 
 namespace SiteAdaptation.AddIn.Revit
 {
@@ -48,13 +49,13 @@ namespace SiteAdaptation.AddIn.Revit
                     shape.ApplicationId = RevitVillaDocument.ApplicationId;
                     shape.SetShape(new GeometryObject[] { RevitVillaDocument.Extrusion(ring, heightM, new PlacementSteps { Move = new[] { 0.0, 0.0, 0.0 } }) });
                     // A transaction rolled back by a failure would save an empty mass that its sidecar then marks fresh
-                    TransactionStatus status = transaction.Commit();
+                    TransactionStatus status = RunTiming.Measure(RunTiming.Transactions, () => transaction.Commit());
                     if (status != TransactionStatus.Committed)
                     {
                         throw new InvalidOperationException("the mass of " + Path.GetFileName(massPath) + " did not commit, " + status + ", no mass file was saved (R450)");
                     }
                 }
-                mass.SaveAs(massPath, new SaveAsOptions { OverwriteExistingFile = true });
+                RunTiming.Measure(RunTiming.Saving, () => mass.SaveAs(massPath, new SaveAsOptions { OverwriteExistingFile = true }));
             }
             finally
             {

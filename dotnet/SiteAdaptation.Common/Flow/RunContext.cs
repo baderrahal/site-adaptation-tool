@@ -37,6 +37,10 @@ namespace SiteAdaptation.Common.Flow
         // The open transaction of the real run while Apply runs, else null, so a body writes the Settings entity of R367 inside it
         public IModelTransaction Transaction { get; internal set; }
 
+        // R447. The timing of the real run, null with none. A worker ends after the flow returned, so its body names the window it shows
+        // here, or the wait of a user would read as the wait of a worker
+        internal RunTiming Timing { get; set; }
+
         // R459. What a step calls in Apply to give its known warnings to the open transaction. False when it takes none: no list, no real
         // run, or a transaction with no such side, and then every warning stays as it was
         public bool AcceptKnownWarnings(KnownWarningList list)

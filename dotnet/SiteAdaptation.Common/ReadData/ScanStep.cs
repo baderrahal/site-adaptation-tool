@@ -257,6 +257,7 @@ namespace SiteAdaptation.Common.ReadData
             else
             {
                 ScanGateAnswer answer;
+                context.Timing?.NextStep(RunTiming.WindowStep);
                 try
                 {
                     answer = gate(scan);
@@ -274,9 +275,11 @@ namespace SiteAdaptation.Common.ReadData
                 line = answer.Line;
             }
             // The read may start after the worker of the scan answered, outside the flow, so its throw becomes the stop the flow gives
+            context.Timing?.NextStep(RunTiming.WorkerStartStep);
             try
             {
                 read.Start(context, later => done(WithLine(later, line)));
+                context.Timing?.NextStep(RunTiming.WorkerStep, RunTiming.WorkerWait);
             }
             catch (Exception failure)
             {

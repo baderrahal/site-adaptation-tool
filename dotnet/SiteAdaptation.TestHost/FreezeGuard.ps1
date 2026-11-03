@@ -114,7 +114,18 @@ function Get-JournalTail([string]$Folder, [datetime]$Start, [int]$Lines = 40) {
             tail    = @()
         }
     }
-    $stream = [IO.File]::Open($journal.FullName, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::ReadWrite)
+    Read-JournalTail -Path $journal.FullName -Lines $Lines
+}
+
+# S4. The last lines of one journal, named by the Revit that writes it. No name is a journal not known, and no tail says so
+function Read-JournalTail([string]$Path, [int]$Lines = 40) {
+    if (-not $Path -or -not (Test-Path -LiteralPath $Path)) {
+        return [pscustomobject]@{
+            journal = $null
+            tail    = @()
+        }
+    }
+    $stream = [IO.File]::Open($Path, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::ReadWrite)
     try {
         $all = ([IO.StreamReader]::new($stream)).ReadToEnd() -split "`r?`n"
     }
@@ -125,16 +136,17 @@ function Get-JournalTail([string]$Folder, [datetime]$Start, [int]$Lines = 40) {
         $all = $all[0..($all.Count - 2)]
     }
     [pscustomobject]@{
-        journal = $journal.FullName
+        journal = $Path
         tail    = @($all | Select-Object -Last $Lines)
     }
 }
 
 # R104. Logs the windows and the journal tail, ends this process only and fails the open step of the log with the reason. The
 # windows are read before the end, the log is written after it, so the test host inside Revit cannot write over it
-function Stop-FrozenRevit([Diagnostics.Process]$Process, [string]$Reason, [string]$LogPath, [string]$JournalFolder, [datetime]$Start, [int]$TailLines = 40) {
+function Stop-FrozenRevit([Diagnostics.Process]$Process, [string]$Reason, [string]$LogPath, [string]$JournalFolder, [datetime]$Start, [int]$TailLines = 40, [string]$JournalPath) {
     $windows = @(Get-ProcessWindows -ProcessId $Process.Id)
-    $journal = Get-JournalTail -Folder $JournalFolder -Start $Start -Lines $TailLines
+    # S4. With two Revits the newest journal may be the other one, so a caller that knows the journal names it, even as not known
+    $journal = if ($PSBoundParameters.ContainsKey('JournalPath')) { Read-JournalTail -Path $JournalPath -Lines $TailLines } else { Get-JournalTail -Folder $JournalFolder -Start $Start -Lines $TailLines }
     if (-not $Process.HasExited) {
         Stop-Process -Id $Process.Id -Force
         $Process.WaitForExit(60000) | Out-Null

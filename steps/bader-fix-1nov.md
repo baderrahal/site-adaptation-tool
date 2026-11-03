@@ -86,6 +86,8 @@ Not run in Revit yet. Lane B held the lock and the test host applies nothing, so
 3. Press Use these picks and wait for the read to end.
 4. Open 3 Review data and find that plot.
 
+Trap: the Plot column of Conflicts shows the CAD label, not Plot No. On Lane B's run Plot No 2291 has CAD label 2281, and another plot reads Plot No 2281. Find the plot in 3 Review data by the label you picked, steps/check-2nov.md row 8. The fix of the column is not built.
+
 Look for: that plot's Villa type is the value you picked, and every plot you left alone keeps its value. The file read.json in <work>\read_<hash> has "sources", with plotOutline MP_PLOT_LINE + MP_PLOT_SUBD from proposal, villaBlock and villaType from default unless a saved pick applies, and your plot under "conflicts". Known: the build still reads plots.csv, so a picked plot can differ from the build (Q349). A saved project that holds a villa block or villa type pick ends the read with 2 issue lines saying why (Q346).
 
 ## 9. Update from report (Lane A2, PR 130, R472)
@@ -165,7 +167,7 @@ Lane A ran buttons 1 to 5 through the test host, before the last source change o
 3. When 5 stops on the Revit box of warnings, press OK. The box stays until Lane B's step 5 item lands.
 4. In plan, look at plots 2543 and 2546.
 
-Look for: place 1,003 and no floor refused. About 1,131 "Highlighted floors overlap" (1,402 before this round) and about 42 "Line in Sketch is slightly off axis" (Q356). The yard of 2543 and of 2546 stays inside its plot. Generic floors still cover the whole plot, as Bader chose (Q350).
+Look for: place 1,003 and no floor refused. The box at the commit reads about 485: about 443 "Highlighted floors overlap" and about 42 "Line in Sketch is slightly off axis" (Q356). The yard of 2543 and of 2546 stays inside its plot. Generic floors still cover the whole plot, as Bader chose (Q350).
 
 ## 15. Review lists the plots of Check (Lane A, FIX-2NOV-A, R476)
 
@@ -186,7 +188,7 @@ Not run in the add-in yet, Lane A applied the check to the last hand run by C# a
 3. Read the line that starts "Masses: place".
 4. Press Apply.
 
-Look for: in the line of step 3, ", over the footprint limit 0 of 57 of the same type, 271 of another type (Q277), 8 with no outline". If it says "footprint not measured" instead, the mass files were still to make. Press Run at 7 again after Apply, this retry has not run.
+Look for: in the line of step 3, ", over the footprint limit 0 of 59 of the same type, 269 of another type (Q277), 8 with no outline". If it says "footprint not measured" instead, the mass files were still to make. Press Run at 7 again after Apply, this retry has not run.
 
 ## 17. The pane comes back, Show pane (Lane C, R494)
 
@@ -231,9 +233,18 @@ Lane B's script saw Revit crash once, 16 s after OK on Browse For Folder of the 
 
 Look for: Revit still open after each try. If it crashes, note which try and which folder and tell Lane C.
 
+## 21. The front edge and the parted walls (Lane A, PR 149)
+
+Not run in Revit.
+
+1. Press 4 Check on a project with plots 1553, 1172, 2626, 2665, 727 and 469.
+2. Look at those plots in the check table.
+
+Look for: those plots written, one Position row frontEdge with Use Past, past value {"edge": n}. Walls of a parted cluster read MEASURED weak on walls.ends.
+
 ## Questions for Bader
 
-Every open question of steps/questions-open.md on 2 Nov, after PR 145, 163 open, by topic, the oldest first, each with its recommended answer. [demo] and [new project] mark the ones a demo or a new project meets first. The full text is in steps/questions-open.md.
+Every open question of steps/questions-open.md on 3 Nov, after PR 151, 164 open, by topic, the oldest first, each with its recommended answer. [demo] and [new project] mark the ones a demo or a new project meets first. The full text is in steps/questions-open.md.
 
 First for a demo or a new project: Q286, Q293, Q356.
 
@@ -257,8 +268,6 @@ First for a demo or a new project: Q286, Q293, Q356.
 - Q262 Level Excel and the read back values. Recommended: The Levels sheet reads levels_<run id>.json and shows the level read back beside the plan.
 - Q263 Levels count still at its level. Recommended: RevitCountsReader takes levels_<run id>.json of the last committed run of 6 and counts a plot only while its tagged floors stand within 1 mm of it.
 - Q273 6 Levels on a floor moved by hand. Recommended: 6 lists a floor whose level differs from both its tag and the plan as changed by hand and leaves it, as the other buttons do, unless the user sets it to the plan.
-- Q303 The slope limit in the split test. Recommended: test the steps alone and report the slope, R414 stays off since 0.5 is under majority.strongShare 0.90.
-- Q304 The side of an uneven split. Recommended: count the third unit mark from the high road end, so the lone unit stands at the low end as on the keys.
 - Q340 The level of a joint an override moves. Recommended: keep join false until a rule for a joint an override moves is chosen, then set join true.
 - Q341 Back corners two ramps share. Recommended: leave back joints apart, listed as Fail rows, until a rule for the back of a ramp row is chosen.
 - Q343 Passing joint rows in the check chips. Recommended: keep every row as asked, and count only Fail rows in the chips, a later change of R471 and the check table.
@@ -266,18 +275,17 @@ First for a demo or a new project: Q286, Q293, Q356.
 - Q354 Yards of a model already built. Recommended: keep it, build NBH 012 again from a new model to take the cut.
 - Q356 The off axis warning of a cut yard [demo]. Recommended: step 5 accepts this warning too and counts it, in Lane B's item L2NOV-1.
 - Q361 FFL rule far from keys without overrides. Recommended: Mark the level rules weak, keep ROSHN Makkah on the list, and compare rev6 on the same keys as the next data step.
+- Q375 Ramp type after a rampFrontM gap. Recommended: leave R408 as it is and decide this class with Q255 and Q230, no line for 1172 alone.
 
 ### Walls
 
 - Q149 M14, the boundary wall of an irregular plot. Recommended: the PDF reading, the outer face of the wall on the plot limit and its 200 mm inside the plot, and the canvas text written so.
 - Q150 M15, the foundation depth. Recommended: keep the canvas text, at least 1.20 m, as the check of 9 Report, since a foundation deeper than the design depth is no fault on site.
 - Q259 Garden door place of each unit. Recommended: a read of the garden walls and doors inside the 13 ARC prototype files by a Revit probe, the door place per unit into the rules profile, then R417.
-- Q265 Ends status of walls after Q115. Recommended: Set walls.ends to MEASURED weak by keyRules.wallOpen for the parted cluster walls and keep UNKNOWN for the rest, a change of config by Lane A.
 - Q266 Walls on edges other units meet. Recommended: Measure in Phase 6 whether a villa stands on the edge, from the prototype base shapes of light mode, and leave the span open the same way.
 - Q267 Base level of a boundary wall. Recommended: The level of floorSettings.levels.yard, the base offset to the plan base, as coded.
 - Q268 Scope of a wall on two plots. Recommended: Any plot in the scope, as coded.
 - Q269 Untagged BW wall on a plan wall. Recommended: Match by both ends, skip and list it, never change it, as coded.
-- Q299 The front of a notched irregular plot. Recommended: check these 6 against the links of their keys in a later Lane A round, and add an override where the front is wrong.
 - Q357 Key walls with the face on the line. Recommended: keep the centre on the edge, the SE keys are structural models, and leave these as they are.
 - Q358 Walls only the keys hold. Recommended: leave the structural walls out, take the garden walls with Q259, and read the 37 back edges plot by plot in Phase 6.
 - Q359 A C10 side wall beside a VL6. Recommended: leave them, 12 edges are listed and the wall is short.
@@ -327,7 +335,6 @@ First for a demo or a new project: Q286, Q293, Q356.
 ### Set up site and shared parameters
 
 - Q157 The type button 1 copies new types from. Recommended: copy each new type from the type of the IMC answer key of the same name, its layers and widths read once into config by the read job, and stop when the key has none.
-- Q158 Step 1 Done on a model already set up. Recommended: a run where nothing differs counts as Done for the step state and writes site.json and the Settings entity of R367 when they are missing, with no change to the model, and says so.
 - Q331 Plot is no link parameter of the keys. Recommended: keep Plot as the 11th row, Category Floors, Filled by 5 Floors, since button 5 and the check of 4 tell a placed floor by it.
 - Q332 FFL bound but never written. Recommended: as built, bound and empty.
 - Q333 Categories beyond the link instances. Recommended: keep the categories of the keys, a user edits the Category cell to narrow them.
@@ -396,7 +403,9 @@ First for a demo or a new project: Q286, Q293, Q356.
 - Q307 What the report Summary shows after a run. Recommended: Lane A fills the top line and the Levels row, adds walls to Placed, and takes one issue count for pane and report.
 - Q355 A Wrong on a plot of two numbers. Recommended: Review takes the official number where the location plan gives two, one line in ReviewTable.Rows and a test.
 - Q362 Chosen limits of the zone compare. Recommended: Keep them.
+- Q376 Plain words for the front edge override. Recommended: add one label Front edge by hand and show the past value as edge n of the plot outline.
 - Q380 The save dialog and the input folder write time. Recommended: leave it. No file changed and the tool refuses the write. Test it on a scratch folder if a D19 record ever fails on it.
+- Q385 Accepted warnings return after a save. Recommended: keep as built and close Q324 as answered in part: the box is smaller, the sheet says press OK, and the count stands in the report. Answer Q356 for the off axis alone.
 
 ### Pane, New project and the windows
 
@@ -423,6 +432,9 @@ First for a demo or a new project: Q286, Q293, Q356.
 - Q372 A road pick in the pane, when it is kept. Recommended: Keep it as a Browse, one rule for the pane rows.
 - Q373 New project does not start under rev6. Recommended: A project mode in the settings, set by Start from: Empty project takes newProjectMode, a saved project keeps its own. A round of its own, every reader of the mode takes it, as the road pick does.
 - Q374 The stop looks at the zone, not the neighbourhood. Recommended: Keep the zone as Bader set it.
+- Q382 Ctrl+Z of button 1 keeps step Done. Recommended: on an undo of a tool transaction the pane drops the session run of that button, so it reads the entity, and step 1 shows Ready. And step 4 compares site.json with the model before it builds, by the compare Q158 added, and stops with a plain line when they differ.
+- Q383 A tick on a held step reruns steps. Recommended: keep as built, it is rare and the steps run again in seconds up to step 5, no rule of R366 changes.
+- Q384 Step rows lost on a reopen. Recommended: every button that commits records its run in the entity by SettingsStore.Record as button 1 does, so the rows come back. For the demo say a reopen asks for the steps again, it reuses the read.
 
 ### Test host and runs
 

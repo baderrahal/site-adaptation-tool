@@ -64,6 +64,8 @@ namespace SiteAdaptation.AddIn.Pane
         public const string SurfacesNone = "No road surface is picked.";
         public const string SurfacesPastJob = "The saved project takes its road surfaces from its past job, so this pick is not used.";
         public const string SurfacesNoSetup = "Pick a saved project under Start from first.";
+        // R496. The year read and the Revit the add-in runs on fill the two slots
+        public const string OldPrototypes = "These files are Revit <n> and upgrade on each use, use the <n> copies. A remake from them takes 20 to 41 minutes.";
 
         public const string NotChosen = "Not chosen";
         public const string Size = "<n> MiB";

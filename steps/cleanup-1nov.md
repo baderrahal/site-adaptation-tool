@@ -30,6 +30,7 @@ How each move was checked:
 | C:\SA-demo, C:\SA-boards | Bader's list. Lane B Task 6 uses C:\SA-demo now |
 | site-adaptation-tool (the Lane A folder), Lane B WT, Lane C WT, Lane D WT | Live worktrees of the lanes |
 | Documents\SiteAdaptation | The work root. Config and saved projects point at it. Lane A parity and Lane B Task 6 read and write there now |
+| C:\SA-revit-jobs | The job folders of the Revit listener, R448, testHost.listener.root of config |
 | %APPDATA%\Autodesk\Revit\Addins\2024 | The installed add-ins |
 | OneDrive sync roots | Bader's list |
 | PAR_NWC-Federator, RCRC-Green, Rhino-To-Civil3D-V2 | Other repos, not made by these sessions |

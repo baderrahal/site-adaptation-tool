@@ -27,7 +27,7 @@ Q = re.compile(r"\bQ\d{3}\b")
 RID = re.compile(r"\bR\d{1,3}\b")
 NOTE_KEYS = ("note", "why", "source", "question", "matches", "meaning", "listedIn")
 NAMEISH = re.compile(r"(\.dwg|\.xlsx|\.rvt|\.json|\.rte|\.csv|\.pdf|\\|/|^RRE_|^ELl@|PSN-|^C:)", re.I)
-HOST = re.compile(r"(Minutes|Seconds|TimeLimit|Peak|MiB|minFreeGB|staleHours|helperProcesses|windowProcesses|\.lock|cimTimeout)", re.I)
+HOST = re.compile(r"(Minutes|Seconds|TimeLimit|Peak|MiB|minFreeGB|staleHours|helperProcesses|windowProcesses|revitSlots|maxWindows|\.lock|cimTimeout)", re.I)
 # valueStatus of R401 maps each plotted value to its entry of the block, it holds no design value of its own, and checkRows of R363 names the check
 # type and the form of Past of each row of the check table, which set no plotted value (review 1 of PR 81), and addin.report of R365 names the
 # button of the report each override field counts under and the decisions of the walls, which set no plotted value either. addin.readData of

@@ -74,6 +74,12 @@ namespace SiteAdaptation.TestHost
             return Read("PaneViewModel.ProjectName", () => Member(Model, AddinRunNames.ProjectName)) as string;
         }
 
+        // R448. The worker ends LaunchedWorker still holds, one left by a job a listener ran before would be taken for the next job
+        public int? WorkerEnds()
+        {
+            return Read("LaunchedWorker.Ends", () => ((ICollection)Member(TypeOf(AddinRunNames.LaunchedWorker), AddinRunNames.Ends, null)).Count) as int?;
+        }
+
         public int? Waiting()
         {
             return Read("AnswerRelay.Waiting", () => Member(Member(Host, AddinRunNames.Answers), AddinRunNames.Waiting)) as int?;

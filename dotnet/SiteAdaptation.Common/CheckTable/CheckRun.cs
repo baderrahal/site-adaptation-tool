@@ -422,6 +422,7 @@ namespace SiteAdaptation.Common.CheckTable
             Directory.CreateDirectory(folder);
             worker.Start(request.Write(folder), folder, request, answer =>
             {
+                context.Timing?.NextStep(RunTiming.WorkerEndStep, RunTiming.Reading);
                 try
                 {
                     CheckTableView view = Answered(context, plan, request, answer, true);
@@ -443,7 +444,9 @@ namespace SiteAdaptation.Common.CheckTable
                             },
                             DoorLevel = DoorPicked,
                         };
+                        context.Timing?.NextStep(RunTiming.WindowStep);
                         dialog.Show(view, callbacks);
+                        context.Timing?.NextStep(RunTiming.WorkerEndStep, RunTiming.Reading);
                     }
                     // R376. No check.json names a plan built on another list than the one on disk, and no build again takes in an edit made
                     // on disk while the window was open
@@ -456,6 +459,7 @@ namespace SiteAdaptation.Common.CheckTable
                         // R376. The list changed, so the plan is built again on it before the step is done, the hash of the list is new
                         CheckPlan again = Checked(context);
                         Build(context, again, runId + "-again", folder + "-again", done, false);
+                        context.Timing?.NextStep(RunTiming.WorkerStep, RunTiming.WorkerWait);
                         return;
                     }
                     // R377. The record goes last and only on a build that ends done, so 7 takes the plan of the last real run that ended done
