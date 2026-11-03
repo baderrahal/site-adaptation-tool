@@ -575,6 +575,16 @@ Round SPEED-2NOV-C, breaker 1 of the delta, 3 Nov 2026:
 Round SPEED-2NOV-C records, 3 Nov 2026:
 - R347_the_launch_returns_at_once_and_a_worker_past_its_time_limit failed once on the Windows CI runner on net8.0, status failed, the worker ended with code 0, on PR 152, records only. Same flake as the R347 lines above, net48 passed in that run. Test left as it is.
 
+## Lane D MASS-2NOV-D, review and breakers, 3 Nov 2026
+
+- Arcs: no arc wall in the 13. Not tested: a clockwise arc wall, a concave one, a far face arc, arcs meeting at an angle, a full circle, a radius under half the width. What Wall.Orientation gives on a curved wall is UNKNOWN.
+- WallRingBuilder.Walk is greedy and stops on its first edge. A wrong early close that skips a part passes when the share stays at 0.90. None of the 13 does it.
+- A join 1 to 5 degrees off parallel crosses beyond the corner gap, the ring is refused. Real angles are 90 and 180. At an acute corner the end of one wall pokes through its neighbour and splits that edge.
+- Start corner of the points moves with the order of walls on a tie of two equal sides, TH1 and TH3, same shape. Only the point order of the sidecar changes.
+- A rejected ring keeps its build, so a sidecar could list wallsUsed under source slab. A null slab throws a bare null error, the reader throws first. None of the 13 reaches them.
+- MassFiles.Stale tests the reader version by not equal on one shared folder, so a build of another version and this one remake each other's masses. It ends at the merge.
+- faces_check2.py takes the whole face of a wall at all heights, so an edited profile counts as covering above its ground stretch. Breaker 2 read the profiles and found no fault.
+
 Round FIX-3NOV-B, R498 and R499, review 1 and breaker 1, 3 Nov 2026:
 - A failed move puts back the run before while the model keeps the new one, so a rerun of 5 to 8 with an output held open shows the old run Done. The HeldOpen message says so. No real output of 5 to 8 was found with a name another program holds.
 - An exception other than an IO or access fault between the commit and Keep disposes the group, which rolls back a committed run, loud. The status of Assimilate is not read. No real input known.
