@@ -4,10 +4,10 @@
 
 ### Lane A
 
-- Lane: A, round FIX-3NOV-A, branch fix/3nov-a. Time: 2026-11-03 09:30. Blocked: none
-- Done: R484 to R487 on the branch, 1,759 of 1,791 by the shipped set, ROSHN byte-equal. Q371, Q373, Q377, Q378 closed by Bader
-- Now: parity on d251ff7, a helper fixes breaker 2: Save overrides refused on an empty list, two models of one name share a list, R487 tightened to rev6
-- Next: the gate, Revit run through the listener (machine to itself, lane-b and lane-c asked first), records, the PR
+- Lane: A, round FIX-3NOV-A, branch fix/3nov-a. Time: 2026-11-03 12:21. Blocked: none
+- Done: R484 to R487, parity 32 runs 416 lines 0 failures on f225518, Revit on 84e1e69: Empty project, Save setup, 4 Check under rev6, NBH 012 336 plots, 0 overrides, inputs 43 of 43 same
+- Now: a helper fixes the window before Save: Pick surfaces grey, parameter sheet reads Missing though the set holds it
+- Next: the gate, a short second Revit pass for the pick and button 1 Apply, records, the PR
 
 ### Lane B, C and D
 
