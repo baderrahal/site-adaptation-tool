@@ -75,6 +75,8 @@ The five panels and their buttons of 7.1 of docs/design/12-ui-spec.md, Bader's c
 - `Baseplan`
 - `Villa blocks`
 - `Curbs`
+- `Plot fronts (curb lines)`
+- `Read only. Finds the front of each plot. No curb is built.`
 - `Road surface`
 - `DLUS and sales`
 - `Plot numbers`
@@ -206,7 +208,7 @@ An entry marked CHOSEN in 5a was worded in 5a PR 2 or PR 5, where docs/design/ g
 - `Rules` the dropdown of the saved rules profiles, the name of the pane row
 - `Baseplan` the files of the setup by the names of the pane rows
 - `Villa blocks`
-- `Curbs`
+- `Plot fronts (curb lines)`
 - `Road surface`
 - `DLUS schedule` CHOSEN, the name of the pane row
 - `Sales schedule` CHOSEN, the name of the pane row
@@ -491,7 +493,7 @@ The window New project of Lane C NEWPROJ-UI, word for word from docs/design/boar
 - `Site drawing (CAD)`
 - `Civil team`
 - `Buttons 1 to 4`
-- `Pick plots, roads, curbs below.`
+- `Pick plots, roads, curb lines below.`
 - `Layers found: <n>.` shown before the line above once the scanner of a later Lane B round gives the layer count
 - `Plot list (Excel)`
 - `Sales team`

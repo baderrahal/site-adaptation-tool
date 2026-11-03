@@ -39,7 +39,7 @@
 
       <DataTemplate x:Key="FileRow" DataType="{x:Type pane:FileRowViewModel}">
         <StackPanel>
-          <Grid Height="{StaticResource SA.Size.Row}">
+          <Grid MinHeight="{StaticResource SA.Size.Row}">
             <Grid.ColumnDefinitions>
               <ColumnDefinition Width="{StaticResource SA.Grid.Mark}" />
               <ColumnDefinition Width="{StaticResource SA.Grid.Label}" />
@@ -48,7 +48,7 @@
               <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <ContentControl Content="{Binding}" ContentTemplate="{StaticResource RowMark}" />
-            <TextBlock Grid.Column="1" Style="{StaticResource SA.Type.Body}" VerticalAlignment="Center" Text="{Binding Label}" />
+            <TextBlock Grid.Column="1" Style="{StaticResource SA.Type.Body}" VerticalAlignment="Center" TextWrapping="Wrap" Text="{Binding Label}" />
             <TextBlock Grid.Column="2" Style="{StaticResource SA.Type.Body}" VerticalAlignment="Center" Margin="{StaticResource SA.Gap.Right8}"
                        TextTrimming="CharacterEllipsis" ToolTip="{Binding ToolTip}" Text="{Binding FileName}" />
             <!-- R492. Pick surfaces of the row Road surface, grey with its reason as the tooltip under a past job -->
@@ -63,6 +63,14 @@
               <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
             <TextBlock Grid.Column="1" Style="{StaticResource SA.Pane.Help}" Margin="{StaticResource SA.Gap.Row}" Text="{Binding SurfacesLine}" />
+          </Grid>
+          <!-- R505. A fixed line under a row, what the row is for -->
+          <Grid Visibility="{Binding HasHint, Converter={StaticResource Shown}}">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="{StaticResource SA.Grid.Mark}" />
+              <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="1" Style="{StaticResource SA.Pane.Help}" Margin="{StaticResource SA.Gap.Row}" TextWrapping="Wrap" Text="{Binding Hint}" />
           </Grid>
           <!-- R496. A warning line under a row, the row Prototypes shows it when its files are older than the running Revit -->
           <Grid Visibility="{Binding HasNote, Converter={StaticResource Shown}}">

@@ -248,7 +248,8 @@ namespace SiteAdaptation.Tests
 
                     // Every row label shows in full, Shared parameters the widest, with a gap of 8 before the file name
                     double column = ((GridLength)page.FindResource("SA.Grid.Label")).Value;
-                    foreach (string text in Model(page).InputRows.Select(row => row.Label).Concat(new[] { "Setup", "Rules", "Help", "Level profile", "Pre-setting" }))
+                    // R505. Plot fronts (curb lines) alone wraps to two lines and its row grows, Bader's words of 3 Nov
+                    foreach (string text in Model(page).InputRows.Select(row => row.Label).Where(row => row != PaneText.CurbsRow).Concat(new[] { "Setup", "Rules", "Help", "Level profile", "Pre-setting" }))
                     {
                         var measure = new TextBlock { Text = text, Style = (Style)page.FindResource("SA.Type.Body") };
                         measure.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));

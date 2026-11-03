@@ -177,8 +177,6 @@
   <Geometry x:Key="SA.Mark.SortDown">M0 0l8 0l-4 5z</Geometry>
   <sys:Double x:Key="SA.Size.SortArrowWidth">8</sys:Double>
   <sys:Double x:Key="SA.Size.SortArrowHeight">5</sys:Double>
-  <Geometry x:Key="SA.Mark.Missing">M2 8a6 6 0 1 0 12 0a6 6 0 1 0 -12 0z</Geometry>
-  <Geometry x:Key="SA.Mark.MissingSign">M8 4.5v4.5M8 11.5v0.1</Geometry>
 
   <Style x:Key="SA.Pane.Section" TargetType="TextBlock" BasedOn="{StaticResource SA.Type.Section}">
     <Setter Property="Foreground" Value="{StaticResource SA.Heading}" />

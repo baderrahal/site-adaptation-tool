@@ -230,6 +230,31 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
+        public void R505_each_board_colour_is_drawn_on_a_board()
+        {
+            string boards = string.Concat(Directory.GetFiles(Path.Combine(ThemeGateTests.RepoRoot(), "docs", "design", "boards")).Select(File.ReadAllText));
+            foreach (var board in BoardColours)
+            {
+                Assert.True(boards.IndexOf(board.Value, StringComparison.OrdinalIgnoreCase) >= 0, board.Key + " " + board.Value + " is on no board");
+            }
+        }
+
+        [Fact]
+        public void R505_the_row_curbs_says_it_builds_no_curb_and_its_input_name_stays()
+        {
+            string text = Addin("Pane", "PaneText.cs");
+            Assert.Contains("CurbsRow = \"Plot fronts (curb lines)\"", text);
+            Assert.Contains("CurbsHint = \"Read only. Finds the front of each plot. No curb is built.\"", text);
+            // The name of the run input is a key of the step hashes in a model (R366), a new name would mark every step of a saved model changed
+            Assert.Contains("Curbs = \"Curbs\"", text);
+            Assert.Contains("new RunInput(PaneText.Curbs,", Addin("Commands", "ReadDataBody.cs"));
+            Assert.Contains("new FileRowViewModel(PaneText.CurbsRow, false, InputKeys.Curbs) { Hint = PaneText.CurbsHint }", Addin("Pane", "PaneViewModel.cs"));
+            Assert.Contains("Text=\"{Binding Hint}\"", Pane);
+            Assert.Contains("[InputNames.Curbs] = \"Plot fronts (curb lines)\"", Addin("SetUpSite", "SetUpSiteText.cs"));
+            Assert.Contains("Pick plots, roads, curb lines below.", Addin("NewProject", "NewProjectText.cs"));
+        }
+
+        [Fact]
         public void R505_a_file_with_only_xref_checks_reads_and_says_how_many_references_were_not_read()
         {
             var settings = new SiteAdaptation.Common.Settings.ProjectSettings();

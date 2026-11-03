@@ -728,3 +728,11 @@ Q407. Amber in the spec or the boards (Lane C 6C-3NOV-C, docs/design/12-ui-spec.
 Q408. Update from report shows nothing after a pick (Lane C 6C-3NOV-C, Lane B window). A real report picked by Browse in Update from report: the file dialog closed, and 26 s later the window stood empty, no tile, no message, Apply 0 changes grey (RAN, shot p2-082, an unedited copy). The try with an edited copy failed twice on my driver, not on the window, so the filled state is not seen in this round. Lane B's CHECK-2NOV covered the flow on an earlier main. Whether the window is slow, or silent on an Excel with no change, is UNKNOWN.
 - Recommended: Lane B runs part 9 of steps/bader-fix-1nov.md once on main, and the window says No changes found when an Excel has none.
 - Other: Leave it, a person only picks an Excel they edited.
+
+Q409. Two greens and the step name weight (Lane C 6C-3NOV-C, review 1, docs/design/12-ui-spec.md lines 28, 34, 75). The pane found mark takes #0B7A3E from the Pane board, the spec and the Tokens board have SA.Ok #0B6B2E, so two greens show in one product. The step name takes weight 500 from the board where the spec says Regular, and the font holds only Regular and SemiBold faces, so 500 may draw as Regular (UNKNOWN).
+- Recommended: One green, SA.Ok, and Regular step names, the spec holds. Change with Q286.
+- Other: The board holds, the spec takes both.
+
+Q410. Rule column shows R471 on joint rows (Lane C 6C-3NOV-C, review 1, Lane A rule R471). 4 Check shows the id R471 as the Rule cell on the Floor rows, the most common kind, where docs/design/12-ui-spec.md line 94 says the plain name with the id as tooltip (RAN, shot p3-047). 14-ui-labels.md has no plain name for it.
+- Recommended: Lane A adds the plain name Ramp joint by the rule.
+- Other: Leave the id.
