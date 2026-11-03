@@ -4,10 +4,10 @@
 
 ### Lane A
 
-- Lane: A, round FIX-3NOV-A, branch fix/3nov-a. Time: 2026-11-03 08:18. Blocked: none
-- Done: FIX-2NOV-A3 merged PR 149, contract. Q371, Q373, Q377, Q378 closed by Bader. Breaker 1 found button 4 under rev6 stops and a saved past job moved to rev6, both fixed on the helper branch
-- Now: a helper builds R486 Empty project takes the shipped set and R487 no override list. It changes Install-SiteAdaptation.ps1, SetupSave and NewProjectViewModel
-- Next: proof 1,759 of 1,791, breaker 2, parity, Revit run through the listener, the PR
+- Lane: A, round FIX-3NOV-A, branch fix/3nov-a. Time: 2026-11-03 09:30. Blocked: none
+- Done: R484 to R487 on the branch, 1,759 of 1,791 by the shipped set, ROSHN byte-equal. Q371, Q373, Q377, Q378 closed by Bader
+- Now: parity on d251ff7, a helper fixes breaker 2: Save overrides refused on an empty list, two models of one name share a list, R487 tightened to rev6
+- Next: the gate, Revit run through the listener (machine to itself, lane-b and lane-c asked first), records, the PR
 
 ### Lane B, C and D
 
