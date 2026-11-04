@@ -5,7 +5,7 @@
    "key": "step1",
    "title": "1 Set up site",
    "line": "Sets position, levels, types and parameters",
-   "what": "Makes this model ready. It sets units, position, survey point, project base point, Level 1 and Level 2, floor types, wall types and the shared parameters. It sets only what differs. The position comes from a position file today, not from CAD, as the settings say (Q415).",
+   "what": "Makes this model ready. It sets units, position, survey point, project base point, Level 1 and Level 2, floor types, wall types and the shared parameters. It sets only what differs. A blank model with a baseplan named takes its position from CAD, and a saved past job stays on the position file.",
    "files": [
     "The project settings file. Project settings. From: The setup. Folder: C:\\SA-demo\\config",
     "The rules file. Rules and the site values. From: The setup. Folder: C:\\SA-demo\\rules",
