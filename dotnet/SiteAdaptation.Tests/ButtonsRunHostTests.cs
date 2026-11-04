@@ -55,7 +55,8 @@ namespace SiteAdaptation.Tests
             Assert.True(Read("{\"kind\": \"addinRun\", \"noTemplate\": true}").NoTemplate);
             Assert.Null(Read(Job).NoTemplate);
             string host = Text("dotnet", "SiteAdaptation.TestHost", "ButtonsRunHost.cs");
-            Assert.Contains("job.NoTemplate == true ? ui.Application.NewProjectDocument(UnitSystem.Imperial)", host);
+            Assert.Contains("job.NoTemplate == true ? ui.Application.NewProjectDocument(UnitSystem.Imperial) : ui.Application.NewProjectDocument(job.Template)", host);
+            Assert.Contains("job.NoTemplate == true ? \"made from no template and opened\" : \"made from the template and opened\"", host);
             Assert.Contains("$roundJob.noTemplate = [bool]$round.noTemplate", Text("dotnet", "SiteAdaptation.TestHost", "Run-TestHost.ps1"));
         }
 

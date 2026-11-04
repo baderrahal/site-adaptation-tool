@@ -218,7 +218,7 @@ namespace SiteAdaptation.Common.ReadData
             return RunLater.Done(message, issues, outputs);
         }
 
-        // CHOSEN by Code in Lane B 5c: a row of the plot table is a unit plot when the schedules give it an official number, the schedule
+        // CHOSEN by Code in Lane B 5c: a row of the plot table is a unit plot when UnitNumber gives it a number, R557, at first the schedule
         // unit of python/cad_rules.unit_plots, and its neighbourhood is its area key nbhId of R256, never an IM letter
         public static IEnumerable<ScopePlot> ScopePlots(JObject table)
         {

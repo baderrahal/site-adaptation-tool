@@ -10,7 +10,20 @@ namespace SiteAdaptation.Tests
     // R540. The file python/build_help.py builds, read as the add-in reads it. test_r540_help.py holds it equal to the guide
     public class R540_HelpBookTests
     {
-        // R558. Numbers of the Revit pass of 4 Nov at 133 percent, in window units: work area 1440 by 855, pane 607 to 1081, box 319 wide
+        // R558. A missing key of the theme throws nothing, it only leaves the window with no cap, as two windows stood until the review of 6b
+        [Fact]
+        public void R558_every_size_a_window_names_stands_in_the_theme()
+        {
+            string theme = File.ReadAllText(Addin("Theme", "Theme.xaml"));
+            var missing = Directory.GetFiles(Addin(), "*.xaml", SearchOption.AllDirectories)
+                .Where(file => !file.Contains(Path.DirectorySeparatorChar + "bin" + Path.DirectorySeparatorChar) && !file.Contains(Path.DirectorySeparatorChar + "obj" + Path.DirectorySeparatorChar))
+                .SelectMany(file => System.Text.RegularExpressions.Regex.Matches(File.ReadAllText(file), "(?:DynamicResource|StaticResource) (SA\\.Size\\.[A-Za-z0-9.]+)").Cast<System.Text.RegularExpressions.Match>())
+                .Select(match => match.Groups[1].Value).Distinct()
+                .Where(key => !theme.Contains("x:Key=\"" + key + "\"")).ToList();
+            Assert.Empty(missing);
+        }
+
+        // R558. Round numbers near the Revit pass of 4 Nov, in window units: a work area of 855 high and 1440 wide, a pane 607 to 1081, a box 319 wide
         [Theory]
         [InlineData(513.0, 912.0, 283.0, 0.0, 319.0)]
         [InlineData(558.0, 700.0, 283.0, 155.0, 319.0)]

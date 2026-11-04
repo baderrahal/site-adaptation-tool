@@ -326,7 +326,7 @@ namespace SiteAdaptation.Tests
 
         // R375. The units of the scope from the rows of the plot table, a second way: counted by hand from the rows written
         [Fact]
-        public void R375_a_unit_plot_of_the_plot_table_is_a_row_with_an_official_number_and_its_nbh_is_the_area_key()
+        public void R375_a_row_with_an_official_number_is_a_unit_and_its_nbh_is_the_area_key()
         {
             JObject table = Worker.Table();
             List<Common.Scope.ScopePlot> plots = ReadDataRun.ScopePlots(table).ToList();
