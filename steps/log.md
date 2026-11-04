@@ -15,7 +15,8 @@ Checked:
 - Gate on both runners and pytest, CI. Parity skipped, no plan or Excel number. Revit, RAN by the test host under a locked screen, 3.6 minutes: a blank copy shows the line and with no source Apply stays off
 
 Remains:
-- Not seen in Revit: Apply from CAD, typed, the move stop on the copy of SA-dryrun3nov.rvt and the real window. Runs follow on main
+- Revit on main, RAN: a blank model by the test host took CAD by default and with a pick, typed values too, all committed, positionSource right, button 1 itself 20 to 45 s. The real window: the line, 5 of 5 check points at 0.00 mm, Apply. It showed Existing site file on a blank model and the side by side below the fold, both fixed after it, PR of the window
+- Not run: the move stop R523 on a real model, a buttons job with a key copy is refused at AddinRun.cs:83
 
 Known bugs:
 - The new project check has no sender in the add-in, so nothing asks it today (steps/latent.md)
