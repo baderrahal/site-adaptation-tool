@@ -95,6 +95,21 @@ namespace SiteAdaptation.Tests
             Assert.Null(SetUpPlanner.View(held, Target(), null).NoCoordinatesLine);
         }
 
+        // Seen in Revit on 4 Nov 2026: Save setup leaves the Settings entity, a sign, so the band said Existing site file above the plain line
+        [Fact]
+        public void R510_a_blank_model_with_saved_settings_is_no_existing_site_and_one_with_coordinates_is()
+        {
+            SiteState blank = Template();
+            blank.SettingsEntity = true;
+            SetUpSiteView view = SetUpPlanner.View(blank, Target(), null);
+            Assert.NotEmpty(view.Signs);
+            Assert.False(view.ExistingSite);
+            SiteState held = Template();
+            held.SettingsEntity = true;
+            held.Position = At;
+            Assert.True(SetUpPlanner.View(held, Target(), null).ExistingSite);
+        }
+
         // The probe of 3 Nov 2026: a new project from the default metric template holds a place with its latitude and longitude and every position value at 0
         [Fact]
         public void R510_the_place_of_a_template_is_named_as_that_and_its_latitude_never_shows_as_the_site()

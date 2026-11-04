@@ -252,7 +252,8 @@ namespace SiteAdaptation.Common.SetUp
                 NoSourceLine = target.SourceProblem ?? (target.Cad != null && target.Cad.Systems.Stops.Count > 0 ? string.Join(". ", target.Cad.Systems.Stops) : null),
                 PositionSource = target.PositionSource,
             };
-            view.ExistingSite = view.Signs.Count > 0;
+            // R510. Save setup alone leaves the settings sign, so a blank model with nothing else of the tool is no site file
+            view.ExistingSite = view.NoCoordinatesLine == null ? view.Signs.Count > 0 : view.Signs.Any(sign => sign != SetUpTexts.SignSettings);
             view.Passing = view.CheckPoints.Count(row => row.Pass);
             view.Now = NowRows(now, target);
             view.WillSet = WillSetRows(now, target, changes);
