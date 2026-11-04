@@ -4,10 +4,10 @@
 
 ### Lane A
 
-- Lane: A, 4 Nov 03:25, branch fix/ramp-3nov-a. Blocked: Revit slot 2, TOPO-PROBE holds it, my window pass waits on the lock. Lane A has no window open
-- Done: PR 166 KNOWN, PR 171 COORD merged, button 1 from CAD and typed committed in Revit on a blank model by the test host. RAMP gate green
-- Now: window pass of button 1, starts when the slot frees, logs round_addin/logs/p3nova/revit/pass3. The screen is in use by it, Lane B waits for my window done
-- Next: install fix/ramp-3nov-a after Lane B's closed, buttons 1 to 5 on a copy for the step 5 count, then records, PR, merge
+- Lane: A, 4 Nov, branch fix/ramp-3nov-a. Blocked: none. No lock, no window
+- Done: PR 166, 171, 174. RAMP in Revit: new project 0 and 0, past job 2 overlaps. New callers in the PR
+- Now: the RAMP PR
+- Next: Lane done
 
 ### Lane B, C and D
 

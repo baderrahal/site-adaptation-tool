@@ -270,7 +270,8 @@ Do not click anywhere while the Revit box is open. A press waits behind it and f
 **Limits today.**
 
 - Q385 Accepted warnings return after a save.
-- Q398 The 443 hairline floor overlaps at step 5.
+- Q432 Two plot overlaps left after the pull.
+- Q439 A model built before the pull.
 - Q356 The off axis warning of a cut yard.
 - Q354 Yards of a model already built.
 

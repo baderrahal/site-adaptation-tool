@@ -5,7 +5,7 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 ## State
 
 - Lane D MASS-3NOV: R530. PARAM: R506 to R508. MASS: R500 to R504. FIX-2NOV-D: R490 to R493. 6B-DATA: R469. D3: R467, R468. FIX-1NOV-D: R460 to R466. 4j-1: R420 to R429
-- Lane A 4i to FIX-3NOV-A, one PR each: R407 to R416, R470 to R487. FIX-3NOV-A: R484 to R487. KNOWN: R520, R521. COORD: R510 to R514, R523
+- Lane A 4i to FIX-3NOV-A, one PR each: R407 to R416, R470 to R487. 3 Nov: R484 to R487, R510 to R518, R520, R521, R523
 - Lane B FIX-1NOV-B on 2026-11-01: masses as linked files (R450 to R453), coordinates from CAD (R454 to R456), proven in Revit on NBH 012
 - Lane B 6b: R556 to R558, steps/investigations/6b-revit.md. REPORT-3NOV-B: R550 to R555. Undo (R499). FIX-2NOV-B: R459
 - Lane B 6a on 31 Oct: NBH 012 through 1 to 9 from a new project, no click. 5d, PR 113: 5, 6, 8, 7 at the FFL. 5c, PR 111: 2, 3, 4, 7
@@ -51,7 +51,7 @@ shown. Q293 Approve the three drafts of SCAN-UI. Q294 Rules chosen in Set up sit
 proposal. Q301 The build takes the door level pick. Q302 Door level row under the past job. Q305 Hide Confirmed under the past job.
 Opened in FIX-1NOV-D, Lane D: Q330 Group of the key link parameters unread. Q331 Plot is no link parameter of the keys. Q332 FFL bound but never written.
 Q333 to Q335. Closed: Q155. D2: Q336, closed Q330. D3: Q337 to Q339, closed Q275. 6B-DATA: Q360 to Q363. FIX-2NOV-D: Q370 to Q374. MASS: Q390 to Q393, Q470, Q471, closed Q279, Q321, Q391, Q411.
-3NOV-A: Q379, Q394 to Q398. KNOWN: closed Q376, Q396, Q400. COORD: Q420. 6b: Q452 to Q456. 186 open, steps/questions-open.md. Q286, Q293: ui-shots/drafts-for-bader.md. Asks: waiting-on-others.md.
+Lane A 3 Nov: Q379, Q394 to Q397, Q420, Q430, Q432, Q433, Q436 to Q439. 6b: Q452 to Q456. 190 open, steps/questions-open.md. Q286, Q293: ui-shots/drafts-for-bader.md. Asks: waiting-on-others.md.
 
 ## Next three steps
 

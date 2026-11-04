@@ -754,7 +754,7 @@
       "entrySpots.radiiM": {"status": "UNKNOWN", "why": "no Q, no share, no Bader line and no CHOSEN mark"},
       "entrySpots.cornerM": {"status": "CHOSEN by Bader", "question": "Q104", "where": "steps/investigations/status-review.md table 1 row 5"},
       "entrySpots.bandsM": {"status": "CHOSEN by Bader", "question": "Q104", "where": "steps/investigations/status-review.md table 1 row 6"},
-      "floors.rampJoint.join": {"status": "RECOMMENDED", "question": "Q340", "where": "floors.rampJoint.note"},
+      "floors.rampJoint.join": {"status": "CHOSEN by Bader", "question": "Q340", "where": "floors.rampJoint.note"},
       "floors.rampJoint.nearM": {"status": "CHOSEN by Bader", "question": "Q342", "where": "floors.rampJoint.note"},
       "floors.rampJoint.passGapM": {"status": "CHOSEN by Bader", "question": "Q342", "where": "floors.rampJoint.note"},
       "floors.rampJoint.joinBack": {"status": "CHOSEN by Code", "where": "floors.rampJoint.note"},
@@ -975,6 +975,10 @@
       "designValues.rounding.heightDecimals": {"status": "UNKNOWN", "why": "no Q, no share, no Bader line and no CHOSEN mark"},
       "designValues.rounding.fflDecimals": {"status": "UNKNOWN", "why": "no Q, no share, no Bader line and no CHOSEN mark"},
       "designValues.rounding.bandDecimals": {"status": "UNKNOWN", "why": "no Q, no share, no Bader line and no CHOSEN mark"},
+      "coordinates.newProjectSource": {"status": "RECOMMENDED", "question": "Q415", "where": "coordinates.note"},
+      "coordinates.noCoordinatesLimitMm": {"status": "CHOSEN by Code", "where": "coordinates.note"},
+      "coordinates.noCoordinatesLimitDeg": {"status": "CHOSEN by Code", "where": "coordinates.note"},
+      "coordinates.typedOffBoxLimitM": {"status": "CHOSEN by Code", "where": "coordinates.note"},
       "coordinates.systems.UTM84-37N": {"status": "CHOSEN by Bader", "question": "Q325", "where": "Q325"},
       "coordinates.expectedEpsg": {"status": "CHOSEN by Bader", "question": "Q325", "where": "coordinates.note"},
       "coordinates.originRoundM": {"status": "RECOMMENDED", "question": "Q326", "where": "coordinates.note"},
@@ -986,11 +990,7 @@
       "coordinates.controlPointLimitMm": {"status": "RECOMMENDED", "question": "Q329", "where": "coordinates.note"},
       "coordinates.utmEastM": {"status": "CHOSEN by Code", "where": "coordinates.note"},
       "coordinates.utmNorthM": {"status": "CHOSEN by Code", "where": "coordinates.note"},
-      "coordinates.utmSouthNorthM": {"status": "CHOSEN by Code", "where": "coordinates.note"},
-      "coordinates.newProjectSource": {"status": "RECOMMENDED", "question": "Q415", "where": "coordinates.note"},
-      "coordinates.noCoordinatesLimitMm": {"status": "CHOSEN by Code", "where": "coordinates.note"},
-      "coordinates.noCoordinatesLimitDeg": {"status": "CHOSEN by Code", "where": "coordinates.note"},
-      "coordinates.typedOffBoxLimitM": {"status": "CHOSEN by Code", "where": "coordinates.note"}
+      "coordinates.utmSouthNorthM": {"status": "CHOSEN by Code", "where": "coordinates.note"}
     }
   }
 }

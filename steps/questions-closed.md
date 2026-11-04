@@ -393,3 +393,6 @@ Lane B numbered its questions QL1 upward from 28 Oct 2026. At the fold in of Rou
 | Q331 | Plot is no link parameter of the keys | Bader on Q411: Plot stays on Floors as the tool's own plot tag, R507 | 2026-11-03, MASS-3NOV-D |
 | Q333 | Categories beyond the link instances | Bader on Q411: the villa parameters bind on the links only, R507. The categories of the keys are not kept | 2026-11-03, MASS-3NOV-D |
 | Q440 | Rules table not yet proven in Revit | Proven in Revit by Lane B, real presses on a copy, past job: the wall top changed 778 walls and no other field, reset came back to the base. Ramp limit stays Q419 | 2026-11-04, R541 pass |
+| Q340 | The level of a joint an override moves | Bader's order of 3 Nov: shared corners take one level, the road level. On a new project, R470 joint on. A list with any entry turns it off (R516), see Q430, Q437. | 2026-11-04 |
+| Q341 | Back corners two ramps share | Bader's order of 3 Nov, 0 shared corners over 1 mm. CHOSEN by Code: road at front plus 0.5% over the depth, El @ Entry moves, R515. No road surface reaches a back corner, 0 of 270. See Q433. | 2026-11-04 |
+| Q398 | The 443 hairline floor overlaps at step 5 | Bader's order of 3 Nov. R517 pulls every floor in 2 mm. Revit, RAN, NBH 012: past job 2 two plot overlaps from 443, new project 0. See Q432. | 2026-11-04 |
