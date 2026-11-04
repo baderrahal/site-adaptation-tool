@@ -39,7 +39,10 @@ $tool = Get-ToolAddIns -Repo $repo -Addins $addins -StampFolder $stampFolder
 # SETUP-sign. The developer manifests are written for as long as this listener lives. Any error from here on takes them away before it
 # leaves the script, and the finally below does it when the listener ends, unless a run holds a stamp of its own
 trap {
-    [void](Remove-DevManifestsWhenFree $addins $stampFolder $PID)
+    # A trap covers the whole script, the lines above it too, where the stamp folder is not set and nothing was written, so the real error comes through
+    if ($stampFolder) {
+        [void](Remove-DevManifestsWhenFree $addins $stampFolder $PID)
+    }
     break
 }
 

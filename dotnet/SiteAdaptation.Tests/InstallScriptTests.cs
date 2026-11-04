@@ -392,6 +392,68 @@ namespace SiteAdaptation.Tests
             Assert.True(File.Exists(Path.Combine(addins, "SiteAdaptationPlacer", "SiteAdaptation.Placer.dll")));
         }
 
+        // SETUP-sign. A trap covers its whole script, so an early refusal enters the one of Run-TestHost.ps1 and Start-RevitListener.ps1 with no stamp folder set.
+        // The trap must do nothing then, and the real message of the refusal must be the one that comes out
+        [WindowsFact]
+        public void SETUP_sign_an_early_refusal_of_the_run_script_and_the_listener_gives_its_own_message()
+        {
+            var refusals = new[]
+            {
+                Tuple.Create("Run-TestHost.ps1", "", "Give -Code, or -DryStart for a start with no job."),
+                Tuple.Create("Start-RevitListener.ps1", "Remove-Item Env:SITE_ADAPTATION_WINDOW_SLOT -ErrorAction SilentlyContinue\n", "SITE_ADAPTATION_WINDOW_SLOT is not set"),
+            };
+            foreach (Tuple<string, string, string> refusal in refusals)
+            {
+                Tuple<int, string, string> run = PwshApart("$env:SITE_ADAPTATION_INPUT = $null\n" + refusal.Item2 + "& " + Quoted(HostFolderFile(refusal.Item1)));
+
+                Assert.NotEqual(0, run.Item1);
+                string all = run.Item2 + run.Item3;
+                Assert.Contains(refusal.Item3, all);
+                Assert.DoesNotContain("Join-Path", all);
+                Assert.DoesNotContain("Cannot bind argument", all);
+            }
+        }
+
+        // SETUP-sign. A process this user cannot read, or whose start time cannot be read, is not the one that wrote a stamp. The stamp goes and the
+        // run carries on, it never throws. The stubs stand for a process the user may not open
+        [WindowsFact]
+        public void SETUP_sign_a_stamp_of_an_unreadable_process_is_stale_and_removed_without_a_throw()
+        {
+            string repo = ThemeGateTests.RepoRoot();
+            string stamps = Path.Combine(root, "stamps");
+            Plant(Path.Combine(addins, "SiteAdaptationPlacer"), "SiteAdaptation.Placer.dll");
+            string stamp = Path.Combine(stamps, "777.stamp");
+            string script = string.Join("\n", new[]
+            {
+                "$ErrorActionPreference = 'Stop'",
+                ". " + Quoted(HostFolderFile("TestHostPaths.ps1")),
+                "New-Item -ItemType Directory -Force " + Quoted(stamps) + " | Out-Null",
+                "[void](Install-DevManifests " + Quoted(repo) + " " + Quoted(addins) + ")",
+                // The process exists but its start time throws, as Windows does for a process of another user
+                "function Get-Process { $o = [pscustomobject]@{ Id = 777 }\n $o | Add-Member -MemberType ScriptProperty -Name StartTime -Value { throw 'Access is denied' }\n $o }",
+                "Set-Content -LiteralPath " + Quoted(stamp) + " -Value '777 123'",
+                "'start time unreadable: ' + (Remove-DevManifestsWhenFree " + Quoted(addins) + " " + Quoted(stamps) + " 1)",
+                "'stamps left: ' + @(Get-ChildItem " + Quoted(stamps) + " -Filter *.stamp).Count",
+                // The process itself cannot be read
+                "function Get-Process { throw 'Access is denied' }",
+                "[void](Install-DevManifests " + Quoted(repo) + " " + Quoted(addins) + ")",
+                "Set-Content -LiteralPath " + Quoted(stamp) + " -Value '777 123'",
+                "'process unreadable: ' + (Remove-DevManifestsWhenFree " + Quoted(addins) + " " + Quoted(stamps) + " 1)",
+                "'stamps left: ' + @(Get-ChildItem " + Quoted(stamps) + " -Filter *.stamp).Count",
+            });
+
+            Tuple<int, string, string> run = PwshApart(script);
+
+            Assert.True(run.Item1 == 0, run.Item3 + run.Item2);
+            Assert.Equal(new[]
+            {
+                "start time unreadable: removed SiteAdaptationPlacer_Revit2024.addin",
+                "stamps left: 0",
+                "process unreadable: removed SiteAdaptationPlacer_Revit2024.addin",
+                "stamps left: 0",
+            }, Lines(run.Item2));
+        }
+
         // SETUP-sign. Get-ToolAddIns writes the manifests, so a throw after the write must take them and its stamp away before the error leaves
         [WindowsFact]
         public void SETUP_sign_get_tool_add_ins_leaves_no_manifest_and_no_stamp_when_it_throws_after_writing()

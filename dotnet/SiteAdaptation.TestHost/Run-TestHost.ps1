@@ -156,7 +156,10 @@ $tool = Get-ToolAddIns -Repo $repo -Addins $addins -StampFolder $stampFolder
 # SETUP-sign. From the write of the developer manifests on, any error takes them away before it leaves the script. The finally of the
 # run below does it too, for the part of the run it covers
 trap {
-    [void](Remove-DevManifestsWhenFree $addins $stampFolder $PID)
+    # A trap covers the whole script, the lines above it too, where the stamp folder is not set and nothing was written, so the real error comes through
+    if ($stampFolder) {
+        [void](Remove-DevManifestsWhenFree $addins $stampFolder $PID)
+    }
     break
 }
 $ourIds = $tool.ids

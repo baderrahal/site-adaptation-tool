@@ -252,8 +252,14 @@ function Test-DevManifestStampLive([string]$Path) {
     if ($parts.Count -ne 2) {
         return $false
     }
-    $process = Get-Process -Id ([int]$parts[0]) -ErrorAction SilentlyContinue
-    return [bool]($process -and $process.StartTime.ToUniversalTime().Ticks -eq [int64]$parts[1])
+    # A process this user cannot read, or whose start time cannot be read, is not the one that wrote the stamp, so the stamp is stale and goes
+    try {
+        $process = Get-Process -Id ([int]$parts[0]) -ErrorAction Stop
+        return [bool]($process.StartTime.ToUniversalTime().Ticks -eq [int64]$parts[1])
+    }
+    catch {
+        return $false
+    }
 }
 
 # Removes the stamp of this run, deletes the stamps of processes that are gone, and removes the developer manifests when no stamp of a live
