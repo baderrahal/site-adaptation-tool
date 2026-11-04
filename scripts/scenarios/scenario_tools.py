@@ -113,7 +113,7 @@ def styled(number):
 
 
 # A line of an MTEXT holding only a number: after a format code or a line break, up to the next line break or the closing brace
-MTEXT_NUMBER = re.compile(r"(?:(?<=\\P)|(?<=;)|(?<=\{))(\d+[A-Za-z]?)(?=\\P|\}|\s*$)")
+MTEXT_NUMBER = re.compile(r"(?:(?<=\\P)|(?<=\x3B)|(?<=\{))(\d+[A-Za-z]?)(?=\\P|\}|\s*$)")
 
 
 def style_text(numbers):
