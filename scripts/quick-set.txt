@@ -1,0 +1,9 @@
+# The quick tests of scripts/quick-tests.ps1, about 3 minutes. Left out: test_repo_rules, test_rule_status and test_harness, which take
+# over 20 of the 26 minutes of pytest locally, and the worker time limit tests of R347, which fail under load (steps/latent.md). GitHub runs all of them.
+pytest python/tests/test_parity.py
+pytest python/tests/test_records.py
+pytest python/tests/test_build_steps.py
+pytest python/tests/test_level_floor_steps.py
+pytest python/tests/test_override_param_steps.py
+pytest scripts/checks/test_checks.py
+dotnet-filter FullyQualifiedName!~WorkerRunTests
