@@ -171,6 +171,7 @@ READS = [
     "python -m py_compile python/place_codes.py",
     'python -m pytest python/tests -k "start and revit"',
     "cmd /c dir *.rvt",
+    'pwsh -NoProfile -File scripts/status.ps1 -Note "open each lane, start revit-test again"',
     'pwsh -NoProfile -Command "Get-Process Revit"',
 ]
 

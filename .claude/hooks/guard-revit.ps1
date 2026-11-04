@@ -40,7 +40,8 @@ function Get-RevitUse([string]$Command) {
     $readers = '^(grep|rg|cat|sed|awk|head|tail|less|ls|dir|find|wc|echo|printf|git|gh|type|write-output|write-host|get-content|gc|select-string|sls|test-path|get-childitem|gci|get-item|get-process|gps|stop-process|taskkill|tasklist|code|notepad)$'
     $launchers = '^(start-process|saps|start|invoke-item|ii|explorer)(\.exe)?$'
     $shells = '^(cmd|pwsh|powershell|bash|sh)(\.exe)?$'
-    $inShell = '(?i)revit\.exe|\b(start-process|saps|start|invoke-item|ii)\b.*(\brevit\b|\.rvt\b)'
+    # Only the command a shell is handed to run, not the file or the note it is given, so a status note that names a lane passes
+    $inShell = '(?i)\s(-c|-command|/c)\s.*(revit\.exe|\b(start-process|saps|start|invoke-item|ii)\b.*(\brevit\b|\.rvt\b))'
     $scripts = '(?i)\b(run-testhost|run-parallel|start-revitlistener)\b|\bpython\S*\s+(\S*[\\/])?place_codes\.py\b'
     $use = ''
     # The text of a heredoc is a message or a file, not a command
