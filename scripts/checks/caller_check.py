@@ -65,10 +65,11 @@ def failures_of(functions, body, call_count):
     return failures
 
 
-def code_of(line):
-    """A line with its strings and its trailing comment taken out, empty for a comment line."""
+def code_of(line, path):
+    """A line with its strings and its trailing comment taken out, empty for a comment line. A call only inside an interpolated
+    string reads as none, which fails loud, so the PR moves it or says framework on its Callers line."""
     text = re.sub(r"\"(?:[^\"\\]|\\.)*\"|'(?:[^'\\]|\\.)*'", "", line)
-    text = re.split(r"//|#", text)[0]
+    text = text.split("//" if path.lower().endswith(".cs") else "#")[0]
     return "" if text.lstrip().startswith(("*", "/*")) else text
 
 
@@ -81,7 +82,7 @@ def count_uses(grep_text, name):
         parts = line.split(":", 2)
         if len(parts) < 3 or is_test_path(parts[0]) or not parts[0].lower().endswith((".cs", ".py", ".xaml", ".ps1")):
             continue
-        body = parts[2] if parts[0].lower().endswith(".xaml") else code_of(parts[2])
+        body = parts[2] if parts[0].lower().endswith(".xaml") else code_of(parts[2], parts[0])
         if not re.search(r"\b%s\b" % word, body):
             continue
         if re.search(r"\bdef\s+%s\b" % word, body):

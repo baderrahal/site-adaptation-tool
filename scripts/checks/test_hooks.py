@@ -149,6 +149,8 @@ STARTS = [
     r"Start-Process C:\SA-demo\copy.rvt",
     r"Invoke-Item 'C:\SA-demo\copy.rvt'",
     r"C:\Autodesk\revit",
+    r"""pwsh -c "& 'C:\Autodesk\Revit.exe' a.rvt" """,
+    "cmd /c start Revit",
 ]
 READS = [
     'tasklist | grep -i -E "python|Revit|acad"',
@@ -165,6 +167,11 @@ READS = [
     "Get-Process | Where-Object { $_.Path -like '*Revit.exe' }",
     "cp a.rvt b.rvt",
     r"C:\Git\usr\bin\grep.exe Revit.exe a.txt",
+    "python -m pytest python/tests/test_round16.py -k place_codes",
+    "python -m py_compile python/place_codes.py",
+    'python -m pytest python/tests -k "start and revit"',
+    "cmd /c dir *.rvt",
+    'pwsh -NoProfile -Command "Get-Process Revit"',
 ]
 
 

@@ -38,8 +38,10 @@ function Split-Segments([string]$Command) {
 # 'start' when the command opens Revit, 'job' when it sends a job to a Revit already open, else empty
 function Get-RevitUse([string]$Command) {
     $readers = '^(grep|rg|cat|sed|awk|head|tail|less|ls|dir|find|wc|echo|printf|git|gh|type|write-output|write-host|get-content|gc|select-string|sls|test-path|get-childitem|gci|get-item|get-process|gps|stop-process|taskkill|tasklist|code|notepad)$'
-    $launchers = '(?i)\b(start-process|saps|start|invoke-item|ii|cmd|explorer)\b.*(\brevit(\.exe)?\b|\.rvt\b)'
-    $scripts = '(?i)\b(run-testhost|run-parallel|start-revitlistener|place_codes)\b'
+    $launchers = '^(start-process|saps|start|invoke-item|ii|explorer)(\.exe)?$'
+    $shells = '^(cmd|pwsh|powershell|bash|sh)(\.exe)?$'
+    $inShell = '(?i)revit\.exe|\b(start-process|saps|start|invoke-item|ii)\b.*(\brevit\b|\.rvt\b)'
+    $scripts = '(?i)\b(run-testhost|run-parallel|start-revitlistener)\b|\bpython\S*\s+(\S*[\\/])?place_codes\.py\b'
     $use = ''
     # The text of a heredoc is a message or a file, not a command
     $Command = $Command -replace '(?s)<<-?\s*[''"]?(\w+)[''"]?.*?\n\s*\1\b', ''
@@ -51,7 +53,8 @@ function Get-RevitUse([string]$Command) {
         $name = ($first.Trim('"', "'") -split '[\\/]')[-1].ToLowerInvariant()
         if ($name -match '^revit(\.exe)?$' -or $name -match '\.rvt$') { return 'start' }
         if ($name -match $readers) { continue }
-        if ($text -match $launchers) { return 'start' }
+        if ($name -match $launchers -and $text -match '(?i)\brevit(\.exe)?\b|\.rvt\b') { return 'start' }
+        if ($name -match $shells -and $text -match $inShell) { return 'start' }
         if ($text -match $scripts) { return 'start' }
         if ($text -match '(?i)dotnet\s+test\b.*revittests?\b') { return 'start' }
         if ($text -match '(?i)\bsend-revitjob\b') { $use = 'job' }

@@ -12,6 +12,7 @@ import holdout
 import revit_result
 import rules_docs
 import source_tags
+import test_folder
 
 ROOT = check_common.ROOT
 
@@ -175,6 +176,11 @@ def test_caller_check_a_comment_a_string_or_a_declaration_is_no_use():
     assert caller_check.count_uses(grep + "\ndotnet/A.xaml:9:<Button Click=\"thing\"/>", "thing") == 1
 
 
+def test_caller_check_python_floor_division_is_no_comment():
+    assert caller_check.count_uses("python/b.py:1:half = a // thing(b)", "thing") == 1
+    assert caller_check.count_uses("dotnet/B.cs:1:int a = 1 // thing(b)", "thing") == 0
+
+
 def test_caller_check_the_revit_test_project_is_test_code():
     assert caller_check.is_test_path("dotnet/SiteAdaptation.RevitTests/FloorCount.cs")
     assert not caller_check.is_test_path("dotnet/SiteAdaptation.Common/A.cs")
@@ -305,3 +311,31 @@ def test_workflow_has_a_job_named_tests_on_windows():
     text = (ROOT / ".github" / "workflows" / "tests.yml").read_text(encoding="utf-8")
     assert re.search(r"^  tests:\n(?:.*\n)*?    runs-on: windows-latest$", text, flags=re.MULTILINE)
     assert "ready_for_review" in text
+    # A fix to the PR body must start the job, folder rules and the caller check read the body
+    assert re.search(r"types: \[[^\]]*\bedited\b", text)
+    # The job tests the merge with main, a checkout of the head alone reads green on a stale PR
+    assert "head.sha" not in text
+
+
+def run_folder(tmp_path, capsys, body):
+    if body is not None:
+        (tmp_path / "test_x.py").write_text(body, encoding="utf-8")
+    code = test_folder.main([str(tmp_path)])
+    return code, capsys.readouterr().out
+
+
+def test_test_folder_empty_is_not_run(tmp_path, capsys):
+    code, out = run_folder(tmp_path, capsys, None)
+    assert code == 0 and "NOT RUN" in out
+
+
+def test_test_folder_all_skipped_is_not_run(tmp_path, capsys):
+    code, out = run_folder(tmp_path, capsys, "import pytest\n\n\n@pytest.mark.skip(reason='later')\ndef test_a():\n    pass\n")
+    assert code == 0 and "NOT RUN" in out and "PASS" not in out
+
+
+def test_test_folder_pass_and_fail(tmp_path, capsys):
+    code, out = run_folder(tmp_path, capsys, "def test_a():\n    pass\n")
+    assert code == 0 and "PASS" in out
+    code, out = run_folder(tmp_path, capsys, "def test_a():\n    assert False\n")
+    assert code == 1 and "FAIL" in out
