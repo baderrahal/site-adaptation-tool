@@ -35,6 +35,9 @@ namespace SiteAdaptation.Common.Settings
 
                 // R484. A saved project keeps its own mode
                 ProjectMode = job.ProjectMode,
+
+                // R574. A tick of the job as the dry run tick is
+                RoadTopography = job.RoadTopography,
             };
             foreach (string name in Inputs)
             {
@@ -79,6 +82,7 @@ namespace SiteAdaptation.Common.Settings
             into.RoadSurfaces = read.RoadSurfaces;
             // R484. As the pick, a pre-setting with no mode leaves the mode of the project to its config
             into.ProjectMode = read.ProjectMode;
+            into.RoadTopography = read.RoadTopography;
             foreach (string name in Inputs)
             {
                 if (read.Inputs.TryGetValue(name, out SettingsInput input))

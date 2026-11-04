@@ -41,6 +41,36 @@ namespace SiteAdaptation.Common.Floors
         ParameterWrite WriteText(string uniqueId, string name, string value);
 
         void Tag(string uniqueId, PlacedTag tag);
+
+        // R572. The toposolids that carry a tag, for FloorsRun to tell its own from another
+        IReadOnlyList<ToposolidElement> Toposolids();
+
+        // R572. Makes one toposolid of the type of the name, duplicated from a type the document holds when missing. The boundary lies flat
+        // on the level, the points carry the levels, all internal metres. Called in the transaction of its own that FloorsRun starts after
+        // the floors committed, which a throw rolls back
+        ToposolidMade CreateToposolid(IList<double[]> boundary, IList<double[]> points, string typeName, string levelKey);
+
+        void DeleteToposolid(string uniqueId);
+
+        // R573. Every face of the toposolid as triangles, nine numbers each, internal metres, what RoadTopography.ReadBack reads the top from
+        double[] ToposolidTriangles(string uniqueId);
+    }
+
+    // R572. A toposolid of the document with its tag of R368
+    public sealed class ToposolidElement
+    {
+        public string UniqueId { get; set; }
+        public PlacedTag Tag { get; set; }
+
+        // What a replace would take with it, told in its line
+        public int SubDivisions { get; set; }
+    }
+
+    // R572. The toposolid made, and the type its type was duplicated from, null when the document held the type by its name
+    public sealed class ToposolidMade
+    {
+        public string UniqueId { get; set; }
+        public string TypeDuplicatedFrom { get; set; }
     }
 
     public sealed class FloorElement
@@ -81,6 +111,9 @@ namespace SiteAdaptation.Common.Floors
 
         // R459. The warnings the transaction of the run takes without showing them, null for none
         public Flow.KnownWarningList KnownWarnings { get; set; }
+
+        // R572. Reads the settings and the surface of the toposolid, called only once a run needs them, null when the tick is off
+        public Func<RoadSurfaceRead> RoadTopography { get; set; }
     }
 
     // R379. What one run of button 6 reads: the floors of button 5 and what the worker command levelExcel takes

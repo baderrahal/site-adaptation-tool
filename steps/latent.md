@@ -597,3 +597,9 @@ RAMP-3NOV-A, review and breaker, no real input reaches these:
 - A 2% unit whose only back partner lies outside the build: 0 plots differ on NBH 012 and 5 TU zones against the whole, ima and imb not compared.
 - A partner the plan never writes sets a written plot's slope: 14 back joints, no level moves today.
 - A corner past maxMitreM stays unpulled, largest real move 3.162 mm against 10 mm.
+
+## Lane D TOPO-3NOV-D, breaker 1, 4 Nov 2026
+
+- RoadTopography: a scope with no ramp passes with no row, nothing proven. RoadTopographySettings.Number takes any range, a gap of 0 or a margin under 0 needs a hand edit. Grow mitres a sharp hull corner far out, NBH 012 matches shapely's limited mitre with no difference.
+- FloorsRun: a surface delegate giving null ends in a null error line, and a plan with no NBH runs as all. FloorLoad.RoadSurface: a config path gone from disk ends in the plain file error, as an issue line.
+- RevitFloorDocument.CreateToposolid duplicates the first type whatever its thickness, the report names it (R572).

@@ -35,6 +35,27 @@ namespace SiteAdaptation.Tests
         public readonly List<string> Calls = new List<string>();
         public bool RefusePlot;
 
+        // R572. A toposolid of the fake, with what it was made from
+        public sealed class Solid
+        {
+            public string UniqueId;
+            public string TypeName;
+            public string LevelKey;
+            public List<double[]> Boundary = new List<double[]>();
+            public List<double[]> Points = new List<double[]>();
+            public PlacedTag Tag;
+            public int SubDivisions;
+        }
+
+        public readonly List<Solid> Solids = new List<Solid>();
+
+        // The refusal Revit gives, null for none
+        public string RefuseToposolid;
+        public string RefuseTriangles;
+
+        // The top of a toposolid by internal x and y, a plane in the tests, null for one with no geometry to read
+        public Func<double, double, double> TopLevel;
+
         // Metres added to every read back, a model that does not hold what was set
         public double Drift;
         private int next;
@@ -120,7 +141,73 @@ namespace SiteAdaptation.Tests
 
         public void Tag(string uniqueId, PlacedTag tag)
         {
+            Solid solid = Solids.FirstOrDefault(item => item.UniqueId == uniqueId);
+            if (solid != null)
+            {
+                solid.Tag = tag;
+                return;
+            }
             Of(uniqueId).Tag = tag;
+        }
+
+        public IReadOnlyList<ToposolidElement> Toposolids()
+        {
+            return Solids.Select(solid => new ToposolidElement { UniqueId = solid.UniqueId, Tag = solid.Tag, SubDivisions = solid.SubDivisions }).ToList();
+        }
+
+        // The type a missing type is duplicated from, null when the document holds the type by its name
+        public string DuplicatedFrom;
+
+        public ToposolidMade CreateToposolid(IList<double[]> boundary, IList<double[]> points, string typeName, string levelKey)
+        {
+            Calls.Add("toposolid");
+            if (RefuseToposolid != null)
+            {
+                throw new InvalidOperationException(RefuseToposolid);
+            }
+            var solid = new Solid { UniqueId = "solid-" + (++next).ToString(CultureInfo.InvariantCulture), TypeName = typeName, LevelKey = levelKey, Boundary = boundary.ToList(), Points = points.ToList() };
+            Solids.Add(solid);
+            return new ToposolidMade { UniqueId = solid.UniqueId, TypeDuplicatedFrom = DuplicatedFrom };
+        }
+
+        public void DeleteToposolid(string uniqueId)
+        {
+            Calls.Add("delete " + uniqueId);
+            Solids.RemoveAll(solid => solid.UniqueId == uniqueId);
+        }
+
+        // A top and an underside 1 m below it over the box of the boundary, as the faces of a solid are both read
+        public double[] ToposolidTriangles(string uniqueId)
+        {
+            Calls.Add("triangles");
+            if (RefuseTriangles != null)
+            {
+                throw new InvalidOperationException(RefuseTriangles);
+            }
+            if (TopLevel == null)
+            {
+                return new double[0];
+            }
+            List<double[]> boundary = Solids.Single(solid => solid.UniqueId == uniqueId).Boundary;
+            double west = boundary.Min(point => point[0]), east = boundary.Max(point => point[0]), south = boundary.Min(point => point[1]), north = boundary.Max(point => point[1]);
+            var found = new List<double>();
+            foreach (double drop in new[] { 1.0, 0.0 })
+            {
+                foreach (double[] triangle in new[] { new[] { west, south, east, south, east, north }, new[] { west, south, east, north, west, north } })
+                {
+                    for (int corner = 0; corner < 3; corner++)
+                    {
+                        double x = triangle[corner * 2], y = triangle[corner * 2 + 1];
+                        found.AddRange(new[] { x, y, TopLevel(x, y) - drop });
+                    }
+                }
+            }
+            return found.ToArray();
+        }
+
+        public static PlacedTag ToposolidTag(string nbh, string placedId)
+        {
+            return new PlacedTag(PlacedSchema.Latest.Version, new TagKey(nbh, RoadTopography.Kind, ""), "old", "parsons2024Rev6", placedId, new PlacedValues(new Dictionary<string, double[]>()));
         }
 
         public Floor Of(string uniqueId)

@@ -18,7 +18,10 @@ namespace SiteAdaptation.Common.Tags
         public const string Yard = "yard";
         public const string Ramp = "ramp";
         public const string BoundaryWall = "boundaryWall";
-        public static readonly string[] All = { Link, Generic, Yard, Ramp, BoundaryWall };
+
+        // R572. The toposolid of one NBH, its plot field holds the NBH
+        public const string Toposolid = "toposolid";
+        public static readonly string[] All = { Link, Generic, Yard, Ramp, BoundaryWall, Toposolid };
     }
 
     // One version of the schema SiteAdaptation_Placed, its GUID, name and field names, all strings

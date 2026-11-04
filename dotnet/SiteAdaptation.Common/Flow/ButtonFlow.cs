@@ -357,6 +357,7 @@ namespace SiteAdaptation.Common.Flow
                 try
                 {
                     context.Transaction = transaction;
+                    context.Model = model;
                     issues.AddRange(body.Apply(context) ?? new string[0]);
                     timing?.NextStep(RunTiming.ReadBackStep, RunTiming.Reading);
                     string difference = body.ReadBack == null ? null : body.ReadBack(context);
@@ -406,6 +407,7 @@ namespace SiteAdaptation.Common.Flow
                 {
                     issues.Add("after the commit: " + failure.Message);
                 }
+                issues.AddRange(context.IssuesAfterCommit);
             }
 
             timing?.NextStep(RunTiming.OutputsStep);

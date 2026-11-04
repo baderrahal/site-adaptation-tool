@@ -199,6 +199,25 @@
     "STR": {"source": "00_Revit Models\\Zone 02\\STR\\Prototypes", "target": "00_Revit Models\\Zone 02\\ARC\\Prototypes_2024\\STR", "discipline": "STR", "codePrefix": "S"}
   },
   "floors": {
+    "roadTopography": {
+      "note": "R570 to R573, round TOPO-3NOV-D. Button 5 makes one Revit toposolid per NBH from one road surface when the tick Road topography of step 5 is on (R574), read by RoadTopographySettings. All CHOSEN by Code, Bader decides typeName is CHOSEN by Code. surface is CHOSEN by Code. marginM is CHOSEN by Code. limitMm is CHOSEN by Code on the target of Bader of 3 Nov 2026. acceptWarnings is CHOSEN by Code",
+      "typeName": "Road surface",
+      "typeNameWhy": "The toposolid type by name, so a project names its own. Button 5 duplicates a type of the model under this name when the model has none",
+      "surface": "Makkah Phase 1_Road Surface C3D__Top Surface-02",
+      "surfaceWhy": "The first of designBasis.roadLevel.surfaces, the surface most ramp road corners take their level from (R491). The build must have read it, so a pick of road surfaces without it stops the toposolid with a line and not the floors",
+      "marginM": 5.0,
+      "marginMWhy": "The convex hull of the plots stops at the plot lines, and the road edges of the ramps lie on them. 5 m takes in the road in front of them, and more only adds road of the next NBH",
+      "limitMm": 5.0,
+      "limitMmWhy": "The target of Bader of 3 Nov 2026: a ramp road edge meets the toposolid within 5 mm. A larger difference is counted and listed, it stops nothing",
+      "minCoverShare": 0.5,
+      "minCoverShareWhy": "Under this share of the ramp road edge points on the surface, the surface does not cover the scope and no toposolid is made. NBH 012 holds all 1008 points on it, half tells a surface of another part of the site from a few plots off it",
+      "pointGapM": 0.01,
+      "pointGapMWhy": "Two points this near are one, and a boundary corner this near the last is dropped, since Revit refuses a curve under about 0.8 mm and two levels a few mm apart in plan only make a spike",
+      "acceptWarnings": ["Highlighted toposolid and floor overlap."],
+      "acceptWarningsWhy": "R575. Revit said it 782 times at the commit of NBH 012 and stopped the press at its box, with no floor cut or changed. Words not named here still show",
+      "maxPoints": 10000,
+      "maxPointsWhy": "Thinning starts over this count. RevitAPI.xml 2024 names no limit of points on a toposolid, 10000 is the count Revit is known to warn of on a toposurface, NBH 012 holds 95177 points after pointGapM, and the Revit run of the round checks it"
+    },
     "rampJoint": {"note": "R470, R471, R515, R516, R518. Ramp corners of two plots within nearM in plan are one joint and hold one level while join is true, under the design basis modes of modes and only when the applied override list holds no entry of the job, a new project (R516). A front joint takes the road level taken once at the joint. With joinBack a back joint takes one level as well and each plot with a shared back corner has its door level at the road at front plus slopePercent over the ramp depth, as no road surface reaches a back corner. join true by Bader, 3 Nov 2026, round RAMP-3NOV-A (Q340). nearM 0.005 by Bader, 3 Nov 2026 (Q342). joinBack true is CHOSEN by Code on the order of 3 Nov 2026. slopePercent 0.5 is CHOSEN by Code on the order of 3 Nov 2026. modes holds rev6 alone, CHOSEN by Code, since the past job measures its levels from the keys, which do not level their corners, and its proof breaks with the joint on. The check row of a joint passes at a gap of at most passGapM. passGapM by Bader, Q342. checkNearM CHOSEN by Code (R518), the pull of plotPull moves two shared corners up to 12 mm apart and on the whole project no two corners of the rule stand between 5 and 12 mm", "join": true, "nearM": 0.005, "passGapM": 0.001, "joinBack": true, "slopePercent": 0.5, "modes": ["rev6"], "checkNearM": 0.012},
     "plotPull": {"note": "R517. Every floor of a plot stands inside its outline by pullM, so the floors of two plots lap on no 1 mm grid and step 5 shows no hairline overlap. 2 mm is what a yard needs, the clipper leaves a yard corner up to 1.34 mm past its face where a yard edge runs within 0.011 degrees of a face edge, on top of a lap of plot faces of up to 0.8 mm. pullM 0.002 is CHOSEN by Code on the order of 3 Nov 2026, a Revit probe on a copy of NBH 012 proves it. maxMitreM 0.01 is CHOSEN by Code, a corner whose mitre runs past it stays unpulled, as a near spike would move far from a small pull, the largest move of a real ring is 3.2 mm", "pullM": 0.002, "maxMitreM": 0.01},
     "types": {

@@ -176,7 +176,63 @@ namespace SiteAdaptation.AddIn.Revit
 
         public void Tag(string uniqueId, PlacedTag tag)
         {
-            tags.Write(FloorOf(uniqueId), tag);
+            // R572. A toposolid carries a tag too and is no Floor
+            tags.Write(document.GetElement(uniqueId) ?? throw new InvalidOperationException("element " + uniqueId + " is not in the document"), tag);
+        }
+
+        public IReadOnlyList<ToposolidElement> Toposolids()
+        {
+            return tags.Collect().Where(item => item.Key is Toposolid).GroupBy(item => item.Key.UniqueId, StringComparer.Ordinal)
+                .Select(group => new ToposolidElement { UniqueId = group.Key, Tag = group.OrderByDescending(item => item.Value.Version).First().Value, SubDivisions = ((Toposolid)group.First().Key).GetSubDivisionIds().Count }).ToList();
+        }
+
+        // R572. Toposolid.Create(Document, IList<CurveLoop>, IList<XYZ>, ElementId, ElementId) of RevitAPI.dll 2024, in the transaction of its
+        // own that FloorsRun starts after the floors committed. No regenerate here, the commit does it and takes its failure back alone
+        public ToposolidMade CreateToposolid(IList<double[]> boundary, IList<double[]> points, string typeName, string levelKey)
+        {
+            var loop = new CurveLoop();
+            for (int corner = 0; corner < boundary.Count; corner++)
+            {
+                loop.Append(Line.CreateBound(Feet(boundary[corner]), Feet(boundary[(corner + 1) % boundary.Count])));
+            }
+            List<ToposolidType> types = new FilteredElementCollector(document).OfClass(typeof(ToposolidType)).Cast<ToposolidType>().ToList();
+            ToposolidType named = types.FirstOrDefault(type => type.Name == typeName);
+            ToposolidType from = named == null ? types.FirstOrDefault() ?? throw new InvalidOperationException("the document holds no toposolid type to duplicate for " + typeName) : null;
+            ElementId typeId = named != null ? named.Id : from.Duplicate(typeName).Id;
+            Toposolid made = Toposolid.Create(document, new List<CurveLoop> { loop }, points.Select(Feet).ToList(), typeId, Id(levelKey));
+            return new ToposolidMade { UniqueId = made.UniqueId, TypeDuplicatedFrom = from?.Name };
+        }
+
+        public void DeleteToposolid(string uniqueId)
+        {
+            Element element = document.GetElement(uniqueId) ?? throw new InvalidOperationException("toposolid " + uniqueId + " is not in the document");
+            document.Delete(element.Id);
+        }
+
+        public double[] ToposolidTriangles(string uniqueId)
+        {
+            Element element = document.GetElement(uniqueId) ?? throw new InvalidOperationException("toposolid " + uniqueId + " is not in the document");
+            var found = new List<double>();
+            foreach (GeometryObject item in element.get_Geometry(new Options { DetailLevel = ViewDetailLevel.Fine }))
+            {
+                if (!(item is Solid solid))
+                {
+                    continue;
+                }
+                foreach (Face face in solid.Faces)
+                {
+                    Mesh mesh = face.Triangulate();
+                    for (int triangle = 0; triangle < mesh.NumTriangles; triangle++)
+                    {
+                        MeshTriangle corners = mesh.get_Triangle(triangle);
+                        for (int corner = 0; corner < 3; corner++)
+                        {
+                            found.AddRange(Metres(corners.get_Vertex(corner)));
+                        }
+                    }
+                }
+            }
+            return found.ToArray();
         }
 
         private static FloorReadBack Read(Floor floor)

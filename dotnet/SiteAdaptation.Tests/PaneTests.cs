@@ -63,6 +63,24 @@ namespace SiteAdaptation.Tests
             Assert.Contains("no JSON object", Assert.Throws<InvalidDataException>(() => SettingsFile.Read("not json")).Message);
         }
 
+        [Fact]
+        public void R574_the_tick_of_the_pane_writes_the_settings_of_the_project()
+        {
+            PaneViewModel model = Model(new FakeProbe());
+            Assert.True(model.RoadTopography);
+            var session = new DocumentSession("s", Folder + "Site.rvt", "Site");
+            model.Load(session);
+            var changed = new List<string>();
+            model.PropertyChanged += (sender, args) => changed.Add(args.PropertyName);
+
+            Assert.True(model.RoadTopography);
+            model.RoadTopography = false;
+
+            Assert.False(session.Settings.Project.RoadTopography);
+            Assert.False(model.RoadTopography);
+            Assert.Contains(nameof(PaneViewModel.RoadTopography), changed);
+        }
+
         // Lane C NEWPROJ-UI, docs/design/boards/PaneFirst.dc.html: the box sets up the project in New project, the Setup row says Not done,
         // the inputs are filled from the setup and the steps after 4 stand in one row
         [Fact]

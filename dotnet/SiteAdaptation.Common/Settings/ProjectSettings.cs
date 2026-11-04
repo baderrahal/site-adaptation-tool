@@ -53,6 +53,15 @@ namespace SiteAdaptation.Common.Settings
 
         // R550. The fields of the report file name the user set, over addin.report.fileName of config, null until a pick
         public SortedDictionary<string, string> ReportFields { get; set; }
+
+        // R574. The tick Road topography of 5 Floors and ramps, on by default
+        public bool RoadTopography { get; set; } = true;
+
+        // R574. Left out of the JSON while on, so a file of a project that never took it off stays as it was and formatVersion stays 1
+        public bool ShouldSerializeRoadTopography()
+        {
+            return !RoadTopography;
+        }
     }
 
     public sealed class SettingsInput
