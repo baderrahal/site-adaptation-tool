@@ -64,6 +64,14 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
+        public void R574_only_the_real_row_of_step_5_has_the_tick()
+        {
+            PaneViewModel model = Model(new FakeProbe());
+            Assert.Equal(PaneViewModel.RoadTopographyStep, Assert.Single(model.Steps, step => step.HasRoadTick).Number);
+            Assert.DoesNotContain(model.FirstSteps, step => step.HasRoadTick);
+        }
+
+        [Fact]
         public void R574_the_tick_of_the_pane_writes_the_settings_of_the_project()
         {
             PaneViewModel model = Model(new FakeProbe());

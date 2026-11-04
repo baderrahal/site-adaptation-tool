@@ -97,6 +97,8 @@ The five panels and their buttons of 7.1 of docs/design/12-ui-spec.md, Bader's c
 - `Villa mode`
 - `Masses`
 - `Links`
+- `Road topography` CHOSEN, the tick under 5 Floors and ramps, text of Lane D (R574)
+- `Makes one toposolid for the NBH from the road surface and reports the level at each ramp road edge. Off leaves one that stands.` CHOSEN, its tooltip, text of Lane D (R574)
 - `Steps`
 - `Run them in order. Each one waits for the one before.`
 - `Coordinates, levels and types, set in step 1` CHOSEN, R543

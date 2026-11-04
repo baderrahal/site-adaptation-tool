@@ -81,6 +81,8 @@ namespace SiteAdaptation.AddIn.Pane
         public const string StepLine3 = "The team checks what was read";
         public const string StepLine4 = "Compares the rules with the past job";
         public const string StepLine5 = "Generic, yard and ramp floors";
+        public const string RoadTopography = "Road topography";
+        public const string RoadTopographyTip = "Makes one toposolid for the NBH from the road surface and reports the level at each ramp road edge. Off leaves one that stands.";
         public const string StepLine6 = "Sets FFL and entry levels";
         public const string StepLine7 = "Places a villa on each plot at its FFL";
         public const string StepLine8 = "Boundary walls";
