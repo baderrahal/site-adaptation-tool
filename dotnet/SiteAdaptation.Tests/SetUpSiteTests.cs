@@ -102,6 +102,23 @@ namespace SiteAdaptation.Tests
             });
         }
 
+        [Fact]
+        public void R512_cad_and_position_file_stands_above_the_lines_of_each_input()
+        {
+            OnSta(() =>
+            {
+                SetUpSiteView view = Shots.SampleSetUpView(true, true);
+                view.Waiting = new List<string> { "the lines of each input" };
+                SetUpSiteWindow window = Shots.LaidOutSetUp(view);
+                var body = (FrameworkElement)window.Content;
+                ScrollViewer scroll = Below<ScrollViewer>(body).First();
+                double compare = Below<TextBlock>(body).Single(text => text.Text == SetUpTexts.FileOriginToPlots).TransformToAncestor(scroll).Transform(new Point(0, 0)).Y;
+                double waiting = Below<TextBlock>(body).First(text => text.Text.Contains("the lines of each input")).TransformToAncestor(scroll).Transform(new Point(0, 0)).Y;
+
+                Assert.True(compare < waiting, compare + " against " + waiting);
+            });
+        }
+
         private static IEnumerable<T> Below<T>(DependencyObject parent) where T : DependencyObject
         {
             for (int at = 0; at < VisualTreeHelper.GetChildrenCount(parent); at++)
