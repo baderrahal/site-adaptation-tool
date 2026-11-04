@@ -726,6 +726,10 @@ Q419. Ramp slope limit does nothing under the past job (Lane C RULES-3NOV-C, R54
 - Recommended: Keep it in the table and let the row say Rev 06 only, in Part 2.
 - Other: Hide the two rows under the past job.
 
+Q441. Order of the raw input changes (Lane C TRUTH-4NOV-C). The tool stops with no past output, steps/truth-audit.md section 5.
+- Recommended: Truth first, short list 7, 5, 11, then 1, 2, then 3, 4, 6.
+- Other: 1 and 2 first.
+
 Q450. Report defaults of old number, revision, status (Lane B, R550, R552). CHOSEN: Old Plot No. is baseplanLabel of plots.csv, v9PlotNumber differs, revision P01, status S0.
 - Recommended: keep these, addin.report in config changes them.
 - Other: name the column and codes.

@@ -2,6 +2,30 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Lane C TRUTH-4NOV-C, 2026-11-04, what was computed and what was copied
+
+Goal:
+- Answer the managers with facts: what the tool computes and what it copies from the past job. Read only
+
+Done:
+- steps/truth-audit.md and steps/questions-for-bader-4nov.md, 197 questions, 9 changed, 20 affected, none closed
+
+Checked:
+- 13 read helpers. Worker steps 2 and 4 on copies in truth_4nov, 43 originals, 0 changed. Plan counts by script, a sample opened by hand. Revit not used. Most line numbers not rechecked
+
+Remains:
+- Tool does not run from raw inputs: step 2 stops with no schedule, step 4 with no plots.csv or keyRules. 322 of 336 plots took past values in the dry run
+
+Known bugs:
+- BW thickness not set. Report prints past shares on a new project. Q439 fallback model stops at step 5. None fixed, this round changes no code
+
+Next:
+- Bader answers Q441
+
+Your turn:
+- Opened: Q441 Order of the raw input changes. Closed: none
+- Open count and titles: steps/questions-open.md
+
 ## Lane C ROAD-TICK, 2026-11-04, the tick of Lane D in the pane
 
 Goal:
