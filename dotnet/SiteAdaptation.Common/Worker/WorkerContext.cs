@@ -30,12 +30,14 @@ namespace SiteAdaptation.Common
         private readonly Func<double?> freeMiB;
         private readonly Func<double?> privateMiB;
         private readonly List<KeyValuePair<string, string>> written = new List<KeyValuePair<string, string>>();
+        private readonly List<WorkerOpened> opened;
 
         internal WorkerContext(WorkerRequest request, WorkerAnswer answer, AddinConfig config, Func<double?> freeMiB, Func<double?> privateMiB)
         {
             Request = request;
             Issues = answer.Issues;
             Counts = answer.Counts;
+            opened = answer.Opened;
             this.config = config;
             this.freeMiB = freeMiB;
             this.privateMiB = privateMiB;
@@ -77,6 +79,24 @@ namespace SiteAdaptation.Common
                 }
             }
             return input.Path;
+        }
+
+        // R600. A file a command found by itself in a folder the request names, such as a drawing of the scan folder of dataCheck. The free
+        // memory is held against the measured peak of the file as for an input, its name, size, write time and SHA-256 are recorded in the
+        // answer before the read and again after the command, so the guard of D19 holds per file. Gives null and the mark taken now, or the
+        // reason the file is not read, which the command records and carries on. peakRole is the role of addin.workerPeakMiB whose measured
+        // peaks the memory check scales to the size of the file, the role of the file when it is null
+        public string OpenFile(string role, string path, out InputMark before, string peakRole = null)
+        {
+            before = null;
+            string refusal = WorkerRunner.MemoryRefusal(new WorkerFile { Role = peakRole ?? role, Path = path }, config, freeMiB);
+            if (refusal != null)
+            {
+                return refusal;
+            }
+            before = InputGuard.Mark(path);
+            opened.Add(new WorkerOpened { Role = role, Path = path, Sha256Before = before.Sha256, SizeBefore = before.Size, WriteTimeBefore = before.WriteTimeUtc });
+            return null;
         }
 
         // R484. The settings of the config of this run under the project mode of its request, the one way a command loads them

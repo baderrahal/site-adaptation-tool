@@ -53,6 +53,13 @@ namespace CadReader
         // the scan result
         public static JObject Inventory(CadDocument document, string name, string path, long size, string sha256, int pairMinSegments, int pairThreads, double pairTimeCapS, Action<string> log)
         {
+            return Inventory(document, name, path, size, sha256, pairMinSegments, pairThreads, pairTimeCapS, log, false);
+        }
+
+        // R600. withHand adds to each insert whether it is drawn mirrored, which the data check reads as the mirror of a plot. Off, the
+        // result is the bytes of R420 and the scan file is unchanged
+        public static JObject Inventory(CadDocument document, string name, string path, long size, string sha256, int pairMinSegments, int pairThreads, double pairTimeCapS, Action<string> log, bool withHand)
+        {
             var clock = System.Diagnostics.Stopwatch.StartNew();
             Action<string> stage = what => { log?.Invoke(name + " | " + what + " | " + clock.Elapsed.TotalSeconds.ToString("F1", CultureInfo.InvariantCulture) + " s"); clock.Restart(); };
             // No plot line layer and no keep or drop list, so every piece reaches the sink and none is dropped (R420)
@@ -84,7 +91,22 @@ namespace CadReader
             foreach (BlockEntry block in exploder.Blocks)
             {
                 partsOf(block.Layer).Blocks++;
-                inserts.Add(new JObject { ["layer"] = block.Layer ?? "", ["block"] = block.Name ?? "", ["x"] = R(block.InsertPoint[0]), ["y"] = R(block.InsertPoint[1]) });
+                var insert = new JObject { ["layer"] = block.Layer ?? "", ["block"] = block.Name ?? "", ["x"] = R(block.InsertPoint[0]), ["y"] = R(block.InsertPoint[1]) };
+                if (withHand)
+                {
+                    insert["mirrored"] = block.Mirrored ^ (block.ChainMirrored == true);
+                    // R602. A block is placed on the plot that holds the centre of what it draws, its insert point can lie off the house, at a
+                    // corner of the block, or outside the plot it stands on. The insert point stays beside it
+                    if (block.Outline != null && block.Outline.Count >= 3)
+                    {
+                        double[] centre = Centroid(block.Outline);
+                        insert["insertX"] = insert["x"];
+                        insert["insertY"] = insert["y"];
+                        insert["x"] = R(centre[0]);
+                        insert["y"] = R(centre[1]);
+                    }
+                }
+                inserts.Add(insert);
             }
             stage("texts and inserts");
             var rows = new JArray();
