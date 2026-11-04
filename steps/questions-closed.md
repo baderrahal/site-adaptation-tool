@@ -392,3 +392,4 @@ Lane B numbered its questions QL1 upward from 28 Oct 2026. At the fold in of Rou
 | Q338 | Input guard counts Revit .slog files | Done by Lane C's R497, a .slog in a _backup folder under the work root no longer counts | 2026-11-03, MASS-3NOV-D |
 | Q331 | Plot is no link parameter of the keys | Bader on Q411: Plot stays on Floors as the tool's own plot tag, R507 | 2026-11-03, MASS-3NOV-D |
 | Q333 | Categories beyond the link instances | Bader on Q411: the villa parameters bind on the links only, R507. The categories of the keys are not kept | 2026-11-03, MASS-3NOV-D |
+| Q440 | Rules table not yet proven in Revit | Proven in Revit by Lane B, real presses on a copy, past job: the wall top changed 778 walls and no other field, reset came back to the base. Ramp limit stays Q419 | 2026-11-04, R541 pass |

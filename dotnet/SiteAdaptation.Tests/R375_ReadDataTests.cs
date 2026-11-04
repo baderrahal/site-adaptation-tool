@@ -326,13 +326,40 @@ namespace SiteAdaptation.Tests
 
         // R375. The units of the scope from the rows of the plot table, a second way: counted by hand from the rows written
         [Fact]
-        public void R375_a_unit_plot_of_the_plot_table_is_a_row_with_an_official_number_and_its_nbh_is_the_area_key()
+        public void R375_a_row_with_an_official_number_is_a_unit_and_its_nbh_is_the_area_key()
         {
             JObject table = Worker.Table();
             List<Common.Scope.ScopePlot> plots = ReadDataRun.ScopePlots(table).ToList();
             Assert.Equal(((JArray)table["plots"]).Count, plots.Count);
             Assert.Equal(new[] { "2301" }, plots.Where(plot => plot.IsUnit).Select(plot => plot.Number));
             Assert.Equal("013", plots.First(plot => plot.IsUnit).Nbh);
+        }
+
+        // R557. Each line is one kind of row of the real table, written by hand from what the read holds on NBH 012 and 02
+        [Theory]
+        [InlineData("{'officialNumber': '2301', 'locationPlanNumber': '2301', 'locationPlanNewCode': 'A1'}", "2301")]
+        [InlineData("{'officialNumber': '2312', 'locationPlanNumber': '2312|2313', 'locationPlanNewCode': 'A1'}", "2312")]
+        [InlineData("{'officialNumber': null, 'locationPlanNumber': '4100', 'locationPlanNewCode': 'A1'}", "4100")]
+        [InlineData("{'officialNumber': null, 'locationPlanNumber': '4100|4101', 'locationPlanNewCode': 'A1'}", null)]
+        [InlineData("{'officialNumber': null, 'locationPlanNumber': '4100', 'locationPlanNewCode': null}", null)]
+        [InlineData("{'officialNumber': null, 'locationPlanNumber': null, 'locationPlanNewCode': 'A1'}", null)]
+        [InlineData("{'officialNumber': null, 'locationPlanNumber': '4100', 'locationPlanNewCode': ' '}", null)]
+        public void R557_a_unit_takes_its_official_number_else_the_one_number_of_a_new_code(string row, string expected)
+        {
+            Assert.Equal(expected, ReadDataRun.UnitNumber(JObject.Parse(row)));
+        }
+
+        // R557. An NBH with no official number is offered and resolves to its units, the land beside them stays out
+        [Fact]
+        public void R557_an_nbh_with_no_official_number_resolves_to_its_units()
+        {
+            var table = JObject.Parse("{'plots': [{'nbhId': '02', 'officialNumber': null, 'locationPlanNumber': '4100', 'locationPlanNewCode': 'A1'},"
+                + "{'nbhId': '02', 'officialNumber': null, 'locationPlanNumber': '4101', 'locationPlanNewCode': null}]}");
+            List<Common.Scope.ScopePlot> plots = ReadDataRun.ScopePlots(table).ToList();
+            Assert.Equal(new[] { "02" }, Common.Scope.ButtonScope.NbhCodes(plots));
+            var result = Common.Scope.ButtonScope.Resolve(2, new SettingsScope { Kind = ScopeKinds.Nbh, Nbh = "02" }, plots);
+            Assert.True(result.Ok);
+            Assert.Equal(new[] { "4100" }, result.Plots);
         }
 
         // R375. A body whose work ends later opens no transaction and its end is taken once, a throw of Start ends it named

@@ -734,13 +734,9 @@ Q418. Empty project keeps old rules on a set up model (Lane C GUIDE-3NOV-C, R486
 - Recommended: A line in the window says this model keeps its rules, under Empty project.
 - Other: Copy the set over, the old override list is lost.
 
-Q419. Ramp slope limit does nothing under the past job (Lane C RULES-3NOV-C, R541). Front ramp slope, largest lists plots outside the manual only under Rev 06 (BuildPlan, IsRev6). Under the past job the plan stays the same (RAN, worker build on NBH 012). A Save of a model also leaves a Save As sharing that copy, as Q397.
+Q419. Ramp slope limit does nothing under the past job (Lane C RULES-3NOV-C, R541). Front ramp slope, largest lists plots outside the manual only under Rev 06 (BuildPlan, IsRev6). Under the past job the plan stays the same (RAN, worker build on NBH 012, and in Revit on 336 plots, 0 fields differ, Lane B). Under Rev 06 not run in Revit (UNKNOWN). A Save of a model also leaves a Save As sharing that copy, as Q397.
 - Recommended: Keep it in the table and let the row say Rev 06 only, in Part 2.
 - Other: Hide the two rows under the past job.
-
-Q440. Rules table not yet proven in Revit (Lane C RULES-3NOV-C, R541). The pass on a copy of the dry run stopped each time before the table opened. The last stop was a locked PC screen, LogonUI running, no foreground window (RAN). Save, reset and the plan change hold in the tests and the worker build, not by a press in Revit.
-- Recommended: Keep the PC unlocked for one 20 minute pass, Lane C runs it and reports the five plans.
-- Other: Bader checks the table by hand in his check of Part 1.
 
 Q450. Report defaults of old number, revision, status (Lane B, R550, R552). CHOSEN: Old Plot No. is baseplanLabel of plots.csv, v9PlotNumber differs, revision P01, status S0.
 - Recommended: keep these, addin.report in config changes them.
@@ -751,7 +747,7 @@ Q451. Report Issues column against its sheets (Lane B, R554, Q307). Summary now 
 - Other: leave it as built.
 
 Q470. Plots a mass of its unit does not fit (Lane D MASS-3NOV-D, R530). One cut per prototype cannot fit a plot of another width. Whole project after the cut, RAN offline, not in NBH 012: DT3 on plot 1400, 8.0 m wide, overlaps DP1 on 1401 by 1,997 mm, and stands 1,998 mm past its plot. DP4 on 1995, 6.0 m wide, 1,990 mm past. VD4 1747 142 mm, 441 53 mm, 889 13, 664 13, 892 12. DT3 1716 52, 1924 24. DP1 2266 2.3, 1853 1.1. TH1 2083 and 2084 overlap 1.9 mm, 0.01 degree apart in rotation. No run line names them. Whether the units of 1400 and 1995 are right is UNKNOWN, both come from the location plan.
-- Recommended: No Rev 6 evidence, none of the 7 keys holds 1400 or 1995 (Lane A, RAN). The unit stays by the rule, Bader or the schedule decides. 1400 reads DT3 from schedule IMD, native u13 reads TH1, never used for unit codes. 1995 has no number, neighbourhood or unit in plots.csv.
+- Recommended: No Rev 6 evidence, none of the 7 keys holds 1400 or 1995 (Lane A, RAN). The unit stays by the rule, Bader or the schedule decides. 1400 reads DT3 from schedule IMD, native u13 reads TH1, never used for unit codes. 1995 has no number, neighbourhood or unit in plots.csv, see Q455.
 - Other: A mass file per plot width, more files for 9 plots.
 
 Q471. Free ends that lose a wall they had room for (Lane D MASS-3NOV-D, R530). The cut is per prototype, so a free end is cut too. On 10 plots nothing needed it, the plot had room and no mass stands beside: DP1 2374, 2391 by 301 mm, DT3 552, 1280, 1485, 1763, 1764, 2271 by 77 mm, TH1 1402, 1403 by 76 mm. NBH 012 holds 2 of them. Elsewhere a free side ends at the plot line and needs the cut.
@@ -761,6 +757,22 @@ Q471. Free ends that lose a wall they had room for (Lane D MASS-3NOV-D, R530). T
 Q420. Moving a model with placed content (R523, COORD-3NOV-A). Button 1 moves position and survey point and no element, so a model with placed links, masses or floors would stand off CAD by the move, 828 m between CAD and the position file on this job (RAN). Lane A built the stop.
 - Recommended: keep the stop, a move starts from a model with nothing placed.
 - Other: allow it after a plain warning.
+
+Q452. Button 1 on a past model, the 6b line (R508). 01_next says changes nothing, the press removes old bindings and their values (Q411). A second press changes nothing.
+- Recommended: change the line to a second press changes nothing.
+
+Q453. More overlap warnings from no template (6b). 722 against 510 on IMD, the plan the same, cause UNKNOWN.
+- Recommended: leave it, no number moves.
+
+Q454. Report name section on the demo config (R542). Hidden, C:\SA-demo\config has no fileName block, so not seen in Revit.
+- Recommended: refresh that config, then one look.
+
+Q455. A villa on an open space strip (6b, R557). Plot 1995 of 022 and 2656 of 02: type OS, 150 m2, no block, a DP4 number. 1995 is built. Label 1985 beside it, 300 m2, has no number.
+- Recommended: leave a row of type OS with no block out, listed in Skipped.
+- Other: fix the location plan.
+
+Q456. Plot list with a plot not in the plan (6b). 34 such units. Button 7 drops one with no line. Not fixed.
+- Recommended: stop by name in buttons 5 to 8.
 
 Q472. Ramp front overrides stand off the road (Lane D TOPO-3NOV-D, R573). On NBH 012, 80 of 336 plots hold a road corner over 5 mm from Top Surface-02, largest 531 mm, and all 80 hold a rampFrontM override (Q340).
 - Recommended: Keep the overrides, the report lists them, the 5 mm target holds for the other plots.

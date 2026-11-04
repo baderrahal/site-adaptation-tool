@@ -510,3 +510,6 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R553 Lists freeze and filter.
 - R554 Run facts for the report.
 - R555 Changed rules are marked.
+- R556 Buttons job from no template.
+- R557 A unit plot without official number.
+- R558 Help box stays on screen.

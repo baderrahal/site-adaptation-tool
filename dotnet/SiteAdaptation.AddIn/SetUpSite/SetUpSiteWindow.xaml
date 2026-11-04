@@ -291,13 +291,7 @@
           <ItemsControl ItemsSource="{Binding CheckPoints}" ItemTemplate="{StaticResource CheckRow}" />
           <TextBlock Style="{StaticResource SA.Pane.Help}" Margin="{StaticResource SA.Gap.Top8}" Foreground="{StaticResource SA.Text}" Text="{Binding PassLine}"
                      Visibility="{Binding CountShown, Converter={StaticResource Shown}}" />
-          <TextBlock Style="{StaticResource SA.Type.Label}" Margin="{StaticResource SA.Gap.Top8}" Foreground="{StaticResource SA.Ok}" Text="{Binding NothingLine}"
-                     Visibility="{Binding NothingShown, Converter={StaticResource Shown}}" />
-          <TextBlock Style="{StaticResource SA.Pane.Help}" Margin="{StaticResource SA.Gap.Top4}" Foreground="{StaticResource SA.Text}" TextWrapping="Wrap" Text="{Binding WaitingLine}"
-                     Visibility="{Binding WaitingShown, Converter={StaticResource Shown}}" />
-          <TextBlock Style="{StaticResource SA.Pane.Help}" Margin="{StaticResource SA.Gap.Top16}" Foreground="{StaticResource SA.Warn}" TextWrapping="Wrap" Text="{Binding CheckLine}"
-                     Visibility="{Binding CheckLineShown, Converter={StaticResource Shown}}" />
-          <!-- R512. CAD beside the position file, a check that never stops the run -->
+          <!-- R512. CAD beside the position file, a check that never stops the run, above the lines of each input as those run long -->
           <StackPanel Margin="{StaticResource SA.Gap.Top16}" Visibility="{Binding SourceRowsShown, Converter={StaticResource Shown}}">
             <TextBlock Style="{StaticResource SA.Pane.Section}" Text="{x:Static set:SetUpSiteText.CompareTitle}" />
             <TextBlock Style="{StaticResource SA.Pane.Help}" TextWrapping="Wrap" Text="{x:Static set:SetUpSiteText.CompareHelp}" />
@@ -336,6 +330,12 @@
               </ItemsControl.ItemTemplate>
             </ItemsControl>
           </StackPanel>
+          <TextBlock Style="{StaticResource SA.Type.Label}" Margin="{StaticResource SA.Gap.Top8}" Foreground="{StaticResource SA.Ok}" Text="{Binding NothingLine}"
+                     Visibility="{Binding NothingShown, Converter={StaticResource Shown}}" />
+          <TextBlock Style="{StaticResource SA.Pane.Help}" Margin="{StaticResource SA.Gap.Top4}" Foreground="{StaticResource SA.Text}" TextWrapping="Wrap" Text="{Binding WaitingLine}"
+                     Visibility="{Binding WaitingShown, Converter={StaticResource Shown}}" />
+          <TextBlock Style="{StaticResource SA.Pane.Help}" Margin="{StaticResource SA.Gap.Top16}" Foreground="{StaticResource SA.Warn}" TextWrapping="Wrap" Text="{Binding CheckLine}"
+                     Visibility="{Binding CheckLineShown, Converter={StaticResource Shown}}" />
           <Border Margin="{StaticResource SA.Gap.Top16}" Background="{StaticResource SA.Guide}" BorderBrush="{StaticResource SA.GuideBorder}"
                   BorderThickness="{StaticResource SA.Line.All}" CornerRadius="{StaticResource SA.Radius.Control}" Padding="{StaticResource SA.Pad.Box}">
             <StackPanel>
