@@ -76,9 +76,9 @@ def test_r470_a_plot_with_no_joint_or_a_joint_with_no_override_is_left_out():
 
 
 def joined_settings(*args, **kwargs):
-    """The project settings with floors.rampJoint.join true, which config holds false for now (Q340)."""
+    """The project settings with the front joints of R470 alone under every mode at 1 cm, the back corners left to R515."""
     settings = LOAD_SETTINGS(*args, **kwargs)
-    settings.values["floors"]["rampJoint"]["join"] = True
+    settings.values["floors"]["rampJoint"].update(join=True, nearM=NEAR, joinBack=False, modes=list(settings.get("designBasis.modes")))
     return settings
 
 
@@ -87,8 +87,9 @@ LOAD_SETTINGS = project_profile.load_settings
 
 def test_r470_near_is_read_from_config_floors_ramp_joint_and_a_bad_one_refused():
     settings = project_profile.load_settings()
-    # Bader chose join false until Q340 is answered, so the build of config joins no corner
-    assert settings.get("floors.rampJoint.join") is False and plan_from_book.joint_near(settings) is None
+    assert plan_from_book.joint_near(settings) == settings.get("floors.rampJoint.nearM") == 0.005
+    settings.values["floors"]["rampJoint"]["join"] = False
+    assert plan_from_book.joint_near(settings) is None
     assert plan_from_book.joint_levels({"1": (LEFT, [10.0, 10.12, 10.16, 10.04], [10.0, 10.12]), "2": (RIGHT, [10.17, 10.24, 10.28, 10.21], [10.12, 10.24])}, None) == {}
     for bad in (None, "true", 1):
         refused = copy.deepcopy(settings)
@@ -117,23 +118,24 @@ def test_r470_with_join_false_a_build_keeps_the_ramp_front_override_at_every_cor
     assert [corner[2] for corner in corners["2"][:2]] == [common.r3(10.12 + 0.05), common.r3(10.24 + 0.05)] and corners["1"][1][2] == 10.12
 
 
-def test_r470_a_build_and_its_step_overrides_keep_the_front_joints_at_the_road_a_ramp_front_override_moved(monkeypatch):
+def test_r470_a_build_with_no_entry_joins_the_front_corners_and_its_step_overrides_hold_them(monkeypatch):
     monkeypatch.setattr(project_profile, "load_settings", joined_settings)
-    built = made_build(monkeypatch, {"2": {"rampFrontM": {"gapToRuleM": 0.05}}})
+    built = made_build(monkeypatch, {})
     assert built["trace"]["rampJoint"] == NEAR
     plan = built["plan"]
     ramp = {number: plan[number]["floors"]["ramp"] for number in ("1", "2", "3", "4")}
     corners = {number: ramp[number]["corners"]["value"] for number in ramp}
-    # Both front corners of 2 are shared, at x 12 with 1 and at x 24 with 3, so they stay at the road 10.12 and 10.24 and its 5 cm gap moves
-    # neither, its back pair at El @ Entry as the ramp rules gave it
     assert corners["1"][1] == corners["2"][0] == [12.0, 0, 10.12] and corners["2"][1] == corners["3"][0] == [24.0, 0, 10.24]
-    assert [corner[2] for corner in corners["2"][2:]] == [10.268, 10.148]
-    # The height offset of each ramp is its lowest corner after the joint over the ramp level, 0 in the made up site
+    # The height offset of each ramp is its lowest corner, 0 in the made up site, and sources and status stay those of the ramp rules
     assert (ramp["1"]["heightOffset"]["value"], ramp["2"]["heightOffset"]["value"]) == (10.0, 10.12)
-    # A ramp none of whose corners moved is the one the ramp rules wrote, and sources and status stay those of the ramp rules
-    assert corners["4"] == [[36.0, 0, 10.36], [48.0, 0, 10.48], [48.0, 5.52, 10.508], [36.0, 5.52, 10.388]]
-    assert ramp["2"]["corners"]["source"] == ramp["4"]["corners"]["source"] == plan_from_book.ESTIMATE
-    assert "statusFrom" in ramp["2"]["corners"] and "status" in ramp["2"]["heightOffset"]
+    assert ramp["2"]["corners"]["source"] == plan_from_book.ESTIMATE and "statusFrom" in ramp["2"]["corners"] and "status" in ramp["2"]["heightOffset"]
     made = plan_from_book.override_step(built["scope"], built["rows"], built["trace"], built["hands"], built["files"], built["rules"], built["profile"], 0.5)
-    assert made["2"]["rampZ"][:2] == [made["1"]["rampZ"][1], made["3"]["rampZ"][0]] == [built["trace"]["front"]["2"]["front"][0], built["trace"]["front"]["2"]["front"][1]]
     assert [common.r3(z) for z in made["2"]["rampZ"]] == [corner[2] for corner in corners["2"]]
+
+
+def test_r470_r516_a_ramp_front_override_turns_the_joint_off_and_stands_at_every_corner(monkeypatch):
+    monkeypatch.setattr(project_profile, "load_settings", joined_settings)
+    built = made_build(monkeypatch, {"2": {"rampFrontM": {"gapToRuleM": 0.05}}})
+    assert built["trace"]["rampJoint"] is None
+    corners = {number: built["plan"][number]["floors"]["ramp"]["corners"]["value"] for number in ("1", "2")}
+    assert [corner[2] for corner in corners["2"][:2]] == [common.r3(10.12 + 0.05), common.r3(10.24 + 0.05)] and corners["1"][1][2] == 10.12

@@ -2,6 +2,31 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Lane A RAMP-3NOV-A, 2026-11-04, ramp corners and hairline overlaps
+
+Goal:
+- Bader: shared ramp corners within 5 mm take one level, the 443 overlaps gone, count on NBH 012, target 0 for both
+
+Done:
+- R470 joint on. R515 back corner, road at front plus 0.5%, CHOSEN by Code. R516 joint only with no override. R517 every floor 2 mm inside. R518 check reach
+
+Checked:
+- Revit, RAN, NBH 012, buttons 1 to 5: new project 0 two plot overlaps, 0 of 555 shared corners over 1 mm, 672 floors. Past job 2 overlaps from 443, 360 corners unchanged, joint off, 1,003 floors. Inputs 262 same
+- Parity 624 step runs, 0 failures. Gate, CI. TU zones 1,759 of 1,791. Review 1, breaker 1
+
+Remains:
+- Target met on a new project. Past job misses it, Q430, Q432. C10 steps of up to 83 mm beside a neighbour are outside 5 mm, Q438
+
+Known bugs:
+- Same plot warnings are in the saved model, 481 and 176, accepted warnings return (Q385)
+
+Next:
+- Bader's answers
+
+Your turn:
+- Closed Q340 The level of a joint an override moves. Q341 Back corners two ramps share. Q398 The 443 hairline floor overlaps at step 5. Opened Q430 Past job keeps its shared corner gaps. Q432 Two plot overlaps left after the pull. Q433 2% units in mixed rows drop to 0.5%. Q436 Generic floor no longer the whole face. Q437 One hand entry turns the joint off. Q438 C10 ramp beside a neighbour. Q439 A model built before the pull.
+- 190 open, steps/questions-open.md
+
 ## Lane B Phase 6b, 2026-11-04, the buttons on all 7 zones in Revit
 
 Goal:

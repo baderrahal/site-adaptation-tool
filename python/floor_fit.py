@@ -46,6 +46,8 @@ KINDS = ("generic", "yard")
 YARD_CUT_EMPTY = "the cut of R475 leaves the fitted yard outline empty"
 # R475, Q350. The source of a yard outline the cut changed, so it no longer reads the status of the fit. FloorOutlines.YardCutSource of the C#
 YARD_CUT = "yardCut"
+# R517. One plus the cosine of the turn at a corner, under it two edges fold back on one another and give no mitre to divide by
+MITRE_FOLD = 1e-9
 NOTE = ("Measured from the {job} past job, not a rule of the client, written by python/floor_fit.py --write and never by hand (R135, R136). "
         "outlines: per floor kind one group per unit, mirror flag and plot width, the width being the front edge of the baseplan face (R122) rounded to cadLinks.floorWidthStepM. "
         "loops are in the axes of the link, x along its X axis and y along its Y axis from its origin, so the outline is placed by the insert, rotation and mirror flag of the link. "
@@ -314,6 +316,54 @@ def fixed_rings(rings):
         start = ring.index(min(ring))
         (outer if doubled_area([ring]) > 0 else holes).append(ring[start:] + ring[:start])
     return sorted(outer) + sorted(holes)
+
+
+def plot_pull(settings):
+    """R517. floors.plotPull.pullM of the project settings, how far every floor of a plot stands inside its outline, a length of 0 or more, 0 with no block plotPull, a
+    saved project with a copy of config from before this round, which builds as it did."""
+    if "plotPull" not in settings.get("floors"):
+        return 0
+    pull = settings.get("floors.plotPull.pullM")
+    if not plan_from_past.is_number(pull) or pull < 0:
+        raise project_profile.ProfileError(settings.path.name + " floors.plotPull.pullM must be a length of 0 or more (R517)")
+    return pull
+
+
+def pull_mitre(settings):
+    """R517. floors.plotPull.maxMitreM of the project settings, how far a corner may move by the pull, a length above 0, None with no block plotPull."""
+    if "plotPull" not in settings.get("floors"):
+        return None
+    mitre = settings.get("floors.plotPull.maxMitreM")
+    if not plan_from_past.is_number(mitre) or mitre <= 0:
+        raise project_profile.ProfileError(settings.path.name + " floors.plotPull.maxMitreM must be a length above 0 (R517)")
+    return mitre
+
+
+def pulled_ring(ring, pull, mitre=None):
+    """R517. A ring of points moved inside by pull, each edge parallel to its own at pull, the mitre of each corner by the two inward normals beside it, in the order given.
+    A corner whose two edges fold back on one another or whose mitre runs past mitre stays where it is, a near spike would move far from a small pull. A ring with an edge of
+    no length stays as given, as does a pull of 0."""
+    if not pull or len(ring) < 3:
+        return [tuple(point[:2]) for point in ring]
+    area = sum(ring[at - 1][0] * ring[at][1] - ring[at][0] * ring[at - 1][1] for at in range(len(ring)))
+    side = 1.0 if area > 0 else -1.0
+    normals = []
+    for at in range(len(ring)):
+        dx, dy = ring[(at + 1) % len(ring)][0] - ring[at][0], ring[(at + 1) % len(ring)][1] - ring[at][1]
+        length = math.sqrt(dx * dx + dy * dy)
+        if length == 0:
+            return [tuple(point[:2]) for point in ring]
+        normals.append((-dy / length * side, dx / length * side))
+    moved = []
+    for at in range(len(ring)):
+        first, second = normals[at - 1], normals[at]
+        fold = 1.0 + first[0] * second[0] + first[1] * second[1]
+        if fold <= MITRE_FOLD:
+            moved.append(tuple(ring[at][:2]))
+            continue
+        dx, dy = pull * (first[0] + second[0]) / fold, pull * (first[1] + second[1]) / fold
+        moved.append(tuple(ring[at][:2]) if mitre is not None and dx * dx + dy * dy > mitre * mitre else (ring[at][0] + dx, ring[at][1] + dy))
+    return moved
 
 
 def yard_in_plot(loops, face_ring, ramp_ring):

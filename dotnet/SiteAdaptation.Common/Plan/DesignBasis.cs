@@ -399,17 +399,23 @@ namespace SiteAdaptation.Common
             return value.Type == JTokenType.String ? SiteClusters.TextRepr((string)value) : value.Type == JTokenType.Boolean ? ((bool)value ? "True" : "False") : value.ToString(Newtonsoft.Json.Formatting.None);
         }
 
+        // design_basis.road_plus_slope: the road at front plus a slope in percent over the ramp depth, unrounded
+        public static double RoadPlusSlopeOf(double[] front, double slope, double depth)
+        {
+            return (front[0] + front[1]) / 2.0 + slope / 100.0 * depth;
+        }
+
         // design_basis.door_entry: El @ Entry of a plot under rev6, unrounded, and why it has none: the level of the civil file, or the road at front
-        // plus slopePercent of the unit, else its default, over the ramp depth
-        public Tuple<double?, string> DoorEntry(string number, string unit, double[] front, double depth)
+        // plus slopePercent of the unit, else its default, over the ramp depth, or plus joined, the slope of a shared back corner (R515)
+        public Tuple<double?, string> DoorEntry(string number, string unit, double[] front, double depth, double? joined = null)
         {
             if (DoorSource == CivilFile)
             {
                 return Levels.TryGetValue(number, out double level) ? Tuple.Create((double?)level, (string)null)
                     : Tuple.Create((double?)null, "the civil file " + Path.GetFileName(CivilPath) + " holds no row of plot " + number + ", so no El @ Entry (R408)");
             }
-            double slope = (double)(unit != null && Slopes[unit] != null ? Slopes[unit] : Slopes["default"]);
-            return Tuple.Create((double?)((front[0] + front[1]) / 2.0 + slope / 100.0 * depth), (string)null);
+            double slope = joined ?? (double)(unit != null && Slopes[unit] != null ? Slopes[unit] : Slopes["default"]);
+            return Tuple.Create((double?)RoadPlusSlopeOf(front, slope, depth), (string)null);
         }
 
         // design_basis.slope_of: the ramp slope in percent, the result, El @ Entry less the road at front over the ramp depth

@@ -59,8 +59,8 @@ namespace SiteAdaptation.Tests
         [Fact]
         public void R471_limits_read_from_config()
         {
-            Assert.Equal(Tuple.Create((double)Settings["floors"]["rampJoint"]["nearM"], (double)Settings["floors"]["rampJoint"]["passGapM"]), Limits);
-            foreach (string broken in new[] { "{}", "{\"nearM\": 0, \"passGapM\": 0.001}", "{\"nearM\": 0.01, \"passGapM\": -1}", "{\"nearM\": \"0.01\", \"passGapM\": 0.001}" })
+            Assert.Equal(Tuple.Create((double)Settings["floors"]["rampJoint"]["checkNearM"], (double)Settings["floors"]["rampJoint"]["passGapM"]), Limits);
+            foreach (string broken in new[] { "{}", "{\"checkNearM\": 0, \"passGapM\": 0.001}", "{\"checkNearM\": 0.01, \"passGapM\": -1}", "{\"checkNearM\": \"0.01\", \"passGapM\": 0.001}" })
             {
                 JObject settings = (JObject)Settings.DeepClone();
                 settings["floors"]["rampJoint"] = JObject.Parse(broken);
@@ -90,10 +90,12 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R471_corner_eleven_mm_away_has_no_row()
+        public void R471_R518_corner_thirteen_mm_away_has_no_row_and_one_eleven_mm_away_has()
         {
             Dictionary<string, double[][]> corners = Shared();
             corners["2"][0] = new[] { 10.011, 0.0, 10.2 };
+            Same(new[] { Row(1, "1", 0.0, "Pass") }, RowsOf(corners)["2"]);
+            corners["2"][0] = new[] { 10.013, 0.0, 10.2 };
             Assert.All(RowsOf(corners).Values, Assert.Empty);
             Same(new[] { Row(1, "1", 0.0, "Pass") }, RowsOf(corners, limits: Tuple.Create(0.02, Limits.Item2))["2"]);
         }

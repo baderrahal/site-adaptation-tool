@@ -4,10 +4,10 @@
 
 ### Lane A
 
-- Lane: A, 4 Nov 01:50, branches fix/coord-3nov-a, fix/ramp-3nov-a. Blocked: none. No lock held
-- Done: KNOWN PR 166. COORD built, its gate, the blank line in Revit by the test host
-- Now: COORD PR. Then RAMP PR
-- Next: on main in the second slot, CAD Apply, typed, move stop, the step 5 probe of RAMP
+- Lane: A, 4 Nov, branch fix/ramp-3nov-a. Blocked: none. No lock, no window
+- Done: PR 166, 171, 174. RAMP in Revit: new project 0 and 0, past job 2 overlaps. New callers in the PR
+- Now: the RAMP PR
+- Next: Lane done
 
 ### Lane B, C and D
 

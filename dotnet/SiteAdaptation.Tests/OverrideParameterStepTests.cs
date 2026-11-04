@@ -64,7 +64,7 @@ namespace SiteAdaptation.Tests
         // test_level_floor_steps.made_build and test_override_param_steps.row_build: the row of six 12 m faces, the plots of faceless DP2 units with no
         // face, the plots of dry with no road level past their left corner, the step scope the plots and 7, a number with no row
         internal static Built Build(OverrideList list, Action<JObject> change = null, string[] faceless = null, string[] dry = null, Action<JObject> changeRules = null,
-            bool backDry = false, DesignBasis basis = null, JArray bands = null, Action<JObject> changeConfig = null)
+            bool backDry = false, DesignBasis basis = null, JArray bands = null, Action<JObject> changeConfig = null, double pull = 0)
         {
             faceless = faceless ?? new string[0];
             dry = dry ?? new string[0];
@@ -72,6 +72,9 @@ namespace SiteAdaptation.Tests
             changeRules?.Invoke(rules);
             change?.Invoke((JObject)rules["levelProfiles"]["parsons2024Rev6"]["keyRules"]);
             JObject config = JObject.Parse(File.ReadAllText(WorkerRunTests.RepoConfig()));
+            // R517. No pull unless a test asks for one, so the points of a test read as drawn. R515 has its own tests, a row of the others holds its levels by the unit
+            config["floors"]["plotPull"]["pullM"] = pull;
+            config["floors"]["rampJoint"]["join"] = false;
             changeConfig?.Invoke(config);
             List<string> numbers = new[] { "1", "2", "3", "4", "5", "6" }.Concat(faceless).ToList();
             var faces = numbers.Where(number => !faceless.Contains(number)).ToDictionary(number => number,
@@ -96,7 +99,7 @@ namespace SiteAdaptation.Tests
             Func<double, double, KeyValuePair<double?, string>> level = (x, y) => dry.Any(plot => x > 12.0 * (int.Parse(plot) - 1) + 1e-9 && x <= 12.0 * int.Parse(plot) + 1e-9)
                 || (backDry && y > 20.0) ? new KeyValuePair<double?, string>(null, null) : new KeyValuePair<double?, string>(10.0 + x / 100.0, "road");
             LevelBuild build = KeyLevels.Of(scope, rows, clusters, context, members => Fronts.Of(members, rows, faces, roads, limits, level, rules, roadEdgeM, sales), rules, key, profile,
-                "parsons2024Rev6", basis, bands);
+                "parsons2024Rev6", basis, bands, config, list.Found.Count == 0);
             return new Built
             {
                 Plans = PlanOverrides.Of(scope, rows, build, fronts, context, hands, key, profile, rules, config, files, list, "parsons2024Rev6", 0.5, "the rules profile", level),

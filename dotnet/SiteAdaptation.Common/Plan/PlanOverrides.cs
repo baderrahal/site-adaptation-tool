@@ -583,9 +583,9 @@ namespace SiteAdaptation.Common
             List<string> later = LaterFields(config, levelProfile);
             HashSet<string> laterParameters = KeyLevels.LaterParameters(config, levelProfile);
             List<string> facade = ((config["majority"]?["linkNameFacade"] as JArray) ?? new JArray()).Select(Text).ToList();
-            double? near = FloorOutlines.JointNear(config, "config");
-            // R470. The road levels of the front pair of each ramp before a rampFrontM gap, the level a joint holds
+            // R470. The road levels and the rule outline of each ramp before a rampFrontM gap and the pull, what a joint holds and groups by
             var roads = new Dictionary<string, double[]>();
+            var ruleOutlines = new Dictionary<string, double[][]>();
             var outcomes = new Outcomes();
             foreach (string number in numbers)
             {
@@ -884,7 +884,8 @@ namespace SiteAdaptation.Common
                     {
                         made["rampZ"] = FloorOutlines.RampHeights(front, entryWritten.Value);
                         made["rampType"] = kind.DeepClone();
-                        made["rampOutline"] = outline;
+                        made["rampOutline"] = FloorOutlines.PulledRing(outline, build.Pull, build.Mitre);
+                        ruleOutlines[number] = outline;
                     }
                     foreach (string field in moved)
                     {
@@ -911,7 +912,7 @@ namespace SiteAdaptation.Common
                         {
                             double[] origin = insert.Select(value => Rounding.Fixed(value, 3)).ToArray();
                             List<List<double[]>> fitted = ((JArray)group["loops"]).Select(loop => FloorOutlines.ToWorld((JArray)loop, origin, (double)rotation.Written, (bool)mirrored)).ToList();
-                            cut = FloorOutlines.YardInPlot(fitted, item.Face?.Ring, ramp ? outline : null);
+                            cut = FloorOutlines.YardInPlot(fitted, item.Face == null ? null : FloorOutlines.PulledRing(item.Face.Ring, build.Pull, build.Mitre), ramp ? outline : null);
                             found[number].YardCut = !ReferenceEquals(cut, fitted);
                             if (cut.Count > 0)
                             {
@@ -937,8 +938,8 @@ namespace SiteAdaptation.Common
             }
             // R470. A front corner ramps of two or more written plots share takes the road of the first, which BuildPlan writes through rampZ
             var ramps = numbers.Where(number => found[number].Overrides["rampZ"] != null)
-                .Select(number => Tuple.Create(number, (double[][])found[number].Overrides["rampOutline"], (double[])found[number].Overrides["rampZ"], roads[number])).ToList();
-            foreach (KeyValuePair<string, double[]> joined in near == null ? new Dictionary<string, double[]>() : FloorOutlines.JointLevels(ramps, near.Value))
+                .Select(number => Tuple.Create(number, ruleOutlines[number], (double[])found[number].Overrides["rampZ"], roads[number])).ToList();
+            foreach (KeyValuePair<string, double[]> joined in build.Joint == null ? new Dictionary<string, double[]>() : FloorOutlines.JointLevels(ramps, build.Joint.Near, build.Joint.Back))
             {
                 found[joined.Key].Overrides["rampZ"] = joined.Value;
             }
