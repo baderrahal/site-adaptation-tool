@@ -2,6 +2,33 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Lane D TOPO-3NOV-D, 2026-11-04, road toposolid of button 5
+
+Goal:
+- Bader: a toposolid from Top Surface-02 cut to the NBH, ramps and road edges meet it, difference reported per ramp road edge, target under 5 mm, type named in settings, tick on by default
+
+Done:
+- R570 to R575. RoadTopography.cs, FloorsRun after the floors commit, toposolid_<NBH>.json. R575 takes the toposolid and floor overlap with no box, found by the Revit check. Tick text goes to Lane C
+
+Checked:
+- Revit, RAN, NBH 012, copy of SA-dryrun3nov-done.rvt, before RAMP: toposolid made, floors unchanged, second press keeps it, plot list leaves it, undo and redo
+- Revit, RAN, with RAMP and R575, copy of SA-dryrun3nov.rvt with no floors: no box, 1,003 floors and 9,728 points, run 117.2 s, commit 100.4 s, 5,713,920 to 16,592,896 bytes. One undo takes floors and toposolid back
+- Second method RAN: own walk over the triangles Revit holds, 1,008 points, 0 misses, gap to the report at most 0.05 mm. Ray 0.06 mm in the first run. Ramp tops read from Revit against the plan at most 0.03 mm
+- Parity skipped: no Python, no plan or Excel number changed. Breaker 1 before R575, not run again
+
+Remains:
+- Road edges: 240 corners with no override at most 0.51 mm in the first run. Over 5 mm: 80 plots at corners, all with rampFrontM, Q472. 15 no override plots at the middle, Q475
+
+Known bugs:
+- The toposolid lines of a real press reach no window, Q476. SA-dryrun3nov-done.rvt on the config of main stops at step 5, 1,003 outlines changed, R378, Q439 of Lane A
+
+Next:
+- Lane C adds the tick. Bader's answers
+
+Your turn:
+- Opened Q472 Ramp front overrides stand off the road. Q473 The chosen values of the road toposolid. Q474 The road toposolid stands as a tall block. Q475 The road bends between ramp front corners. Q476 What a real press shows of the toposolid. Q477 A plot list press sends the pane to step 2.
+- 196 open, steps/questions-open.md
+
 ## Lane A RAMP-3NOV-A, 2026-11-04, ramp corners and hairline overlaps
 
 Goal:
