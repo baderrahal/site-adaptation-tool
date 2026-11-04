@@ -86,6 +86,11 @@ $manifest.RevitAddIns.AddIn.Assembly = $dll
 $manifestPath = Join-Path $AddinsRoot 'SiteAdaptationAddIn_Revit2024.addin'
 $manifest.Save($manifestPath)
 
+# SETUP-sign. Revit asks once for each manifest with an unsigned DLL, so the manifests of the reader, the placer and the test host an older
+# install left here are removed and the tool stays one manifest, one entry DLL and so one question. A run of the test host writes them again
+# for its own time and removes them after it (Get-ToolAddIns, Run-TestHost.ps1). Their DLL folders stay, Revit does not load a folder
+$removedDev = @(Remove-DevManifests $AddinsRoot)
+
 # Revit loads one Common for every add-in of the tool, the first it meets, so every folder of the tool gets the Common of this
 # build. A Common a running worker holds open has already stopped the script at the Worker copy above. A copy that fails here,
 # onto the Common of another add-in of the tool, is caught, and the check below names the file and stops the script
@@ -110,6 +115,8 @@ Get-ChildItem -LiteralPath $addInFolder -File -Recurse | Select-Object @{
     e = { Split-Path $_.DirectoryName -Leaf }
 }, Name, Length, LastWriteTime | Format-Table -AutoSize | Out-String -Width 200 | Out-Host
 "Manifest $manifestPath names $dll"
+"Manifests of developer add-ins taken away: $(if ($removedDev.Count) { $removedDev -join ', ' } else { 'none were there' })"
+"Manifests of this tool in ${AddinsRoot}: $((@(Get-ChildItem -LiteralPath $AddinsRoot -Filter 'SiteAdaptation*.addin' -File | ForEach-Object Name)) -join ', ')"
 if ($differ.Count -gt 0) {
     $failed | ForEach-Object { "Not replaced: $_" } | Out-Host
     throw ('The Common DLLs differ, close the program that holds it and run the install again: ' + ($differ -join ', '))

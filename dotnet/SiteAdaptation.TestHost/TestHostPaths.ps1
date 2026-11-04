@@ -1,5 +1,6 @@
-# The paths the run script takes from this machine. Dot-sourced by Run-TestHost.ps1 and by the tests, it touches no file but the
-# manifests it reads.
+# The paths the run script takes from this machine. Dot-sourced by Run-TestHost.ps1, Start-RevitListener.ps1 and the tests. It reads the
+# manifests. SETUP-sign: Get-ToolAddIns also writes the three developer manifests and a stamp of the run for the length of that run, and
+# Remove-DevManifestsWhenFree takes them away when no run holds a stamp, so they never stay behind for a plain start of Revit.
 
 # R108. The four add-ins of this tool, each by the AddInId of its repo manifest. The name and the DLL come from the manifest of
 # that id installed in the add-ins root, as Revit reads it. The watcher clicks Load Once only on a box that names one of these
@@ -28,7 +29,30 @@ function Read-AddInManifest([string]$Path) {
     }
 }
 
-function Get-ToolAddIns([string]$Repo, [string]$Addins) {
+# SETUP-sign. Install-DevManifests and Remove-DevManifests, shared with the install script of the add-in
+. (Join-Path $PSScriptRoot '..\SiteAdaptation.AddIn\InstallChecks.ps1')
+
+# The manifests of the reader, the placer and the test host exist for a run only, so the run or the listener that starts Revit calls this with a
+# stamp folder. It adds a stamp of its own process, writes the manifests that are not there from the DLLs the install put in their folders, and
+# reads them. If it throws after that, the stamp and the manifests go before the error leaves. The caller removes them with
+# Remove-DevManifestsWhenFree when it ends, and on any error after this call. With no stamp folder it writes nothing and only reads
+function Get-ToolAddIns([string]$Repo, [string]$Addins, [string]$StampFolder) {
+    if (-not $StampFolder) {
+        return Read-ToolAddIns $Repo $Addins
+    }
+    Add-DevManifestStamp $StampFolder $PID
+    try {
+        [void](Install-DevManifests $Repo $Addins)
+        return Read-ToolAddIns $Repo $Addins
+    }
+    catch {
+        [void](Remove-DevManifestsWhenFree $Addins $StampFolder $PID)
+        throw
+    }
+}
+
+# The four add-ins of the tool as the add-ins root holds them, a throw when one is not installed once
+function Read-ToolAddIns([string]$Repo, [string]$Addins) {
     $installed = @(Get-ChildItem -LiteralPath $Addins -Filter '*.addin' -File -ErrorAction SilentlyContinue | ForEach-Object { Read-AddInManifest $_.FullName })
     $ids = @()
     $marks = @()
@@ -212,4 +236,52 @@ function Get-ButtonsInputs($paths, $inputRoots) {
         }
     }
     return @($files | Sort-Object -Unique)
+}
+
+# SETUP-sign. A stamp per run says the developer manifests are in use. It is a file in the stamp folder under the work root named by the process
+# id of the run, holding that id and the start time of the process, so the id of a process that ended and was given to another one holds nothing
+function Add-DevManifestStamp([string]$StampFolder, [int]$ProcessId) {
+    New-Item -ItemType Directory -Force $StampFolder | Out-Null
+    $started = (Get-Process -Id $ProcessId).StartTime.ToUniversalTime().Ticks
+    Set-Content -LiteralPath (Join-Path $StampFolder "$ProcessId.stamp") -Value "$ProcessId $started"
+}
+
+# True when the stamp names a process that still runs and is the one that wrote it
+function Test-DevManifestStampLive([string]$Path) {
+    $parts = @((Get-Content -Raw -LiteralPath $Path -ErrorAction SilentlyContinue) -split '\s+' | Where-Object { $_ })
+    if ($parts.Count -ne 2) {
+        return $false
+    }
+    # A process this user cannot read, or whose start time cannot be read, is not the one that wrote the stamp, so the stamp is stale and goes
+    try {
+        $process = Get-Process -Id ([int]$parts[0]) -ErrorAction Stop
+        return [bool]($process.StartTime.ToUniversalTime().Ticks -eq [int64]$parts[1])
+    }
+    catch {
+        return $false
+    }
+}
+
+# Removes the stamp of this run, deletes the stamps of processes that are gone, and removes the developer manifests when no stamp of a live
+# process is left. Revit reads the add-ins root once, at its start, so a Revit somebody opened by hand does not hold them, and a manifest
+# taken away while it runs harms nothing. Returns what it did, as text
+function Remove-DevManifestsWhenFree([string]$Addins, [string]$StampFolder, [int]$ProcessId) {
+    Remove-Item -LiteralPath (Join-Path $StampFolder "$ProcessId.stamp") -ErrorAction SilentlyContinue
+    $live = 0
+    foreach ($stamp in @(Get-ChildItem -LiteralPath $StampFolder -Filter '*.stamp' -File -ErrorAction SilentlyContinue)) {
+        if (Test-DevManifestStampLive $stamp.FullName) {
+            $live++
+        }
+        else {
+            Remove-Item -LiteralPath $stamp.FullName -ErrorAction SilentlyContinue
+        }
+    }
+    if ($live -gt 0) {
+        return "kept, $live other run(s) hold them"
+    }
+    $removed = @(Remove-DevManifests $Addins)
+    if ($removed.Count -gt 0) {
+        return 'removed ' + ($removed -join ', ')
+    }
+    return 'none were there'
 }

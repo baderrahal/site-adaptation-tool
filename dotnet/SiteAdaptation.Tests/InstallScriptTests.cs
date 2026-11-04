@@ -301,6 +301,205 @@ namespace SiteAdaptation.Tests
             Assert.DoesNotContain("$hashes = @(", host);
         }
 
+        // SETUP-sign. Revit asks once per manifest with an unsigned DLL, so the install leaves one manifest and one entry DLL of the tool
+        [WindowsFact]
+        public void SETUP_sign_the_install_takes_away_the_developer_manifests_an_older_install_left_and_keeps_every_other_maker()
+        {
+            string[] dev = { "SiteAdaptation_Revit2024.addin", "SiteAdaptationPlacer_Revit2024.addin", "SiteAdaptationTestHost_Revit2024.addin" };
+            foreach (string name in dev.Concat(new[] { "OtherVendor.addin" }))
+            {
+                File.WriteAllText(Path.Combine(addins, name), "<RevitAddIns />");
+            }
+
+            Tuple<int, string> run = Install(NoRevit);
+
+            Assert.True(run.Item1 == 0, run.Item2);
+            Assert.Equal(new[] { "SiteAdaptationAddIn_Revit2024.addin" }, Directory.GetFiles(addins, "SiteAdaptation*.addin").Select(Path.GetFileName).ToArray());
+            Assert.True(File.Exists(Path.Combine(addins, "OtherVendor.addin")));
+            Assert.Contains("taken away: " + string.Join(", ", dev), run.Item2);
+            XElement manifest = XDocument.Load(Path.Combine(addins, "SiteAdaptationAddIn_Revit2024.addin")).Root;
+            Assert.Single(manifest.Elements("AddIn"));
+            Assert.EndsWith("SiteAdaptation.AddIn.dll", manifest.Element("AddIn").Element("Assembly").Value);
+        }
+
+        // As Pwsh, but stdout and stderr apart as R448_RevitListenerTests does, so a stray line on stderr never changes what a test compares
+        private static Tuple<int, string, string> PwshApart(string text)
+        {
+            var info = new ProcessStartInfo("pwsh", "-NoProfile -NonInteractive -EncodedCommand " + Convert.ToBase64String(Encoding.Unicode.GetBytes(text)))
+            {
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                CreateNoWindow = true,
+            };
+            using (Process process = Process.Start(info))
+            {
+                var error = process.StandardError.ReadToEndAsync();
+                string output = process.StandardOutput.ReadToEnd();
+                process.WaitForExit();
+                return Tuple.Create(process.ExitCode, output, error.Result);
+            }
+        }
+
+        private static string HostFolderFile(string name)
+        {
+            return Path.Combine(ThemeGateTests.RepoRoot(), "dotnet", "SiteAdaptation.TestHost", name);
+        }
+
+        private static string[] Lines(string text)
+        {
+            return text.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries).Select(line => line.Trim()).ToArray();
+        }
+
+        // SETUP-sign. A run holds a stamp while it needs the developer manifests. The first run to end leaves them, the last takes them away, and the
+        // stamp of a process that is gone, or of one whose id another process took over, holds nothing. Revit processes play no part in it
+        [WindowsFact]
+        public void SETUP_sign_the_developer_manifests_stay_until_the_last_stamp_of_a_live_run_is_gone()
+        {
+            string repo = ThemeGateTests.RepoRoot();
+            string stamps = Path.Combine(root, "stamps");
+            Plant(Path.Combine(addins, "SiteAdaptationPlacer"), "SiteAdaptation.Placer.dll");
+            int other = Process.GetCurrentProcess().Id;
+            string script = string.Join("\n", new[]
+            {
+                "$ErrorActionPreference = 'Stop'",
+                ". " + Quoted(HostFolderFile("TestHostPaths.ps1")),
+                "Add-DevManifestStamp " + Quoted(stamps) + " $PID",
+                "Add-DevManifestStamp " + Quoted(stamps) + " " + other,
+                // A process that is gone, and an id of a live process with a start time that is not its own
+                "Set-Content -LiteralPath " + Quoted(Path.Combine(stamps, "999999.stamp")) + " -Value '999999 1'",
+                "Set-Content -LiteralPath " + Quoted(Path.Combine(stamps, "4242.stamp")) + " -Value ('" + other + " 1')",
+                "'written: ' + ((Install-DevManifests " + Quoted(repo) + " " + Quoted(addins) + ") -join ',')",
+                "'first: ' + (Remove-DevManifestsWhenFree " + Quoted(addins) + " " + Quoted(stamps) + " $PID)",
+                "'manifests after first: ' + @(Get-ChildItem " + Quoted(addins) + " -Filter *.addin).Count",
+                "'second: ' + (Remove-DevManifestsWhenFree " + Quoted(addins) + " " + Quoted(stamps) + " " + other + ")",
+                "'manifests after second: ' + @(Get-ChildItem " + Quoted(addins) + " -Filter *.addin).Count",
+                "'stamps left: ' + @(Get-ChildItem " + Quoted(stamps) + " -Filter *.stamp).Count",
+            });
+
+            Tuple<int, string, string> run = PwshApart(script);
+
+            Assert.True(run.Item1 == 0, run.Item3 + run.Item2);
+            Assert.Equal(new[]
+            {
+                "written: SiteAdaptationPlacer_Revit2024.addin",
+                "first: kept, 1 other run(s) hold them",
+                "manifests after first: 1",
+                "second: removed SiteAdaptationPlacer_Revit2024.addin",
+                "manifests after second: 0",
+                "stamps left: 0",
+            }, Lines(run.Item2));
+            Assert.True(File.Exists(Path.Combine(addins, "SiteAdaptationPlacer", "SiteAdaptation.Placer.dll")));
+        }
+
+        // SETUP-sign. A trap covers its whole script, so an early refusal enters the one of Run-TestHost.ps1 and Start-RevitListener.ps1 with no stamp folder set.
+        // The trap must do nothing then, and the real message of the refusal must be the one that comes out
+        [WindowsFact]
+        public void SETUP_sign_an_early_refusal_of_the_run_script_and_the_listener_gives_its_own_message()
+        {
+            var refusals = new[]
+            {
+                Tuple.Create("Run-TestHost.ps1", "", "Give -Code, or -DryStart for a start with no job."),
+                Tuple.Create("Start-RevitListener.ps1", "Remove-Item Env:SITE_ADAPTATION_WINDOW_SLOT -ErrorAction SilentlyContinue\n", "SITE_ADAPTATION_WINDOW_SLOT is not set"),
+            };
+            foreach (Tuple<string, string, string> refusal in refusals)
+            {
+                Tuple<int, string, string> run = PwshApart("$env:SITE_ADAPTATION_INPUT = $null\n" + refusal.Item2 + "& " + Quoted(HostFolderFile(refusal.Item1)));
+
+                Assert.NotEqual(0, run.Item1);
+                string all = run.Item2 + run.Item3;
+                Assert.Contains(refusal.Item3, all);
+                Assert.DoesNotContain("Join-Path", all);
+                Assert.DoesNotContain("Cannot bind argument", all);
+            }
+        }
+
+        // SETUP-sign. A process this user cannot read, or whose start time cannot be read, is not the one that wrote a stamp. The stamp goes and the
+        // run carries on, it never throws. The stubs stand for a process the user may not open
+        [WindowsFact]
+        public void SETUP_sign_a_stamp_of_an_unreadable_process_is_stale_and_removed_without_a_throw()
+        {
+            string repo = ThemeGateTests.RepoRoot();
+            string stamps = Path.Combine(root, "stamps");
+            Plant(Path.Combine(addins, "SiteAdaptationPlacer"), "SiteAdaptation.Placer.dll");
+            string stamp = Path.Combine(stamps, "777.stamp");
+            string script = string.Join("\n", new[]
+            {
+                "$ErrorActionPreference = 'Stop'",
+                ". " + Quoted(HostFolderFile("TestHostPaths.ps1")),
+                "New-Item -ItemType Directory -Force " + Quoted(stamps) + " | Out-Null",
+                "[void](Install-DevManifests " + Quoted(repo) + " " + Quoted(addins) + ")",
+                // The process exists but its start time throws, as Windows does for a process of another user
+                "function Get-Process { $o = [pscustomobject]@{ Id = 777 }\n $o | Add-Member -MemberType ScriptProperty -Name StartTime -Value { throw 'Access is denied' }\n $o }",
+                "Set-Content -LiteralPath " + Quoted(stamp) + " -Value '777 123'",
+                "'start time unreadable: ' + (Remove-DevManifestsWhenFree " + Quoted(addins) + " " + Quoted(stamps) + " 1)",
+                "'stamps left: ' + @(Get-ChildItem " + Quoted(stamps) + " -Filter *.stamp).Count",
+                // The process itself cannot be read
+                "function Get-Process { throw 'Access is denied' }",
+                "[void](Install-DevManifests " + Quoted(repo) + " " + Quoted(addins) + ")",
+                "Set-Content -LiteralPath " + Quoted(stamp) + " -Value '777 123'",
+                "'process unreadable: ' + (Remove-DevManifestsWhenFree " + Quoted(addins) + " " + Quoted(stamps) + " 1)",
+                "'stamps left: ' + @(Get-ChildItem " + Quoted(stamps) + " -Filter *.stamp).Count",
+            });
+
+            Tuple<int, string, string> run = PwshApart(script);
+
+            Assert.True(run.Item1 == 0, run.Item3 + run.Item2);
+            Assert.Equal(new[]
+            {
+                "start time unreadable: removed SiteAdaptationPlacer_Revit2024.addin",
+                "stamps left: 0",
+                "process unreadable: removed SiteAdaptationPlacer_Revit2024.addin",
+                "stamps left: 0",
+            }, Lines(run.Item2));
+        }
+
+        // SETUP-sign. Get-ToolAddIns writes the manifests, so a throw after the write must take them and its stamp away before the error leaves
+        [WindowsFact]
+        public void SETUP_sign_get_tool_add_ins_leaves_no_manifest_and_no_stamp_when_it_throws_after_writing()
+        {
+            string repo = ThemeGateTests.RepoRoot();
+            string stamps = Path.Combine(root, "stamps");
+            Plant(Path.Combine(addins, "SiteAdaptation"), "RevitPrototypeReader.dll");
+            Plant(Path.Combine(addins, "SiteAdaptationPlacer"), "SiteAdaptation.Placer.dll");
+            Plant(Path.Combine(addins, "SiteAdaptationTestHost"), "SiteAdaptation.TestHost.dll");
+            string script = string.Join("\n", new[]
+            {
+                "$ErrorActionPreference = 'Stop'",
+                ". " + Quoted(HostFolderFile("TestHostPaths.ps1")),
+                "try { Get-ToolAddIns -Repo " + Quoted(repo) + " -Addins " + Quoted(addins) + " -StampFolder " + Quoted(stamps) + " | Out-Null } catch { 'threw: ' + $_.Exception.Message }",
+                "'manifests left: ' + @(Get-ChildItem " + Quoted(addins) + " -Filter *.addin).Count",
+                "'stamps left: ' + @(Get-ChildItem " + Quoted(stamps) + " -Filter *.stamp).Count",
+            });
+
+            Tuple<int, string, string> run = PwshApart(script);
+
+            Assert.True(run.Item1 == 0, run.Item3 + run.Item2);
+            string[] lines = Lines(run.Item2);
+            Assert.StartsWith("threw: The add-in c330760d-8384-4e69-b4a2-2fe26e0c45fe of dotnet\\SiteAdaptation.AddIn\\SiteAdaptationAddIn_Revit2024.addin is not installed once", lines[0]);
+            Assert.Equal(new[] { "manifests left: 0", "stamps left: 0" }, lines.Skip(1).ToArray());
+        }
+
+        // SETUP-sign. Run-TestHost.ps1 and Start-RevitListener.ps1 take the stamp with the manifests, remove them on any error from that call on and when
+        // they end. A text check of the order, since a real run needs Revit
+        [WindowsFact]
+        public void SETUP_sign_the_run_script_and_the_listener_release_the_developer_manifests_on_every_way_out()
+        {
+            foreach (string name in new[] { "Run-TestHost.ps1", "Start-RevitListener.ps1" })
+            {
+                string text = File.ReadAllText(HostFolderFile(name));
+                int write = text.IndexOf("Get-ToolAddIns -Repo $repo -Addins $addins -StampFolder $stampFolder", StringComparison.Ordinal);
+                int trap = text.IndexOf("trap {", StringComparison.Ordinal);
+                int body = text.IndexOf("\ntry {", StringComparison.Ordinal);
+                int release = text.LastIndexOf("Remove-DevManifestsWhenFree $addins $stampFolder $PID)\"", StringComparison.Ordinal);
+                Assert.True(write > 0, name + " writes the manifests with a stamp folder");
+                Assert.True(write < trap && trap < body, name + ": the trap comes right after the write and before the try of the run");
+                Assert.True(text.IndexOf("Remove-DevManifestsWhenFree", trap, StringComparison.Ordinal) < body, name + ": the trap removes them");
+                Assert.True(release > body, name + " removes them in the finally of the run");
+                Assert.DoesNotContain("Get-RevitProcesses", text);
+            }
+        }
+
         [WindowsFact]
         public void R370_the_install_puts_one_common_into_every_folder_of_the_tool_and_fails_on_one_it_cannot_replace()
         {

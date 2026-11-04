@@ -38,6 +38,9 @@ Ships with says where the DLL goes: add-in (loaded inside Revit), worker (CadRea
 | Microsoft.CodeCoverage | 17.11.1 | MIT | tests only, by Microsoft.NET.Test.Sdk | lib/net462 | READ microsoft.codecoverage.nuspec |
 | Microsoft.TestPlatform.ObjectModel | 17.11.1, 17.13.0 | MIT | tests only, 17.13.0 on net48 and 17.11.1 by the test host of the net8.0 leg | lib/net462, lib/netcoreapp3.1 | READ microsoft.testplatform.objectmodel.nuspec of both |
 | Microsoft.TestPlatform.TestHost | 17.11.1 | MIT | tests only, the net8.0 leg (R346) | lib/netcoreapp3.1 | READ microsoft.testplatform.testhost.nuspec |
+| NUnit | 3.14.0 | MIT | tests only, dotnet/SiteAdaptation.RevitTests, a project outside the sln and the checks of GitHub (SETUP-sign) | lib/net45 | READ LICENSE.txt in the package, the MIT text of Charlie Poole and Rob Prouse, SEARCHED https://api.nuget.org/v3-flatcontainer/nunit/3.14.0/nunit.nuspec |
+| NUnit3TestAdapter | 4.6.0 | MIT | tests only, dotnet/SiteAdaptation.RevitTests (SETUP-sign) | build/net462 | SEARCHED https://api.nuget.org/v3-flatcontainer/nunit3testadapter/4.6.0/nunit3testadapter.nuspec, license expression MIT |
+| ricaun.RevitTest.TestAdapter | 1.11.1 | MIT | tests only, dotnet/SiteAdaptation.RevitTests, which starts a real Revit 2024 and so stays out of the sln and of GitHub (SETUP-sign) | lib/net45 | READ LICENSE in the package, MIT License Copyright (c) 2022 ricaun, SEARCHED https://api.nuget.org/v3-flatcontainer/ricaun.revittest.testadapter/1.11.1/ricaun.revittest.testadapter.nuspec, license type file LICENSE |
 | System.Collections.Immutable | 1.5.0 | MIT | tests only | lib/netstandard2.0 | READ LICENSE.TXT in the package, The MIT License |
 | System.Reflection.Metadata | 1.6.0 | MIT | tests only | lib/netstandard2.0 | READ LICENSE.TXT in the package, The MIT License |
 | xunit | 2.9.3 | Apache-2.0 | tests only | none, a meta package | READ xunit.nuspec |
@@ -129,3 +132,7 @@ The variable file was measured in WPF on .NET Framework 4.8 on the laptop in Lan
 ## Conflicts
 
 - shapely 2.2.0 is BSD-3-Clause, and its Windows and Linux wheels bundle the GEOS library under LGPLv2.1 (READ licenses\LICENSE_GEOS). numpy, pillow and pypdfium2 hold parts under other permissive licences (0BSD, Zlib, CC0-1.0, MIT-CMU and the dependency licences of PDFium). None of them ships with the add-in. Q076 asks Bader whether the Python checker keeps them.
+
+## ricaun.RevitTest (SETUP-sign)
+
+ricaun.RevitTest.TestAdapter 1.11.1 is MIT, read from the LICENSE file inside the package (READ) and from its nuspec (SEARCHED). It declares no package of its own to restore. At the start of a test run the adapter fetches the console and the Revit application of ricaun.RevitTest and loads that application into Revit 2024 as an add-in, which Revit may ask about like any unsigned add-in. Those pieces are fetched at run time and never ship with this tool. The project that uses it, dotnet/SiteAdaptation.RevitTests, is not in dotnet/SiteAdaptation.sln, so the plain `dotnet test` and the checks of GitHub never restore or run it. Its licences are checked by python/tests/test_licences.py like every other csproj under dotnet. UNKNOWN: the licence of the console and application packages the adapter fetches at run time, they were not read.

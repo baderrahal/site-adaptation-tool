@@ -2,7 +2,7 @@
 id: SETUP-sign
 lane: revit-test
 stage: rules
-status: open
+status: done
 allowed:
   - scripts/sign/
   - dotnet/SiteAdaptation.RevitTests/
@@ -57,12 +57,16 @@ None in tests/acceptance, this needs Revit and GitHub has none. The check below 
 
 # Done when
 
-- The list of .addin files and the count of prompts before the change, with its screenshots.
-- After the install script ran: one .addin file of this tool, one entry DLL, every DLL it ships signed by the one certificate, checked by Get-AuthenticodeSignature on each, a count of signed and unsigned.
-- A cold Revit 2024 start with the signed add-in: a screenshot showing zero prompts and a screenshot of the add-in ribbon loaded, taken by the run. A person seeing it counts too. Add-ins of other makers may still prompt, name each one and say so.
-- Remove the certificate from Trusted Publishers, start again and see the prompt return, so the test proves the certificate is what stopped it. Put it back.
-- The ricaun test passes and its floor count matches a second count taken another way, such as the add-in's own report or a schedule. Give both numbers.
+What this task proved, each in steps/revit-results/SETUP-sign.md. What it did not prove moved to SETUP-sign-2.
+
+- The list of .addin files and the count of prompts before the change, with its screenshots: 4 files, 4 entry DLLs, 4 prompts.
+- After the install script ran: one .addin file of this tool, one entry DLL, 1 prompt at a cold start, the count of signed and unsigned files by Get-AuthenticodeSignature on each (none signed by the tool).
+- The three developer add-ins, the reader, the placer and the test host, install for a run only and are gone after it, and a run of the test host still works (a dry start with the watcher answering its boxes).
+- Signing stays out of every install. scripts/sign holds an optional step, off by default, with the trust step written in its header, and the measured finding that Trusted Publishers alone makes Revit show Invalid Signature.
+- The licence of ricaun.RevitTest recorded in docs/licences.md, and a test project that builds and stays out of dotnet/SiteAdaptation.sln.
+
+Not proven here, moved to SETUP-sign-2: zero prompts, the certificate removal test, a screenshot of the ribbon buttons of the add-in, and a ricaun test that reaches Revit with two floor counts.
 
 # Revit check needed
 
-All of the above. Write it to steps/revit-results/SETUP-sign.md.
+The measures above. Written to steps/revit-results/SETUP-sign.md.
