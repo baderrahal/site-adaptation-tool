@@ -74,6 +74,30 @@ namespace SiteAdaptation.Tests
             Assert.Equal(11, sizes.Count);
         }
 
+        // R574, read off the laid out pane: the tick stands under step 5 in use and not on first open, where a folded row carries the number 5
+        [Fact]
+        public void R574_the_road_topography_tick_stands_under_step_5_in_use_only()
+        {
+            OnSta(() =>
+            {
+                foreach (bool inUse in new[] { true, false })
+                {
+                    SitePanePage page = Shots.LaidOutPane(inUse);
+                    List<CheckBox> ticks = Visuals(page).OfType<CheckBox>().Where(box => PaneText.RoadTopography.Equals(box.Content) && Shown(box)).ToList();
+                    Assert.Equal(inUse ? 1 : 0, ticks.Count);
+                    if (inUse)
+                    {
+                        Assert.Equal(PaneText.RoadTopographyTip, ticks[0].ToolTip);
+                        Assert.Equal(PaneViewModel.RoadTopographyStep, ((StepRowViewModel)ticks[0].DataContext).Number);
+                        var model = (PaneViewModel)page.DataContext;
+                        Assert.Equal(model.RoadTopography, ticks[0].IsChecked);
+                        ticks[0].IsChecked = !model.RoadTopography;
+                        Assert.Equal(ticks[0].IsChecked, model.RoadTopography);
+                    }
+                }
+            });
+        }
+
         // Control 4, the sizes of docs/design/12-ui-spec.md read off the laid out pane: rows 32, inputs 30, Browse 28, the main
         // button 34, radius 3, the step marks 26. Lane C NEWPROJ-UI: the project name under Project on the left of the band as the boards
         // show it, and on first open no input row, no Scope and five step rows

@@ -86,6 +86,7 @@
       </DataTemplate>
 
       <DataTemplate x:Key="StepRow" DataType="{x:Type pane:StepRowViewModel}">
+        <StackPanel>
         <!-- R444. A click on a row runs its step through the box path, a step that waits does nothing -->
         <Grid Margin="{StaticResource SA.Gap.Row}" Height="{StaticResource SA.Size.StepRow}" Background="Transparent" ToolTip="{Binding RowTip}">
           <Grid.InputBindings>
@@ -217,6 +218,16 @@
             </TextBlock>
           </Border>
         </Grid>
+        <!-- R574. Under the row and outside its grid, so a press on the tick does not run the step -->
+        <Grid Visibility="{Binding HasRoadTick, Converter={StaticResource Shown}}">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="{StaticResource SA.Grid.StepMark}" />
+            <ColumnDefinition Width="*" />
+          </Grid.ColumnDefinitions>
+          <CheckBox Grid.Column="1" Style="{StaticResource SA.Pane.Check}" Content="{x:Static pane:PaneText.RoadTopography}" ToolTip="{x:Static pane:PaneText.RoadTopographyTip}"
+                    IsChecked="{Binding DataContext.RoadTopography, RelativeSource={RelativeSource AncestorType=Page}}" />
+        </Grid>
+        </StackPanel>
       </DataTemplate>
     </ResourceDictionary>
   </Page.Resources>

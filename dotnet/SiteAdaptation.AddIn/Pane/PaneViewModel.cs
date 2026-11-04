@@ -63,6 +63,8 @@ namespace SiteAdaptation.AddIn.Pane
             Steps = new ReadOnlyCollection<StepRowViewModel>(RibbonLayout.Buttons.Select(button => new StepRowViewModel(button.Number, StepName(button.Number), PaneText.StepLines[button.Number - 1], number => RunRequested?.Invoke(number))).ToList());
             // PaneFirst board: on first open steps 1 to 4, then one row for the steps after 4 up to the last
             FoldedStep = new StepRowViewModel(FoldFrom, TextTemplate.Fill(PaneText.FoldedSteps, StepName(FoldFrom), StepPlan.Count, StepName(StepPlan.Count)), string.Empty);
+            // R574. Only the real row of step 5, the folded row of first open carries the same number
+            Steps.Single(step => step.Number == RoadTopographyStep).HasRoadTick = true;
             FirstSteps = new ReadOnlyCollection<StepRowViewModel>(Steps.Take(FoldFrom - 1).Concat(new[] { FoldedStep }).ToList());
             BoxCommand = new PaneCommand(OnBox, () => document != null);
             ImportCommand = new PaneCommand(ImportPreSetting, () => document != null);
@@ -188,6 +190,8 @@ namespace SiteAdaptation.AddIn.Pane
                 }
             }
         }
+
+        public const int RoadTopographyStep = 5;
 
         // R574. The tick Road topography of 5 Floors and ramps, on with no document as on in a new project
         public bool RoadTopography
@@ -1015,6 +1019,7 @@ namespace SiteAdaptation.AddIn.Pane
 
         public int Number { get; }
         public string Name { get; }
+        public bool HasRoadTick { get; internal set; }
         public string Line { get { return line; } set { Set(ref line, value); } }
 
         // R540. The key of the row in the help file and its one line on hover

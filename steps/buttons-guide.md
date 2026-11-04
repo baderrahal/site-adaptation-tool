@@ -251,7 +251,7 @@ Zoom to plot and Export to Excel are there if needed. Boxes: closing unsaved ask
 
 ## 5 Floors and ramps
 
-**What it does.** Places the generic, yard and ramp floor of each plot in the scope, and fills the Plot parameter on them. Dry run on NBH 012: 1,003 floors, 0 refused.
+**What it does.** Places the generic, yard and ramp floor of each plot in the scope, and fills the Plot parameter on them. Dry run on NBH 012: 1,003 floors, 0 refused. The tick Road topography under the step, on by default, also makes one toposolid for the NBH from the road surface and reports the level at each ramp road edge. Off leaves one that stands.
 
 **Files it needs.** plan_<NBH>.json of step 4 in the work folder. The floor types of step 1.
 
