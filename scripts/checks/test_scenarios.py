@@ -113,17 +113,31 @@ def test_score_counts_each_field():
     assert tools.score(answer, []) == {"right": 2, "read": 0, "numbers": 0, "villaType": 0, "mirror": 0}
 
 
-def test_scrub_takes_out_file_names():
-    assert tools.scrub("Read from Client Site.dwg, layer X") == "Read from Client <file>, layer X"
-    assert "Base.xlsx" not in tools.scrub("in C:\\a\\Base.xlsx")
+RESULT = {"ran": "done", "built": "abc1234", "needs": [{"need": "rules", "mark": "missing", "line": "No rule set in Base.xlsx on layer SECRET-LAYER, plot 2301"}], "score": {"right": 2, "read": 3, "numbers": 2, "villaType": 1, "mirror": 1}, "faults": [], "levels": [{"word": "Phase"}, {"word": "Facades"}]}
 
 
 def test_the_table_holds_all_five_and_says_not_run():
-    needs = [{"need": "rules", "mark": "missing", "line": "No rule set in Base.xlsx"}]
-    result = {"ran": "done", "needs": needs, "score": {"right": 2, "read": 3, "numbers": 2, "villaType": 1, "mirror": 1}, "faults": []}
-    text = tools.table({"S1": result})
-    assert "| S1 | " in text and "| 3 of 2 | 2 of 2 | 1 of 2 | 1 of 2 | 0, 0, 0, 1 | yes |" in text
-    assert "| S2 | " in text and "not run" in text and "Base.xlsx" not in text and "<file>" in text
+    text = tools.table({"S1": RESULT})
+    assert "| S1 | " in text and "| abc1234 | 3 of 2 | 2 of 2 | 1 of 2 | 1 of 2 | not scored | 0, 0, 0, 1 | yes |" in text
+    assert "| S2 | " in text and "not run" in text
+    assert "| rules | missing | not run |" in text
+
+
+def test_nothing_a_data_check_said_reaches_the_table():
+    text = tools.table({"S1": RESULT, "S3": RESULT})
+    for word in ("Base.xlsx", "SECRET-LAYER", "2301", "Facades"):
+        assert word not in text
+
+
+def test_what_a_data_check_said_goes_to_the_report():
+    assert "SECRET-LAYER" in tools.lines_of({"S1": RESULT})
+
+
+def test_s3_group_words_are_scored_and_others_are_not():
+    assert tools.words_score("S3", [{"word": "Phase"}, {"word": "Block"}]) == "2 of 2"
+    assert tools.words_score("S3", [{"word": "Phase"}, {"word": "Facades"}]) == "1 of 2"
+    assert tools.words_score("S3", [{"word": "Facades"}]) == "0 of 2"
+    assert tools.words_score("S1", [{"word": "Facades"}]) == "not scored"
 
 
 def test_golden_spreads_over_types_and_repeats():
