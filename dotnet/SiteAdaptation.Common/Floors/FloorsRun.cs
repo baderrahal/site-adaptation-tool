@@ -187,6 +187,7 @@ namespace SiteAdaptation.Common.Floors
             public string Key;
             public string Action;
             public string TypeDuplicatedFrom;
+            public int WarningsAccepted;
             public List<ToposolidElement> Own = new List<ToposolidElement>();
         }
 
@@ -334,6 +335,13 @@ namespace SiteAdaptation.Common.Floors
                 {
                     try
                     {
+                        var known = transaction as IKnownWarningTransaction;
+                        RoadTopographySettings settings = step.Read.Settings;
+                        KnownWarningList list = KnownWarningList.OfWords(settings.AcceptWarnings, settings.PlotParameter);
+                        if (list != null)
+                        {
+                            known?.AcceptKnownWarnings(list);
+                        }
                         ToposolidMade made = MakeToposolid(context, decision, step, nbh);
                         foreach (ToposolidElement old in step.Own)
                         {
@@ -344,6 +352,11 @@ namespace SiteAdaptation.Common.Floors
                             step.Element = made.UniqueId;
                             step.TypeDuplicatedFrom = made.TypeDuplicatedFrom;
                             lines.AddRange(transaction.Warnings.Select(warning => RoadTopography.Line + "Revit warns, " + warning));
+                            step.WarningsAccepted = known?.AcceptedWarnings.Count ?? 0;
+                            if (step.WarningsAccepted > 0)
+                            {
+                                lines.Add(RoadTopography.AcceptedLine(step.WarningsAccepted, known.AcceptedWarnings.Select(item => item.Text)));
+                            }
                             return;
                         }
                         step.Problem = transaction.Errors.Count > 0 ? RunTexts.Refused(transaction.Errors) : RunTexts.NotCommitted;
@@ -389,7 +402,7 @@ namespace SiteAdaptation.Common.Floors
         private static void WriteToposolid(RunContext context, Decision decision, ToposolidStep step)
         {
             string nbh = decision.Inputs.Plan.Neighbourhood ?? "all";
-            JObject report = RoadTopography.Report(context.RunId, nbh, step.Read, step.Plan, step.Element, step.ReadBack, step.Problem, step.Action, step.TypeDuplicatedFrom);
+            JObject report = RoadTopography.Report(context.RunId, nbh, step.Read, step.Plan, step.Element, step.ReadBack, step.Problem, step.Action, step.TypeDuplicatedFrom, step.WarningsAccepted);
             context.WriteText(RoadTopography.RecordName(nbh), report.ToString(Newtonsoft.Json.Formatting.Indented));
         }
 

@@ -25,6 +25,10 @@ namespace SiteAdaptation.Common.Floors
         public int MaxPoints { get; set; }
         public double SnapM { get; set; }
 
+        // R575. Optional, a config from before it shows every warning as before
+        public IReadOnlyList<string> AcceptWarnings { get; set; } = new string[0];
+        public string PlotParameter { get; set; }
+
         public static RoadTopographySettings Of(JObject config)
         {
             JToken block = config?["floors"]?["roadTopography"];
@@ -33,6 +37,7 @@ namespace SiteAdaptation.Common.Floors
                 TypeName = Text(block, "typeName"), Surface = Text(block, "surface"), MarginM = Number(block, "marginM"), LimitMm = Number(block, "limitMm"),
                 MinCoverShare = Number(block, "minCoverShare"), PointGapM = Number(block, "pointGapM"), MaxPoints = (int)Number(block, "maxPoints"),
                 SnapM = (double?)config?["siteBuild"]?["snapM"] ?? throw new InvalidDataException("config names no siteBuild.snapM"),
+                AcceptWarnings = (block?["acceptWarnings"] as JArray)?.Select(item => (string)item).ToList() ?? new List<string>(), PlotParameter = (string)config?["floors"]?["plotParameter"],
             };
         }
 
@@ -114,6 +119,12 @@ namespace SiteAdaptation.Common.Floors
         public const string Replace = "replace";
         public const string Keep = "keep";
         public const string TickOffLine = Line + "the tick is off, the toposolid of this NBH stands as it was made and this press did not check it";
+        // R575. One line for all of them, so 782 overlaps stop neither the press nor the reading of the rest
+        public static string AcceptedLine(int count, IEnumerable<string> words)
+        {
+            return Line + count + " Revit warnings taken without a box, " + string.Join(", ", words.Distinct()) + " The floors and the toposolid stand as they are";
+        }
+
         public const string PlotListLine = Line + "left as it is, a plot list does not cover the NBH. Press with the NBH as the scope to make or replace the toposolid";
 
         // A triangle this flat in plan, a side of the solid, gives a point no level
@@ -516,7 +527,7 @@ namespace SiteAdaptation.Common.Floors
         // R573. The record of a run: the file read with its mark, the counts and each road edge point by plot, its levels and differences with
         // no x and no y. A read of the model that failed or was not made stays null. Largest and limit leave out the points marked skipped,
         // of ramps this press left as they stand: the plan, not the model, gives their ramp level
-        public static JObject Report(string runId, string nbh, RoadSurfaceRead read, ToposolidPlan plan, string element, bool readBack, string problem, string action, string typeDuplicatedFrom)
+        public static JObject Report(string runId, string nbh, RoadSurfaceRead read, ToposolidPlan plan, string element, bool readBack, string problem, string action, string typeDuplicatedFrom, int warningsAccepted = 0)
         {
             List<RoadEdgePoint> edges = plan?.Edges ?? new List<RoadEdgePoint>();
             List<RoadEdgePoint> counted = edges.Where(edge => !edge.Skipped).ToList();
@@ -531,7 +542,7 @@ namespace SiteAdaptation.Common.Floors
                 {
                     ["name"] = read.Settings.Surface, ["file"] = read.Mark?.Name, ["size"] = read.Mark?.Size, ["writeTimeUtc"] = read.Mark?.WriteTimeUtc, ["sha256"] = read.Mark?.Sha256,
                 },
-                ["marginM"] = read?.Settings?.MarginM,
+                ["marginM"] = read?.Settings?.MarginM, ["warningsAccepted"] = warningsAccepted,
                 ["boundaryCorners"] = plan?.Boundary.Count, ["points"] = plan?.Points.Count, ["verticesInside"] = plan?.VerticesInside,
                 ["cornersOffSurface"] = plan?.CornersOffSurface, ["thinned"] = plan?.Thinned,
                 ["limitMm"] = limit, ["skippedPoints"] = edges.Count - counted.Count,

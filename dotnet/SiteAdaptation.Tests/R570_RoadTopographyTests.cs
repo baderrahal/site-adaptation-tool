@@ -116,7 +116,7 @@ namespace SiteAdaptation.Tests
                 return new SolidTransaction(this, document.Solids.ToList());
             }
 
-            private sealed class SolidTransaction : IModelTransaction
+            private sealed class SolidTransaction : IModelTransaction, IKnownWarningTransaction
             {
                 private readonly SolidModel model;
                 private readonly List<FakeFloors.Solid> before;
@@ -128,7 +128,15 @@ namespace SiteAdaptation.Tests
                     this.before = before;
                 }
 
-                public IReadOnlyList<string> Warnings => model.Warn;
+                private KnownWarningList known;
+
+                public void AcceptKnownWarnings(KnownWarningList list)
+                {
+                    known = list;
+                }
+
+                public IReadOnlyList<AcceptedWarning> AcceptedWarnings => model.Warn.Where(text => known != null && known.Knows(text)).Select(text => known.Decide(text, new List<WarningElement>())).ToList();
+                public IReadOnlyList<string> Warnings => model.Warn.Where(text => known == null || !known.Knows(text)).ToList();
                 public IReadOnlyList<string> Errors => model.RefuseCommit == null ? new string[0] : new[] { model.RefuseCommit };
 
                 public bool Commit()
@@ -534,6 +542,46 @@ namespace SiteAdaptation.Tests
             IReadOnlyList<string> issues = Apply(Make(document, FloorPlans.Plan(Plot("101"))), Context(), document);
 
             Assert.Contains(RoadTopography.Line + "Revit warns, Highlighted lines overlap.", issues);
+        }
+
+        [Fact]
+        public void R575_a_warning_the_config_names_is_taken_counted_and_any_other_still_shows()
+        {
+            var document = new FakeFloors();
+            solidModel = new SolidModel(document) { Warn = new[] { "Highlighted toposolid and floor overlap.", "Highlighted toposolid and floor overlap.", "Highlighted lines overlap." } };
+            RoadTopographySettings settings = Settings();
+            settings.AcceptWarnings = new[] { "Highlighted toposolid and floor overlap." };
+            settings.PlotParameter = "Plot";
+            RunContext context = Context();
+
+            IReadOnlyList<string> issues = Apply(Make(document, FloorPlans.Plan(Plot("101")), settings: settings), context, document);
+
+            Assert.Contains(RoadTopography.Line + "Revit warns, Highlighted lines overlap.", issues);
+            Assert.DoesNotContain(RoadTopography.Line + "Revit warns, Highlighted toposolid and floor overlap.", issues);
+            Assert.Contains(RoadTopography.AcceptedLine(2, new[] { "Highlighted toposolid and floor overlap." }), issues);
+            Assert.Equal(2, (int)Report(context)["warningsAccepted"]);
+        }
+
+        [Fact]
+        public void R575_no_words_in_config_leaves_every_warning_as_it_was()
+        {
+            Assert.Null(KnownWarningList.OfWords(new string[0], "Plot"));
+            RoadTopographySettings read = RoadTopographySettings.Of(JObject.Parse("{'siteBuild':{'snapM':0.005},'floors':{'plotParameter':'Plot','roadTopography':{'typeName':'T','surface':'S','marginM':5,'limitMm':5,'minCoverShare':0.5,'pointGapM':0.01,'maxPoints':10}}}"));
+            Assert.Empty(read.AcceptWarnings);
+            Assert.Equal("Plot", read.PlotParameter);
+        }
+
+        [Fact]
+        public void R575_the_words_alone_decide_and_other_words_do_not_pass()
+        {
+            KnownWarningList list = KnownWarningList.OfWords(new[] { "Highlighted toposolid and floor overlap." }, "Plot");
+
+            AcceptedWarning taken = list.Decide("Highlighted toposolid and floor overlap.", new[] { new WarningElement { Id = "a", TypeName = "Road surface" }, new WarningElement { Id = "b", TypeName = "Ramps 2%" } });
+
+            Assert.Equal("Road surface", taken.FirstType);
+            Assert.Equal("b", taken.SecondId);
+            Assert.False(list.Knows("Highlighted floors overlap."));
+            Assert.Null(list.Decide("Highlighted floors overlap.", new[] { new WarningElement { Id = "a", TypeName = "x" }, new WarningElement { Id = "b", TypeName = "y" } }));
         }
 
         [Fact]

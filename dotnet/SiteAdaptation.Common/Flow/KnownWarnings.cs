@@ -19,6 +19,10 @@ namespace SiteAdaptation.Common.Flow
     {
         public string Text { get; set; }
         public bool SamePlot { get; set; }
+
+        // R575. The words alone decide, for a warning that names an element with no plot value and no role, as a toposolid has neither
+        public bool AnyElements { get; set; }
+
         public IReadOnlyList<string[]> RolePairs { get; set; } = new string[0][];
     }
 
@@ -73,6 +77,14 @@ namespace SiteAdaptation.Common.Flow
         }
 
         public string PlotParameter { get; }
+
+        // R575. The words of a block that names elements with no plot value, null with no words, so every warning shows. The Revit side still
+        // reads the plot parameter of each element it lists
+        public static KnownWarningList OfWords(IEnumerable<string> words, string plotParameter)
+        {
+            List<KnownWarning> list = (words ?? new string[0]).Select(text => new KnownWarning { Text = text, AnyElements = true }).ToList();
+            return list.Count == 0 ? null : new KnownWarningList(list, plotParameter, new Dictionary<string, IReadOnlyList<string>>());
+        }
 
         // The block floors.knownWarnings of config, null when config holds none, so every warning shows
         public static KnownWarningList OfFloors(JObject config)
@@ -146,6 +158,10 @@ namespace SiteAdaptation.Common.Flow
         // not are never one plot, so no compare can take two plots for one
         public AcceptedWarning Decide(string text, IReadOnlyList<WarningElement> elements)
         {
+            if (entries.Any(item => item.AnyElements && SameWords(item.Text, text)))
+            {
+                return new AcceptedWarning { Text = text.Trim(), FirstType = elements?.ElementAtOrDefault(0)?.TypeName, FirstId = elements?.ElementAtOrDefault(0)?.Id, SecondType = elements?.ElementAtOrDefault(1)?.TypeName, SecondId = elements?.ElementAtOrDefault(1)?.Id };
+            }
             if (elements == null || elements.Count != 2)
             {
                 return null;

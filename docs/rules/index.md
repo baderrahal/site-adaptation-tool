@@ -493,6 +493,7 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R572 Toposolid made after the floors.
 - R573 Road edge differences reported per point.
 - R574 Road topography tick on by default.
+- R575 Toposolid overlap taken without box.
 
 ## 13-site-coords-r454-up.md
 
