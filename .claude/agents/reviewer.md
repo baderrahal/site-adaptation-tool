@@ -22,7 +22,7 @@ The caller hands you three paths: the diff, the PR body and the test output. If 
    - No swallowed error, a caught value never falls into a success message.
    - No Revit type in SiteAdaptation.Common. Host objects are released, none kept across a call that changes the document.
    - No test skipped, deleted or loosened to get green.
-   - No real coordinate, real level or past job value entered git, and each new value carries a source tag.
+   - The repo is public. FAIL if the diff holds a real coordinate, real level, plot data, client file contents, a user name, or a path or word from a client's drawing beyond what config already names. Also no past job value entered git, and each new value carries a source tag.
    - The writing rules of CLAUDE.md hold in comments, log lines and window text.
 6. For a window change, go through `docs/design/12-ui-spec.md` against the XAML and list each difference. Pane words must match what is built.
 

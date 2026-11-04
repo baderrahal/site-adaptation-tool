@@ -1,60 +1,37 @@
-STATE WAITING, 2026-11-04 16:49
+STATE RUNNING, records/split-over-cap and task/R1-build-1, 2026-11-05 02:46
 # Progress
-Live state of the tool, at most 60 lines and 6 KB with no line over 200 characters (R400). The state of 4e in full: steps/history/progress-addin-4e.md.
+Written by scripts/status.ps1 -Progress at 2026-11-05 02:46 from git, PRs and checks, never by hand. Main is at deb292d.
 
 ## State
 
-- Lane D TOPO: R570 to R575. MASS-3NOV: R530. PARAM: R506 to R508. MASS: R500 to R504. FIX-2NOV-D: R490 to R493. 6B-DATA: R469. D3: R467, R468. FIX-1NOV-D: R460 to R466. 4j-1: R420 to R429
-- Lane A 4i to FIX-3NOV-A, one PR each: R407 to R416, R470 to R487. 3 Nov: R484 to R487, R510 to R518, R520, R521, R523
-- Lane B FIX-1NOV-B on 2026-11-01: masses as linked files (R450 to R453), coordinates from CAD (R454 to R456), proven in Revit on NBH 012
-- Lane B 6b: R556 to R558, steps/investigations/6b-revit.md. REPORT-3NOV-B: R550 to R555. Undo (R499). FIX-2NOV-B: R459
-- Lane B 6a on 31 Oct: NBH 012 through 1 to 9 from a new project, no click. 5d, PR 113: 5, 6, 8, 7 at the FFL. 5c, PR 111: 2, 3, 4, 7
-- Lane C SCAN-UI PR 117, 119. DEMO-FIX R444. FIX-1NOV-C PR 132 (R445). FIX-2NOV-C (R446). CHECK: R494, R495. SPEED: R447 to R449, R496, R497. 6c: R505. HELP: R540. RULES: R541. TEXTS: R542, R543
-- Lane A: 5e and 5f on 2026-10-30, one PR (D20), R381 button 9 Report, R402 Update from report. Phase 4 and 5: 4h-1 PR 107, 4h-2 PR 109, 4g3
-- setup-lanes on 2026-11-04: standing rules moved to CLAUDE.md, hooks, skills, checks. Backlog: steps/backlog.md. Live status: steps/STATUS.md
-- ADDIN Part 1 (R300 to R399): the add-in inside Revit 2024 in C#, net48, option B, parsons2024Rev6 for every build (Q050)
-- Plan: steps/01_next.md. Design: docs/design/. Rules: docs/rules/index.md. Lane B: steps/lane-b.md. Part 2 waits for Bader's check of Part 1
+- Task R1-build-1, lane build-1, status open
+- Task R1-revit-test, lane revit-test, status waiting
+- Task SETUP-sign-2, lane revit-test, status waiting
+- Task SETUP-sign, lane revit-test, status done
 
 ## Done
 
-- Lane D 6B-DATA, D3, D2, FIX-1NOV-D: one PR each. 4j-1: PR 114. 4j-1b: one PR, set A and the renamed set equal to 4j-1, 21 of 21 files equal
-- Lane C SCAN-UI: PR 117, PR 119 and the Revit shot records. 4i, 4j-2, Lane B 6a: one PR each (D20). Lane B 5d: PR 113. Lane C NEWPROJ-UI: PR 112. Lane B 5c: PR 111. 5e and 5f: PR 110
-- 4h-2: PR 109. 4h-1: PR 107. FOLD: PR 101 to 105. Lane B 5b: one PR (D20). 5a: PR 84, 86, 87, 89, 90, 92, 97, 99. L0: branch docs/laptop-l0
-- 4g3: PR 83, 85, 88, 91, 93, 95, 96 and the end records. 4g2: PR 74 to 81. 4g1: PR 69 to 73. AUDIT-RULES: PR 67, 68. 4f: PR 61 to 66
-- REC: PR 56 to 60. 4e PR 55 to 4a PR 50, 3b to 0a PR 41 to 49. Round 17: PR 39, 40. DATA-5: PR 38. DATA-4: PR 36. 16: PR 34. Earlier: PR 1 to 32
+- PR 198, merged 11/4/2026 : Scenarios: the repo table holds counts and marks only
+- PR 196, merged 11/4/2026 : SETUP-sign: move what it did not prove to SETUP-sign-2
+- PR 195, merged 11/4/2026 : SETUP-sign: one prompt instead of four, developer add-ins for a run only
+- PR 194, merged 11/4/2026 : Scenario maker: change only text a person reads, and MTEXT lines
+- PR 193, merged 11/4/2026 : Lanes: the branch names the current task, a later task waits
+- PR 192, merged 11/4/2026 : R1-build-1: allow the dataCheck block of config
+- PR 191, merged 11/4/2026 : R1: acceptance tests, tasks and scenario tools
+- PR 190, merged 11/4/2026 : SETUP-sign: find why Load Once shows many times
 
 ## Open bugs
 
-- Scan: a large drawing past scan.pairTimeCapS is scanned in part, a notRead row lists it (Q258). No villa type source at the strong share (Q254)
-- Full text at 73b8c42: steps/history/progress-addin-4e.md. Bugs no real input reaches: steps/latent.md (Q095)
-- Footprint by house outline: 269 of 336 plots of NBH 012 sit in a block of another unit type (Q277, R477)
-- The wall rule keyRules.wallOpen is weak, 2,539 of 3,427 walls hold on the keys, 0.7409 (Q115, Q266)
-- Q063: the whole NBH 03 image runs past the 30 minute step, I25 did not respond at 10,732 MiB private memory
-- R310 logs free memory in every window with no stop at the floor. In 2a it fell to 0.53 to 1.42 GiB per read window, cause UNKNOWN
-- Revit starts 9 to 11 child processes in a read (RC 11). rvt_info.py (R203) does not see cloud links, the SE models list 1 of 14
-- A read is tied to its key by the copy stem, the zone2 master and the IMC 2024 copy share one, only a hash parts them (Q065)
-- ELl@Entry is off its schedule over 30 mm on 100 IMC and 115 IMD plots (Q070), no entrance spot gives El @ Entry (R327)
-- The reader angleToTrueNorthDeg has 3 decimals and is not brought into 0 to 360, the placer takes 0 only
-- 4 yards that stand only by a mirror override read a status stronger than their evidence (Q163)
-- The tab title of the ribbon sits behind the overflow mark at 1536 logical px (Q146). 4 Check dry run has no worker start (Q195)
-- A new site needs the inputs of this job (Q379). Under rev6 a saved project takes the past list (Q255). R414 off, 43 of 82. No R417 (Q259)
+- PR 197 has a failed check: R1-build-1: stage 1 from a folder, the worker command dataCheck
+- Known bugs and leftovers: steps/backlog.md, steps/latent.md
 
 ## Bader's turn
 
-Opened in 4i, Lane A: Q224 to Q242, Q255, Q256. In 4j-2: Q259, Q299, Q303, Q304, titles in steps/questions-open.md. Closed in both: none.
-Opened in Task 6, Lane B: Q306, Q307, Q308, Q309, Q324, titles in steps/questions-open.md and the top entry of steps/log.md. Closed: none.
-Opened in FIX-1NOV-A, Lane A: Q340 The level of a joint an override moves. Q341 Back corners two ramps share. Q343 Passing joint rows in the check chips.
-Q344 Joints at the edge of a build. Closed: Q342. A2: opened Q345 to Q349, closed Q278, Q292. 2NOV-A: Q351, Q353 to Q356, closed Q350, Q352. A2: Q357 to Q359, Q365, Q366, closed Q360.
-Opened in FIX-1NOV-B, Lane B: Q320 to Q323, Q325 to Q329, titles in steps/questions-open.md and the top entry of steps/log.md. Closed: Q276.
-Opened in SCAN-UI, Lane C: Q288 Scan picks in the settings at version 1. Q289 Board rows the scan does not read. Q290 Curbs and road surface left out of scan. Q291 Where the line Current files is
-shown. Q293 Approve the three drafts of SCAN-UI. Q294 Rules chosen in Set up site, when used. Q295 Test host runs skip the scan. Q300 Plots with no cluster
-proposal. Q301 The build takes the door level pick. Q302 Door level row under the past job. Q305 Hide Confirmed under the past job.
-Opened in FIX-1NOV-D, Lane D: Q330 Group of the key link parameters unread. Q331 Plot is no link parameter of the keys. Q332 FFL bound but never written.
-Q333 to Q335. Closed: Q155. D2: Q336, closed Q330. D3: Q337 to Q339, closed Q275. 6B-DATA: Q360 to Q363. FIX-2NOV-D: Q370 to Q374. MASS: Q390 to Q393, Q470, Q471, closed Q279, Q321, Q391, Q411.
-Lane A: Q379, Q394 to Q397, Q420, Q430, Q432, Q433, Q436 to Q439. 6b: Q452 to Q456. TOPO: Q472 to Q477. TRUTH: Q441. 197 open, steps/questions-open.md. Q286, Q293: ui-shots/drafts-for-bader.md.
+- 197 questions open, steps/questions-open.md and steps/history/questions-open-older.md
 
 ## Next three steps
 
-1. Bader answers Q441, Q255, Q379, Q361, Q439 first, steps/questions-for-bader-4nov.md
-2. /questions leaves at most 15 for Bader
-3. /round R1 from steps/backlog.md, SETUP-sign in the revit-test lane
+- Task R1-build-1 in lane build-1, open
+- Task R1-revit-test in lane revit-test, waiting
+- Task SETUP-sign-2 in lane revit-test, waiting
+Hash of the lines above, a hand edit fails a test: de7dfac28c86396492ab42e1d8fb468b9104a663e3d43af5939570b460cd779e

@@ -101,6 +101,7 @@ Python stays in the repo as the checker and the data book builder only, it never
 | pdfplumber | 0.11.7 | MIT License | requirements.txt | READ .venv\Lib\site-packages\pdfplumber-0.11.7.dist-info\METADATA, the classifier |
 | openpyxl | 3.1.5 | MIT | requirements.txt | READ openpyxl-3.1.5.dist-info\METADATA |
 | pytest | 8.4.2 | MIT | requirements.txt | READ pytest-8.4.2.dist-info\METADATA |
+| pyyaml | 6.0.2 | MIT | requirements.txt, the frontmatter test of .claude/rules | READ importlib.metadata of pyyaml, License MIT |
 | pyclipr | 0.1.8 | Boost Software License - Version 1.0 - August 17th, 2003 | requirements.txt, the yard cut of R475, allowed by name (Q352) | READ pyclipr-0.1.8.dist-info\METADATA, the title line of its License field, it wraps Clipper2 2.0.1 |
 | shapely | 2.2.0 | BSD-3-Clause | requirements.txt | READ shapely-2.2.0.dist-info\METADATA, the wheel also bundles GEOS under LGPLv2.1, licenses\LICENSE_GEOS (Q076) |
 | numpy | 2.5.4 | BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0 | requirements.txt | READ numpy-2.5.4.dist-info\METADATA |

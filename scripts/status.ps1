@@ -1,7 +1,8 @@
 # Writes steps/STATUS.md in the main repo folder from git branches, open PRs and check results. Lanes never edit it by hand.
 # The file is git ignored, one copy for all lanes, so a status change never dirties a tree or needs a commit.
-# -Note adds a line such as "merging setup-lanes now" under Notes. The Waiting for you lines of the Notification hook are kept.
-param([string]$Note = '')
+# -Note adds a line such as "merging setup-lanes now" under Notes. The Waiting for you lines of the Notification hook and the Blockers are kept.
+# -Progress also writes steps/PROGRESS.md of this folder from git, PRs and checks, for a records PR. Its last line is a hash, a test fails on a hand edit.
+param([string]$Note = '', [switch]$Progress)
 
 . (Join-Path $PSScriptRoot '..\.claude\hooks\lane.ps1')
 
@@ -27,6 +28,7 @@ function Get-Section([string[]]$Lines, [string]$Heading) {
 $old = @()
 if (Test-Path -LiteralPath $status) { $old = @(Get-Content -LiteralPath $status -Encoding UTF8) }
 $waiting = @(Get-Section $old '## Waiting for you')
+$blockers = @(Get-Section $old '## Blockers')
 $notes = @(Get-Section $old '## Notes')
 if ($Note) { $notes = @("- $time $(Get-LaneName $root): $Note") + $notes }
 $notes = @($notes | Select-Object -First 5)
@@ -69,6 +71,10 @@ $head = & git -C $root rev-parse --short origin/main 2>$null
 
 $out = @('# Status', '', "Written by scripts/status.ps1 at $time, never by hand. Main is at $head.")
 if ($fetchLine) { $out += $fetchLine }
+if ($blockers.Count -gt 0) {
+    $out += @('', '## Blockers')
+    $out += $blockers
+}
 $out += @('', '## Waiting for you')
 $out += $waiting
 $out += @('', '## Notes')
@@ -81,3 +87,57 @@ $out += $branchLines
 # Line feeds only, the steps files hold no carriage return (R343)
 [IO.File]::WriteAllText($status, (($out -join "`n") + "`n"), (New-Object Text.UTF8Encoding $false))
 Write-Output "Wrote $status"
+
+# Short lines of plain text, as R400 and R15 hold the records
+function Limit-Line([string]$Text) {
+    $plain = $Text.Replace([string][char]59, ',').Replace([string][char]0x2014, ',')
+    if ($plain.Length -gt 190) { return $plain.Substring(0, 190) }
+    return $plain
+}
+
+if ($Progress) {
+    $state = "STATE WAITING, $time"
+    $openPrs = @()
+    if ($prs) { $openPrs = @($prs) }
+    if ($openPrs.Count -gt 0) {
+        $names = ($openPrs | ForEach-Object { $_.headRefName.Replace(',', ' ') }) -join ' and '
+        $state = "STATE RUNNING, $names, $time"
+    }
+    $tasks = @()
+    $taskFolder = Join-Path $root 'steps\tasks'
+    if (Test-Path -LiteralPath $taskFolder) {
+        foreach ($file in Get-ChildItem -LiteralPath $taskFolder -Filter '*.md' | Sort-Object Name) {
+            if ($file.Name -ne 'README.md') { $tasks += Read-TaskFile $file.FullName }
+        }
+    }
+    $merged = @()
+    if ($gh) {
+        Push-Location $root
+        $mergedRaw = & $gh.Source pr list --state merged --limit 8 --json number,title,mergedAt 2>$null
+        Pop-Location
+        if ($mergedRaw) { $merged = @(($mergedRaw -join "`n") | ConvertFrom-Json | ForEach-Object { $_ }) }
+    }
+    $questions = 0
+    foreach ($name in @('steps\questions-open.md', 'steps\history\questions-open-older.md')) {
+        $path = Join-Path $root $name
+        if (Test-Path -LiteralPath $path) { $questions += @(Select-String -LiteralPath $path -Pattern '^Q\d{3}\. ').Count }
+    }
+    $body = @($state, '# Progress', "Written by scripts/status.ps1 -Progress at $time from git, PRs and checks, never by hand. Main is at $head.", '', '## State', '')
+    $body += @($tasks | ForEach-Object { Limit-Line "- Task $($_.id), lane $($_.lane), status $($_.status)" })
+    $body += @('', '## Done', '')
+    $body += @($merged | ForEach-Object { Limit-Line "- PR $($_.number), merged $($_.mergedAt.ToString().Substring(0, 10)): $($_.title)" })
+    $body += @('', '## Open bugs', '')
+    $body += @($openPrs | Where-Object { @($_.statusCheckRollup | Where-Object { $_.conclusion -in @('FAILURE', 'CANCELLED', 'TIMED_OUT') }).Count -gt 0 } | ForEach-Object { Limit-Line "- PR $($_.number) has a failed check: $($_.title)" })
+    $body += @('- Known bugs and leftovers: steps/backlog.md, steps/latent.md', '', "## Bader's turn", '', "- $questions questions open, steps/questions-open.md and steps/history/questions-open-older.md")
+    foreach ($name in @('steps/questions-for-bader.md', 'steps/bader-trust.md')) {
+        if (Test-Path -LiteralPath (Join-Path $root $name)) { $body += "- Read $name" }
+    }
+    $body += @('', '## Next three steps', '')
+    $next = @($tasks | Where-Object { $_.status -ne 'done' } | Select-Object -First 3 | ForEach-Object { Limit-Line "- Task $($_.id) in lane $($_.lane), $($_.status)" })
+    if ($next.Count -eq 0) { $next = @('- Lead starts the next round with /round') }
+    $body += $next
+    $text = ($body -join "`n") + "`n"
+    $hash = [BitConverter]::ToString([Security.Cryptography.SHA256]::Create().ComputeHash([Text.Encoding]::UTF8.GetBytes($text))).Replace('-', '').ToLowerInvariant()
+    [IO.File]::WriteAllText((Join-Path $root 'steps\PROGRESS.md'), ($text + "Hash of the lines above, a hand edit fails a test: $hash`n"), (New-Object Text.UTF8Encoding $false))
+    Write-Output 'Wrote steps\PROGRESS.md'
+}
