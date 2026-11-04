@@ -4,6 +4,8 @@ lane: build-1
 stage: 1
 status: open
 allowed:
+  - config/project.json
+  - rules/roshn-makkah.json
   - dotnet/SiteAdaptation.Common/
   - dotnet/CadReader/
   - dotnet/SiteAdaptation.Tests/
