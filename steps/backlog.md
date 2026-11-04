@@ -238,6 +238,7 @@ One backlog by stage, one line each with its Q or R id if it has one. Sources: s
 - Do not show the dry run kit again until truth audit 7, 5 and 11 are done, Lane C
 - R347 worker time limit test fails under load, cause not fixed, steps/latent.md:473, Lane A and C
 - R310 process sample failed once, cause UNKNOWN, steps/log.md:44, Lane C
+- R104 FreezeGuardTests failed once on net8.0 on the Windows runner of job tests, run 41856763267, and passed on the same commit in run 41856748086, cause not measured, setup-lanes
 - A rule that a round's test model is rechecked against main before it starts, Lane D
 - Stale records: steps/lane-b.md:15 and :18, steps/PROGRESS.md line 1 date, the index of steps/questions-open.md does not match its text, Lane B and C
 - steps/questions-open.md and steps/log.md are near the 100 KB cap of R400, move text before the next long entry, Lane A, B and C
