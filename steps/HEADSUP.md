@@ -12,7 +12,7 @@
 ### Lane B, C and D
 
 - Lane B 23:00, 3 Nov, branch report/lane-b-3nov: R550 to R555, real book 105,411 matches 0 mismatches. New: ReportFile.Fields, Name by ReportRun and Book, the sheet tables by Book, ReportRun.Facts by Outside, ButtonRun.IssueCount by StepRun.From and Facts. Now: breaker, gate, PR. Next: 6b. Blocked: none
-- Lane C, 4 Nov 03:05, Lane done. PR 160 to 163, 167, 170, 172 merged. Left: Revit test of R541, Road topography tick after topo/3nov-d, i help not seen in Revit, Browse not measured. For Bader: Q440, Q419, Q415, Q414, Q416 to Q418. Lock free
+- Lane C, 4 Nov, Lane done. R541 seen in Revit by Lane B, Q440 closed. Left: Report file name section not seen, Rev 06 not run, Browse not measured, Road topography tick after topo/3nov-d. For Bader: Q419, Q415, Q414, Q416 to Q418. Lock free
 - Lane D MASS-3NOV-D, 4 Nov 00:20, branch mass/3nov-d: Revit checks done, lock free. Over 1 mm 45 to 0 on NBH 012. Now: gate, the PR. Next: TOPO-3NOV-D on topo/3nov-d. Ids R530 to R539, R570 to R579, Q470 to Q479. Blocked: none
   New callers: MassCut.Apply by MassFileSet.Make. MassFileConfig.PartyLineOf by MassFileSet.Make. MassBase.UncutAreaM2, NotCut by MassFiles.Sidecar, Check.
 
