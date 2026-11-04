@@ -426,7 +426,7 @@ def test_r401_r455_each_coordinates_key_has_the_question_of_its_own_sentence():
     coordinates = settings["coordinates"]
     said = rule_status.sentences(coordinates["note"])
     # An answered question makes its values Bader's, as Q325 and Q328 of 2 Nov 2026
-    still_open = (ROOT / "steps" / "questions-open.md").read_text(encoding="utf-8")
+    still_open = rule_status.open_questions_text(ROOT)
     for key in [k for k in coordinates if k not in ("note", "source")]:
         own = [s for s in said if rule_status.named_in("coordinates." + key, s)]
         assert len(own) == 1, (key, own)
