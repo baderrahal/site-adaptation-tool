@@ -33,17 +33,32 @@ def test_words_change_whole_and_keep_upper_case():
     assert tools.changed_words("Ozone horizon") == "Ozone horizon"
 
 
-def test_rewrite_dxf_touches_text_and_layers_only():
+def test_rewrite_dxf_touches_text_entities_and_layers_only():
     text = "0\nTABLE\n2\nLAYER\n0\nLAYER\n2\nZONE-A\n0\nENDTAB\n0\nTEXT\n8\nZONE-A\n1\nZone 2\n2\nZONEBLOCK\n0\nEOF\n"
     out = tools.rewrite_dxf(text, tools.changed_words, tools.changed_words).split("\n")
     assert out[7] == "PHASE-A" and out[13] == "PHASE-A" and out[15] == "Phase 2"
     assert out[17] == "ZONEBLOCK"
 
 
+def test_rewrite_dxf_leaves_dictionaries_and_records_alone():
+    text = "0\nDICTIONARY\n3\nZone 12\n0\nXRECORD\n1\nZone 12\n0\nBLOCK\n3\nZone 12\n0\nMTEXT\n1\nZone 12\n0\nEOF\n"
+    out = tools.rewrite_dxf(text, tools.changed_words, None).split("\n")
+    assert out[3] == "Zone 12" and out[7] == "Zone 12" and out[11] == "Zone 12" and out[15] == "Phase 12"
+
+
 def test_style_changes_only_a_whole_known_number():
     change = tools.style_text({"101"})
     assert change("101") == "LOT/101-X" and change(" 101 ") == "LOT/101-X"
     assert change("1101") == "1101" and change("Plot 101") == "Plot 101"
+
+
+def test_style_finds_a_number_on_its_own_line_of_an_mtext():
+    change = tools.style_text({"101", "7"})
+    masked = "{" + chr(92) + "C256" + chr(59) + "DP4" + chr(92) + "P101}"
+    assert change(masked) == "{" + chr(92) + "C256" + chr(59) + "DP4" + chr(92) + "PLOT/101-X}"
+    # A number that is not a plot, a colour code and a type code all stay
+    other = "{" + chr(92) + "C7" + chr(59) + "DP7" + chr(92) + "P999}"
+    assert change(other) == other
 
 
 def test_only_columns_of_numbers_are_found():

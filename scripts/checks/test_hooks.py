@@ -297,6 +297,41 @@ def test_a_lane_cannot_widen_its_own_task_and_status_done_does_not_lock_it_out(r
     assert code == 2 and "allowed folders of task T1" in err
 
 
+def test_the_branch_names_the_task_when_a_lane_holds_two(tmp_path):
+    repo = tmp_path / "repo"
+    (repo / "steps" / "tasks").mkdir(parents=True)
+    (repo / "config").mkdir()
+    (repo / "config" / "project.json").write_text("{}", encoding="utf-8")
+    other = TASK.replace("id: T1", "id: A0").replace("  - python/\n", "  - docs/\n")
+    (repo / "steps" / "tasks" / "A0.md").write_text(other, encoding="utf-8")
+    (repo / "steps" / "tasks" / "T1.md").write_text(TASK, encoding="utf-8")
+    git_in(repo, "init", "-q")
+    git_in(repo, "config", "user.email", "t@example.com")
+    git_in(repo, "config", "user.name", "t")
+    git_in(repo, "add", ".")
+    git_in(repo, "commit", "-q", "-m", "base")
+    git_in(repo, "update-ref", "refs/remotes/origin/main", "HEAD")
+    tree = tmp_path / "trees" / "build-1"
+    git_in(repo, "worktree", "add", "-q", "--detach", str(tree), "HEAD")
+    # On no task branch the first by name stands
+    assert edit(tree, tree / "docs" / "a.md")[0] == 0
+    assert edit(tree, tree / "python" / "a.py")[0] == 2
+    git_in(tree, "checkout", "-q", "-b", "task/T1")
+    assert edit(tree, tree / "python" / "a.py")[0] == 0
+    assert edit(tree, tree / "docs" / "a.md")[0] == 2
+
+
+def test_a_waiting_task_gives_no_folders(real_worktree):
+    tree = real_worktree
+    (tree / "steps" / "tasks" / "T1.md").write_text(TASK, encoding="utf-8")
+    repo = tree.parent.parent / "repo"
+    (repo / "steps" / "tasks" / "T1.md").write_text(TASK.replace("status: open", "status: waiting"), encoding="utf-8")
+    git_in(repo, "add", ".")
+    git_in(repo, "commit", "-q", "-m", "waiting")
+    git_in(repo, "update-ref", "refs/remotes/origin/main", "HEAD")
+    assert edit(tree, tree / "python" / "a.py")[0] == 2
+
+
 def test_a_task_not_merged_gives_no_folders(real_worktree):
     tree = real_worktree
     (tree / "steps" / "tasks" / "T2.md").write_text(TASK.replace("id: T1", "id: T2").replace("  - python/\n", "  - dotnet/\n"), encoding="utf-8")
