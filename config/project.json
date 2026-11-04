@@ -352,8 +352,9 @@
     "roadOutsideShare": 0.5,
     "roadWhy": "roadReachM is CHOSEN by Code (R604). roadMinSegments is CHOSEN by Code (R604). roadOutsideShare is CHOSEN by Code (R604). A layer of at least 2 lines, half of them or more outside the plots, marks road edges when a line lies within 20 m of the plots, the layer that reaches the most plots is the best. Reach alone proves no road, so the mark is at most usable.",
     "drawingPeak": {
-      "mibPerFileMib": 252,
-      "why": "mibPerFileMib is CHOSEN by Code (R606), MEASURED on the five scenario runs of round R1: the private memory of the worker peaked at 81 to 252 MiB for each MiB of drawings, the highest on a 78 MiB DWG. A drawing is read only when the free memory is over its size times this, plus the floor siteBuild.minFreeGB, else it is named as not read with that reason."
+      "dwg": 252,
+      "dxf": 106,
+      "why": "dwg and dxf are CHOSEN by Code (R606), the MiB of private memory for each MiB of a drawing file of that type, MEASURED on the five scenario runs of round R1: the private memory of the worker peaked at 211 to 252 MiB for each MiB of the drawings of a DWG folder (78 MiB of drawings) and at 81 to 106 for a DXF folder (243 MiB of drawings), each the highest of its type. A drawing is read only when the free memory is over its size times the number of its file type, plus the floor siteBuild.minFreeGB, else it is named as not read with that reason. A type with no number has no limit."
     },
     "strongShare": 0.9,
     "usableShare": 0.5,

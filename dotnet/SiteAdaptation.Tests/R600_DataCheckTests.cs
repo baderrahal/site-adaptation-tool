@@ -43,7 +43,7 @@ namespace SiteAdaptation.Tests
                         ["pairThreads"] = 1, ["pairTimeCapS"] = 60, ["pdfJoinGapPt"] = 0.3, ["pdfLineTolerancePt"] = 0.05, ["pdfPairDyPt"] = new JArray(1.3, 1.8), ["pdfPairDxPt"] = 1.5,
                     },
                     ["groupGapsM"] = new JArray(100.0, 1.0), ["wordReachM"] = 30, ["wordShare"] = 0.9, ["wordMinGroups"] = 3, ["roadReachM"] = 20, ["roadMinSegments"] = 2, ["roadOutsideShare"] = 0.5,
-                    ["drawingPeak"] = new JObject { ["mibPerFileMib"] = 252 },
+                    ["drawingPeak"] = new JObject { ["dwg"] = 252, ["dxf"] = 106 },
                     ["strongShare"] = 0.9, ["usableShare"] = 0.5, ["prototypeFilePattern"] = "(?:^|-)ARC-([A-Za-z0-9]+)(?:-[A-Za-z0-9]{2})?-MOD",
                 },
             };
@@ -570,6 +570,12 @@ namespace SiteAdaptation.Tests
                 ((JObject)config[DataCheckSettings.Block]).Remove(key);
                 Assert.Throws<InvalidDataException>(() => DataCheckSettings.From(config));
             }
+            Assert.Equal(252.0 * 10, Settings().DrawingPeakMiB(".DWG", 10));
+            Assert.Equal(106.0 * 10, Settings().DrawingPeakMiB(".dxf", 10));
+            Assert.Null(Settings().DrawingPeakMiB(".svg", 10));
+            JObject noTable = Config();
+            noTable[DataCheckSettings.Block]["drawingPeak"] = new JObject { ["why"] = "none" };
+            Assert.Throws<InvalidDataException>(() => DataCheckSettings.From(noTable));
             Assert.True(DataCheckSettings.UnitAssumed("Unitless"));
             Assert.True(DataCheckSettings.UnitAssumed(""));
             Assert.False(DataCheckSettings.UnitAssumed("Meters"));
@@ -681,7 +687,7 @@ namespace SiteAdaptation.Tests
         private WorkerRequest FolderRequest(string scan, double peakMibPerMib)
         {
             JObject full = Config();
-            full[DataCheckSettings.Block]["drawingPeak"]["mibPerFileMib"] = peakMibPerMib;
+            full[DataCheckSettings.Block]["drawingPeak"] = new JObject { ["dwg"] = peakMibPerMib, ["dxf"] = peakMibPerMib };
             full["siteBuild"] = new JObject { ["minFreeGB"] = 0.1 };
             full["addin"] = new JObject
             {

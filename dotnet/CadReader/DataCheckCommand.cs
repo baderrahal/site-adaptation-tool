@@ -130,7 +130,7 @@ namespace CadReader
                         break;
                     case ".dwg":
                     case ".dxf":
-                        Try(run, input, name, path, "drawing", mark => ReadDrawing(input, settings, name, path, mark), SizeMiB(path) * settings.DrawingPeakMibPerMib);
+                        Try(run, input, name, path, "drawing", mark => ReadDrawing(input, settings, name, path, mark), settings.DrawingPeakMiB(extension, SizeMiB(path)));
                         break;
                     case ".xlsx":
                         Try(run, input, name, path, "workbook", mark => input.Excels.Add(ScanSources.Workbook(path)));

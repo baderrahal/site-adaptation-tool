@@ -22,7 +22,7 @@ namespace SiteAdaptation.Common
         public double RoadReachM { get; private set; }
         public double RoadOutsideShare { get; private set; }
         public int WordMinGroups { get; private set; }
-        public double DrawingPeakMibPerMib { get; private set; }
+        public Dictionary<string, double> DrawingPeakMibPerMib { get; private set; }
         public int RoadMinSegments { get; private set; }
         public double StrongShare { get; private set; }
         public double UsableShare { get; private set; }
@@ -55,7 +55,7 @@ namespace SiteAdaptation.Common
                 RoadOutsideShare = Share(block, "roadOutsideShare", "R604"),
                 WordMinGroups = block["wordMinGroups"]?.Type == JTokenType.Integer && (int)block["wordMinGroups"] >= 2 ? (int)block["wordMinGroups"]
                     : throw new InvalidDataException("dataCheck.wordMinGroups is no whole number of 2 or more (R603)"),
-                DrawingPeakMibPerMib = Positive(block["drawingPeak"] as JObject ?? throw new InvalidDataException("dataCheck holds no drawingPeak block (R606)"), "mibPerFileMib", "R606"),
+                DrawingPeakMibPerMib = PeakTable(block["drawingPeak"] as JObject),
                 RoadMinSegments = block["roadMinSegments"]?.Type == JTokenType.Integer && (int)block["roadMinSegments"] >= 1 ? (int)block["roadMinSegments"]
                     : throw new InvalidDataException("dataCheck.roadMinSegments is no whole number of 1 or more (R604)"),
                 StrongShare = Share(block, "strongShare", "R605"),
@@ -79,6 +79,23 @@ namespace SiteAdaptation.Common
                 throw new InvalidDataException("dataCheck.prototypeFilePattern names no group for the code of a prototype file (R602)");
             }
             return settings;
+        }
+
+        // R606. The private memory the read of a drawing needs for each MiB of its file, by the file type without its dot, measured on real runs
+        private static Dictionary<string, double> PeakTable(JObject table)
+        {
+            List<JProperty> numbers = table == null ? new List<JProperty>() : table.Properties().Where(item => item.Name != "why").ToList();
+            if (numbers.Count == 0 || numbers.Any(item => (item.Value.Type != JTokenType.Float && item.Value.Type != JTokenType.Integer) || (double)item.Value <= 0))
+            {
+                throw new InvalidDataException("dataCheck.drawingPeak holds no number above 0 for a file type such as dwg (R606)");
+            }
+            return numbers.ToDictionary(item => "." + item.Name.ToLowerInvariant(), item => (double)item.Value, StringComparer.Ordinal);
+        }
+
+        // R606. The memory a drawing file of this type and size needs, null when the table has no number for the type, so no limit is invented
+        public double? DrawingPeakMiB(string extension, double sizeMiB)
+        {
+            return DrawingPeakMibPerMib.TryGetValue((extension ?? "").ToLowerInvariant(), out double factor) ? factor * sizeMiB : (double?)null;
         }
 
         private static double Positive(JObject block, string key, string rule)
