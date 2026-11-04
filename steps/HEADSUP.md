@@ -4,10 +4,10 @@
 
 ### Lane A
 
-- Lane: A, 4 Nov 02:50, branch fix/ramp-3nov-a. Blocked: Revit install, Lane B holds it for 6b, I wait for its word. No lock held, no window open
-- Done: PR 166 KNOWN, PR 171 COORD merged. COORD runs A, A0, B by the test host ended clean. RAMP gate green on 7e863ef
-- Stopped at: the RAMP step 5 Revit probe. No push for 2 hours: 26 merged commits of RAMP sat local behind the gate, and I held the push for a helper's fix pass, my slip
-- Next: read the COORD results, RAMP probe, records, PR, merge. COORD move stop on an existing model needs a build
+- Lane: A, 4 Nov 03:25, branch fix/ramp-3nov-a. Blocked: Revit slot 2, TOPO-PROBE holds it, my window pass waits on the lock. Lane A has no window open
+- Done: PR 166 KNOWN, PR 171 COORD merged, button 1 from CAD and typed committed in Revit on a blank model by the test host. RAMP gate green
+- Now: window pass of button 1, starts when the slot frees, logs round_addin/logs/p3nova/revit/pass3. The screen is in use by it, Lane B waits for my window done
+- Next: install fix/ramp-3nov-a after Lane B's closed, buttons 1 to 5 on a copy for the step 5 count, then records, PR, merge
 
 ### Lane B, C and D
 
