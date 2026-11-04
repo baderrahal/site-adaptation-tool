@@ -200,7 +200,7 @@
   },
   "floors": {
     "roadTopography": {
-      "note": "R570 to R573, round TOPO-3NOV-D. Button 5 makes one Revit toposolid per NBH from one road surface when the tick Road topography of step 5 is on (R574), read by RoadTopographySettings. All CHOSEN by Code, Bader decides",
+      "note": "R570 to R573, round TOPO-3NOV-D. Button 5 makes one Revit toposolid per NBH from one road surface when the tick Road topography of step 5 is on (R574), read by RoadTopographySettings. All CHOSEN by Code, Bader decides typeName is CHOSEN by Code. surface is CHOSEN by Code. marginM is CHOSEN by Code. limitMm is CHOSEN by Code on the target of Bader of 3 Nov 2026. acceptWarnings is CHOSEN by Code",
       "typeName": "Road surface",
       "typeNameWhy": "The toposolid type by name, so a project names its own. Button 5 duplicates a type of the model under this name when the model has none",
       "surface": "Makkah Phase 1_Road Surface C3D__Top Surface-02",
