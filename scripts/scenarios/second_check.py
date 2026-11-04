@@ -1,18 +1,26 @@
 """The second check of a scenario run, by a route that shares no code with the reader: the workbooks of the folder read straight with openpyxl.
 
-Usage: second_check.py S1 [S2 ...]. For each scenario it takes the plots.json of the run and, in every sheet of every workbook of the folder, the
-column whose cells match the most plot numbers. The villa type codes are the part of each prototype file name between the first two dashes
-after the discipline, found here by a split of the name and not by the pattern of the settings. A cell that holds one of those codes as a
-whole word is the sheet's villa type of the plot. Counts only are printed and written to second_check.json beside the run, no value of a
-file and no file name. The workbooks are read in place, read only, and their SHA-256 is held before and after.
+Usage: second_check.py S1 [S2 ...]. For each scenario it finds in the workbooks the sheet that lists the plots, without looking at the plots the
+run read: a column of whole numbers for the plot, a column whose cells hold a prototype code as a whole word for the villa type, and a column of
+a few repeated words for the neighbourhood. It counts the plots of the sheet for each neighbourhood and each villa type, then counts what the
+run read the same way, and writes the gap. A plot read that the sheet does not list is an over read, a plot of the sheet the run did not read
+is an under read, and both show. The villa type codes are the part of each prototype file name after the architecture token, found here by a
+split of the name and not by the pattern of the settings. Counts only are printed and written to second_check.json beside the run, no value of
+a file and no file name. The workbooks are read in place, read only, and their SHA-256 is held before and after.
 """
+import collections
 import json
 import re
 import sys
+import warnings
 from pathlib import Path
 
 import scenario_tools as tools
 from openpyxl import load_workbook
+
+warnings.simplefilter("ignore")
+MIN_ROWS = 100
+MAX_NEIGHBOURHOODS = 300
 
 
 def codes_of(folder):
@@ -25,15 +33,6 @@ def codes_of(folder):
     return found
 
 
-def sheet_rows(path):
-    book = load_workbook(path, read_only=True, data_only=True)
-    try:
-        for sheet in book.worksheets:
-            yield sheet.title, [list(row) for row in sheet.iter_rows(values_only=True)]
-    finally:
-        book.close()
-
-
 def text_of(cell):
     if cell is None:
         return ""
@@ -42,71 +41,109 @@ def text_of(cell):
     return str(cell).strip()
 
 
-def whole_word_code(text, codes):
-    """The one code a cell holds as a whole word, else None."""
-    words = set(re.split(r"[^A-Za-z0-9]+", text))
-    hits = words & codes
+def digits_of(text):
+    """The run of digits of a plot number, so a number in another style is counted as the same plot."""
+    found = re.findall(r"\d+", text)
+    return found[-1] if found else None
+
+
+def code_of(text, codes):
+    hits = set(re.split(r"[^A-Za-z0-9]+", text)) & codes
     return next(iter(hits)) if len(hits) == 1 else None
 
 
-def check_sheet(rows, plots, codes):
-    """Best key column of a sheet and, for the best type column, the plots that agree, differ and have no code in the sheet."""
+def sheets_of(folder):
+    for path in sorted(Path(folder).rglob("*.xlsx")):
+        book = load_workbook(path, read_only=True, data_only=True)
+        try:
+            for sheet in book.worksheets:
+                yield [list(row) for row in sheet.iter_rows(values_only=True)]
+        finally:
+            book.close()
+
+
+def header_of(rows):
+    """The texts of the first row with three cells or more, lower case, and the rows under it."""
+    for at, row in enumerate(rows):
+        if sum(1 for cell in row if text_of(cell)) >= 3:
+            return [text_of(cell).lower() for cell in row], rows[at + 1:]
+    return [], []
+
+
+def plot_list(rows, codes):
+    """The best listing of plots in a sheet: key column, type column and neighbourhood column, with the plots of every row, none left out.
+    The key is a column whose header says plot, the neighbourhood a column whose header says neighbourhood or nbh, found from the header
+    alone and not from the plots the run read."""
+    header, rows = header_of(rows)
+    width = len(header)
     best = None
-    width = max((len(row) for row in rows), default=0)
     for key in range(width):
+        if "plot" not in header[key]:
+            continue
         keyed = {}
         for row in rows:
-            if key < len(row) and text_of(row[key]) in plots:
-                keyed.setdefault(text_of(row[key]), row)
-        if keyed and (best is None or len(keyed) > len(best[1])):
-            best = (key, keyed)
-    if best is None:
-        return None
-    key, keyed = best
-    result = {"keyed": len(keyed), "agree": 0, "differ": 0, "none": 0, "column": None}
-    for column in range(width):
-        if column == key:
+            digits = digits_of(text_of(row[key])) if key < len(row) else None
+            if digits is not None and digits not in keyed:
+                keyed[digits] = row
+        if len(keyed) < MIN_ROWS:
             continue
-        agree = differ = none = 0
-        for number, row in keyed.items():
-            code = whole_word_code(text_of(row[column]), codes) if column < len(row) else None
-            mine = plots[number]
-            if code is None:
-                none += 1
-            elif mine == code:
-                agree += 1
-            else:
-                differ += 1
-        if agree + differ > result["agree"] + result["differ"]:
-            result.update({"agree": agree, "differ": differ, "none": none, "column": column})
-    return result
+        for typed in range(width):
+            if typed == key:
+                continue
+            given = {number: code_of(text_of(row[typed]), codes) for number, row in keyed.items() if typed < len(row)}
+            given = {number: code for number, code in given.items() if code}
+            if len(given) < MIN_ROWS or (best is not None and len(given) <= len(best["codes"])):
+                continue
+            area = None
+            for column in range(width):
+                if column in (key, typed) or not re.search(r"neighbou?rhood|nbh", header[column]):
+                    continue
+                values = {number: text_of(row[column]) for number, row in keyed.items() if column < len(row) and text_of(row[column])}
+                if 2 <= len(set(values.values())) <= MAX_NEIGHBOURHOODS and (area is None or len(values) > len(area)):
+                    area = values
+            best = {"keys": set(keyed), "codes": given, "area": area or {}}
+    return best
 
 
 def run_one(name, root):
     folder = root / name
     out = root / "runs" / name
-    plots = {row["number"]: row["villaType"] for row in json.loads((out / "plots.json").read_text(encoding="utf-8"))["plots"]}
+    read = {}
+    for row in json.loads((out / "plots.json").read_text(encoding="utf-8"))["plots"]:
+        digits = digits_of(row["number"])
+        if digits is not None:
+            read[digits] = row["villaType"]
     codes = codes_of(folder)
     before = {path: tools.sha256(path) for path in sorted(folder.rglob("*.xlsx"))}
-    sheets = []
-    for path in before:
-        for title, rows in sheet_rows(path):
-            result = check_sheet(rows, plots, codes)
-            if result and result["keyed"] > 0:
-                sheets.append(result)
+    listing = None
+    for rows in sheets_of(folder):
+        found = plot_list(rows, codes)
+        if found and (listing is None or len(found["codes"]) > len(listing["codes"])):
+            listing = found
     unchanged = all(tools.sha256(path) == digest for path, digest in before.items())
-    best = max(sheets, key=lambda item: item["keyed"], default=None)
-    kinds = {}
-    for code in plots.values():
-        kinds[code] = kinds.get(code, 0) + 1
-    report = {
-        "scenario": name, "plotsRead": len(plots), "prototypeCodes": len(codes), "workbooks": len(before), "workbooksUnchanged": unchanged,
-        "sheetsJoined": len(sheets), "bestSheet": best, "readTypeCounts": dict(sorted(kinds.items(), key=lambda item: str(item[0]))),
-    }
+    report = {"scenario": name, "plotsRead": len(read), "workbooks": len(before), "workbooksUnchanged": unchanged, "sheetFound": listing is not None}
+    if listing:
+        sheet_keys = listing["keys"]
+        only_sheet = len(sheet_keys - set(read))
+        only_read = len(set(read) - sheet_keys)
+        by_code_sheet = collections.Counter(listing["codes"].values())
+        by_code_read = collections.Counter(code for code in read.values() if code)
+        by_area_sheet = collections.Counter(listing["area"].get(number) for number in sheet_keys if listing["area"].get(number))
+        by_area_read = collections.Counter(listing["area"].get(number) for number in read if listing["area"].get(number))
+        report.update({
+            "sheetPlots": len(sheet_keys), "underRead": only_sheet, "overRead": only_read,
+            "villaTypesInSheet": len(by_code_sheet), "villaTypeCountGap": sum(abs(by_code_sheet[c] - by_code_read[c]) for c in set(by_code_sheet) | set(by_code_read)),
+            "neighbourhoodsInSheet": len(by_area_sheet), "neighbourhoodCountGap": sum(abs(by_area_sheet[a] - by_area_read[a]) for a in set(by_area_sheet) | set(by_area_read)),
+            "plotsInSheetWithATypeCode": len(listing["codes"]), "plotsReadWithAType": sum(1 for code in read.values() if code),
+        })
     (out / "second_check.json").write_text(json.dumps(report, indent=1), encoding="utf-8")
-    print("%s: %d plots read, %d workbooks (unchanged: %s), %d sheets join the plots" % (name, len(plots), len(before), unchanged, len(sheets)))
-    if best:
-        print("  best sheet holds %d of the read plots, villa type agrees on %d, differs on %d, no code on %d" % (best["keyed"], best["agree"], best["differ"], best["none"]))
+    print("%s: %d plots read, %d workbooks (unchanged: %s)" % (name, len(read), len(before), unchanged))
+    if listing:
+        print("  sheet lists %d plots in %d neighbourhoods and %d villa types, %d under read, %d over read" % (
+            report["sheetPlots"], report["neighbourhoodsInSheet"], report["villaTypesInSheet"], report["underRead"], report["overRead"]))
+        print("  count gap over neighbourhoods %d plots, over villa types %d plots" % (report["neighbourhoodCountGap"], report["villaTypeCountGap"]))
+    else:
+        print("  no sheet lists the plots by whole numbers with a villa type code")
     return report
 
 

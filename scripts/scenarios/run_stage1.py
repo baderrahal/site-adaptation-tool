@@ -3,6 +3,7 @@ Output under the work root, scenarios\\runs\\<name>. A scenario that fails is re
 """
 import argparse
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -12,6 +13,16 @@ import scenario_tools as tools
 
 ROOT = Path(__file__).resolve().parents[2]
 TIME_LIMIT_S = 3600.0
+
+
+def built_commit(worker):
+    """The commit the worker was built from. The build writes it into the version text of SiteAdaptation.Common.dll beside the worker as
+    1.0.0+ and 40 hex characters, in 16 bit characters. UNKNOWN when the text is not there, never a guess."""
+    library = Path(worker).parent / "SiteAdaptation.Common.dll"
+    if not library.is_file():
+        return "UNKNOWN"
+    found = re.search(rb"\+\x00((?:[0-9a-f]\x00){40})", library.read_bytes())
+    return found.group(1).decode("utf-16-le") if found else "UNKNOWN"
 
 
 def request_for(name, folder, out, config=None):
@@ -31,6 +42,7 @@ def run_one(name, worker, root, config=None):
     path = out / "request_stage1.json"
     path.write_text(json.dumps(request_for(name, folder, out, config)), encoding="utf-8")
     done = subprocess.run([str(worker), "--request", str(path)], capture_output=True, text=True, encoding="utf-8", errors="replace")
+    (out / "built_from.json").write_text(json.dumps({"commit": built_commit(worker)}), encoding="utf-8")
     (out / "worker_output.txt").write_text(done.stdout[-20000:] + done.stderr[-20000:], encoding="utf-8")
     print("%s exit %d" % (name, done.returncode))
 
