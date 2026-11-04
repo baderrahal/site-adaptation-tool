@@ -10,9 +10,9 @@ Argument: the task id. One task per fresh session.
 1. Run `git fetch origin` and start a branch `task/<id>` from origin/main.
 2. Read steps/tasks/<id>.md. If its lane is not this folder's name, stop and say so. Plan first, then continue without waiting.
 3. Build only inside `allowed`. The acceptance tests are the lead's, never change them. If one looks wrong, stop and say why.
-4. Run `pwsh scripts/quick-tests.ps1` and the acceptance tests of the task. Show the output.
+4. Set `status: done` in the task file, which turns its acceptance tests from owed to hard. Run `pwsh scripts/quick-tests.ps1` and `python -m pytest tests/acceptance`. Show the output.
 5. Check the result a second way that shares no code with what you built.
-6. Set `status: done` in the task file. Open a ready PR with this body:
+6. Open a ready PR with this body:
 
 ```
 Task: <id>

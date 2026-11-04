@@ -9,7 +9,7 @@ Run this in the main repo folder only. Argument: the round goal in one line.
 
 1. Read steps/backlog.md and steps/truth-audit.md for the items the goal touches. Plan first, then continue without waiting.
 2. Split the goal into one task per lane, the lanes being build-1, build-2 and revit-test. Two open tasks must not share a folder.
-3. Write the acceptance tests in tests/acceptance/ first. They must fail today for the right reason, show that output. Open a PR that holds them, then run /merge. Lanes do not start until they are on main.
+3. Write the acceptance tests in tests/acceptance/ first, each with `@pytest.mark.task("<id>")`. While its task is open a test is owed and may fail, conftest.py marks it xfail so it can merge under the required check. Run them with `--runxfail` to show they fail today for the right reason. They run on GitHub, so their inputs are made up, never a real file. Open a PR that holds them, then run /merge. Lanes do not start until they are on main.
 4. Write one file per task in steps/tasks/<id>.md in this shape, on a branch, and merge it the same way:
 
 ```
