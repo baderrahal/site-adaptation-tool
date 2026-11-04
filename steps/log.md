@@ -2,6 +2,30 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Lane C ROAD-TICK, 2026-11-04, the tick of Lane D in the pane
+
+Goal:
+- Add the Road topography tick Lane D asked for under 5 Floors and ramps, R574
+
+Done:
+- The tick on the real step 5 row only, outside the row so a press does not run the step. Guide and help line
+
+Checked:
+- Tests R574 in PaneTests and UiShotTests, seen in the pane image of UiShots. Not seen in Revit
+
+Remains:
+- Revit look of the tick. Browse not measured
+
+Known bugs:
+- None found. R310 process sample failed once under the full net48 run, passed 3 of 3 alone
+
+Next:
+- TRUTH-4NOV-C
+
+Your turn:
+- Opened and closed: none
+- Open count and titles: steps/questions-open.md
+
 ## Lane D TOPO-3NOV-D, 2026-11-04, road toposolid of button 5
 
 Goal:
