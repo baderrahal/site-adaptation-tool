@@ -1,8 +1,8 @@
 """Copies only samples/new-project to an empty folder and runs its build. Fails if the build fails or reads a past job path.
 
 samples/new-project/build.json names the build: {"command": ["python/some_build.py", "{folder}"]}, a Python file of the repo
-with its arguments. The build runs under open_watch.py, which logs every file Python opens. A C# build is not watched yet, a
-build.json that names anything but a Python file fails until it is. NOT RUN while the folder holds no build.json, the tool cannot
+with its arguments. The build runs under open_watch.py, which logs every file Python opens. A C# build or a child process of the
+build is not watched, a build.json that names anything but a Python file fails until that changes. NOT RUN while the folder holds no build.json, the tool cannot
 run from raw inputs today (steps/truth-audit.md section 5).
 """
 import fnmatch
@@ -55,8 +55,9 @@ def run(sample=SAMPLE, root=check_common.ROOT, patterns=None):
     failures = []
     if done.returncode != 0:
         failures.append("the build exited %d: %s" % (done.returncode, done.stderr.strip()[-400:]))
-    if not opened:
-        failures.append("the watch logged no file opened, so it proves nothing")
+    sample_reads = [path for path in opened if str(folder).replace("\\", "/").lower() in path.replace("\\", "/").lower()]
+    if not sample_reads:
+        failures.append("the build read no file of the sample, so it proves nothing")
     failures += ["the build read a past job path: " + path for path in past_reads(opened, patterns)]
     return failures
 

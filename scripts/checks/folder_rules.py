@@ -5,6 +5,7 @@ files of the repo as they stand. A Lead line is only a word in a PR, the lane ho
 """
 import argparse
 import re
+import subprocess
 import sys
 
 import check_common
@@ -24,7 +25,7 @@ def pr_failures(body, changed, added, read_file):
             failures.append("steps/STATUS.md is written by scripts/status.ps1 and never committed")
     task_id = check_common.task_of(body)
     if task_id is None:
-        if not re.search(r"^Lead:\s*\S+", body, flags=re.MULTILINE):
+        if not re.search(r"^Lead:[ \t]*\S+", body, flags=re.MULTILINE):
             failures.append("the PR body has no Task: <id> line and no Lead: <reason> line")
         return failures
     own = "steps/tasks/%s.md" % task_id
@@ -41,6 +42,16 @@ def pr_failures(body, changed, added, read_file):
     return failures
 
 
+def base_reader(base, root=check_common.ROOT):
+    """Reads a file as it stands on the base of the PR, so a task cannot widen its own allowed list in the PR that uses it."""
+    def read_file(path):
+        try:
+            return check_common.git("show", base + ":" + path, root=root)
+        except subprocess.CalledProcessError:
+            return None
+    return read_file
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("--all", action="store_true", help="check the root files of the repo, no PR needed")
@@ -51,14 +62,9 @@ def main(argv=None):
     event = check_common.pr_event()
     if args.all or event is None:
         return check_common.finish(NAME, failures, "%d tracked files, root files on the list" % len(tracked))
-
-    def read_file(path):
-        file = check_common.ROOT / path
-        return file.read_text(encoding="utf-8") if file.is_file() else None
-
     changed = check_common.changed_files(event["base"], event["head"])
     added = check_common.changed_files(event["base"], event["head"], status="A")
-    failures += pr_failures(event["body"], changed, added, read_file)
+    failures += pr_failures(event["body"], changed, added, base_reader(event["base"]))
     return check_common.finish(NAME, failures, "%d changed files inside the rules" % len(changed))
 
 

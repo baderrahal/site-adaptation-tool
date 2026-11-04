@@ -52,6 +52,42 @@ def test_folder_rules_name_a_missing_task():
     assert "is not there" in folder_rules.pr_failures("Task: T9\n", ["a/b.py"], [], reader)[0]
 
 
+def test_folder_rules_an_empty_lead_line_is_no_lead_line():
+    assert "no Task" in folder_rules.pr_failures("Lead:\n## Next\n", [], [], reader)[0]
+
+
+def test_folder_rules_take_the_task_from_the_base_so_a_pr_cannot_widen_it(tmp_path):
+    def git(*args):
+        check_common.git(*args, root=tmp_path)
+    git("init", "-q")
+    git("config", "user.email", "t@example.com")
+    git("config", "user.name", "t")
+    task = tmp_path / "steps" / "tasks" / "T1.md"
+    task.parent.mkdir(parents=True)
+    task.write_text(TASK, encoding="utf-8")
+    git("add", ".")
+    git("commit", "-q", "-m", "base")
+    base = check_common.git("rev-parse", "HEAD", root=tmp_path).strip()
+    task.write_text(TASK.replace("  - python/\n", "  - python/\n  - dotnet/\n"), encoding="utf-8")
+    git("commit", "-q", "-a", "-m", "widen")
+    read_file = folder_rules.base_reader(base, root=tmp_path)
+    assert "outside the allowed" in folder_rules.pr_failures("Task: T1\n", ["dotnet/a.cs", "steps/tasks/T1.md"], [], read_file)[0]
+    assert read_file("steps/tasks/none.md") is None
+
+
+def test_source_tags_no_tag_at_all_is_not_a_pass(tmp_path, monkeypatch, capsys):
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs" / "signoff.md").write_text("", encoding="utf-8")
+    (tmp_path / "samples").mkdir()
+    (tmp_path / "samples" / "build.json").write_text('{"command": []}', encoding="utf-8")
+    monkeypatch.setattr(check_common, "ROOT", tmp_path)
+    assert source_tags.main() == 0
+    assert "NOT RUN" in capsys.readouterr().out
+    (tmp_path / "samples" / "a.json").write_text('{"sourceTag": "past"}', encoding="utf-8")
+    assert source_tags.main() == 1
+    assert "no entry" in capsys.readouterr().out
+
+
 def test_folder_rules_block_new_root_files_and_status():
     assert "repo root" in folder_rules.pr_failures("Lead: x\n", [], ["notes.txt"], reader)[0]
     assert folder_rules.pr_failures("Lead: x\n", [], ["CLAUDE.md"], reader) == []
@@ -76,7 +112,8 @@ def test_signoff_needs_who_and_a_date():
 
 
 def test_the_signoff_file_of_the_repo_reads():
-    assert source_tags.signed_entries((ROOT / "docs" / "signoff.md").read_text(encoding="utf-8")) == set()
+    # Only that it reads, the first row Bader signs must not fail this test
+    assert isinstance(source_tags.signed_entries((ROOT / "docs" / "signoff.md").read_text(encoding="utf-8")), set)
 
 
 DIFF = """diff --git a/dotnet/SiteAdaptation.Common/A.cs b/dotnet/SiteAdaptation.Common/A.cs
@@ -121,6 +158,26 @@ def test_caller_check_takes_only_the_callers_section():
 def test_caller_check_takes_a_framework_caller():
     body = "## Callers\nExecute by framework, Revit calls it\n"
     assert caller_check.failures_of([("dotnet/A.cs", "Execute")], body, lambda name: 0) == []
+
+
+def test_caller_check_a_comment_a_string_or_a_declaration_is_no_use():
+    grep = "\n".join([
+        "python/a.py:1:# thing is named here",
+        "python/a.py:2:text = 'thing'",
+        "python/a.py:3:def thing(a):",
+        "dotnet/A.cs:4:    // thing again",
+        "dotnet/A.cs:5:    public static int thing(int a)",
+        "python/tests/test_a.py:6:thing(1)",
+        "docs/a.md:7:thing(1)",
+    ])
+    assert caller_check.count_uses(grep, "thing") == 0
+    assert caller_check.count_uses(grep + "\npython/b.py:8:value = thing(1)", "thing") == 1
+    assert caller_check.count_uses(grep + "\ndotnet/A.xaml:9:<Button Click=\"thing\"/>", "thing") == 1
+
+
+def test_caller_check_the_revit_test_project_is_test_code():
+    assert caller_check.is_test_path("dotnet/SiteAdaptation.RevitTests/FloorCount.cs")
+    assert not caller_check.is_test_path("dotnet/SiteAdaptation.Common/A.cs")
 
 
 def test_rules_docs_format_faults():
@@ -183,9 +240,14 @@ def test_clean_folder_fails_a_build_that_reads_a_past_path(tmp_path):
     past = tmp_path / "data" / "plots.csv"
     past.parent.mkdir()
     past.write_text("x", encoding="utf-8")
-    sample, root = make_build(tmp_path, "print(open(%r).read())\n" % str(past))
+    sample, root = make_build(tmp_path, "import sys\nprint(open(sys.argv[1] + '/input.txt').read())\nprint(open(%r).read())\n" % str(past))
     found = clean_folder.run(sample=sample, root=root, patterns=["*/plots.csv"])
     assert len(found) == 1 and "past job path" in found[0] and "plots.csv" in found[0]
+
+
+def test_clean_folder_fails_a_build_that_reads_nothing_of_the_sample(tmp_path):
+    sample, root = make_build(tmp_path, "print('done')\n")
+    assert any("read no file of the sample" in item for item in clean_folder.run(sample=sample, root=root, patterns=[]))
 
 
 def test_clean_folder_fails_a_build_that_fails(tmp_path):

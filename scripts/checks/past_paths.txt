@@ -3,6 +3,9 @@
 config/overrides/*
 config/prototype_offsets.json
 config/floor_outlines.json
+rules/roshn-makkah.json
+*/position_parsons.json
+*/plan_imc_past.json
 */plots.csv
 */labels.csv
 */phase1_border.csv

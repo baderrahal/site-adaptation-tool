@@ -3,7 +3,7 @@ name: tests
 # Runs on a pull request that is marked ready. test.yml stays beside this for the Linux legs of R346, python/tests/test_addin_projects.py reads it.
 on:
   pull_request:
-    types: [opened, reopened, synchronize, ready_for_review, labeled, unlabeled]
+    types: [opened, reopened, synchronize, ready_for_review, edited, labeled, unlabeled]
 
 jobs:
   # The job main will require. A check that has nothing to score says NOT RUN in the step summary, and that is no pass.
@@ -17,7 +17,6 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: ${{ github.event.pull_request.head.sha }}
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -61,8 +60,13 @@ jobs:
         run: |
           python -m pytest python/tests/test_parity.py python/tests/test_build_steps.py python/tests/test_level_floor_steps.py python/tests/test_override_param_steps.py -q
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          dotnet test dotnet/SiteAdaptation.Tests/SiteAdaptation.Tests.csproj -c Release --no-build --filter "FullyQualifiedName~ParityStepTests|FullyQualifiedName~BuildStepTests|FullyQualifiedName~LevelFloorStepTests|FullyQualifiedName~OverrideParameterStepTests"
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $out = dotnet test dotnet/SiteAdaptation.Tests/SiteAdaptation.Tests.csproj -c Release --no-build --filter "FullyQualifiedName~ParityStepTests|FullyQualifiedName~BuildStepTests|FullyQualifiedName~LevelFloorStepTests|FullyQualifiedName~OverrideParameterStepTests"
+          $code = $LASTEXITCODE
+          $out | Write-Host
+          if ($code -ne 0) { exit $code }
+          # A filter that matches nothing exits 0, so a rename must not read as a pass
+          $ran = @($out | Where-Object { $_ -match 'Passed:\s+[1-9]' })
+          if ($ran.Count -lt 2) { throw "The parity tests did not run on both targets, result lines: $($ran.Count)" }
           "- NOT RUN parity on real inputs: the real files are not on GitHub" | Add-Content $env:GITHUB_STEP_SUMMARY
 
       - name: Acceptance tests

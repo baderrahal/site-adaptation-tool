@@ -1,5 +1,6 @@
-# PreToolUse on Bash and PowerShell. Blocks starting Revit unless this is the revit-test lane, the shared lock is free
-# and fewer than siteBuild.maxWindows Revit or Civil 3D windows are open. A command that only reads about Revit passes.
+# PreToolUse on Bash and PowerShell. Only the revit-test lane starts Revit or sends a job to one, and a start needs a free slot
+# of the shared lock and fewer than siteBuild.maxWindows Revit or Civil 3D windows. A command that only reads about Revit passes.
+# Found by pattern on the command text, so a script that starts Revit under another name is not seen, python/window_lock.py still holds its lock.
 . (Join-Path $PSScriptRoot 'lane.ps1')
 
 function Stop-Revit([string]$Why) {
@@ -34,10 +35,12 @@ function Split-Segments([string]$Command) {
     return $parts
 }
 
-# True when the command opens Revit when it is run, false when it only reads about Revit
-function Test-StartsRevit([string]$Command) {
+# 'start' when the command opens Revit, 'job' when it sends a job to a Revit already open, else empty
+function Get-RevitUse([string]$Command) {
     $readers = '^(grep|rg|cat|sed|awk|head|tail|less|ls|dir|find|wc|echo|printf|git|gh|type|write-output|write-host|get-content|gc|select-string|sls|test-path|get-childitem|gci|get-item|get-process|gps|stop-process|taskkill|tasklist|code|notepad)$'
-    $scripts = '(run-testhost|run-parallel|start-revitlistener|send-revitjob)\.ps1'
+    $launchers = '(?i)\b(start-process|saps|start|invoke-item|ii|cmd|explorer)\b.*(\brevit(\.exe)?\b|\.rvt\b)'
+    $scripts = '(?i)\b(run-testhost|run-parallel|start-revitlistener|place_codes)\b'
+    $use = ''
     # The text of a heredoc is a message or a file, not a command
     $Command = $Command -replace '(?s)<<-?\s*[''"]?(\w+)[''"]?.*?\n\s*\1\b', ''
     foreach ($segment in (Split-Segments $Command)) {
@@ -45,39 +48,52 @@ function Test-StartsRevit([string]$Command) {
         if (-not $text) { continue }
         $first = ($text -split '\s+')[0]
         if ($text -match '^"([^"]+)"' -or $text -match "^'([^']+)'") { $first = $Matches[1] }
-        $name = ($first.Trim('"', "'") -split '[\/]')[-1].ToLowerInvariant()
-        if ($name -match '^revit(\.exe)?$') { return $true }
+        $name = ($first.Trim('"', "'") -split '[\\/]')[-1].ToLowerInvariant()
+        if ($name -match '^revit(\.exe)?$' -or $name -match '\.rvt$') { return 'start' }
         if ($name -match $readers) { continue }
-        if ($text -match '(?i)revit\.exe') { return $true }
-        if ($text -match '(?i)\b(start-process|saps|start)\s+(-filepath\s+)?["'']?revit\b') { return $true }
-        if ($text -match "(?i)$scripts") { return $true }
-        if ($text -match '(?i)dotnet\s+test\b.*revittests?\b') { return $true }
+        if ($text -match $launchers) { return 'start' }
+        if ($text -match $scripts) { return 'start' }
+        if ($text -match '(?i)dotnet\s+test\b.*revittests?\b') { return 'start' }
+        if ($text -match '(?i)\bsend-revitjob\b') { $use = 'job' }
     }
-    return $false
+    return $use
+}
+
+# As python/window_lock.py: a machine of at least revitSlotsMinTotalGB holds revitSlots slots, window.lock and window-2.lock
+function Get-LockFiles($Block) {
+    $base = ([string]$Block.lock).Replace('{workRoot}', (Get-WorkRoot))
+    $files = @($base)
+    $slots = [int]$Block.revitSlots
+    if ($slots -gt 1) {
+        $totalGB = (Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory / 1GB
+        if ($totalGB -ge [double]$Block.revitSlotsMinTotalGB) {
+            foreach ($slot in 2..$slots) {
+                $name = [IO.Path]::GetFileNameWithoutExtension($base) + "-$slot" + [IO.Path]::GetExtension($base)
+                $files += Join-Path (Split-Path -Parent $base) $name
+            }
+        }
+    }
+    return $files
 }
 
 $payload = Read-HookInput
 $command = [string]$payload.tool_input.command
-if (-not $command -or $command -notmatch '(?i)revit|run-testhost|run-parallel') { exit 0 }
-if (-not (Test-StartsRevit $command)) { exit 0 }
+if (-not $command -or $command -notmatch '(?i)revit|run-testhost|run-parallel|place_codes|\.rvt') { exit 0 }
+$use = Get-RevitUse $command
+if (-not $use) { exit 0 }
 
 $root = Get-RepoRoot (Get-HookFolder $payload)
 if (-not $root) { Stop-Revit 'this folder is not in the repo, so its lane is not known.' }
-$role = Get-LaneRole $root
-if ($role -ne 'revit tester') { Stop-Revit "only the worktree named revit-test opens Revit, this lane is $(Get-LaneName $root)." }
+if ((Get-LaneRole $root) -ne 'revit tester') { Stop-Revit "only the worktree named revit-test opens Revit, this lane is $(Get-LaneName $root)." }
+# A job goes to the listener, which holds the lock itself and opens no window
+if ($use -eq 'job') { exit 0 }
 
-$config = Get-ProjectConfig $root
-$lock = ([string]$config.siteBuild.lock).Replace('{workRoot}', (Get-WorkRoot))
-if ($env:SITE_ADAPTATION_HOOK_LOCK) { $lock = $env:SITE_ADAPTATION_HOOK_LOCK }
-if (Test-Path -LiteralPath $lock) { Stop-Revit "the shared lock file $lock is held, wait until it is free." }
+$block = (Get-ProjectConfig $root).siteBuild
+$files = @(Get-LockFiles $block)
+$free = @($files | Where-Object { -not (Test-Path -LiteralPath $_) })
+if ($free.Count -eq 0) { Stop-Revit "the shared lock is held, every slot is taken: $($files -join ', ')" }
 
-$limit = [int]$config.siteBuild.maxWindows
-$names = @($config.siteBuild.windowProcesses)
-if ($null -ne $env:SITE_ADAPTATION_HOOK_WINDOWS) {
-    $open = [int]$env:SITE_ADAPTATION_HOOK_WINDOWS
-}
-else {
-    $open = @(Get-Process -Name $names -ErrorAction SilentlyContinue).Count
-}
+$limit = [int]$block.maxWindows
+$open = @(Get-Process -Name @($block.windowProcesses) -ErrorAction SilentlyContinue).Count
 if ($open -ge $limit) { Stop-Revit "$open Revit or Civil 3D windows are open, the limit is under $limit." }
 exit 0

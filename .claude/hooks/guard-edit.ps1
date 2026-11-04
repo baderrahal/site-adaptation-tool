@@ -16,11 +16,12 @@ if (-not [IO.Path]::IsPathRooted($file)) { $file = Join-Path $start $file }
 $file = [IO.Path]::GetFullPath($file)
 
 $root = Get-RepoRoot $start
-if (-not $root) { exit 0 }
 
 foreach ($inputRoot in Get-InputRoots $root) {
     if (Test-InsideFolder $file $inputRoot) { Stop-Edit "$file is in the input folder $inputRoot, input folders are read only." }
 }
+
+if (-not $root) { exit 0 }
 
 $role = Get-LaneRole $root
 $lane = Get-LaneName $root
@@ -30,8 +31,15 @@ if ($role -ne 'lead' -and (Test-InsideFolder $file $main) -and -not (Test-Inside
     Stop-Edit "lane $lane may not edit the main repo folder, $file is outside this worktree."
 }
 
-# Scratch folders, memory and the like are not files of this lane's repo
-if (-not (Test-InsideFolder $file $root)) { exit 0 }
+# Outside the repo a lane writes only to its scratch, the work root and the session's own memory. Anywhere else, such as another
+# lane's worktree, a demo config or an install folder, is outside its task.
+if (-not (Test-InsideFolder $file $root)) {
+    if ($role -eq 'lead') { exit 0 }
+    foreach ($place in @($env:TEMP, (Get-WorkRoot), (Join-Path $HOME '.claude'))) {
+        if ($place -and (Test-InsideFolder $file $place)) { exit 0 }
+    }
+    Stop-Edit "$file is outside this worktree and outside the scratch and work folders, lane $lane may not write there."
+}
 
 $relative = $file.Substring($root.TrimEnd('\').Length).TrimStart('\').Replace('\', '/')
 

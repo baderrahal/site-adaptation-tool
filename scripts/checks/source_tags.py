@@ -55,6 +55,7 @@ def main(argv=None):
     entries = signed_entries((check_common.ROOT / "docs" / "signoff.md").read_text(encoding="utf-8"))
     failures = []
     scanned = 0
+    tagged = 0
     for folder in FOLDERS:
         for path in sorted((check_common.ROOT / folder).rglob("*.json")):
             scanned += 1
@@ -64,11 +65,12 @@ def main(argv=None):
             except ValueError as error:
                 failures.append("%s does not read as JSON: %s" % (name, error))
                 continue
+            tagged += len(list(tagged_values(data)))
             failures += unsigned(name, data, entries)
-    if scanned == 0:
-        check_common.say(NAME, "NOT RUN", "no JSON in %s yet, and the plan carries no tags (truth audit item 11)" % ", ".join(FOLDERS))
+    if tagged == 0 and not failures:
+        check_common.say(NAME, "NOT RUN", "%d JSON files in %s, no value tagged override or past, and the plan carries no tags (truth audit item 11)" % (scanned, ", ".join(FOLDERS)))
         return 0
-    return check_common.finish(NAME, failures, "%d JSON files scanned, every tagged value signed" % scanned)
+    return check_common.finish(NAME, failures, "%d JSON files scanned, %d tagged values, each signed" % (scanned, tagged))
 
 
 if __name__ == "__main__":

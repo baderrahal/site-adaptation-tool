@@ -247,6 +247,10 @@ One backlog by stage, one line each with its Q or R id if it has one. Sources: s
 - Delete p_topo copies after Q439, worktree p3novb\head and the 4 local lane-b branches, Lane B and D
 - Remove siteBuild.minFreeGB from python/window_lock.py:180, Bader's rule is no RAM floor, the code still applies 2 GB, setup-lanes
 - Turn on job tests as the required check of main, setup-lanes
+- Lane role edge cases: a cd into the main folder takes the lead role, a separate clone takes the lead role, a nested worktree that lost its .git walks up to the lead role, setup-lanes review
+- The task file is parsed in lane.ps1 and in check_common.py, and the work root in lane.ps1 and project_profile.py, with no parity test, setup-lanes review
+- The caller check finds a use by pattern, a function of the same name still counts, a compiler based check is the real answer, setup-lanes review
+- A Lead line in a PR body waives the task folder check, only the lane hooks hold a lane to its role, setup-lanes review
 - Give samples/new-project a made up project, then the clean folder test runs, setup-lanes
 - Decide which zones are held out and how predictions reach GitHub with no real value in git, setup-lanes
 - Q151 Q075 moved without the majority run

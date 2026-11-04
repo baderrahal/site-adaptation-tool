@@ -55,10 +55,11 @@ else {
         $checks = @($pr.statusCheckRollup)
         $failed = @($checks | Where-Object { $_.conclusion -in @('FAILURE', 'CANCELLED', 'TIMED_OUT') }).Count
         $running = @($checks | Where-Object { $_.status -and $_.status -ne 'COMPLETED' }).Count
-        $passed = $checks.Count - $failed - $running
+        $passed = @($checks | Where-Object { $_.conclusion -eq 'SUCCESS' }).Count
+        $skipped = @($checks | Where-Object { $_.conclusion -in @('SKIPPED', 'NEUTRAL') }).Count
         $draft = ''
         if ($pr.isDraft) { $draft = ', draft' }
-        $prLines += "- #$($pr.number) $($pr.headRefName)$draft, checks: $passed passed, $failed failed, $running running. $($pr.title)"
+        $prLines += "- #$($pr.number) $($pr.headRefName)$draft, checks: $passed passed, $failed failed, $running running, $skipped skipped. $($pr.title)"
     }
 }
 

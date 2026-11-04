@@ -28,7 +28,7 @@ def lanes(tmp_path):
     main = tmp_path / "repo"
     (main / ".git" / "worktrees").mkdir(parents=True)
     (main / "config").mkdir()
-    (main / "config" / "project.json").write_text(json.dumps({"inputRoot": str(tmp_path / "inputs"), "siteBuild": {"lock": str(tmp_path / "window.lock"), "maxWindows": 3, "windowProcesses": ["Revit", "acad"]}}), encoding="utf-8")
+    (main / "config" / "project.json").write_text(json.dumps({"inputRoot": str(tmp_path / "inputs"), "siteBuild": {"lock": str(tmp_path / "window.lock"), "maxWindows": 3, "windowProcesses": ["no-such-process"]}}), encoding="utf-8")
     (main / "steps" / "tasks").mkdir(parents=True)
     found = {"main": main, "tmp": tmp_path}
     for name in ("revit-test", "build-1", "build-2", "agent-x"):
@@ -115,12 +115,23 @@ def test_status_file_is_never_edited_by_hand(lanes):
     assert "scripts/status.ps1" in edit(main, main / "steps" / "STATUS.md")[2]
 
 
-def test_a_file_outside_any_repo_folder_passes(lanes):
-    assert edit(lanes["build-1"], lanes["tmp"] / "scratch" / "a.txt")[0] == 0
+def test_outside_the_repo_a_lane_writes_only_to_scratch_and_work_folders(lanes):
+    tree = lanes["build-1"]
+    assert edit(tree, Path(os.environ["TEMP"]) / "scratch" / "a.txt")[0] == 0
+    assert edit(tree, Path.home() / "Documents" / "SiteAdaptation" / "logs" / "a.txt")[0] == 0
+    assert edit(tree, Path.home() / ".claude" / "memory" / "a.md")[0] == 0
+    code, _, err = edit(tree, r"C:\SA-demo\config\project.json")
+    assert code == 2 and "outside this worktree" in err
+    assert edit(lanes["main"], r"C:\SA-demo\config\project.json")[0] == 0
 
 
-def bash(folder, command, **env):
-    return run_hook("guard-revit.ps1", {"cwd": str(folder), "tool_name": "Bash", "tool_input": {"command": command}}, SITE_ADAPTATION_HOOK_WINDOWS=env.pop("windows", "0"), **env)
+def test_an_input_folder_is_blocked_from_a_session_outside_any_repo(tmp_path):
+    assert edit(tmp_path, r"C:\02-Site Adaptation\a.xlsx")[0] == 2
+    assert edit(tmp_path, tmp_path / "a.txt")[0] == 0
+
+
+def bash(folder, command):
+    return run_hook("guard-revit.ps1", {"cwd": str(folder), "tool_name": "Bash", "tool_input": {"command": command}})
 
 
 STARTS = [
@@ -133,6 +144,11 @@ STARTS = [
     r".venv\Scripts\python python\window_lock.py --round r --label l -- pwsh dotnet\SiteAdaptation.TestHost\Run-TestHost.ps1 -RoundSpec x",
     r".venv\Scripts\python python\window_lock.py --round r --label l -- pwsh dotnet\SiteAdaptation.TestHost\Start-RevitListener.ps1",
     "dotnet test dotnet/SiteAdaptation.RevitTests",
+    r"python python\place_codes.py plan.json --round r --first-code 1",
+    r".\Run-TestHost -RoundSpec x",
+    r"Start-Process C:\SA-demo\copy.rvt",
+    r"Invoke-Item 'C:\SA-demo\copy.rvt'",
+    r"C:\Autodesk\revit",
 ]
 READS = [
     'tasklist | grep -i -E "python|Revit|acad"',
@@ -145,6 +161,10 @@ READS = [
     "dotnet build dotnet/SiteAdaptation.AddIn/SiteAdaptation.AddIn.csproj",
     r".venv\Scripts\python python\window_lock.py --status --round r --label revit",
     'gh pr create --body "Line one\nStart-Process Revit\nRun-TestHost.ps1"',
+    "Get-CimInstance Win32_Process -Filter \"Name='Revit.exe'\"",
+    "Get-Process | Where-Object { $_.Path -like '*Revit.exe' }",
+    "cp a.rvt b.rvt",
+    r"C:\Git\usr\bin\grep.exe Revit.exe a.txt",
 ]
 
 
@@ -165,16 +185,49 @@ def test_reading_about_revit_passes_for_every_lane(lanes, command):
     assert bash(lanes["build-1"], command)[0] == 0
 
 
+def set_build_config(tree, **values):
+    path = tree / "config" / "project.json"
+    config = json.loads(path.read_text(encoding="utf-8"))
+    config["siteBuild"].update(values)
+    path.write_text(json.dumps(config), encoding="utf-8")
+
+
 def test_the_tester_waits_on_the_lock(lanes):
     (lanes["tmp"] / "window.lock").write_text("held", encoding="utf-8")
     code, _, err = bash(lanes["revit-test"], "Revit.exe")
-    assert code == 2 and "lock file" in err
+    assert code == 2 and "lock is held" in err
 
 
-def test_the_tester_waits_at_three_windows(lanes):
-    assert bash(lanes["revit-test"], "Revit.exe", windows="2")[0] == 0
-    code, _, err = bash(lanes["revit-test"], "Revit.exe", windows="3")
-    assert code == 2 and "3 Revit or Civil 3D windows" in err
+def test_the_lock_is_free_while_any_slot_is_free(lanes):
+    tree = lanes["revit-test"]
+    set_build_config(tree, revitSlots=2, revitSlotsMinTotalGB=0)
+    (lanes["tmp"] / "window.lock").write_text("held", encoding="utf-8")
+    assert bash(tree, "Revit.exe")[0] == 0
+    (lanes["tmp"] / "window-2.lock").write_text("held", encoding="utf-8")
+    code, _, err = bash(tree, "Revit.exe")
+    assert code == 2 and "every slot is taken" in err
+    # A machine under the size has the one slot, as python/window_lock.py gives it
+    set_build_config(tree, revitSlots=2, revitSlotsMinTotalGB=100000)
+    (lanes["tmp"] / "window-2.lock").unlink()
+    assert bash(tree, "Revit.exe")[0] == 2
+
+
+def test_the_tester_waits_at_the_window_limit(lanes):
+    tree = lanes["revit-test"]
+    # The hook itself runs in powershell, so one window of that name stands
+    set_build_config(tree, maxWindows=1, windowProcesses=["powershell"])
+    code, _, err = bash(tree, "Revit.exe")
+    assert code == 2 and "Civil 3D windows are open" in err
+    set_build_config(tree, maxWindows=100000, windowProcesses=["powershell"])
+    assert bash(tree, "Revit.exe")[0] == 0
+
+
+def test_a_job_to_the_listener_needs_the_role_and_not_the_lock(lanes):
+    command = r"pwsh dotnet\SiteAdaptation.TestHost\Send-RevitJob.ps1 -RoundSpec x -Slot 1"
+    (lanes["tmp"] / "window.lock").write_text("held by the listener", encoding="utf-8")
+    assert bash(lanes["revit-test"], command)[0] == 0
+    code, _, err = bash(lanes["build-1"], command)
+    assert code == 2 and "only the worktree named revit-test" in err
 
 
 def test_notify_writes_one_line_per_lane_to_the_main_folder(lanes):
@@ -188,6 +241,10 @@ def test_notify_writes_one_line_per_lane_to_the_main_folder(lanes):
     # R343 scans every file of steps on disk, a byte order mark or a carriage return here would fail it on any lane
     data = status.read_bytes()
     assert b"\r" not in data and not data.startswith(b"\xef\xbb\xbf")
+    # An answer from Bader takes that lane's line away and leaves the others
+    assert run_hook("notify.ps1", {"cwd": str(lanes["build-1"]), "hook_event_name": "UserPromptSubmit"}, SITE_ADAPTATION_HOOK_NO_ALERT="1")[0] == 0
+    text = status.read_text(encoding="utf-8")
+    assert "build-1 waiting" not in text and "lead waiting" in text
     assert not (lanes["build-1"] / "steps" / "STATUS.md").exists()
 
 
@@ -198,6 +255,44 @@ def test_session_start_prints_task_and_status(lanes):
     code, out, _ = run_hook("session-start.ps1", {"cwd": str(lanes["revit-test"])})
     assert code == 0 and "role: revit tester" in out and "none open" in out
     assert "role: lead" in run_hook("session-start.ps1", {"cwd": str(lanes["main"])})[1]
+
+
+def git_in(folder, *args):
+    subprocess.run(["git", *args], cwd=folder, check=True, capture_output=True)
+
+
+@pytest.fixture()
+def real_worktree(tmp_path):
+    """A real repo with a task merged on origin/main, and a real worktree of it named build-1."""
+    repo = tmp_path / "repo"
+    (repo / "steps" / "tasks").mkdir(parents=True)
+    (repo / "config").mkdir()
+    (repo / "config" / "project.json").write_text("{}", encoding="utf-8")
+    (repo / "steps" / "tasks" / "T1.md").write_text(TASK, encoding="utf-8")
+    git_in(repo, "init", "-q")
+    git_in(repo, "config", "user.email", "t@example.com")
+    git_in(repo, "config", "user.name", "t")
+    git_in(repo, "add", ".")
+    git_in(repo, "commit", "-q", "-m", "base")
+    git_in(repo, "update-ref", "refs/remotes/origin/main", "HEAD")
+    tree = tmp_path / "trees" / "build-1"
+    git_in(repo, "worktree", "add", "-q", "--detach", str(tree), "HEAD")
+    return tree
+
+
+def test_a_lane_cannot_widen_its_own_task_and_status_done_does_not_lock_it_out(real_worktree):
+    tree = real_worktree
+    task = tree / "steps" / "tasks" / "T1.md"
+    task.write_text(TASK.replace("  - python/\n", "  - python/\n  - dotnet/\n").replace("status: open", "status: done"), encoding="utf-8")
+    assert edit(tree, tree / "python" / "a.py")[0] == 0
+    code, _, err = edit(tree, tree / "dotnet" / "a.cs")
+    assert code == 2 and "allowed folders of task T1" in err
+
+
+def test_a_task_not_merged_gives_no_folders(real_worktree):
+    tree = real_worktree
+    (tree / "steps" / "tasks" / "T2.md").write_text(TASK.replace("id: T1", "id: T2").replace("  - python/\n", "  - dotnet/\n"), encoding="utf-8")
+    assert edit(tree, tree / "dotnet" / "a.cs")[0] == 2
 
 
 @pytest.fixture()

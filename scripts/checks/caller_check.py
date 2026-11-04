@@ -4,6 +4,7 @@ such as an Execute of Revit, says the word framework on its Callers line in plac
 a compiler, so an unusual declaration can be missed.
 """
 import re
+import subprocess
 import sys
 
 import check_common
@@ -19,7 +20,7 @@ LEFT_OUT_NAMES = {"Main", "main", "__init__", "Dispose", "ToString", "Equals", "
 
 def is_test_path(path):
     lowered = path.lower()
-    return "/tests/" in lowered or lowered.startswith("dotnet/siteadaptation.tests/") or lowered.split("/")[-1].startswith("test_")
+    return "/tests/" in lowered or lowered.startswith(("dotnet/siteadaptation.tests/", "dotnet/siteadaptation.revittests/")) or lowered.split("/")[-1].startswith("test_")
 
 
 def new_functions(diff):
@@ -64,24 +65,38 @@ def failures_of(functions, body, call_count):
     return failures
 
 
-def calls_in_repo(name):
-    """Lines of tool code that use the name other than to declare it."""
-    try:
-        text = check_common.git("grep", "-w", "-n", "-e", name, "--", "dotnet", "python")
-    except Exception:
-        return 0
+def code_of(line):
+    """A line with its strings and its trailing comment taken out, empty for a comment line."""
+    text = re.sub(r"\"(?:[^\"\\]|\\.)*\"|'(?:[^'\\]|\\.)*'", "", line)
+    text = re.split(r"//|#", text)[0]
+    return "" if text.lstrip().startswith(("*", "/*")) else text
+
+
+def count_uses(grep_text, name):
+    """Lines of git grep -n output that use the name in tool code, other than to declare it. A comment, a string or a test is no use.
+    Found by pattern: a function of the same name elsewhere still counts, and a docstring of many lines is not told from code."""
     count = 0
-    for line in text.splitlines():
-        path = line.split(":", 1)[0]
-        if is_test_path(path):
+    word = re.escape(name)
+    for line in grep_text.splitlines():
+        parts = line.split(":", 2)
+        if len(parts) < 3 or is_test_path(parts[0]) or not parts[0].lower().endswith((".cs", ".py", ".xaml", ".ps1")):
             continue
-        body = line.split(":", 2)[-1]
-        if re.search(r"\bdef\s+%s\b" % re.escape(name), body):
+        body = parts[2] if parts[0].lower().endswith(".xaml") else code_of(parts[2])
+        if not re.search(r"\b%s\b" % word, body):
             continue
-        if re.search(r"(?:public|internal|private|protected|static)\s[^=(]*\b%s\s*(?:<[^>()]*>)?\s*\(" % re.escape(name), body):
+        if re.search(r"\bdef\s+%s\b" % word, body):
+            continue
+        if re.search(r"(?:public|internal|private|protected|static)\s[^=(]*\b%s\s*(?:<[^>()]*>)?\s*\(" % word, body):
             continue
         count += 1
     return count
+
+
+def calls_in_repo(name):
+    try:
+        return count_uses(check_common.git("grep", "-w", "-n", "-e", name, "--", "dotnet", "python"), name)
+    except subprocess.CalledProcessError:
+        return 0
 
 
 def main(argv=None):
@@ -91,7 +106,7 @@ def main(argv=None):
         return 0
     diff = check_common.git("diff", "-U0", event["base"] + "..." + event["head"], "--", "dotnet", "python")
     functions = new_functions(diff)
-    return check_common.finish(NAME, failures_of(functions, event["body"], calls_in_repo), "%d new functions, each with a caller listed and found" % len(functions))
+    return check_common.finish(NAME, failures_of(functions, event["body"], calls_in_repo), "%d new functions, each listed under Callers with a use found by pattern" % len(functions))
 
 
 if __name__ == "__main__":

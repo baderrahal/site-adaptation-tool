@@ -14,8 +14,16 @@ $heading = '## Waiting for you'
 $lines = @()
 if (Test-Path -LiteralPath $status) { $lines = @(Get-Content -LiteralPath $status -Encoding UTF8) }
 $escaped = [regex]::Escape($lane)
-$lines = @($lines | Where-Object { $_ -notmatch "^- $escaped waiting for you, " })
-$at = [array]::IndexOf($lines, $heading)
+$kept = @($lines | Where-Object { $_ -notmatch "^- $escaped waiting for you, " })
+
+# Bader has answered this lane, so its line goes. Line feeds only, the steps files hold no carriage return (R343)
+if ($payload.hook_event_name -eq 'UserPromptSubmit') {
+    if ($kept.Count -ne $lines.Count) { [IO.File]::WriteAllText($status, (($kept -join "`n") + "`n"), (New-Object Text.UTF8Encoding $false)) }
+    exit 0
+}
+
+$lines = $kept
+$at =[array]::IndexOf($lines, $heading)
 if ($at -lt 0) {
     $lines = @($heading, $line, '') + $lines
 }
@@ -26,7 +34,6 @@ else {
     $lines = $before + @($line) + $after
 }
 $folder = Split-Path -Parent $status
-# Line feeds only, the steps files hold no carriage return (R343)
 if (Test-Path -LiteralPath $folder) { [IO.File]::WriteAllText($status, (($lines -join "`n") + "`n"), (New-Object Text.UTF8Encoding $false)) }
 
 if ($env:SITE_ADAPTATION_HOOK_NO_ALERT) { exit 0 }

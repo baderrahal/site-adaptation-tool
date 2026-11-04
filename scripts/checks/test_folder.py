@@ -15,6 +15,9 @@ def main(argv=None):
         check_common.say(folder, "NOT RUN", "no tests in the folder yet")
         return 0
     last = done.stdout.strip().splitlines()[-1] if done.stdout.strip() else "no output"
+    if done.returncode == 0 and " passed" not in last:
+        check_common.say(folder, "NOT RUN", "no test passed: " + last)
+        return 0
     return check_common.finish(folder, [last] if done.returncode else [], last)
 
 
