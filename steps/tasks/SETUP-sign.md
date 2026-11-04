@@ -12,6 +12,8 @@ allowed:
   - dotnet/SiteAdaptation.AddIn/SiteAdaptation.AddIn.csproj
   - dotnet/SiteAdaptation.TestHost/Install-TestHost.ps1
   - dotnet/SiteAdaptation.TestHost/Run-TestHost.ps1
+  - dotnet/SiteAdaptation.TestHost/Start-RevitListener.ps1
+  - dotnet/SiteAdaptation.Tests/R448_RevitListenerTests.cs
   - dotnet/SiteAdaptation.TestHost/TestHostPaths.ps1
   - dotnet/SiteAdaptation.Tests/InstallScriptTests.cs
   - dotnet/SiteAdaptation.Tests/AddInTests.cs

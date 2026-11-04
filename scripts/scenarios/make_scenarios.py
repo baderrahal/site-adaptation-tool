@@ -84,6 +84,7 @@ def main(argv=None):
     parser.add_argument("--source", required=True)
     parser.add_argument("--worker", required=True)
     parser.add_argument("--only", nargs="*", help="only these scenarios")
+    parser.add_argument("--out", help="write the folders here and not under the work root, a folder a run is using is never replaced")
     args = parser.parse_args(argv)
     source = Path(args.source)
     root = tools.work_root() / "scenarios"
@@ -92,8 +93,9 @@ def main(argv=None):
     numbers = set(answers["plots"]) | set(labels)
     before = tools.manifest_of(source)
     files = tools.raw_files(source)
+    out = Path(args.out) if args.out else root
     for name in args.only or sorted(tools.SCENARIOS):
-        make(name, source, files, root, args.worker, numbers)
+        make(name, source, files, out, Path(args.worker).resolve(), numbers)
     faults = tools.manifest_faults(source, before)
     if faults:
         raise SystemExit("the source changed: %d files" % len(faults))

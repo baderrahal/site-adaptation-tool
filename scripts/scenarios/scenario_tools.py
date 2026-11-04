@@ -83,20 +83,27 @@ def changed_words(text):
     return text
 
 
+# Text a person reads in a drawing. Dictionaries and extension records also hold strings under codes 1 and 3, they are never touched
+TEXT_ENTITIES = {"TEXT", "MTEXT", "ATTRIB", "ATTDEF"}
+
+
 def rewrite_dxf(text, change_text=None, change_layer=None):
-    """A DXF with its text values and its layer names passed through the two changes. A DXF is lines of code then value."""
+    """A DXF with the values of its text entities and its layer names passed through the two changes. A DXF is lines of code then value."""
     lines = text.split("\n")
     in_layer_table = False
+    entity = ""
     for index in range(0, len(lines) - 1, 2):
         code = lines[index].strip()
         value = lines[index + 1]
-        if code == "2" and value.strip() in ("LAYER",):
+        if code == "0":
+            entity = value.strip()
+            if entity == "ENDTAB":
+                in_layer_table = False
+        elif code == "2" and entity == "TABLE" and value.strip() == "LAYER":
             in_layer_table = True
-        elif code == "0" and value.strip() == "ENDTAB":
-            in_layer_table = False
-        if change_text and code in ("1", "3"):
+        elif change_text and code in ("1", "3") and entity in TEXT_ENTITIES:
             lines[index + 1] = change_text(value)
-        elif change_layer and (code == "8" or (code == "2" and in_layer_table and value.strip() != "LAYER")):
+        elif change_layer and (code == "8" or (code == "2" and in_layer_table and entity == "LAYER")):
             lines[index + 1] = change_layer(value)
     return "\n".join(lines)
 
@@ -105,10 +112,16 @@ def styled(number):
     return NUMBER_STYLE % number
 
 
+# A line of an MTEXT holding only a number: after a format code or a line break, up to the next line break or the closing brace
+MTEXT_NUMBER = re.compile(r"(?:(?<=\\P)|(?<=\x3B)|(?<=\{))(\d+[A-Za-z]?)(?=\\P|\}|\s*$)")
+
+
 def style_text(numbers):
-    """A change that takes a text holding only a known plot number to the other style, any other text as it is."""
+    """A change that takes a known plot number to the other style, as a whole text or as a whole line of an MTEXT, any other text as it is."""
     def change(value):
-        return styled(value.strip()) if value.strip() in numbers else value
+        if value.strip() in numbers:
+            return styled(value.strip())
+        return MTEXT_NUMBER.sub(lambda found: styled(found.group(1)) if found.group(1) in numbers else found.group(0), value)
     return change
 
 
