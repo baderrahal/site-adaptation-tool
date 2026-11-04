@@ -2,6 +2,30 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Lane C R541 Revit pass, 2026-11-04, the rules table seen in Revit
+
+Goal:
+- Record the pass Lane B ran on the Lane C drivers, real presses on a copy, past job
+
+Done:
+- Q440 closed. Wall top 778 walls.top differ and no other field, reset 0 differ apart from 3 run and hash fields. Amber seen, step 4 back to Ready, 5 to 8 Needs step
+
+Checked:
+- Lane B result lines, build of main at 57b548e. Ramp limit 0 fields differ on 336 plots, so the asked proof by ramp limit did not show a change, wall top is the proof, Q419
+
+Remains:
+- Rev 06 not run in Revit. Report file name section not seen, C:\SA-demo\config has no report name block. Browse not measured. Road topography tick
+
+Known bugs:
+- None open from this pass. The i box off the screen is R558 on check/lane-b-6b, not seen in Revit
+
+Next:
+- Road topography tick after topo/3nov-d
+
+Your turn:
+- Closed: Q440 Rules table not yet proven in Revit. Opened: none
+- Open count and titles: steps/questions-open.md
+
 ## Lane A COORD-3NOV-A, 2026-11-04, a model with no site coordinates
 
 Goal:
