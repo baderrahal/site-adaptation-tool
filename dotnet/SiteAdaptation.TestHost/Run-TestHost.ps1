@@ -417,6 +417,7 @@ if ($round) {
                 $roundJob.villaMode = [string]$round.villaMode
                 $roundJob.linksAfterMasses = [bool]$round.linksAfterMasses
                 $roundJob.dryRunFirst = ($round.dryRunFirst -ne $false)
+                $roundJob.noTemplate = [bool]$round.noTemplate
                 $roundJob.paneSettings = $paneSettingsPath
                 # 6a (R384). The commands with no number run after the buttons by their command names, the host refuses an unknown one
                 if ($round.named) {

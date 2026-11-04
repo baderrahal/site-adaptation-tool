@@ -52,7 +52,7 @@ namespace SiteAdaptation.AddIn.NewProject
                 // Review of NEWPROJ-UI: a plot number met twice counts once, and only unit plots give a villa type
                 facts.Plots = ReadDataRun.ScopePlots(plots).Where(plot => plot.IsUnit).Select(plot => plot.Number).Distinct(StringComparer.Ordinal).Count();
                 facts.VillaTypes = (plots["plots"] as JArray ?? new JArray()).OfType<JObject>()
-                    .Where(row => row["officialNumber"]?.Type == JTokenType.String)
+                    .Where(row => ReadDataRun.UnitNumber(row) != null)
                     .Select(row => row["typologyRev9"]?.Type == JTokenType.String ? ((string)row["typologyRev9"]).Trim() : "")
                     .Where(unit => unit.Length > 0).Distinct(StringComparer.Ordinal).Count();
             }

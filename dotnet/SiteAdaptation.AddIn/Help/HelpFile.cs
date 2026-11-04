@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Windows;
+using System.Windows.Media;
 using SiteAdaptation.Common.Help;
 
 namespace SiteAdaptation.AddIn.Help
@@ -44,12 +45,26 @@ namespace SiteAdaptation.AddIn.Help
             }
             Point at = source.PointToScreen(new Point(0, 0));
             PresentationSource shown = PresentationSource.FromVisual(source);
+            Visual root = shown?.RootVisual;
+            Point hostFrom = root == null ? at : root.PointToScreen(new Point(0, 0));
+            double hostWide = root is FrameworkElement rootElement ? rootElement.ActualWidth : 0;
+            // R558. The work area of the screen that holds the i, in pixels as Screen gives it, turned to the units of the window
+            System.Drawing.Rectangle screen = System.Windows.Forms.Screen.FromPoint(new System.Drawing.Point((int)at.X, (int)at.Y)).WorkingArea;
+            Point workFrom = new Point(screen.Left, screen.Top), workTo = new Point(screen.Right, screen.Bottom);
             if (shown?.CompositionTarget != null)
             {
-                at = shown.CompositionTarget.TransformFromDevice.Transform(at);
+                Matrix fromDevice = shown.CompositionTarget.TransformFromDevice;
+                at = fromDevice.Transform(at);
+                hostFrom = fromDevice.Transform(hostFrom);
+                workFrom = fromDevice.Transform(workFrom);
+                workTo = fromDevice.Transform(workTo);
             }
-            window.Left = Math.Max(SystemParameters.VirtualScreenLeft, at.X - window.Width - SystemParameters.SmallIconWidth);
-            window.Top = Math.Max(SystemParameters.VirtualScreenTop, at.Y - SystemParameters.SmallIconHeight);
+            Func<double, HelpBoxSpot> place = height => HelpPlace.Of(hostFrom.X, hostFrom.X + hostWide, at.Y - SystemParameters.SmallIconHeight, window.Width, height,
+                workFrom.X, workFrom.Y, workTo.X, workTo.Y, SystemParameters.SmallIconWidth);
+            HelpBoxSpot before = place(0);
+            window.MaxHeight = Math.Min(window.MaxHeight, before.MaxHeight);
+            window.Left = before.Left;
+            window.Top = before.Top;
             window.Closed += (sender, args) =>
             {
                 if (ReferenceEquals(open, sender))
@@ -59,6 +74,8 @@ namespace SiteAdaptation.AddIn.Help
             };
             open = window;
             window.Show();
+            // The height is known only once the box is shown, its text fills it
+            window.Top = place(window.ActualHeight).Top;
         }
     }
 }

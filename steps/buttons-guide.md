@@ -48,7 +48,7 @@ Only a Neighbourhood scope passes step 3 today, see 3 Review data (Q417). Times 
 
 ## New project
 
-Report file name, under the files: one box per field of the report name, and the File name line. Empty goes back to the project settings. Keep <nbh> in Volume, 9 Report puts the neighbourhood there.
+Report file name, under the files: one box per field of the report name, and the File name line. Empty goes back to the project settings. Keep <nbh> in Volume, 9 Report puts the neighbourhood there. An older project settings file with no report name block hides this section.
 
 **What it does.** Opens from the pane with Open New project. It says where the settings and files of this model come from, and saves that in the model. Save setup writes at once. A saved project is a start point. Its file holds settings but no file picks, so the rows still need Browse.
 
@@ -124,7 +124,7 @@ Boxes:
 
 After the first run the line of this step in the pane says where the coordinates, levels and units came from.
 
-**What it does.** Makes this model ready. It sets units, position, survey point, project base point, Level 1 and Level 2, floor types, wall types and the shared parameters. It sets only what differs. The position comes from a position file today, not from CAD, as the settings say (Q415).
+**What it does.** Makes this model ready. It sets units, position, survey point, project base point, Level 1 and Level 2, floor types, wall types and the shared parameters. It sets only what differs. A blank model with a baseplan named takes its position from CAD, and a saved past job stays on the position file.
 
 **Files it needs.**
 
@@ -371,7 +371,6 @@ The ribbon button opens a table of the values the team may change: rule, name, m
 Limits today:
 
 - Q419 Under the past job the ramp slope limit changes no plan.
-- Q440 The table is not yet proven inside Revit.
 
 ## Files from start to end
 

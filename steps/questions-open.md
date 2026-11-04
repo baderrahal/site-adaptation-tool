@@ -734,13 +734,9 @@ Q418. Empty project keeps old rules on a set up model (Lane C GUIDE-3NOV-C, R486
 - Recommended: A line in the window says this model keeps its rules, under Empty project.
 - Other: Copy the set over, the old override list is lost.
 
-Q419. Ramp slope limit does nothing under the past job (Lane C RULES-3NOV-C, R541). Front ramp slope, largest lists plots outside the manual only under Rev 06 (BuildPlan, IsRev6). Under the past job the plan stays the same (RAN, worker build on NBH 012). A Save of a model also leaves a Save As sharing that copy, as Q397.
+Q419. Ramp slope limit does nothing under the past job (Lane C RULES-3NOV-C, R541). Front ramp slope, largest lists plots outside the manual only under Rev 06 (BuildPlan, IsRev6). Under the past job the plan stays the same (RAN, worker build on NBH 012, and in Revit on 336 plots, 0 fields differ, Lane B). Under Rev 06 not run in Revit (UNKNOWN). A Save of a model also leaves a Save As sharing that copy, as Q397.
 - Recommended: Keep it in the table and let the row say Rev 06 only, in Part 2.
 - Other: Hide the two rows under the past job.
-
-Q440. Rules table not yet proven in Revit (Lane C RULES-3NOV-C, R541). The pass on a copy of the dry run stopped each time before the table opened. The last stop was a locked PC screen, LogonUI running, no foreground window (RAN). Save, reset and the plan change hold in the tests and the worker build, not by a press in Revit.
-- Recommended: Keep the PC unlocked for one 20 minute pass, Lane C runs it and reports the five plans.
-- Other: Bader checks the table by hand in his check of Part 1.
 
 Q450. Report defaults of old number, revision, status (Lane B, R550, R552). CHOSEN: Old Plot No. is baseplanLabel of plots.csv, v9PlotNumber differs, revision P01, status S0.
 - Recommended: keep these, addin.report in config changes them.
@@ -761,3 +757,19 @@ Q471. Free ends that lose a wall they had room for (Lane D MASS-3NOV-D, R530). T
 Q420. Moving a model with placed content (R523, COORD-3NOV-A). Button 1 moves position and survey point and no element, so a model with placed links, masses or floors would stand off CAD by the move, 828 m between CAD and the position file on this job (RAN). Lane A built the stop.
 - Recommended: keep the stop, a move starts from a model with nothing placed.
 - Other: allow it after a plain warning.
+
+Q452. Button 1 on a past model, the 6b line (R508). 01_next says changes nothing, the press removes old bindings and their values (Q411). A second press changes nothing.
+- Recommended: change the line to a second press changes nothing.
+
+Q453. More overlap warnings from no template (6b). 722 against 510 on IMD, the plan the same, cause UNKNOWN.
+- Recommended: leave it, no number moves.
+
+Q454. Report name section on the demo config (R542). Hidden, C:\SA-demo\config has no fileName block, so not seen in Revit.
+- Recommended: refresh that config, then one look.
+
+Q455. A villa on an open space strip (6b, R557). Plot 1995 of 022 and 2656 of 02: type OS, 150 m2, no block, a DP4 number. 1995 is built. Label 1985 beside it, 300 m2, has no number.
+- Recommended: leave a row of type OS with no block out, listed in Skipped.
+- Other: fix the location plan.
+
+Q456. Plot list with a plot not in the plan (6b). 34 such units. Button 7 drops one with no line. Not fixed.
+- Recommended: stop by name in buttons 5 to 8.

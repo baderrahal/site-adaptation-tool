@@ -2,6 +2,58 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Lane B Phase 6b, 2026-11-04, the buttons on all 7 zones in Revit
+
+Goal:
+- 7 zones in Masses, one NBH in Links, one from None, button 1 on the IMD copy, compare tables, 10 random plots by id. Bader: the Revit pass of HELP
+
+Done:
+- All 7 zones through 1 to 9, Links and None on IMD, steps/investigations/6b-revit.md
+- R557: 5 of 7 NBHs stopped at button 2 with no official number. R558: the help box ran off the screen on all 9 steps. R556: a buttons job from no template
+- R541 of Lane C first run to its end. Step 1 help line after COORD
+
+Checked:
+- Built models read back by the reader of the keys: 2,524 links, 7,249 floors, 6,029 walls by id, 0 faults, 70 random plots the same. 0 inputs changed in 11 runs
+- Parity skipped: R557 feeds scope only, no plan builder step reads it, CHOSEN. R558 seen in Revit before the last review fixes, the cap key after them not seen
+
+Remains:
+- Q069. Report file name section not seen. Browse time not measured. No person looked at the plots. Rev 6 on the zones not run
+
+Known bugs:
+- Plot 1995 of NBH 022 has a villa on an open space strip (Q455). A plot list drops a plot not in the plan, 34 units (Q456). A Revit job of mine had to be ended by Bader, my stop of a wrong script took its helpers
+- Totals per NBH differ by what they count: 2,569 faces with a type, 2,558 scope units, 2,591 plan plots, 2,524 written
+
+Next:
+- Lane A RAMP, Lane D TOPO, whoever ends last installs main
+
+Your turn:
+- Opened: Q452 Button 1 on a past model. Q453 More overlap warnings from no template. Q454 Report name section on the demo config. Q455 A villa on an open space strip. Q456 Plot list with a plot not in the plan. Closed: none
+- Open count and text: steps/questions-open.md
+
+## Lane C R541 Revit pass, 2026-11-04, the rules table seen in Revit
+
+Goal:
+- Record the pass Lane B ran on the Lane C drivers, real presses on a copy, past job
+
+Done:
+- Q440 closed. Wall top 778 walls.top differ and no other field, reset 0 differ apart from 3 run and hash fields. Amber seen, step 4 back to Ready, 5 to 8 Needs step
+
+Checked:
+- Lane B result lines, build of main at 57b548e. Ramp limit 0 fields differ on 336 plots, so the asked proof by ramp limit did not show a change, wall top is the proof, Q419
+
+Remains:
+- Rev 06 not run in Revit. Report file name section not seen, C:\SA-demo\config has no report name block. Browse not measured. Road topography tick
+
+Known bugs:
+- None open from this pass. The i box off the screen is R558 on check/lane-b-6b, not seen in Revit
+
+Next:
+- Road topography tick after topo/3nov-d
+
+Your turn:
+- Closed: Q440 Rules table not yet proven in Revit. Opened: none
+- Open count and titles: steps/questions-open.md
+
 ## Lane A COORD-3NOV-A, 2026-11-04, a model with no site coordinates
 
 Goal:
