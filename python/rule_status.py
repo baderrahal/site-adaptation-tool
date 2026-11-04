@@ -71,6 +71,14 @@ REVIEW_TABLE = re.compile(r"^## ([12]) ")
 REVIEW_COLUMN = "File and dotted path"
 
 
+def open_questions_text(root):
+    """The text of every open question: steps/questions-open.md and the older part cut out of it under the 100 KB cap of R400, still open."""
+    root = Path(root)
+    older = root / "steps" / "history" / "questions-open-older.md"
+    text = (root / "steps" / "questions-open.md").read_text(encoding="utf-8")
+    return text + "\n" + older.read_text(encoding="utf-8") if older.is_file() else text
+
+
 def leaves(o, p):
     # An empty object is a leaf, as an empty list and null are, so majority.overrideKeep.laterFields {} is a value
     if isinstance(o, dict) and (o or not p):
@@ -199,7 +207,7 @@ class Audit:
         self.rule_rows = self._rule_rows()
 
     def _questions(self):
-        open_text = (self.root / "steps/questions-open.md").read_text(encoding="utf-8")
+        open_text = open_questions_text(self.root)
         # D13: a question is open when its full text, "Qnnn. ", stands in questions-open.md, since Bader's turn lists only the questions of
         # the phase. The title line "Qnnn Title." names it without the full stop. Not the five the audit asked of itself
         self.open = {m.group(1) for line in open_text.splitlines() for piece in re.split(QUESTION_START, line)
