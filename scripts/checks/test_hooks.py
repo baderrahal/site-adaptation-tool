@@ -183,8 +183,11 @@ def test_notify_writes_one_line_per_lane_to_the_main_folder(lanes):
     for _ in range(2):
         assert run_hook("notify.ps1", payload, SITE_ADAPTATION_HOOK_NO_ALERT="1")[0] == 0
     assert run_hook("notify.ps1", {"cwd": str(lanes["main"])}, SITE_ADAPTATION_HOOK_NO_ALERT="1")[0] == 0
-    text = status.read_text(encoding="utf-8-sig")
+    text = status.read_text(encoding="utf-8")
     assert text.count("build-1 waiting for you, ") == 1 and text.count("lead waiting for you, ") == 1
+    # R343 scans every file of steps on disk, a byte order mark or a carriage return here would fail it on any lane
+    data = status.read_bytes()
+    assert b"\r" not in data and not data.startswith(b"\xef\xbb\xbf")
     assert not (lanes["build-1"] / "steps" / "STATUS.md").exists()
 
 

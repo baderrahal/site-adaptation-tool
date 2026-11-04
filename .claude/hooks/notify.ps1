@@ -26,7 +26,8 @@ else {
     $lines = $before + @($line) + $after
 }
 $folder = Split-Path -Parent $status
-if (Test-Path -LiteralPath $folder) { [IO.File]::WriteAllLines($status, [string[]]$lines, (New-Object Text.UTF8Encoding $false)) }
+# Line feeds only, the steps files hold no carriage return (R343)
+if (Test-Path -LiteralPath $folder) { [IO.File]::WriteAllText($status, (($lines -join "`n") + "`n"), (New-Object Text.UTF8Encoding $false)) }
 
 if ($env:SITE_ADAPTATION_HOOK_NO_ALERT) { exit 0 }
 

@@ -77,5 +77,6 @@ $out += $prLines
 $out += @('', '## Branches on origin, newest 15')
 $out += $branchLines
 
-[IO.File]::WriteAllLines($status, [string[]]$out, (New-Object Text.UTF8Encoding $false))
+# Line feeds only, the steps files hold no carriage return (R343)
+[IO.File]::WriteAllText($status, (($out -join "`n") + "`n"), (New-Object Text.UTF8Encoding $false))
 Write-Output "Wrote $status"
