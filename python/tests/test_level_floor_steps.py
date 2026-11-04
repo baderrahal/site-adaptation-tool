@@ -46,12 +46,13 @@ def made_rules(split=None):
     return project_profile.ProjectProfile(real.path, values)
 
 
-def made_build(monkeypatch, overrides=None, split=None, units=None, zones=None, road=0.0, back_dry=False, clusters=None, surfaces=None):
+def made_build(monkeypatch, overrides=None, split=None, units=None, zones=None, road=0.0, back_dry=False, clusters=None, surfaces=None, pull=0):
     """A row of six 12 m faces along a road at y = -3, plot 1 a VD2 villa, 2 and 3 a DP2 pair of the footprint, 4 to 6 DP2 units in no
     cluster, each in Zone 2, units and zones another code or zone of a plot, the road level 10 m plus road plus a hundredth of x, none past
     y = 20 with back_dry, clusters other clusters of the footprint, surfaces real surfaces by name in place of that road level, built with a trace,
-    and the steps linkFrame, levels and floors of it."""
+    and the steps linkFrame, levels and floors of it. pull the pull of R517, none so the points of a test read as drawn."""
     settings = project_profile.load_settings()
+    settings.values["floors"]["plotPull"]["pullM"] = pull
     profile = made_rules(split)
     numbers = [str(index) for index in range(1, 7)]
     rows = {number: {"locationPlanNumber": number, "typologyRev9": dict(UNITS, **(units or {}))[number], "footprintMirrored": "no",

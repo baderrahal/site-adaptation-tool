@@ -354,9 +354,9 @@ def floor_step(numbers, rows, trace, links, rules, profile, step):
         builder = plan_from_past.PlotBuilder(number)
         face = item.get("face")
         if face is not None:
-            made["generic"] = [[list(point[:2]) for point in list(ring.coords)[:-1]] for ring in [face.exterior] + list(face.interiors)]
+            made["generic"] = pulled_rings(face, trace.get("pull"), trace.get("mitre"))
         if item.get("corners") is not None:
-            made["rampOutline"] = [list(corner) for corner in item["corners"]]
+            made["rampOutline"] = [list(corner) for corner in floor_fit.pulled_ring(item["corners"], trace.get("pull"), trace.get("mitre"))]
         if item.get("front") is not None and entry is not None:
             made["rampZ"] = ramp_heights(item["front"], plan_rules.rule_entry(entry))
         if rev6:
@@ -383,7 +383,7 @@ def floor_step(numbers, rows, trace, links, rules, profile, step):
                 insert, rotation = plan_from_past.point(link["insert"]), plan_from_past.plan_rotation(link["rotationDeg"])
                 # R475. The yard in its plot, by the ramp of the rule, as no override has moved it yet
                 cut = yard_in_plot([[list(point) for point in floor_fit.to_world(loop, insert, rotation, mirrored)] for loop in group["loops"]],
-                                   None if face is None else face_ring(face), item.get("corners"))
+                                   None if face is None else floor_fit.pulled_ring(face_ring(face), trace.get("pull"), trace.get("mitre")), item.get("corners"))
                 if cut:
                     made.update(yardType=group["type"], yardOutline=cut)
                 else:
@@ -504,7 +504,7 @@ def override_step(numbers, rows, trace, hands, files, rules, profile, step):
         ramp_class = mine.get("rampType") or (None if rev6 else plan_rules.key_ramp_class(key, unit))
         kind = lp["rampTypes"].get(ramp_class) if ramp_class is not None else floor_fit.type_of(made["slopePercent"], trace["bands"]) if rev6 else None
         if kind is not None:
-            made.update(rampZ=ramp_heights(ramp_front, entry["entry"]), rampType=kind, rampOutline=[list(corner) for corner in ramp_corners])
+            made.update(rampZ=ramp_heights(ramp_front, entry["entry"]), rampType=kind, rampOutline=[list(corner) for corner in floor_fit.pulled_ring(ramp_corners, trace.get("pull"), trace.get("mitre"))])
             ramps[number] = (ramp_corners, made["rampZ"], ramp_road)
         # R410. No yard floor under rev6
         below = None if rev6 else plan_rules.key_yard(key, row.get("zone") or "")[0]
@@ -514,7 +514,8 @@ def override_step(numbers, rows, trace, hands, files, rules, profile, step):
             if group is not None:
                 origin, turn = plan_from_past.point(made["insert"]), plan_from_past.plan_rotation(made["rotationDeg"])
                 # R475. Cut by the ramp the plot ends with, on the open edge of Q116 after a turn
-                cut = yard_in_plot([[list(point) for point in floor_fit.to_world(loop, origin, turn, mirrored)] for loop in group["loops"]], face_ring(item["face"]), made["rampOutline"])
+                cut = yard_in_plot([[list(point) for point in floor_fit.to_world(loop, origin, turn, mirrored)] for loop in group["loops"]],
+                                   floor_fit.pulled_ring(face_ring(item["face"]), trace.get("pull"), trace.get("mitre")), ramp_corners if kind is not None else None)
                 if cut:
                     made.update(yardZ=ffl - below, yardOutline=cut)
         written = plot["entry"]
@@ -533,7 +534,7 @@ def override_step(numbers, rows, trace, hands, files, rules, profile, step):
         held_plan(number, "yard outline", None if made["yardOutline"] is None else [plan_from_past.point(point) for loop in made["yardOutline"] for point in loop],
                   None if yard is None else [point for loop in yard["outline"]["value"]["loops"] for point in loop["points"]])
         held_plan(number, "yard Z", None if made["yardZ"] is None else common.r3(made["yardZ"]), None if yard is None else yard["z"]["value"])
-    for number, heights in joint_levels(ramps, trace["rampJoint"]).items():
+    for number, heights in joint_levels(ramps, trace["rampJoint"], trace["jointRule"] is not None and trace["jointRule"]["back"]).items():
         found[number]["rampZ"] = heights
     for number, ramp in held:
         made = found[number]
@@ -682,21 +683,21 @@ def entry_estimate(front, unit, profile, steep, depth):
     return (front[0] + front[1]) / 2.0 + slope / 100.0 * depth, slope
 
 
-def face_loops(face):
-    """The whole baseplan face as plan loops, the outer ring and any hole, the first point not repeated."""
-    rings = [face.exterior] + list(face.interiors)
-    return [[plan_from_past.point(point[:2]) for point in list(ring.coords)[:-1]] for ring in rings]
+def pulled_rings(face, pull, mitre=None):
+    """R517. The rings of a face as raw plan points, the outer ring pulled inside by pull, any hole as it stands, a face of a build is one ring with no hole (R354)."""
+    rings = [[list(point[:2]) for point in list(ring.coords)[:-1]] for ring in [face.exterior] + list(face.interiors)]
+    return [[list(point) for point in floor_fit.pulled_ring(rings[0], pull, mitre)]] + rings[1:]
 
 
 def generic_floor(builder, face, inputs, z):
-    """R208. The Generic floor is the whole baseplan face at the FFL (Bader, DATA-2 7)."""
+    """R208. The Generic floor is the whole baseplan face at the FFL (Bader, DATA-2 7), R517 its outer ring pulled inside by the pull of the build."""
     level = inputs["floors"]["levels"]["generic"]
     elevation = inputs["levels"].get(level)
     if elevation is None:
         builder.lack("floors.generic", "the new site file has no level " + level)
         return None
     return {"type": sourced(inputs["floors"]["types"]["generic"][0]), "level": sourced(level), "levelElevation": sourced(common.r3(elevation)),
-            "outline": sourced({"loops": [{"points": loop, "arcs": []} for loop in face_loops(face)]}),
+            "outline": sourced({"loops": [{"points": [plan_from_past.point(point) for point in loop], "arcs": []} for loop in pulled_rings(face, inputs.get("pull"), inputs.get("mitre"))]}),
             "plotValue": sourced(builder.entry["unit"]["value"] + "-" + builder.plot), "z": sourced(common.r3(z), ESTIMATE),
             "heightOffset": sourced(common.r3(z - elevation), ESTIMATE)}
 
@@ -720,14 +721,32 @@ def joint_near(settings):
     return near if join else None
 
 
-def joint_levels(ramps, near):
-    """R470. ramps by plot, the plan corners of each ramp, their raw levels and the road levels of the front pair before any rampFrontM gap.
-    Front corners of two or more plots within near in plan, chained, are one joint and each takes the road level of the first corner of the
-    joint in the order of the plots and corners given, so a gap moves no joint corner. The back pair keeps El @ Entry (R358) and joins
-    nothing. The new levels of each plot a joint changed, a plot whose levels the joint leaves as they were left out, none with near None."""
+def joint_rule(settings, basis, overrides):
+    """R515, R516. The joint rule of a build of the mode of basis, None with no joint: near of floors.rampJoint (R470), back with joinBack, the back corners joined as well,
+    and slope, slopePercent, what a door level of a plot with a shared back corner takes. Off under a mode modes does not name, as the past job proof breaks with it, and
+    off with any entry in overrides, the applied list, so no override meets a joint and a build with a list is the one of no joint."""
+    near = joint_near(settings)
+    # A saved project with a copy of config from before this round holds join false and none of the keys below, and builds as it did
     if near is None:
-        return {}
-    corners = [(plot, index, points[index], road[index]) for plot, (points, _, road) in ramps.items() for index in range(min(2, len(points), len(road)))]
+        return None
+    modes = settings.get("floors.rampJoint.modes")
+    if not isinstance(modes, list) or not all(isinstance(mode, str) and mode in settings.get("designBasis.modes") for mode in modes):
+        raise project_profile.ProfileError(settings.path.name + " floors.rampJoint.modes must list modes of designBasis.modes (R515)")
+    back = settings.get("floors.rampJoint.joinBack")
+    if not isinstance(back, bool):
+        raise project_profile.ProfileError(settings.path.name + " floors.rampJoint.joinBack must be true or false (R515)")
+    slope = settings.get("floors.rampJoint.slopePercent")
+    if not plan_from_past.is_number(slope) or slope < 0:
+        raise project_profile.ProfileError(settings.path.name + " floors.rampJoint.slopePercent must be a number of 0 or more (R515)")
+    return {"near": near, "back": back, "slope": slope} if basis is not None and basis["mode"] in modes and not overrides else None
+
+
+def corner_joints(corners, near):
+    """R470, R515. corners a list of (plot, index, point). Corners of two or more plots within near in plan, on the whole mm the plan writes so a corner at 5 mm is no
+    matter of the last bit, chained, each joint the places in corners of its corners in the order given. A grid of cells near wide finds the corners within near among
+    the 3 by 3 cells around each, the joints the same as every pair gives."""
+    points = [(int(common.fixed(common.r3(point[0]) * 1000, 0)), int(common.fixed(common.r3(point[1]) * 1000, 0))) for _, _, point in corners]
+    reach = near * 1000
     parent = list(range(len(corners)))
 
     def root(at):
@@ -736,26 +755,43 @@ def joint_levels(ramps, near):
             at = parent[at]
         return at
 
-    # A grid of cells near wide finds the corners within near among the 3 by 3 cells around each, the joints the same as every pair gives
     cells = defaultdict(list)
-    for at, (_, _, point, _) in enumerate(corners):
-        cells[(math.floor(point[0] / near), math.floor(point[1] / near))].append(at)
-    for at, (plot, _, point, _) in enumerate(corners):
-        column, row = math.floor(point[0] / near), math.floor(point[1] / near)
+    for at, point in enumerate(points):
+        cells[(math.floor(point[0] / reach), math.floor(point[1] / reach))].append(at)
+    for at, point in enumerate(points):
+        column, row = math.floor(point[0] / reach), math.floor(point[1] / reach)
         for other in (other for dx in (-1, 0, 1) for dy in (-1, 0, 1) for other in cells.get((column + dx, row + dy), ())):
-            there = corners[other]
-            dx, dy = there[2][0] - point[0], there[2][1] - point[1]
-            if other > at and there[0] != plot and dx * dx + dy * dy <= near * near:
+            dx, dy = points[other][0] - point[0], points[other][1] - point[1]
+            if other > at and corners[other][0] != corners[at][0] and dx * dx + dy * dy <= reach * reach:
                 low, high = sorted((root(at), root(other)))
                 parent[high] = low
     groups = defaultdict(list)
     for at in range(len(corners)):
         groups[root(at)].append(at)
+    return [members for members in groups.values() if len({corners[at][0] for at in members}) >= 2]
+
+
+def shared_backs(front, joint):
+    """R515. The plots of the rule ramps of fronts that share a back corner with a ramp of another plot, under joint with back only."""
+    if joint is None or not joint["back"]:
+        return set()
+    corners = [(number, index, item["corners"][index]) for number, item in front.items() if item["unit"] and item["front"] is not None and item["corners"] for index in range(4)]
+    return {corners[at][0] for members in corner_joints(corners, joint["near"]) for at in members if corners[at][1] >= 2}
+
+
+def joint_levels(ramps, near, back=False):
+    """R470, R515. ramps by plot, the plan corners of each ramp, their raw levels and the road levels of the front pair before any rampFrontM gap.
+    Front corners of two or more plots within near in plan, chained, are one joint and each takes the road level of the first corner of the
+    joint in the order of the plots and corners given, so a gap moves no joint corner. With back the back corners join as well, a joint of back corners alone at the
+    level of its first corner, without back the back pair keeps El @ Entry (R358) and joins nothing. The new levels of each plot a joint changed, a plot whose levels
+    the joint leaves as they were left out, none with near None."""
+    if near is None:
+        return {}
+    corners = [(plot, index, points[index]) for plot, (points, _, road) in ramps.items() for index in range(len(points) if back else min(2, len(points), len(road)))]
     found = {}
-    for members in groups.values():
-        if len({corners[at][0] for at in members}) < 2:
-            continue
-        level = corners[members[0]][3]
+    for members in corner_joints(corners, near):
+        fronts = [at for at in members if corners[at][1] < 2]
+        level = ramps[corners[fronts[0]][0]][2][corners[fronts[0]][1]] if fronts else ramps[corners[members[0]][0]][1][corners[members[0]][1]]
         for at in members:
             plot, index = corners[at][0], corners[at][1]
             if ramps[plot][1][index] != level:
@@ -767,6 +803,8 @@ def ramp_floor(builder, frame, corners, front, entry, slope, inputs, kind=None):
     """R210. The ramp of the Rev 6 outline, the front corners at the road, the back pair parallel with its mean at El @ Entry.
     R278: the ramp type the level profile names, else the type of its slope band."""
     heights = ramp_heights(front, entry)
+    # R517. The floor of the plan stands inside the rule outline, the corners move with it and hold their levels
+    corners = floor_fit.pulled_ring(corners, inputs.get("pull"), inputs.get("mitre"))
     kind = kind or floor_fit.type_of(slope, inputs["bands"])
     level = inputs["floors"]["levels"]["ramp"]
     elevation = inputs["levels"].get(level)
@@ -1037,6 +1075,11 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
     # R408. slopes the slope by the rule for the step levels, finals and ends the slope and the raw El @ Entry after the overrides for the plan
     entries, slopes, finals, ends, no_door = {}, {}, {}, {}, []
     overrides = {} if rules is None else rules["overrides"]
+    # R515, R516. The joint rule of the mode and list, and the plots whose rule ramp shares a back corner with another plot, known before any level
+    joint = joint_rule(settings, basis, overrides)
+    joint_back = shared_backs(front, joint)
+    if trace is not None:
+        trace.update(jointRule=joint, jointBack=joint_back)
     outcomes = Outcomes(overrides, numbers, [] if rules is None else rules.get("laterFields") or [], "the estimate of R209" if rules is None else rules["name"])
     for number in numbers:
         # R482. Taken above with the front of the plot, the first override of a plot in the order the build applied them
@@ -1058,7 +1101,7 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
             else:
                 if rev6:
                     # R408. El @ Entry the input, from the civil file or the road at front plus the slope of the unit, the slope the result
-                    value, why = design_basis.door_entry(basis, number, item["unit"], item["front"], item["depth"])
+                    value, why = design_basis.door_entry(basis, number, item["unit"], item["front"], item["depth"], joint["slope"] if number in joint_back else None)
                     if value is None:
                         if number in in_build:
                             no_door.append({"plot": number, "reason": why})
@@ -1066,6 +1109,9 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
                             outcomes.left(number, "entryM", why)
                         continue
                     slope = design_basis.slope_of(value, item["front"], item["depth"])
+                elif number in joint_back:
+                    # R515. The door level of a shared back corner under a mode of the joint
+                    value, slope = design_basis.road_plus_slope(item["front"], joint["slope"], item["depth"]), joint["slope"]
                 else:
                     value, slope = plan_rules.entry_of(item["front"], item["unit"], rules["levelProfile"], item["depth"])
                 if trace is not None:
@@ -1115,16 +1161,17 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
         for number in numbers:
             if "heightM" in overrides.get(number, {}) and number not in level_rows and not by_levels:
                 outcomes.left(number, "heightM", "no FFL to move, " + ("no road level at a front corner" if front[number]["front"] is None else "the height rule gives none"))
-    inputs = {"outlines": outlines, "step": floor_fit.width_step(settings), "levels": site["levels"], "floors": floors_config, "bands": outlines["rampTypes"]["bands"]}
+    pull, mitre = floor_fit.plot_pull(settings), floor_fit.pull_mitre(settings)
+    inputs = {"outlines": outlines, "step": floor_fit.width_step(settings), "levels": site["levels"], "floors": floors_config, "bands": outlines["rampTypes"]["bands"], "pull": pull, "mitre": mitre}
     if trace is not None:
         # R408. The slope of each El @ Entry and the bands of the ramp types, for the steps floors and overrides under rev6
-        trace.update(slopes=slopes, bands=inputs["bands"])
+        trace.update(slopes=slopes, bands=inputs["bands"], pull=pull, mitre=mitre)
     plots, missing, lacking, surface_count, no_level, book_check, no_road = [], [], Counter(), Counter(), [], Counter(), []
     not_measured, not_measured_plots, records, hand_rules, applied_of = {}, Counter(), {}, Counter(), {}
     # Q116. The plots whose ramp moved to the open edge a rotation override turned them to face
     opened_ramps = set()
     # R470. The plan corners, raw levels and floor of each ramp the build writes, for the joints after every plot is built
-    near, joint_ramps = joint_near(settings), {}
+    near, joint_ramps = None if joint is None else joint["near"], {}
     # R401. The status of each sourced value from the block status of the rules profile, the map and the block read once per build
     statuses = value_status.table_of(settings, profile, None if rules is None else rules["name"])
     if trace is not None:
@@ -1306,7 +1353,7 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
                 floors["ramp"] = made
                 joint_ramps[number] = (ramp_corners, ramp_heights(ramp_front, builder.entry["levels"]["entry"]["value"]), ramp_road, made)
             # R475. A ramp type with no level of the new site still cuts, the C# fits the yard before it knows the levels
-            plan_from_cad.cut_yard(builder, floors, face_ring(item["face"]), ramp_corners if made or kind is not None else None, yard_slot)
+            plan_from_cad.cut_yard(builder, floors, floor_fit.pulled_ring(face_ring(item["face"]), pull, mitre), ramp_corners if made or kind is not None else None, yard_slot)
         builder.entry["floors"] = floors
         builder.entry["roadSurfaces"] = item["surfaces"]
         # R337. What the build did with each override of the plot, in the plan entry or the missing entry of a plot not written
@@ -1327,9 +1374,9 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
             lacking.update(entry["key"] for entry in builder.missing)
     # R470. A front corner ramps of two or more plots share takes the road of the first, rounded as ramp_floor rounds it, sources and status kept
     ramp_elevation = inputs["levels"].get(inputs["floors"]["levels"]["ramp"])
-    for number, heights in joint_levels({number: ramp[:3] for number, ramp in joint_ramps.items()}, near).items():
+    for number, heights in joint_levels({number: ramp[:3] for number, ramp in joint_ramps.items()}, near, joint is not None and joint["back"]).items():
         corners, _, _, made = joint_ramps[number]
-        made["corners"]["value"] = [plan_from_past.point((corner[0], corner[1], z)) for corner, z in zip(corners, heights)]
+        made["corners"]["value"] = [plan_from_past.point((corner[0], corner[1], z)) for corner, z in zip(floor_fit.pulled_ring(corners, pull, mitre), heights)]
         made["heightOffset"]["value"] = common.r3(min(heights) - ramp_elevation)
     if trace is not None:
         trace["rampJoint"] = near

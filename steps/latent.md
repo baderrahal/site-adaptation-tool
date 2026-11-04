@@ -590,6 +590,14 @@ COORD-3NOV-A, review and breaker, no real input reaches these:
 - A label plus shift that hits a schedule of another NBH gives a wrong official number, which UnitNumber prefers. 1 of 747 differs from the location number, 2312, which is right.
 - noTemplate with a keyCopy opens the key copy, [bool] of the string false reads true. No spec does either. The guard still asks for the template file of a no template job, harmless.
 
+RAMP-3NOV-A, review and breaker, no real input reaches these:
+- A civil file door source, path null in config: the door stays the file's, a back joint takes its first corner, a ramp can stand off El @ Entry.
+- join true with joinBack false: no config holds it, only tests run it.
+- A joint mixing front and back corners, 0 of 4,121. Chains of 3 plots or more, 0.
+- A 2% unit whose only back partner lies outside the build: 0 plots differ on NBH 012 and 5 TU zones against the whole, ima and imb not compared.
+- A partner the plan never writes sets a written plot's slope: 14 back joints, no level moves today.
+- A corner past maxMitreM stays unpulled, largest real move 3.162 mm against 10 mm.
+
 ## Lane D TOPO-3NOV-D, breaker 1, 4 Nov 2026
 
 - RoadTopography: a scope with no ramp passes with no row, nothing proven. RoadTopographySettings.Number takes any range, a gap of 0 or a margin under 0 needs a hand edit. Grow mitres a sharp hull corner far out, NBH 012 matches shapely's limited mitre with no difference.

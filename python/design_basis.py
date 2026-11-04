@@ -304,16 +304,21 @@ def no_road_stop(basis, reached, gaps, rows):
     return " ".join(lines) + NO_ROAD_END if lines else None
 
 
-def door_entry(basis, number, unit, front, depth):
+def road_plus_slope(front, slope, depth):
+    """R408. The road at front plus a slope in percent over the ramp depth, unrounded."""
+    return (front[0] + front[1]) / 2.0 + slope / 100.0 * depth
+
+
+def door_entry(basis, number, unit, front, depth, joined=None):
     """R408. El @ Entry of a plot under rev6, unrounded, and why it has none: the level of the civil file, or the road at front plus
-    slopePercent of the unit, else its default, over the ramp depth. front holds the road levels at the two front corners."""
+    slopePercent of the unit, else its default, over the ramp depth, or plus joined, the slope of a shared back corner (R515). front holds the road levels at the two
+    front corners."""
     door = basis["door"]
     if door["source"] == CIVIL_FILE:
         if number not in door["levels"]:
             return None, "the civil file %s holds no row of plot %s, so no El @ Entry (R408)" % (Path(door["path"]).name, number)
         return door["levels"][number], None
-    slope = door["slopes"].get(unit, door["slopes"]["default"])
-    return (front[0] + front[1]) / 2.0 + slope / 100.0 * depth, None
+    return road_plus_slope(front, door["slopes"].get(unit, door["slopes"]["default"]) if joined is None else joined, depth), None
 
 
 def slope_of(entry, front, depth):

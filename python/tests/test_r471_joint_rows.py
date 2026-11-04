@@ -40,8 +40,8 @@ def rows_of(plots, numbers=None, skip=None, limits=LIMITS):
 
 
 def test_r471_limits_read_from_config():
-    assert LIMITS == (SETTINGS.get("floors.rampJoint.nearM"), SETTINGS.get("floors.rampJoint.passGapM"))
-    for broken in ({}, {"nearM": 0, "passGapM": 0.001}, {"nearM": 0.01, "passGapM": -1}, {"nearM": "0.01", "passGapM": 0.001}):
+    assert LIMITS == (SETTINGS.get("floors.rampJoint.checkNearM"), SETTINGS.get("floors.rampJoint.passGapM"))
+    for broken in ({}, {"checkNearM": 0, "passGapM": 0.001}, {"checkNearM": 0.01, "passGapM": -1}, {"checkNearM": "0.01", "passGapM": 0.001}):
         settings = copy.deepcopy(SETTINGS.values)
         settings["floors"]["rampJoint"] = broken
         with pytest.raises(project_profile.ProfileError, match="R471"):
@@ -63,9 +63,11 @@ def test_r471_joint_at_two_mm_fails():
     assert rows_of(plots, limits=(LIMITS[0], 0.002))["1"] == [row(2, "2", 0.002, "Pass", limit=0.002)]
 
 
-def test_r471_corner_eleven_mm_away_has_no_row():
+def test_r471_r518_corner_thirteen_mm_away_has_no_row_and_one_eleven_mm_away_has():
     plots = copy.deepcopy(SHARED)
     plots["2"][0] = (10.011, 0.0, 10.2)
+    assert rows_of(plots)["2"] == [row(1, "1", 0.0, "Pass")]
+    plots["2"][0] = (10.013, 0.0, 10.2)
     assert rows_of(plots) == {"1": [], "2": [], "3": []}
     assert rows_of(plots, limits=(0.02, LIMITS[1]))["2"] == [row(1, "1", 0.0, "Pass")]
 
