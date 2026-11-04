@@ -84,12 +84,15 @@ namespace SiteAdaptation.Common
         // R600. A file a command found by itself in a folder the request names, such as a drawing of the scan folder of dataCheck. The free
         // memory is held against the measured peak of the file as for an input, its name, size, write time and SHA-256 are recorded in the
         // answer before the read and again after the command, so the guard of D19 holds per file. Gives null and the mark taken now, or the
-        // reason the file is not read, which the command records and carries on. peakRole is the role of addin.workerPeakMiB whose measured
-        // peaks the memory check scales to the size of the file, the role of the file when it is null
-        public string OpenFile(string role, string path, out InputMark before, string peakRole = null)
+        // reason the file is not read, which the command records and carries on. peakMiB is the private memory the read of this file needs,
+        // which the command takes from its own settings, the free memory must hold it and the floor. When it is null the peak of the role in
+        // addin.workerPeakMiB is used, as for an input of the request
+        public string OpenFile(string role, string path, out InputMark before, double? peakMiB = null)
         {
             before = null;
-            string refusal = WorkerRunner.MemoryRefusal(new WorkerFile { Role = peakRole ?? role, Path = path }, config, freeMiB);
+            string refusal = peakMiB.HasValue
+                ? WorkerMemory.Refusal(Path.GetFileName(path), freeMiB(), peakMiB.Value, config.MinFreeGiB)
+                : WorkerRunner.MemoryRefusal(new WorkerFile { Role = role, Path = path }, config, freeMiB);
             if (refusal != null)
             {
                 return refusal;

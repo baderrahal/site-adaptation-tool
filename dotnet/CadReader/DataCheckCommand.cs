@@ -17,8 +17,6 @@ namespace CadReader
         public const string Command = "dataCheck";
         public const string FolderRole = "scanFolder";
         private const int PeekBytes = 64 * 1024;
-        // The role of addin.workerPeakMiB whose measured peaks the memory check scales to the size of a drawing, any drawing is a large read
-        private const string LargeReadRole = "curbs";
         private const long RuleFileLimit = 5 * 1024 * 1024;
 
         public static void Run(WorkerContext run)
@@ -132,7 +130,7 @@ namespace CadReader
                         break;
                     case ".dwg":
                     case ".dxf":
-                        Try(run, input, name, path, "drawing", mark => ReadDrawing(input, settings, name, path, mark));
+                        Try(run, input, name, path, "drawing", mark => ReadDrawing(input, settings, name, path, mark), SizeMiB(path) * settings.DrawingPeakMibPerMib);
                         break;
                     case ".xlsx":
                         Try(run, input, name, path, "workbook", mark => input.Excels.Add(ScanSources.Workbook(path)));
@@ -155,18 +153,19 @@ namespace CadReader
 
         // One file opened in place: marked before, read, and a failure recorded with its exact error. The notes of files that are not a
         // drawing, workbook or PDF are only kept when they failed, a folder holds many files that are no input of the check
-        private static void Try(WorkerContext run, DataCheckInput input, string name, string path, string kind, Action<InputMark> read)
+        private static void Try(WorkerContext run, DataCheckInput input, string name, string path, string kind, Action<InputMark> read, double? peakMiB = null)
         {
-            InputMark before;
-            string refusal = run.OpenFile(kind, path, out before, kind == "drawing" ? LargeReadRole : null);
-            if (refusal != null)
-            {
-                input.Notes.Add(new DataCheckNote { Name = name, Kind = kind, Read = false, Reason = refusal });
-                return;
-            }
             bool important = kind == "drawing" || kind == "workbook" || kind == "pdf";
             try
             {
+                // Opened inside the try, a file another program holds open fails here and is recorded, the run carries on (R606)
+                InputMark before;
+                string refusal = run.OpenFile(kind, path, out before, peakMiB);
+                if (refusal != null)
+                {
+                    input.Notes.Add(new DataCheckNote { Name = name, Kind = kind, Read = false, Reason = refusal });
+                    return;
+                }
                 read(before);
                 if (important)
                 {
@@ -180,6 +179,18 @@ namespace CadReader
             finally
             {
                 WorkerMemory.Release();
+            }
+        }
+
+        private static double SizeMiB(string path)
+        {
+            try
+            {
+                return new FileInfo(path).Length / 1048576.0;
+            }
+            catch (IOException)
+            {
+                return 0;
             }
         }
 

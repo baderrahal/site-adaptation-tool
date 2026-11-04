@@ -42,7 +42,8 @@ namespace SiteAdaptation.Tests
                         ["labelPattern"] = @"^(?:(.*?)\s+)?(\S*\d\S*)$", ["tokenSplit"] = "[^A-Za-z0-9]+", ["plotNumberShifts"] = new JArray(0), ["pairMinSegments"] = 100,
                         ["pairThreads"] = 1, ["pairTimeCapS"] = 60, ["pdfJoinGapPt"] = 0.3, ["pdfLineTolerancePt"] = 0.05, ["pdfPairDyPt"] = new JArray(1.3, 1.8), ["pdfPairDxPt"] = 1.5,
                     },
-                    ["groupGapsM"] = new JArray(100.0, 1.0), ["wordReachM"] = 30, ["wordShare"] = 0.9, ["roadReachM"] = 20, ["roadMinSegments"] = 2,
+                    ["groupGapsM"] = new JArray(100.0, 1.0), ["wordReachM"] = 30, ["wordShare"] = 0.9, ["wordMinGroups"] = 3, ["roadReachM"] = 20, ["roadMinSegments"] = 2, ["roadOutsideShare"] = 0.5,
+                    ["drawingPeak"] = new JObject { ["mibPerFileMib"] = 252 },
                     ["strongShare"] = 0.9, ["usableShare"] = 0.5, ["prototypeFilePattern"] = "(?:^|-)ARC-([A-Za-z0-9]+)(?:-[A-Za-z0-9]{2})?-MOD",
                 },
             };
@@ -226,7 +227,7 @@ namespace SiteAdaptation.Tests
             DataCheckOutput output = DataCheckLogic.Run(Settings(), input);
             JObject need = NeedOf(output, "villaType");
             Assert.Equal("weak", (string)need["mark"]);
-            Assert.Contains("another kind of source gives another type on 3 of them", (string)need["line"]);
+            Assert.Contains("another kind of source gives another type on 3", (string)need["line"]);
             // The plot keeps the code of the first kind and says what disagrees
             Assert.Equal("VA1", (string)PlotOf(output, "101")["villaType"]);
             Assert.Contains("VB2", (string)PlotOf(output, "101")["disputed"]["villaType"]);
@@ -234,16 +235,73 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R603_the_word_of_a_level_comes_from_texts_that_name_each_group_of_it_with_a_word_of_its_own()
+        public void R603_a_word_in_the_drawing_alone_needs_three_groups_and_two_groups_give_none_with_the_reason()
         {
             DataCheckOutput output = DataCheckLogic.Run(Settings(), Input(Drawing(new[] { false, false, false, false, false })));
             JArray levels = (JArray)output.Profile["levels"];
-            Assert.Equal("Phase", (string)levels[0]["word"]);
-            Assert.Equal("computed", (string)levels[0]["source"]);
-            // Level 2 has 3 groups and only 2 carry a text, under the share of 0.9
+            // Phase A and Phase B name the 2 groups of level 1, which is under the 3 a word of the drawing alone needs
+            Assert.Null((string)levels[0]["word"]);
+            Assert.Equal("missing", (string)levels[0]["source"]);
+            Assert.Contains("covers only 2 of 2 groups", (string)levels[0]["why"]);
+            Assert.Equal("Phase", (string)levels[0]["candidates"][0]);
             Assert.Null((string)levels[1]["word"]);
-            Assert.Equal("missing", (string)levels[1]["source"]);
-            Assert.Equal("usable", (string)NeedOf(output, "groupLevels")["mark"]);
+            Assert.Equal("weak", (string)NeedOf(output, "groupLevels")["mark"]);
+        }
+
+        [Fact]
+        public void R603_a_word_that_covers_three_groups_alone_is_taken_and_two_words_that_tie_give_none()
+        {
+            JObject drawing = Drawing(new[] { false, false, false, false, false });
+            var texts = (JArray)drawing["texts"];
+            // Level 2 has 3 groups: the row of plots 101 and 102, the row of 103 and 104 and the far plot
+            foreach (var at in new[] { Tuple.Create("Block 1", 0.0, -10.0), Tuple.Create("Block 2", 0.0, 60.0), Tuple.Create("Block 3", 300.0, -10.0) })
+            {
+                texts.Add(new JObject { ["layer"] = "T", ["text"] = at.Item1, ["x"] = at.Item2, ["y"] = at.Item3 });
+            }
+            DataCheckOutput output = DataCheckLogic.Run(Settings(), Input(drawing));
+            Assert.Equal("Block", (string)((JArray)output.Profile["levels"])[1]["word"]);
+            // Break it: a second word that also names the 3 groups, the level has two candidates and no word
+            foreach (var at in new[] { Tuple.Create("Notes 1", 1.0, -9.0), Tuple.Create("Notes 2", 1.0, 59.0), Tuple.Create("Notes 3", 301.0, -9.0) })
+            {
+                texts.Add(new JObject { ["layer"] = "T", ["text"] = at.Item1, ["x"] = at.Item2, ["y"] = at.Item3 });
+            }
+            JObject level = (JObject)((JArray)DataCheckLogic.Run(Settings(), Input(drawing)).Profile["levels"])[1];
+            Assert.Null((string)level["word"]);
+            Assert.Equal("missing", (string)level["source"]);
+            Assert.Contains("unsure between", (string)level["why"]);
+            Assert.Equal(new[] { "Block", "Notes" }, level["candidates"].Select(item => (string)item).OrderBy(name => name).ToArray());
+        }
+
+        [Fact]
+        public void R603_three_words_on_two_groups_never_give_a_word_even_when_one_is_the_projects_own()
+        {
+            // Phase A and B against Facades 1 and 2 and Notes 1 and 2 on the same two areas
+            JObject drawing = Drawing(new[] { false, false, false, false, false });
+            var texts = (JArray)drawing["texts"];
+            foreach (var at in new[] { Tuple.Create("Facades 1", 1.0, -9.0), Tuple.Create("Facades 2", 301.0, -9.0), Tuple.Create("Notes 1", 2.0, -8.0), Tuple.Create("Notes 2", 302.0, -8.0) })
+            {
+                texts.Add(new JObject { ["layer"] = "T", ["text"] = at.Item1, ["x"] = at.Item2, ["y"] = at.Item3 });
+            }
+            DataCheckOutput output = DataCheckLogic.Run(Settings(), Input(drawing));
+            JObject level = (JObject)((JArray)output.Profile["levels"])[0];
+            Assert.Null((string)level["word"]);
+            Assert.Equal(3, level["candidates"].Count());
+            Assert.Contains("unsure between", (string)NeedOf(output, "groupLevels")["line"]);
+            // A header of a sheet that parts the plots the same way settles it
+            DataCheckInput input = Input(drawing);
+            input.Excels.Add(new ScanWorkbook
+            {
+                Name = "p.xlsx",
+                Sheets = new List<ScanSheet>
+                {
+                    ScanSheet.Of("S", new List<IList<string>>
+                    {
+                        new List<string> { "Plot", "Phase" },
+                        new List<string> { "101", "A" }, new List<string> { "102", "A" }, new List<string> { "103", "A" }, new List<string> { "104", "A" }, new List<string> { "105", "B" },
+                    }),
+                },
+            });
+            Assert.Equal("Phase", (string)((JArray)DataCheckLogic.Run(Settings(), input).Profile["levels"])[0]["word"]);
         }
 
         [Fact]
@@ -280,8 +338,10 @@ namespace SiteAdaptation.Tests
         {
             DataCheckOutput output = DataCheckLogic.Run(Settings(), Input(Drawing(new[] { false, false, false, false, false })));
             JObject road = NeedOf(output, "roadEdges");
-            Assert.Equal("strong", (string)road["mark"]);
+            // All 5 plots lie near the layer, which proves no road, so the mark is at most usable
+            Assert.Equal("usable", (string)road["mark"]);
             Assert.Contains("layer K", (string)road["line"]);
+            Assert.Contains("not scored", (string)road["line"]);
         }
 
         [Fact]
@@ -323,7 +383,7 @@ namespace SiteAdaptation.Tests
             DataCheckOutput output = DataCheckLogic.Run(Settings(), Input(drawing));
             JObject outlines = NeedOf(output, "plotOutlines");
             Assert.Equal("usable", (string)outlines["mark"]);
-            Assert.Contains("3 numbers are outside", (string)outlines["line"]);
+            Assert.Contains("3 numbers outside every outline", (string)outlines["line"]);
         }
 
         [Fact]
@@ -353,6 +413,197 @@ namespace SiteAdaptation.Tests
             Assert.Contains("not a drawing", (string)file["reason"]);
             Assert.Contains("1 drawing could not be read", (string)NeedOf(output, "plotOutlines")["line"]);
             Assert.Equal(5, ((JArray)output.Plots["plots"]).Count);
+        }
+
+        [Fact]
+        public void R605_an_outline_with_no_number_is_said_and_the_mark_is_not_strong()
+        {
+            JObject drawing = Drawing(new[] { false, false, false, false, false });
+            var faces = (JArray)drawing["candidates"][0]["faces"];
+            faces.Add(Face(600, 0, 12, 20));
+            DataCheckOutput output = DataCheckLogic.Run(Settings(), Input(drawing));
+            JObject outlines = NeedOf(output, "plotOutlines");
+            Assert.Contains("6 outlines found", (string)outlines["line"]);
+            Assert.Contains("1 with none or more than one", (string)outlines["line"]);
+            Assert.Equal("usable", (string)outlines["mark"]);
+        }
+
+        [Fact]
+        public void R605_a_label_of_two_numbers_is_flagged_and_a_number_used_twice_makes_the_need_weak_with_no_share_over_100()
+        {
+            JObject drawing = Drawing(new[] { false, false, false, false, false });
+            ((JArray)drawing["texts"])[1]["text"] = "12 13";
+            DataCheckOutput output = DataCheckLogic.Run(Settings(), Input(drawing));
+            JObject plot = PlotOf(output, "13");
+            Assert.Contains("more than one number", (string)plot["weak"]["number"]);
+            JObject numbers = NeedOf(output, "plotNumbers");
+            Assert.Equal("usable", (string)numbers["mark"]);
+            Assert.Contains("1 label holds more than one number", (string)numbers["line"]);
+            // The same number on two outlines: both are left out and the need says so in counts
+            JObject twice = Drawing(new[] { false, false, false, false, false });
+            ((JArray)twice["texts"])[4]["text"] = "101";
+            DataCheckOutput repeated = DataCheckLogic.Run(Settings(), Input(twice));
+            JObject line = NeedOf(repeated, "plotNumbers");
+            Assert.Equal("weak", (string)line["mark"]);
+            Assert.Contains("5 outlines hold one and 3 numbers are distinct", (string)line["line"]);
+            Assert.Contains("1 number appears more than once", (string)line["line"]);
+            Assert.DoesNotContain(" of ", (string)line["line"]);
+        }
+
+        [Fact]
+        public void R602_a_plot_with_a_hole_is_flagged_and_what_lies_in_the_hole_is_left_out_of_its_mirror()
+        {
+            JObject drawing = Drawing(new[] { false, true, false, false, false });
+            // A courtyard inside plot 101 with no number, drawn on the plot layer, and a block of the other hand in it
+            ((JArray)drawing["candidates"][0]["faces"]).Add(Face(4, 4, 3, 3));
+            ((JArray)drawing["inserts"]).Add(new JObject { ["layer"] = "H", ["block"] = "VB2", ["x"] = 5.5, ["y"] = 5.5, ["mirrored"] = true });
+            DataCheckOutput output = DataCheckLogic.Run(Settings(), Input(drawing));
+            JObject outer = PlotOf(output, "101");
+            Assert.Equal(DataCheckLogic.HoleWhy, (string)outer["weak"]["outline"]);
+            // The block in the hole does not make the plot hold both hands, its own block is not mirrored
+            Assert.False((bool)outer["mirror"]);
+            Assert.True((bool)PlotOf(output, "102")["mirror"]);
+            Assert.Null((string)PlotOf(output, "102")["weak"]["outline"]);
+            // The reason to leave it out is only that it lies in the hole, without the hole the same block makes both hands
+            JObject whole = Drawing(new[] { false, true, false, false, false });
+            ((JArray)whole["inserts"]).Add(new JObject { ["layer"] = "H", ["block"] = "VB2", ["x"] = 5.5, ["y"] = 5.5, ["mirrored"] = true });
+            Assert.Null((bool?)PlotOf(DataCheckLogic.Run(Settings(), Input(whole)), "101")["mirror"]);
+        }
+
+        [Fact]
+        public void R601_a_drawing_with_no_unit_header_is_assumed_metres_and_the_groups_say_so()
+        {
+            DataCheckInput input = Input(Drawing(new[] { false, false, false, false, false }));
+            input.Excels.Add(new ScanWorkbook
+            {
+                Name = "p.xlsx",
+                Sheets = new List<ScanSheet>
+                {
+                    ScanSheet.Of("S", new List<IList<string>>
+                    {
+                        new List<string> { "Plot", "Sector", "Cluster" },
+                        new List<string> { "101", "N", "N1" }, new List<string> { "102", "N", "N1" }, new List<string> { "103", "N", "N2" }, new List<string> { "104", "N", "N2" }, new List<string> { "105", "S", "S1" },
+                    }),
+                },
+            });
+            DataCheckOutput stated = DataCheckLogic.Run(Settings(), input);
+            Assert.Equal("strong", (string)NeedOf(stated, "groupLevels")["mark"]);
+            input.CadReads[0]["units"] = "Unitless";
+            DataCheckOutput assumed = DataCheckLogic.Run(Settings(), input);
+            JObject need = NeedOf(assumed, "groupLevels");
+            Assert.Equal("weak", (string)need["mark"]);
+            Assert.Contains("states no unit and metres are assumed", (string)need["line"]);
+            Assert.Contains("metres are assumed", (string)PlotOf(assumed, "101")["weak"]["groups"]);
+            // A unit the table lacks gives no group at all, never one group for every plot
+            input.CadReads[0]["units"] = "Parsecs";
+            DataCheckOutput none = DataCheckLogic.Run(Settings(), input);
+            JObject plot = PlotOf(none, "101");
+            Assert.Empty((JArray)plot["groups"]);
+            Assert.Equal("missing", (string)plot["source"]["groups"]);
+            Assert.Contains("Parsecs", (string)plot["missing"]["groups"]);
+            Assert.Equal("weak", (string)NeedOf(none, "groupLevels")["mark"]);
+        }
+
+        [Fact]
+        public void R602_a_sheet_that_joins_few_plots_makes_the_villa_type_weak_so_a_worse_join_never_reads_better()
+        {
+            Func<string, DataCheckInput> with = style =>
+            {
+                DataCheckInput input = Input(Drawing(new[] { false, false, false, false, false }));
+                var rows = new List<IList<string>> { new List<string> { "Plot", "Type" } };
+                for (int index = 0; index < 5; index++)
+                {
+                    rows.Add(new List<string> { string.Format(style, 101 + index), new[] { "VA1", "VA1", "VB2", "VB2", "VA1" }[index] });
+                }
+                input.Excels.Add(new ScanWorkbook { Name = "p.xlsx", Sheets = new List<ScanSheet> { ScanSheet.Of("S", rows) } });
+                return input;
+            };
+            // The sheet numbers match the drawing, the sheet joins all 5 plots
+            Assert.Equal("strong", (string)NeedOf(DataCheckLogic.Run(Settings(), with("{0}")), "villaType")["mark"]);
+            JObject joined = NeedOf(DataCheckLogic.Run(Settings(), with("{0}")), "villaType");
+            Assert.DoesNotContain("joins only", (string)joined["line"]);
+            // The sheet numbers are in another style, it holds 5 codes and joins 0 plots, and the need cannot read better than the first
+            JObject apart = NeedOf(DataCheckLogic.Run(Settings(), with("LOT-{0}")), "villaType");
+            Assert.Equal("weak", (string)apart["mark"]);
+            Assert.Contains("a sheet holds 5 villa type codes and joins only 0 plots", (string)apart["line"]);
+        }
+
+        [Fact]
+        public void R602_the_mirror_is_weak_on_every_plot_that_has_one_so_the_weakness_reaches_plots_json()
+        {
+            DataCheckOutput output = DataCheckLogic.Run(Settings(), Input(Drawing(new[] { false, true, false, false, true })));
+            JObject plot = PlotOf(output, "102");
+            Assert.Equal("computed", (string)plot["source"]["mirror"]);
+            Assert.Contains("which hand a prototype file has is not known", (string)plot["weak"]["mirror"]);
+        }
+
+        [Fact]
+        public void R601_two_candidate_outlines_that_give_the_same_plots_are_a_named_tie_broken_to_the_fewest_layers()
+        {
+            JObject drawing = Drawing(new[] { false, false, false, false, false });
+            var candidates = (JArray)drawing["candidates"];
+            // The plot layer with a layer of block lines added gives the same 5 plots and 5 faces without a label
+            JArray extra = new JArray(((JArray)candidates[0]["faces"]).Select(face => (JToken)face.DeepClone()));
+            extra.Add(Face(10, 10, 2, 2));
+            candidates.Add(new JObject { ["layers"] = new JArray("0", "P"), ["faces"] = extra });
+            DataCheckInput input = Input(drawing);
+            DataCheckOutput output = DataCheckLogic.Run(Settings(), input);
+            Assert.Equal(5, ((JArray)output.Plots["plots"]).Count);
+            Assert.Contains("A tie of candidates was broken", (string)NeedOf(output, "plotOutlines")["line"]);
+            Assert.Contains(((JArray)output.Check["ties"]).Select(item => (string)item), text => text.Contains("the one with the fewest layers was taken"));
+            // Break it: a tie between two candidates of one layer each has no fewest, so the proposal is not taken and the tie is named
+            JObject apart = Drawing(new[] { false, false, false, false, false });
+            ((JArray)apart["candidates"]).Add(new JObject { ["layers"] = new JArray("Q"), ["faces"] = ((JArray)apart["candidates"][0]["faces"]).DeepClone() });
+            DataCheckOutput lost = DataCheckLogic.Run(Settings(), Input(apart));
+            JObject line = NeedOf(lost, "plotOutlines");
+            Assert.Equal("missing", (string)line["mark"]);
+            Assert.Contains("tie and none is taken", (string)line["line"]);
+            Assert.Contains(((JArray)lost.Check["ties"]).Select(item => (string)item), text => text.Contains("P") && text.Contains("Q"));
+        }
+
+        [Fact]
+        public void R606_the_settings_refuse_a_block_without_a_minimum_of_groups_a_road_share_or_a_drawing_peak()
+        {
+            foreach (string key in new[] { "wordMinGroups", "roadOutsideShare", "drawingPeak" })
+            {
+                JObject config = Config();
+                ((JObject)config[DataCheckSettings.Block]).Remove(key);
+                Assert.Throws<InvalidDataException>(() => DataCheckSettings.From(config));
+            }
+            Assert.True(DataCheckSettings.UnitAssumed("Unitless"));
+            Assert.True(DataCheckSettings.UnitAssumed(""));
+            Assert.False(DataCheckSettings.UnitAssumed("Meters"));
+        }
+
+        [Fact]
+        public void R607_the_scores_table_of_the_scenarios_holds_counts_and_marks_for_all_five()
+        {
+            string text = File.ReadAllText(Path.Combine(RepoRoot(), "steps", "scenarios.md"));
+            foreach (string scenario in new[] { "S1", "S2", "S3", "S4", "S5" })
+            {
+                Assert.Matches(@"(?m)^\| *" + scenario + @" *\|.*\d+ of \d+.*\|\s*$", text);
+            }
+        }
+
+        [Fact]
+        public void R608_the_sample_project_names_a_python_build_that_is_in_the_repo()
+        {
+            string sample = Path.Combine(RepoRoot(), "samples", "new-project");
+            JObject build = JObject.Parse(File.ReadAllText(Path.Combine(sample, "build.json")));
+            string script = (string)build["command"][0];
+            Assert.EndsWith(".py", script);
+            Assert.True(File.Exists(Path.Combine(RepoRoot(), script.Replace('/', Path.DirectorySeparatorChar))), script);
+            Assert.True(File.Exists(Path.Combine(sample, "site.dxf")));
+        }
+
+        private static string RepoRoot()
+        {
+            string at = AppContext.BaseDirectory;
+            while (at != null && !File.Exists(Path.Combine(at, "CLAUDE.md")))
+            {
+                at = Path.GetDirectoryName(at);
+            }
+            return at ?? throw new InvalidOperationException("the repo root with CLAUDE.md was not found above " + AppContext.BaseDirectory);
         }
 
         // The runner
@@ -425,6 +676,67 @@ namespace SiteAdaptation.Tests
             var changing = new Dictionary<string, WorkerCommand> { ["dataCheck"] = run => { InputMark mark; run.OpenFile("drawing", file, out mark); File.AppendAllText(file, "two"); } };
             Assert.Equal(4, WorkerRunner.Run(request.Write(folder), changing, () => 9000.0));
             Assert.Contains("drawing changed while it was read", WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, "r1")).Message);
+        }
+
+        private WorkerRequest FolderRequest(string scan, double peakMibPerMib)
+        {
+            JObject full = Config();
+            full[DataCheckSettings.Block]["drawingPeak"]["mibPerFileMib"] = peakMibPerMib;
+            full["siteBuild"] = new JObject { ["minFreeGB"] = 0.1 };
+            full["addin"] = new JObject
+            {
+                ["workerTimeLimitMinS"] = 0.5,
+                ["workerPeakMiB"] = new JObject { ["roles"] = new JArray("curbs"), ["files"] = new JArray(new JObject { ["name"] = "a.dwg", ["bytes"] = 1, ["peakMiB"] = 100 }) },
+            };
+            string config = Path.Combine(folder, "full.json");
+            File.WriteAllText(config, full.ToString());
+            return new WorkerRequest
+            {
+                FormatVersion = WorkerRequest.CurrentFormatVersion, RunId = "r1", Document = new WorkerDocument { Path = @"C:\Projects\site\a.rvt", SessionId = "s1" }, Command = "dataCheck",
+                Inputs = new List<WorkerFile> { new WorkerFile { Role = "config", Path = config, Sha256 = "" }, new WorkerFile { Role = "scanFolder", Path = scan, Sha256 = "" } },
+                Scope = new WorkerScope { Kind = "project" }, OutputFolder = folder, TimeLimitS = 600,
+            };
+        }
+
+        private JObject FileOf(string name)
+        {
+            JObject check = JObject.Parse(File.ReadAllText(Path.Combine(folder, "data_check.json")));
+            return ((JArray)check["files"]).OfType<JObject>().Single(row => (string)row["name"] == name);
+        }
+
+        [Fact]
+        public void R606_a_file_another_program_holds_open_is_named_as_not_read_and_the_run_carries_on()
+        {
+            string scan = Path.Combine(folder, "handed over");
+            Directory.CreateDirectory(scan);
+            string locked = Path.Combine(scan, "locked.dxf");
+            File.WriteAllText(locked, "0");
+            var commands = new Dictionary<string, WorkerCommand> { ["dataCheck"] = CadReader.DataCheckCommand.Run };
+            using (new FileStream(locked, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+            {
+                int code = WorkerRunner.Run(FolderRequest(scan, 252).Write(folder), commands, () => 9000.0);
+                Assert.True(code == 0, WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, "r1")).Message);
+            }
+            JObject row = FileOf("locked.dxf");
+            Assert.Equal("not read", (string)row["status"]);
+            Assert.False(string.IsNullOrEmpty((string)row["reason"]));
+        }
+
+        [Fact]
+        public void R606_a_drawing_is_read_only_when_the_free_memory_holds_its_own_peak_from_the_block_and_the_floor()
+        {
+            string scan = Path.Combine(folder, "handed over");
+            Directory.CreateDirectory(scan);
+            File.WriteAllText(Path.Combine(scan, "big.dxf"), "0\nEOF\n");
+            var commands = new Dictionary<string, WorkerCommand> { ["dataCheck"] = CadReader.DataCheckCommand.Run };
+            // A tiny file times a huge peak per MiB is more than the free memory, so it is named as not read and says why
+            int code = WorkerRunner.Run(FolderRequest(scan, 5e9).Write(folder), commands, () => 9000.0);
+            Assert.True(code == 0, WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, "r1")).Message);
+            Assert.Contains("free memory", (string)FileOf("big.dxf")["reason"]);
+            // With a peak that fits the file is opened, and a drawing that is no drawing is named with its own error instead
+            code = WorkerRunner.Run(FolderRequest(scan, 1).Write(folder), commands, () => 9000.0);
+            Assert.True(code == 0, WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, "r1")).Message);
+            Assert.DoesNotContain("free memory", (string)FileOf("big.dxf")["reason"]);
         }
     }
 }

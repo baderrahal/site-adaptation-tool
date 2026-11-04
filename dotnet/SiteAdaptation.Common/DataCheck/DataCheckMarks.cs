@@ -7,7 +7,8 @@ using Newtonsoft.Json.Linq;
 
 namespace SiteAdaptation.Common
 {
-    // R600 to R605. The marks and plain lines of the data check and the three files it writes
+    // R600 to R605. The marks and plain lines of the data check and the three files it writes. A mark never rises as the data gets worse, so
+    // each need takes the worst of the marks its facts give
     public static partial class DataCheckLogic
     {
         private static string Plain(string word)
@@ -29,6 +30,14 @@ namespace SiteAdaptation.Common
         {
             int cut = source.IndexOf('|');
             return cut < 0 ? source : source.Substring(cut + 1);
+        }
+
+        private static readonly string[] Order = { "missing", "weak", "usable", "strong" };
+
+        // The worse of two marks
+        private static string Worst(string one, string other)
+        {
+            return Array.IndexOf(Order, one) <= Array.IndexOf(Order, other) ? one : other;
         }
 
         // R604. The layer of lines that best marks the edges of the roads: not a layer of the plot outlines, its lines mostly outside the plots,
@@ -75,7 +84,7 @@ namespace SiteAdaptation.Common
                         }
                     }
                 }
-                if (outside < 0.5 * segments.Count)
+                if (outside < settings.RoadOutsideShare * segments.Count)
                 {
                     continue;
                 }
@@ -88,62 +97,119 @@ namespace SiteAdaptation.Common
             share = (double)best / plots.Count;
         }
 
-        private static DataCheckOutput Build(DataCheckSettings settings, DataCheckInput input, JObject scan, List<JObject> rows, List<JObject> checks, JObject outline, List<Plot> plots, string lead,
-            HashSet<string> blockSources, JObject drawing, double? metersPerUnit, string[] words, List<Dictionary<int, string>> groupNames, string groupWhy)
+        // The ties the scan named and could not break, in words, for the lines and for the ties field
+        private static List<string> TiesOf(Findings f)
         {
+            var found = new List<string>(f.Input.Ties);
+            foreach (JObject tie in f.Checks.Where(item => Str(item["what"]) == "tie"))
+            {
+                string text = Str(tie["source"]) + ": " + Str(tie["value"]);
+                if (!found.Contains(text))
+                {
+                    found.Add(text);
+                }
+            }
+            return found;
+        }
+
+        private static DataCheckOutput Build(Findings f)
+        {
+            DataCheckSettings settings = f.Settings;
+            DataCheckInput input = f.Input;
+            List<Plot> plots = f.Plots;
             int total = plots.Count;
             int unreadDrawings = input.Notes.Count(note => note.Kind == "drawing" && !note.Read);
             string unread = unreadDrawings == 0 ? "" : " " + Count(unreadDrawings, "drawing could not be read.", "drawings could not be read.");
+            bool tied = f.Checks.Any(item => Str(item["what"]) == "tie" && Str(item["source"]) == "plotOutline" || Str(item["what"]) == "tie" && Str(item["source"]) == "plotDrawing");
             var needs = new List<JObject>();
 
-            // Plot outlines
+            // Plot outlines. A face with no number, with two numbers or outside is said, so the share can never hide a plot left out
             if (input.CadReads.Count == 0)
             {
                 needs.Add(Need("plotOutlines", "missing", "No drawing was read from the folder, so there are no plot outlines." + unread));
             }
-            else if (outline == null)
+            else if (f.Outline == null)
             {
-                needs.Add(Need("plotOutlines", "missing", "No closed outline in the drawings holds a plot number." + unread));
+                needs.Add(Need("plotOutlines", "missing", tied
+                    ? "Candidates for the plot outlines tie and none is taken, they are named under ties." + unread
+                    : "No closed outline in the drawings holds a plot number." + unread));
             }
             else
             {
-                int lost = ChecksOf(checks, "labelOutside") + ChecksOf(checks, "manyLabels") + ChecksOf(checks, "numberTwice");
-                double share = (double)total / (total + lost);
-                string tail = lost == 0 ? "each holds one number." : Count(lost, "number is outside an outline or shared.", "numbers are outside an outline or shared.");
-                needs.Add(Need("plotOutlines", Mark(share, settings), Count(total, "plot outline", "plot outlines") + " found on " + Quote(LayerOf(Str(outline["source"]))) + ", " + tail + unread));
+                int outside = ChecksOf(f.Checks, "labelOutside");
+                int faces = Math.Max(f.OutlineFaces, f.LabelledFaces);
+                int noNumber = Math.Max(0, faces - f.LabelledFaces);
+                double share = (double)Math.Min(total, faces) / (faces + outside);
+                string said = Count(faces, "outline", "outlines") + " found on " + Quote(LayerOf(Str(f.Outline["source"]))) + ", " + total + " with a number of their own";
+                if (noNumber > 0)
+                {
+                    said += ", " + noNumber + " with none or more than one";
+                }
+                if (outside > 0)
+                {
+                    said += ", " + Count(outside, "number", "numbers") + " outside every outline";
+                }
+                string mark = Mark(share, settings);
+                if (f.Input.Ties.Count > 0)
+                {
+                    said += ". A tie of candidates was broken";
+                }
+                needs.Add(Need("plotOutlines", mark, said + "." + unread));
             }
 
-            // Plot numbers
-            JObject numberRow = rows.FirstOrDefault(row => Str(row["kind"]) == "plotNumber" && Str(row["proposedUse"]) == "plot numbers");
+            // Plot numbers. Distinct numbers over outlines that hold one, so a share can never pass 100 %
+            JObject numberRow = f.Rows.FirstOrDefault(row => Str(row["kind"]) == "plotNumber" && Str(row["proposedUse"]) == "plot numbers");
             if (total == 0 || numberRow == null)
             {
-                needs.Add(Need("plotNumbers", "missing", "No text inside the plot outlines gives a plot number."));
+                bool numberTie = f.Checks.Any(item => Str(item["what"]) == "tie" && Str(item["source"]) == "plotNumber");
+                needs.Add(Need("plotNumbers", "missing", numberTie ? "Text layers tie for the plot numbers and none is taken, they are named under ties." : "No text inside the plot outlines gives a plot number."));
             }
             else
             {
-                double share = (double)(int)numberRow["score"] / total;
-                needs.Add(Need("plotNumbers", Mark(share, settings), "Plot numbers are text on " + Quote(LayerOf(Str(numberRow["source"]))) + ", " + (int)numberRow["score"] + " of " + total + " plots hold one."));
+                int labelled = Math.Max((int)numberRow["score"], total);
+                double share = Math.Min(1.0, (double)total / labelled);
+                string mark = Mark(share, settings);
+                string said = "Plot numbers are text on " + Quote(LayerOf(Str(numberRow["source"]))) + ", " + labelled + " outlines hold one and " + total + " numbers are distinct";
+                if (f.NumbersTwice > 0)
+                {
+                    said += ", " + Count(f.NumbersTwice, "number appears", "numbers appear") + " more than once";
+                    mark = Worst(mark, "weak");
+                }
+                if (f.NumberFlags > 0)
+                {
+                    said += ", " + Count(f.NumberFlags, "label holds", "labels hold") + " more than one number";
+                    mark = Worst(mark, "usable");
+                }
+                needs.Add(Need("plotNumbers", mark, said + "."));
             }
 
-            // Group levels
+            // Group levels. An assumed unit or a unit the table lacks lowers the mark, and a level with no word says why
             int levels = settings.GroupGapsM.Count;
             if (total == 0)
             {
                 needs.Add(Need("groupLevels", "missing", "No plots were read, so no groups of plots can be found."));
             }
-            else if (groupWhy != null)
+            else if (f.GroupWhy != null)
             {
-                needs.Add(Need("groupLevels", "weak", "Groups could not be found by distance: " + groupWhy));
+                needs.Add(Need("groupLevels", "weak", "No groups were found by distance: " + f.GroupWhy));
             }
             else
             {
-                int named = words.Count(word => word != null);
-                string sizes = string.Join(", ", Enumerable.Range(0, levels).Select(level => "level " + (level + 1) + " has " + Count(plots.Select(plot => plot.Group[level]).Distinct().Count(), "group", "groups")));
-                string wordText = named == 0 ? "No word for them in the drawings or sheets." : "Words: " + string.Join(", ", words.Where(word => word != null).Select(Plain)) + ".";
-                needs.Add(Need("groupLevels", named == levels ? "strong" : named > 0 ? "usable" : "weak", "By distance: " + sizes + ". " + wordText));
+                int named = f.Words.Count(word => word != null);
+                string sizes = string.Join(" and ", Enumerable.Range(0, levels).Select(level => plots.Select(plot => plot.Group[level]).Distinct().Count().ToString(CultureInfo.InvariantCulture)));
+                string wordText = named == 0 ? "no word for the levels" : "words " + string.Join(", ", f.Words.Where(word => word != null).Select(Plain));
+                string notes = string.Join(" ", Enumerable.Range(0, levels).Where(level => f.WordNotes[level] != null).Select(level => "Level " + (level + 1) + " " + f.WordNotes[level] + "."));
+                string mark = named == levels ? "strong" : named > 0 ? "usable" : "weak";
+                string assumed = "";
+                if (f.UnitAssumed)
+                {
+                    mark = Worst(mark, "weak");
+                    assumed = "The drawing states no unit and metres are assumed. ";
+                }
+                needs.Add(Need("groupLevels", mark, assumed + "Groups by distance: " + sizes + ", " + wordText + ". " + notes));
             }
 
-            // Villa type
+            // Villa type. The worst of the coverage, the disagreement between kinds of source and the join of a sheet
             int typed = plots.Count(plot => plot.Villa != null);
             if (total == 0)
             {
@@ -151,44 +217,54 @@ namespace SiteAdaptation.Common
             }
             else if (typed == 0)
             {
-                needs.Add(Need("villaType", "missing", plots[0].VillaWhy ?? "No block, text or sheet column gives a villa type."));
+                string why = plots[0].VillaWhy ?? "No block, text or sheet column gives a villa type.";
+                needs.Add(Need("villaType", "missing", f.SheetPoor != null ? "Villa type is missing, " + f.SheetPoor + "." : why));
             }
             else
             {
-                // R602. A type the sources do not agree on is no strong read: past (1 - strongShare) of the typed plots in dispute the need is weak
                 int disputed = plots.Count(plot => plot.VillaDispute != null);
                 string mark = Mark((double)typed / total, settings);
-                if (disputed > (1 - settings.StrongShare) * typed && mark != "weak")
+                if (disputed > (1 - settings.StrongShare) * typed)
                 {
-                    mark = "weak";
+                    mark = Worst(mark, "weak");
                 }
-                string said = disputed == 0 ? "." : ", another kind of source gives another type on " + disputed + " of them.";
-                needs.Add(Need("villaType", mark, "Villa type is read from " + lead + " for " + typed + " of " + total + " plots" + said));
+                string said = "Villa type is read from " + f.Lead + " for " + typed + " of " + total + " plots";
+                if (disputed > 0)
+                {
+                    said += ", another kind of source gives another type on " + disputed;
+                }
+                if (f.SheetPoor != null)
+                {
+                    mark = Worst(mark, "weak");
+                    said += ", " + f.SheetPoor;
+                }
+                needs.Add(Need("villaType", mark, said + "."));
             }
 
             // Villa blocks
-            if (total == 0 || blockSources.Count == 0)
+            if (total == 0 || f.BlockSources.Count == 0)
             {
                 needs.Add(Need("villaBlocks", "missing", "No block is inserted inside the plot outlines."));
             }
             else
             {
                 int holding = plots.Count(plot => plot.HasBlock);
-                string where = blockSources.Count == 1 ? Quote(LayerOf(blockSources.First())) : Count(blockSources.Count, "layer", "layers");
+                string where = f.BlockSources.Count == 1 ? Quote(LayerOf(f.BlockSources.First())) : Count(f.BlockSources.Count, "layer", "layers");
                 needs.Add(Need("villaBlocks", Mark((double)holding / total, settings), "Villa blocks are inserts on " + where + ", " + holding + " of " + total + " plots hold one."));
             }
 
-            // Road edges
+            // Road edges. A layer that the plots all lie near proves no road, so the mark is at most usable until the lines are scored
             string roadLayer;
             double roadShare;
-            RoadEdges(settings, drawing, outline, plots, metersPerUnit ?? 1.0, out roadLayer, out roadShare);
+            RoadEdges(settings, f.Drawing, f.Outline, plots, f.MetersPerUnit ?? 1.0, out roadLayer, out roadShare);
             if (roadLayer == null)
             {
                 needs.Add(Need("roadEdges", "missing", total == 0 ? "No plots were read, so no road edges can be found beside them." : "No layer of lines beside the plots marks a road edge."));
             }
             else
             {
-                needs.Add(Need("roadEdges", Mark(roadShare, settings), "Road edges are lines on " + Quote(roadLayer) + ", within " + DataCheckSettings.Text(settings.RoadReachM) + " m of " + Math.Round(roadShare * total) + " of " + total + " plots."));
+                needs.Add(Need("roadEdges", Worst(Mark(roadShare, settings), "usable"),
+                    "Road edges are lines on " + Quote(roadLayer) + ", within " + DataCheckSettings.Text(settings.RoadReachM) + " m of " + Math.Round(roadShare * total) + " of " + total + " plots, not scored."));
             }
 
             // Road levels
@@ -197,7 +273,7 @@ namespace SiteAdaptation.Common
                 : Need("roadLevels", "missing", "No Land XML surface file is in the folder, so there are no road levels."));
 
             // Coordinates
-            string units = drawing == null ? "" : Str(drawing["units"]);
+            string units = f.Drawing == null ? "" : Str(f.Drawing["units"]);
             if (input.LandXmlWithCoordinateSystem > 0)
             {
                 needs.Add(Need("coordinates", "usable", Count(input.LandXmlWithCoordinateSystem, "surface file states", "surface files state") + " a coordinate system."));
@@ -232,8 +308,8 @@ namespace SiteAdaptation.Common
                 ? Need("sharedParameters", "usable", Count(input.SharedParameterFiles, "shared parameter file", "shared parameter files") + " found in the folder.")
                 : Need("sharedParameters", "missing", "No shared parameter file is in the folder."));
 
-            // R602. The mirror is a value of each plot, not a need. It is the sign of the scale of the villa block, which the drawing states, and
-            // the folder does not say which hand a prototype file has, so what the sign means for the link is not known and the value is weak
+            // The mirror is a value of each plot, not a need. It is the sign of the scale of the villa block, which the drawing states, and the
+            // folder does not say which hand a prototype file has, so what the sign means for the link is not known and the value is weak
             int hands = plots.Count(plot => plot.Mirror != null);
             var values = new JArray
             {
@@ -241,46 +317,95 @@ namespace SiteAdaptation.Common
                     ? Need("mirror", "missing", total == 0 ? "No plots were read, so there is no mirror to give them." : "No villa block inside a plot gives a mirror.")
                     : Need("mirror", "weak", "Mirror is the sign of the block scale for " + hands + " of " + total + " plots, the folder does not say which hand a prototype has."),
             };
-            var scanChecks = new JArray(checks.Select(item => (JToken)new JObject { ["what"] = item["what"], ["count"] = 1 })
-                .GroupBy(item => (string)item["what"]).Select(group => new JObject { ["what"] = group.Key, ["count"] = group.Count() }));
-            var profile = new JArray(Enumerable.Range(0, levels).Select(level => Level(level + 1, words[level], words[level] == null ? Missing : Computed)));
+
+            foreach (string tie in TiesOf(f).Where(text => !input.Ties.Contains(text)))
+            {
+                input.Ties.Add(tie);
+            }
+            var scanChecks = new JArray(f.Checks.Select(item => (string)item["what"]).GroupBy(what => what).Select(group => new JObject { ["what"] = group.Key, ["count"] = group.Count() }));
+            JArray profile = ProfileOf(f);
             var plotRows = new JArray();
             foreach (Plot plot in plots)
             {
-                var gone = new JObject();
-                if (plot.Villa == null)
-                {
-                    gone["villaType"] = plot.VillaWhy;
-                }
-                if (plot.Mirror == null)
-                {
-                    gone["mirror"] = plot.MirrorWhy;
-                }
-                var disputes = new JObject();
-                if (plot.VillaDispute != null)
-                {
-                    disputes["villaType"] = plot.VillaDispute;
-                }
-                plotRows.Add(new JObject
-                {
-                    ["number"] = plot.Number,
-                    ["villaType"] = plot.Villa,
-                    ["mirror"] = plot.Mirror,
-                    ["groups"] = new JArray(Enumerable.Range(0, levels).Select(level => (object)(groupNames[level].TryGetValue(plot.Group[level], out string name) ? name
-                        : "L" + (level + 1) + "-" + (plot.Group[level] + 1))).ToArray()),
-                    ["source"] = new JObject
-                    {
-                        ["number"] = Computed, ["villaType"] = plot.Villa == null ? Missing : Computed, ["mirror"] = plot.Mirror == null ? Missing : Computed, ["groups"] = Computed,
-                    },
-                    ["missing"] = gone,
-                    ["disputed"] = disputes,
-                });
+                plotRows.Add(PlotRow(f, plot));
             }
             return new DataCheckOutput
             {
                 Check = Wrap(new JArray(needs), input, scanChecks, values),
                 Profile = new JObject { ["levels"] = profile },
                 Plots = new JObject { ["plots"] = plotRows },
+            };
+        }
+
+        private static JArray ProfileOf(Findings f)
+        {
+            var rows = new JArray();
+            for (int level = 0; level < f.Settings.GroupGapsM.Count; level++)
+            {
+                JObject row = Level(level + 1, f.Words[level], f.Words[level] == null ? Missing : Computed);
+                if (f.Words[level] == null && (f.WordCandidates[level].Count > 0 || f.WordNotes[level] != null))
+                {
+                    row["candidates"] = new JArray(f.WordCandidates[level]);
+                    row["why"] = f.WordNotes[level];
+                }
+                rows.Add(row);
+            }
+            return rows;
+        }
+
+        private static JObject PlotRow(Findings f, Plot plot)
+        {
+            int levels = f.Settings.GroupGapsM.Count;
+            var gone = new JObject();
+            var disputes = new JObject();
+            var weak = new JObject();
+            if (plot.Villa == null)
+            {
+                gone["villaType"] = plot.VillaWhy;
+            }
+            if (plot.Mirror == null)
+            {
+                gone["mirror"] = plot.MirrorWhy;
+            }
+            else
+            {
+                weak["mirror"] = "the sign of the block scale, which hand a prototype file has is not known";
+            }
+            if (plot.VillaDispute != null)
+            {
+                disputes["villaType"] = plot.VillaDispute;
+            }
+            if (plot.NumberFlag != null)
+            {
+                weak["number"] = plot.NumberFlag;
+            }
+            if (plot.Hole)
+            {
+                weak["outline"] = HoleWhy;
+            }
+            if (plot.Group == null)
+            {
+                gone["groups"] = f.GroupWhy ?? "no groups were found";
+            }
+            else if (f.UnitAssumed)
+            {
+                weak["groups"] = "the drawing states no unit and metres are assumed";
+            }
+            return new JObject
+            {
+                ["number"] = plot.Number,
+                ["villaType"] = plot.Villa,
+                ["mirror"] = plot.Mirror,
+                ["groups"] = plot.Group == null ? new JArray()
+                    : new JArray(Enumerable.Range(0, levels).Select(level => (object)(f.GroupNames[level].TryGetValue(plot.Group[level], out string name) ? name : "L" + (level + 1) + "-" + (plot.Group[level] + 1))).ToArray()),
+                ["source"] = new JObject
+                {
+                    ["number"] = Computed, ["villaType"] = plot.Villa == null ? Missing : Computed, ["mirror"] = plot.Mirror == null ? Missing : Computed,
+                    ["groups"] = plot.Group == null ? Missing : Computed,
+                },
+                ["missing"] = gone,
+                ["disputed"] = disputes,
+                ["weak"] = weak,
             };
         }
     }

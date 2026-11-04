@@ -20,6 +20,9 @@ namespace SiteAdaptation.Common
         public double WordReachM { get; private set; }
         public double WordShare { get; private set; }
         public double RoadReachM { get; private set; }
+        public double RoadOutsideShare { get; private set; }
+        public int WordMinGroups { get; private set; }
+        public double DrawingPeakMibPerMib { get; private set; }
         public int RoadMinSegments { get; private set; }
         public double StrongShare { get; private set; }
         public double UsableShare { get; private set; }
@@ -49,6 +52,10 @@ namespace SiteAdaptation.Common
                 WordReachM = Positive(block, "wordReachM", "R603"),
                 WordShare = Share(block, "wordShare", "R603"),
                 RoadReachM = Positive(block, "roadReachM", "R604"),
+                RoadOutsideShare = Share(block, "roadOutsideShare", "R604"),
+                WordMinGroups = block["wordMinGroups"]?.Type == JTokenType.Integer && (int)block["wordMinGroups"] >= 2 ? (int)block["wordMinGroups"]
+                    : throw new InvalidDataException("dataCheck.wordMinGroups is no whole number of 2 or more (R603)"),
+                DrawingPeakMibPerMib = Positive(block["drawingPeak"] as JObject ?? throw new InvalidDataException("dataCheck holds no drawingPeak block (R606)"), "mibPerFileMib", "R606"),
                 RoadMinSegments = block["roadMinSegments"]?.Type == JTokenType.Integer && (int)block["roadMinSegments"] >= 1 ? (int)block["roadMinSegments"]
                     : throw new InvalidDataException("dataCheck.roadMinSegments is no whole number of 1 or more (R604)"),
                 StrongShare = Share(block, "strongShare", "R605"),
@@ -101,8 +108,15 @@ namespace SiteAdaptation.Common
             return match.Success && match.Groups[1].Success && match.Groups[1].Value.Length > 0 ? match.Groups[1].Value : null;
         }
 
-        // The metres one drawing unit is, from the units the drawing states. Unitless is taken as metres, the unit the plans of this tool are
-        // drawn in, and a unit this table does not hold is null, so the check says the distances could not be turned into the drawing's unit
+        // R601. True when the drawing states no unit, a header with no units, so metres are an assumption the check says aloud
+        public static bool UnitAssumed(string units)
+        {
+            string text = (units ?? "").Trim();
+            return text.Length == 0 || text == "Unitless";
+        }
+
+        // The metres one drawing unit is, from the units the drawing states. A drawing that states none is taken as metres, the unit the plans
+        // of this tool are drawn in, which UnitAssumed says, and a unit this table does not hold is null, so the check gives no group
         public static double? MetersPerUnit(string units)
         {
             switch ((units ?? "").Trim())

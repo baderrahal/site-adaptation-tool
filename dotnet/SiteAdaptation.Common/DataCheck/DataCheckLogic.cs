@@ -30,6 +30,7 @@ namespace SiteAdaptation.Common
         public int RuleFiles { get; set; }
         public int SharedParameterFiles { get; set; }
         public string Stopped { get; set; }
+        public List<string> Ties { get; } = new List<string>();
     }
 
     public sealed class DataCheckOutput
@@ -57,6 +58,10 @@ namespace SiteAdaptation.Common
             public string Number;
             public List<double[]> Ring;
             public double[] Box;
+            public double Area;
+            public string NumberFlag;
+            public List<List<double[]>> Holes = new List<List<double[]>>();
+            public bool Hole => Holes.Count > 0;
             public string Villa;
             public string VillaWhy;
             public string VillaDispute;
@@ -127,89 +132,9 @@ namespace SiteAdaptation.Common
                     ["name"] = note.Name, ["kind"] = note.Kind, ["status"] = note.Read ? "read" : "not read", ["reason"] = note.Reason,
                 })),
                 ["stopped"] = input.Stopped,
+                ["ties"] = new JArray(input.Ties),
                 ["scanChecks"] = checks ?? new JArray(),
             };
-        }
-
-        public static DataCheckOutput Run(DataCheckSettings settings, DataCheckInput input)
-        {
-            var codes = new HashSet<string>(input.PrototypeNames.Select(settings.PrototypeCode).Where(code => code != null), StringComparer.Ordinal);
-            JObject scan = null;
-            List<KeyValuePair<string, List<double[]>>> rings = new List<KeyValuePair<string, List<double[]>>>();
-            if (input.CadReads.Count > 0)
-            {
-                try
-                {
-                    scan = ScanLogic.Result(settings.Scan, codes, codes, settings.StrongShare, new HashSet<string>(StringComparer.Ordinal), input.CadReads, input.Excels, input.Pdfs, new JArray(), out rings);
-                }
-                catch (Exception failure)
-                {
-                    input.Notes.Add(new DataCheckNote { Name = "(plot read)", Kind = "scan", Read = false, Reason = failure.GetType().Name + ": " + failure.Message });
-                }
-            }
-            List<JObject> rows = scan == null ? new List<JObject>() : ((JArray)scan["rows"]).OfType<JObject>().ToList();
-            List<JObject> checks = scan == null ? new List<JObject>() : ((JArray)scan["checks"]).OfType<JObject>().ToList();
-            JObject outline = rows.FirstOrDefault(row => Str(row["kind"]) == "plotOutline" && Str(row["proposedUse"]) == "plot outlines");
-            string drawingName = outline == null ? null : Str(outline["source"]).Split('|')[0];
-            JObject drawing = drawingName == null ? null : input.CadReads.FirstOrDefault(read => Str(read["source"]) == drawingName);
-            double? metersPerUnit = drawing == null ? (double?)null : DataCheckSettings.MetersPerUnit(Str(drawing["units"]));
-            var plots = new List<Plot>();
-            if (scan != null && outline != null)
-            {
-                var byNumber = new Dictionary<string, Plot>(StringComparer.Ordinal);
-                foreach (KeyValuePair<string, List<double[]>> ring in rings)
-                {
-                    byNumber[ring.Key] = new Plot
-                    {
-                        Number = ring.Key, Ring = ring.Value,
-                        Box = new[] { ring.Value.Min(p => p[0]), ring.Value.Min(p => p[1]), ring.Value.Max(p => p[0]), ring.Value.Max(p => p[1]) },
-                    };
-                }
-                plots = byNumber.Values.OrderBy(plot => plot.Number, StringComparer.Ordinal).ToList();
-            }
-            string lead;
-            HashSet<string> blockSources = BlockSources(rows);
-            FindVillaTypes(plots, scan, rows, codes, out lead);
-            FindMirror(plots, input, blockSources);
-            string groupWhy = null;
-            if (plots.Count > 0)
-            {
-                if (metersPerUnit == null)
-                {
-                    groupWhy = "the drawing states a unit this check cannot turn into metres: " + Str(drawing["units"]);
-                    foreach (Plot plot in plots)
-                    {
-                        plot.Group = new int[settings.GroupGapsM.Count];
-                    }
-                }
-                else
-                {
-                    for (int level = 0; level < settings.GroupGapsM.Count; level++)
-                    {
-                        int[] labels = Cluster(plots, settings.GroupGapsM[level] / metersPerUnit.Value);
-                        for (int at = 0; at < plots.Count; at++)
-                        {
-                            if (level == 0)
-                            {
-                                plots[at].Group = new int[settings.GroupGapsM.Count];
-                            }
-                            plots[at].Group[level] = labels[at];
-                        }
-                    }
-                }
-            }
-            string[] words = new string[settings.GroupGapsM.Count];
-            var groupNames = new List<Dictionary<int, string>>();
-            for (int level = 0; level < settings.GroupGapsM.Count; level++)
-            {
-                groupNames.Add(new Dictionary<int, string>());
-            }
-            if (plots.Count > 0 && groupWhy == null)
-            {
-                WordsFromCad(settings, plots, drawing, rows, metersPerUnit.Value, words);
-                WordsFromExcel(settings, plots, input.Excels, words, groupNames);
-            }
-            return Build(settings, input, scan, rows, checks, outline, plots, lead, blockSources, drawing, metersPerUnit, words, groupNames, groupWhy);
         }
 
         // R426. The kinds of villa type source in the order a plot is read by: blocks, texts, a sheet column, a PDF page
@@ -287,54 +212,6 @@ namespace SiteAdaptation.Common
                 }
             }
             lead = used.All(count => count == 0) ? null : string.Join(" and ", Enumerable.Range(0, used.Length).Where(kind => used[kind] > 0).Select(kind => KindWords[kind]));
-        }
-
-        // The hand of the villa block inside each plot: the insert is drawn mirrored or not, the plots that hold inserts of both hands none
-        private static void FindMirror(List<Plot> plots, DataCheckInput input, HashSet<string> blockSources)
-        {
-            if (blockSources.Count == 0)
-            {
-                foreach (Plot plot in plots)
-                {
-                    plot.MirrorWhy = "no layer of villa blocks was found in the plots";
-                }
-                return;
-            }
-            var hands = new Dictionary<Plot, HashSet<bool>>();
-            var grid = new BoxGrid(plots.Select(plot => plot.Box).ToList(), 0);
-            foreach (JObject read in input.CadReads)
-            {
-                string file = Str(read["source"]);
-                foreach (JObject insert in ((JArray)read["inserts"]).OfType<JObject>().Where(item => item["mirrored"] != null && blockSources.Contains(file + "|" + Str(item["layer"]))))
-                {
-                    double x = (double)insert["x"], y = (double)insert["y"];
-                    foreach (int at in grid.Holding(x, y).Where(at => ScanLogic.Contains(plots[at].Ring, x, y)))
-                    {
-                        if (!hands.TryGetValue(plots[at], out HashSet<bool> set))
-                        {
-                            hands[plots[at]] = set = new HashSet<bool>();
-                        }
-                        set.Add((bool)insert["mirrored"]);
-                    }
-                }
-            }
-            foreach (Plot plot in plots)
-            {
-                if (!hands.TryGetValue(plot, out HashSet<bool> set))
-                {
-                    plot.MirrorWhy = "the plot holds no villa block insert";
-                }
-                else if (set.Count > 1)
-                {
-                    plot.HasBlock = true;
-                    plot.MirrorWhy = "the plot holds villa blocks drawn both mirrored and not mirrored";
-                }
-                else
-                {
-                    plot.HasBlock = true;
-                    plot.Mirror = set.First();
-                }
-            }
         }
 
         // A grid of boxes: the boxes that may hold a point, each box added to every cell it covers, grown by the margin first
@@ -484,133 +361,6 @@ namespace SiteAdaptation.Common
             double t = length2 == 0 ? 0 : Math.Max(0, Math.Min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / length2));
             double x = a[0] + t * dx - p[0], y = a[1] + t * dy - p[1];
             return Math.Sqrt(x * x + y * y);
-        }
-
-        // R603. The word of a group level found in the texts of the plot drawing. A text of two or more words that lies outside every plot
-        // and within wordReach of a plot is the word before its last token and that token. A word is the word of a level when its texts,
-        // each with a token of its own, sit by wordShare of the groups of the level, the largest level taking it first
-        private static void WordsFromCad(DataCheckSettings settings, List<Plot> plots, JObject drawing, List<JObject> rows, double metersPerUnit, string[] words)
-        {
-            if (drawing == null)
-            {
-                return;
-            }
-            JObject numberRow = rows.FirstOrDefault(row => Str(row["kind"]) == "plotNumber" && Str(row["proposedUse"]) == "plot numbers");
-            string numberLayer = numberRow == null ? null : Str(numberRow["source"]).Split('|').Last();
-            double reach = settings.WordReachM / metersPerUnit;
-            var grid = new BoxGrid(plots.Select(plot => plot.Box).ToList(), 0);
-            var found = new List<Tuple<string, string, int[]>>();
-            foreach (JObject text in ((JArray)drawing["texts"]).OfType<JObject>())
-            {
-                if (numberLayer != null && Str(text["layer"]) == numberLayer)
-                {
-                    continue;
-                }
-                string[] tokens = Regex.Split(Str(text["text"]).Trim(), @"\s+").Where(token => token.Length > 0).ToArray();
-                if (tokens.Length < 2)
-                {
-                    continue;
-                }
-                double x = (double)text["x"], y = (double)text["y"];
-                if (grid.Holding(x, y).Any(at => ScanLogic.Contains(plots[at].Ring, x, y)))
-                {
-                    continue;
-                }
-                int near = -1;
-                double least = reach;
-                for (int at = 0; at < plots.Count; at++)
-                {
-                    double gap = BoxGap(plots[at].Box, new[] { x, y, x, y });
-                    if (gap <= least)
-                    {
-                        least = gap;
-                        near = at;
-                    }
-                }
-                if (near >= 0)
-                {
-                    found.Add(Tuple.Create(string.Join(" ", tokens.Take(tokens.Length - 1)), tokens[tokens.Length - 1], plots[near].Group));
-                }
-            }
-            for (int level = 0; level < words.Length; level++)
-            {
-                int groups = plots.Select(plot => plot.Group[level]).Distinct().Count();
-                string best = null;
-                double bestShare = 0;
-                foreach (IGrouping<string, Tuple<string, string, int[]>> word in found.GroupBy(item => item.Item1, StringComparer.Ordinal).OrderBy(item => item.Key, StringComparer.Ordinal))
-                {
-                    if (words.Contains(word.Key) || !Regex.IsMatch(word.Key, @"\p{L}"))
-                    {
-                        continue;
-                    }
-                    List<IGrouping<int, Tuple<string, string, int[]>>> covered = word.GroupBy(item => item.Item3[level]).ToList();
-                    bool eachOwn = covered.All(group => group.Select(item => item.Item2).Distinct(StringComparer.Ordinal).Count() == 1)
-                        && covered.Select(group => group.First().Item2).Distinct(StringComparer.Ordinal).Count() == covered.Count;
-                    double share = (double)covered.Count / groups;
-                    if (eachOwn && covered.Count >= 2 && share >= settings.WordShare && share > bestShare)
-                    {
-                        best = word.Key;
-                        bestShare = share;
-                    }
-                }
-                words[level] = best;
-            }
-        }
-
-        // R603. The word of a level found in a header of a sheet: a column whose values part the plots of the sheet the way the groups of
-        // that level part them. A header that is only the letter of its column is no word
-        private static void WordsFromExcel(DataCheckSettings settings, List<Plot> plots, List<ScanWorkbook> excels, string[] words, List<Dictionary<int, string>> groupNames)
-        {
-            var byNumber = plots.ToDictionary(plot => plot.Number, StringComparer.Ordinal);
-            foreach (ScanWorkbook book in excels)
-            {
-                foreach (ScanSheet sheet in book.Sheets)
-                {
-                    int key = -1, hits = 0;
-                    for (int column = 0; column < sheet.Headers.Count; column++)
-                    {
-                        int count = sheet.Rows.Where(row => column < row.Count && byNumber.ContainsKey(ScanLogic.CellText(row[column]).Trim())).Select(row => row[column].Trim()).Distinct(StringComparer.Ordinal).Count();
-                        if (count > hits)
-                        {
-                            hits = count;
-                            key = column;
-                        }
-                    }
-                    if (key < 0 || hits < settings.UsableShare * plots.Count)
-                    {
-                        continue;
-                    }
-                    for (int column = 0; column < sheet.Headers.Count; column++)
-                    {
-                        string header = sheet.Headers[column];
-                        if (column == key || header == ScanLogic.ColumnLetter(column))
-                        {
-                            continue;
-                        }
-                        var value = new Dictionary<Plot, string>();
-                        foreach (List<string> row in sheet.Rows.Where(row => key < row.Count && column < row.Count && byNumber.ContainsKey(row[key].Trim()) && row[column].Trim().Length > 0))
-                        {
-                            value[byNumber[row[key].Trim()]] = row[column].Trim();
-                        }
-                        if (value.Count < settings.UsableShare * plots.Count)
-                        {
-                            continue;
-                        }
-                        for (int level = 0; level < words.Length; level++)
-                        {
-                            if ((words[level] != null && !string.Equals(words[level], header, StringComparison.OrdinalIgnoreCase)) || (words[level] == null && words.Contains(header)) || !SamePartition(value, level))
-                            {
-                                continue;
-                            }
-                            words[level] = words[level] ?? header;
-                            foreach (IGrouping<int, KeyValuePair<Plot, string>> group in value.GroupBy(item => item.Key.Group[level]))
-                            {
-                                groupNames[level][group.Key] = group.Select(item => item.Value).First();
-                            }
-                        }
-                    }
-                }
-            }
         }
 
         private static bool SamePartition(Dictionary<Plot, string> value, int level)
