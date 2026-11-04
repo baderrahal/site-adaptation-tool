@@ -1,0 +1,275 @@
+# Backlog
+
+One backlog by stage, one line each with its Q or R id if it has one. Sources: section 8 of steps/truth-audit.md, steps/questions-for-bader-4nov.md, steps/handover/. The stage of each line is CHOSEN by Code from its title, Bader moves any that sit wrong. Full text of a question: grep its id in steps/questions-open.md.
+
+## 1 Project data
+
+- Step 2 reads with no past schedule, truth audit item 1, Large
+- Remove the need for plots.csv, labels.csv and phase1_border.csv, border from a CAD ring the team picks, truth audit item 2, Large
+- Remove needless stops: prototype_offsets.json, floor_outlines.json past values, addin.position.file under CAD, truth audit item 7, Small
+- A shipped set with no past names, New project asks for them, Q379, truth audit item 8, Medium
+- newProjectCheck has no sender, WorkerRequest.CoordinateSource and PositionFile wait for one, steps/latent.md:576, Lane A
+- Test host: a press of Use CAD, and a run of R523 on a real model, Lane A
+- Look at the badge and side by side position of PR 174 at the next Set up site run, not seen in Revit, Lane A
+- Browse time not measured, Lane B and C
+- Conflicts Plot column shows the CAD label, show Plot No and CAD label side by side, key unchanged, steps/check-2nov.md:33, Lane C
+- Road surfaces window Pick surfaces never pressed, the driver reads the first of 5 buttons with one name, Lane A
+- Run from raw inputs, truth audit short list 1 and 2, Lane C
+- Q157 The type button 1 copies new types from
+- Q204 Manual rule of a Review data row
+- Q205 Corner table coordinates of Review data
+- Q207 No foot and no Esc in the windows
+- Q222 The NBH 03 image of Q063
+- Q226 The hand of a detached unit
+- Q229 A row with no single cluster split
+- Q234 Read step road levels under Rev 6
+- Q242 The reason of an unreadable input
+- Q244 A tie in a scan proposal
+- Q245 Old and new code of one row agree
+- Q248 Villa blocks on one layer per type
+- Q249 A sheet whose numbers shift by area
+- Q250 The pair trace on the Road Layout
+- Q251 The centroid of today's plots.json
+- Q252 PDF tables and turned text in the scan
+- Q253 The header row of a scanned sheet
+- Q257 Threads of the scan pair trace
+- Q258 The time cap of the scan pair trace
+- Q270 Where a prototype set upgrades now
+- Q284 Villa mode row the boards drop
+- Q285 Name the Rules row shows
+- Q286 Approve the four drafts of NEWPROJ-UI
+- Q287 Button messages that name a work file
+- Q288 Scan picks in the settings at version 1
+- Q289 Board rows the scan does not read
+- Q290 Curbs and road surface left out of scan
+- Q291 Where the line Current files is shown
+- Q293 Approve the three drafts of SCAN-UI
+- Q294 Rules chosen in Set up site, when used
+- Q300 Plots with no cluster proposal
+- Q302 Door level row under the past job
+- Q305 Hide Confirmed under the past job
+- Q306 A neighbourhood picked after the first read
+- Q326 Shared origin at the plot box centre
+- Q327 Elevation of the shared origin from CAD
+- Q329 The rule that picks the control points
+- Q334 An xlsx read inside Revit
+- Q336 Link parameter group is Text not Data
+- Q345 The key of a conflict pick
+- Q346 A villa block pick of one layer
+- Q348 A conflict pick of the first source
+- Q370 Approve the road surface window draft
+- Q372 A road pick in the pane, when it is kept
+- Q374 The stop looks at the zone, not the neighbourhood
+- Q379 A new project on another PC
+- Q380 The save dialog and input folder write time
+- Q381 The crash on Browse For Folder
+- Q395 A mode in memory lost on reopen
+- Q397 Save As of a new project keeps one list
+- Q413 Input picks lost before a real run
+- Q416 Road row reads optional, step 2 needs it
+- Q418 Empty project keeps old rules on a set up model
+- Q420 Moving a model with placed content
+
+## 2 Build site
+
+- Link fits measured from the prototype, not stored, linkOrigin.byCode, truth audit item 4, Medium
+- Set boundary wall thickness from the manual, parameter GUIDs from a client sheet with its source, Q149, truth audit item 9, Small
+- A mark per value of computed, rule, pick or past in the plan, truth audit item 11, Medium
+- Button 5 replaces floors the tool placed when the outline changed, Q439, truth audit item 12, Medium
+- Remade key copy not filed, Q069, Lane B
+- Pane buttons 1 to 9 not pressed on the 6b build, Rev 6 not run on the zones, Lane B
+- Rerun zones C and D and the by id read on main after PR 178 and 180, one zone first, Lane B
+- Repeat NBH 012 through the real New project path, the one result the RAMP target rests on, Lane A
+- Revit counts 2 overlaps where plan points count 0, name the 2 at the next past job run before any fix, Lane A
+- Compare C# and Python plans by parsed fields on the whole project, bytes differ on the IMC cover, Lane A
+- Run python/build_proof.py on the RAMP pull before citing it as proven, Lane A
+- One press of the merged TOPO code on a copy of SA-dryrun3nov-done.rvt, once Q439 is answered, Lane D
+- Second review of R575, it writes into a model and has had none, Lane D
+- A run line or file for what a real press did and for each mass that does not fit, Q476, Q470, Lane D
+- A person looks at the built plots, no one did in 6b, Lane B
+- Q149 M14 boundary wall of an irregular plot
+- Q150 M15 foundation depth, at least or equal
+- Q153 A lone copy of a tagged element
+- Q160 A plot list takes unit plots only
+- Q161 A changed step reruns every higher step
+- Q164 Levels count and the link Z of 7
+- Q172 heightM gap with an El @ Entry edit
+- Q185 A plot list over two NBHs
+- Q191 The plan name of a plot list
+- Q192 Solid height of light mode
+- Q193 Footprint limit of the base
+- Q194 RRE parameters on Generic Models
+- Q206 Base boundary of a prototype
+- Q211 7 after a plot list 4 Check
+- Q212 4 Check stops 7 on another NBH
+- Q225 The level of a yard floor under Rev 6
+- Q228 Default slopes of road plus slope
+- Q230 Value status of the Rev 6 values
+- Q231 Civil door level where no road level
+- Q232 yardGrade in plan.json
+- Q233 Slope limit at 3 or 4 decimals
+- Q235 Hand table cover per unit code
+- Q238 TH1-IM in the cluster sequences
+- Q239 Mirror of DP2 and DP4
+- Q259 Garden door place of each unit
+- Q260 Outline change of a placed floor
+- Q262 Level Excel and the read back values
+- Q263 Levels count still at its level
+- Q266 Walls on edges other units meet
+- Q267 Base level of a boundary wall
+- Q268 Scope of a wall on two plots
+- Q269 Untagged BW wall on a plan wall
+- Q273 6 Levels on a floor moved by hand
+- Q277 Footprint block names unlike the unit
+- Q301 The build takes the door level pick
+- Q332 FFL bound but never written
+- Q344 Joints at the edge of a build
+- Q349 A conflict pick and the build
+- Q351 The limit of the footprint check
+- Q353 The footprint check on other type plots
+- Q354 Yards of a model already built
+- Q356 The off axis warning of a cut yard
+- Q358 Walls only the keys hold
+- Q359 A C10 side wall beside a VL6
+- Q365 The side of a key wall
+- Q366 C10 side walls of the SE keys
+- Q382 Step 4 builds on a site.json off the model
+- Q383 A tick on a held step reruns steps
+- Q385 Accepted warnings return after a save
+- Q386 Override list changes leave steps Done
+- Q390 A wall modelled inside out, far face kept
+- Q392 The primary option is not every plot's condition
+- Q393 The chosen limits of the wall ring
+- Q412 Level 1 is empty after the build
+- Q433 2% units in mixed rows drop to 0.5%
+- Q436 Generic floor no longer the whole face
+- Q438 C10 ramp beside a neighbour
+- Q439 A model built before the pull
+- Q455 A villa on an open space strip
+- Q456 Plot list with a plot not in the plan
+- Q470 Plots a mass of its unit does not fit
+- Q471 Free ends that lose a wall they had room for
+- Q473 The chosen values of the road toposolid
+- Q474 The road toposolid stands as a tall block
+- Q475 The road bends between ramp front corners
+- Q477 A plot list press sends the pane to step 2
+
+## 3 Review and deliver
+
+- No past job shares on a new project report, each sheet says which values were past, rule or computed, truth audit item 10, Small
+- The mark per value also in the check table and the report, truth audit item 11, Medium
+- Report file name section not seen in Revit, Lane B and C
+- 4 Check title reads 1 plots, steps/check-2nov.md:49, Lane C
+- A warning count in the check table that says which warnings were taken, Lane D
+- A whole project through the pane, Q414, Q417, Lane C
+- Q152 Mode of the last run of a button
+- Q166 Manual rule of a check row
+- Q167 Manual rule on the other sheets
+- Q168 The villa type of Update from report
+- Q169 Key of an update entry with none of its job
+- Q171 Which breaks untick a change
+- Q173 Level profile of Update from report
+- Q174 The plan Update from report reads
+- Q175 Run log format 9 Report reads
+- Q176 Plain names of the update rule checks
+- Q178 A computed mirror edit breaks the hand rule
+- Q179 Guide line, side box and row mark of Update
+- Q184 Plain rule names of the check table
+- Q189 Check table modal or modeless
+- Q200 Export to Excel of the two windows
+- Q203 A worker end on a document not active
+- Q209 Manual column mixes section and revision
+- Q217 Follow every rule count, table against chip
+- Q343 Passing joint rows in the check chips
+- Q347 A second Update before 4 Check runs again
+- Q355 A Wrong on a plot of two numbers
+- Q394 Update from report on a new project
+- Q405 Export to Excel hidden in Rules
+- Q414 How long a whole project takes
+- Q417 Whole project stops at step 3
+- Q450 Report defaults of old number, revision, status
+- Q451 Report Issues column against its sheets
+- Q454 Report name section on the demo config
+- Q476 What a real press shows of the toposolid
+
+## Rules
+
+- A rule set a new project can stand on, split keyRules into manual rules and past measures, FFL, door level and yard first, truth audit item 3, Large
+- Past job mode and its override list become an optional compare, Q255, truth audit item 5, Medium
+- Hold out test, retune on some zones and run on the others, or get a project the tool has not seen, truth audit item 6, Medium
+- Give the four UNKNOWN values of R401 their own CHOSEN sentence in floors.roadTopography.note, Q473, Lane D
+- Rewrite the old rules of docs/rules to id, plain name, input, output and test, scripts/checks/rules_baseline.txt counts them, setup-lanes
+- Bader confirms road slope 0.5% at back corners and the 2 mm pull, they are Lane A's values, Q433, Q436
+- Rev 06 not run in Revit, Lane C
+- Q159 Q055 reads 11 more 1.4 plots off the ramp
+- Q162 Reads of entryM with heightM or rampFrontM
+- Q163 A yard that stands only by its mirror
+- Q165 Shape of the block manualRules
+- Q170 updateChecks of manualRules
+- Q177 Manual rule ids in Rule check
+- Q180 designValues status in the R401 block
+- Q182 Side band of majority.side_neighbours
+- Q196 addin.overrideFile in config
+- Q199 What the tool does per manual rule
+- Q208 How to use line of Rules
+- Q213 Use of an override entry under Skip
+- Q241 doorLevel.source reads as a note in R401
+- Q255 The override list under rev6
+- Q361 FFL rule far from keys without overrides
+- Q362 Chosen limits of the zone compare
+- Q375 Ramp type after a rampFrontM gap
+- Q401 12 plots differ from the past FFL
+- Q402 Plots 2301 and 2302 read VD4
+- Q415 Pane lines say more than is built
+- Q419 Ramp slope limit does nothing under the past job
+- Q437 One hand entry turns the joint off
+- Q441 Order of the raw input changes
+- Q472 Ramp front overrides stand off the road
+
+## Later
+
+- Theme height cap of HelpBox and RuleValues not seen in Revit, Lane B
+- Road tick R574 seen in a rendered image only, Lane C and D
+- Listener cases not run in Revit: throw inside Revit, killed, hung, slot 2, Lane C
+- A UI check in the gate, a theme key that does not exist failed nothing, Lane B
+- A build per lane, one add-in folder makes every Revit pass wait on installs, steps/revit-listener.md:22, Lane B
+- Move the 6b driver and second method scripts into the repo, tools only with values out, Lane B
+- Refresh C:\SA-demo\config, it may lack floors.plotPull and floors.roadTopography, Q454, Lane B and D
+- Do not show the dry run kit again until truth audit 7, 5 and 11 are done, Lane C
+- R347 worker time limit test fails under load, cause not fixed, steps/latent.md:473, Lane A and C
+- R310 process sample failed once, cause UNKNOWN, steps/log.md:44, Lane C
+- A rule that a round's test model is rechecked against main before it starts, Lane D
+- Stale records: steps/lane-b.md:15 and :18, steps/PROGRESS.md line 1 date, the index of steps/questions-open.md does not match its text, Lane B and C
+- steps/questions-open.md and steps/log.md are near the 100 KB cap of R400, move text before the next long entry, Lane A, B and C
+- Clean up 55 worktrees: Lane D TOPO, agent-ad19500003cae4104, agent-afa7793be2038fb39 and others with nothing ahead, by Bader's own command, no git worktree prune, Lane A, B, C and D
+- Delete origin/records/6c-3nov-c-stop, one stale line, Lane C
+- Delete lane_c_wt\listener and the old flags of check_6c by hand, keep truth_4nov for the raw input test, Lane C
+- Delete p_topo copies after Q439, worktree p3novb\head and the 4 local lane-b branches, Lane B and D
+- Remove siteBuild.minFreeGB from python/window_lock.py:180, Bader's rule is no RAM floor, the code still applies 2 GB, setup-lanes
+- Turn on job tests as the required check of main, setup-lanes
+- Give samples/new-project a made up project, then the clean folder test runs, setup-lanes
+- Decide which zones are held out and how predictions reach GitHub with no real value in git, setup-lanes
+- Q151 Q075 moved without the majority run
+- Q154 Freeze guard limit for an image job
+- Q181 Timing of the labels J11 and J14
+- Q183 Time cap of a buttons job
+- Q186 Close J2 as no work
+- Q188 Entity load on a session unseen
+- Q197 key_join.json and key reads as inputs
+- Q198 Past gaps of the missing and question rows
+- Q210 Q015 in a past job text
+- Q223 Test host gives up after a refused raise
+- Q236 Label size in the PDF check
+- Q240 The 121 IMC plots of the audit
+- Q271 Python build takes the pane folder
+- Q295 Test host runs skip the scan
+- Q323 A keyCopy run refused by its guard
+- Q337 Swap back in the same model unproven
+- Q357 Key walls with the face on the line
+- Q363 Plot 2302 and two IMD FFL plots
+- Q407 Amber in the spec or the boards
+- Q409 Two greens and the step name weight
+- Q430 Past job keeps its shared corner gaps
+- Q432 Two plot overlaps left after the pull
+- Q452 Button 1 on a past model, the 6b line
+- Q453 More overlap warnings from no template

@@ -18,3 +18,7 @@ sample_output/
 .claude/worktrees/
 steps/STOP-A
 steps/STOP-B
+
+# Written only by scripts/status.ps1 and the Notification hook, one copy in the main folder
+steps/STATUS.md
+*.pfx

@@ -2,6 +2,30 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## setup-lanes, 2026-11-04, standing rules into files, hooks and checks
+
+Goal:
+- A round prompt is one line. No tool feature work
+
+Done:
+- CLAUDE.md, docs/lessons.md, .claude rules, agents, skills, hooks, tests.yml, scripts/status.ps1, steps/backlog.md, SETUP-sign task
+
+Checked:
+- Self tests in scripts/checks, hooks run in made up lane folders. The PR holds the counts
+
+Remains:
+- Clean folder, golden and hold-out checks say NOT RUN, nothing to score yet. Required check on main not turned on
+
+Known bugs:
+- Bash writes pass the Edit hook, the folder rules check catches them on the PR. A helper worktree needs its own task
+
+Next:
+- /questions, then /round R1
+
+Your turn:
+- Opened: none. Closed: none
+- Open count and titles: steps/questions-open.md
+
 ## Lane C TRUTH-4NOV-C, 2026-11-04, what was computed and what was copied
 
 Goal:

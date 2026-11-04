@@ -1,0 +1,60 @@
+# PreToolUse on Edit and Write. Exit 2 blocks the edit and shows the line to the session.
+. (Join-Path $PSScriptRoot 'lane.ps1')
+
+function Stop-Edit([string]$Why) {
+    [Console]::Error.WriteLine("Blocked by .claude/hooks/guard-edit.ps1: $Why")
+    exit 2
+}
+
+$payload = Read-HookInput
+$file = $payload.tool_input.file_path
+if (-not $file) { $file = $payload.tool_input.notebook_path }
+if (-not $file) { exit 0 }
+
+$start = Get-HookFolder $payload
+if (-not [IO.Path]::IsPathRooted($file)) { $file = Join-Path $start $file }
+$file = [IO.Path]::GetFullPath($file)
+
+$root = Get-RepoRoot $start
+if (-not $root) { exit 0 }
+
+foreach ($inputRoot in Get-InputRoots $root) {
+    if (Test-InsideFolder $file $inputRoot) { Stop-Edit "$file is in the input folder $inputRoot, input folders are read only." }
+}
+
+$role = Get-LaneRole $root
+$lane = Get-LaneName $root
+$main = Get-MainFolder $root
+
+if ($role -ne 'lead' -and (Test-InsideFolder $file $main) -and -not (Test-InsideFolder $file $root)) {
+    Stop-Edit "lane $lane may not edit the main repo folder, $file is outside this worktree."
+}
+
+# Scratch folders, memory and the like are not files of this lane's repo
+if (-not (Test-InsideFolder $file $root)) { exit 0 }
+
+$relative = $file.Substring($root.TrimEnd('\').Length).TrimStart('\').Replace('\', '/')
+
+if ($relative -ieq 'steps/STATUS.md') { Stop-Edit 'steps/STATUS.md is written by scripts/status.ps1 and the Notification hook, never by hand.' }
+
+if ($relative -notmatch '/' -and -not (Test-Path -LiteralPath $file) -and $relative -ine 'CLAUDE.md') {
+    Stop-Edit "no new files at the repo root, only CLAUDE.md, .claude and .github live there by rule. $relative needs a folder."
+}
+
+if ($relative -match '^tests/(acceptance|golden|holdout)(/|$)' -and $role -ne 'lead') {
+    Stop-Edit "tests/acceptance, tests/golden and tests/holdout are owned by the lead, this lane is $lane."
+}
+
+$task = Get-CurrentTask $root
+if (-not $task) {
+    if ($role -eq 'lead') { exit 0 }
+    Stop-Edit "no open task in steps/tasks has lane: $lane, so this lane has no folders to edit. Ask the lead for a task."
+}
+
+$own = ($task.path.Substring($root.TrimEnd('\').Length).TrimStart('\')).Replace('\', '/')
+if ($relative -ieq $own) { exit 0 }
+foreach ($allowed in $task.allowed) {
+    $item = $allowed.TrimEnd('/')
+    if ($relative -ieq $item -or $relative.StartsWith($item + '/', [StringComparison]::OrdinalIgnoreCase)) { exit 0 }
+}
+Stop-Edit "$relative is outside the allowed folders of task $($task.id): $($task.allowed -join ', ')"

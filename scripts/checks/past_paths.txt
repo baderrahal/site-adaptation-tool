@@ -1,0 +1,13 @@
+# The paths a clean folder build must not read. Patterns match the end of a path, no regard for case.
+# Past job outputs and the files made from them, from steps/truth-audit.md tables 1 and 2.
+config/overrides/*
+config/prototype_offsets.json
+config/floor_outlines.json
+*/plots.csv
+*/labels.csv
+*/phase1_border.csv
+*/past_all.csv
+*/key_join.json
+*/data_book/*
+c:/02-site adaptation/*
+c:/10- roshen mecca/*
