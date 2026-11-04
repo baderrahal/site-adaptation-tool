@@ -188,28 +188,57 @@ def score(answer, found_plots):
     return {"right": len(right), "read": len(found_plots), "numbers": numbers, "villaType": villa, "mirror": mirror}
 
 
-def scrub(line):
-    """A plain line with any file name taken out, the table goes in a public repo."""
-    return re.sub(r"[^\s,:]*\.(dwg|dxf|pdf|xlsx|xls|csv|xml|rvt|rfa|json)\b", "<file>", line, flags=re.IGNORECASE)
+# S3 is the one folder whose group words are known, as make_scenarios.py wrote them
+S3_WORDS = ["Phase", "Block"]
+
+
+def words_score(name, levels):
+    """Group words right, for the folder that has an answer. A word the tool should not have found counts against it."""
+    if name != "S3":
+        return "not scored"
+    words = [row.get("word") for row in levels]
+    right = sum(1 for index, word in enumerate(S3_WORDS) if index < len(words) and words[index] == word)
+    return "%d of %d" % (right, len(S3_WORDS))
+
+
+def lines_of(results):
+    """What each data check said, for the work root only. It quotes layers and words of the real drawings, so it stays out of git."""
+    out = []
+    for name in sorted(SCENARIOS):
+        result = results.get(name)
+        if result:
+            out += ["", "## %s" % name, ""]
+            out += ["- %s, %s: %s" % (row["need"], row["mark"], row["line"]) for row in result["needs"]]
+    return "\n".join(out) + "\n"
 
 
 def table(results):
-    """The table of steps/scenarios.md, counts and marks only."""
+    """The table of steps/scenarios.md. Counts and marks only, this file is in a public repo."""
     out = ["# Scenarios", "",
-           "Written by scripts/scenarios/score_scenarios.py, never by hand. Stage 1 on each folder under the work root, scored against its right answer. Counts only, the folders stay out of git. The right answers leave the hold-out neighbourhoods out.", "",
-           "| Scenario | What it is | Ran | Plots read | Numbers right | Villa type right | Mirror right | Marks: strong, usable, weak, missing | Copies unchanged |",
-           "|---|---|---|---|---|---|---|---|---|"]
-    lines = []
+           "Written by scripts/scenarios/score_scenarios.py, never by hand. Stage 1 on each folder under the work root, scored against its right answer. Counts and marks only, the folders stay out of git and what each data check said is in scenarios\\report.md under the work root. The right answers leave the hold-out neighbourhoods out.", "",
+           "| Scenario | What it is | Ran | Built from | Plots read | Numbers right | Villa type right | Mirror right | Group words right | Marks: strong, usable, weak, missing | Copies unchanged |",
+           "|---|---|---|---|---|---|---|---|---|---|---|"]
+    marks_out = ["", "## Mark of each need", "", "| Need | S1 | S2 | S3 | S4 | S5 |", "|---|---|---|---|---|---|"]
+    needs = []
+    for name in sorted(SCENARIOS):
+        for row in (results.get(name) or {}).get("needs", []):
+            if row["need"] not in needs:
+                needs.append(row["need"])
     for name in sorted(SCENARIOS):
         result = results.get(name)
         if not result:
-            out.append("| %s | %s | not run | 0 of 0 | 0 of 0 | 0 of 0 | 0 of 0 | none | UNKNOWN |" % (name, SCENARIOS[name]))
+            out.append("| %s | %s | not run | UNKNOWN | 0 of 0 | 0 of 0 | 0 of 0 | 0 of 0 | not scored | none | UNKNOWN |" % (name, SCENARIOS[name]))
             continue
         marks = [row["mark"] for row in result["needs"]]
         scored = result["score"]
-        out.append("| %s | %s | %s | %d of %d | %d of %d | %d of %d | %d of %d | %s | %s |" % (
-            name, SCENARIOS[name], result["ran"], scored["read"], scored["right"], scored["numbers"], scored["right"], scored["villaType"], scored["right"], scored["mirror"], scored["right"],
+        out.append("| %s | %s | %s | %s | %d of %d | %d of %d | %d of %d | %d of %d | %s | %s | %s |" % (
+            name, SCENARIOS[name], result["ran"], result.get("built", "UNKNOWN"), scored["read"], scored["right"], scored["numbers"], scored["right"], scored["villaType"], scored["right"], scored["mirror"], scored["right"],
+            words_score(name, result.get("levels", [])),
             ", ".join(str(marks.count(mark)) for mark in ("strong", "usable", "weak", "missing")), "yes" if not result["faults"] else "NO, %d files" % len(result["faults"])))
-        lines += ["", "## %s, what the data check said" % name, ""]
-        lines += ["- %s, %s: %s" % (row["need"], row["mark"], scrub(row["line"])) for row in result["needs"]]
-    return "\n".join(out + lines) + "\n"
+    for need in needs:
+        cells = []
+        for name in sorted(SCENARIOS):
+            rows = [row for row in (results.get(name) or {}).get("needs", []) if row["need"] == need]
+            cells.append(rows[0]["mark"] if rows else "not run")
+        marks_out.append("| %s | %s |" % (need, " | ".join(cells)))
+    return "\n".join(out + marks_out) + "\n"
