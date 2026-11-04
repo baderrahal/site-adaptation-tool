@@ -69,7 +69,7 @@ function Read-TaskLines([string[]]$Lines, [string]$Path) {
     return $task
 }
 
-# The open task whose lane is this folder's lane, the first by name when more than one is open. The copy on origin/main decides, so
+# The open task whose lane is this folder's lane: the one its branch task/<id> names, else the first by name. The copy on origin/main decides, so
 # a lane cannot widen its own allowed list, and its status: done on the branch does not lock it out before the merge. A task not
 # merged yet gives no folders. Only a folder with no origin/main reads the file on disk.
 function Get-CurrentTask([string]$Root) {
@@ -78,6 +78,8 @@ function Get-CurrentTask([string]$Root) {
     $lane = Get-LaneName $Root
     & git -C $Root rev-parse --verify --quiet origin/main 2>$null | Out-Null
     $hasMain = $LASTEXITCODE -eq 0
+    $branch = (& git -C $Root branch --show-current 2>$null)
+    $first = $null
     foreach ($file in Get-ChildItem -LiteralPath $folder -Filter '*.md' | Sort-Object Name) {
         if ($file.Name -eq 'README.md') { continue }
         $task = Read-TaskFile $file.FullName
@@ -87,9 +89,13 @@ function Get-CurrentTask([string]$Root) {
             if ($LASTEXITCODE -ne 0) { continue }
             $task = Read-TaskLines $lines $file.FullName
         }
-        if ($task.status -eq 'open' -and $task.lane -eq $lane) { return $task }
+        if ($task.status -eq 'open' -and $task.lane -eq $lane) {
+            # The branch names the task the lane is on, so a second open task of the lane cannot take its place
+            if ($branch -eq "task/$($task.id)") { return $task }
+            if (-not $first) { $first = $task }
+        }
     }
-    return $null
+    return $first
 }
 
 function Get-ProjectConfig([string]$Root) {
