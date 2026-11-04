@@ -746,11 +746,11 @@ Q451. Report Issues column against its sheets (Lane B, R554, Q307). Summary now 
 - Recommended: keep the pane's count, add a column Overrides left and name the sheet's rows Listed for review.
 - Other: leave it as built.
 
-Q470. Plots a mass of its unit does not fit (Lane D MASS-3NOV-D, R530). One cut per prototype cannot fit a plot of another width. Whole project after the cut, RAN offline, not in NBH 012: DT3 on plot 1400, 8.0 m wide, overlaps DP1 on 1401 by 1,997 mm, and stands 1,998 mm past its plot. DP4 on 1995, 6.0 m wide, 1,990 mm past. VD4 1747 142 mm, 441 53 mm, 889 13, 664 13, 892 12. DT3 1716 52, 1924 24. DP1 2266 2.3, 1853 1.1. TH1 2083 and 2084 overlap 1.9 mm, 0.01 degree apart in rotation. No run line names them. Whether the units of 1400 and 1995 are right is UNKNOWN, both come from the location plan.
+Q470. Plots a mass of its unit does not fit (Lane D MASS-3NOV-D, R530). Whole project after the cut, RAN, none in NBH 012: DT3 on 1400, 8.0 m wide, overlaps DP1 on 1401 by 1,997 mm. DP4 on 1995, 6.0 m wide, 1,990 mm past. VD4 1747 142 mm, 441 53, 889 13, 664 13, 892 12. DT3 1716 52, 1924 24. DP1 2266 2.3, 1853 1.1. TH1 2083 and 2084 overlap 1.9 mm. No run line names them.
 - Recommended: No Rev 6 evidence, none of the 7 keys holds 1400 or 1995 (Lane A, RAN). The unit stays by the rule, Bader or the schedule decides. 1400 reads DT3 from schedule IMD, native u13 reads TH1, never used for unit codes. 1995 has no number, neighbourhood or unit in plots.csv, see Q455.
 - Other: A mass file per plot width, more files for 9 plots.
 
-Q471. Free ends that lose a wall they had room for (Lane D MASS-3NOV-D, R530). The cut is per prototype, so a free end is cut too. On 10 plots nothing needed it, the plot had room and no mass stands beside: DP1 2374, 2391 by 301 mm, DT3 552, 1280, 1485, 1763, 1764, 2271 by 77 mm, TH1 1402, 1403 by 76 mm. NBH 012 holds 2 of them. Elsewhere a free side ends at the plot line and needs the cut.
+Q471. Free ends that lose a wall they had room for (Lane D MASS-3NOV-D, R530). The cut is per prototype, so a free end is cut too. On 10 plots nothing needed it: DP1 2374, 2391 by 301 mm, DT3 552, 1280, 1485, 1763, 1764, 2271 by 77 mm, TH1 1402, 1403 by 76 mm.
 - Recommended: Keep one mass per prototype. A mass is a check volume, 300 mm on 10 plots changes no build.
 - Other: A second mass file for a free end, picked per plot.
 
