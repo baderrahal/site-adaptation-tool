@@ -7,7 +7,7 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 - Lane D MASS-3NOV: R530. PARAM: R506 to R508. MASS: R500 to R504. FIX-2NOV-D: R490 to R493. 6B-DATA: R469. D3: R467, R468. FIX-1NOV-D: R460 to R466. 4j-1: R420 to R429
 - Lane A 4i to FIX-3NOV-A, one PR each: R407 to R416, R470 to R487. FIX-3NOV-A: R484 to R487. KNOWN: R520, R521. COORD: R510 to R514, R523
 - Lane B FIX-1NOV-B on 2026-11-01: masses as linked files (R450 to R453), coordinates from CAD (R454 to R456), proven in Revit on NBH 012
-- Lane B REPORT-3NOV-B: R550 to R555. Undo proven (R499). Dry run: steps/dryrun-3nov.md. FIX-3NOV-B: R498, R499. FIX-2NOV-B: R459, Q158
+- Lane B 6b: R556 to R558, steps/investigations/6b-revit.md. REPORT-3NOV-B: R550 to R555. Undo (R499). FIX-2NOV-B: R459
 - Lane B 6a on 31 Oct: NBH 012 through 1 to 9 from a new project, no click. 5d, PR 113: 5, 6, 8, 7 at the FFL. 5c, PR 111: 2, 3, 4, 7
 - Lane C SCAN-UI PR 117, 119. DEMO-FIX R444. FIX-1NOV-C PR 132 (R445). FIX-2NOV-C (R446). CHECK: R494, R495. SPEED: R447 to R449, R496, R497. 6c: R505. HELP: R540. RULES: R541. TEXTS: R542, R543
 - Lane A: 5e and 5f on 2026-10-30, one PR (D20), R381 button 9 Report, R402 Update from report. Phase 4 and 5: 4h-1 PR 107, 4h-2 PR 109, 4g3
@@ -51,10 +51,10 @@ shown. Q293 Approve the three drafts of SCAN-UI. Q294 Rules chosen in Set up sit
 proposal. Q301 The build takes the door level pick. Q302 Door level row under the past job. Q305 Hide Confirmed under the past job.
 Opened in FIX-1NOV-D, Lane D: Q330 Group of the key link parameters unread. Q331 Plot is no link parameter of the keys. Q332 FFL bound but never written.
 Q333 to Q335. Closed: Q155. D2: Q336, closed Q330. D3: Q337 to Q339, closed Q275. 6B-DATA: Q360 to Q363. FIX-2NOV-D: Q370 to Q374. MASS: Q390 to Q393, Q470, Q471, closed Q279, Q321, Q391, Q411.
-3NOV-A: Q379, Q394 to Q398. KNOWN: closed Q376, Q396, Q400. COORD: Q420. 180 open, steps/questions-open.md. Q286, Q293: steps/ui-shots/drafts-for-bader.md. Asks: steps/waiting-on-others.md.
+3NOV-A: Q379, Q394 to Q398. KNOWN: closed Q376, Q396, Q400. COORD: Q420. 6b: Q452 to Q456. 186 open, steps/questions-open.md. Q286, Q293: ui-shots/drafts-for-bader.md. Asks: waiting-on-others.md.
 
 ## Next three steps
 
 1. Bader's answers. Lane D: Q243 to Q258, Q331 to Q339, Q360 to Q363, Q370 to Q374, Q390 to Q393. Lane A: Q340, Q341, Q345 to Q349, Q351, Q353 to Q359, Q365, Q366, Q303, Q304, Q259
-2. Bader answers Q277, then the Revit half of Phase 6b
+2. Bader answers Q277, Q452 to Q456
 3. Bader answers Q255 of 4i, Q284 to Q287 of Lane C, then Part 2 after Bader's check of Part 1

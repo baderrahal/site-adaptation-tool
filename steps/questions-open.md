@@ -757,3 +757,19 @@ Q471. Free ends that lose a wall they had room for (Lane D MASS-3NOV-D, R530). T
 Q420. Moving a model with placed content (R523, COORD-3NOV-A). Button 1 moves position and survey point and no element, so a model with placed links, masses or floors would stand off CAD by the move, 828 m between CAD and the position file on this job (RAN). Lane A built the stop.
 - Recommended: keep the stop, a move starts from a model with nothing placed.
 - Other: allow it after a plain warning.
+
+Q452. Button 1 on a past model, the 6b line (R508). 01_next says changes nothing, the press removes old bindings and their values (Q411). A second press changes nothing.
+- Recommended: change the line to a second press changes nothing.
+
+Q453. More overlap warnings from no template (6b). 722 against 510 on IMD, the plan the same, cause UNKNOWN.
+- Recommended: leave it, no number moves.
+
+Q454. Report name section on the demo config (R542). Hidden, C:\SA-demo\config has no fileName block, so not seen in Revit.
+- Recommended: refresh that config, then one look.
+
+Q455. A villa on an open space strip (6b, R557). Plot 1995 of 022 and 2656 of 02: type OS, 150 m2, no block, a DP4 number. 1995 is built. Label 1985 beside it, 300 m2, has no number.
+- Recommended: leave a row of type OS with no block out, listed in Skipped.
+- Other: fix the location plan.
+
+Q456. Plot list with a plot not in the plan (6b). 34 such units. Button 7 drops one with no line. Not fixed.
+- Recommended: stop by name in buttons 5 to 8.

@@ -581,3 +581,11 @@ COORD-3NOV-A, review and breaker, no real input reaches these:
 - More than one named location: the read and the check take the active one.
 - Under CAD the levels come from the profile of config, not the rules file picked in the window.
 - A baseplan in local coordinates whose box falls inside the UTM range passes OutsideZone.
+
+## Lane B 6b, breaker 1 of R557, 4 Nov
+
+- A unit number with a space or letter: IsUnit true, Resolve skips it, NbhCodes offers the NBH. 0 of 2,558 real rows.
+- A unit row with no nbhId is filed under an empty NBH and counted in Whole project. 0 real rows.
+- A number held as a JSON number reads as no unit. PlotTable writes strings.
+- A label plus shift that hits a schedule of another NBH gives a wrong official number, which UnitNumber prefers. 1 of 747 differs from the location number, 2312, which is right.
+- noTemplate with a keyCopy opens the key copy, [bool] of the string false reads true. No spec does either. The guard still asks for the template file of a no template job, harmless.
