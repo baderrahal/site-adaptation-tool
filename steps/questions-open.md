@@ -786,7 +786,7 @@ Q438. C10 ramp beside a neighbour (R470, RAMP-3NOV-A). C10 ramps are 5.5 m deep,
 - Recommended: join the back corners of ramps whose front corners are joined, the C10 takes 0.5%.
 - Other: leave it, the order says 5 mm.
 
-Q439. A model built before the pull (R517, FloorsRun.cs:229). Button 5 reads every pulled floor as moved over sameMm and leaves it as it is, so the fix never lands and tops do not move either, loud in its list (READ, not run).
+Q439. A model built before the pull (R517, R378, FloorsRun.cs:476). Button 5 reads every pulled floor as outline changed and stops: SA-dryrun3nov-done.rvt 1,003 floors listed, nothing placed, no toposolid (RAN by Lane D, PR 180).
 - Recommended: start the model again, as the dry run kit.
 - Other: button 5 replaces floors the tool placed.
 
