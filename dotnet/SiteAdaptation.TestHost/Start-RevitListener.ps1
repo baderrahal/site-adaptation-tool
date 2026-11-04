@@ -34,7 +34,14 @@ if (-not (Test-Path $watcherExe)) {
     throw "The dialog watcher is not installed at $watcherExe. Run Install-TestHost.ps1 first."
 }
 $revit = Get-Revit2024Exe
-$tool = Get-ToolAddIns -Repo $repo -Addins $addins
+$stampFolder = Join-Path (Get-WorkRoot -AppData $env:APPDATA -MyDocuments ([Environment]::GetFolderPath('MyDocuments'))) 'dev-manifest-stamps'
+$tool = Get-ToolAddIns -Repo $repo -Addins $addins -StampFolder $stampFolder
+# SETUP-sign. The developer manifests are written for as long as this listener lives. Any error from here on takes them away before it
+# leaves the script, and the finally below does it when the listener ends, unless a run holds a stamp of its own
+trap {
+    [void](Remove-DevManifestsWhenFree $addins $stampFolder $PID)
+    break
+}
 
 New-Item -ItemType Directory -Force $folders.claimed, $folders.out | Out-Null
 $watchPath = Join-Path $folders.out 'watcher.json'
@@ -113,4 +120,5 @@ finally {
     if ($process) {
         Remove-ListenerFilesOf -Folders $folders -ProcessId $process.Id
     }
+    "Developer add-in manifests after the listener: $(Remove-DevManifestsWhenFree $addins $stampFolder $PID)"
 }

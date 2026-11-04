@@ -27,7 +27,13 @@ $ErrorActionPreference = 'Stop'
 
 if ($Untrust) {
     $cert = Get-SigningCertificate
-    if ($cert) { Remove-SigningTrust $cert; 'Taken out of Trusted Publishers: ' + $cert.Thumbprint } else { 'No certificate of the tool in the personal store.' }
+    if ($cert) {
+        Remove-SigningTrust $cert
+        'Taken out of Trusted Publishers: ' + $cert.Thumbprint
+    }
+    else {
+        'No certificate of the tool in the personal store.'
+    }
     return
 }
 if (-not $IUnderstandInvalidSignatureWithoutRootTrust) {

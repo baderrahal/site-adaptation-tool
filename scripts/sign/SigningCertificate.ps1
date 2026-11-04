@@ -1,7 +1,8 @@
 # SETUP-sign, docs/design/08-install.md. The one self-made code signing certificate of the tool and the functions that sign with it.
-# Dot-source it. It uses the certificate cmdlets only and reads and writes no registry key (R106). The private key stays in the
-# certificate store of the current user as a key that cannot be exported, so no .pfx exists. Only the public .cer is written, under the
-# work root, never into the repo.
+# Dot-sourced by Sign-Installed.ps1, which is optional and off by default. It uses the certificate cmdlets only and reads and writes no
+# registry key (R106). The private key stays in the certificate store of the current user as a key that cannot be exported, so no .pfx
+# exists. Only the public .cer is written, under the work root, never into the repo.
+# Revit does not trust this certificate until it is also in Trusted Root, see the header of Sign-Installed.ps1.
 
 $script:SigningSubject = 'CN=Site Adaptation Tool self-signed code signing'
 
@@ -36,34 +37,26 @@ function Remove-SigningTrust([Parameter(Mandatory)]$Certificate) {
     if (Test-Path $path) { Remove-Item $path -Force }
 }
 
-# Signs each file with the certificate unless it already carries a valid signature of the same certificate. A signature of another maker is
-# replaced only when -Resign is given, the tool never signs for them by default. Returns one row per file
-function Sign-Files([Parameter(Mandatory)]$Certificate, [Parameter(Mandatory)][string[]]$Path, [switch]$Resign) {
+# Signs each file with the certificate. A file that carries a signature of another maker, with any status, is never signed over. A file that
+# carries a signature of this certificate is left as it is unless the signature no longer fits the file. Returns one row per file
+function Sign-Files([Parameter(Mandatory)]$Certificate, [Parameter(Mandatory)][string[]]$Path) {
     foreach ($file in $Path) {
         $before = Get-AuthenticodeSignature -LiteralPath $file
-        $same = $before.SignerCertificate -and $before.SignerCertificate.Thumbprint -eq $Certificate.Thumbprint
-        $foreign = $before.Status -eq 'Valid' -and -not $same
-        # A self-signed certificate outside Trusted Root reports UnknownError or NotTrusted, the file is still signed by it
-        if ($same -and $before.Status -notin 'HashMismatch', 'NotSigned') { $state = 'already signed' }
-        elseif ($foreign -and -not $Resign) { $state = 'left, signed by another maker' }
+        $signer = $before.SignerCertificate
+        if ($signer -and $signer.Thumbprint -ne $Certificate.Thumbprint) {
+            $state = 'left, signed by another maker'
+        }
+        elseif ($signer -and $before.Status -ne 'HashMismatch') {
+            # A self-signed certificate outside Trusted Root reports UnknownError or NotTrusted, the file is still signed by it
+            $state = 'already signed'
+        }
         else {
             $after = Set-AuthenticodeSignature -LiteralPath $file -Certificate $Certificate -HashAlgorithm SHA256
             $state = if ($after.SignerCertificate) { 'signed' } else { 'FAILED ' + $after.StatusMessage }
         }
-        [pscustomobject]@{ File = $file; State = $state }
-    }
-}
-
-# One row per DLL or EXE of a folder tree with its signature status and signer, the proof the task asks for
-function Get-SignatureReport([Parameter(Mandatory)][string]$Root, $Certificate) {
-    Get-ChildItem -LiteralPath $Root -Recurse -File | Where-Object { $_.Extension -in '.dll', '.exe' } | ForEach-Object {
-        $s = Get-AuthenticodeSignature -LiteralPath $_.FullName
-        $thumb = if ($s.SignerCertificate) { $s.SignerCertificate.Thumbprint } else { '' }
         [pscustomobject]@{
-            File    = $_.FullName.Substring($Root.TrimEnd('\').Length + 1)
-            Status  = [string]$s.Status
-            Signer  = $thumb
-            OurCert = [bool]($Certificate -and $thumb -eq $Certificate.Thumbprint)
+            File  = $file
+            State = $state
         }
     }
 }

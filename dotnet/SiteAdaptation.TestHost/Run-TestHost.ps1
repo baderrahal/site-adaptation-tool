@@ -151,7 +151,14 @@ $revit = Get-Revit2024Exe
 
 # The four add-ins of this tool by their AddInId and name in the repo manifests and the DLLs as the install scripts put them.
 # Only a box that names one of these DLLs gets Load Once, the watcher stops Revit on any other box of the tool
-$tool = Get-ToolAddIns -Repo $repo -Addins $addins
+$stampFolder = Join-Path $docs 'dev-manifest-stamps'
+$tool = Get-ToolAddIns -Repo $repo -Addins $addins -StampFolder $stampFolder
+# SETUP-sign. From the write of the developer manifests on, any error takes them away before it leaves the script. The finally of the
+# run below does it too, for the part of the run it covers
+trap {
+    [void](Remove-DevManifestsWhenFree $addins $stampFolder $PID)
+    break
+}
 $ourIds = $tool.ids
 $ourMarks = $tool.marks
 $ourPaths = $tool.paths
@@ -857,7 +864,7 @@ finally {
         Remove-Item -LiteralPath $probeInstalled
     }
     # SETUP-sign. The manifests of the reader, the placer and the test host were written for this run by Get-ToolAddIns
-    "Developer add-in manifests after the run: $(Remove-DevManifestsAfterRun $addins)"
+    "Developer add-in manifests after the run: $(Remove-DevManifestsWhenFree $addins $stampFolder $PID)"
 }
 
 # The dialogs the watcher answered go into the log of the run, with time, add-in name, vendor, GUID and button

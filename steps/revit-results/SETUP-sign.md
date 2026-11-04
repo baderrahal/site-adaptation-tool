@@ -21,7 +21,7 @@ Screenshots and result files are under the work root, folder `setup-sign`, never
 | SiteAdaptationPlacer_Revit2024.addin | SiteAdaptation.Placer.dll | Command |
 | SiteAdaptationTestHost_Revit2024.addin | SiteAdaptation.TestHost.dll | Application |
 
-Other makers, never touched: `%APPDATA%` holds a folder RcrcGreen and a disabled RcrcGreen.addin in `_disabled`. `C:\ProgramData\Autodesk\Revit\Addins\2024` holds 33 `.addin` files of Autodesk, DiRoots and other makers, none of this tool.
+Other makers, never touched: `%APPDATA%` holds one other add-in, disabled. `C:\ProgramData\Autodesk\Revit\Addins\2024` holds 33 `.addin` files of Autodesk, DiRoots and other makers, none of this tool.
 
 Cold start with no document and one answer per box (before5\result.json, scripts/sign/Measure-ColdStart.ps1): 4 prompts "Security - Unsigned Add-In", one per entry DLL above, at 53.4, 55.3, 56.3 and 57.3 s, all 4 of this tool, none of another maker. Screenshots before5\prompt-01.png to prompt-04.png. Each was answered Load Once, never Always Load.
 
@@ -51,9 +51,11 @@ UNKNOWN: whether Revit accepts the certificate once it is in Trusted Root, wheth
 
 ## 4. Developer add-ins still run
 
-`Run-TestHost.ps1 -DryStart` under the lock, with only the tool manifest installed: the run wrote the three developer manifests, started Revit, the watcher answered 4 boxes Load Once (reader, tool, placer, test host), exit code 0, 3.6 minutes. Afterwards `Developer add-in manifests after the run: removed SiteAdaptation_Revit2024.addin, SiteAdaptationPlacer_Revit2024.addin, SiteAdaptationTestHost_Revit2024.addin` and only SiteAdaptationAddIn_Revit2024.addin was left, no Revit process left. Log: testhost_dry_start_log.json under the work root. A shutdown error of another maker's add-in (ExtentReports, not this tool) printed at the end, it does not come from this tool.
+`Run-TestHost.ps1 -DryStart` under the lock, with only the tool manifest installed, run twice: before the review fixes (3.6 minutes) and again with the stamp code of the fixes (3.2 minutes, exit code 0). Each time the run wrote the three developer manifests, started Revit, the watcher answered 4 boxes Load Once (reader, tool, placer, test host), and afterwards `Developer add-in manifests after the run: removed SiteAdaptation_Revit2024.addin, SiteAdaptationPlacer_Revit2024.addin, SiteAdaptationTestHost_Revit2024.addin`. After the second run only SiteAdaptationAddIn_Revit2024.addin was left, the stamp folder was empty and no Revit process was left. Log: testhost_dry_start_log.json under the work root. A shutdown error of another maker's add-in printed at the end, it does not come from this tool.
 
-Not run: a real job of Run-TestHost.ps1 with a prototype, and Start-RevitListener.ps1 (the listener writes the manifests the same way through Get-ToolAddIns, but nothing removes them after it, a later install does).
+How the manifests are held (review of PR 195): a run or the listener adds a stamp file with its process id and start time under the work root, and removes it when it ends or on any error after the write. The manifests go when no stamp of a live process is left. A Revit opened by hand holds nothing. Tests in dotnet/SiteAdaptation.Tests/InstallScriptTests.cs hold the stamp logic (two runs, a dead stamp, a taken over id), the throw after the write, and the order of the write, the trap and the finally in the run script and the listener.
+
+Not run in Revit: Start-RevitListener.ps1 and a real prototype job of Run-TestHost.ps1. The listener uses the same functions as the run script, held by the tests above.
 
 ## 5. The ricaun.RevitTest test, not working
 

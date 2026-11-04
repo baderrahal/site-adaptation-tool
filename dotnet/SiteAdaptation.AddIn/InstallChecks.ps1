@@ -39,9 +39,24 @@ function Select-Revit2024($Processes) {
 # root, where Revit never looks, and only their manifests make Revit load them, so a manifest is written for a run and removed after it.
 # The tool itself is the one other manifest, SiteAdaptationAddIn_Revit2024.addin, and Install-SiteAdaptation.ps1 writes that one
 $DevAddIns = @(
-    [pscustomobject]@{ Manifest = 'SiteAdaptation_Revit2024.addin'; Repo = 'dotnet\RevitPrototypeReader\SiteAdaptation.addin'; Folder = 'SiteAdaptation'; Dll = 'RevitPrototypeReader.dll' }
-    [pscustomobject]@{ Manifest = 'SiteAdaptationPlacer_Revit2024.addin'; Repo = 'dotnet\SiteAdaptation.Placer\SiteAdaptationPlacer_Revit2024.addin'; Folder = 'SiteAdaptationPlacer'; Dll = 'SiteAdaptation.Placer.dll' }
-    [pscustomobject]@{ Manifest = 'SiteAdaptationTestHost_Revit2024.addin'; Repo = 'dotnet\SiteAdaptation.TestHost\SiteAdaptationTestHost_Revit2024.addin'; Folder = 'SiteAdaptationTestHost'; Dll = 'SiteAdaptation.TestHost.dll' }
+    [pscustomobject]@{
+        Manifest = 'SiteAdaptation_Revit2024.addin'
+        Repo     = 'dotnet\RevitPrototypeReader\SiteAdaptation.addin'
+        Folder   = 'SiteAdaptation'
+        Dll      = 'RevitPrototypeReader.dll'
+    }
+    [pscustomobject]@{
+        Manifest = 'SiteAdaptationPlacer_Revit2024.addin'
+        Repo     = 'dotnet\SiteAdaptation.Placer\SiteAdaptationPlacer_Revit2024.addin'
+        Folder   = 'SiteAdaptationPlacer'
+        Dll      = 'SiteAdaptation.Placer.dll'
+    }
+    [pscustomobject]@{
+        Manifest = 'SiteAdaptationTestHost_Revit2024.addin'
+        Repo     = 'dotnet\SiteAdaptation.TestHost\SiteAdaptationTestHost_Revit2024.addin'
+        Folder   = 'SiteAdaptationTestHost'
+        Dll      = 'SiteAdaptation.TestHost.dll'
+    }
 )
 
 # Writes the manifest of each developer add-in whose DLL is installed and whose manifest is not there, with the full path of that DLL.
