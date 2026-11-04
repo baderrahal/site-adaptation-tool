@@ -10,6 +10,43 @@ namespace SiteAdaptation.Tests
     // R540. The file python/build_help.py builds, read as the add-in reads it. test_r540_help.py holds it equal to the guide
     public class R540_HelpBookTests
     {
+        // R558. A missing key of the theme throws nothing, it only leaves the window with no cap, as two windows stood until the review of 6b
+        [Fact]
+        public void R558_every_size_a_window_names_stands_in_the_theme()
+        {
+            string theme = File.ReadAllText(Addin("Theme", "Theme.xaml"));
+            var missing = Directory.GetFiles(Addin(), "*.xaml", SearchOption.AllDirectories)
+                .Where(file => !file.Contains(Path.DirectorySeparatorChar + "bin" + Path.DirectorySeparatorChar) && !file.Contains(Path.DirectorySeparatorChar + "obj" + Path.DirectorySeparatorChar))
+                .SelectMany(file => System.Text.RegularExpressions.Regex.Matches(File.ReadAllText(file), "(?:DynamicResource|StaticResource) (SA\\.Size\\.[A-Za-z0-9.]+)").Cast<System.Text.RegularExpressions.Match>())
+                .Select(match => match.Groups[1].Value).Distinct()
+                .Where(key => !theme.Contains("x:Key=\"" + key + "\"")).ToList();
+            Assert.Empty(missing);
+        }
+
+        // R558. Round numbers near the Revit pass of 4 Nov, in window units: a work area of 855 high and 1440 wide, a pane 607 to 1081, a box 319 wide
+        [Theory]
+        [InlineData(513.0, 912.0, 283.0, 0.0, 319.0)]
+        [InlineData(558.0, 700.0, 283.0, 155.0, 319.0)]
+        [InlineData(100.0, 400.0, 283.0, 100.0, 319.0)]
+        [InlineData(300.0, 855.0, 283.0, 0.0, 319.0)]
+        public void R558_the_box_stands_beside_the_host_and_inside_the_work_area(double iconTop, double height, double expectedLeft, double expectedTop, double width)
+        {
+            HelpBoxSpot spot = HelpPlace.Of(607, 1081, iconTop, width, height, 0, 0, 1440, 855, 5);
+            Assert.Equal(expectedLeft, spot.Left);
+            Assert.Equal(expectedTop, spot.Top);
+            Assert.Equal(855, spot.MaxHeight);
+            Assert.True(spot.Left + width <= 607, "the box stands on the pane");
+            Assert.True(spot.Top + Math.Min(height, spot.MaxHeight) <= 855, "Close is under the screen");
+        }
+
+        // R558. No room left of a wide window, as New project at 49 to 1399 pixels: the box goes right of it, and to the edge only when neither side fits
+        [Fact]
+        public void R558_the_box_takes_the_other_side_then_the_edge()
+        {
+            Assert.Equal(1055, HelpPlace.Of(37, 1050, 100, 319, 200, 0, 0, 1440, 855, 5).Left);
+            Assert.Equal(0, HelpPlace.Of(37, 1300, 100, 319, 200, 0, 0, 1440, 855, 5).Left);
+        }
+
         private static string Root()
         {
             string folder = AppContext.BaseDirectory;

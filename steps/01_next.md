@@ -186,14 +186,14 @@ One phase per session (Q096). Two lanes run the phases (D10, D17): tools/run-lan
 
 ## 6b, Lane A share, IMA, IMB and IMC
 
-- Status: open, Lane A
+- Status: done, by Lane B, steps/investigations/6b-revit.md
 - Starts when: 6a
 - What: each of its models from DefaultMetric, compare tables per zone with the worst 10, 10 random plots per zone by id. Masses for each zone, Links for one NBH (Bader, 2026-10-28). Windows by the window rule D3, both lanes counted
 - Done when: its three models have their compare tables and the 10 random plots each
 
 ## 6b, Lane B share, IMD, IME, IMF and IMG
 
-- Status: open, Lane B
+- Status: done but Q069 and the line on button 1 (Q452), steps/investigations/6b-revit.md
 - Starts when: 6a
 - Join item of the answer pass (Bader, 2026-10-29): Q069, a remade key copy filed by the hashes the test host logs
 - What: each of its models from DefaultMetric, one zone again from None, button 1 on the IMD 2024 copy changing nothing, compare tables per zone with the worst 10, 10 random plots per zone by id. Masses for each zone, Links for one NBH (Bader, 2026-10-28). Windows by the window rule D3, both lanes counted

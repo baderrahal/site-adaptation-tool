@@ -49,6 +49,17 @@ namespace SiteAdaptation.Tests
             Assert.Null(Read("{\"kind\": \"addinRun\"}").Buttons);
         }
 
+        [Fact]
+        public void R556_a_job_says_no_template_and_stays_on_the_template_when_silent()
+        {
+            Assert.True(Read("{\"kind\": \"addinRun\", \"noTemplate\": true}").NoTemplate);
+            Assert.Null(Read(Job).NoTemplate);
+            string host = Text("dotnet", "SiteAdaptation.TestHost", "ButtonsRunHost.cs");
+            Assert.Contains("job.NoTemplate == true ? ui.Application.NewProjectDocument(UnitSystem.Imperial) : ui.Application.NewProjectDocument(job.Template)", host);
+            Assert.Contains("job.NoTemplate == true ? \"made from no template and opened\" : \"made from the template and opened\"", host);
+            Assert.Contains("$roundJob.noTemplate = [bool]$round.noTemplate", Text("dotnet", "SiteAdaptation.TestHost", "Run-TestHost.ps1"));
+        }
+
         [Theory]
         [InlineData("[]", "masses", false, "names no button")]
         [InlineData("[1, 10]", "masses", false, "only 1, 2, 3, 4, 5, 6, 7, 8 and 9")]

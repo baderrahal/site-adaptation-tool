@@ -124,7 +124,7 @@ Boxes:
 
 After the first run the line of this step in the pane says where the coordinates, levels and units came from.
 
-**What it does.** Makes this model ready. It sets units, position, survey point, project base point, Level 1 and Level 2, floor types, wall types and the shared parameters. It sets only what differs. The position comes from a position file today, not from CAD, as the settings say (Q415).
+**What it does.** Makes this model ready. It sets units, position, survey point, project base point, Level 1 and Level 2, floor types, wall types and the shared parameters. It sets only what differs. A blank model with a baseplan named takes its position from CAD, and a saved past job stays on the position file.
 
 **Files it needs.**
 
