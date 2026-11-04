@@ -51,10 +51,10 @@ shown. Q293 Approve the three drafts of SCAN-UI. Q294 Rules chosen in Set up sit
 proposal. Q301 The build takes the door level pick. Q302 Door level row under the past job. Q305 Hide Confirmed under the past job.
 Opened in FIX-1NOV-D, Lane D: Q330 Group of the key link parameters unread. Q331 Plot is no link parameter of the keys. Q332 FFL bound but never written.
 Q333 to Q335. Closed: Q155. D2: Q336, closed Q330. D3: Q337 to Q339, closed Q275. 6B-DATA: Q360 to Q363. FIX-2NOV-D: Q370 to Q374. MASS: Q390 to Q393, Q470, Q471, closed Q279, Q321, Q391, Q411.
-Lane A: Q379, Q394 to Q397, Q420, Q430, Q432, Q433, Q436 to Q439. 6b: Q452 to Q456. TOPO: Q472 to Q477. 196 open, steps/questions-open.md. Q286, Q293: ui-shots/drafts-for-bader.md.
+Lane A: Q379, Q394 to Q397, Q420, Q430, Q432, Q433, Q436 to Q439. 6b: Q452 to Q456. TOPO: Q472 to Q477. TRUTH: Q441. 197 open, steps/questions-open.md. Q286, Q293: ui-shots/drafts-for-bader.md.
 
 ## Next three steps
 
 1. Bader's answers. Lane D: Q243 to Q258, Q331 to Q339, Q360 to Q363, Q370 to Q374, Q390 to Q393. Lane A: Q340, Q341, Q345 to Q349, Q351, Q353 to Q359, Q365, Q366, Q303, Q304, Q259
 2. Bader answers Q277, Q452 to Q456
-3. Bader answers Q255 of 4i, Q284 to Q287 of Lane C, then Part 2 after Bader's check of Part 1
+3. Bader answers Q441, Q255, Q284 to Q287, then Part 2 after the check of Part 1. steps/truth-audit.md

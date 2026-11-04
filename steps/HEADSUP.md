@@ -11,7 +11,7 @@
 ### Lane B, C and D
 
 - Lane B, 4 Nov, Lane done. PR 164, 168, 176 merged, R550 to R558. Left: Q069, Report file name section not seen, Browse time, theme height cap not seen in Revit. For Bader: Q455, Q456, Q452 to Q454, Q450, Q451, Q382, Q386, Q412, Q413. No lock held
-- Lane C, 4 Nov, Lane done. R541 seen in Revit by Lane B, Q440 closed. Left: Report file name section not seen, Rev 06 not run, Browse not measured, Road topography tick after topo/3nov-d. For Bader: Q419, Q415, Q414, Q416 to Q418. Lock free
+- Lane C TRUTH-4NOV-C, 4 Nov, Lane done. PR 183 tick merged, main installed. steps/truth-audit.md, steps/questions-for-bader-4nov.md, Q441. No code changed. Left: Report name section, Rev 06 in Revit, Browse time. Lock free
 - Lane D, 4 Nov, Lane done. PARAM PR 165, MASS PR 169, TOPO PR 180 merged. Revit closed, lock free, main at 586400f installed. Left: the tick of Lane C (R574, text sent). SA-dryrun3nov-done.rvt stops at step 5 on the config of main, Q439. C:\SA-demo\config holds the new blocks, backups in p_topo. Worktrees agent-ad19500003cae4104, agent-afa7793be2038fb39 and Lane D TOPO are unused, for Bader to remove. Questions for Bader: Q390, Q392, Q393, Q470 to Q477. Blocked: none
 
 Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane D PARAM-3NOV-D, 3 Nov 2026.
