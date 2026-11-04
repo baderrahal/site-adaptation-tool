@@ -34,3 +34,37 @@ function Get-RevitProcesses {
 function Select-Revit2024($Processes) {
     @($Processes | Where-Object { $null -ne $_ } | Where-Object { $_.Major -eq 24 -or ($_.Path -and $_.Path -like '*\Revit 2024\*') -or (-not $_.Path -and $null -eq $_.Major) })
 }
+
+# SETUP-sign. The three add-ins for developers, the reader, the placer and the test host. Their DLLs stay in their folders under the add-ins
+# root, where Revit never looks, and only their manifests make Revit load them, so a manifest is written for a run and removed after it.
+# The tool itself is the one other manifest, SiteAdaptationAddIn_Revit2024.addin, and Install-SiteAdaptation.ps1 writes that one
+$DevAddIns = @(
+    [pscustomobject]@{ Manifest = 'SiteAdaptation_Revit2024.addin'; Repo = 'dotnet\RevitPrototypeReader\SiteAdaptation.addin'; Folder = 'SiteAdaptation'; Dll = 'RevitPrototypeReader.dll' }
+    [pscustomobject]@{ Manifest = 'SiteAdaptationPlacer_Revit2024.addin'; Repo = 'dotnet\SiteAdaptation.Placer\SiteAdaptationPlacer_Revit2024.addin'; Folder = 'SiteAdaptationPlacer'; Dll = 'SiteAdaptation.Placer.dll' }
+    [pscustomobject]@{ Manifest = 'SiteAdaptationTestHost_Revit2024.addin'; Repo = 'dotnet\SiteAdaptation.TestHost\SiteAdaptationTestHost_Revit2024.addin'; Folder = 'SiteAdaptationTestHost'; Dll = 'SiteAdaptation.TestHost.dll' }
+)
+
+# Writes the manifest of each developer add-in whose DLL is installed and whose manifest is not there, with the full path of that DLL.
+# Returns the names written
+function Install-DevManifests([string]$Repo, [string]$AddinsRoot) {
+    foreach ($dev in $DevAddIns) {
+        $target = Join-Path $AddinsRoot $dev.Manifest
+        $dll = Join-Path (Join-Path $AddinsRoot $dev.Folder) $dev.Dll
+        if ((Test-Path -LiteralPath $target) -or -not (Test-Path -LiteralPath $dll)) { continue }
+        [xml]$xml = Get-Content -Raw -LiteralPath (Join-Path $Repo $dev.Repo)
+        $xml.RevitAddIns.AddIn.Assembly = $dll
+        $xml.Save($target)
+        $dev.Manifest
+    }
+}
+
+# Removes the manifests of the developer add-ins, also the ones an older install left for good. The DLL folders stay. Returns the names removed
+function Remove-DevManifests([string]$AddinsRoot) {
+    foreach ($dev in $DevAddIns) {
+        $target = Join-Path $AddinsRoot $dev.Manifest
+        if (Test-Path -LiteralPath $target) {
+            Remove-Item -LiteralPath $target -Force
+            $dev.Manifest
+        }
+    }
+}

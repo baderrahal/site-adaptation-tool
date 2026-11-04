@@ -301,6 +301,54 @@ namespace SiteAdaptation.Tests
             Assert.DoesNotContain("$hashes = @(", host);
         }
 
+        // SETUP-sign. Revit asks once per manifest with an unsigned DLL, so the install leaves one manifest and one entry DLL of the tool
+        [WindowsFact]
+        public void SETUP_sign_the_install_takes_away_the_developer_manifests_an_older_install_left_and_keeps_every_other_maker()
+        {
+            string[] dev = { "SiteAdaptation_Revit2024.addin", "SiteAdaptationPlacer_Revit2024.addin", "SiteAdaptationTestHost_Revit2024.addin" };
+            foreach (string name in dev.Concat(new[] { "OtherVendor.addin" }))
+            {
+                File.WriteAllText(Path.Combine(addins, name), "<RevitAddIns />");
+            }
+
+            Tuple<int, string> run = Install(NoRevit);
+
+            Assert.True(run.Item1 == 0, run.Item2);
+            Assert.Equal(new[] { "SiteAdaptationAddIn_Revit2024.addin" }, Directory.GetFiles(addins, "SiteAdaptation*.addin").Select(Path.GetFileName).ToArray());
+            Assert.True(File.Exists(Path.Combine(addins, "OtherVendor.addin")));
+            Assert.Contains("taken away: " + string.Join(", ", dev), run.Item2);
+            XElement manifest = XDocument.Load(Path.Combine(addins, "SiteAdaptationAddIn_Revit2024.addin")).Root;
+            Assert.Single(manifest.Elements("AddIn"));
+            Assert.EndsWith("SiteAdaptation.AddIn.dll", manifest.Element("AddIn").Element("Assembly").Value);
+        }
+
+        // SETUP-sign. A run writes the developer manifests for its own time from the DLLs that are installed, and takes them away after it
+        [WindowsFact]
+        public void SETUP_sign_a_run_writes_the_developer_manifests_for_installed_dlls_only_and_removes_them_when_no_other_revit_runs()
+        {
+            string repo = ThemeGateTests.RepoRoot();
+            Plant(Path.Combine(addins, "SiteAdaptationPlacer"), "SiteAdaptation.Placer.dll");
+            string paths = Quoted(Path.Combine(repo, "dotnet", "SiteAdaptation.TestHost", "TestHostPaths.ps1"));
+
+            Tuple<int, string> run = Pwsh("$ErrorActionPreference = 'Stop'\n. " + paths + "\n(Install-DevManifests " + Quoted(repo) + " " + Quoted(addins) + ") -join ';'");
+            Assert.True(run.Item1 == 0, run.Item2);
+            Assert.True("SiteAdaptationPlacer_Revit2024.addin" == run.Item2.Trim(), "wrote: " + run.Item2);
+            Assert.Equal(new[] { "SiteAdaptationPlacer_Revit2024.addin" }, Directory.GetFiles(addins, "*.addin").Select(Path.GetFileName).ToArray());
+            Assert.Equal(Path.Combine(addins, "SiteAdaptationPlacer", "SiteAdaptation.Placer.dll"),
+                XDocument.Load(Path.Combine(addins, "SiteAdaptationPlacer_Revit2024.addin")).Descendants("Assembly").Single().Value);
+
+            // A second call writes nothing, and the removal after the run keeps them while a Revit 2024 runs and takes them away when none does
+            run = Pwsh("$ErrorActionPreference = 'Stop'\n. " + paths + "\n@(Install-DevManifests " + Quoted(repo) + " " + Quoted(addins) + ").Count");
+            Assert.True("0" == run.Item2.Trim(), "second call: " + run.Item2);
+            run = Pwsh("$ErrorActionPreference = 'Stop'\n. " + paths + "\nfunction Get-RevitProcesses { " + Revit2024 + " }\nRemove-DevManifestsAfterRun " + Quoted(addins));
+            Assert.True("kept, another Revit 2024 runs" == run.Item2.Trim(), "kept: " + run.Item2);
+            Assert.True(File.Exists(Path.Combine(addins, "SiteAdaptationPlacer_Revit2024.addin")));
+            run = Pwsh("$ErrorActionPreference = 'Stop'\n. " + paths + "\nfunction Get-RevitProcesses { " + NoRevit + " }\nRemove-DevManifestsAfterRun " + Quoted(addins));
+            Assert.True("removed SiteAdaptationPlacer_Revit2024.addin" == run.Item2.Trim(), "removed: " + run.Item2);
+            Assert.Empty(Directory.GetFiles(addins, "*.addin"));
+            Assert.True(File.Exists(Path.Combine(addins, "SiteAdaptationPlacer", "SiteAdaptation.Placer.dll")));
+        }
+
         [WindowsFact]
         public void R370_the_install_puts_one_common_into_every_folder_of_the_tool_and_fails_on_one_it_cannot_replace()
         {

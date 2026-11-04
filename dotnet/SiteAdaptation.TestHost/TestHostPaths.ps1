@@ -28,7 +28,14 @@ function Read-AddInManifest([string]$Path) {
     }
 }
 
+# SETUP-sign. Install-DevManifests and Remove-DevManifests, shared with the install script of the add-in
+. (Join-Path $PSScriptRoot '..\SiteAdaptation.AddIn\InstallChecks.ps1')
+
+# The manifests of the reader, the placer and the test host exist for a run only, so this writes the ones that are not there before it reads
+# them, from the DLLs the install put in their folders. A script that starts Revit through it, the run script or the listener, then has them
+# loaded by that Revit. Run-TestHost.ps1 takes them away after its run with Remove-DevManifestsAfterRun
 function Get-ToolAddIns([string]$Repo, [string]$Addins) {
+    [void](Install-DevManifests $Repo $Addins)
     $installed = @(Get-ChildItem -LiteralPath $Addins -Filter '*.addin' -File -ErrorAction SilentlyContinue | ForEach-Object { Read-AddInManifest $_.FullName })
     $ids = @()
     $marks = @()
@@ -212,4 +219,15 @@ function Get-ButtonsInputs($paths, $inputRoots) {
         }
     }
     return @($files | Sort-Object -Unique)
+}
+
+# SETUP-sign. After a run the developer manifests go, so the next plain start of Revit asks about the tool alone. Revit reads the add-ins root
+# once, at its start, so a Revit that runs already is not harmed. Another Revit 2024 window that runs may not have started yet, or a listener
+# may hold the manifests for its jobs, so they stay while any Revit 2024 process runs and the last run to end takes them away
+function Remove-DevManifestsAfterRun([string]$Addins) {
+    if (@(Select-Revit2024 (Get-RevitProcesses)).Count -gt 0) {
+        return 'kept, another Revit 2024 runs'
+    }
+    $removed = @(Remove-DevManifests $Addins)
+    if ($removed.Count -gt 0) { 'removed ' + ($removed -join ', ') } else { 'none were there' }
 }

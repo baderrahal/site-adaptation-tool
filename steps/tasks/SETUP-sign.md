@@ -2,7 +2,7 @@
 id: SETUP-sign
 lane: revit-test
 stage: rules
-status: open
+status: done
 allowed:
   - scripts/sign/
   - dotnet/SiteAdaptation.RevitTests/

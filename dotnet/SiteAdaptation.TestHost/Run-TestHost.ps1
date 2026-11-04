@@ -856,6 +856,8 @@ finally {
     if ($probeInstalled -and (Test-Path -LiteralPath $probeInstalled)) {
         Remove-Item -LiteralPath $probeInstalled
     }
+    # SETUP-sign. The manifests of the reader, the placer and the test host were written for this run by Get-ToolAddIns
+    "Developer add-in manifests after the run: $(Remove-DevManifestsAfterRun $addins)"
 }
 
 # The dialogs the watcher answered go into the log of the run, with time, add-in name, vendor, GUID and button

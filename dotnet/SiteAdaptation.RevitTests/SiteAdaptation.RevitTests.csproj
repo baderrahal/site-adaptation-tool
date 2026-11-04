@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- SETUP-sign. Tests that open a real Revit 2024 through ricaun.RevitTest, so they need a Revit on the PC and a copy of a model.
+       This project is NOT in SiteAdaptation.sln, so `dotnet test dotnet\SiteAdaptation.sln` and the checks of GitHub never build or run it.
+       Run it by name under the shared window lock: `dotnet test dotnet\SiteAdaptation.RevitTests -c Release`, see steps/revit-results/SETUP-sign.md -->
+  <PropertyGroup>
+    <AssemblyName>SiteAdaptation.RevitTests</AssemblyName>
+    <RootNamespace>SiteAdaptation.RevitTests</RootNamespace>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- The installed Revit 2024 assemblies, copied beside the test DLL. The adapter loads them to find the tests and takes the Revit version to start from them, the reference-only packages of the add-in do not hold them. Revit loads its own copy when the tests run in it -->
+    <Reference Include="RevitAPI">
+      <HintPath>$(ProgramW6432)\Autodesk\Revit 2024\RevitAPI.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="RevitAPIUI">
+      <HintPath>$(ProgramW6432)\Autodesk\Revit 2024\RevitAPIUI.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="NUnit" Version="3.14.0" />
+    <PackageReference Include="NUnit3TestAdapter" Version="4.6.0" />
+    <PackageReference Include="ricaun.RevitTest.TestAdapter" Version="1.11.1" />
+  </ItemGroup>
+</Project>
