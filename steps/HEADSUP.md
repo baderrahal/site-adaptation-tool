@@ -4,10 +4,9 @@
 
 ### Lane A
 
-- Lane: A, 4 Nov, branch fix/ramp-3nov-a. Blocked: none. No lock, no window
-- Done: PR 166, 171, 174. RAMP in Revit: new project 0 and 0, past job 2 overlaps. New callers in the PR
-- Now: the RAMP PR
-- Next: Lane done
+- Lane done. Lane A, 4 Nov. PR 166 KNOWN, 171 and 174 COORD, 178 RAMP merged. No lock, no window, no helper
+- Left: the R523 move stop not run on a real model, a key copy job is refused at AddinRun.cs:83. Road surfaces window not pressed. The window fixes of PR 174 not seen in Revit. Past job 2 two plot overlaps not named
+- For Bader: Q420, Q430, Q432, Q433, Q436, Q437, Q438, Q439, and Q379, Q394, Q395, Q397, Q401, Q402, Q355. steps/questions-open.md
 
 ### Lane B, C and D
 
