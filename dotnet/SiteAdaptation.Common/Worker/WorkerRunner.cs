@@ -260,9 +260,17 @@ namespace SiteAdaptation.Common
             DesignValues.UseConfigOf(config.Root);
             foreach (WorkerFile input in inputs)
             {
+                if (IsScanFolder(request, input))
+                {
+                    if (string.IsNullOrEmpty(input.Path) || !Directory.Exists(input.Path))
+                    {
+                        throw new WorkerStop(WorkerExit.Refused, "the folder " + input.Role + " is not on disk: " + input.Path);
+                    }
+                    continue;
+                }
                 Usable(input);
             }
-            foreach (WorkerFile input in inputs)
+            foreach (WorkerFile input in inputs.Where(input => !IsScanFolder(request, input)))
             {
                 string refusal = MemoryRefusal(input, config, freeMiB);
                 if (refusal != null)
@@ -281,12 +289,12 @@ namespace SiteAdaptation.Common
                     throw new WorkerStop(WorkerExit.Memory, refusal);
                 }
             }
-            foreach (WorkerFile input in inputs)
+            foreach (WorkerFile input in inputs.Where(input => !IsScanFolder(request, input)))
             {
                 InputMark before = InputGuard.Mark(input.Path);
                 var opened = new WorkerOpened { Role = input.Role, Path = input.Path, Sha256Before = before.Sha256, SizeBefore = before.Size, WriteTimeBefore = before.WriteTimeUtc };
                 answer.Opened.Add(opened);
-                if (!string.Equals(opened.Sha256Before, input.Sha256, StringComparison.OrdinalIgnoreCase))
+                if (!NoShaGiven(request, input) && !string.Equals(opened.Sha256Before, input.Sha256, StringComparison.OrdinalIgnoreCase))
                 {
                     throw new WorkerStop(WorkerExit.InputChanged, "the input " + input.Role + " changed since the request, its SHA-256 is not the one the request gives: " + input.Path);
                 }
@@ -319,6 +327,20 @@ namespace SiteAdaptation.Common
             WorkFiles.CommitAll(context.Written, request.RunId);
             answer.Outputs.AddRange(outputs);
             return WorkerExit.Done;
+        }
+
+        // R600. The command dataCheck reads the folder a team hands over, so its folder input is a folder, which no SHA-256 can name
+        private static bool IsScanFolder(WorkerRequest request, WorkerFile input)
+        {
+            return request.Command == "dataCheck" && input.Role == "scanFolder";
+        }
+
+        // R600. Only dataCheck, and only for its config and its folder, takes an empty SHA-256 as no comparison. The files it finds in the
+        // folder are marked before and after by WorkerContext.OpenFile. Every other command and role still refuses an input whose SHA-256
+        // is not the one of the request
+        private static bool NoShaGiven(WorkerRequest request, WorkerFile input)
+        {
+            return request.Command == "dataCheck" && (input.Role == "config" || input.Role == "scanFolder") && string.IsNullOrEmpty(input.Sha256);
         }
 
         private static void Usable(WorkerFile input)

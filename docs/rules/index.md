@@ -518,3 +518,15 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R556 Buttons job from no template.
 - R557 A unit plot without official number.
 - R558 Help box stays on screen.
+
+## 15-data-check-r600-up.md
+
+- R600 Data check command.
+- R601 Groups by distance.
+- R602 Plots with no past file.
+- R603 Group level words.
+- R604 Road edge layer.
+- R605 Marks and plain lines.
+- R606 Files that fail.
+- R607 Scenario scoring.
+- R608 Clean folder build.

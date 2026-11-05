@@ -33,6 +33,8 @@ namespace CadReader
             commands[NewProjectCheck.Command] = NewProject;
             // R420 to R427. The scanner of any CAD, Excel and PDF the user gives, which reads them with ACadSharp, OpenXml and PdfPig, so in the worker only
             commands["scan"] = CadScan.Command;
+            // R600. Stage 1 from the raw files of a folder: the data check, the project profile and the plots
+            commands[DataCheckCommand.Command] = DataCheckCommand.Run;
             // R454. The coordinate system each drawing and LandXML states and the plot outlines of the baseplan, for button 1
             commands[SiteAdaptation.Common.SetUp.CoordinateRequest.Command] = CoordinateSystemRead.Command;
             return commands;
