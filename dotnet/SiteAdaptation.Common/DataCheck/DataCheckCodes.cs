@@ -348,6 +348,25 @@ namespace SiteAdaptation.Common
             }
         }
 
+        // R635. The plot table of button 2 from plots.json, in the fields the later buttons read. Every numbered plot is a row, a plot with no type
+        // too, so nothing read is hidden from Review data. The neighbourhood is the group of level 1, the largest, as this read knows no other area
+        // key. A plot whose label holds two numbers has no number to be known by and gets no row, plots.json says why
+        public static JObject PlotTable(JObject plots)
+        {
+            var rows = new JArray();
+            foreach (JObject plot in ((JArray)plots["plots"]).OfType<JObject>().Where(row => row["number"].Type == JTokenType.String))
+            {
+                var groups = plot["groups"] as JArray;
+                rows.Add(new JObject
+                {
+                    ["baseplanLabel"] = plot["number"], ["officialNumber"] = plot["number"], ["locationPlanNumber"] = null,
+                    ["nbhId"] = groups != null && groups.Count > 0 ? groups[0] : null, ["typologyRev9"] = plot["villaType"], ["footprintMirrored"] = plot["mirror"], ["faceAreaM2"] = plot["areaM2"],
+                    ["source"] = plot["source"], ["missing"] = plot["missing"], ["disputed"] = plot["disputed"], ["weak"] = plot["weak"],
+                });
+            }
+            return new JObject { ["plots"] = rows };
+        }
+
         private static JArray PairRows(IEnumerable<KeyValuePair<string, string>> pairs, string source)
         {
             return new JArray(pairs.Select(pair => new JObject { ["old"] = pair.Key, ["new"] = pair.Value, ["source"] = source }));

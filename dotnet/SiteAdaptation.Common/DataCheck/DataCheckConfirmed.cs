@@ -11,6 +11,9 @@ namespace SiteAdaptation.Common
     public sealed class ConfirmedProfile
     {
         public const string Role = "projectProfile";
+
+        // R635. Where the window writes it, in the work folder of the model. Button 2 reads it when it is there, a new file is a new read
+        public const string FileName = "confirmed_profile.json";
         public const string PersonEntered = "person entered";
         public const string Left = "left";
         public const string Right = "right";

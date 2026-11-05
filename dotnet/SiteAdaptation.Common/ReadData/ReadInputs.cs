@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using Newtonsoft.Json.Linq;
 using SiteAdaptation.Common.Flow;
 using SiteAdaptation.Common.Settings;
@@ -29,8 +31,9 @@ namespace SiteAdaptation.Common.ReadData
     // R375. Every input of the read with the one hash over them and the read steps, or the stops that keep it from starting
     public sealed class ReadPlan
     {
-        public ReadPlan(IReadOnlyList<ReadInput> inputs, IReadOnlyList<string> steps, IReadOnlyList<string> stops, string configPath, string roadOrder = null)
+        public ReadPlan(IReadOnlyList<ReadInput> inputs, IReadOnlyList<string> steps, IReadOnlyList<string> stops, string configPath, string roadOrder = null, bool fromDataCheck = false)
         {
+            FromDataCheck = fromDataCheck;
             RoadOrder = roadOrder;
             Inputs = inputs;
             Steps = steps;
@@ -53,6 +56,9 @@ namespace SiteAdaptation.Common.ReadData
         // R492. The effective road order under rev6, one line per name, in the hash so a new order is a new read. Null under the past job, whose hash stays
         public string RoadOrder { get; }
 
+        // R635. The read of a project with no past files, by the worker command dataCheck on the folder and with no read step
+        public bool FromDataCheck { get; }
+
         // One SHA-256 over every role and hash and the step list, which names the folder of the read
         public string Hash { get; }
     }
@@ -66,6 +72,7 @@ namespace SiteAdaptation.Common.ReadData
         public const string Config = "config";
         public const string RoadSurface = "roadSurface";
         public const string CadLayers = "cadLayers";
+        public const string ScanFolder = "scanFolder";
 
         private static readonly string[] Drawings = { "baseplan", "villaBlocks", "curbs" };
 
@@ -187,6 +194,101 @@ namespace SiteAdaptation.Common.ReadData
                 }
                 string path = Path.GetFullPath(Path.Combine(root, folder, schedule));
                 Add(found, stops, "schedule:" + hood.Name, path, "the schedule of " + hood.Name + (hood.Name == fit ? ", the fit schedule," : "") + " is not on disk: " + path);
+            }
+        }
+
+        // R635. True when the read of this project takes its plot table from the data check: a rev6 project whose input root is on disk and which
+        // lacks a past file of the old read, a schedule or a data book file. Past job mode keeps the old read and its stops, and so does a project
+        // that holds them all. The add-in asks this to leave out what only the old read needs, the files of the pane and the scan before it
+        public static bool NoPastFiles(string configPath, string mode, string workFolder)
+        {
+            return RawConfig(configPath, mode, workFolder) != null;
+        }
+
+        // R635. The plan of that read, null when the old read applies. The folder is known by a hash of the name, size and write time of its files,
+        // so a changed file is another read. The worker marks each file it opens before and after, the guard of D19
+        public static ReadPlan Raw(IReadOnlyList<RunInput> pane, IReadOnlyDictionary<string, string> roles, string workFolder, string mode = null)
+        {
+            RunInput configInput = (pane ?? new RunInput[0]).FirstOrDefault(input => roles.TryGetValue(input.Name, out string role) && role == Config);
+            string configPath = configInput?.Path;
+            JObject config = RawConfig(configPath, mode, workFolder);
+            if (config == null)
+            {
+                return null;
+            }
+            string folder = Path.GetFullPath((string)config["inputRoot"]);
+            configPath = Path.GetFullPath(configPath);
+            var inputs = new List<ReadInput>
+            {
+                new ReadInput(Config, configPath, new FileInfo(configPath).Length, FileHash.Sha256(configPath)),
+                FolderInput(folder),
+            };
+            string profile = Path.Combine(Path.GetFullPath(workFolder), ConfirmedProfile.FileName);
+            if (File.Exists(profile))
+            {
+                inputs.Add(new ReadInput(ConfirmedProfile.Role, profile, new FileInfo(profile).Length, FileHash.Sha256(profile)));
+            }
+            return new ReadPlan(inputs, new string[0], new string[0], configPath, null, true);
+        }
+
+        // Null where the old read applies, and for a settings file that does not read, which the old read says in its own line
+        private static JObject RawConfig(string configPath, string mode, string workFolder)
+        {
+            if (string.IsNullOrEmpty(configPath) || !File.Exists(configPath))
+            {
+                return null;
+            }
+            JObject config;
+            try
+            {
+                config = ProjectModes.Apply(JObject.Parse(WorkFiles.ReadText(configPath)), mode);
+            }
+            catch (Exception failure) when (failure is InvalidDataException || failure is Newtonsoft.Json.JsonException)
+            {
+                return null;
+            }
+            string root = config["inputRoot"]?.Type == JTokenType.String ? (string)config["inputRoot"] : null;
+            if (!RoadSurfaceChoices.IsRev6(config) || string.IsNullOrEmpty(root) || !Directory.Exists(root))
+            {
+                return null;
+            }
+            var stops = new List<string>();
+            var found = new List<KeyValuePair<string, string>>();
+            JObject read = config.SelectToken("addin.readData") as JObject;
+            if (read != null)
+            {
+                Schedules(config, read, found, stops);
+                DataBook(read, workFolder, found, stops);
+            }
+            return read == null || stops.Count > 0 ? config : null;
+        }
+
+        private static ReadInput FolderInput(string folder)
+        {
+            long bytes = 0;
+            var lines = new List<string>();
+            var pending = new Stack<string>();
+            pending.Push(folder);
+            while (pending.Count > 0)
+            {
+                string here = pending.Pop();
+                foreach (string file in Directory.GetFiles(here))
+                {
+                    var info = new FileInfo(file);
+                    bytes += info.Length;
+                    lines.Add(file.Substring(folder.Length) + "|" + info.Length + "|" + info.LastWriteTimeUtc.Ticks);
+                }
+                // As the worker walks it, a link or junction is never followed
+                foreach (string child in Directory.GetDirectories(here).Where(child => (File.GetAttributes(child) & FileAttributes.ReparsePoint) == 0))
+                {
+                    pending.Push(child);
+                }
+            }
+            lines.Sort(StringComparer.Ordinal);
+            using (SHA256 hash = SHA256.Create())
+            {
+                byte[] digest = hash.ComputeHash(Encoding.UTF8.GetBytes(string.Join("\n", lines)));
+                return new ReadInput(ScanFolder, folder, bytes, string.Concat(digest.Select(item => item.ToString("x2"))));
             }
         }
 

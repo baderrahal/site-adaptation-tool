@@ -63,7 +63,7 @@ Stage 1 from the raw files of a folder, built on the files above and reading no 
 - plots.json: plots, one row each with number, villaType, mirror, groups (the name of the group at each level, an empty list when the drawing's unit is unknown), source (a tag for each of the four values), missing (the reason for each value that is null), disputed (a villa type another kind of source contradicts) and weak (a value that is read but not strong, the mirror always, an outline with a hole, groups under an assumed unit). A plot whose label holds two numbers has number null, source missing and both numbers in its reason under missing.
 - The groups, words and road edge layer are found by shape and distance, see R601, R603 and R604. Scenario runs: scripts/scenarios/run_stage1.py and score_scenarios.py write steps/scenarios.md. The clean folder build is scripts/scenarios/clean_stage1.py.
 
-## What a person confirms, round R2 C1 (R630 to R635)
+## What a person confirms, round R2 C1 (R630 to R634)
 
 Three inputs of stage 1 are the project's own and a person confirms them. They are found by what the files hold, never by a name of a sheet or column in code.
 
@@ -71,3 +71,10 @@ Three inputs of stage 1 are the project's own and a person confirms them. They a
 - Input role projectProfile of dataCheck, written by the window of R2-C1-revit-test: codeMap, a list of old and new, hands, a table of code and left or right, levels, a list of level and word, typologyColumn, an object of workbook, sheet and column, workbook optional. The window of the task names the first three, the fourth is added here since the code map alone does not reach a drawing of an older layout, Q496.
 - The order on a plot: the confirmed column gives the code, the map turns it once, the hand reads the code the plot ended with.
 - plots.json gains codeRead, the code before the map when it differs. weak names villaType for one old code with two new codes, and the mirror until a hand is confirmed and the block in the plot is of the plot's own type. data_check.json values gains codeMap, typologyColumn and hands.
+
+## Read data on a raw folder, R635
+
+- ReadDataRun.Body is the call of the add-in in both cases. ReadInputs.Raw decides: under rev6 with a past file of the old read missing it gives a plan with the input roles config, scanFolder and projectProfile when the window wrote it, the command dataCheck and no step. Otherwise ReadInputs.Make runs as before.
+- ReadInputs.NoPastFiles(configPath, mode, workFolder) is the same decision for what lies before the body in the add-in: the pane files of ReadDataBody.Inputs that the flow stops on, and ScanStep.Wrap, which only the old read needs.
+- The window writes the confirmed file to confirmed_profile.json in the work folder of the model (ConfirmedProfile.FileName). A new file is a new read.
+- read_plotTable.json of such a read holds baseplanLabel and officialNumber, the plot number, locationPlanNumber null, nbhId, the group of level 1, typologyRev9, footprintMirrored, faceAreaM2 and the source, missing, disputed and weak of plots.json. plots.json gains areaM2.

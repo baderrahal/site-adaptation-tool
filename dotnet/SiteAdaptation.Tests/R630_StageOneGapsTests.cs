@@ -1,8 +1,13 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Newtonsoft.Json.Linq;
 using SiteAdaptation.Common;
+using SiteAdaptation.Common.Flow;
+using SiteAdaptation.Common.ReadData;
+using SiteAdaptation.Common.Review;
+using SiteAdaptation.Common.Settings;
 using Xunit;
 
 namespace SiteAdaptation.Tests
@@ -10,8 +15,18 @@ namespace SiteAdaptation.Tests
     // R630 to R634. The code table, the typology column, what a person confirmed, the hand and the group words on made up reads of the shape the
     // real inputs have: a label is an MTEXT of a type code line then a number line, a block name holds the code with a word beside it, a table
     // sits under a title row with its old code twice and qualifiers on its codes, and the prototype files carry the new codes.
-    public sealed class R630_StageOneGapsTests
+    public sealed class R630_StageOneGapsTests : IDisposable
     {
+        private readonly string root = Path.Combine(Path.GetTempPath(), "sa_r635_" + Guid.NewGuid().ToString("N"));
+
+        public void Dispose()
+        {
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, true);
+            }
+        }
+
         private static DataCheckSettings Settings()
         {
             return DataCheckSettings.From(new JObject
@@ -362,6 +377,247 @@ namespace SiteAdaptation.Tests
             Assert.Equal("Court", (string)levels[1]["word"]);
             Assert.Equal("person entered", (string)levels[1]["source"]);
             Assert.Equal("missing", (string)levels[0]["source"]);
+        }
+
+        // The call of the add-in on a project with no past file: ButtonFlow, the body of ReadDataRun and the real worker command on the made up sample
+
+        private static string RepoRoot()
+        {
+            string at = AppContext.BaseDirectory;
+            while (at != null && !File.Exists(Path.Combine(at, "CLAUDE.md")))
+            {
+                at = Path.GetDirectoryName(at);
+            }
+            return at ?? throw new InvalidOperationException("the repo root was not found above " + AppContext.BaseDirectory);
+        }
+
+        private string Project(string mode)
+        {
+            string folder = Path.Combine(root, "handed over");
+            Directory.CreateDirectory(folder);
+            string sample = Path.Combine(RepoRoot(), "samples", "new-project");
+            foreach (string file in Directory.GetFiles(sample, "*.dxf").Concat(Directory.GetFiles(sample, "*.xlsx")))
+            {
+                File.Copy(file, Path.Combine(folder, Path.GetFileName(file)), true);
+            }
+            JObject config = JObject.Parse(File.ReadAllText(Path.Combine(RepoRoot(), "config", "project.json")));
+            config["inputRoot"] = folder;
+            config["designBasis"]["mode"] = mode;
+            config["siteBuild"]["minFreeGB"] = 0.1;
+            string path = Path.Combine(root, "project.json");
+            File.WriteAllText(path, config.ToString());
+            return path;
+        }
+
+        private sealed class FolderState : IRunState
+        {
+            private readonly string configPath;
+            private readonly string work;
+
+            public FolderState(string configPath, string work)
+            {
+                this.configPath = configPath;
+                this.work = work;
+            }
+
+            public bool DryRunFirst => false;
+
+            public string WorkFolder(string documentPath)
+            {
+                return work;
+            }
+
+            public int MissingStep(int button)
+            {
+                return 0;
+            }
+
+            // The pane of a project with no past file gives the settings file alone, ReadInputs.NoPastFiles is what tells the add-in so
+            public IReadOnlyList<RunInput> Inputs(int button)
+            {
+                return new[] { new RunInput("Settings", configPath, false) };
+            }
+
+            public void Committed(int button, RunRecord record)
+            {
+            }
+        }
+
+        private sealed class NoModel : IModel
+        {
+            public IModelTransaction Start(string name)
+            {
+                throw new InvalidOperationException("button 2 opens no transaction");
+            }
+        }
+
+        private sealed class Yes : IConfirm
+        {
+            public RunSummary Asked { get; private set; }
+
+            public bool Apply(string label, RunSummary summary, bool dryRun)
+            {
+                Asked = summary;
+                return true;
+            }
+        }
+
+        private sealed class DataCheckWorker : IWorkerStart
+        {
+            public readonly List<WorkerRequest> Requests = new List<WorkerRequest>();
+
+            public void Start(string requestPath, string workFolder, WorkerRequest request, Action<WorkerAnswer> ended)
+            {
+                Requests.Add(request);
+                var commands = new Dictionary<string, WorkerCommand> { ["dataCheck"] = CadReader.DataCheckCommand.Run };
+                WorkerRunner.Run(requestPath, commands, () => 1e6, () => 0.0);
+                ended(WorkerAnswer.Read(WorkerFiles.AnswerPath(workFolder, request.RunId)));
+            }
+        }
+
+        private static readonly Dictionary<string, string> PaneRoles = new Dictionary<string, string> { ["Settings"] = ReadInputs.Config };
+        private const string Document = @"C:\Models\site.rvt";
+        private int runs;
+
+        // Button 2 as the add-in presses it: ButtonFlow on the body of ReadDataRun, with the worker command itself
+        private RunOutcome Press(string configPath, string work, DataCheckWorker worker, string mode, Yes confirm = null)
+        {
+            var run = new ReadDataRun(PaneRoles, worker, new WorkerDocument { Path = Document, SessionId = "s1" }, () => new SettingsScope()) { ModePick = () => mode };
+            var flow = new ButtonFlow(new FolderState(configPath, work), new NoModel(), confirm ?? new Yes(), InputHash.Of, () => RunIds.New(2, DateTime.Now) + "-" + (++runs).ToString("D3"));
+            RunOutcome last = null;
+            RunOutcome started = flow.Run(2, "2 Read data", run.Body(), Document, outcome => last = outcome);
+            return started.End == RunEnd.Started ? last : started;
+        }
+
+        private string WorkFolderOf()
+        {
+            string work = Path.Combine(root, "work", "model");
+            Directory.CreateDirectory(work);
+            return work;
+        }
+
+        [Fact]
+        public void R635_a_raw_folder_reads_through_the_call_of_the_add_in_and_review_data_follows()
+        {
+            string configPath = Project(DesignBasis.Rev6);
+            string work = WorkFolderOf();
+            Assert.True(ReadInputs.NoPastFiles(configPath, DesignBasis.Rev6, work));
+            var worker = new DataCheckWorker();
+            var confirm = new Yes();
+            RunOutcome done = Press(configPath, work, worker, DesignBasis.Rev6, confirm);
+            Assert.True(done.End == RunEnd.Committed, done.Message);
+            Assert.True(done.Record.StepDone);
+            Assert.Contains(RunTexts.ReadFromDataCheck, confirm.Asked.PerPlot);
+            WorkerRequest request = Assert.Single(worker.Requests);
+            Assert.Equal("dataCheck", request.Command);
+            Assert.Equal(new[] { "config", "scanFolder" }, request.Inputs.Select(item => item.Role));
+
+            string folder = ReviewLoad.LatestReadFolder(work);
+            Assert.NotNull(folder);
+            JObject table = JObject.Parse(File.ReadAllText(Path.Combine(folder, ReadDataRun.PlotTableFile)));
+            JObject plots = JObject.Parse(File.ReadAllText(Path.Combine(folder, "plots.json")));
+            Assert.Equal(((JArray)plots["plots"]).Count, ((JArray)table["plots"]).Count);
+            Assert.NotEmpty((JArray)table["plots"]);
+            JObject first = ((JArray)plots["plots"]).OfType<JObject>().First();
+            string nbh = (string)first["groups"][0];
+            Assert.Contains(nbh, ReviewLoad.LatestNbhCodes(work));
+
+            // 3 Review data follows, each row with the type, the mirror and the area of plots.json
+            ReviewInput review = ReviewLoad.Load(work, nbh, null);
+            ReviewRow row = review.Rows.Single(item => item.PlotNo == (string)first["number"]);
+            Assert.Equal((string)first["villaType"], row.VillaType);
+            Assert.Equal((bool?)first["mirror"], row.Mirror);
+            Assert.Equal((double)first["areaM2"], row.AreaM2);
+            Assert.True(row.AreaM2 > 0);
+
+            // The same folder and settings again start no worker, the read is reused
+            RunOutcome again = Press(configPath, work, worker, DesignBasis.Rev6);
+            Assert.True(again.End == RunEnd.Committed, again.Message);
+            Assert.Single(worker.Requests);
+        }
+
+        [Fact]
+        public void R635_a_confirmed_file_in_the_work_folder_is_an_input_and_a_new_read()
+        {
+            string configPath = Project(DesignBasis.Rev6);
+            string work = WorkFolderOf();
+            var worker = new DataCheckWorker();
+            Assert.Equal(RunEnd.Committed, Press(configPath, work, worker, DesignBasis.Rev6).End);
+            File.WriteAllText(Path.Combine(work, ConfirmedProfile.FileName), "{\"levels\": [{\"level\": 1, \"word\": \"Court\"}]}");
+            Assert.Equal(RunEnd.Committed, Press(configPath, work, worker, DesignBasis.Rev6).End);
+            Assert.Equal(2, worker.Requests.Count);
+            Assert.Contains(worker.Requests[1].Inputs, item => item.Role == ConfirmedProfile.Role);
+            Assert.NotEqual(worker.Requests[0].OutputFolder, worker.Requests[1].OutputFolder);
+            JObject profile = JObject.Parse(File.ReadAllText(Path.Combine(worker.Requests[1].OutputFolder, "project_profile.json")));
+            Assert.Equal("person entered", (string)profile["levels"][0]["source"]);
+        }
+
+        [Fact]
+        public void R635_a_changed_file_of_the_folder_is_a_new_read()
+        {
+            string configPath = Project(DesignBasis.Rev6);
+            string work = WorkFolderOf();
+            var worker = new DataCheckWorker();
+            Assert.Equal(RunEnd.Committed, Press(configPath, work, worker, DesignBasis.Rev6).End);
+            File.AppendAllText(Path.Combine((string)JObject.Parse(File.ReadAllText(configPath))["inputRoot"], "a note.txt"), "added");
+            Assert.Equal(RunEnd.Committed, Press(configPath, work, worker, DesignBasis.Rev6).End);
+            Assert.Equal(2, worker.Requests.Count);
+        }
+
+        [Fact]
+        public void R635_past_job_mode_keeps_the_old_read_and_its_stop()
+        {
+            const string Past = "roshnPastJob";
+            string configPath = Project(Past);
+            string work = WorkFolderOf();
+            Assert.False(ReadInputs.NoPastFiles(configPath, Past, work));
+            var worker = new DataCheckWorker();
+            RunOutcome stopped = Press(configPath, work, worker, Past);
+            Assert.Equal(RunEnd.Stopped, stopped.End);
+            Assert.Contains("is not on disk", stopped.Message);
+            Assert.Empty(worker.Requests);
+        }
+
+        [Fact]
+        public void R635_a_rev6_project_that_holds_every_past_file_keeps_the_old_read()
+        {
+            string configPath = Project(DesignBasis.Rev6);
+            string work = WorkFolderOf();
+            JObject config = JObject.Parse(File.ReadAllText(configPath));
+            string input = (string)config["inputRoot"];
+            string schedules = (string)config["addin"]["readData"]["scheduleFolder"];
+            foreach (JProperty hood in ((JObject)config["connect"]["neighbourhoods"]).Properties().Where(item => item.Value.Type == JTokenType.Object && item.Value["schedule"] != null))
+            {
+                string path = Path.Combine(input, schedules, (string)hood.Value["schedule"]);
+                Directory.CreateDirectory(Path.GetDirectoryName(path));
+                File.WriteAllText(path, "made up");
+            }
+            string book = Path.Combine(root, "work", (string)config["addin"]["readData"]["dataBookFolder"]);
+            foreach (JProperty file in ((JObject)config["addin"]["readData"]["dataBookFiles"]).Properties())
+            {
+                string path = Path.Combine(book, (string)file.Value);
+                Directory.CreateDirectory(Path.GetDirectoryName(path));
+                File.WriteAllText(path, "made up");
+            }
+            Assert.False(ReadInputs.NoPastFiles(configPath, DesignBasis.Rev6, work));
+            Assert.Null(ReadInputs.Raw(new[] { new RunInput("Settings", configPath, false) }, PaneRoles, work, DesignBasis.Rev6));
+            // One gone makes it a project with no past files
+            File.Delete(Path.Combine(book, (string)((JObject)config["addin"]["readData"]["dataBookFiles"]).Properties().First().Value));
+            Assert.True(ReadInputs.NoPastFiles(configPath, DesignBasis.Rev6, work));
+        }
+
+        [Fact]
+        public void R635_the_plot_table_has_a_row_per_numbered_plot_with_its_sources()
+        {
+            JObject table = DataCheckLogic.PlotTable(JObject.Parse("{\"plots\": [{\"number\": \"7\", \"villaType\": null, \"mirror\": null, \"areaM2\": 12.5, \"groups\": [\"L1-1\", \"L2-3\"], \"source\": {\"villaType\": \"missing\"}, \"missing\": {\"villaType\": \"why\"}, \"disputed\": {}, \"weak\": {}}, {\"number\": null, \"villaType\": null, \"mirror\": null, \"groups\": []}, {\"number\": \"8\", \"villaType\": \"A1\", \"mirror\": true, \"groups\": []}]}"));
+            var rows = ((JArray)table["plots"]).OfType<JObject>().ToList();
+            Assert.Equal(2, rows.Count);
+            Assert.Equal("L1-1", (string)rows[0]["nbhId"]);
+            Assert.Equal("7", (string)rows[0]["officialNumber"]);
+            Assert.Equal(12.5, (double)rows[0]["faceAreaM2"]);
+            Assert.Equal("why", (string)rows[0]["missing"]["villaType"]);
+            Assert.Null((string)rows[1]["nbhId"]);
+            Assert.Equal("A1", (string)rows[1]["typologyRev9"]);
         }
     }
 }

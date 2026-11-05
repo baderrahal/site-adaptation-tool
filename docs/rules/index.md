@@ -535,4 +535,4 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R632 What a person confirmed.
 - R633 Prototype hand and mirror.
 - R634 Words from a naming text.
-- R635 Scoring with a confirmed profile.
+- R635 Read data on a raw folder.

@@ -63,6 +63,7 @@ namespace CadReader
             run.WriteJson(request.OutputFolder, "data_check.json", output.Check);
             run.WriteJson(request.OutputFolder, "project_profile.json", output.Profile);
             run.WriteJson(request.OutputFolder, "plots.json", output.Plots);
+            run.WriteJson(request.OutputFolder, SiteAdaptation.Common.ReadData.ReadDataRun.PlotTableFile, DataCheckLogic.PlotTable(output.Plots));
             run.Counts["data check plots"] = ((JArray)output.Plots["plots"]).Count;
             run.Counts["data check drawings read"] = input.CadReads.Count;
             run.Counts["data check files not read"] = input.Notes.Count(note => !note.Read);

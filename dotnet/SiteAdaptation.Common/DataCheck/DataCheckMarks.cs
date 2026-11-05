@@ -434,6 +434,7 @@ namespace SiteAdaptation.Common
                 ["villaType"] = plot.Villa,
                 ["codeRead"] = plot.CodeRead != null && plot.CodeRead != plot.Villa ? plot.CodeRead : null,
                 ["mirror"] = plot.Mirror,
+                ["areaM2"] = f.MetersPerUnit == null ? (double?)null : Rounding.Fixed(plot.Area * f.MetersPerUnit.Value * f.MetersPerUnit.Value, 3),
                 ["groups"] = plot.Group == null ? new JArray()
                     : new JArray(Enumerable.Range(0, levels).Select(level => (object)(f.GroupNames[level].TryGetValue(plot.Group[level], out string name) ? name : "L" + (level + 1) + "-" + (plot.Group[level] + 1))).ToArray()),
                 ["source"] = new JObject
