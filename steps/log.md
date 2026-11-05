@@ -4,12 +4,29 @@ Newest entry first. The top entry is one page at most. Older rounds keep a short
 
 ## Recovery, 5 Nov 2026, after the PC shut down by mistake that evening
 
-- When: Bader gave about 19:15, the last commit made on the PC is build-1 608d219 at 19:24 by its reflog, so it shut down after 19:24. Restarted about 21:00.
-- Lost: the lane sessions of build-1 and build-2 and Lead's background loops.
-- Found: no git lock, no OneDrive conflict copy, no window lock or listener job held, no Revit or worker left running, no run cut. Nine old agent folders under .claude/worktrees from 28 Oct to 4 Nov are not registered worktrees, left for Bader.
-- Saved: 608d219 pushed from build-1. Quick tests on main pass, 154 pytest and 2524 dotnet.
-- Done: PR 213 the R639 rule line, one clause made to say what the code does. S1 and the hold-out on PR 211 held: numbers 1873, villa type 233 and 1859 confirmed, hold-out 610, 606, 146. PR 211 merged, R2-C3-revit-test opens.
-- A clash: a build-1 session Bader opened ran S1 at the same time as Lead's, both wrote runs\S1 at 21:58, both runs void and redone one at a time.
+Goal:
+- Check the damage of the shutdown, save what was not pushed, carry on the queue. No new tool code.
+
+Done:
+- Bader gave about 19:15, the last commit made on the PC is build-1 608d219 at 19:24 by its reflog, so it shut down after 19:24. Restarted about 21:00. Lost: the lane sessions of build-1 and build-2 and Lead's loops.
+- 608d219 pushed from build-1. PR 213 the R639 rule line, one clause made to say what the code does. PR 211 merged after S1 and the hold-out held. R2-C3-revit-test opens.
+
+Checked:
+- No git lock, no OneDrive conflict copy, no window lock or listener job held, no Revit or worker left running, no run cut. Quick tests on main pass, 154 pytest and 2524 dotnet.
+- S1 on PR 211: numbers 1873, villa type 233 and 1859 confirmed. Hold-out 610, 606, 146.
+
+Remains:
+- R2-C1-fix-build-1 opens its PR, then R2-C2-build-1. R2-C3-revit-test.
+
+Known bugs:
+- A build-1 session Bader opened ran S1 at the same time as Lead's, both wrote runs\S1 at 21:58, both void and redone one at a time.
+- R310 fails under load, steps/latent.md.
+
+Next:
+- The Friday plan of 6 Nov.
+
+Your turn:
+- Q520, the account name in public files. Nine old agent folders under .claude/worktrees from 28 Oct to 4 Nov are not registered worktrees, keep or remove.
 
 ## setup-lanes, 2026-11-04, standing rules into files, hooks and checks
 
