@@ -403,3 +403,7 @@ Q515. What counts as confirming a rule (R2-C3-build-1, PR 211). As built, a pers
 Q516. Asks once (R2-C3-build-1, PR 211). The check holds no state, so every build of a project with no rules gives the line that asks.
 - Recommended: The add-in of R2-C3-revit-test records a no in the project settings and does not ask again.
 - Other: Ask at every build until rules are chosen.
+
+Q520. The Windows account name in public files (Lead, 5 Nov 2026). It stands 52 times in 10 files under steps/, in paths under the work root, and git history keeps it. PR 211's text named it until Lead took it out, its edit history keeps it.
+- Recommended: Write <work root> for those paths in a records PR, and a check that fails a new one. History stays as it is.
+- Other: Leave it, it names an account and no client data.
