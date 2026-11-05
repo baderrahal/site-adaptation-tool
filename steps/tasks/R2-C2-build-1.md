@@ -7,7 +7,26 @@ allowed:
   - dotnet/SiteAdaptation.Common/SiteBuild/
   - dotnet/SiteAdaptation.Tests/SiteBuild/
   - dotnet/CadReader/
-  - docs/design/
+  - docs/design/01-option-b.md
+  - docs/design/02-folders.md
+  - docs/design/03a-buttons-shared-and-1.md
+  - docs/design/03b-buttons-2-to-8.md
+  - docs/design/04-inputs.md
+  - docs/design/05-plan-steps.md
+  - docs/design/06-settings.md
+  - docs/design/07-mock.md
+  - docs/design/08-install.md
+  - docs/design/09-risks.md
+  - docs/design/10-rule-ids.md
+  - docs/design/11-light-mode.md
+  - docs/design/12-ui-spec.md
+  - docs/design/13-workflow-changes.md
+  - docs/design/15-manual-rules.md
+  - docs/design/16-design-basis.md
+  - docs/design/17-scanner.md
+  - docs/design/18-new-project.md
+  - docs/design/README.md
+  - docs/design/boards/
   - python/
   - scripts/scenarios/
   - steps/scenarios.md
@@ -23,6 +42,7 @@ Side by side with R2-C3-build-1 on build-2, Bader's order of 5 Nov 2026, so:
 - In Common and Tests this lane writes only new files, in SiteBuild/ of each. The command siteBuild is registered in dotnet/CadReader/WorkerReads.cs, which is this lane's. Its name is already in WorkerRequest.Commands, and it takes an empty SHA-256 (R640_WorkerSeamTests).
 - A change to an existing file of Common is asked of Lead with the reason. Lead adds that exact path to this list by a PR, or says do it another way. Do not edit it first.
 - Measure siteBuild on S1 and give Lead the time limit, 600 s in config is chosen and not measured. Rule lines R640 to R654 and any new key of config/project.json go through Lead, as docs/rules/ and config/project.json are build-2's. Write them in this task file under a heading Rules for Lead and tell Lead in the last reply. Lead enters them by a Lead PR before the code PR.
+- docs/design/14-ui-labels.md is R2-C3-revit-test's, Bader's answer of 5 Nov. A label C2 needs goes through Lead.
 - Do not touch rules/. A missing rule value stays missing and marked.
 - The rules reach the build by SiteAdaptation.Common.ProjectRules.RulesForBuild.Check(string rulesPath, JObject config, string projectMode) of R2-C3-build-1, which answers RulesChoiceLine and BlockingLine and the rules. projectMode is the mode of the request, never the word in config. Merge main for it once C3 is merged, and call it from siteBuild. The plan wants blocking as a list of line and issues as a list of plot and line, so wrap what it gives. Finding project_rules.json beside the profile is yours, a null path asks even when the project has rules. So C3 merges first, then this task.
 - Tests of the rules through siteBuild, marked for this task in tests/acceptance/test_r2_build.py, are this task's.
