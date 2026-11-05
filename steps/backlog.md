@@ -4,6 +4,7 @@ One backlog by stage, one line each with its Q or R id if it has one. Sources: s
 
 ## 1 Project data
 
+- The pane in 3 stages, Project data, Build site, Review and deliver, with Settings and Advanced, Bader asked several times, task R2-C4-revit-test of 6 Nov 2026
 - Step 2 reads with no past schedule, truth audit item 1, Large
 - Remove the need for plots.csv, labels.csv and phase1_border.csv, border from a CAD ring the team picks, truth audit item 2, Large
 - Remove needless stops: prototype_offsets.json, floor_outlines.json past values, addin.position.file under CAD, truth audit item 7, Small
@@ -228,6 +229,7 @@ One backlog by stage, one line each with its Q or R id if it has one. Sources: s
 
 ## Later
 
+- The close of R2 by Lead: /audit, steps/r2-check.md with every Lead waiver and its reason, the scenarios table before and after C1, the hold-out at 5, 20 and 50 mm, the source mix, steps/usage.md, /questions at most 10, the R2 merged message. Bader's order of 5 Nov, in no task file
 - Theme height cap of HelpBox and RuleValues not seen in Revit, Lane B
 - Road tick R574 seen in a rendered image only, Lane C and D
 - Listener cases not run in Revit: throw inside Revit, killed, hung, slot 2, Lane C
@@ -237,7 +239,7 @@ One backlog by stage, one line each with its Q or R id if it has one. Sources: s
 - Refresh C:\SA-demo\config, it may lack floors.plotPull and floors.roadTopography, Q454, Lane B and D
 - Do not show the dry run kit again until truth audit 7, 5 and 11 are done, Lane C
 - R347 worker tests of WorkerRunTests on a 1 s time limit fail at random under load, 4 tests, moved out of the required job tests on 5 Nov 2026 by Bader's order, as reruns to get green hide faults. They still run in job dotnet of test.yml, which is not required. The first move took out every R347 test, and PR 210 then broke two others every run with the required job green, so those came back. Fix: measure the timing they rest on and take it from the run, not the clock, then put them back. steps/latent.md:183
-- R310 process sample failed once, cause UNKNOWN, steps/log.md:44, Lane C
+- R310 process samples fail at random on this PC, 3 tests, idle as well as under load, measured 5 and 6 Nov: ParsonsModelTests.cs:126 Expected Integer Actual Null, and :204. A sample takes 21 to 31 s when it passes. Measure the CIM time on this PC and take the limit from it, steps/latent.md, Lead
 - R104 FreezeGuardTests failed once on net8.0 on the Windows runner of job tests, run 41856763267, and passed on the same commit in run 41856748086, cause not measured, setup-lanes
 - A rule that a round's test model is rechecked against main before it starts, Lane D
 - Stale records: steps/lane-b.md:15 and :18, steps/PROGRESS.md line 1 date, the index of steps/questions-open.md does not match its text, Lane B and C
