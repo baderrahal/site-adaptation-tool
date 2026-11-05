@@ -113,7 +113,7 @@ def test_score_counts_each_field():
     assert tools.score(answer, []) == {"right": 2, "read": 0, "numbers": 0, "villaType": 0, "mirror": 0}
 
 
-RESULT = {"ran": "done", "built": "abc1234", "needs": [{"need": "rules", "mark": "missing", "line": "No rule set in Base.xlsx on layer SECRET-LAYER, plot 2301"}], "score": {"right": 2, "read": 3, "numbers": 2, "villaType": 1, "mirror": 1}, "faults": [], "levels": [{"word": "Phase"}, {"word": "Facades"}]}
+RESULT = {"ran": "done", "built": "abc1234", "needs": [{"need": "rules", "mark": "missing", "line": "No rule set in Base.xlsx on layer SECRET-LAYER, plot 2301"}], "score": {"right": 2, "read": 3, "numbers": 2, "villaType": 1, "mirror": 1}, "faults": [], "levels": [{"word": "Phase"}, {"word": "Awnings"}]}
 
 
 def test_the_table_holds_all_five_and_says_not_run():
@@ -125,7 +125,7 @@ def test_the_table_holds_all_five_and_says_not_run():
 
 def test_nothing_a_data_check_said_reaches_the_table():
     text = tools.table({"S1": RESULT, "S3": RESULT})
-    for word in ("Base.xlsx", "SECRET-LAYER", "2301", "Facades"):
+    for word in ("Base.xlsx", "SECRET-LAYER", "2301", "Awnings"):
         assert word not in text
 
 
@@ -135,9 +135,9 @@ def test_what_a_data_check_said_goes_to_the_report():
 
 def test_s3_group_words_are_scored_and_others_are_not():
     assert tools.words_score("S3", [{"word": "Phase"}, {"word": "Block"}]) == "2 of 2"
-    assert tools.words_score("S3", [{"word": "Phase"}, {"word": "Facades"}]) == "1 of 2"
-    assert tools.words_score("S3", [{"word": "Facades"}]) == "0 of 2"
-    assert tools.words_score("S1", [{"word": "Facades"}]) == "not scored"
+    assert tools.words_score("S3", [{"word": "Phase"}, {"word": "Awnings"}]) == "1 of 2"
+    assert tools.words_score("S3", [{"word": "Awnings"}]) == "0 of 2"
+    assert tools.words_score("S1", [{"word": "Awnings"}]) == "not scored"
 
 
 def test_golden_spreads_over_types_and_repeats():
