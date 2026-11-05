@@ -70,8 +70,8 @@
           <ItemsControl.ItemTemplate>
             <DataTemplate>
               <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                <TextBlock Style="{StaticResource SA.Type.Body}" Width="120" VerticalAlignment="Center" Text="{Binding Level, StringFormat=Level {0}}" />
-                <TextBox Width="240" AutomationProperties.Name="{Binding Level, StringFormat=Word of level {0}}" Text="{Binding Word, UpdateSourceTrigger=PropertyChanged}" />
+                <TextBlock Style="{StaticResource SA.Type.Body}" Width="120" VerticalAlignment="Center" Text="{Binding Name}" />
+                <TextBox Width="240" AutomationProperties.Name="{Binding BoxName}" Text="{Binding Word, UpdateSourceTrigger=PropertyChanged}" />
               </StackPanel>
             </DataTemplate>
           </ItemsControl.ItemTemplate>

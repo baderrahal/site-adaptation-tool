@@ -44,6 +44,10 @@ namespace SiteAdaptation.AddIn.ConfirmProfile
         public int Level { get; set; }
         public string Word { get; set; } = "";
         public string Found { get; set; }
+
+        // The words of the row and of its box, put together here so the window holds no format string
+        public string Name { get { return ConfirmProfileText.LevelRow.Replace("<n>", Level.ToString(System.Globalization.CultureInfo.InvariantCulture)); } }
+        public string BoxName { get { return ConfirmProfileText.LevelBox.Replace("<n>", Level.ToString(System.Globalization.CultureInfo.InvariantCulture)); } }
     }
 
     // R636 to R638. What the window of 2 Read data lets a person confirm, read from project_profile.json of the read folder, and the

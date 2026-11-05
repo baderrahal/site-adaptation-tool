@@ -20,6 +20,8 @@ namespace SiteAdaptation.AddIn.ConfirmProfile
         public const string HandsNone = "No prototype code was found in the villa blocks.";
         public const string Levels = "Group levels";
         public const string LevelsHelp = "The word you call each level of plot groups. Leave it empty to give none.";
+        public const string LevelRow = "Level <n>";
+        public const string LevelBox = "Word of level <n>";
         public const string LevelsNone = "No group levels were found.";
         public const string Confirm = "Confirm";
         public const string Cancel = "Cancel";

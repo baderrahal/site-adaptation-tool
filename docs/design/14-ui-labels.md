@@ -752,6 +752,34 @@ The window What the tool read of Lane C SCAN-UI, word for word from docs/design/
 - `The exact reason the check gives for each file it did not read.` CHOSEN, as the line above
 - `The check stopped` CHOSEN, the note the worker wrote when it stopped before it finished
 - `<n>: a data check of this work folder runs now, wait for its end.` CHOSEN, the line of a press while a check of the folder runs
+- `Confirm what was found` CHOSEN by Lead, R636, window Confirm what was found after 2 Read data on a folder with no past file, draft steps/ui-shots/confirm-profile.png
+- `The tool read the folder and proposes the values below. Nothing here changes the model. What you confirm is saved for the next Read data, which then reads the folder again.` CHOSEN by Lead, R636, window Confirm what was found after 2 Read data on a folder with no past file, draft steps/ui-shots/confirm-profile.png
+- `Villa type of each plot` CHOSEN by Lead, R636, window Confirm what was found after 2 Read data on a folder with no past file, draft steps/ui-shots/confirm-profile.png
+- `The sheet column that gives each plot its villa type. Leave it on none to keep what the drawings give.` CHOSEN by Lead, R636, window Confirm what was found after 2 Read data on a folder with no past file, draft steps/ui-shots/confirm-profile.png
+- `Area of each plot` CHOSEN by Lead, R636, window Confirm what was found after 2 Read data on a folder with no past file, draft steps/ui-shots/confirm-profile.png
+- `The sheet column that gives each plot its area. Leave it on none to group the plots by distance.` CHOSEN by Lead, R636, window Confirm what was found after 2 Read data on a folder with no past file, draft steps/ui-shots/confirm-profile.png
+- `none` CHOSEN by Lead, R636, window Confirm what was found after 2 Read data on a folder with no past file, draft steps/ui-shots/confirm-profile.png
+- `Code map` CHOSEN by Lead, R636, window Confirm what was found after 2 Read data on a folder with no past file, draft steps/ui-shots/confirm-profile.png
+- `One pair per line, the old code, an arrow -> and the new code. Type it when the tool found no table.` CHOSEN by Lead, R636, window Confirm what was found after 2 Read data on a folder with no past file, draft steps/ui-shots/confirm-profile.png
+- `Proposed from {0}.` CHOSEN by Lead, R636, window Confirm what was found after 2 Read data on a folder with no past file, draft steps/ui-shots/confirm-profile.png
+- `Confirmed on an earlier read.` CHOSEN by Lead, R636, window Confirm what was found after 2 Read data on a folder with no past file, draft steps/ui-shots/confirm-profile.png
+- `No table of old and new codes was found.` CHOSEN by Lead, R636, window Confirm what was found after 2 Read data on a folder with no past file, draft steps/ui-shots/confirm-profile.png
+- `Hand of each prototype` CHOSEN by Lead, R636, window Confirm what was found after 2 Read data on a folder with no past file, draft steps/ui-shots/confirm-profile.png
+- `Right when its blocks are drawn unmirrored, left when mirrored. The guess comes from how the blocks are drawn, no prototype file was opened.` CHOSEN by Lead, R636, window Confirm what was found after 2 Read data on a folder with no past file, draft steps/ui-shots/confirm-profile.png
+- `No prototype code was found in the villa blocks.` CHOSEN by Lead, R636, window Confirm what was found after 2 Read data on a folder with no past file, draft steps/ui-shots/confirm-profile.png
+- `Group levels` CHOSEN by Lead, R636, window Confirm what was found after 2 Read data on a folder with no past file, draft steps/ui-shots/confirm-profile.png
+- `The word you call each level of plot groups. Leave it empty to give none.` CHOSEN by Lead, R636, window Confirm what was found after 2 Read data on a folder with no past file, draft steps/ui-shots/confirm-profile.png
+- `No group levels were found.` CHOSEN by Lead, R636, window Confirm what was found after 2 Read data on a folder with no past file, draft steps/ui-shots/confirm-profile.png
+- `Confirm` CHOSEN by Lead, R636, window Confirm what was found after 2 Read data on a folder with no past file, draft steps/ui-shots/confirm-profile.png
+- `left` CHOSEN by Lead, R636, window Confirm what was found, a hand in the list of a prototype
+- `right` CHOSEN by Lead, R636, window Confirm what was found, a hand in the list of a prototype
+- `Level <n>` CHOSEN by Lead, R636, window Confirm what was found, the name of a group level row
+- `Word of level <n>` CHOSEN by Lead, R636, window Confirm what was found, the name of the box of the word of a group level
+- `Cancel` CHOSEN by Lead, R636, window Confirm what was found after 2 Read data on a folder with no past file, draft steps/ui-shots/confirm-profile.png
+- `Nothing was saved. The read stays as it is.` CHOSEN by Lead, R636, window Confirm what was found after 2 Read data on a folder with no past file, draft steps/ui-shots/confirm-profile.png
+- `Nothing was confirmed, so no file was written.` CHOSEN by Lead, R636, window Confirm what was found after 2 Read data on a folder with no past file, draft steps/ui-shots/confirm-profile.png
+- `Saved {0}. Press Read data again to read with it.` CHOSEN by Lead, R636, window Confirm what was found after 2 Read data on a folder with no past file, draft steps/ui-shots/confirm-profile.png
+- `Nothing was saved: {0}` CHOSEN by Lead, R636, window Confirm what was found after 2 Read data on a folder with no past file, draft steps/ui-shots/confirm-profile.png
 - `<n>: the settings name no input folder, so the data check did not run and nothing was read.` CHOSEN, a stop of button 2
 - `<n>: the input folder is not there, so the data check did not run and nothing was read.` CHOSEN, as the line above
 - `<n>: the data check could not start, <n>. Nothing was read.` CHOSEN, as the line above
@@ -821,7 +849,3 @@ The loader of every button of Lane C DEMO-FIX (R444), a DRAFT with no board. It 
 - `Running outside Revit. The pane shows the step when it ends.` CHOSEN, the line while 2 Read data or 4 Check runs in the worker (R375)
 - `Elapsed <n>` CHOSEN, the clock in minutes and seconds
 - `Hide` CHOSEN, shown only while the step runs outside Revit, it closes the loader and changes nothing in the run
-
-### Confirm what was found
-
-R636. The window after 2 Read data on a folder with no past file, shown after the section Data check. CHOSEN by Lead: the smallest version, no sketch covers it, its picture is the draft steps/ui-shots/confirm-profile.png with made up values. Its texts are ConfirmProfileText in dotnet/SiteAdaptation.AddIn/ConfirmProfile. Sections: Villa type of each plot, Area of each plot, Code map, Hand of each prototype, Group levels. Buttons Confirm and Cancel. A column list starts on the proposed column or on none. Confirm writes confirmed_profile.json in the work folder with source person entered, only for what was given, and a line the code map cannot read is refused with its number and nothing is written. Cancel saves nothing and is no failure. The next Read data is a new read with the file.
