@@ -8,7 +8,9 @@ import pytest
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts" / "scenarios"))
 
+import confirmed_profile  # noqa: E402
 import make_answers  # noqa: E402
+import score_holdout  # noqa: E402
 import scenario_tools as tools  # noqa: E402
 
 
@@ -149,3 +151,25 @@ def test_golden_spreads_over_types_and_repeats():
     assert len(first) == 30 and {row["unitRev6"] for row in first} == {"V0", "V1", "V2"}
     assert not {"900", "901"} & {row["officialNumber"] for row in first}
     assert sum(1 for row in first if row["unitRev6"] == "V1") == 10
+
+
+def test_the_stand_in_for_confirm_takes_only_what_was_proposed():
+    profile = {"codeMap": {"proposed": [{"old": "A", "new": "B", "source": "s"}]}, "hands": {"proposed": {"A": "left", "C": None}}, "levels": [{"level": 1, "word": "Phase"}, {"level": 2, "word": None}]}
+    assert confirmed_profile.confirmed(profile) == {"codeMap": [{"old": "A", "new": "B"}], "hands": {"A": "left"}, "levels": [{"level": 1, "word": "Phase"}]}
+    assert confirmed_profile.confirmed({}) == {"codeMap": [], "hands": {}, "levels": []}
+
+
+def test_holdout_rows_take_only_the_held_areas_with_their_levels():
+    plans = [{"neighbourhood": "H", "plots": [{"plot": "3", "unit": {"value": "V1"}, "mirrored": {"value": False}, "levels": {"ffl": {"value": 1.5, "source": "x"}}}]}, {"neighbourhood": "A", "plots": [{"plot": "4", "unit": {"value": "V1"}, "mirrored": {"value": True}}]}]
+    assert tools.holdout_rows(plans, {"H"}) == {"3": {"villaType": "V1", "mirror": False, "levels": {"ffl": 1.5}}}
+
+
+def test_holdout_levels_score_at_each_limit():
+    answers = {"1": {"levels": {"ffl": 10.000}}, "2": {"levels": {"ffl": 10.000}}, "3": {"levels": {"ffl": 10.000}}, "4": {"levels": {"ffl": 10.000}}, "5": {"levels": {"ffl": None}}}
+    plots = [{"number": "1", "values": {"ffl": {"value": 10.004}}}, {"number": "2", "values": {"ffl": {"value": 10.015}}}, {"number": "3", "values": {"ffl": {"value": 10.200}}}, {"number": "4", "values": {"ffl": {"value": None}}}]
+    assert score_holdout.scored_levels(answers, plots) == {"ffl": {"held": 4, "built": 3, "5": 1, "20": 2, "50": 2}}
+
+
+def test_holdout_plots_score_counts_each_field():
+    answers = {"1": {"villaType": "V1", "mirror": True}, "2": {"villaType": "V2", "mirror": False}}
+    assert score_holdout.score_plots(answers, [{"number": "1", "villaType": "V1", "mirror": None}]) == {"held": 2, "numbers": 1, "villaType": 1, "mirror": 0}
