@@ -30,7 +30,8 @@ def request_for(folder, out):
 
 
 def main(argv=None):
-    folder = Path((argv or sys.argv[1:])[0]).resolve()
+    # Not resolved: the watch of the test logs the path it was given, and a short Windows temp name would read as another folder
+    folder = Path((argv or sys.argv[1:])[0])
     files = sorted(path for path in folder.rglob("*") if path.is_file())
     # Opened here so the watch of the test sees the sample read, and so a change by the worker shows
     before = {path.relative_to(folder).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest() for path in files}
