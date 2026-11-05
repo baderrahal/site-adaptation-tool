@@ -35,6 +35,11 @@ The old lanes A to D are read only advisers until round R1 is merged. Trust an a
 - Use `git push origin --delete` for a merged branch, never gh with --delete-branch.
 - New question: next free Q id after checking origin/main, recommended answer first, in steps/questions-open.md. That file is near the 100 KB cap of R400, move or shorten text first.
 - A fix on its third attempt stops and goes back to measuring.
+- Push your branch every 15 minutes while working. Never leave two PRs waiting.
+- Any steps for Bader are numbered, one action each, in the VS Code order: the folder, then Terminal then New Terminal, then each command on its own line. Long steps go in a file under steps/.
+- The repo is public. Every review also checks the diff holds no real coordinate, level, plot data, client file contents, or path with a client name beyond what config already names.
+- steps/PROGRESS.md and steps/STATUS.md are written by scripts/status.ps1, never by hand.
+- The scenario and hold-out answers are read by the scoring scripts alone, a hook blocks every lane.
 
 ## The tool must work for any project
 

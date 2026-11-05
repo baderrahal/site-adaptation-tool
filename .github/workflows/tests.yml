@@ -106,3 +106,7 @@ jobs:
       - name: Revit result check
         if: ${{ !cancelled() }}
         run: python scripts/checks/revit_result.py
+
+      - name: No attribution check
+        if: ${{ !cancelled() }}
+        run: python scripts/checks/no_attribution.py

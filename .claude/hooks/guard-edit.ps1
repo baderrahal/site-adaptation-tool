@@ -44,6 +44,7 @@ if (-not (Test-InsideFolder $file $root)) {
 $relative = $file.Substring($root.TrimEnd('\').Length).TrimStart('\').Replace('\', '/')
 
 if ($relative -ieq 'steps/STATUS.md') { Stop-Edit 'steps/STATUS.md is written by scripts/status.ps1 and the Notification hook, never by hand.' }
+if ($relative -ieq 'steps/PROGRESS.md') { Stop-Edit 'steps/PROGRESS.md is written by scripts/status.ps1 -Progress, never by hand.' }
 
 if ($relative -notmatch '/' -and -not (Test-Path -LiteralPath $file) -and $relative -ine 'CLAUDE.md') {
     Stop-Edit "no new files at the repo root, only CLAUDE.md, .claude and .github live there by rule. $relative needs a folder."

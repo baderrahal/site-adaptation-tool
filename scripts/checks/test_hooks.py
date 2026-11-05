@@ -362,13 +362,13 @@ def runs(repo):
     return len(log.read_text(encoding="utf-8").splitlines()) if log.exists() else 0
 
 
-def test_stop_blocks_on_a_failure_and_shows_it_then_gives_up_after_three(real_git_lane):
+def test_stop_blocks_on_a_failure_and_shows_it_then_gives_up_after_two(real_git_lane):
     repo = real_git_lane
     set_quick(repo, 1)
-    for block in (1, 2, 3):
-        code, _, err = run_hook("stop-tests.ps1", {"cwd": str(repo)})
-        assert code == 2 and "marker of the quick tests" in err and "block %d of 3" % block in err
-    code, _, err = run_hook("stop-tests.ps1", {"cwd": str(repo)})
+    for block in (1, 2):
+        code, _, err = run_hook("stop-tests.ps1", {"cwd": str(repo), "stop_hook_active": block > 1})
+        assert code == 2 and "marker of the quick tests" in err and "block %d of 2" % block in err
+    code, _, err = run_hook("stop-tests.ps1", {"cwd": str(repo), "stop_hook_active": True})
     assert code == 0 and "still fail" in err
 
 

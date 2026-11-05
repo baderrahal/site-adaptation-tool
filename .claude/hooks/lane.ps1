@@ -130,6 +130,24 @@ function Get-StatusPath([string]$Root) {
     return Join-Path (Get-MainFolder $Root) 'steps\STATUS.md'
 }
 
+# Adds a line under Blockers of steps/STATUS.md, line feeds only as the steps files hold no carriage return (R343)
+function Add-StatusBlocker([string]$Root, [string]$Line) {
+    $status = Get-StatusPath $Root
+    if (-not (Test-Path -LiteralPath (Split-Path -Parent $status))) { return }
+    $lines = @()
+    if (Test-Path -LiteralPath $status) { $lines = @(Get-Content -LiteralPath $status -Encoding UTF8) }
+    $at = [array]::IndexOf($lines, '## Blockers')
+    if ($at -lt 0) {
+        $lines = @('## Blockers', "- $Line", '') + $lines
+    }
+    else {
+        $after = @()
+        if ($at + 1 -lt $lines.Count) { $after = @($lines[($at + 1)..($lines.Count - 1)]) }
+        $lines = @($lines[0..$at]) + @("- $Line") + $after
+    }
+    [IO.File]::WriteAllText($status, (($lines -join "`n") + "`n"), (New-Object Text.UTF8Encoding $false))
+}
+
 function Read-HookInput {
     $text = [Console]::In.ReadToEnd()
     if (-not $text) { return $null }
