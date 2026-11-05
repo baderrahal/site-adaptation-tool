@@ -25,7 +25,7 @@ def result_of(name, root, run=None):
     second = read_json(out / "second_check.json") or {}
     manifest = read_json(root / (name + "_manifest.json")) or {}
     return {
-        "ran": str(worker.get("status", "UNKNOWN")), "needs": check["needs"], "areas": tools.areas_read(table["plots"]), "sheetAreas": second.get("neighbourhoodsInSheet", "UNKNOWN"), "notRead": sum(1 for row in check.get("files", []) if row.get("status") != "read"), "score": tools.score(answer, plots["plots"]),
+        "ran": str(worker.get("status", "UNKNOWN")), "needs": check["needs"], "areas": tools.areas_read(table["plots"]), "sheetAreas": second.get("neighbourhoodsInSheet") or "not found", "notRead": sum(1 for row in check.get("files", []) if row.get("status") != "read"), "score": tools.score(answer, plots["plots"]),
         "faults": tools.manifest_faults(root / name, manifest), "levels": profile["levels"], "built": str((read_json(out / "built_from.json") or {}).get("commit", "UNKNOWN"))[:7],
     }
 

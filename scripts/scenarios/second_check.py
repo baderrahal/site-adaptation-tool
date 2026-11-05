@@ -144,6 +144,15 @@ def run_one(name, root, confirmed=False):
             "neighbourhoodTypeGap": sum(abs(area_type_sheet[key] - area_type_read[key]) for key in set(area_type_sheet) | set(area_type_read)),
             "plotsCompared": sum(area_type_sheet.values()),
         })
+        # The area of each plot in the plot table of the run, against the sheet: the same plots together in one area, whatever each side calls it
+        table = out / "read_plotTable.json"
+        rows = json.loads(table.read_text(encoding="utf-8"))["plots"] if table.is_file() else []
+        read_area = {digits_of(row["officialNumber"]): row.get("nbhId") for row in rows}
+        pairs = collections.Counter((listing["area"][number], read_area[number]) for number in listing["area"] if read_area.get(number))
+        best_of = {}
+        for (sheet_area, read_name), count in pairs.items():
+            best_of[sheet_area] = max(best_of.get(sheet_area, 0), count)
+        report.update({"areasRead": len({value for value in read_area.values() if value}), "plotsInTheirAreasMostCommonReadArea": sum(best_of.values()), "plotsWithBothAreas": sum(pairs.values())})
     (out / "second_check.json").write_text(json.dumps(report, indent=1), encoding="utf-8")
     print("%s: %d plots read, %d workbooks (unchanged: %s)" % (name, len(read), len(before), unchanged))
     if listing:
@@ -151,6 +160,7 @@ def run_one(name, root, confirmed=False):
             report["sheetPlots"], report["neighbourhoodsInSheet"], report["villaTypesInSheet"], report["underRead"], report["overRead"]))
         print("  count gap over neighbourhoods %d plots, over villa types %d plots" % (report["neighbourhoodCountGap"], report["villaTypeCountGap"]))
         print("  villa types per neighbourhood: %d pairs over %d plots, gap %d plots" % (report["neighbourhoodTypePairs"], report["plotsCompared"], report["neighbourhoodTypeGap"]))
+        print("  areas: %d on the sheet, %d read, %d of %d plots lie in the read area most of their sheet area share" % (report["neighbourhoodsInSheet"], report["areasRead"], report["plotsInTheirAreasMostCommonReadArea"], report["plotsWithBothAreas"]))
     else:
         print("  no sheet lists the plots by whole numbers with a villa type code")
     return report
