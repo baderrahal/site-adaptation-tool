@@ -14,13 +14,14 @@ Branch task/R1-revit-test from origin/main 5ad1e5d, installed with dotnet/SiteAd
 
 ## What was pressed and seen
 
-Six runs. The first three found the way to the pane, the clicks and a dialog, the last three are the pressing. Run folders: run1 to run6 in r1-revit-test.
+Eight runs. The first three found the way to the pane, the clicks and a dialog, runs 4 to 8 are the pressing. Run folders: run1 to run6 in r1-revit-test.
 
 1. The pane Site Adaptation is open at the start of the model, so the ribbon tab was not needed. The earlier problem of the tab under the overflow arrow does not stop this.
 2. Use a saved project, the file dialog took the path of R1-S1.json (a-dialog.png, b-after-pick.png).
 3. Run 1 Set up site opened the window 1 Set up site (c-after-1.png). Apply was pressed (run3 to run6). A note window then said what Apply removed, closed with its Close button (note-*.png). The pane then showed the next step Run 2 Read data (c3-before-2.png). A dry run press in the same window (run2) showed no visible result in 40 s, UNKNOWN what it did.
 4. Run 2 Read data, run6, after the preview ran the worker command dataCheck on the input folder: the window What the tool read opened 72 s after the press (07:17:21 to 07:18:33) with the section Data check at the top. d-window.png. 11 rows, one per need, in the order of R605: marks Strong 3, Weak 5, Usable 1, Missing 2 (counted from the UIA text of the window, result.json of run6, key window2). Cancel was pressed, the window closed (f-after-cancel.png) and button 2 stopped with nothing written.
 5. Before the change of the preview (run4 and run5) button 2 stopped with "the schedule of IMC, the fit schedule, is not on disk", a stop of ReadInputs.cs line 189 in Common. That stop is the old read asking for past job schedules a new folder does not have. The data check now runs before it. The old read behind it still stops the same way on S1, that is R1-build-1 (Common) and not this task.
+7. Final build, run7 and run8 (the same logic as run6, the words moved to DataCheckText.cs). The window Data check did NOT open in either. In run7 my driver stopped on a UIA timeout while Revit did not answer and closed Revit, the worker it had started went on and wrote its files 15 minutes after its start (answer_2_20261105-074343-631-datacheck.json at 07:58:25, no worker process was left after that). In run8 the worker was cut at its 300 s limit (empty output folder), the add-in went on without the check and button 2 ended with the old stop of 5. In run6 the same check took about 70 s. The machine was in use by other work at the time (the lead scenario runs wrote files in the same minutes), UNKNOWN whether that is the whole reason. So the window is seen on the build of run6 only, not on the build of the PR.
 6. 3 Review data was NOT pressed. It follows 2 Read data, and 2 Read data cannot finish on S1 for the reason in 5. Review data is not seen in Revit.
 
 ## Plot count against plots.json
@@ -34,6 +35,7 @@ Six runs. The first three found the way to the pane, the clicks and a dialog, th
 
 - The window as a person sees it. The press, the screenshot and the UIA text are from a driver, a driver press proves nothing about layout or colour to a person. UNKNOWN.
 - The window is wide and plain: the section Data check is on top, but under it the old sections Where each value comes from and Files read are empty, and the top counters read 0 files read, 0 plots found, 0 conflicts next to 2964 plots in the section. That contradicts the section. Not changed here, a question for Bader (the layout is CHOSEN by Lead).
+- A check that does not finish says nothing to the person, see run8. The worker is also not stopped when Revit closes first.
 - The check runs inside the preview on the Revit thread and took about 72 s with Revit not answering. A progress line is not built. A failed check is silent today (the read goes on), UNKNOWN how Bader wants it said.
 - An empty model with nothing pre-run: not done, see Model.
 - Button 3 Review data, buttons 4 to 9: not seen in Revit.
