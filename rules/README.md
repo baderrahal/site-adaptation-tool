@@ -1,5 +1,7 @@
 # Project rules
 
+templates/ holds the shipped templates of the rules per project, read only (R660). manual.json has the rules M01 to M15 of the manual with every value missing and marked, as the manual text is not in this repo. past-job.json holds the past job measures of keyRules, tagged past, for compare only and never a default. A project takes a copy as project_rules.json in its own folder by the command rulesSetup, and changes it by rulesChange (R661), never by hand.
+
 One JSON file per project. config/project.json names the profile the tool reads (R63), and every rule value is read from that file, so a new rule value goes in the profile and not in code. The profile stays in git.
 
 - roshn-makkah.json is ROSHN Makkah Phase 1, from 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06 (June 2024), with Rev 01 (Dec 2022) for foundations. Lengths are in mm and slopes are in percent. A key that ends in _m, such as plot_width_m, is in metres.

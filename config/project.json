@@ -906,6 +906,27 @@
       }
     }
   },
+  "projectRules": {
+    "note": "R660, R664. CHOSEN by Code in R2-C3-build-1. ruleNames is what RulesForBuild.Check lists when a project has no rules yet, every one missing and marked, the same ids and names as rules/templates/manual.json, a gate test holds the two equal. It is here because Check takes the config and no file path. pastJobMode is the mode in which a project may take rules/templates/past-job.json, named by the request itself, and it is never a default.",
+    "pastJobMode": "roshnPastJob",
+    "ruleNames": {
+      "M01": "How units attach by type",
+      "M02": "Clusters allowed",
+      "M03": "Units in a block and the expansion joint",
+      "M04": "FFL per cluster and where a split falls",
+      "M05": "Front yard slope",
+      "M06": "Back yard slope",
+      "M07": "Townhouse back yard slope",
+      "M08": "Added steps and step heights",
+      "M09": "Riser height limits",
+      "M10": "Unit types with a set step count",
+      "M11": "Boundary wall top",
+      "M12": "Garden wall top",
+      "M13": "Front setback",
+      "M14": "Walls of irregular plots",
+      "M15": "Foundation depth"
+    }
+  },
   "designBasis": {
     "note": "R407, round 4i. The one switch of what a build follows: rev6 the ROSHN Makkah Site Adaptation Manual Rev 06, roshnPastJob the past job as the keys measured it, every build of today. mode is the build of this project, roshnPastJob (Q224), newProjectMode the mode a new project starts on, rev6 (Q224, J16). Under roshnPastJob doorLevel, roadLevel, backYard and clusters are not read and the plan is the plan of before 4i. docs/design/16-design-basis.md",
     "mode": "roshnPastJob",

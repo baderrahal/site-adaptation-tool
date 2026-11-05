@@ -1,0 +1,21 @@
+{
+  "template": "manual",
+  "note": "R660. The rules of the site adaptation manual, one row per rule of the block M01 to M15. A template is read only, a project takes a copy by rulesSetup. No row holds a value: the text of the manual is not in this repo, so no value could be checked against it, and a missing value is never guessed. manualRef says where a person looks.",
+  "rules": [
+    {"id": "M01", "name": "How units attach by type", "group": "Plots and clusters", "manualRef": "2.1.A to 2.1.C", "value": null, "source": "missing", "marked": "The manual text is not in this repo, so this value stays missing until a person enters it from the manual."},
+    {"id": "M02", "name": "Clusters allowed", "group": "Plots and clusters", "manualRef": "2.1.E", "value": null, "source": "missing", "marked": "The manual text is not in this repo, so this value stays missing until a person enters it from the manual."},
+    {"id": "M03", "name": "Units in a block and the expansion joint", "group": "Plots and clusters", "manualRef": "2.1.E and 3.2.A", "value": null, "source": "missing", "marked": "The manual text is not in this repo, so this value stays missing until a person enters it from the manual."},
+    {"id": "M04", "name": "FFL per cluster and where a split falls", "group": "Levels and steps", "manualRef": "2.2.A and 2.2.B", "value": null, "source": "missing", "marked": "The manual text is not in this repo, so this value stays missing until a person enters it from the manual."},
+    {"id": "M05", "name": "Front yard slope", "group": "Slopes", "manualRef": "2.3.A", "value": null, "source": "missing", "marked": "The manual text is not in this repo, so this value stays missing until a person enters it from the manual."},
+    {"id": "M06", "name": "Back yard slope", "group": "Slopes", "manualRef": "2.3.B", "value": null, "source": "missing", "marked": "The manual text is not in this repo, so this value stays missing until a person enters it from the manual."},
+    {"id": "M07", "name": "Townhouse back yard slope", "group": "Slopes", "manualRef": "2.3.C", "value": null, "source": "missing", "marked": "The manual text is not in this repo, so this value stays missing until a person enters it from the manual."},
+    {"id": "M08", "name": "Added steps and step heights", "group": "Levels and steps", "manualRef": "2.4.A and Appendix A", "value": null, "source": "missing", "marked": "The manual text is not in this repo, so this value stays missing until a person enters it from the manual."},
+    {"id": "M09", "name": "Riser height limits", "group": "Levels and steps", "manualRef": "2.4.A", "value": null, "source": "missing", "marked": "The manual text is not in this repo, so this value stays missing until a person enters it from the manual."},
+    {"id": "M10", "name": "Unit types with a set step count", "group": "Levels and steps", "manualRef": "Appendix A", "value": null, "source": "missing", "marked": "The manual text is not in this repo, so this value stays missing until a person enters it from the manual."},
+    {"id": "M11", "name": "Boundary wall top", "group": "Walls", "manualRef": "2.5.C", "value": null, "source": "missing", "marked": "The manual text is not in this repo, so this value stays missing until a person enters it from the manual."},
+    {"id": "M12", "name": "Garden wall top", "group": "Walls", "manualRef": "2.6", "value": null, "source": "missing", "marked": "The manual text is not in this repo, so this value stays missing until a person enters it from the manual."},
+    {"id": "M13", "name": "Front setback", "group": "Plots and clusters", "manualRef": "2.8.B", "value": null, "source": "missing", "marked": "The manual text is not in this repo, so this value stays missing until a person enters it from the manual."},
+    {"id": "M14", "name": "Walls of irregular plots", "group": "Walls", "manualRef": "2.8.A and 2.8.B", "value": null, "source": "missing", "marked": "The manual text is not in this repo, so this value stays missing until a person enters it from the manual."},
+    {"id": "M15", "name": "Foundation depth", "group": "Structure", "manualRef": "3.2.A", "value": null, "source": "missing", "marked": "The manual text is not in this repo, so this value stays missing until a person enters it from the manual."}
+  ]
+}
