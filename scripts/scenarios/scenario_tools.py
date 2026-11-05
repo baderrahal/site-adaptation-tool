@@ -271,6 +271,33 @@ def mark_rows(results):
     return out
 
 
+BUILD_RUN = "_build"
+
+
+def build_counts(plan, seconds=None):
+    """Counts of one build plan. A value counts as built when it has a source other than missing, a missing value is empty and its plot is marked."""
+    plots = plan.get("plots", [])
+    values = [value for plot in plots for value in plot.get("values", {}).values()]
+    return {
+        "plots": len(plots), "built": sum(1 for value in values if value.get("source") != "missing"), "missing": sum(1 for value in values if value.get("source") == "missing"),
+        "marked": sum(1 for plot in plots if plot.get("marked")), "blocking": len(plan.get("blocking", [])), "issues": len(plan.get("issues", [])),
+        "past": sum(1 for value in values if value.get("source") == "past"), "seconds": seconds,
+    }
+
+
+def build_rows(results):
+    """The build plan of each scenario, counts only. Built and Missing count values of the plan, not plots."""
+    out = ["| Scenario | Plots planned | Built | Missing | Plots marked | Blocking | Issues | Copied from the past | Seconds |", "|---|---|---|---|---|---|---|---|---|"]
+    for name in sorted(SCENARIOS):
+        count = (results.get(name) or {}).get("build")
+        if not count:
+            out.append("| %s | not run | | | | | | | |" % name)
+        else:
+            seconds = "UNKNOWN" if count["seconds"] is None else count["seconds"]
+            out.append("| %s | %d | %d | %d | %d | %d | %d | %d | %s |" % (name, count["plots"], count["built"], count["missing"], count["marked"], count["blocking"], count["issues"], count["past"], seconds))
+    return out
+
+
 def table(results, confirmed=None):
     """The tables of steps/scenarios.md. Counts and marks only, this file is in a public repo. confirmed holds the runs on what each first run
     proposed, as a person pressing Confirm on all of it, left out when there are none."""
@@ -278,6 +305,10 @@ def table(results, confirmed=None):
            "Written by scripts/scenarios/score_scenarios.py, never by hand. Stage 1 on each folder under the work root, scored against its right answer. Counts and marks only, the folders stay out of git and what each data check said is in scenarios\\report.md under the work root. The right answers leave the hold-out neighbourhoods out.", "",
            "## With no confirmed input", ""]
     out += score_rows(results) + ["", not_read_line(results), "", "## Mark of each need", ""] + mark_rows(results)
+    if any((result or {}).get("build") for result in results.values()):
+        out += ["", "## Build plan, what was built and what was missing", "",
+                "siteBuild on the plot table of each run above (scripts/scenarios/run_build.py). No past file and no override list is read. A value with no rule stays missing and its plot is marked.", ""]
+        out += build_rows(results)
     if confirmed and any(confirmed.values()):
         out += ["", "## With a confirmed profile", "", "Each scenario again on what its own first run proposed, as a person pressing Confirm on all of it (scripts/scenarios/confirmed_profile.py). Nothing comes from a past file or an answer, a proposal that is wrong stays wrong and scores so.", ""]
         out += score_rows(confirmed) + ["", not_read_line(confirmed), "", "## Mark of each need with a confirmed profile", ""] + mark_rows(confirmed)
