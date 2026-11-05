@@ -367,7 +367,7 @@ namespace SiteAdaptation.Common
             };
             foreach (JObject row in ProposalRows(f))
             {
-                values.Add(row);
+                values.Add(WithNameTwice(row, f));
             }
 
             foreach (string tie in TiesOf(f).Where(text => !input.Ties.Contains(text)))

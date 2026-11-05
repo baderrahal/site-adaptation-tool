@@ -29,6 +29,7 @@ namespace SiteAdaptation.Tests
                     [Path.Combine(root, "dotnet", "SiteAdaptation.Common", "Update", "UpdateText.cs")] = "Update from report",
                     [Path.Combine(root, "dotnet", "SiteAdaptation.Common", "Scan", "ScanViewText.cs")] = "What the tool read",
                     [Path.Combine(root, "dotnet", "SiteAdaptation.Common", "Review", "ClusterConfirmText.cs")] = "Review data",
+                    [Path.Combine(root, "dotnet", "SiteAdaptation.Common", "Review", "ReviewRowText.cs")] = "Review data",
                 });
 
             Assert.Equal(new[] { "Ribbon", "Pane", "Button messages", "Set up site", "Review data", "Site Adaptation Rules", "Check table", "Update from report", "New project", "Rule values", "Help box", "How it works", "What the tool read", "Loader" }, list.Keys.ToArray());
@@ -41,7 +42,8 @@ namespace SiteAdaptation.Tests
             Assert.Contains(shown[UiLabels.Messages], found => found.Text == "Cancel" && found.Where.EndsWith("RevitModel.cs", StringComparison.Ordinal));
             // 31 since Lane B 5c, the 11 messages of 2 Read data (R375)
             // FIX-3NOV-B added 1, the record of a step that did not reach the model (R498)
-            Assert.Equal(32, list[UiLabels.Messages].Entries.Count);
+            // R639 added 14, the words of a raw read and of a read that is not whole
+            Assert.Equal(46, list[UiLabels.Messages].Entries.Count);
             Assert.Contains(shown["Update from report"], found => found.Text == "follows the rules" && found.Where.EndsWith("UpdateText.cs", StringComparison.Ordinal));
             Assert.Contains(shown["Update from report"], found => found.Text == "<name> <n>" && found.Where.EndsWith("UpdateFromReportText.cs", StringComparison.Ordinal));
 
@@ -193,7 +195,8 @@ namespace SiteAdaptation.Tests
             // R620 added 20: the section Data check of What the tool read, its 5 headings, the 11 needs and the 4 marks. Its second pass added 13: the
             // band and foot lines and the Close of a check alone, the files not read, the stopped note and 7 lines of button 2 when the check stops
             // R636 and R635 added 52: 50 of the window Confirm what was found and of its end, filed under What the tool read since its files lie in the folder ScanResults, and 2 of the pane, Input folder and Confirmed values
-            Assert.Equal(423, chosen);
+            // R639 added 17: 14 of 2 Read data and 3 of a row of Review data
+            Assert.Equal(440, chosen);
             Assert.True(matched > 100, matched.ToString());
         }
 

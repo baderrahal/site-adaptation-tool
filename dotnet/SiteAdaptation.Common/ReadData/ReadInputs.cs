@@ -14,26 +14,31 @@ namespace SiteAdaptation.Common.ReadData
     // R375. One input of the read of button 2, known by its role in the request, its full path, its size and its SHA-256
     public sealed class ReadInput
     {
-        public ReadInput(string role, string path, long bytes, string sha256)
+        public ReadInput(string role, string path, long bytes, string sha256, int filesHeld = 0)
         {
             Role = role;
             Path = path;
             Bytes = bytes;
             Sha256 = sha256;
+            FilesHeld = filesHeld;
         }
 
         public string Role { get; }
         public string Path { get; }
         public long Bytes { get; }
         public string Sha256 { get; }
+
+        // R639. The files a folder input holds as it was walked, 0 for a file. Outside the hash, a count says nothing the list of the folder does not
+        public int FilesHeld { get; }
     }
 
     // R375. Every input of the read with the one hash over them and the read steps, or the stops that keep it from starting
     public sealed class ReadPlan
     {
-        public ReadPlan(IReadOnlyList<ReadInput> inputs, IReadOnlyList<string> steps, IReadOnlyList<string> stops, string configPath, string roadOrder = null, bool fromDataCheck = false)
+        public ReadPlan(IReadOnlyList<ReadInput> inputs, IReadOnlyList<string> steps, IReadOnlyList<string> stops, string configPath, string roadOrder = null, bool fromDataCheck = false, IReadOnlyList<string> pastLacks = null)
         {
             FromDataCheck = fromDataCheck;
+            PastLacks = pastLacks ?? new string[0];
             RoadOrder = roadOrder;
             Inputs = inputs;
             Steps = steps;
@@ -58,6 +63,9 @@ namespace SiteAdaptation.Common.ReadData
 
         // R635. The read of a project with no past files, by the worker command dataCheck on the folder and with no read step
         public bool FromDataCheck { get; }
+
+        // R639. What the old read lacks, the reason this read takes the folder, one line each. Outside the hash, it says why and changes no read
+        public IReadOnlyList<string> PastLacks { get; }
 
         // One SHA-256 over every role and hash and the step list, which names the folder of the read
         public string Hash { get; }
@@ -202,7 +210,7 @@ namespace SiteAdaptation.Common.ReadData
         // that holds them all. The add-in asks this to leave out what only the old read needs, the files of the pane and the scan before it
         public static bool NoPastFiles(string configPath, string mode, string workFolder)
         {
-            return RawConfig(configPath, mode, workFolder) != null;
+            return RawConfig(configPath, mode, workFolder, out _) != null;
         }
 
         // R635. The plan of that read, null when the old read applies. The folder is known by a hash of the name, size and write time of its files,
@@ -211,11 +219,12 @@ namespace SiteAdaptation.Common.ReadData
         {
             RunInput configInput = (pane ?? new RunInput[0]).FirstOrDefault(input => roles.TryGetValue(input.Name, out string role) && role == Config);
             string configPath = configInput?.Path;
-            if (!NoPastFiles(configPath, mode, workFolder))
+            // R639. Once, a second read of a file locked in between gives null here
+            JObject config = RawConfig(configPath, mode, workFolder, out List<string> lacks);
+            if (config == null)
             {
                 return null;
             }
-            JObject config = RawConfig(configPath, mode, workFolder);
             string folder = Path.GetFullPath((string)config["inputRoot"]);
             configPath = Path.GetFullPath(configPath);
             HashSet<string> skip;
@@ -225,7 +234,7 @@ namespace SiteAdaptation.Common.ReadData
             }
             catch (InvalidDataException refused)
             {
-                return new ReadPlan(new ReadInput[0], new string[0], new[] { refused.Message }, configPath, null, true);
+                return new ReadPlan(new ReadInput[0], new string[0], new[] { refused.Message }, configPath, null, true, lacks);
             }
             var inputs = new List<ReadInput>
             {
@@ -237,39 +246,39 @@ namespace SiteAdaptation.Common.ReadData
             {
                 inputs.Add(new ReadInput(ConfirmedProfile.Role, profile, new FileInfo(profile).Length, FileHash.Sha256(profile)));
             }
-            return new ReadPlan(inputs, new string[0], new string[0], configPath, null, true);
+            return new ReadPlan(inputs, new string[0], new string[0], configPath, null, true, lacks);
         }
 
-        // Null where the old read applies, and for a settings file that does not read, which the old read says in its own line
-        private static JObject RawConfig(string configPath, string mode, string workFolder)
+        // Null where the old read applies, and for a settings file that does not read, which the old read says in its own line. R639: the pane refresh
+        // reaches this, so a locked file is held as PaneRunState.ConfigOf holds the same refresh. lacks names what sends the project to the folder
+        private static JObject RawConfig(string configPath, string mode, string workFolder, out List<string> lacks)
         {
+            lacks = new List<string>();
             if (string.IsNullOrEmpty(configPath) || !File.Exists(configPath))
             {
                 return null;
             }
-            JObject config;
             try
             {
-                config = ProjectModes.Apply(JObject.Parse(WorkFiles.ReadText(configPath)), mode);
+                JObject config = ProjectModes.Apply(JObject.Parse(WorkFiles.ReadText(configPath)), mode);
+                string root = config["inputRoot"]?.Type == JTokenType.String ? (string)config["inputRoot"] : null;
+                if (!RoadSurfaceChoices.IsRev6(config) || string.IsNullOrEmpty(root) || !Directory.Exists(root))
+                {
+                    return null;
+                }
+                var found = new List<KeyValuePair<string, string>>();
+                JObject read = config.SelectToken("addin.readData") as JObject;
+                if (read != null)
+                {
+                    Schedules(config, read, found, lacks);
+                    DataBook(read, workFolder, found, lacks);
+                }
+                return read == null || lacks.Count > 0 ? config : null;
             }
-            catch (Exception failure) when (failure is InvalidDataException || failure is Newtonsoft.Json.JsonException)
+            catch (Exception failure) when (failure is InvalidDataException || failure is Newtonsoft.Json.JsonException || failure is IOException || failure is UnauthorizedAccessException || failure is ArgumentException || failure is NotSupportedException)
             {
                 return null;
             }
-            string root = config["inputRoot"]?.Type == JTokenType.String ? (string)config["inputRoot"] : null;
-            if (!RoadSurfaceChoices.IsRev6(config) || string.IsNullOrEmpty(root) || !Directory.Exists(root))
-            {
-                return null;
-            }
-            var stops = new List<string>();
-            var found = new List<KeyValuePair<string, string>>();
-            JObject read = config.SelectToken("addin.readData") as JObject;
-            if (read != null)
-            {
-                Schedules(config, read, found, stops);
-                DataBook(read, workFolder, found, stops);
-            }
-            return read == null || stops.Count > 0 ? config : null;
         }
 
         private static ReadInput FolderInput(string folder, HashSet<string> skip)
@@ -297,7 +306,7 @@ namespace SiteAdaptation.Common.ReadData
             using (SHA256 hash = SHA256.Create())
             {
                 byte[] digest = hash.ComputeHash(Encoding.UTF8.GetBytes(string.Join("\n", lines)));
-                return new ReadInput(ScanFolder, folder, bytes, string.Concat(digest.Select(item => item.ToString("x2"))));
+                return new ReadInput(ScanFolder, folder, bytes, string.Concat(digest.Select(item => item.ToString("x2"))), lines.Count);
             }
         }
 

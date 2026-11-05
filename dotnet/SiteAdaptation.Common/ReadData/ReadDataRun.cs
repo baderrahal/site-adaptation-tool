@@ -32,6 +32,7 @@ namespace SiteAdaptation.Common.ReadData
         public const string RecordFile = "read.json";
         public const string RecordFormat = "site-adaptation-read";
         public const string PlotTableFile = "read_plotTable.json";
+        public const string DataCheckFile = "data_check.json";
 
         // The work folders whose worker runs now, so a second click says so and starts nothing
         private static readonly HashSet<string> Running = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -88,15 +89,36 @@ namespace SiteAdaptation.Common.ReadData
             previewed = files;
             // The dry run lists the files the user gave, picks.json is made at the start once the scan of the start has run (R473)
             ReadPlan plan = Picked(context, files, out _);
-            JObject reusable = Reusable(FolderOf(context.WorkFolder, plan), plan);
+            string folder = FolderOf(context.WorkFolder, plan);
+            JObject reusable = Reusable(folder, plan);
             if (reusable != null)
             {
-                return new RunSummary(RunTexts.ReadReuses(files.Inputs.Count, (string)reusable["runId"]), Lines(files, files.Inputs.Select(input => input.Role)));
+                string runId = (string)reusable["runId"];
+                return new RunSummary(files.FromDataCheck ? RunTexts.ReadFolderReuses(runId, HasConfirmed(files)) + Instead(files) : RunTexts.ReadReuses(files.Inputs.Count, runId), Lines(files, files.Inputs.Select(input => input.Role)));
             }
             JObject last = Last(context.WorkFolder);
             var held = new HashSet<string>(last == null ? Enumerable.Empty<string>() : ((JArray)last["inputs"]).Select(input => (string)input["role"] + "|" + (string)input["sha256"]), StringComparer.Ordinal);
             IEnumerable<string> unchanged = files.Inputs.Where(input => held.Contains(input.Role + "|" + input.Sha256)).Select(input => input.Role);
-            return new RunSummary(RunTexts.ReadCounts(files.Inputs.Count, files.Inputs.Sum(input => input.Bytes) / 1048576.0), Lines(files, unchanged));
+            return new RunSummary(files.FromDataCheck ? FolderCounts(files, folder) : RunTexts.ReadCounts(files.Inputs.Count, files.Inputs.Sum(input => input.Bytes) / 1048576.0), Lines(files, unchanged));
+        }
+
+        // R639. The confirm line of a raw read: what it reads, why it takes the folder, and why it reads again when the same files were read before
+        private static string FolderCounts(ReadPlan files, string folder)
+        {
+            ReadInput walked = files.Inputs.First(input => input.Role == ReadInputs.ScanFolder);
+            string again = NotWhole(folder);
+            return RunTexts.ReadFolderCounts(walked.FilesHeld, walked.Bytes / 1048576.0, HasConfirmed(files)) + Instead(files) + (again == null ? "" : " " + RunTexts.ReadAgain(again));
+        }
+
+        private static bool HasConfirmed(ReadPlan files)
+        {
+            return files.Inputs.Any(input => input.Role == ConfirmedProfile.Role);
+        }
+
+        // R639. The word that a raw read took the folder since the old read cannot run, empty on the old read
+        private static string Instead(ReadPlan plan)
+        {
+            return plan.FromDataCheck ? " " + RunTexts.ReadFolderInstead(plan.PastLacks) : "";
         }
 
         private void Start(RunContext context, Action<RunLater> done)
@@ -121,7 +143,7 @@ namespace SiteAdaptation.Common.ReadData
                 JObject record = Recorded(context.RunId, plan, Outputs(reusable), reusable["counts"] as JObject ?? new JObject(), Strings(reusable["issues"]), picks);
                 record["reusedFrom"] = (string)reusable["reusedFrom"] ?? before;
                 WorkFiles.WriteText(Path.Combine(folder, RecordFile), context.RunId, record.ToString(Newtonsoft.Json.Formatting.Indented));
-                done(Ended(context, folder, RunTexts.ReadReused(context.Label, before), Strings(reusable["issues"]), Outputs(reusable)));
+                done(Ended(context, folder, RunTexts.ReadReused(context.Label, before) + Instead(plan), Strings(reusable["issues"]), Outputs(reusable)));
                 return;
             }
             string work = Path.GetFullPath(context.WorkFolder);
@@ -195,7 +217,9 @@ namespace SiteAdaptation.Common.ReadData
             JObject record = Recorded(context.RunId, plan, outputs, JObject.FromObject(answer.Counts ?? new Dictionary<string, int>()), issues, picks);
             // The record goes last, by a temporary name and a rename, so a folder is reused only once every output of it is there
             WorkFiles.WriteText(Path.Combine(folder, RecordFile), context.RunId, record.ToString(Newtonsoft.Json.Formatting.Indented));
-            return Ended(context, folder, RunTexts.ReadDone(context.Label, outputs.Count, issues.Count), issues, outputs);
+            string again = plan.FromDataCheck ? NotWhole(folder) : null;
+            string message = RunTexts.ReadDone(context.Label, outputs.Count, issues.Count) + Instead(plan) + (again == null ? "" : " " + RunTexts.ReadNotWhole(again));
+            return Ended(context, folder, message, issues, outputs, again);
         }
 
         // R474. sources names per value kind the source read and from where, and each conflict pick applied
@@ -220,7 +244,8 @@ namespace SiteAdaptation.Common.ReadData
         }
 
         // The scope of R366 held against the whole plot table of the read. A stop keeps the read for the next run and the step as it was
-        private RunLater Ended(RunContext context, string folder, string message, IReadOnlyList<string> issues, IReadOnlyDictionary<string, string> outputs)
+        // again is why the read is not whole, null when it is, as the next run then reads the files and does not reuse them (R639)
+        private RunLater Ended(RunContext context, string folder, string message, IReadOnlyList<string> issues, IReadOnlyDictionary<string, string> outputs, string again = null)
         {
             string table = Path.Combine(folder, PlotTableFile);
             if (!File.Exists(table))
@@ -230,7 +255,7 @@ namespace SiteAdaptation.Common.ReadData
             ScopeResult result = ButtonScope.Resolve(context.Button, scope() ?? new SettingsScope(), ScopePlots(JObject.Parse(WorkFiles.ReadText(table))));
             if (!result.Ok)
             {
-                return RunLater.Failed(RunTexts.ReadScope(context.Label, result.Stops));
+                return RunLater.Failed(again == null ? RunTexts.ReadScope(context.Label, result.Stops) : RunTexts.ReadScopeAgain(context.Label, result.Stops, again));
             }
             return RunLater.Done(message, issues, outputs);
         }
@@ -326,7 +351,39 @@ namespace SiteAdaptation.Common.ReadData
                     return null;
                 }
             }
-            return record;
+            // R639. Same files, but a cause outside them may be gone since: a file another program held open, a run refused for memory
+            return plan.FromDataCheck && NotWhole(folder) != null ? null : record;
+        }
+
+        // R639. Why the raw read in this folder is not whole: its check stopped or left a file or folder not read. Null when it is whole, and when the
+        // folder holds no read yet, which is a first read and no read again
+        private static string NotWhole(string folder)
+        {
+            if (Record(Path.Combine(folder, RecordFile)) == null)
+            {
+                return null;
+            }
+            string path = Path.Combine(folder, DataCheckFile);
+            JObject check;
+            try
+            {
+                check = File.Exists(path) ? JObject.Parse(WorkFiles.ReadText(path)) : null;
+            }
+            catch (Newtonsoft.Json.JsonException)
+            {
+                check = null;
+            }
+            if (check == null)
+            {
+                return RunTexts.ReadNoResult;
+            }
+            string stopped = (string)check["stopped"];
+            if (!string.IsNullOrEmpty(stopped))
+            {
+                return RunTexts.ReadStopped(stopped);
+            }
+            List<JToken> left = (check["files"] as JArray ?? new JArray()).Where(file => (string)file["status"] != "read").ToList();
+            return left.Count == 0 ? null : RunTexts.ReadLeftOut(left.Count, (string)left[0]["name"], (string)left[0]["reason"]);
         }
 
         // The record of the latest read of the work folder by its run id, which starts with the button and the time
@@ -370,8 +427,8 @@ namespace SiteAdaptation.Common.ReadData
         private static IReadOnlyList<string> Lines(ReadPlan plan, IEnumerable<string> unchanged)
         {
             var same = new HashSet<string>(unchanged, StringComparer.Ordinal);
-            // R635. The folder of a raw read by its whole path, so the person sees which folder was read
-            return plan.Inputs.Select(input => RunTexts.ReadFile(input.Role == ReadInputs.ScanFolder ? input.Path : Path.GetFileName(input.Path), input.Bytes, input.Sha256, same.Contains(input.Role))).ToList();
+            // R635. The folder of a raw read by its whole path, so the person sees which folder was read. R639: first every file the old read lacks, the line above names one
+            return plan.PastLacks.Select(RunTexts.ReadFolderLack).Concat(plan.Inputs.Select(input => RunTexts.ReadFile(input.Role == ReadInputs.ScanFolder ? input.Path : Path.GetFileName(input.Path), input.Bytes, input.Sha256, same.Contains(input.Role)))).ToList();
         }
     }
 }

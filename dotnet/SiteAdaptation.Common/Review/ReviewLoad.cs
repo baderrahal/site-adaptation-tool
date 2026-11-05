@@ -15,8 +15,8 @@ namespace SiteAdaptation.Common.Review
     // from the cluster proposals of R442, which ClusterConfirm.Load takes from the plan of the last done 4 Check
     public static class ReviewLoad
     {
-        // The drawings the band line "Read from" names, in the order of the read
-        private static readonly string[] SourceRoles = { "baseplan", "villaBlocks", "curbs" };
+        // The drawings the band line "Read from" names, in the order of the read, and the folder of a raw read (R639)
+        private static readonly string[] SourceRoles = { "baseplan", "villaBlocks", "curbs", ReadInputs.ScanFolder };
 
         // The read folder whose read.json holds the largest run id, which starts with the button and the time, null when none
         public static string LatestReadFolder(string workFolder)
@@ -75,7 +75,7 @@ namespace SiteAdaptation.Common.Review
             string sitePath = Path.Combine(workFolder, SetUpRun.SiteFile);
             JObject site = File.Exists(sitePath) ? JObject.Parse(WorkFiles.ReadText(sitePath)) : null;
             List<string> sources = SourceRoles.SelectMany(role => ((JArray)record["inputs"] ?? new JArray()).Where(input => (string)input["role"] == role))
-                .Select(input => Path.GetFileName((string)input["path"] ?? "")).ToList();
+                .Select(input => (string)input["role"] == ReadInputs.ScanFolder ? Flow.RunTexts.ReadFromFolder((string)input["path"] ?? "") : Path.GetFileName((string)input["path"] ?? "")).ToList();
             string trimmed = nbh.Trim();
             string reviewPath = ReviewFile.PathOf(workFolder, trimmed);
             Tuple<List<ClusterMark>, string> proposals = ClusterConfirm.Load(workFolder, trimmed);

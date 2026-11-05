@@ -167,6 +167,20 @@ An entry marked CHOSEN in 5a was worded in 5a PR 2 or PR 5, where docs/design/ g
 - `<n> done: the read of run <n> is reused, nothing was read again.` CHOSEN in 5c, the end of a second run of 2 Read data
 - `the worker ended <n>, <n>` CHOSEN in 5c, the reason of a worker that failed, was refused or ran past its time limit
 - `<n> read the files, but the scope stops it: <n>. Change the scope and run it again, the read is reused.` CHOSEN in 5c, the scope of R366 held against the plot table
+- `<n> read the files, but the scope stops it: <n>. This read is not whole, the next press reads again: <n>.` CHOSEN in R639, as the line above on a read that is not whole
+- `Reads the folder and the settings file. Files in the folder: <n>, <n> MiB, those of a kind it knows are read.` CHOSEN in R639, the counts of the confirm of a raw read, which counts the files the folder holds and never says that many are read
+- `Reads the folder, the settings file and the values a person confirmed. Files in the folder: <n>, <n> MiB, those of a kind it knows are read.` CHOSEN in R639, as the line above
+- `Reuses the read of run <n>, the folder and the settings file are unchanged.` CHOSEN in R639, as the line above on a second run
+- `Reuses the read of run <n>, the folder, the settings file and the values a person confirmed are unchanged.` CHOSEN in R639, as the line above
+- `This project names no files for the old read, so the folder is read instead.` CHOSEN in R639, the word of R635 on a project with no list of past files
+- `The old read lacks a file: <n>, and <n> more. The folder is read instead.` CHOSEN in R639, the word of R635 on a project that lacks a past file
+- `The old read lacks: <n>` CHOSEN in R639, each such file in the dry run list
+- `Reads again, the last read of these files is not whole: <n>.` CHOSEN in R639, the confirm of a read done again
+- `This read is not whole, the next press reads again: <n>.` CHOSEN in R639, the end of such a read
+- `the check stopped, <n>` CHOSEN in R639, a reason of the two lines above
+- `files or folders not read <n>, the first is <n>, <n>` CHOSEN in R639, as the line above
+- `its check left no result` CHOSEN in R639, as the line above
+- `the folder <n>` CHOSEN in R639, what the band line Read from of 3 Review data names on a raw read
 
 ### Set up site
 
@@ -284,6 +298,9 @@ Built in Lane B 5c. The labels, columns, chips and side box are those of Review 
 - `Manual rule <n>` CHOSEN, the rule M01 to M15 of docs/design/15-manual-rules.md that the row is checked by
 - `Edge <n>` CHOSEN, the front edge as its number in the ring of the plot, from 1
 - `not read yet` CHOSEN, for a value that only the plan of 4 Check gives, or the site file of 1 Set up site
+- `no type: <n>` CHOSEN in R639, a plot a finished read gave no villa type, with the reason the read holds
+- `no mirror: <n>` CHOSEN in R639, as the line above for the mirror
+- `the read gives no reason` CHOSEN in R639, as the two lines above when the read holds no reason
 - `Yes` CHOSEN, the Mirror value
 - `No` CHOSEN, the Mirror value
 - `Pick a plot from the table.` CHOSEN, the side box with no plot selected

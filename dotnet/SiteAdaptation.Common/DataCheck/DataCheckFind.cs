@@ -56,6 +56,8 @@ namespace SiteAdaptation.Common
             public List<CodeTable> TablesTooLarge;
             public List<TypologyCandidate> Columns;
             public List<TypologyCandidate> ColumnsTooLarge;
+            public List<KeyValuePair<string, string>> TypologyTwice;
+            public List<KeyValuePair<string, string>> AreaTwice;
             public TypologyCandidate ColumnProposed;
             public string ColumnTie;
             public string ColumnGone;
@@ -137,9 +139,11 @@ namespace SiteAdaptation.Common
             f.TablesTooLarge = new List<CodeTable>();
             f.ColumnsTooLarge = new List<TypologyCandidate>();
             f.Tables = CodeTables(settings, input, prototypes, f.Plots, f.TablesTooLarge);
-            f.Columns = TypologyColumns(settings, input, f.Plots, prototypes, f.ColumnsTooLarge);
+            f.TypologyTwice = new List<KeyValuePair<string, string>>();
+            f.AreaTwice = new List<KeyValuePair<string, string>>();
+            f.Columns = TypologyColumns(settings, input, f.Plots, prototypes, f.ColumnsTooLarge, f.TypologyTwice);
             f.ColumnProposed = TypologyProposal(f.Columns, out f.ColumnTie);
-            f.Areas = AreaColumns(settings, input, f.Plots);
+            f.Areas = AreaColumns(settings, input, f.Plots, f.AreaTwice);
             f.AreaProposed = AreaProposal(f.Areas, out f.AreaTie);
             ApplyConfirmed(f);
             f.Words = new string[levels];

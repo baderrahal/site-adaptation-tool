@@ -82,7 +82,13 @@ namespace SiteAdaptation.Common.Review
 
         public string VillaType { get; set; }
 
+        // R639. Why a finished read gave this plot no villa type, null where nothing is said, as on the old read
+        public string VillaWhy { get; set; }
+
         public bool? Mirror { get; set; }
+
+        // R639. The same for the mirror
+        public string MirrorWhy { get; set; }
 
         public string Cluster { get; set; }
 

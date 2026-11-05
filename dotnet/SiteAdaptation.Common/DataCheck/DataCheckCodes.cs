@@ -204,7 +204,8 @@ namespace SiteAdaptation.Common
         // and a block or area name does not, and that say something the drawing does not, since a column that repeats the drawing's codes
         // settles nothing. A column past codeTableMaxPairs is found and said too large. Best first: the most plots a prototype file can be found
         // for, then the column most of whose rows hold one. A column that keeps its place by coming later wins nothing, see TypologyProposal
-        private static List<TypologyCandidate> TypologyColumns(DataCheckSettings settings, DataCheckInput input, List<Plot> plots, HashSet<string> prototypes, List<TypologyCandidate> tooLarge)
+        // R639. One that would rank but whose name two columns carry goes on nameTwice, for the line, and on neither list
+        private static List<TypologyCandidate> TypologyColumns(DataCheckSettings settings, DataCheckInput input, List<Plot> plots, HashSet<string> prototypes, List<TypologyCandidate> tooLarge, List<KeyValuePair<string, string>> nameTwice)
         {
             var found = new List<TypologyCandidate>();
             if (plots.Count == 0 || plots.Any(plot => plot.Group == null))
@@ -229,13 +230,17 @@ namespace SiteAdaptation.Common
                     for (int column = 0; column < sheet.Headers.Count; column++)
                     {
                         order++;
-                        if (column == key || NameTwice(sheet, column))
+                        if (column == key)
                         {
                             continue;
                         }
                         Dictionary<Plot, string> cells = ColumnCells(sheet, key, column, byNumber, out int listedTwice, out HashSet<Plot> _);
                         TypologyCandidate candidate = Typology(settings, plots.Count, cells, prototypes);
-                        if (candidate != null)
+                        if (candidate != null && NameTwice(sheet, column))
+                        {
+                            AddNameTwice(nameTwice, sheet, column);
+                        }
+                        else if (candidate != null)
                         {
                             candidate.Workbook = book.Name;
                             candidate.Sheet = sheet.Name;
