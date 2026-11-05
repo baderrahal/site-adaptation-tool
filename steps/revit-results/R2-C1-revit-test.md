@@ -32,7 +32,7 @@ Pass 2 (`shots/drv2`), after the fix, Revit restarted, step 1 again because the 
 8. Run 2 Read data, dry run said "Reuses the read of run 2_20261105-123609-964, its 2 input files are unchanged" (`p2-e-read-preview.png`). Apply showed the check from that same folder, 7 files read, 2,964 plots (`p2-f-confirm-window.png`). The check was not run again.
 9. The confirm window with arrows (`p2-g-confirm-window.png`). The driver set the hand of one prototype to right and the word of group level 1 by UI Automation (`p2-i-after-confirm.png`), then pressed Confirm. The note said the file was saved and to press Read data again (`p2-j-after-invoke.png`). Read back from disk, not from a screen: the file holds codeMap 16 rows, hands 1, levels 1, a typology column and an area column.
 10. Run 3 Review data first stopped in plain words, "shows one NBH, the scope names none. Choose an NBH in Scope of the pane" (`p2-k-review-press.png`). With the scope on one of the two areas found by distance it opened "3 Review data, NBH L1-1, 2963 plots" (`p2-q-review-dry.png`).
-11. Fault found here: after Confirm the pane still said Review data was next although the read was now stale, the same shot `p2-j-after-invoke.png`. Fixed: confirmed_profile.json is an input of step 2 in the work folder. The fix was seen as "Reads 3 files" in step 12. The pane line after a Confirm on the fixed build: see Final build.
+11. Fault found here: after Confirm the pane still said Review data was next although the read was now stale, the same shot `p2-j-after-invoke.png`. Fixed: confirmed_profile.json is an input of step 2 in the work folder. The fix was seen as "Reads 3 files" in step 12. The pane line after a Confirm on the fixed build is step 21.
 
 Pass 3 (`shots/drv4`), after the second fix. A first start of this pass, `shots/drv3`, lost the add-in because the driver was waiting and did not answer the Load Once prompt, so Revit was closed and started again, driver fixed. Not a fault of the add-in.
 12. Use a saved project, 1 Set up site (the driver typed the invented position, Dry run, Apply), then Run 2 Read data. The dry run now said "Reads 3 files, 1317.5 MiB", the confirmed file counted as an input, a new read (`p3-d-read-preview.png`).
@@ -47,7 +47,15 @@ Pass 4 (`shots/drv5`), the build before review 1, same model:
 
 ## Final build
 
-FINALPASS
+Pass 5 (`shots/final`), the final build, head 99dee33 with the fixes of review 1, same empty model. All presses by the driver, which now refuses any click, key or picture unless Revit is in front and no input but its own came, see the end of this section.
+19. Use a saved project, 1 Set up site (invented position, Dry run, Apply), Run 2 Read data with the pane rows not chosen. The dry run said "Reuses the read of run 2_20261105-142934-704, its 3 input files are unchanged" (`f2-read-preview.png`). No worker started.
+20. Apply showed the check window, 7 files read, 2,964 plots (`f3-check-window.png`), then the window Confirm what was found (`f3-confirm-top.png`). Its first line says what was found and confirmed before, the second what a press on Confirm takes, CHOSEN by Lead. Both columns say "(confirmed)", the code map says "Confirmed on an earlier read". No guess words stand in the help, as S1 has no guess, and every row says "no guess". The level row says "confirmed on an earlier read" beside its word, Level 2 is empty (`f3-confirm-levels.png`).
+21. The driver set a word for level 2 (`f4-word-set.png`) and pressed Confirm. The note said "Your values are saved. Press Read data again to read with them." and the pane moved to Next step Read data (`f4-after-confirm.png`). This is the fix of step 11 seen in Revit.
+22. To spare a read of 13 minutes the driver put back a copy of the confirmed file it took before step 21, byte for byte (`cmp` said the same at the end), which is no press of the tool. Run 2 Read data then reused the read (`f5-read-preview.png`), the check again (`f6-check-again.png`), the confirm window and Cancel, "Nothing was saved. The read stays as it is." with the pane on Review data and the scope on one area (`f7-note-and-pane.png`, `f6-scope.png`).
+23. Run 3 Review data opened on 386 plots (`f7-review.png`). Find plot took a plot that holds a confirmed type, and the row and the side show it with its type on screen (`f8-find.png`, `f8-picked.png`). The picture is under the work root as it shows a real plot number and code. Against the files, by a script, no value printed: the table and plots.json hold the same type as the screen, the code as read differs from it, and the read before any Confirm gave that plot another type, so the type on screen is the confirmed one. Plots with a type: 2261 before any Confirm, 2570 after. The villa type of a plot has source computed and the blocks of the profile person entered, as R632 says. The rows above it show not read yet as the table holds no type for them, R2-C1-fix-build-1 owns that line.
+24. Close, Revit closed, 0 processes, no lock file (`f8-after-close.png`, `driver.log`).
+
+A first try of this pass, 16:01 to 16:20, was stopped by me and is not counted. A person was in a live meeting on this machine, which was not expected. The driver sent its input while Revit was in front until 16:18:31, and that one click, at the place of the button Run 2, landed on the meeting window: the run folder holds no run of it, and the next picture showed the meeting in front. I took no further input, deleted that picture, stopped my Revit by its process id and kept no picture of that try. The click fell on the shared content of the meeting, so as far as I can see it did nothing there, but I cannot prove that from here. I then waited, reading only, until no meeting window stood and the machine had 5 minutes with no input, and pass 5 began at 16:51.
 
 ## Plot count against plots.json
 
@@ -57,14 +65,14 @@ FINALPASS
 
 ## S1 unchanged
 
-`scenario_tools.manifest_faults` of the S1 folder against `scenarios/S1_manifest.json`, by SHA-256 of each file: S1CHECK
+`scenario_tools.manifest_faults` of the S1 folder against `scenarios/S1_manifest.json`, by SHA-256 of each file: 37 files in the manifest, faults 0. The output of the command, run at 17:06 after the last pass, is `files in the manifest 37`, `faults 0`.
 
 ## Group, hand, code map and screenshot summary
 
-- Code map: proposed 16 pairs, kept by the driver and saved, the read then tags them source person entered as CHOSEN by Lead, shown again as confirmed (steps 6, 9, 14).
-- Hand of each prototype: 13 prototypes, every one "no guess" on S1, the driver set one, saved and shown again (9, 14, 18).
-- Group levels: the word of level 1 set by the driver and saved (9), shown again (18). The window lists two levels.
-- Screenshots: draft in git `steps/ui-shots/confirm-profile.png`. Real run in the work root `r2-c1-revit-test/shots/drv`, `drv2`, `drv3` (the lost start), `drv4`, `drv5`, `drv6`.
+- Code map: proposed 16 pairs, kept by the driver and saved, the read then tags them source person entered as CHOSEN by Lead, shown again as confirmed (steps 6, 9, 14, 20).
+- Hand of each prototype: 13 prototypes, every one "no guess" on S1, the driver set one, saved and shown again (9, 14, 18, 20).
+- Group levels: the word of level 1 set by the driver and saved (9), shown again (18, 20). The window lists two levels.
+- Screenshots: draft in git `steps/ui-shots/confirm-profile.png`. Real run in the work root `r2-c1-revit-test/shots/drv`, `drv2`, `drv3` (the lost start), `drv4`, `drv5`, `final`.
 
 ## Not seen in Revit, UNKNOWN
 
@@ -73,4 +81,5 @@ FINALPASS
 - A check that stops, a code map whose direction is a guess, a hand guess, the removal of a cleared file and the discard prompt of a refused file. Covered by R636_ConfirmWindowTests.cs only. S1 has a sure code map and no hand guess, so its window shows none of these.
 - The line "Read from" in the header of 3 Review data is empty on this read. Cause, no longer unknown: ReviewLoad.cs line 19 and line 77 name the band from the roles baseplan, villaBlocks and curbs, which a read of a folder does not hold. R2-C1-fix-build-1 owns it.
 - Owned by R2-C1-fix-build-1, not touched here: ReadDataRun Reusable of a stopped check, the dry run count, the Read from line, "not read yet" on a finished plot, the raw read when one past file is missing, the IOException in RawConfig.
+- A real input root of many thousand files at a pane refresh. Measured on S1 only, 37 files, in the PR body.
 - Buttons 4 to 9.
