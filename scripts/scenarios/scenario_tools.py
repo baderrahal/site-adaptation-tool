@@ -13,6 +13,8 @@ SCENARIOS = {
     "S5": "as S1, plot numbers in another style",
 }
 NUMBER_STYLE = "LOT/%s-X"
+# The run folder of a scenario run on what its own first run proposed, as a person pressing Confirm on all of it
+CONFIRMED_RUN = "_confirmed"
 # Folders of the source that hold past outputs, by the truth audit, left out of every scenario
 PAST_FOLDERS = {"01_output", "data_book", "position"}
 
@@ -224,33 +226,59 @@ def lines_of(results):
     return "\n".join(out) + "\n"
 
 
-def table(results):
-    """The table of steps/scenarios.md. Counts and marks only, this file is in a public repo."""
-    out = ["# Scenarios", "",
-           "Written by scripts/scenarios/score_scenarios.py, never by hand. Stage 1 on each folder under the work root, scored against its right answer. Counts and marks only, the folders stay out of git and what each data check said is in scenarios\\report.md under the work root. The right answers leave the hold-out neighbourhoods out.", "",
-           "| Scenario | What it is | Ran | Built from | Plots read | Numbers right | Villa type right | Mirror right | Group words right | Marks: strong, usable, weak, missing | Copies unchanged |",
-           "|---|---|---|---|---|---|---|---|---|---|---|"]
-    marks_out = ["", "## Mark of each need", "", "| Need | S1 | S2 | S3 | S4 | S5 |", "|---|---|---|---|---|---|"]
+def areas_read(rows):
+    """The areas of the plot table of a run, the key every later button works by."""
+    return len({row.get("nbhId") for row in rows if row.get("nbhId")})
+
+
+def score_rows(results):
+    """One row per scenario of a set of runs, counts and marks only."""
+    out = ["| Scenario | What it is | Ran | Built from | Plots read | Numbers right | Villa type right | Mirror right | Group words right | Marks: strong, usable, weak, missing | Copies unchanged | Areas read | Areas on the sheet, second check |",
+           "|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
+    for name in sorted(SCENARIOS):
+        result = results.get(name)
+        if not result:
+            out.append("| %s | %s | not run | UNKNOWN | 0 of 0 | 0 of 0 | 0 of 0 | 0 of 0 | not scored | none | UNKNOWN | UNKNOWN | UNKNOWN |" % (name, SCENARIOS[name]))
+            continue
+        marks = [row["mark"] for row in result["needs"]]
+        scored = result["score"]
+        out.append("| %s | %s | %s | %s | %d of %d | %d of %d | %d of %d | %d of %d | %s | %s | %s | %s | %s |" % (
+            name, SCENARIOS[name], result["ran"], result.get("built", "UNKNOWN"), scored["read"], scored["right"], scored["numbers"], scored["right"], scored["villaType"], scored["right"], scored["mirror"], scored["right"],
+            words_score(name, result.get("levels", [])),
+            ", ".join(str(marks.count(mark)) for mark in ("strong", "usable", "weak", "missing")), "yes" if not result["faults"] else "NO, %d files" % len(result["faults"]), result.get("areas", "UNKNOWN"), result.get("sheetAreas", "UNKNOWN")))
+    return out
+
+
+def not_read_line(results):
+    """How many files each run could not read, as a run that skipped one reads as done with the same score. Counts only."""
+    return "Files not read: " + ", ".join("%s %s" % (name, (results.get(name) or {}).get("notRead", "UNKNOWN")) for name in sorted(SCENARIOS)) + "."
+
+
+def mark_rows(results):
+    """The mark of each need per scenario."""
+    out = ["| Need | S1 | S2 | S3 | S4 | S5 |", "|---|---|---|---|---|---|"]
     needs = []
     for name in sorted(SCENARIOS):
         for row in (results.get(name) or {}).get("needs", []):
             if row["need"] not in needs:
                 needs.append(row["need"])
-    for name in sorted(SCENARIOS):
-        result = results.get(name)
-        if not result:
-            out.append("| %s | %s | not run | UNKNOWN | 0 of 0 | 0 of 0 | 0 of 0 | 0 of 0 | not scored | none | UNKNOWN |" % (name, SCENARIOS[name]))
-            continue
-        marks = [row["mark"] for row in result["needs"]]
-        scored = result["score"]
-        out.append("| %s | %s | %s | %s | %d of %d | %d of %d | %d of %d | %d of %d | %s | %s | %s |" % (
-            name, SCENARIOS[name], result["ran"], result.get("built", "UNKNOWN"), scored["read"], scored["right"], scored["numbers"], scored["right"], scored["villaType"], scored["right"], scored["mirror"], scored["right"],
-            words_score(name, result.get("levels", [])),
-            ", ".join(str(marks.count(mark)) for mark in ("strong", "usable", "weak", "missing")), "yes" if not result["faults"] else "NO, %d files" % len(result["faults"])))
     for need in needs:
         cells = []
         for name in sorted(SCENARIOS):
             rows = [row for row in (results.get(name) or {}).get("needs", []) if row["need"] == need]
             cells.append(rows[0]["mark"] if rows else "not run")
-        marks_out.append("| %s | %s |" % (need, " | ".join(cells)))
-    return "\n".join(out + marks_out) + "\n"
+        out.append("| %s | %s |" % (need, " | ".join(cells)))
+    return out
+
+
+def table(results, confirmed=None):
+    """The tables of steps/scenarios.md. Counts and marks only, this file is in a public repo. confirmed holds the runs on what each first run
+    proposed, as a person pressing Confirm on all of it, left out when there are none."""
+    out = ["# Scenarios", "",
+           "Written by scripts/scenarios/score_scenarios.py, never by hand. Stage 1 on each folder under the work root, scored against its right answer. Counts and marks only, the folders stay out of git and what each data check said is in scenarios\\report.md under the work root. The right answers leave the hold-out neighbourhoods out.", "",
+           "## With no confirmed input", ""]
+    out += score_rows(results) + ["", not_read_line(results), "", "## Mark of each need", ""] + mark_rows(results)
+    if confirmed and any(confirmed.values()):
+        out += ["", "## With a confirmed profile", "", "Each scenario again on what its own first run proposed, as a person pressing Confirm on all of it (scripts/scenarios/confirmed_profile.py). Nothing comes from a past file or an answer, a proposal that is wrong stays wrong and scores so.", ""]
+        out += score_rows(confirmed) + ["", not_read_line(confirmed), "", "## Mark of each need with a confirmed profile", ""] + mark_rows(confirmed)
+    return "\n".join(out) + "\n"

@@ -361,6 +361,18 @@
     "usableShare": 0.5,
     "shareWhy": "dataCheck.strongShare is CHOSEN by Code (R605). usableShare is CHOSEN by Code (R605). A need is strong from 90 % of the plots, the same share as majority.strongShare, usable from half of them, weak below that.",
     "prototypeFilePattern": "(?:^|-)ARC-([A-Za-z0-9]+)(?:-[A-Za-z0-9]{2})?-MOD",
+    "codePattern": "^[A-Za-z]+\\d+[A-Za-z0-9.]*(?:-[A-Za-z0-9]+)*(?:\\s*\\([^()]*\\))?$",
+    "codeTableMaxPairs": 100,
+    "codeWhy": "codePattern is CHOSEN by Code (R630), the shape of a villa type code in a cell: letters then a number, with a further part or a qualifier in brackets, so a word, a plain number, a height or a zone name is no code. codeTableMaxPairs is CHOSEN by Code (R630), a table of codes names the types of one project, more than 100 distinct codes is a list of something else.",
+    "areaNearPlots": 8,
+    "areaAgreement": 0.7,
+    "areaWhy": "areaNearPlots is CHOSEN by Code (R635), the plots around a plot it is held against, a quarter of the plots at most on a small project. areaAgreement is CHOSEN by Code (R635) from a measure on the raw workbooks of one project, one folder only, no answer and no past output: how far the plots around a plot agree with its value beyond chance is 0.75 to 0.99 for each column that parts the plots into areas and at most 0.68 for the rest, block names, villa types, aspects and counts, so 0.7 lies between. Its status for another project is UNKNOWN, a proposal changes no plot until a person confirms it.",
+    "skipFolders": ["01_Output", "data_book", "position"],
+    "skipFoldersWhy": "skipFolders is CHOSEN by Code (R635), the names of the folders a raw read does not walk, at any depth and with no regard for case, here the past output folders of this job's root, so a past workbook is not read as a new input. The tool cannot judge a file by its name, so a project lists its own or leaves the list empty, and the folder a project gives is the person's to choose.",
+    "handGuessShare": 0.6,
+    "handWhy": "handGuessShare is CHOSEN by Code (R633). The hand a prototype is guessed in needs its blocks drawn that way on at least 60 % of the plots that hold one, an even split gives no guess. It is shown as a guess and a person confirms it.",
+    "groupNamePattern": "^(?:[A-Z0-9][A-Za-z0-9-]{0,3}|\\S*\\d\\S*)$",
+    "groupNameWhy": "groupNamePattern is CHOSEN by Code (R634). The last token of a text that names a group reads as a name: it holds a digit, or it is a capital or digit and at most 3 more characters, as a letter or a short code is. The last word of a note or a building name does not, so a nearby text gives no level word.",
     "prototypeWhy": "prototypeFilePattern is CHOSEN by Code (R602). The villa type code of a Revit prototype file is the part between the architecture discipline and the model type of the file name in the naming of ISO 19650, with the level field optional."
   },
   "majority": {

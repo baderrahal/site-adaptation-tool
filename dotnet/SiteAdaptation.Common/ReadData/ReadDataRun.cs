@@ -27,6 +27,7 @@ namespace SiteAdaptation.Common.ReadData
     public sealed class ReadDataRun
     {
         public const string Command = "read";
+        public const string DataCheckCommand = "dataCheck";
         public const string FolderPrefix = "read_";
         public const string RecordFile = "read.json";
         public const string RecordFormat = "site-adaptation-read";
@@ -133,8 +134,11 @@ namespace SiteAdaptation.Common.ReadData
             }
             try
             {
-                ReadPicks.Write(plan.Inputs.First(input => input.Role == ReadPicks.Role).Path, context.RunId, picks);
-                var request = new WorkerRequest
+                if (!plan.FromDataCheck)
+                {
+                    ReadPicks.Write(plan.Inputs.First(input => input.Role == ReadPicks.Role).Path, context.RunId, picks);
+                }
+                var request = plan.FromDataCheck ? DataCheckRequest(context, plan, folder) : new WorkerRequest
                 {
                     FormatVersion = WorkerRequest.CurrentFormatVersion, RunId = context.RunId, Document = document, Command = Command,
                     Inputs = plan.Inputs.Select(input => new WorkerFile { Role = input.Role, Path = input.Path, Sha256 = input.Sha256 }).ToList(),
@@ -165,6 +169,19 @@ namespace SiteAdaptation.Common.ReadData
                 }
                 throw;
             }
+        }
+
+        // R635. The folder has no one SHA-256 for the worker to hold, it marks each file it opens instead (R600)
+        private WorkerRequest DataCheckRequest(RunContext context, ReadPlan plan, string folder)
+        {
+            return new WorkerRequest
+            {
+                FormatVersion = WorkerRequest.CurrentFormatVersion, RunId = context.RunId, Document = document, Command = DataCheckCommand,
+                Inputs = plan.Inputs.Select(input => new WorkerFile { Role = input.Role, Path = input.Path, Sha256 = input.Role == ReadInputs.ScanFolder ? "" : input.Sha256 }).ToList(),
+                Scope = new WorkerScope { Kind = "project" }, OutputFolder = folder,
+                TimeLimitS = AddinConfig.Load(plan.ConfigPath).WorkerTimeLimitS(DataCheckCommand),
+                ProjectMode = ModePick?.Invoke(),
+            };
         }
 
         private RunLater Answered(RunContext context, string folder, ReadPlan plan, JObject picks, WorkerAnswer answer)
@@ -252,6 +269,15 @@ namespace SiteAdaptation.Common.ReadData
 
         private ReadPlan Plan(RunContext context)
         {
+            ReadPlan raw = ReadInputs.Raw(context.Inputs, roles, context.WorkFolder, ModePick?.Invoke());
+            if (raw != null && raw.Stops.Count == 0)
+            {
+                return raw;
+            }
+            if (raw != null)
+            {
+                throw new InvalidDataException(string.Join(". ", raw.Stops));
+            }
             ReadPlan plan = ReadInputs.Make(context.Inputs, roles, context.WorkFolder, RoadPick?.Invoke(), ModePick?.Invoke());
             if (plan.Stops.Count > 0)
             {
@@ -263,6 +289,12 @@ namespace SiteAdaptation.Common.ReadData
         // R473. The plan of the files with picks.json, the picks of the settings resolved on the newest scan of the work folder
         private ReadPlan Picked(RunContext context, ReadPlan files, out JObject picks)
         {
+            // R635. The data check has no picks of the scan, what a person confirmed is a file of its own
+            if (files.FromDataCheck)
+            {
+                picks = new JObject();
+                return files;
+            }
             JObject config = JObject.Parse(WorkFiles.ReadText(files.ConfigPath));
             picks = ReadPicks.Resolve(settings?.Invoke(), ReadPicks.LatestScan(context.WorkFolder),
                 ReadPicks.FilesOf(config, files.Inputs.Select(input => new KeyValuePair<string, string>(input.Role, input.Path))));
@@ -338,7 +370,8 @@ namespace SiteAdaptation.Common.ReadData
         private static IReadOnlyList<string> Lines(ReadPlan plan, IEnumerable<string> unchanged)
         {
             var same = new HashSet<string>(unchanged, StringComparer.Ordinal);
-            return plan.Inputs.Select(input => RunTexts.ReadFile(Path.GetFileName(input.Path), input.Bytes, input.Sha256, same.Contains(input.Role))).ToList();
+            // R635. The folder of a raw read by its whole path, so the person sees which folder was read
+            return plan.Inputs.Select(input => RunTexts.ReadFile(input.Role == ReadInputs.ScanFolder ? input.Path : Path.GetFileName(input.Path), input.Bytes, input.Sha256, same.Contains(input.Role))).ToList();
         }
     }
 }

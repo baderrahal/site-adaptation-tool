@@ -607,7 +607,7 @@ RAMP-3NOV-A, review and breaker, no real input reaches these:
 ## Build-1 R1-build-1, stage 1 data check, second review, 5 Nov 2026
 
 - DataCheckFind.cs:166 BreakTies takes the candidate with the fewest layers when candidates tie and never checks it is a subset of the others. 0 of the 5 runs broke a tie.
-- DataCheckFind.cs:525 DecideWords takes a sheet header that parts the plots as the groups do with no minimum of groups, a 2 group level fits any 2 valued column.
+- DataCheckFind.cs DecideWords, a sheet header that parts the plots as the groups do. Narrowed in R2-C1-build-1 by R634, the column must name two groups and wordShare of the groups, so a one valued column no longer fits a level of one big group and a lone plot, as it did on the real inputs. A 2 group level still fits a true 2 valued column.
 - config/project.json dataCheck.scan.labelPattern has no status entry, the past profile holds the same name, so the status tool treats it as shared.
 - No unit header gives wrong groups with a weak mark and a line: DataCheckSettings.cs:131 and :144, DataCheckFind.cs:74. All five real runs state metres.
 - An insert in a hole is credited to the plot for villa type, DataCheckFind.cs:252. Only the mirror leaves the hole out, HoleWhy says so.
@@ -617,3 +617,12 @@ RAMP-3NOV-A, review and breaker, no real input reaches these:
 - Measure-ColdStart.ps1 treats the Invalid Signature box on the tool's own files as another maker's, a matter for SETUP-sign-2.
 - Run-RevitTests.ps1, the finally builds a new process tree, a Revit left by a dotnet that has ended stays open. The test does not reach Revit today.
 - Flaky in job tests, cause not measured: R104 FreezeGuardTests, R347 worker time limits, R405 AddInTests on net48, a value came back null in 12 ms, which reads as shared state between tests.
+
+## Build-1 R2-C1-build-1, stage 1 gaps, 5 Nov 2026
+
+- DataCheckCodes.cs ColumnCells: a plot listed twice on a sheet takes the first row, a second row with another code is not said. The proposed column of the real run lists each plot once, not measured for every candidate.
+- DataCheckCodes.cs TableAt: a code table is two columns side by side, a column between them hides it, and the person types it. Its header reads as a column letter when a title row sits above it, only the source text shows this.
+- DataCheckCodes.cs TableAt: the old side is the one the drawings use more, a table whose drawings use neither reads left to right.
+- DataCheckCodes.cs Typology: a column of code shape that runs across the groups and differs from the drawing qualifies though it holds no type, it ranks last with no plot of a prototype. The window shows the first and the rest.
+- config/project.json dataCheck.codePattern and groupNamePattern have no status entry, rule_status.py reads them as an input, as dataCheck.scan.labelPattern.
+- ReadInputs.cs FolderInput: a work folder inside the input root would change the hash of the folder on each run, so no read is reused. Runs write under the work root, D19, and no project has it so.
