@@ -7,7 +7,6 @@ using Xunit;
 
 namespace SiteAdaptation.Tests
 {
-    // R639 is tested by R639_StageOneFixTests.cs of R2-C1-fix-build-1, which merges after its rule line, as docs/rules/ is build-2's. This names it for test_r12 until then
     // What the lanes of R2-C2 and R2-C3 share, set by Lead before either starts, so neither lane edits an existing file of Common
     public sealed class R640_WorkerSeamTests : IDisposable
     {
