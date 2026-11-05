@@ -17,6 +17,9 @@ namespace SiteAdaptation.AddIn.Pane
         // R492. The name of the input of step 2 that holds the road order under rev6, a key of the hashes the user never sees, as a value is never absent
         public const string RoadOrderInput = "Road surface order";
 
+        // R636. The name of the input of step 2 that holds the values a person confirmed in the window Confirm what was found
+        public const string ConfirmedInput = "Confirmed values";
+
         private readonly PaneViewModel model;
         private readonly Func<string> root;
         private readonly Func<string, string> readText;
@@ -80,7 +83,14 @@ namespace SiteAdaptation.AddIn.Pane
         {
             if (button == 2 && !string.IsNullOrEmpty(work) && Common.ReadData.ReadInputs.NoPastFiles(settings.ConfigFile, settings.Project.ProjectMode, work))
             {
-                return new[] { new RunInput(PaneText.Settings, settings.ConfigFile, false) };
+                var raw = new List<RunInput> { new RunInput(PaneText.Settings, settings.ConfigFile, false) };
+                // What a person confirmed is an input of the read as a file is, so a new file leaves step 2 not done and the chain after it
+                string confirmed = Path.Combine(work, Common.ConfirmedProfile.FileName);
+                if (File.Exists(confirmed))
+                {
+                    raw.Add(new RunInput(ConfirmedInput, confirmed, false));
+                }
+                return raw;
             }
             return InputsOf(settings, button);
         }

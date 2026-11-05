@@ -23,7 +23,7 @@ namespace SiteAdaptation.AddIn.ConfirmProfile
             AreaBox.SelectionChanged += (sender, e) => model.Area = Picked(AreaBox, model.AreaColumns);
             TypologyNote.Text = model.TypologyNote ?? "";
             AreaNote.Text = model.AreaNote ?? "";
-            CodeMapSource.Text = model.CodeMapFoundIn == null ? ConfirmProfileText.CodeMapNone : string.Format(System.Globalization.CultureInfo.InvariantCulture, ConfirmProfileText.CodeMapFound, model.CodeMapFoundIn);
+            CodeMapSource.Text = model.CodeMapConfirmed ? ConfirmProfileText.CodeMapConfirmed : model.CodeMapFoundIn == null ? ConfirmProfileText.CodeMapNone : string.Format(System.Globalization.CultureInfo.InvariantCulture, ConfirmProfileText.CodeMapFound, model.CodeMapFoundIn);
             HandsNone.Visibility = model.Hands.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
             LevelsNone.Visibility = model.Levels.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
         }

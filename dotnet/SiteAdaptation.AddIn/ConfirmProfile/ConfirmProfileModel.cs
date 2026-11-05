@@ -15,10 +15,11 @@ namespace SiteAdaptation.AddIn.ConfirmProfile
         public string Column { get; set; }
         public int Plots { get; set; }
         public bool Proposed { get; set; }
+        public bool Confirmed { get; set; }
 
         public string Label
         {
-            get { return Column + " in " + Sheet + " of " + Workbook + (Plots > 0 ? ", " + Plots + " plots" : "") + (Proposed ? " (proposed)" : ""); }
+            get { return Column + " in " + Sheet + " of " + Workbook + (Plots > 0 ? ", " + Plots + " plots" : "") + (Confirmed ? " (confirmed)" : Proposed ? " (proposed)" : ""); }
         }
     }
 
@@ -51,6 +52,7 @@ namespace SiteAdaptation.AddIn.ConfirmProfile
     public sealed class ConfirmProfileModel
     {
         public const string NoColumn = "none";
+        public const string Arrow = "->";
 
         public IReadOnlyList<ColumnChoice> TypologyColumns { get; private set; } = new ColumnChoice[0];
         public IReadOnlyList<ColumnChoice> AreaColumns { get; private set; } = new ColumnChoice[0];
@@ -59,9 +61,12 @@ namespace SiteAdaptation.AddIn.ConfirmProfile
         public ColumnChoice Typology { get; set; }
         public ColumnChoice Area { get; set; }
 
-        // One "old new" pair per line, as the proposal gave them or as the person types them
+        // One "old -> new" pair per line, as the proposal gave them or as the person types them
         public string CodeMapText { get; set; } = "";
         public string CodeMapFoundIn { get; private set; }
+
+        // True when the text is what a person confirmed on an earlier read
+        public bool CodeMapConfirmed { get; private set; }
         public IReadOnlyList<HandRow> Hands { get; private set; } = new HandRow[0];
         public IReadOnlyList<LevelRow> Levels { get; private set; } = new LevelRow[0];
 
@@ -82,8 +87,14 @@ namespace SiteAdaptation.AddIn.ConfirmProfile
             JToken map = root["codeMap"];
             if (map?["proposed"] is JArray pairs)
             {
-                model.CodeMapText = string.Join(Environment.NewLine, pairs.Select(pair => (string)pair["old"] + " " + (string)pair["new"]));
+                model.CodeMapText = string.Join(Environment.NewLine, pairs.Select(pair => (string)pair["old"] + " " + Arrow + " " + (string)pair["new"]));
                 model.CodeMapFoundIn = (string)map["foundIn"];
+            }
+            if (map?["confirmed"] is JArray given && given.Count > 0)
+            {
+                model.CodeMapText = string.Join(Environment.NewLine, given.Select(pair => (string)pair["old"] + " " + Arrow + " " + (string)pair["new"]));
+                model.CodeMapFoundIn = null;
+                model.CodeMapConfirmed = true;
             }
             var hands = new List<HandRow>();
             if (root["hands"]?["proposed"] is JObject proposed)
@@ -92,6 +103,19 @@ namespace SiteAdaptation.AddIn.ConfirmProfile
                 {
                     string value = guess.Value.Type == JTokenType.String ? (string)guess.Value : null;
                     hands.Add(new HandRow { Code = guess.Name, Guess = value, Chosen = value ?? "" });
+                }
+            }
+            if (root["hands"]?["confirmed"] is JObject confirmedHands)
+            {
+                foreach (JProperty hand in confirmedHands.Properties())
+                {
+                    HandRow row = hands.FirstOrDefault(item => item.Code == hand.Name);
+                    if (row == null)
+                    {
+                        row = new HandRow { Code = hand.Name };
+                        hands.Add(row);
+                    }
+                    row.Chosen = (string)hand.Value;
                 }
             }
             model.Hands = hands;
@@ -127,8 +151,22 @@ namespace SiteAdaptation.AddIn.ConfirmProfile
             }
             if (first != null && first.Type == JTokenType.Object)
             {
-                proposed = list.First(item => item.Workbook == (string)first["workbook"] && item.Sheet == (string)first["sheet"] && item.Column == (string)first["column"]);
-                proposed.Proposed = true;
+                ColumnChoice found = list.First(item => item.Workbook == (string)first["workbook"] && item.Sheet == (string)first["sheet"] && item.Column == (string)first["column"]);
+                found.Proposed = true;
+                proposed = found;
+            }
+            // What a person confirmed on an earlier read is what the window starts on, over the proposal, so a Confirm never swaps it back
+            JToken given = block["confirmed"];
+            if (given != null && given.Type == JTokenType.Object && given["column"] != null)
+            {
+                ColumnChoice match = list.FirstOrDefault(item => item.Workbook == (string)given["workbook"] && item.Sheet == (string)given["sheet"] && item.Column == (string)given["column"]);
+                if (match == null)
+                {
+                    match = new ColumnChoice { Workbook = (string)given["workbook"], Sheet = (string)given["sheet"], Column = (string)given["column"] };
+                    list.Add(match);
+                }
+                match.Confirmed = true;
+                proposed = match;
             }
             return list;
         }
@@ -145,10 +183,14 @@ namespace SiteAdaptation.AddIn.ConfirmProfile
                 {
                     continue;
                 }
-                string[] words = line.Split(new[] { ' ', '\t', ',', ';', '>' }, StringSplitOptions.RemoveEmptyEntries);
-                if (words.Length != 2)
+                // A code may hold spaces, as a code with a note in brackets does, so the arrow parts the pair. A line with no arrow and two words
+                // is the short form
+                string[] words = line.Contains(Arrow)
+                    ? line.Split(new[] { Arrow }, StringSplitOptions.None).Select(word => word.Trim()).ToArray()
+                    : line.Split(new[] { ' ', '	', ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
+                if (words.Length != 2 || words.Any(word => word.Length == 0))
                 {
-                    throw new InvalidDataException("Line " + number + " of the code map needs two codes, the old and the new.");
+                    throw new InvalidDataException("Line " + number + " of the code map needs the old code, " + Arrow + " and the new code, like A1 " + Arrow + " B1.");
                 }
                 pairs.Add(new KeyValuePair<string, string>(words[0], words[1]));
             }

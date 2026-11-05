@@ -11,8 +11,9 @@ namespace SiteAdaptation.AddIn.ConfirmProfile
         public const string AreaHelp = "The sheet column that gives each plot its area. Leave it on none to group the plots by distance.";
         public const string NoneChoice = "none";
         public const string CodeMap = "Code map";
-        public const string CodeMapHelp = "One pair per line, the old code then the new code. Type it when the tool found no table.";
+        public const string CodeMapHelp = "One pair per line, the old code, an arrow -> and the new code. Type it when the tool found no table.";
         public const string CodeMapFound = "Proposed from {0}.";
+        public const string CodeMapConfirmed = "Confirmed on an earlier read.";
         public const string CodeMapNone = "No table of old and new codes was found.";
         public const string Hands = "Hand of each prototype";
         public const string HandsHelp = "Right when its blocks are drawn unmirrored, left when mirrored. The guess comes from how the blocks are drawn, no prototype file was opened.";

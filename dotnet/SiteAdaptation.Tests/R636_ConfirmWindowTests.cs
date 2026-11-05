@@ -49,7 +49,7 @@ namespace SiteAdaptation.Tests
             Assert.Equal("Type", model.Typology.Column);
             Assert.Equal(2, model.TypologyColumns.Count);
             Assert.Null(model.Area);
-            Assert.Equal("A1 B1", model.CodeMapText);
+            Assert.Equal("A1 -> B1", model.CodeMapText);
             Assert.Equal("codes.xlsx, Sheet 1", model.CodeMapFoundIn);
             Assert.Equal(new[] { "A1", "C3" }, model.Hands.Select(hand => hand.Code));
             Assert.Equal("right", model.Hands[0].Chosen);
@@ -79,19 +79,20 @@ namespace SiteAdaptation.Tests
         {
             ConfirmProfileModel model = ConfirmProfileModel.Read(Profile);
             model.Levels[0].Word = "Area";
-            model.CodeMapText = "A1 B1\r\nC1, D1\r\n";
+            model.CodeMapText = "A1 -> B1\r\nC1, D1\r\nDP1 (SA) -> VD1\r\n";
             model.Hands[1].Chosen = "left";
             var session = new ConfirmProfileSession(model, folder, "run", 2);
             session.Confirm();
             Assert.True(session.Saved);
             JObject file = JObject.Parse(File.ReadAllText(Path.Combine(folder, ConfirmedProfile.FileName)));
-            Assert.Equal(2, ((JArray)file["codeMap"]).Count);
+            Assert.Equal(3, ((JArray)file["codeMap"]).Count);
+            Assert.Equal("DP1 (SA)", (string)file["codeMap"][2]["old"]);
             Assert.Equal("left", (string)file["hands"]["C3"]);
             Assert.Equal("Area", (string)file["levels"][0]["word"]);
             Assert.Equal("Type", (string)file["typologyColumn"]["column"]);
             Assert.Null(file["areaColumn"]);
             ConfirmedProfile read = ConfirmedProfile.From(file, 2);
-            Assert.Equal(2, read.CodeMap.Count);
+            Assert.Equal(3, read.CodeMap.Count);
             Assert.Equal("Type", read.Column.Column);
         }
 
@@ -207,6 +208,38 @@ namespace SiteAdaptation.Tests
             RunLater ended = null;
             ConfirmProfileStep.Wrap(Read(RunLater.Done("Read done.", new string[0], new Dictionary<string, string>()), out _), IntPtr.Zero).Start(Context(folder), later => ended = later);
             Assert.Contains("the read wrote no data_check.json", ended.Failure);
+        }
+
+        [Fact]
+        public void A_window_opened_after_a_confirmed_read_starts_on_what_was_confirmed()
+        {
+            JObject profile = JObject.Parse(Profile);
+            profile["typologyColumn"]["confirmed"] = new JObject { ["workbook"] = "w.xlsx", ["sheet"] = "S", ["column"] = "Other" };
+            profile["codeMap"]["confirmed"] = new JArray(new JObject { ["old"] = "DP1 (SA)", ["new"] = "VD1" });
+            profile["hands"]["confirmed"] = new JObject { ["C3"] = "left", ["Z9"] = "right" };
+            ConfirmProfileModel model = ConfirmProfileModel.Read(profile.ToString());
+            Assert.Equal("Other", model.Typology.Column);
+            Assert.EndsWith("(confirmed)", model.Typology.Label);
+            Assert.Equal("DP1 (SA) -> VD1", model.CodeMapText);
+            Assert.True(model.CodeMapConfirmed);
+            Assert.Equal("left", model.Hands.Single(hand => hand.Code == "C3").Chosen);
+            Assert.Equal("right", model.Hands.Single(hand => hand.Code == "Z9").Chosen);
+            Assert.Equal("right", model.Hands.Single(hand => hand.Code == "A1").Chosen);
+        }
+
+        [Fact]
+        public void The_confirmed_file_is_an_input_of_button_2_where_the_work_folder_holds_it_and_none_before()
+        {
+            string config = Path.Combine(folder, "project.json");
+            File.WriteAllText(config, "{\"inputRoot\":\"" + folder.Replace("\\", "\\\\") + "\",\"designBasis\":{\"mode\":\"rev6\",\"modes\":[\"rev6\"]},\"addin\":{}}");
+            var settings = new PaneSettings { ConfigFile = config };
+            settings.Project.ProjectMode = "rev6";
+            string work = Path.Combine(folder, "work");
+            Directory.CreateDirectory(work);
+            Assert.True(SiteAdaptation.Common.ReadData.ReadInputs.NoPastFiles(config, "rev6", work), "the planted project is a raw read");
+            Assert.Equal(new[] { PaneText.Settings }, PaneRunState.InputsInFolder(settings, 2, work).Select(input => input.Name));
+            File.WriteAllText(Path.Combine(work, ConfirmedProfile.FileName), "{}");
+            Assert.Equal(new[] { PaneText.Settings, PaneRunState.ConfirmedInput }, PaneRunState.InputsInFolder(settings, 2, work).Select(input => input.Name));
         }
 
         [Fact]
