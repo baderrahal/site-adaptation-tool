@@ -59,7 +59,7 @@ namespace SiteAdaptation.AddIn
             return DataCheckStep.Wrap(ScanStep.Wrap(read, Worker, document, () => ScanInputs(session.Settings),
                 path => ScanResults.ScanGate.Ask(path, session.Settings, owner, WorkFiles.ReadText),
                 () => new[] { session.Settings.RulesFile, LaunchedWorker.BesideAddIn() }, () => session.Settings.Project.ProjectMode),
-                session.Settings, LaunchedWorker.BesideAddIn, owner, document);
+                Worker, document, session.Settings, owner);
         }
 
         // The inputs of the read with the Settings file, whose role config the scan needs, and the Prototypes folder

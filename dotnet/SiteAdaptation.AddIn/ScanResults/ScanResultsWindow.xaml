@@ -103,6 +103,19 @@
         </Border>
       </DataTemplate>
 
+      <DataTemplate x:Key="UnreadRow" DataType="{x:Type sr:DataCheckFileRow}">
+        <Border Padding="{StaticResource SA.Pad.Cell}" BorderBrush="{StaticResource SA.Border}" BorderThickness="{StaticResource SA.Line.Under}">
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="{StaticResource SA.Grid.ScanFile}" />
+              <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Style="{StaticResource CellText}" Text="{Binding Name}" />
+            <TextBlock Grid.Column="1" Style="{StaticResource CellText}" Text="{Binding Reason}" />
+          </Grid>
+        </Border>
+      </DataTemplate>
+
       <DataTemplate x:Key="FileRow">
         <Border Padding="{StaticResource SA.Pad.Cell}" BorderBrush="{StaticResource SA.Border}" BorderThickness="{StaticResource SA.Line.Under}">
           <Grid>
@@ -159,7 +172,8 @@
           <ColumnDefinition Width="Auto" />
         </Grid.ColumnDefinitions>
         <TextBlock Style="{StaticResource HelpText}" VerticalAlignment="Center" Margin="{StaticResource SA.Gap.Right24}" Text="{Binding FootLine}" />
-        <StackPanel Grid.Column="1" Orientation="Horizontal">
+        <Button Grid.Column="1" Style="{StaticResource SA.Button.Primary}" Content="{x:Static sr:DataCheckText.Close}" Click="OnCancel" Visibility="{Binding CheckOnly, Converter={StaticResource Shown}}" />
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Visibility="{Binding ShowScan, Converter={StaticResource Shown}}">
           <Button Style="{StaticResource SA.Button.Base}" Height="{StaticResource SA.Size.MainButton}" Content="{x:Static sr:ScanResultsText.Cancel}" Click="OnCancel" />
           <Button Style="{StaticResource SA.Button.DryRun}" Height="{StaticResource SA.Size.MainButton}" Margin="{StaticResource SA.Gap.Left8}" Content="{x:Static sr:ScanResultsText.Export}" Click="OnExport" />
           <Button Style="{StaticResource SA.Button.Primary}" Margin="{StaticResource SA.Gap.Left8}" Content="{x:Static sr:ScanResultsText.UsePicks}" Click="OnUse" />
@@ -177,12 +191,12 @@
           <StackPanel Orientation="Horizontal">
             <TextBlock Style="{StaticResource SA.Type.Title}" Foreground="{StaticResource SA.Surface}" VerticalAlignment="Center" Text="{x:Static sr:ScanResultsText.Title}" />
             <Border Margin="{StaticResource SA.Gap.Left8}" Background="{StaticResource SA.BandAccent}" CornerRadius="{StaticResource SA.Radius.Chip}"
-                    Padding="{StaticResource SA.Pad.Chip}" VerticalAlignment="Center">
+                    Padding="{StaticResource SA.Pad.Chip}" VerticalAlignment="Center" Visibility="{Binding ShowScan, Converter={StaticResource Shown}}">
               <TextBlock Style="{StaticResource SA.Type.Small}" FontWeight="{StaticResource SA.Type.Label.Weight}" Foreground="{StaticResource SA.Band}" Text="{x:Static sr:ScanResultsText.Badge}" />
             </Border>
           </StackPanel>
           <TextBlock Style="{StaticResource SA.Type.Step}" Foreground="{StaticResource SA.BandText}" Margin="{StaticResource SA.Gap.Top4}" TextWrapping="Wrap"
-                     MaxWidth="{StaticResource SA.Size.ScanLine}" Text="{x:Static sr:ScanResultsText.Line}" />
+                     MaxWidth="{StaticResource SA.Size.ScanLine}" Text="{Binding BandLine}" />
         </StackPanel>
         <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
           <StackPanel>
@@ -193,7 +207,7 @@
             <TextBlock Style="{StaticResource SA.Type.Count}" Foreground="{StaticResource SA.Surface}" HorizontalAlignment="Right" Text="{Binding PlotsFound}" />
             <TextBlock Style="{StaticResource SA.Type.Body}" Foreground="{StaticResource SA.BandText}" HorizontalAlignment="Right" Text="{x:Static sr:ScanResultsText.PlotsFound}" />
           </StackPanel>
-          <StackPanel Margin="{StaticResource SA.Gap.Left24}">
+          <StackPanel Margin="{StaticResource SA.Gap.Left24}" Visibility="{Binding ShowScan, Converter={StaticResource Shown}}">
             <TextBlock Style="{StaticResource SA.Type.Count}" Foreground="{StaticResource SA.ConflictCount}" HorizontalAlignment="Right" Text="{Binding ConflictCount}" />
             <TextBlock Style="{StaticResource SA.Type.Body}" Foreground="{StaticResource SA.BandText}" HorizontalAlignment="Right" Text="{x:Static sr:ScanResultsText.Conflicts}" />
           </StackPanel>
@@ -225,7 +239,17 @@
               </Grid>
             </Border>
             <ItemsControl ItemsSource="{Binding DataCheck}" ItemTemplate="{StaticResource CheckRow}" />
+            <StackPanel Visibility="{Binding HasStoppedNote, Converter={StaticResource Shown}}" Margin="{StaticResource SA.Gap.Top8}">
+              <TextBlock Style="{StaticResource SA.Type.Step}" FontWeight="{StaticResource SA.Type.Label.Weight}" Foreground="{StaticResource SA.Warn}" Text="{x:Static sr:DataCheckText.StoppedTitle}" />
+              <TextBlock Style="{StaticResource CellText}" Text="{Binding StoppedNote}" />
+            </StackPanel>
+            <StackPanel Visibility="{Binding HasUnread, Converter={StaticResource Shown}}" Margin="{StaticResource SA.Gap.Top16}">
+              <TextBlock Style="{StaticResource SA.Type.Section}" Foreground="{StaticResource SA.Heading}" Text="{x:Static sr:DataCheckText.UnreadTitle}" />
+              <TextBlock Style="{StaticResource HelpText}" Margin="{StaticResource SA.Gap.Top4}" Text="{x:Static sr:DataCheckText.UnreadHelp}" />
+              <ItemsControl Margin="{StaticResource SA.Gap.Top8}" ItemsSource="{Binding Unread}" ItemTemplate="{StaticResource UnreadRow}" />
+            </StackPanel>
           </StackPanel>
+          <StackPanel Visibility="{Binding ShowScan, Converter={StaticResource Shown}}">
           <TextBlock Style="{StaticResource SA.Type.Section}" Foreground="{StaticResource SA.Heading}" Text="{x:Static sr:ScanResultsText.ValuesTitle}" />
           <TextBlock Style="{StaticResource HelpText}" Margin="{StaticResource SA.Gap.Top4}" Text="{x:Static sr:ScanResultsText.ValuesHelp}" />
           <Border Margin="{StaticResource SA.Gap.Top8}" Background="{StaticResource SA.Panel}" Padding="{StaticResource SA.Pad.Cell}" BorderBrush="{StaticResource SA.Border}" BorderThickness="{StaticResource SA.Line.Under}">
@@ -263,9 +287,10 @@
             </Grid>
           </Border>
           <ItemsControl ItemsSource="{Binding Files}" ItemTemplate="{StaticResource FileRow}" />
+          </StackPanel>
         </StackPanel>
 
-        <StackPanel Grid.Column="1">
+        <StackPanel Grid.Column="1" Visibility="{Binding ShowScan, Converter={StaticResource Shown}}">
           <!-- One box for each value that is Pick. The box goes when the user picks the source -->
           <ItemsControl ItemsSource="{Binding Unclear}">
             <ItemsControl.ItemTemplate>

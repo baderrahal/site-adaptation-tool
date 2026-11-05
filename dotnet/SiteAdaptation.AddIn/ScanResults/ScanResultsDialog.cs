@@ -10,10 +10,10 @@ namespace SiteAdaptation.AddIn.ScanResults
     // null on Cancel or a close of the window. It opens no transaction and writes no file but the workbook the user names in Export
     public static class ScanResultsDialog
     {
-        // R620. The window with the section Data check and nothing else to pick: true after Use these picks, false after Cancel or a close
-        public static bool ShowCheck(IntPtr owner, System.Collections.Generic.IReadOnlyList<DataCheckRow> rows)
+        // R620. The window with the check alone: the section Data check, the files not read and the note of a stopped check, and a Close
+        public static void ShowCheck(IntPtr owner, DataCheckResult check)
         {
-            var session = new ScanResultsSession(new ScanViewData(), new ProjectSettings(), null, rows);
+            var session = new ScanResultsSession(new ScanViewData(), new ProjectSettings(), null, check, true);
             var window = new ScanResultsWindow(session);
             if (owner != IntPtr.Zero)
             {
@@ -21,13 +21,12 @@ namespace SiteAdaptation.AddIn.ScanResults
             }
             session.Finished += () => window.Close();
             window.ShowDialog();
-            return session.Answer != null;
         }
 
         public static ProjectSettings Show(IntPtr owner, string scanJsonPath, ProjectSettings settings, Func<string> pickExportPath)
         {
             ScanViewData data = ScanView.Read(File.ReadAllText(scanJsonPath), settings);
-            var session = new ScanResultsSession(data, settings, pickExportPath);
+            var session = new ScanResultsSession(data, settings, pickExportPath, ScanGate.CheckShown);
             var window = new ScanResultsWindow(session);
             if (owner != IntPtr.Zero)
             {

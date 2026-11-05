@@ -1,121 +1,201 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using SiteAdaptation.AddIn.Pane;
 using SiteAdaptation.Common;
 using SiteAdaptation.Common.Flow;
+using SiteAdaptation.Common.ReadData;
+using SiteAdaptation.Common.Scan;
+
 using SiteAdaptation.Common.Settings;
 
 namespace SiteAdaptation.AddIn.ScanResults
 {
-    // R620. Button 2 Read data runs the worker command dataCheck (R600) on the input folder of the settings first and shows its rows in
-    // the section Data check of the window What the tool read. Use these picks goes on with the read, Cancel stops it with nothing
-    // written. CHOSEN by Lead: the smallest layout that shows the rows, Bader may change it after the screenshot
+    // R620. Button 2 Read data runs the worker command dataCheck (R600) on the input folder of the settings before the read, by the launch,
+    // the time limit of config (addin.workerTimeLimitS.dataCheck) and the answer of the worker the scan of R438 uses, and Revit does not
+    // wait (R347, R375). Its rows go in the section Data check of the window What the tool read: with the values of the scan when the
+    // read goes on, alone when the read cannot go on. A check that gives no result stops the press and says why, the read never goes on
+    // as if it had read. CHOSEN by Lead: the layout is the smallest that shows the rows, Bader may change it after the screenshot
     public static class DataCheckStep
     {
+        public const string Command = "dataCheck";
         public const string FolderPrefix = "datacheck_";
-        public const string StoppedLine = "{0}: the read stopped at the data check, nothing was written.";
+        public const string RunIdSuffix = "-datacheck";
 
-        // The window of the section, a stand-in in the tests: true for Use these picks, false for Cancel
-        public static Func<IntPtr, IReadOnlyList<DataCheckRow>, bool> Window { get; set; } = (owner, rows) => ScanResultsDialog.ShowCheck(owner, rows);
+        // The window with the check alone, a stand-in in the tests. The user can only close it
+        public static Action<IntPtr, DataCheckResult> ShowAlone { get; set; } = (owner, result) => ScanResultsDialog.ShowCheck(owner, result);
 
-        // The command runs as a process the worker folder holds and the add-in waits for, a call a test replaces. It gives the exit code
-        public static Func<string, TimeSpan, int> RunWorker { get; set; } = StartWorker;
+        // The work folders whose check runs now, so a second press says so and starts nothing. A scan of the same folder counts too
+        private static readonly HashSet<string> Running = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        public static ButtonBody Wrap(ButtonBody read, PaneSettings settings, Func<string> workerExe, IntPtr owner, WorkerDocument document)
+        // The stop the read's own preview gave for a run, kept while the check runs, since the preview comes before the check
+        private static readonly ConcurrentDictionary<string, string> Held = new ConcurrentDictionary<string, string>(StringComparer.Ordinal);
+
+        public static bool IsRunning(string workFolder)
+        {
+            lock (Running)
+            {
+                return Running.Contains(Path.GetFullPath(workFolder));
+            }
+        }
+
+        public static ButtonBody Wrap(ButtonBody read, IWorkerStart worker, WorkerDocument document, PaneSettings settings, IntPtr owner)
         {
             if (read == null)
             {
                 throw new ArgumentNullException(nameof(read));
             }
-            if (read.NotBuilt != null || read.Start == null)
+            if (read.NotBuilt != null || read.Start == null || worker == null)
             {
                 return read;
             }
-            var shown = new HashSet<string>(StringComparer.Ordinal);
-            // The check runs in the preview, which comes before the checks of the read on its own inputs, so the rows show even where the read
-            // stops on a file this folder does not hold. Once for each run, the preview may be asked again by the same run
             return new ButtonBody
             {
+                // The preview of the read stops a folder with no past schedules before any check could run, so its stop is kept and told after
+                // the check, in the words the flow gives it. A preview cannot wait for the worker
                 Preview = context =>
                 {
-                    bool first;
-                    lock (shown)
+                    try
                     {
-                        first = shown.Add(context.RunId);
+                        return read.Preview(context);
                     }
-                    if (first)
+                    catch (Exception stop)
                     {
-                        IReadOnlyList<DataCheckRow> rows = Check(context, settings, document, out string why);
-                        if (rows != null && !Window(owner, rows))
-                        {
-                            throw new InvalidOperationException(string.Format(StoppedLine, context.Label));
-                        }
+                        Held[context.RunId] = stop.Message;
+                        return new RunSummary(null, null);
                     }
-                    return read.Preview(context);
                 },
-                Apply = read.Apply, ReadBack = read.ReadBack, Done = read.Done, Confirm = read.Confirm, Outside = read.Outside, Start = read.Start,
+                Apply = read.Apply, ReadBack = read.ReadBack, Done = read.Done, Confirm = read.Confirm, Outside = read.Outside,
+                Start = (context, done) => Start(read, worker, document, settings, owner, context, done),
             };
         }
 
-        // The rows of the check, null with why null when the settings name no folder and null with the reason when the command did not finish.
-        // The folder lies under the input root of the config and is read in place, the output goes to the work folder only
-        public static IReadOnlyList<DataCheckRow> Check(RunContext context, PaneSettings settings, WorkerDocument document, out string why)
+        private static void Start(ButtonBody read, IWorkerStart worker, WorkerDocument document, PaneSettings settings, IntPtr owner, RunContext context, Action<RunLater> done)
         {
-            why = null;
-            string folder = WorkFolder.InputRoot(settings.ConfigFile, WorkFolder.ReadIfThere);
-            if (string.IsNullOrEmpty(folder) || !Directory.Exists(folder) || string.IsNullOrEmpty(settings.ConfigFile))
-            {
-                return null;
-            }
+            Held.TryRemove(context.RunId, out string held);
             string work = Path.GetFullPath(context.WorkFolder);
+            string folder = WorkFolder.InputRoot(settings.ConfigFile, WorkFolder.ReadIfThere);
+            if (string.IsNullOrEmpty(settings.ConfigFile) || string.IsNullOrEmpty(folder))
+            {
+                done(RunLater.Failed(ScanView.Fill(DataCheckText.NoFolder, context.Label)));
+                return;
+            }
+            if (!Directory.Exists(folder))
+            {
+                done(RunLater.Failed(ScanView.Fill(DataCheckText.FolderGone, context.Label)));
+                return;
+            }
+            lock (Running)
+            {
+                if (ScanStep.IsRunning(work) || !Running.Add(work))
+                {
+                    throw new InvalidOperationException(ScanView.Fill(DataCheckText.RunningLine, context.Label));
+                }
+            }
+            int taken = 0;
+            Action<RunLater> end = later =>
+            {
+                // Once, whichever of the answer and a failure of the start comes first
+                if (System.Threading.Interlocked.Exchange(ref taken, 1) == 1)
+                {
+                    return;
+                }
+                lock (Running)
+                {
+                    Running.Remove(work);
+                }
+                done(later);
+            };
             string output = Path.Combine(work, FolderPrefix + context.RunId);
+            WorkerRequest request;
+            string requestPath;
             try
             {
-                Directory.CreateDirectory(output);
-                var request = new WorkerRequest
+                request = new WorkerRequest
                 {
-                    FormatVersion = WorkerRequest.CurrentFormatVersion, RunId = context.RunId + "-datacheck", Document = document, Command = "dataCheck",
-                    Inputs = new List<WorkerFile> { new WorkerFile { Role = "scanFolder", Path = folder }, new WorkerFile { Role = "config", Path = settings.ConfigFile } },
-                    Scope = new WorkerScope { Kind = "project" }, OutputFolder = output, TimeLimitS = 300,
+                    FormatVersion = WorkerRequest.CurrentFormatVersion, RunId = context.RunId + RunIdSuffix, Document = document, Command = Command,
+                    // The empty SHA-256 of these two roles is the one R600 allows this command alone
+                    Inputs = new List<WorkerFile> { new WorkerFile { Role = DataCheckStepRoles.Folder, Path = folder }, new WorkerFile { Role = ReadInputs.Config, Path = settings.ConfigFile } },
+                    Scope = new WorkerScope { Kind = "project" }, OutputFolder = output,
+                    TimeLimitS = AddinConfig.Load(settings.ConfigFile).WorkerTimeLimitS(Command),
                 };
-                string requestPath = request.Write(work);
-                int code = RunWorker(requestPath, TimeSpan.FromSeconds(request.TimeLimitS + 20));
-                // The result file is read, never only the exit code
-                string result = Path.Combine(output, DataCheckRows.FileName);
-                if (!File.Exists(result))
-                {
-                    why = "the worker ended with code " + code + " and wrote no " + DataCheckRows.FileName;
-                    return null;
-                }
-                return DataCheckRows.Read(WorkFiles.ReadText(result));
+                Directory.CreateDirectory(work);
+                requestPath = request.Write(work);
             }
             catch (Exception failure)
             {
-                why = failure.Message;
-                return null;
+                end(RunLater.Failed(ScanView.Fill(DataCheckText.NotStarted, context.Label, failure.Message)));
+                return;
+            }
+            try
+            {
+                worker.Start(requestPath, work, request, answer => Answered(read, owner, context, end, output, held, answer));
+            }
+            catch (Exception failure)
+            {
+                end(RunLater.Failed(ScanView.Fill(DataCheckText.NotStarted, context.Label, failure.Message)));
             }
         }
 
-        private static int StartWorker(string requestPath, TimeSpan limit)
+        // In the API context of Revit, by the hand of the pane (LaunchedWorker.Hand)
+        private static void Answered(ButtonBody read, IntPtr owner, RunContext context, Action<RunLater> end, string output, string held, WorkerAnswer answer)
         {
-            string exe = LaunchedWorker.BesideAddIn();
-            var info = new ProcessStartInfo(exe, "--request \"" + requestPath + "\"") { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true };
-            using (Process process = Process.Start(info))
+            if (answer == null || answer.Status != WorkerExit.Status(WorkerExit.Done))
             {
-                // Read both pipes to their end so a full pipe never holds the worker
-                process.OutputDataReceived += (sender, args) => { };
-                process.ErrorDataReceived += (sender, args) => { };
-                process.BeginOutputReadLine();
-                process.BeginErrorReadLine();
-                if (!process.WaitForExit((int)limit.TotalMilliseconds))
+                end(RunLater.Failed(ScanView.Fill(DataCheckText.NotFinished, context.Label, (answer?.Status ?? "with no answer") + (string.IsNullOrEmpty(answer?.Message) ? "" : ", " + answer.Message))));
+                return;
+            }
+            string file = Path.Combine(output, DataCheckRows.FileName);
+            if (!File.Exists(file))
+            {
+                end(RunLater.Failed(ScanView.Fill(DataCheckText.NoResult, context.Label, "the worker ended with " + answer.Status)));
+                return;
+            }
+            DataCheckResult result;
+            try
+            {
+                string plots = Path.Combine(output, DataCheckRows.PlotsFileName);
+                result = DataCheckRows.ReadResult(WorkFiles.ReadText(file), File.Exists(plots) ? WorkFiles.ReadText(plots) : null);
+            }
+            catch (Exception failure)
+            {
+                end(RunLater.Failed(ScanView.Fill(DataCheckText.BadResult, context.Label, failure.Message)));
+                return;
+            }
+            try
+            {
+                if (held != null)
                 {
-                    process.Kill();
-                    return -1;
+                    ShowAlone(owner, result);
+                    end(RunLater.Failed(RunTexts.ChangedNothing(context.Label, RunTexts.Failed(held))));
+                    return;
                 }
-                return process.ExitCode;
+                // The gate of the scan shows these rows with the values of the scan, one window. If the scan never reaches its gate the
+                // rows are shown alone when the read ends
+                ScanGate.PendingCheck = result;
+                read.Start(context, later =>
+                {
+                    DataCheckResult left = ScanGate.TakeCheck();
+                    if (left != null)
+                    {
+                        ShowAlone(owner, left);
+                    }
+                    end(later);
+                });
+            }
+            catch (Exception failure)
+            {
+                ScanGate.TakeCheck();
+                end(RunLater.Failed(RunTexts.ChangedNothing(context.Label, RunTexts.Failed(failure.Message))));
             }
         }
+    }
+
+    // R600. The role the command dataCheck takes its folder by
+    internal static class DataCheckStepRoles
+    {
+        public const string Folder = "scanFolder";
     }
 }

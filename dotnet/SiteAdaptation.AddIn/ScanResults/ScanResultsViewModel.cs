@@ -120,9 +120,11 @@ namespace SiteAdaptation.AddIn.ScanResults
         private IReadOnlyList<ScanUnclear> unclear;
         private string footLine = ScanResultsText.Foot;
 
-        public ScanResultsViewModel(ScanViewData data, IReadOnlyList<DataCheckRow> dataCheck = null)
+        public ScanResultsViewModel(ScanViewData data, DataCheckResult dataCheck = null, bool checkOnly = false)
         {
-            DataCheck = dataCheck ?? new DataCheckRow[0];
+            Check = dataCheck;
+            CheckOnly = checkOnly && dataCheck != null;
+            footLine = CheckOnly ? DataCheckText.CheckFoot : ScanResultsText.Foot;
             Data = data ?? throw new ArgumentNullException(nameof(data));
             Values = data.Values.Select(row => new ScanValueViewModel(row, Refresh)).ToList();
             Files = data.Files;
@@ -133,14 +135,25 @@ namespace SiteAdaptation.AddIn.ScanResults
         public ScanViewData Data { get; }
 
         // R620. The section Data check at the top of the window, empty when no check ran
-        public IReadOnlyList<DataCheckRow> DataCheck { get; }
+        public DataCheckResult Check { get; }
+        public IReadOnlyList<DataCheckRow> DataCheck { get { return Check?.Rows ?? new DataCheckRow[0]; } }
         public bool HasDataCheck { get { return DataCheck.Count > 0; } }
+        public IReadOnlyList<DataCheckFileRow> Unread { get { return Check?.Unread ?? new DataCheckFileRow[0]; } }
+        public bool HasUnread { get { return Unread.Count > 0; } }
+        public string StoppedNote { get { return Check?.Stopped; } }
+        public bool HasStoppedNote { get { return !string.IsNullOrEmpty(StoppedNote); } }
+
+        // True when only the check is shown, the read cannot go on or the scan gave nothing to pick. The sections of the scan, its picks,
+        // its counters of conflicts, Export and the badge of step 3 are not shown then, they would say things that are not so
+        public bool CheckOnly { get; }
+        public bool ShowScan { get { return !CheckOnly; } }
+        public string BandLine { get { return CheckOnly ? DataCheckText.CheckLine : ScanResultsText.Line; } }
+        public string FilesRead { get { return ScanView.Count(CheckOnly ? Check.FilesRead : Data.FilesRead); } }
+        public string PlotsFound { get { return ScanView.Count(CheckOnly ? Check.PlotsFound : Data.PlotsFound); } }
         public IReadOnlyList<ScanValueViewModel> Values { get; }
         public IReadOnlyList<ScanFileRow> Files { get; }
         public IReadOnlyList<ScanConflictViewModel> AllConflicts { get; }
 
-        public string FilesRead { get { return ScanView.Count(Data.FilesRead); } }
-        public string PlotsFound { get { return ScanView.Count(Data.PlotsFound); } }
         public string ConflictCount { get { return ScanView.Count(Data.ConflictCount); } }
 
         public IReadOnlyList<ScanUnclear> Unclear { get { return unclear; } }
