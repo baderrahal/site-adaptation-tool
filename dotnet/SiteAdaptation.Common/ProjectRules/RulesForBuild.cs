@@ -40,15 +40,16 @@ namespace SiteAdaptation.Common.ProjectRules
         public static RulesForBuildAnswer Check(string rulesPath, JObject config)
         {
             var answer = new RulesForBuildAnswer();
-            JObject names = (config?["projectRules"] as JObject)?["ruleNames"] as JObject;
-            if (names == null)
+            JArray listed = (config?["projectRules"] as JObject)?["ruleIds"] as JArray;
+            if (listed == null || listed.Count == 0 || listed.Any(id => id.Type != JTokenType.String))
             {
-                throw new InvalidDataException("the config holds no projectRules.ruleNames, the list of the rules a build needs (R664)");
+                throw new InvalidDataException("the config holds no list projectRules.ruleIds of the rules a build needs (R664)");
             }
+            List<string> ids = listed.Select(id => (string)id).ToList();
             if (string.IsNullOrEmpty(rulesPath))
             {
                 answer.RulesChoiceLine = ChoiceLine;
-                AddAllMissing(answer, names, NoChoiceMark);
+                AddAllMissing(answer, ids, NoChoiceMark);
                 return answer;
             }
             string fault;
@@ -56,20 +57,20 @@ namespace SiteAdaptation.Common.ProjectRules
             if (file == null)
             {
                 answer.BlockingLine = "The rules file of this project cannot be used, so Build stops: " + fault + ". File " + Path.GetFileName(rulesPath) + ".";
-                AddAllMissing(answer, names, "The rules file of this project cannot be used, so this rule has no value.");
+                AddAllMissing(answer, ids, "The rules file of this project cannot be used, so this rule has no value.");
                 return answer;
             }
-            TakeRules(answer, file, names, config);
+            TakeRules(answer, file, ids, config);
             Fixed(answer, file);
             Before(answer, file);
             return answer;
         }
 
-        private static void AddAllMissing(RulesForBuildAnswer answer, JObject names, string mark)
+        private static void AddAllMissing(RulesForBuildAnswer answer, List<string> ids, string mark)
         {
-            foreach (JProperty name in names.Properties())
+            foreach (string id in ids)
             {
-                answer.Rules.Add(MissingRule(name.Name, name.Value.ToString(), mark));
+                answer.Rules.Add(MissingRule(id, id, mark));
             }
         }
 
@@ -116,7 +117,7 @@ namespace SiteAdaptation.Common.ProjectRules
             return file;
         }
 
-        private static void TakeRules(RulesForBuildAnswer answer, JObject file, JObject names, JObject config)
+        private static void TakeRules(RulesForBuildAnswer answer, JObject file, List<string> ids, JObject config)
         {
             bool pastAllowed = ProjectRulesFile.PastJobMode(config) != null && ProjectModes.OfConfig(config) == ProjectRulesFile.PastJobMode(config);
             var held = new HashSet<string>();
@@ -130,9 +131,9 @@ namespace SiteAdaptation.Common.ProjectRules
                 }
             }
             // A rule the build needs that the file lost is missing, it does not fall back on a template
-            foreach (JProperty name in names.Properties().Where(name => !held.Contains(name.Name)))
+            foreach (string id in ids.Where(id => !held.Contains(id)))
             {
-                answer.Rules.Add(MissingRule(name.Name, name.Value.ToString(), "The rules file of this project does not hold this rule."));
+                answer.Rules.Add(MissingRule(id, id, "The rules file of this project does not hold this rule."));
             }
         }
 

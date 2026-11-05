@@ -27,7 +27,7 @@ namespace SiteAdaptation.Tests.ProjectRules
             return new JObject
             {
                 ["designBasis"] = new JObject { ["mode"] = mode, ["modes"] = new JArray("made up old", "made up new") },
-                ["projectRules"] = new JObject { ["pastJobMode"] = "made up old", ["ruleNames"] = new JObject { ["M1"] = "One rule", ["M2"] = "Two rule" } },
+                ["projectRules"] = new JObject { ["pastJobMode"] = "made up old", ["ruleIds"] = new JArray("M1", "M2") },
             };
         }
 
@@ -91,7 +91,7 @@ namespace SiteAdaptation.Tests.ProjectRules
         public void R664_a_config_that_names_no_rules_says_so_and_does_not_pretend_there_are_none()
         {
             Exception failure = Assert.Throws<InvalidDataException>(() => RulesForBuild.Check(null, new JObject()));
-            Assert.Contains("projectRules.ruleNames", failure.Message);
+            Assert.Contains("projectRules.ruleIds", failure.Message);
         }
 
         [Theory]

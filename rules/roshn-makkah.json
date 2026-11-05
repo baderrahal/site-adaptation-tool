@@ -966,6 +966,8 @@
       "addin.siteUnits.area": {"status": "UNKNOWN", "why": "no Q, no share, no Bader line and no CHOSEN mark"},
       "addin.siteUnits.angle": {"status": "UNKNOWN", "why": "no Q, no share, no Bader line and no CHOSEN mark"},
       "addin.siteUnits.slope": {"status": "UNKNOWN", "why": "no Q, no share, no Bader line and no CHOSEN mark"},
+      "projectRules.pastJobMode": {"status": "CHOSEN by Code", "where": "projectRules.pastJobModeNote"},
+      "projectRules.ruleIds": {"status": "CHOSEN by Code", "where": "projectRules.ruleIdsNote"},
       "designBasis.mode": {"status": "CHOSEN by Bader", "question": "Q224", "where": "Q224"},
       "designBasis.modes": {"status": "UNKNOWN", "why": "no Q, no share, no Bader line and no CHOSEN mark"},
       "designBasis.newProjectMode": {"status": "CHOSEN by Bader", "question": "Q224", "where": "designBasis.note"},

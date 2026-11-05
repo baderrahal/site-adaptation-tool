@@ -49,7 +49,7 @@ namespace SiteAdaptation.Tests.ProjectRules
                 ["siteBuild"] = new JObject { ["minFreeGB"] = 0.1 },
                 ["addin"] = new JObject { ["workerTimeLimitMinS"] = 0.5, ["workerPeakMiB"] = new JObject { ["roles"] = new JArray("curbs"), ["files"] = new JArray(new JObject { ["name"] = "a.dwg", ["bytes"] = 1, ["peakMiB"] = 100 }) } },
                 ["designBasis"] = new JObject { ["mode"] = "made up old", ["modes"] = new JArray("made up old", "made up new") },
-                ["projectRules"] = new JObject { ["pastJobMode"] = "made up old", ["ruleNames"] = new JObject { ["M1"] = "One rule" } },
+                ["projectRules"] = new JObject { ["pastJobMode"] = "made up old", ["ruleIds"] = new JArray("M1") },
             }.ToString());
             return path;
         }

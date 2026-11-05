@@ -39,12 +39,10 @@ namespace SiteAdaptation.Tests.ProjectRules
         }
 
         [Fact]
-        public void R664_the_rules_a_build_needs_are_the_rules_of_the_manual_template_by_id_and_name()
+        public void R664_the_rules_a_build_needs_are_the_rules_of_the_manual_template()
         {
-            JObject names = (JObject)Read("config", "project.json")["projectRules"]["ruleNames"];
-            JObject[] rows = Rows(Read("rules", "templates", "manual.json"));
-            Assert.Equal(rows.Select(rule => (string)rule["id"]), names.Properties().Select(name => name.Name));
-            Assert.Equal(rows.Select(rule => (string)rule["name"]), names.Properties().Select(name => (string)name.Value));
+            JArray ids = (JArray)Read("config", "project.json")["projectRules"]["ruleIds"];
+            Assert.Equal(Rows(Read("rules", "templates", "manual.json")).Select(rule => (string)rule["id"]), ids.Select(id => (string)id));
         }
 
         [Fact]

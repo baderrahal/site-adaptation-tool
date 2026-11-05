@@ -2,7 +2,7 @@
 id: R2-C3-build-1
 lane: build-2
 stage: rules
-status: open
+status: done
 allowed:
   - dotnet/SiteAdaptation.Common/ProjectRules/
   - dotnet/SiteAdaptation.Tests/ProjectRules/
