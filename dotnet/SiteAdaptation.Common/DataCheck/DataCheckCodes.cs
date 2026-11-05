@@ -654,7 +654,7 @@ namespace SiteAdaptation.Common
             }
             else if (table != null)
             {
-                string how = table.Unsure ? " Unsure, the drawings hold none of its old codes, it may be no code table." : table.Direction == Guess ? " Which side is old is a guess, nothing tells them apart." : "";
+                string how = (table.Direction == Guess ? " Which side is old is a guess." : "") + (table.Unsure ? " Unsure, the drawings hold none of its old codes." : "");
                 yield return Need("codeMap", both.Count > 0 || table.Unsure || table.Direction == Guess ? "weak" : "usable", "A table of " + Count(table.Pairs.Count, "old and new code", "old and new codes") + " was found and waits for a person." + how + bothLine);
             }
             else if (f.TablesTooLarge != null && f.TablesTooLarge.Count > 0)

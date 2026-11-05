@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using Newtonsoft.Json.Linq;
 using SiteAdaptation.Common;
 using SiteAdaptation.Common.Flow;
@@ -29,10 +30,13 @@ namespace SiteAdaptation.Tests
 
         private static DataCheckSettings Settings()
         {
-            return DataCheckSettings.From(new JObject
+            return DataCheckSettings.From(new JObject { [DataCheckSettings.Block] = SettingsBlock(100) });
+        }
+
+        private static JObject SettingsBlock(int maxPairs)
+        {
+            return new JObject
             {
-                [DataCheckSettings.Block] = new JObject
-                {
                     ["scan"] = new JObject
                     {
                         ["labelPattern"] = @"^(?:(.*?)\s+)?(\S*\d\S*)$", ["tokenSplit"] = "[^A-Za-z0-9]+", ["plotNumberShifts"] = new JArray(0), ["pairMinSegments"] = 100,
@@ -41,9 +45,8 @@ namespace SiteAdaptation.Tests
                     ["groupGapsM"] = new JArray(100.0, 1.0), ["wordReachM"] = 30, ["wordShare"] = 0.9, ["wordMinGroups"] = 3, ["standInMaxArea"] = 4, ["roadReachM"] = 20, ["roadMinSegments"] = 2, ["roadOutsideShare"] = 0.5,
                     ["drawingPeak"] = new JObject { ["dwg"] = 252, ["dxf"] = 106 },
                     ["strongShare"] = 0.9, ["usableShare"] = 0.5, ["prototypeFilePattern"] = "(?:^|-)ARC-([A-Za-z0-9]+)(?:-[A-Za-z0-9]{2})?-MOD",
-                    ["codePattern"] = @"^[A-Za-z]+\d+[A-Za-z0-9.]*(?:-[A-Za-z0-9]+)*(?:\s*\([^()]*\))?$", ["codeTableMaxPairs"] = 100, ["handGuessShare"] = 0.6, ["groupNamePattern"] = @"^(?:[A-Z0-9][A-Za-z0-9-]{0,3}|\S*\d\S*)$",
-                },
-            });
+                    ["codePattern"] = @"^[A-Za-z]+\d+[A-Za-z0-9.]*(?:-[A-Za-z0-9]+)*(?:\s*\([^()]*\))?$", ["codeTableMaxPairs"] = maxPairs, ["handGuessShare"] = 0.6, ["areaNearPlots"] = 8, ["areaAgreement"] = 0.7, ["skipFolders"] = new JArray(), ["groupNamePattern"] = @"^(?:[A-Z0-9][A-Za-z0-9-]{0,3}|\S*\d\S*)$",
+            };
         }
 
         private static JArray Pt(double x, double y)
@@ -196,7 +199,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R631_of_two_equal_columns_the_later_is_first_and_a_group_column_or_a_copy_of_the_drawing_is_none()
+        public void R631_two_equal_columns_are_one_answer_and_the_first_stands_a_group_column_or_a_copy_of_the_drawing_is_none()
         {
             var rows = new List<string[]> { new[] { "Plot", "First", "Later", "Row", "Same" } };
             for (int at = 0; at < 10; at++)
@@ -208,8 +211,9 @@ namespace SiteAdaptation.Tests
             input.PrototypeNames.AddRange(new[] { "X-ARC-OLD1-ZZ-MOD-1.rvt", "X-ARC-OLD2-ZZ-MOD-1.rvt" });
             DataCheckOutput output = DataCheckLogic.Run(Settings(), input);
             var columns = ((JArray)output.Profile["typologyColumn"]["candidates"]).Select(row => (string)row["column"]).ToList();
-            Assert.Equal("Later", (string)output.Profile["typologyColumn"]["proposed"]["column"]);
-            Assert.Equal(new[] { "Later", "First" }, columns);
+            Assert.Equal("First", (string)output.Profile["typologyColumn"]["proposed"]["column"]);
+            Assert.Equal(new[] { "First", "Later" }, columns);
+            Assert.Contains("same code", (string)output.Profile["typologyColumn"]["tie"]);
         }
 
         [Fact]
@@ -232,7 +236,7 @@ namespace SiteAdaptation.Tests
             Assert.Contains("no code", (string)plots["110"]["missing"]["villaType"]);
             Assert.Equal("person entered", (string)output.Profile["typologyColumn"]["source"]);
             Assert.True((bool)output.Profile["typologyColumn"]["confirmed"]["found"]);
-            Assert.Contains("confirmed column", ((JArray)output.Check["needs"]).OfType<JObject>().First(row => (string)row["need"] == "villaType")["line"].ToString());
+            Assert.Contains("confirmed column", (string)NeedOf(output, "villaType")["line"]);
         }
 
         [Fact]
@@ -261,17 +265,19 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R632_a_code_already_new_stands_and_an_old_code_with_two_new_ones_is_no_pick()
+        public void R632_an_old_code_with_two_new_ones_is_no_pick_even_when_one_is_itself()
         {
             // Bounded to what a real table holds: one old name kept, and split between two new ones
             ConfirmedProfile confirmed = ConfirmedProfile.From(JObject.Parse("{\"codeMap\": [{\"old\": \"OLD1\", \"new\": \"OLD1\"}, {\"old\": \"OLD1\", \"new\": \"NEW1\"}, {\"old\": \"OLD2\", \"new\": \"NEW1\"}, {\"old\": \"OLD2\", \"new\": \"NEW2\"}]}"), 2);
             DataCheckOutput output = DataCheckLogic.Run(Settings(), Input(confirmed));
             Dictionary<string, JObject> plots = Plots(output);
             Assert.Equal("OLD1", (string)plots["101"]["villaType"]);
-            Assert.Null(plots["101"]["weak"]["villaType"]);
+            Assert.Contains("2 new codes", (string)plots["101"]["weak"]["villaType"]);
             Assert.Equal("OLD2", (string)plots["102"]["villaType"]);
             Assert.Contains("2 new codes", (string)plots["102"]["weak"]["villaType"]);
-            Assert.Contains("two new codes", ((JArray)output.Check["needs"]).OfType<JObject>().First(row => (string)row["need"] == "villaType")["line"].ToString());
+            JObject need = NeedOf(output, "villaType");
+            Assert.Equal("weak", (string)need["mark"]);
+            Assert.Contains("the code map leaves as read", (string)need["line"]);
         }
 
         [Theory]
@@ -343,7 +349,7 @@ namespace SiteAdaptation.Tests
                 Assert.Null((string)row["word"]);
                 Assert.Equal("missing", (string)row["source"]);
             });
-            Assert.Contains("name each one once", ((JArray)output.Check["needs"]).OfType<JObject>().First(row => (string)row["need"] == "groupLevels")["line"].ToString());
+            Assert.Contains("name each one once", (string)NeedOf(output, "groupLevels")["line"]);
         }
 
         [Fact]
@@ -379,6 +385,469 @@ namespace SiteAdaptation.Tests
             Assert.Equal("missing", (string)levels[0]["source"]);
         }
 
+        private static JObject NeedOf(DataCheckOutput output, string need)
+        {
+            return ((JArray)output.Check["needs"]).OfType<JObject>().Single(row => (string)row["need"] == need);
+        }
+
+        private static JObject ValueOf(DataCheckOutput output, string need)
+        {
+            return ((JArray)output.Check["values"]).OfType<JObject>().Single(row => (string)row["need"] == need);
+        }
+
+        private static ConfirmedProfile Given(string text)
+        {
+            return ConfirmedProfile.From(JObject.Parse(text), 2);
+        }
+
+        // Twenty plots in four rows of five, far apart in two areas, each with a type that runs across the rows. Its sheet is what each test adds to
+        private static DataCheckInput TwoAreas(ConfirmedProfile confirmed, params ScanWorkbook[] books)
+        {
+            var plots = new List<(string, string, string, bool)>();
+            for (int at = 0; at < 20; at++)
+            {
+                string code = at % 2 == 0 ? "NEW1" : "NEW2";
+                plots.Add(((101 + at).ToString(), code, "House_" + code, at % 3 == 0));
+            }
+            JObject drawing = Drawing(plots);
+            // The second half lies far away, so the areas are places on the ground and the rows are blocks inside them
+            foreach (JObject face in ((JArray)drawing["candidates"][0]["faces"]).OfType<JObject>().Skip(10))
+            {
+                foreach (JArray point in ((JArray)face["ring"]).OfType<JArray>())
+                {
+                    point[0] = (double)point[0] + 5000;
+                }
+                face["centroid"][0] = (double)face["centroid"][0] + 5000;
+            }
+            foreach (JObject text in ((JArray)drawing["texts"]).OfType<JObject>().Skip(10))
+            {
+                text["x"] = (double)text["x"] + 5000;
+            }
+            foreach (JObject insert in ((JArray)drawing["inserts"]).OfType<JObject>().Skip(10))
+            {
+                insert["x"] = (double)insert["x"] + 5000;
+            }
+            var input = new DataCheckInput { Confirmed = confirmed };
+            input.CadReads.Add(drawing);
+            input.PrototypeNames.AddRange(new[] { "X-ARC-NEW1-ZZ-MOD-1.rvt", "X-ARC-NEW2-ZZ-MOD-1.rvt" });
+            input.Excels.AddRange(books);
+            return input;
+        }
+
+        // The sheet of those plots with each named column, whose cell a function gives from the plot's place in the list
+        private static ScanWorkbook PlotSheet(string name, params (string Header, Func<int, string> Cell)[] columns)
+        {
+            var rows = new List<string[]> { new[] { "Plot" }.Concat(columns.Select(column => column.Header)).ToArray() };
+            for (int at = 0; at < 20; at++)
+            {
+                int place = at;
+                rows.Add(new[] { (101 + at).ToString() }.Concat(columns.Select(column => column.Cell(place))).ToArray());
+            }
+            return Book("sheet.xlsx", Sheet(name, rows.ToArray()));
+        }
+
+        // 1. Areas
+
+        private static string AreaOf(int at)
+        {
+            return at < 10 ? "North" : "South";
+        }
+
+        [Fact]
+        public void R635_a_column_that_parts_the_plots_on_the_ground_is_proposed_under_any_name_and_changes_no_plot()
+        {
+            DataCheckOutput output = DataCheckLogic.Run(Settings(), TwoAreas(null, PlotSheet("Any", ("Xq7", AreaOf))));
+            JToken proposed = output.Profile["areaColumn"]["proposed"];
+            Assert.Equal("Any", (string)proposed["sheet"]);
+            Assert.Equal("Xq7", (string)proposed["column"]);
+            Assert.Equal(2, (int)proposed["areas"]);
+            Assert.Null((string)Plots(output)["101"]["area"]);
+            Assert.Equal("distance", (string)output.Plots["areaFrom"]);
+            string line = (string)NeedOf(output, "groupLevels")["line"];
+            Assert.Contains("distance only", line);
+            Assert.Contains("pick the area column", line);
+            Assert.Contains(((JArray)output.Check["proposalSources"]).OfType<JObject>(), row => (string)row["use"] == "areaColumn" && (string)row["sheet"] == "Any");
+        }
+
+        [Fact]
+        public void R635_a_column_that_runs_across_the_ground_a_block_name_or_one_value_is_no_area()
+        {
+            var nothing = new (string, Func<int, string>)[]
+            {
+                ("Runs across", at => at % 2 == 0 ? "One" : "Two"),
+                ("Row by row", at => "Row" + (at / 5)),
+                ("Same", at => "All"),
+            };
+            foreach ((string, Func<int, string>) column in nothing)
+            {
+                DataCheckOutput output = DataCheckLogic.Run(Settings(), TwoAreas(null, PlotSheet("Any", column)));
+                Assert.Empty((JArray)output.Profile["areaColumn"]["candidates"]);
+                Assert.Equal("missing", (string)ValueOf(output, "areaColumn")["mark"]);
+            }
+        }
+
+        [Fact]
+        public void R635_the_confirmed_area_column_gives_each_plot_its_area_and_the_level_its_word()
+        {
+            ConfirmedProfile confirmed = Given("{\"areaColumn\": {\"sheet\": \"Any\", \"column\": \"Quarter\"}}");
+            DataCheckOutput output = DataCheckLogic.Run(Settings(), TwoAreas(confirmed, PlotSheet("Any", ("Quarter", at => at == 19 ? "" : AreaOf(at)))));
+            Assert.Equal("North", (string)Plots(output)["101"]["area"]);
+            Assert.Equal("person entered", (string)Plots(output)["101"]["source"]["area"]);
+            Assert.Contains("no value", (string)Plots(output)["120"]["missing"]["area"]);
+            JObject table = DataCheckLogic.PlotTable(output.Plots);
+            var rows = ((JArray)table["plots"]).OfType<JObject>().ToDictionary(row => (string)row["officialNumber"]);
+            Assert.Equal("South", (string)rows["115"]["nbhId"]);
+            Assert.Null((string)rows["120"]["nbhId"]);
+            Assert.Equal("Quarter", (string)output.Profile["levels"][0]["word"]);
+            Assert.Equal("person entered", (string)output.Profile["levels"][0]["source"]);
+            Assert.Contains("Areas from the confirmed column: 2", (string)NeedOf(output, "groupLevels")["line"]);
+            Assert.Contains("2 areas on 19 of 20", (string)ValueOf(output, "areaColumn")["line"]);
+        }
+
+        [Fact]
+        public void R635_a_word_the_person_typed_goes_over_the_header_of_the_area_column()
+        {
+            ConfirmedProfile confirmed = Given("{\"areaColumn\": {\"sheet\": \"Any\", \"column\": \"Quarter\"}, \"levels\": [{\"level\": 1, \"word\": \"Precinct\"}]}");
+            DataCheckOutput output = DataCheckLogic.Run(Settings(), TwoAreas(confirmed, PlotSheet("Any", ("Quarter", AreaOf))));
+            Assert.Equal("Precinct", (string)output.Profile["levels"][0]["word"]);
+        }
+
+        [Fact]
+        public void R635_a_confirmed_area_column_that_is_gone_or_one_value_keeps_the_distance_areas_and_says_so()
+        {
+            foreach (string text in new[] { "{\"areaColumn\": {\"sheet\": \"Gone\", \"column\": \"Quarter\"}}", "{\"areaColumn\": {\"sheet\": \"Any\", \"column\": \"Same\"}}" })
+            {
+                DataCheckOutput output = DataCheckLogic.Run(Settings(), TwoAreas(Given(text), PlotSheet("Any", ("Quarter", AreaOf), ("Same", at => "All"))));
+                Assert.Equal("distance", (string)output.Plots["areaFrom"]);
+                JObject need = NeedOf(output, "groupLevels");
+                Assert.Equal("weak", (string)need["mark"]);
+                Assert.Contains("confirmed area column was not used", (string)need["line"]);
+                Assert.False((bool)output.Profile["areaColumn"]["confirmed"]["found"]);
+                Assert.Equal("weak", (string)ValueOf(output, "areaColumn")["mark"]);
+            }
+        }
+
+        [Fact]
+        public void R635_two_area_columns_of_one_rank_that_part_the_plots_otherwise_are_a_tie_with_no_proposal()
+        {
+            DataCheckOutput tied = DataCheckLogic.Run(Settings(), TwoAreas(null, PlotSheet("Any", ("One", AreaOf), ("Two", at => at < 10 ? "East" : at < 19 ? "West" : "East"))));
+            Assert.Equal(JTokenType.Null, tied.Profile["areaColumn"]["proposed"].Type);
+            Assert.Contains("pick one", (string)ValueOf(tied, "areaColumn")["line"]);
+        }
+
+        // 2. A map that is both old and new
+
+        [Theory]
+        [InlineData("{\"codeMap\": [{\"old\": \"NEW1\", \"new\": \"NEW2\"}, {\"old\": \"NEW2\", \"new\": \"NEW3\"}]}", "NEW2")]
+        [InlineData("{\"codeMap\": [{\"old\": \"NEW1\", \"new\": \"NEW2\"}, {\"old\": \"NEW2\", \"new\": \"NEW1\"}]}", "NEW1")]
+        public void R632_a_chain_or_a_swap_in_a_confirmed_map_collapses_no_type_and_is_weak_and_named(string text, string code)
+        {
+            DataCheckOutput output = DataCheckLogic.Run(Settings(), TwoAreas(Given(text)));
+            Dictionary<string, JObject> plots = Plots(output);
+            Assert.Equal("NEW1", (string)plots["101"]["villaType"]);
+            Assert.Equal("NEW2", (string)plots["102"]["villaType"]);
+            Assert.Contains("both an old and a new code", (string)plots["102"]["weak"]["villaType"]);
+            JObject need = NeedOf(output, "villaType");
+            Assert.Equal("weak", (string)need["mark"]);
+            Assert.Contains(code, (string)need["line"]);
+            Assert.DoesNotContain("confirmed.", (string)need["line"]);
+            Assert.Equal("weak", (string)ValueOf(output, "codeMap")["mark"]);
+            Assert.Contains(code, (string)ValueOf(output, "codeMap")["line"]);
+            Assert.Contains(code, ((JArray)output.Profile["codeMap"]["bothOldAndNew"]).Select(item => (string)item));
+        }
+
+        [Fact]
+        public void R632_a_chain_in_a_proposed_table_is_weak_and_named_before_anyone_confirms()
+        {
+            ScanWorkbook chain = Book("t.xlsx", Sheet("S", new[] { "A", "B" }, new[] { "OLD1", "NEW1" }, new[] { "NEW1", "NEW2" }));
+            DataCheckOutput output = DataCheckLogic.Run(Settings(), Input(null, chain));
+            Assert.Equal("weak", (string)ValueOf(output, "codeMap")["mark"]);
+            Assert.Contains("NEW1 is both an old and a new code", (string)ValueOf(output, "codeMap")["line"]);
+            Assert.Equal(new[] { "NEW1" }, ((JArray)output.Profile["codeMap"]["bothOldAndNew"]).Select(item => (string)item));
+        }
+
+        // 3. One value, and what the column clears
+
+        [Fact]
+        public void R631_a_column_of_one_value_is_never_proposed_and_confirming_it_is_refused()
+        {
+            ScanWorkbook book = PlotSheet("Any", ("Default type", at => "NEW1"));
+            DataCheckOutput proposed = DataCheckLogic.Run(Settings(), TwoAreas(null, book));
+            Assert.Equal(JTokenType.Null, proposed.Profile["typologyColumn"]["proposed"].Type);
+            DataCheckOutput confirmed = DataCheckLogic.Run(Settings(), TwoAreas(Given("{\"typologyColumn\": {\"sheet\": \"Any\", \"column\": \"Default type\"}}"), book));
+            Assert.Equal("NEW2", (string)Plots(confirmed)["102"]["villaType"]);
+            JObject need = NeedOf(confirmed, "villaType");
+            Assert.Equal("weak", (string)need["mark"]);
+            Assert.Contains("one value", (string)need["line"]);
+        }
+
+        [Fact]
+        public void R631_what_the_drawing_says_against_a_confirmed_column_is_counted_in_the_line_and_kept_on_the_plot()
+        {
+            ConfirmedProfile confirmed = Given("{\"typologyColumn\": {\"sheet\": \"Any\", \"column\": \"Rev\"}}");
+            // The drawing gives NEW1 on the even places and NEW2 on the odd, the column turns them all round
+            DataCheckOutput output = DataCheckLogic.Run(Settings(), TwoAreas(confirmed, PlotSheet("Any", ("Rev", at => at % 2 == 0 ? "NEW2" : "NEW1"))));
+            JObject plot = Plots(output)["101"];
+            Assert.Equal("NEW2", (string)plot["villaType"]);
+            Assert.Contains("the drawing gives NEW1", (string)plot["disputed"]["villaType"]);
+            Assert.Contains("the drawing gives another code on 20", (string)NeedOf(output, "villaType")["line"]);
+        }
+
+        // 4. A tie
+
+        [Fact]
+        public void R631_two_columns_of_one_rank_that_differ_are_a_tie_the_person_settles_and_the_later_wins_nothing()
+        {
+            DataCheckOutput output = DataCheckLogic.Run(Settings(), TwoAreas(null, PlotSheet("Any", ("First", at => at % 2 == 0 ? "NEW2" : "NEW1"), ("Later", at => at % 4 < 2 ? "NEW2" : "NEW1"))));
+            Assert.Equal(JTokenType.Null, output.Profile["typologyColumn"]["proposed"].Type);
+            Assert.Equal(2, ((JArray)output.Profile["typologyColumn"]["candidates"]).Count);
+            Assert.Contains("pick one", (string)ValueOf(output, "typologyColumn")["line"]);
+            Assert.Equal("weak", (string)ValueOf(output, "typologyColumn")["mark"]);
+        }
+
+        // 5. No prototype file
+
+        [Fact]
+        public void R632_a_confirmed_code_with_no_prototype_file_is_weak_on_the_plot_and_the_need()
+        {
+            ConfirmedProfile confirmed = Given("{\"typologyColumn\": {\"sheet\": \"Any\", \"column\": \"Rev\"}}");
+            DataCheckOutput output = DataCheckLogic.Run(Settings(), TwoAreas(confirmed, PlotSheet("Any", ("Rev", at => at == 0 ? "NEW7" : at % 2 == 0 ? "NEW2" : "NEW1"))));
+            Assert.Contains("no prototype file has the code NEW7", (string)Plots(output)["101"]["weak"]["villaType"]);
+            Assert.Null(Plots(output)["102"]["weak"]["villaType"]);
+            JObject need = NeedOf(output, "villaType");
+            Assert.Equal("weak", (string)need["mark"]);
+            Assert.Contains("1 with no prototype file", (string)need["line"]);
+        }
+
+        [Fact]
+        public void R632_a_zone_column_confirmed_as_villa_type_is_weak_or_missing_and_never_reads_well()
+        {
+            ConfirmedProfile confirmed = Given("{\"typologyColumn\": {\"sheet\": \"Any\", \"column\": \"Rev\"}}");
+            DataCheckOutput coded = DataCheckLogic.Run(Settings(), TwoAreas(confirmed, PlotSheet("Any", ("Rev", at => at < 10 ? "Z1" : "Z2"))));
+            Assert.Equal("weak", (string)NeedOf(coded, "villaType")["mark"]);
+            Assert.Contains("no prototype file", (string)Plots(coded)["101"]["weak"]["villaType"]);
+            DataCheckOutput words = DataCheckLogic.Run(Settings(), TwoAreas(confirmed, PlotSheet("Any", ("Rev", at => at < 10 ? "Zone north" : "Zone south"))));
+            Assert.Equal("missing", (string)NeedOf(words, "villaType")["mark"]);
+        }
+
+        // 6. A confirmed column that is gone
+
+        [Theory]
+        [InlineData("{\"typologyColumn\": {\"sheet\": \"Gone\", \"column\": \"Rev\"}}")]
+        [InlineData("{\"typologyColumn\": {\"sheet\": \"Any\", \"column\": \"Gone\"}}")]
+        public void R632_a_confirmed_column_that_is_gone_is_in_the_need_line_and_lowers_the_mark(string text)
+        {
+            DataCheckOutput output = DataCheckLogic.Run(Settings(), TwoAreas(Given(text), PlotSheet("Any", ("Rev", at => at % 2 == 0 ? "NEW2" : "NEW1"))));
+            JObject need = NeedOf(output, "villaType");
+            Assert.Equal("weak", (string)need["mark"]);
+            Assert.StartsWith("The confirmed column was not used, it is no longer in the folder", (string)need["line"]);
+            Assert.Equal("NEW1", (string)Plots(output)["101"]["villaType"]);
+        }
+
+        // 7. Too large
+
+        [Fact]
+        public void R630_a_table_past_the_limit_is_said_found_and_too_large()
+        {
+            var rows = new List<string[]> { new[] { "A", "B" }, new[] { "OLD1", "NEW1" }, new[] { "OLD2", "NEW2" } };
+            for (int at = 0; at < 120; at++)
+            {
+                rows.Add(new[] { "Q" + at, "P" + at });
+            }
+            DataCheckOutput output = DataCheckLogic.Run(Settings(), Input(null, Book("t.xlsx", Sheet("S", rows.ToArray()))));
+            Assert.Empty((JArray)output.Profile["codeMap"]["proposed"]);
+            Assert.Equal(122, (int)output.Profile["codeMap"]["tooLarge"][0]["pairs"]);
+            Assert.Contains("122 old and new codes was found, too large", (string)ValueOf(output, "codeMap")["line"]);
+            Assert.DoesNotContain("No code table", (string)NeedOf(output, "villaType")["line"]);
+        }
+
+        [Fact]
+        public void R631_a_typology_column_past_the_limit_is_said_found_and_too_large()
+        {
+            var settings = DataCheckSettings.From(new JObject { [DataCheckSettings.Block] = SettingsBlock(3) });
+            DataCheckOutput output = DataCheckLogic.Run(settings, TwoAreas(null, PlotSheet("Any", ("Rev", at => "Q" + (at % 4)))));
+            Assert.Equal(JTokenType.Null, output.Profile["typologyColumn"]["proposed"].Type);
+            Assert.Equal(4, (int)output.Profile["typologyColumn"]["tooLarge"][0]["codes"]);
+            Assert.Contains("too large", (string)ValueOf(output, "typologyColumn")["line"]);
+        }
+
+        // 8. Direction and a table that may be no code table
+
+        [Fact]
+        public void R630_with_no_word_of_the_drawing_the_prototype_files_tell_the_new_side_and_with_neither_it_is_a_guess()
+        {
+            // The drawing holds none of these old codes, the prototype files name the left side, so the left is the new side, though it is written first
+            ScanWorkbook named = Book("t.xlsx", Sheet("S", new[] { "A", "B" }, new[] { "NEW1", "AA1" }, new[] { "NEW2", "AA2" }));
+            DataCheckOutput output = DataCheckLogic.Run(Settings(), Input(null, named));
+            Assert.Equal(new[] { "AA1>NEW1", "AA2>NEW2" }, ((JArray)output.Profile["codeMap"]["proposed"]).Select(row => (string)row["old"] + ">" + (string)row["new"]));
+            Assert.Contains("prototype files", (string)output.Profile["codeMap"]["direction"]);
+
+            // The drawing holds a code of neither side as a rename and the files name both alike
+            ScanWorkbook even = Book("t.xlsx", Sheet("S", new[] { "A", "B" }, new[] { "NEW1", "NEW2" }, new[] { "NEW2", "NEW1" }));
+            DataCheckInput input = TwoAreas(null, even);
+            input.CadReads[0]["texts"] = new JArray(((JArray)input.CadReads[0]["texts"]).OfType<JObject>().Select(text => { text["text"] = Regex.Replace((string)text["text"], "NEW[12]", "BB9"); return text; }));
+            foreach (JObject insert in ((JArray)input.CadReads[0]["inserts"]).OfType<JObject>())
+            {
+                insert["block"] = "House_BB9";
+            }
+            DataCheckOutput guess = DataCheckLogic.Run(Settings(), input);
+            Assert.Contains("guess", (string)guess.Profile["codeMap"]["direction"]);
+            Assert.Contains("guess", (string)ValueOf(guess, "codeMap")["line"], StringComparison.OrdinalIgnoreCase);
+            Assert.Equal("weak", (string)ValueOf(guess, "codeMap")["mark"]);
+        }
+
+        [Fact]
+        public void R630_a_price_list_of_two_code_columns_is_said_unsure_when_the_drawing_holds_none_of_its_old_codes()
+        {
+            ScanWorkbook prices = Book("t.xlsx", Sheet("Prices", new[] { "A", "B" }, new[] { "AA1", "NEW1" }, new[] { "AA2", "NEW2" }));
+            DataCheckOutput output = DataCheckLogic.Run(Settings(), Input(null, prices));
+            Assert.True((bool)output.Profile["codeMap"]["unsure"]);
+            Assert.Equal("weak", (string)ValueOf(output, "codeMap")["mark"]);
+            Assert.Contains("Unsure", (string)ValueOf(output, "codeMap")["line"]);
+            ScanWorkbook real = Book("t.xlsx", Sheet("Names", new[] { "A", "B" }, new[] { "OLD1", "NEW1" }, new[] { "OLD2", "NEW2" }));
+            Assert.False((bool)DataCheckLogic.Run(Settings(), Input(null, real)).Profile["codeMap"]["unsure"]);
+        }
+
+        // 9. Names and rows that cannot speak for themselves
+
+        [Fact]
+        public void R632_two_columns_of_one_name_are_neither_proposed_nor_taken()
+        {
+            ScanWorkbook book = PlotSheet("Any", ("Rev", at => at % 2 == 0 ? "NEW2" : "NEW1"), ("Rev", at => at % 4 < 2 ? "NEW2" : "NEW1"));
+            Assert.Equal(JTokenType.Null, DataCheckLogic.Run(Settings(), TwoAreas(null, book)).Profile["typologyColumn"]["proposed"].Type);
+            DataCheckOutput output = DataCheckLogic.Run(Settings(), TwoAreas(Given("{\"typologyColumn\": {\"sheet\": \"Any\", \"column\": \"Rev\"}}"), book));
+            Assert.False((bool)output.Profile["typologyColumn"]["confirmed"]["found"]);
+            Assert.Contains("two columns of that sheet", (string)NeedOf(output, "villaType")["line"]);
+        }
+
+        [Fact]
+        public void R632_a_plot_listed_twice_is_noted_and_two_values_for_it_are_weak()
+        {
+            var rows = new List<string[]> { new[] { "Plot", "Rev" } };
+            for (int at = 0; at < 20; at++)
+            {
+                rows.Add(new[] { (101 + at).ToString(), at % 2 == 0 ? "NEW2" : "NEW1" });
+            }
+            rows.Add(new[] { "101", "NEW1" });
+            rows.Add(new[] { "102", "NEW1" });
+            DataCheckOutput output = DataCheckLogic.Run(Settings(), TwoAreas(Given("{\"typologyColumn\": {\"sheet\": \"Any\", \"column\": \"Rev\"}}"), Book("s.xlsx", Sheet("Any", rows.ToArray()))));
+            Assert.Equal(2, (int)output.Profile["typologyColumn"]["confirmed"]["listedTwice"]);
+            Assert.Contains("2 plots are listed twice", (string)ValueOf(output, "typologyColumn")["line"]);
+            Assert.Contains("twice with two values", (string)Plots(output)["101"]["weak"]["villaType"]);
+            Assert.Null(Plots(output)["102"]["weak"]["villaType"]);
+        }
+
+        [Fact]
+        public void R632_a_hand_or_a_map_entry_naming_a_code_no_plot_holds_is_noted()
+        {
+            ConfirmedProfile confirmed = Given("{\"codeMap\": [{\"old\": \"NEW1\", \"new\": \"NEW8\"}, {\"old\": \"AA9\", \"new\": \"NEW9\"}], \"hands\": {\"NEW2\": \"left\", \"AA7\": \"left\"}}");
+            DataCheckOutput output = DataCheckLogic.Run(Settings(), TwoAreas(confirmed));
+            Assert.Equal(new[] { "AA9" }, ((JArray)output.Profile["codeMap"]["notHeld"]).Select(item => (string)item));
+            Assert.Equal(new[] { "AA7" }, ((JArray)output.Profile["hands"]["notHeld"]).Select(item => (string)item));
+            Assert.Contains("1 entry names a code no plot holds", (string)ValueOf(output, "codeMap")["line"]);
+            Assert.Contains("1 names a code no plot holds", (string)ValueOf(output, "hands")["line"]);
+        }
+
+        // 10 and 11. The lines say what happened
+
+        [Fact]
+        public void R633_hands_with_every_guess_null_read_missing_on_the_output_as_it_is_built()
+        {
+            var input = new DataCheckInput();
+            input.CadReads.Add(Drawing(TenPlots()));
+            input.PrototypeNames.Add("X-ARC-NEW1-ZZ-MOD-1.rvt");
+            JToken hands = DataCheckLogic.Run(Settings(), input).Profile["hands"];
+            Assert.Equal(JTokenType.Null, hands["proposed"]["NEW1"].Type);
+            Assert.Equal("missing", (string)hands["source"]);
+        }
+
+        [Fact]
+        public void R635_a_null_number_built_in_memory_gets_no_row_of_the_plot_table()
+        {
+            var plots = new List<(string, string, string, bool)> { ("7 8", "OLD1", null, false) };
+            for (int at = 0; at < 9; at++)
+            {
+                plots.Add(((101 + at).ToString(), "OLD1", null, false));
+            }
+            var input = new DataCheckInput();
+            input.CadReads.Add(Drawing(plots));
+            input.PrototypeNames.Add("X-ARC-OLD1-ZZ-MOD-1.rvt");
+            DataCheckOutput output = DataCheckLogic.Run(Settings(), input);
+            JObject table = DataCheckLogic.PlotTable(output.Plots);
+            Assert.All((JArray)table["plots"], row => Assert.False(string.IsNullOrEmpty((string)row["officialNumber"])));
+        }
+
+        [Fact]
+        public void R632_each_line_says_what_happened_after_a_confirm()
+        {
+            DataCheckOutput before = DataCheckLogic.Run(Settings(), TwoAreas(null, PlotSheet("Any", ("Rev", at => at % 2 == 0 ? "NEW2" : "NEW1")), RealShapeTable()));
+            Assert.Contains("waits for a person", (string)ValueOf(before, "typologyColumn")["line"]);
+            Assert.Contains("waits for a person", (string)ValueOf(before, "codeMap")["line"]);
+            Assert.Contains("No prototype has a guess", (string)ValueOf(TwoEvenHands(null), "hands")["line"]);
+
+            ConfirmedProfile confirmed = Given("{\"typologyColumn\": {\"sheet\": \"Any\", \"column\": \"Rev\"}, \"codeMap\": [{\"old\": \"NEW1\", \"new\": \"NEW2\"}], \"hands\": {\"NEW2\": \"left\"}}");
+            DataCheckOutput after = DataCheckLogic.Run(Settings(), TwoAreas(confirmed, PlotSheet("Any", ("Rev", at => at % 2 == 0 ? "NEW2" : "NEW1"))));
+            foreach (string need in new[] { "typologyColumn", "codeMap", "hands" })
+            {
+                string line = (string)ValueOf(after, need)["line"];
+                Assert.DoesNotContain("until", line);
+                Assert.DoesNotContain("waits", line);
+                Assert.DoesNotContain("type it", line);
+                Assert.Contains("confirmed", line);
+            }
+            Assert.Contains("A code map of 1 row is confirmed, it changed 10 plots", (string)ValueOf(after, "codeMap")["line"]);
+            Assert.Contains("1 hand is confirmed, ", (string)ValueOf(after, "hands")["line"]);
+        }
+
+        private static DataCheckOutput TwoEvenHands(ConfirmedProfile confirmed)
+        {
+            var plots = new List<(string, string, string, bool)>();
+            for (int at = 0; at < 10; at++)
+            {
+                plots.Add(((101 + at).ToString(), "NEW1", "House_NEW1", at % 2 == 0));
+            }
+            var input = new DataCheckInput { Confirmed = confirmed };
+            input.CadReads.Add(Drawing(plots));
+            input.PrototypeNames.Add("X-ARC-NEW1-ZZ-MOD-1.rvt");
+            return DataCheckLogic.Run(Settings(), input);
+        }
+
+        // 12. Folders of past outputs
+
+        [Theory]
+        [InlineData("past outputs")]
+        [InlineData("PAST OUTPUTS")]
+        public void R635_a_folder_of_skip_folders_is_not_walked_is_named_and_a_change_in_it_is_no_new_read(string given)
+        {
+            string configPath = Project(DesignBasis.Rev6, given);
+            JObject config = JObject.Parse(File.ReadAllText(configPath));
+            string past = Path.Combine((string)config["inputRoot"], "sub", "past outputs");
+            Directory.CreateDirectory(past);
+            File.Copy(Path.Combine(RepoRoot(), "samples", "new-project", "site.dxf"), Path.Combine(past, "old site.dxf"));
+            string work = WorkFolderOf();
+            var worker = new DataCheckWorker();
+            var confirm = new Yes();
+            Assert.Equal(RunEnd.Committed, Press(configPath, work, worker, DesignBasis.Rev6, confirm).End);
+            // The read says which folder it read, by its whole path
+            Assert.Contains(confirm.Asked.PerPlot, line => line.Contains((string)config["inputRoot"]));
+            string folder = ReviewLoad.LatestReadFolder(work);
+            JObject check = JObject.Parse(File.ReadAllText(Path.Combine(folder, "data_check.json")));
+            Assert.Equal(new[] { "sub/past outputs" }, ((JArray)check["skippedFolders"]).Select(item => (string)item));
+            Assert.DoesNotContain(((JArray)check["files"]).OfType<JObject>(), row => ((string)row["name"]).Contains("old site"));
+            File.AppendAllText(Path.Combine(past, "old site.dxf"), "\n");
+            Assert.Equal(RunEnd.Committed, Press(configPath, work, worker, DesignBasis.Rev6).End);
+            Assert.Single(worker.Requests);
+        }
+
+        [Fact]
+        public void R635_skip_folders_may_be_empty_and_is_required_to_be_a_list()
+        {
+            JObject empty = new JObject { [DataCheckSettings.Block] = SettingsBlock(100) };
+            Assert.Empty(DataCheckSettings.From(empty).SkipFolders);
+            empty[DataCheckSettings.Block]["skipFolders"] = "not a list";
+            Assert.Contains("skipFolders", Assert.Throws<InvalidDataException>(() => DataCheckSettings.From(empty)).Message);
+        }
+
         // The call of the add-in on a project with no past file: ButtonFlow, the body of ReadDataRun and the real worker command on the made up sample
 
         private static string RepoRoot()
@@ -391,7 +860,7 @@ namespace SiteAdaptation.Tests
             return at ?? throw new InvalidOperationException("the repo root was not found above " + AppContext.BaseDirectory);
         }
 
-        private string Project(string mode)
+        private string Project(string mode, string skip = null)
         {
             string folder = Path.Combine(root, "handed over");
             Directory.CreateDirectory(folder);
@@ -404,6 +873,10 @@ namespace SiteAdaptation.Tests
             config["inputRoot"] = folder;
             config["designBasis"]["mode"] = mode;
             config["siteBuild"]["minFreeGB"] = 0.1;
+            if (skip != null)
+            {
+                config[DataCheckSettings.Block]["skipFolders"] = new JArray(skip);
+            }
             string path = Path.Combine(root, "project.json");
             File.WriteAllText(path, config.ToString());
             return path;

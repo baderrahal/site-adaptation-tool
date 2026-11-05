@@ -206,7 +206,7 @@ namespace SiteAdaptation.Common
                     ? "Areas from the confirmed column: " + columnAreas + "."
                     : f.AreaGone != null
                         ? "The confirmed area column was not used, " + f.AreaGone + ". Areas by distance only: " + counts[0] + "."
-                        : "Areas found by distance only: " + counts[0] + ". Pick the area column if a sheet has one.";
+                        : "Areas found by distance only: " + counts[0] + ", pick the area column.";
                 string wordText = named == 0 ? "no word for the levels, name each one once" : "words " + string.Join(", ", f.Words.Where(word => word != null).Select(Plain));
                 string notes = string.Join(" ", Enumerable.Range(0, levels).Where(level => f.WordNotes[level] != null).Select(level => "Level " + (level + 1) + " " + f.WordNotes[level] + "."));
                 string mark = named == levels ? "strong" : named > 0 ? "usable" : "weak";

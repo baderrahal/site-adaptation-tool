@@ -213,12 +213,9 @@ namespace SiteAdaptation.Common
             ApplyHands(f.Plots, confirmed.Hands);
             f.HandsNotHeld = NotHeld(confirmed.Hands.Keys, f.Plots);
             // R631. Confirming the column settles the type and lifts the mark, what the drawing still says is kept and counted, never dropped
-            foreach (Plot plot in f.Plots.Where(plot => plot.FromColumn && plot.DrawingCode != null && plot.Villa != plot.DrawingCode && !(plot.Villa == null && plot.VillaWhy != null && plot.CodeRead != null)))
+            foreach (Plot plot in f.Plots.Where(plot => plot.FromColumn && plot.Villa != null && plot.DrawingCode != null && plot.Villa != plot.DrawingCode))
             {
-                if (plot.Villa != null)
-                {
-                    plot.ColumnDisagrees = "the drawing gives " + plot.DrawingCode + " and the confirmed column gives " + plot.Villa;
-                }
+                plot.ColumnDisagrees = "the drawing gives " + plot.DrawingCode + " and the confirmed column gives " + plot.Villa;
             }
         }
 

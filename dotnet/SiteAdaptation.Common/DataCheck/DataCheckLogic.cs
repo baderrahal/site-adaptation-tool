@@ -111,7 +111,8 @@ namespace SiteAdaptation.Common
 
         private static string Str(JToken token)
         {
-            return token == null || token.Type == JTokenType.Null ? "" : (string)token;
+            // A null text set in a JObject stays a token of type String until it is written, so the type alone does not tell
+            return token == null || token.Type == JTokenType.Null ? "" : (string)token ?? "";
         }
 
         public static DataCheckOutput Stopped(DataCheckSettings settings, DataCheckInput input, string why)
