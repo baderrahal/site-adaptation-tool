@@ -396,7 +396,6 @@ RAMP-3NOV-A, review and breaker, no real input reaches these:
 ## PR 213, review, 5 Nov 2026
 
 - Clauses of R639 with no test of their own: a folder not read, past job mode unchanged, which R635_past_job_mode_keeps_the_old_read_and_its_stop holds, and no file to edit. The finished read wording is tested on a table built by hand, not through the worker.
-- R639 on main is named for test_r12 by a comment in R640_WorkerSeamTests.cs until R639_StageOneFixTests.cs is on main. Lead takes the comment out then.
 
 ## Gate, R310 under load, 5 Nov 2026
 
