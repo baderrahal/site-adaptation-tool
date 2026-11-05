@@ -356,6 +356,11 @@ RAMP-3NOV-A, review and breaker, no real input reaches these:
 - make_scenarios.py:91-93 styles only the kept plots, as answers and labels leave out the held areas. The S5 folder on disk, made earlier, holds 2956 of 2964 numbers in the other style with all 610 held plots found by --styled. A fresh S5 would leave held plots plain, and --styled would then read a loud 0, never a false pass.
 - No test calls main of score_holdout.py, so test_scenarios.py:228 proves in_style and not the --styled flag. main reads the answers under the work root.
 
-## R2-C1-fix, 5 Nov 2026
+## PR 209, second review and the lane, 5 Nov 2026
 
-- PaneRunState.cs:87 indexes what ConfigOf gives with no null check. ReadInputs.NoPastFiles true then a lock taken before ConfigOf reads a changed settings file gives a NullReferenceException in the pane refresh. Found reading item 6 of R2-C1-fix. Pane wiring is out of that task's files, and no run has reached it.
+- No test reaches PaneViewModel.cs:697 or PaneRunState.cs:70-75 on a raw project, the test calls InputsInFolder alone. By reading the code does what is said.
+- A changed file in the input folder leaving step 2 not done in the pane has no shot. Step 21 and 22 show the confirmed file side only.
+- R636_ConfirmWindowTests.cs:242-248, Cancel_saves_nothing starts with no earlier file. ConfirmProfileSession.cs:59-63 does not delete, so the behaviour holds. The guess help and the map doubt are tested on the model, the Visibility lines at ConfirmProfileWindow.xaml.cs:28-29 are not, and no Revit pass showed a guess or a doubt.
+- InputHash.cs:31 against ReadInputs.cs:291. The flow walks skipped folders and follows links, Raw and the worker do neither. A link loop or an unreadable folder in a skipped folder would stop every press at ButtonFlow.cs:99. S1 has none.
+- PaneRunState.cs:87, ConfigOf can return null if the config locks between two reads, a race. The comment at :77 says Settings only and the code adds two more.
+- The folder input costs about 10 ms a refresh on S1 of 37 files, on the UI thread. On a real root of many thousand files it is not measured, and it grows with the count.

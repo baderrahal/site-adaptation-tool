@@ -28,6 +28,8 @@ Windows follow the approved sketches. Where none covers one, the smallest versio
 
 Rule ids: R655 to R659. Question ids: Q509 to Q512. Take no other id.
 
+The driver: a person may be at this PC. Send a click, a key or a shot only with Revit in front, after 5 minutes idle and with no meeting window, and stop when another input comes (CLAUDE.md). A wait for that is no failure, say how long.
+
 # Acceptance tests
 
 tests/acceptance/test_r2_build.py, test_the_build_run_in_revit_is_recorded. Tests go in dotnet/SiteAdaptation.Tests/R655_BuildButtonTests.cs.
