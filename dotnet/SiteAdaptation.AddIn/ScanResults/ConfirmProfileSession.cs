@@ -22,12 +22,6 @@ namespace SiteAdaptation.AddIn.ConfirmProfile
         // The line the pane tells after the window: what was saved or removed, null while the window is open
         public string Result { get; private set; }
 
-        // True when the file was written
-        public bool Saved { get; private set; }
-
-        // True when a file of an earlier Confirm was removed, as the person cleared every block
-        public bool Removed { get; private set; }
-
         // The reason the last Confirm was refused, the window stays open to correct it
         public string Refusal { get; private set; }
 
@@ -41,17 +35,16 @@ namespace SiteAdaptation.AddIn.ConfirmProfile
                 {
                     // A file of an earlier Confirm would stay in force behind a line that says nothing was confirmed
                     string earlier = Path.Combine(workFolder, ConfirmedProfile.FileName);
-                    Removed = File.Exists(earlier);
-                    if (Removed)
+                    bool removed = File.Exists(earlier);
+                    if (removed)
                     {
                         File.Delete(earlier);
                     }
-                    Result = Removed ? ConfirmProfileText.Removed : ConfirmProfileText.NothingGiven;
+                    Result = removed ? ConfirmProfileText.Removed : ConfirmProfileText.NothingGiven;
                 }
                 else
                 {
                     Model.Save(workFolder, runId);
-                    Saved = true;
                     Result = ConfirmProfileText.Saved;
                 }
                 Refusal = null;

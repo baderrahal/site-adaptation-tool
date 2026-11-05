@@ -55,7 +55,7 @@ namespace SiteAdaptation.AddIn.ConfirmProfile
 
         // Why the worker would refuse the confirmed file of the work folder, as a person cannot edit it by hand, null when it would take it or
         // there is none. It holds the file as DataCheckCommand.Confirmed does, a settings file that does not read is said by the check itself
-        public static string RefusedProfile(string configFile, string workFolder)
+        private static string RefusedProfile(string configFile, string workFolder)
         {
             string path = Path.Combine(workFolder, ConfirmedProfile.FileName);
             if (!File.Exists(path))

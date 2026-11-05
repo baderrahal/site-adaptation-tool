@@ -166,8 +166,6 @@ namespace SiteAdaptation.Tests
             Assert.True(model.GivesNothing);
             var session = new ConfirmProfileSession(model, folder, "run");
             session.Confirm();
-            Assert.False(session.Saved);
-            Assert.False(session.Removed);
             Assert.Equal(ConfirmProfileText.NothingGiven, session.Result);
             Assert.False(File.Exists(ConfirmedFile));
         }
@@ -184,8 +182,6 @@ namespace SiteAdaptation.Tests
             session.Finished += () => finished = true;
             session.Confirm();
             Assert.True(finished);
-            Assert.True(session.Removed);
-            Assert.False(session.Saved);
             Assert.Equal(ConfirmProfileText.Removed, session.Result);
             Assert.False(File.Exists(ConfirmedFile));
         }
@@ -199,7 +195,6 @@ namespace SiteAdaptation.Tests
             model.Hands[1].Chosen = "left";
             var session = new ConfirmProfileSession(model, folder, "run");
             session.Confirm();
-            Assert.True(session.Saved);
             Assert.Equal(ConfirmProfileText.Saved, session.Result);
             JObject file = ConfirmedNow();
             Assert.Equal(3, ((JArray)file["codeMap"]).Count);
@@ -229,7 +224,6 @@ namespace SiteAdaptation.Tests
             session.Finished += () => finished = true;
             session.Confirm();
             Assert.False(finished);
-            Assert.False(session.Saved);
             Assert.Contains(says, session.Refusal);
             Assert.StartsWith("Nothing was saved: ", session.Refusal);
             Assert.False(File.Exists(ConfirmedFile));
@@ -249,7 +243,6 @@ namespace SiteAdaptation.Tests
         {
             var session = new ConfirmProfileSession(ConfirmProfileModel.Read(Profile), folder, "run");
             session.Cancel();
-            Assert.False(session.Saved);
             Assert.Equal(ConfirmProfileText.CancelledLine, session.Result);
             Assert.False(File.Exists(ConfirmedFile));
         }
