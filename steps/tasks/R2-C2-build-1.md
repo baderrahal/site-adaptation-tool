@@ -22,7 +22,7 @@ Side by side with R2-C3-build-1 on build-2, Bader's order of 5 Nov 2026, so:
 
 - In Common and Tests this lane writes only new files, in SiteBuild/ of each. The command siteBuild is registered in dotnet/CadReader/WorkerReads.cs, which is this lane's. Its name is already in WorkerRequest.Commands, and it takes an empty SHA-256 (R640_WorkerSeamTests).
 - A change to an existing file of Common is asked of Lead with the reason. Lead adds that exact path to this list by a PR, or says do it another way. Do not edit it first.
-- Rule lines R640 to R654 and any new key of config/project.json go through Lead, as docs/rules/ and config/project.json are build-2's. Write them in this task file under a heading Rules for Lead and tell Lead in the last reply. Lead enters them by a Lead PR before the code PR.
+- Measure siteBuild on S1 and give Lead the time limit, 600 s in config is chosen and not measured. Rule lines R640 to R654 and any new key of config/project.json go through Lead, as docs/rules/ and config/project.json are build-2's. Write them in this task file under a heading Rules for Lead and tell Lead in the last reply. Lead enters them by a Lead PR before the code PR.
 - Do not touch rules/. A missing rule value stays missing and marked.
 - The rules reach the build by SiteAdaptation.Common.ProjectRules.RulesForBuild.Check(string rulesPath, JObject config) of R2-C3-build-1, which answers RulesChoiceLine and BlockingLine and the rules. Merge main for it once C3 is merged, and call it from siteBuild. So C3 merges first, then this task.
 - Tests of the rules through siteBuild, marked for this task in tests/acceptance/test_r2_build.py, are this task's.

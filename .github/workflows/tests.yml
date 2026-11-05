@@ -37,12 +37,12 @@ jobs:
         if: ${{ !cancelled() }}
         run: dotnet build dotnet/SiteAdaptation.sln -c Release
 
-      # net48 and net8.0 on code that does not need Revit. Each target must have run tests. The R347 worker tests fail at random under load, so they run in job dotnet of test.yml and not here, Bader's order, steps/backlog.md.
+      # net48 and net8.0 on code that does not need Revit. Each target must have run tests. The R347 worker tests on a 1 s time limit fail at random under load, so they run in job dotnet of test.yml and not here, Bader's order, steps/backlog.md. The other R347 tests stay here, PR 210 broke two of them and only the other job showed it.
       - name: dotnet test, net48 and net8.0
         if: ${{ !cancelled() }}
         shell: pwsh
         run: |
-          dotnet test dotnet/SiteAdaptation.Tests/SiteAdaptation.Tests.csproj -c Release --no-build --logger trx --results-directory TestResults --filter "FullyQualifiedName!~WorkerRunTests.R347"
+          dotnet test dotnet/SiteAdaptation.Tests/SiteAdaptation.Tests.csproj -c Release --no-build --logger trx --results-directory TestResults --filter "FullyQualifiedName!~WorkerRunTests.R347_the_launch_returns_at_once&FullyQualifiedName!~WorkerRunTests.R347_a_temporary_file_the_kill_cannot_delete&FullyQualifiedName!~WorkerRunTests.R347_a_kill_in_the_middle_of_the_commit&FullyQualifiedName!~WorkerRunTests.R347_a_time_limit_that_fires_after"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $files = @(Get-ChildItem -Recurse -Path TestResults -Filter *.trx)
           if ($files.Count -lt 2) { throw "No .NET tests ran on one of the two targets, trx files: $($files.Count)" }

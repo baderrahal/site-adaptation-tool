@@ -19,6 +19,8 @@ Side by side with R2-C2-build-1 on build-1, Bader's order of 5 Nov 2026, so:
 
 - In Common and Tests this lane writes only new files, in ProjectRules/ of each. The commands rulesSetup and rulesChange are added in ProjectRulesCommands.Add, which the worker already calls. Their names, the request fields Who, RuleId and NewValue, a project folder as a folder input and a rules file that rulesChange may change are already in place (R640_WorkerSeamTests).
 - A change to an existing file of Common is asked of Lead with the reason. Lead adds that exact path to this list by a PR, or says do it another way. Do not edit it first.
+- The runner does not mark or compare the rules input of rulesChange, as the command changes it. So rulesChange itself refuses a rules file under rules/templates, the shipped templates are read only, with a test.
+- Write the rule lines of R660 and R661, the seam cites them. docs/rules/index.md comes from python/rules_index.py, on a clash take main and run it again.
 - steps/latent.md is build-1's. LATENT findings go in the PR body, Lead enters them.
 - SiteAdaptation.Common.ProjectRules.RulesForBuild.Check(string rulesPath, JObject config) is what siteBuild of R2-C2-build-1 calls: a null path gives RulesChoiceLine, the line that asks once, rules not confirmed give BlockingLine under block, and an issue under warn, and it returns the rules. This task merges before C2.
 

@@ -7,13 +7,12 @@ allowed:
   - dotnet/SiteAdaptation.Common/ReadData/
   - dotnet/SiteAdaptation.Common/Review/
   - dotnet/SiteAdaptation.Common/DataCheck/
+  - dotnet/SiteAdaptation.Common/Flow/RunTexts.cs
   - dotnet/CadReader/
   - dotnet/SiteAdaptation.AddIn/ReviewData/
   - dotnet/SiteAdaptation.Tests/R639_StageOneFixTests.cs
   - dotnet/SiteAdaptation.Tests/UiLabelTests.cs
   - docs/design/14-ui-labels.md
-  - docs/rules/15-data-check-r600-up.md
-  - docs/rules/index.md
   - scripts/scenarios/
   - steps/scenarios.md
   - steps/latent.md
@@ -21,13 +20,15 @@ allowed:
 
 # Scope
 
-Faults the review and the breaker of PR 209 found in existing files of Common, outside the revit-test lane. Each is reached by a person now that button 2 is wired. Comes before R2-C2-build-1. Keep it short, Bader wants a faster pace with the same proof.
+Faults the review and the breaker of PR 209 found in existing files of Common, outside the revit-test lane. Each is reached by a person now that button 2 is wired. Starts when PR 209 is merged, as items 5 and 6 are reached through it and both touch the same label list. Comes before R2-C2-build-1. Keep it short, Bader wants a faster pace with the same proof.
 
-1. ReadDataRun.cs:171-175, 189-197, 305-330. A check that stopped, or that left a file not read, ends Done, writes read.json and is reused until a file changes. So a press after the cause is fixed gives the same stop. A read like that is never reused, and the line says why it reads again. A read with every file read stays reused as now.
+The rule line of R639 goes through Lead, as docs/rules/ is build-2's: write it in this task file under a heading Rules for Lead and say so in the last reply.
+
+1. ReadDataRun.cs:189-197, 305-330, DataCheckCommand.cs:59-60. A check that stopped, or that left a file not read, ends Done, writes read.json and is reused until a file changes. So a press after the cause is fixed gives the same stop. A read like that is never reused, and the line says why it reads again. A read with every file read stays reused as now.
 2. ReadDataRun.cs:99. The dry run of a raw read says Reads 2 files or Reads 3 files, counting Settings, the folder and the confirmed file, while the run reads 7. Say what it reads, in words that count what they name. Never a number nobody measured.
 3. ReviewLoad.cs:19, 77. The line Read from of 3 Review data takes baseplan, villaBlocks and curbs, so on a raw read it is empty. It names the folder read, in plain words.
 4. ReviewDataViewModel.cs:313 with ReviewTable.cs:54. Any null prints not read yet. A plot the read finished with no type says a false thing and hides the reason plots.json holds under missing. On S1 that is 394 of 2964 plots. A finished read says no type and why. Same for mirror and cluster where the read holds a reason. Not read yet stays only for what was truly not read.
-5. ReadInputs.cs:244-262. A rev6 project missing any one past file silently takes the raw read. One file not downloaded gives a different plot table with no word. Decided by Lead: raw only when the project holds none of the past files, and otherwise the old stop that names the missing file. A person who wants raw on a project that holds some gets a line saying which files to take out of the settings. Past job mode stays as it is.
+5. ReadInputs.cs:244-272. R635 sends a project that lacks a past file to the raw read, on purpose, stage 1 must not stop on a past file. But one file not downloaded then gives a different plot table with no word. Keep R635. Say it: the dry run and the run line name the file of the old read that is missing and say the folder is read instead. No file to edit by hand, no stop.
 6. ReadInputs.cs:255. RawConfig catches only InvalidDataException and JsonException, and the pane refresh now reaches it, so a locked config raises IOException there. PaneRunState.ConfigOf guards the same refresh. Treat it the same, not read and said, never a crash.
 7. DataCheckAreas.cs:106, DataCheckCodes.cs:232. A column passed over since two columns carry its name gets no line. S3 reads 11 areas where the others read 13 and a person is not told. Say it in the areaColumn and typologyColumn lines, in steps/latent.md it stands as PR 207. Take the line out of latent when fixed. Do not carry the column by its index unless the line alone cannot be true.
 

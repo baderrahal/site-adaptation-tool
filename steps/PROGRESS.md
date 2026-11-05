@@ -1,6 +1,6 @@
-STATE RUNNING, task/R2-C1-revit-test, 2026-11-05 15:17
+STATE RUNNING, lead/split-c2-c3 and task/R2-C1-revit-test, 2026-11-05 15:39
 # Progress
-Written by scripts/status.ps1 -Progress at 2026-11-05 15:17 from git, PRs and checks, never by hand. Main is at ae4b543.
+Written by scripts/status.ps1 -Progress at 2026-11-05 15:39 from git, PRs and checks, never by hand. Main is at ae4b543.
 
 ## State
 
@@ -29,6 +29,7 @@ Written by scripts/status.ps1 -Progress at 2026-11-05 15:17 from git, PRs and ch
 
 ## Open bugs
 
+- PR 210 has a failed check: Split C2 and C3 for two lanes, the worker seam they share, R2-C1-fix
 - PR 209 has a failed check: R2-C1-revit-test: the window Confirm what was found, button 2 on a raw folder, checked in Revit on an empty model
 - Known bugs and leftovers: steps/backlog.md, steps/latent.md
 
@@ -42,4 +43,4 @@ Written by scripts/status.ps1 -Progress at 2026-11-05 15:17 from git, PRs and ch
 - Task R2-C1-fix-build-1 in lane build-1, open
 - Task R2-C1-revit-test in lane revit-test, open
 - Task R2-C2-build-1 in lane build-1, waiting
-Hash of the lines above, a hand edit fails a test: 0f7e2cc0997de95df582afa3021fc4001f373c1768601238bccb7f7a8ac2372f
+Hash of the lines above, a hand edit fails a test: d0f8176ae9623c5c554058e5d04d565c73409510d582e38661fd9c6be96f22e2

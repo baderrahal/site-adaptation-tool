@@ -111,6 +111,7 @@ namespace SiteAdaptation.Tests
             string plain = request.ToJson();
             Assert.DoesNotContain("\"who\"", plain, StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain("newValue", plain, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("ruleId", plain, StringComparison.OrdinalIgnoreCase);
             request.Who = "made up person";
             request.RuleId = "R1";
             request.NewValue = 123.0;
