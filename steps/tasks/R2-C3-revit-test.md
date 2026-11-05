@@ -2,7 +2,7 @@
 id: R2-C3-revit-test
 lane: revit-test
 stage: rules
-status: waiting
+status: open
 allowed:
   - dotnet/SiteAdaptation.AddIn/
   - dotnet/SiteAdaptation.UiShots/
