@@ -2,40 +2,46 @@
 
 Date 2026-11-05. Lane revit-test, Revit 2024.3, one Revit window at a time under python/window_lock.py (round R1-revit-test), Revit closed after each run (tasklist showed 0 Revit processes after every run, the lock file was gone at the end).
 Screenshots and result files are under the work root, folder `r1-revit-test`, never in git. They show client file names and real survey coordinates and I could not blank them.
+This is the record after the second pass. The empty model and 3 Review data moved to R2-C1-revit-test (Lead, 5 Nov 2026).
 
 ## Build
 
-Branch task/R1-revit-test from origin/main 5ad1e5d, installed with dotnet/SiteAdaptation.AddIn/Install-SiteAdaptation.ps1 (one manifest SiteAdaptationAddIn_Revit2024.addin). One Load Once prompt at each cold start, answered Load Once by the watcher, never Always Load.
+Branch task/R1-revit-test merged with origin/main e437d04, installed with dotnet/SiteAdaptation.AddIn/Install-SiteAdaptation.ps1 (one manifest SiteAdaptationAddIn_Revit2024.addin). One Load Once prompt at each cold start, answered Load Once by the watcher, never Always Load.
+The check now runs by the launch of the worker that the scan uses (IWorkerStart, the limit addin.workerTimeLimitS.dataCheck of config, the answer of the worker), so Revit does not wait. The first pass started its own process and waited on it, run 8 of that pass hung Revit for 323 s.
 
 ## Model and folder
 
-- Model: `R1-model-copy.rvt` in the folder r1-revit-test of the work root. It is a copy of a model copy of the SETUP-sign run, so it is NOT an empty model. It already holds a saved setup and a position, and step 1 showed "Existing site file" with 2 of 2 check points passing. The task asks for an empty model, that part is not met.
-- Folder S1: a saved project `R1-S1.json` in the folder Saved projects of the work root names a copy of the shipped set whose inputRoot is scenarios\S1 of the work root. It was picked with the button Use a saved project of the pane. The real input folder was not used.
+- Model: `R1-model-copy.rvt` in the folder r1-revit-test of the work root, a copy of a model copy of the SETUP-sign run. It is NOT an empty model, it already holds a saved setup. The empty model is in R2-C1-revit-test.
+- Folder S1: a saved project `R1-S1.json` in the folder Saved projects of the work root names a copy of the shipped set whose inputRoot is scenarios\S1 of the work root, picked with Use a saved project of the pane. The real input folder was not used.
 
-## What was pressed and seen
+## What was pressed and seen, run10 of r1-revit-test (the build of the PR)
 
-Eight runs. The first three found the way to the pane, the clicks and a dialog, runs 4 to 8 are the pressing. Run folders: run1 to run6 in r1-revit-test.
-
-1. The pane Site Adaptation is open at the start of the model, so the ribbon tab was not needed. The earlier problem of the tab under the overflow arrow does not stop this.
-2. Use a saved project, the file dialog took the path of R1-S1.json (a-dialog.png, b-after-pick.png).
-3. Run 1 Set up site opened the window 1 Set up site (c-after-1.png). Apply was pressed (run3 to run6). A note window then said what Apply removed, closed with its Close button (note-*.png). The pane then showed the next step Run 2 Read data (c3-before-2.png). A dry run press in the same window (run2) showed no visible result in 40 s, UNKNOWN what it did.
-4. Run 2 Read data, run6, after the preview ran the worker command dataCheck on the input folder: the window What the tool read opened 72 s after the press (07:17:21 to 07:18:33) with the section Data check at the top. d-window.png. 11 rows, one per need, in the order of R605: marks Strong 3, Weak 5, Usable 1, Missing 2 (counted from the UIA text of the window, result.json of run6, key window2). Cancel was pressed, the window closed (f-after-cancel.png) and button 2 stopped with nothing written.
-5. Before the change of the preview (run4 and run5) button 2 stopped with "the schedule of IMC, the fit schedule, is not on disk", a stop of ReadInputs.cs line 189 in Common. That stop is the old read asking for past job schedules a new folder does not have. The data check now runs before it. The old read behind it still stops the same way on S1, that is R1-build-1 (Common) and not this task.
-7. Final build, run7 and run8 (the same logic as run6, the words moved to DataCheckText.cs). The window Data check did NOT open in either. In run7 my driver stopped on a UIA timeout while Revit did not answer and closed Revit, the worker it had started went on and wrote its files 15 minutes after its start (answer_2_20261105-074343-631-datacheck.json at 07:58:25, no worker process was left after that). In run8 the worker was cut at its 300 s limit (empty output folder), the add-in went on without the check and button 2 ended with the old stop of 5. In run6 the same check took about 70 s. The machine was in use by other work at the time (the lead scenario runs wrote files in the same minutes), UNKNOWN whether that is the whole reason. So the window is seen on the build of run6 only, not on the build of the PR.
-6. 3 Review data was NOT pressed. It follows 2 Read data, and 2 Read data cannot finish on S1 for the reason in 5. Review data is not seen in Revit.
+1. Use a saved project, the file dialog took the path of R1-S1.json (a-dialog.png, b-after-pick.png).
+2. Run 1 Set up site opened the window 1 Set up site, Apply pressed, a note window said what Apply removed and was closed, the pane showed the next step Run 2 Read data (c-after-1.png, note-085507.png, c3-before-2.png).
+3. Run 2 Read data, 08:55:48. The flow showed its dry run confirm "Dry run done, nothing was changed" (e-confirm-085557.png), Apply was pressed at 08:55:58.
+4. The data check ran in the worker, Revit stayed answering (no UIA call of the driver timed out), and the window What the tool read opened at 08:57:19, about 80 s after the confirm (d-window.png). It shows only the check:
+   - the band line "The tool read the folder you gave and says what it holds for each need. Nothing changes in the model."
+   - counters 5 files read and 2,964 plots found, no conflict counter, no badge of step 3
+   - the section Data check, 11 rows, marks Strong 3, Weak 5, Usable 1, Missing 2
+   - the section Files not read, 1 file with the exact reason the worker wrote (the free memory is under what its read needs and the floor)
+   - one button, Close, and the foot line "The check wrote nothing in your folder and nothing in the model."
+   - no Where each value comes from, no Files read, no side column, no Cancel, Export or Use these picks.
+   The first row is still cut by the worker at "1 drawing could ...", its line is limited to 160 characters by R605, the full reason of a file is the section Files not read.
+5. The read behind the check cannot go on on S1 (it asks for past schedules, ReadInputs.cs line 189 in Common, R2-C1-build-1). With that the window is shown alone, then the stop of the read is told.
+6. The driver closed Revit with the window open, the Close button was not pressed in this run.
 
 ## Plot count against plots.json
 
-- Window text of the row Plot outlines and Plot numbers: 2992 outlines found, 2964 with a number of their own, 2964 numbers distinct.
-- plots.json of this run (datacheck_2_20261105-071721-290 in the work folder of the model copy): 2964 plots, 2964 with a number.
-- plots.json of the lead scenario run S1 (scenarios\runs\S1): 2964 plots, 2964 with a number.
-- The three agree on 2964. The window reads them from data_check.json and I counted plots.json by a separate route (ConvertFrom-Json, not the code of the add-in).
+- Window counter plots found: 2,964, read from plots.json of the run.
+- Window text of the row Plot numbers: 2964 outlines hold a number and 2964 numbers are distinct.
+- plots.json of this run (datacheck folder of the work folder of the model copy), counted by ConvertFrom-Json: 2964 plots, all numbered. plots.json of the lead scenario run of S1: 2964.
+- Files read 5 against data_check.json of the run: 6 files, 5 read, 1 not read.
 
-## What a person still needs to see
+## Not seen in Revit, UNKNOWN
 
-- The window as a person sees it. The press, the screenshot and the UIA text are from a driver, a driver press proves nothing about layout or colour to a person. UNKNOWN.
-- The window is wide and plain: the section Data check is on top, but under it the old sections Where each value comes from and Files read are empty, and the top counters read 0 files read, 0 plots found, 0 conflicts next to 2964 plots in the section. That contradicts the section. Not changed here, a question for Bader (the layout is CHOSEN by Lead).
-- A check that does not finish says nothing to the person, see run8. The worker is also not stopped when Revit closes first.
-- The check runs inside the preview on the Revit thread and took about 72 s with Revit not answering. A progress line is not built. A failed check is silent today (the read goes on), UNKNOWN how Bader wants it said.
-- An empty model with nothing pre-run: not done, see Model.
-- Button 3 Review data, buttons 4 to 9: not seen in Revit.
+- The window as a person sees it. The press, the screenshot and the UIA text come from a driver.
+- The window with the values of the scan in it (the case where the read goes on). It needs a folder the read accepts, R2-C1-build-1.
+- A check that fails (time limit, no start, no result), covered by tests only.
+- An empty model, 3 Review data, buttons 4 to 9.
+- The pass 1 hang of Revit is not seen again, the check ran 80 s with Revit answering. How the machine felt to a person during those 80 s is UNKNOWN.
+- Cancel at the dry run confirm: the flow's own Cancel is RunEnd.Cancelled, it comes before the check. A Cancel inside the window of the scan after the check is told as a stop of the read by the scan, as before. A cancelled end after the worker answered needs a change in Common, not made.
