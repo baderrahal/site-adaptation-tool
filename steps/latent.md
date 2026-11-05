@@ -640,3 +640,12 @@ RAMP-3NOV-A, review and breaker, no real input reaches these:
 - DataCheckMarks.cs:485 areaM2 under an assumed unit carries no weak of its own. All five real runs state metres.
 - Plots a confirmed area column does not list have no neighbourhood and cannot be picked in Review. The count is said in the line.
 - codePattern and groupNamePattern have no status entry.
+
+## PR 207, second review, 5 Nov 2026
+
+- DataCheckAreas.cs:106 and DataCheckCodes.cs:232 pass over a column whose name two columns carry and no line says so, DataCheckCodes.cs:704 and DataCheckAreas.cs:194. S3 proposes 11 areas where the others read 13, and a person who presses Confirm is not told. Only S3 reaches it, a copy whose headers were rewritten. A real workbook with two columns of one name makes it REAL.
+
+## PR 208, review, 5 Nov 2026
+
+- make_scenarios.py:91-93 styles only the kept plots, as answers and labels leave out the held areas. The S5 folder on disk, made earlier, holds 2956 of 2964 numbers in the other style with all 610 held plots found by --styled. A fresh S5 would leave held plots plain, and --styled would then read a loud 0, never a false pass.
+- No test calls main of score_holdout.py, so test_scenarios.py:228 proves in_style and not the --styled flag. main reads the answers under the work root.

@@ -396,3 +396,4 @@ Lane B numbered its questions QL1 upward from 28 Oct 2026. At the fold in of Rou
 | Q340 | The level of a joint an override moves | Bader's order of 3 Nov: shared corners take one level, the road level. On a new project, R470 joint on. A list with any entry turns it off (R516), see Q430, Q437. | 2026-11-04 |
 | Q341 | Back corners two ramps share | Bader's order of 3 Nov, 0 shared corners over 1 mm. CHOSEN by Code: road at front plus 0.5% over the depth, El @ Entry moves, R515. No road surface reaches a back corner, 0 of 270. See Q433. | 2026-11-04 |
 | Q398 | The 443 hairline floor overlaps at step 5 | Bader's order of 3 Nov. R517 pulls every floor in 2 mm. Revit, RAN, NBH 012: past job 2 two plot overlaps from 443, new project 0. See Q432. | 2026-11-04 |
+| Q496 | Where the typology column is held | Decided by Lead on Bader's order: the window holds it, the person confirms it with the code map. In R2-C1-revit-test | 2026-11-05 |

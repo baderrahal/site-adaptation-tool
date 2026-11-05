@@ -225,6 +225,13 @@ def test_holdout_levels_score_at_each_limit():
     assert score_holdout.scored_levels(answers, plots) == {"ffl": {"held": 4, "built": 3, "5": 1, "20": 2, "50": 2}}
 
 
+def test_holdout_answers_in_style_find_the_plots_of_a_styled_run():
+    answers = {"1": {"villaType": "V1", "mirror": True}}
+    plots = [{"number": tools.styled("1"), "villaType": "V1", "mirror": True}]
+    assert score_holdout.score_plots(answers, plots)["numbers"] == 0
+    assert score_holdout.score_plots(score_holdout.in_style(answers), plots) == {"held": 1, "numbers": 1, "villaType": 1, "mirror": 1}
+
+
 def test_holdout_plots_score_counts_each_field():
     answers = {"1": {"villaType": "V1", "mirror": True}, "2": {"villaType": "V2", "mirror": False}}
     assert score_holdout.score_plots(answers, [{"number": "1", "villaType": "V1", "mirror": None}]) == {"held": 2, "numbers": 1, "villaType": 1, "mirror": 0}

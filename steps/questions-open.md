@@ -375,3 +375,15 @@ Q476. What a real press shows of the toposolid (Lane D TOPO-3NOV-D, R572, R575).
 Q477. A plot list press sends the pane to step 2 (Lane D TOPO-3NOV-D, R366). After a press of 5 with plots 2289,2290 on a done model, steps 3 to 9 read Needs and the box Run 2, since the scope key changed (RAN, READ StepStates). No TOPO code is in this path.
 - Recommended: Steps 2 to 4 hold while the plots lie in the NBH they ran on.
 - Other: Keep it, a plot list runs from step 2.
+
+Q495. A code table with a column between old and new is not found, nor one with no renames (R2-C1-build-1, PR 203).
+- Recommended: Keep it, the person types the map in the window.
+- Other: Search for those shapes too.
+
+Q497. The hand of a prototype (R2-C1-build-1, PR 203). No guess from the blocks reaches a real prototype and the worker opens no prototype file, 0 hands found, so mirror stays weak. Which hand a prototype has is UNKNOWN today.
+- Recommended: Read each prototype's hand in Revit in the revit-test lane.
+- Other: The person gives it in the window.
+
+Q498. A plot the confirmed column does not list (R2-C1-build-1, PR 203). As built it has no type and says why. On S1 394 of 2964 plots end with no type, not listed or listed with no code, the two not counted apart.
+- Recommended: As built, no stale code of the drawing kept.
+- Other: Keep the drawing's code with a weak flag.

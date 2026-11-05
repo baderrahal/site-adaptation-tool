@@ -1,7 +1,7 @@
 """Scores the plots read and the plan built against the hold-out answers under the work root, counts only, never a value. Lead only.
 
 CHOSEN by Lead: an Actions secret cannot be read back, and the runs cannot reach GitHub with no real value in git, so the answers stand in
-scenarios\\holdout_answers, which a hook blocks every lane from reading. make_answers.py writes them. Usage: score_holdout.py --run <S1 run folder>.
+scenarios\\holdout_answers, which a hook blocks every lane from reading. make_answers.py writes them. Usage: score_holdout.py --run <run folder> [--styled], --styled for a run of S5, whose plot numbers are in the other style.
 The level columns are the shares within 5, 20 and 50 mm, only where a plan and an answer both hold a level.
 """
 import argparse
@@ -51,12 +51,20 @@ def score_plots(answers, plots):
     return right
 
 
+def in_style(answers):
+    """The answers keyed as a run of S5 reads its plots, as the scenario answers are, scenario_tools.py."""
+    return {tools.styled(number): answer for number, answer in answers.items()}
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("--run", required=True)
+    parser.add_argument("--styled", action="store_true")
     args = parser.parse_args(argv)
     run = Path(args.run)
     answers = json.loads((tools.work_root() / "scenarios" / "holdout_answers" / "answers.json").read_text(encoding="utf-8"))
+    if args.styled:
+        answers = in_style(answers)
     plots = json.loads((run / "plots.json").read_text(encoding="utf-8"))["plots"]
     result = {"plots": score_plots(answers, plots)}
     plan = run / "build_plan.json"
