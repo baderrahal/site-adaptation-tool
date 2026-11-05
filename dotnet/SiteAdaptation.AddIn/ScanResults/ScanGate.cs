@@ -17,18 +17,44 @@ namespace SiteAdaptation.AddIn.ScanResults
         // The window of the gate, a stand-in in the tests and the test host, so a run is driven with no click
         public static Func<IntPtr, string, ProjectSettings, ProjectSettings> Window { get; set; } = (owner, path, settings) => ScanResultsDialog.Show(owner, path, settings, PickExportFor(path));
 
+        // R620. The data check of this press, set by DataCheckStep before the scan starts and taken by the gate, which then shows it in the
+        // one window with the values of the scan. The window reads CheckShown
+        public static DataCheckResult PendingCheck { get; set; }
+
+        // The check the window of this gate shows, set while the window is open
+        public static DataCheckResult CheckShown { get; private set; }
+
+        public static DataCheckResult TakeCheck()
+        {
+            DataCheckResult taken = PendingCheck;
+            PendingCheck = null;
+            return taken;
+        }
+
         public static ScanGateAnswer Ask(string scanJsonPath, PaneSettings settings, IntPtr owner, Func<string, string> readText)
         {
             ScanViewData view = ScanView.Read(readText(scanJsonPath), settings.Project);
-            if (!view.NeedsWindow)
+            DataCheckResult check = TakeCheck();
+            if (!view.NeedsWindow && check == null)
             {
                 return new ScanGateAnswer { GoOn = true, Line = string.Format(CultureInfo.InvariantCulture, ScanStep.ClearLine, view.FilesRead, view.PlotsFound) };
             }
-            ProjectSettings next = Window(owner, scanJsonPath, settings.Project);
+            ProjectSettings next;
+            CheckShown = check;
+            try
+            {
+                next = Window(owner, scanJsonPath, settings.Project);
+            }
+            finally
+            {
+                CheckShown = null;
+            }
             if (next == null)
             {
                 return new ScanGateAnswer { GoOn = false };
             }
+            // The window shows the values of the scan with a list for each, so a pick made there is saved as in the window of a scan that
+            // needed it, also when only the check opened the window
             settings.Project.ScanPicks = next.ScanPicks;
             settings.Project.ConflictPicks = next.ConflictPicks;
             return new ScanGateAnswer { GoOn = true, Line = ScanResultsText.PicksSaved };
