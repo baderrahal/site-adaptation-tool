@@ -46,6 +46,15 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
+        public void Every_need_and_mark_word_has_its_plain_word_at_the_same_place()
+        {
+            Assert.Equal(DataCheckRows.NeedIds.Length, DataCheckText.Needs.Length);
+            Assert.Equal(DataCheckRows.MarkIds.Length, DataCheckText.Marks.Length);
+            Assert.Equal("Shared parameters", DataCheckText.Needs[Array.IndexOf(DataCheckRows.NeedIds, "sharedParameters")]);
+            Assert.Equal("Missing", DataCheckText.Marks[Array.IndexOf(DataCheckRows.MarkIds, "missing")]);
+        }
+
+        [Fact]
         public void A_file_with_no_needs_is_refused()
         {
             Assert.Throws<FormatException>(() => DataCheckRows.Read("{}"));

@@ -23,12 +23,15 @@ namespace SiteAdaptation.AddIn.ScanResults
     {
         public const string FileName = "data_check.json";
 
-        private static readonly Dictionary<string, string> Names = new Dictionary<string, string>(StringComparer.Ordinal)
+        // The need and mark words of data_check.json (R605), each at the place of its plain word in DataCheckText
+        public static readonly string[] NeedIds = { "plotOutlines", "plotNumbers", "groupLevels", "villaType", "villaBlocks", "roadEdges", "roadLevels", "coordinates", "prototypes", "rules", "sharedParameters" };
+        public static readonly string[] MarkIds = { "strong", "usable", "weak", "missing" };
+
+        private static string Word(string[] ids, string[] words, string id)
         {
-            ["plotOutlines"] = "Plot outlines", ["plotNumbers"] = "Plot numbers", ["groupLevels"] = "Group levels", ["villaType"] = "Villa types",
-            ["villaBlocks"] = "Villa blocks", ["roadEdges"] = "Road edges", ["roadLevels"] = "Road levels", ["coordinates"] = "Coordinates",
-            ["prototypes"] = "Prototypes", ["rules"] = "Rule sets", ["sharedParameters"] = "Shared parameters",
-        };
+            int at = Array.IndexOf(ids, id);
+            return at < 0 ? id : words[at];
+        }
 
         public static IReadOnlyList<DataCheckRow> Read(string dataCheckJson)
         {
@@ -44,8 +47,8 @@ namespace SiteAdaptation.AddIn.ScanResults
                 return new DataCheckRow
                 {
                     Need = need,
-                    Name = Names.TryGetValue(need, out string name) ? name : need,
-                    Mark = mark.Length == 0 ? mark : char.ToUpperInvariant(mark[0]) + mark.Substring(1),
+                    Name = Word(NeedIds, DataCheckText.Needs, need),
+                    Mark = Word(MarkIds, DataCheckText.Marks, mark),
                     Line = (string)row["line"] ?? "",
                 };
             }).ToList();

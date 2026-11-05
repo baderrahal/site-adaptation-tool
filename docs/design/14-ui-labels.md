@@ -740,6 +740,26 @@ The window What the tool read of Lane C SCAN-UI, word for word from docs/design/
 - `Use`
 - `Show all <n>`
 - `Use the proposed for all`
+- `Data check` CHOSEN by Lead, R620, the section at the top of the window, shown when button 2 ran the data check on the input folder
+- `What the folder you gave holds for each thing the build needs. Nothing is written in your folder.` CHOSEN, as the line above
+- `Need` CHOSEN, as the line above
+- `Mark` CHOSEN, as the line above
+- `What the tool found` CHOSEN, as the line above
+- `Plot outlines` CHOSEN, the plain name of a need of R605, in the order the worker writes them
+- `Plot numbers` CHOSEN, the plain name of a need of R605, in the order the worker writes them
+- `Group levels` CHOSEN, the plain name of a need of R605, in the order the worker writes them
+- `Villa types` CHOSEN, the plain name of a need of R605, in the order the worker writes them
+- `Villa blocks` CHOSEN, the plain name of a need of R605, in the order the worker writes them
+- `Road edges` CHOSEN, the plain name of a need of R605, in the order the worker writes them
+- `Road levels` CHOSEN, the plain name of a need of R605, in the order the worker writes them
+- `Coordinates` CHOSEN, the plain name of a need of R605, in the order the worker writes them
+- `Prototypes` CHOSEN, the plain name of a need of R605, in the order the worker writes them
+- `Rule sets` CHOSEN, the plain name of a need of R605, in the order the worker writes them
+- `Shared parameters` CHOSEN, the plain name of a need of R605, in the order the worker writes them
+- `Strong` CHOSEN, a mark of R605
+- `Usable` CHOSEN, a mark of R605
+- `Weak` CHOSEN, a mark of R605
+- `Missing` CHOSEN, a mark of R605
 - `Your picks are saved with the setup. Step 2 Read data uses them next time.`
 - `Cancel`
 - `Export to Excel`

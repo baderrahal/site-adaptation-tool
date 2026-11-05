@@ -2,7 +2,7 @@
 id: R1-revit-test
 lane: revit-test
 stage: 1
-status: open
+status: done
 allowed:
   - dotnet/SiteAdaptation.AddIn/
   - dotnet/SiteAdaptation.TestHost/
