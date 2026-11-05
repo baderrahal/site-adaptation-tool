@@ -189,8 +189,10 @@ namespace SiteAdaptation.Common
                 {
                     continue;
                 }
-                var every = new SortedSet<string>(((JObject)row["villaType"]).Properties().Select(item => Str(item.Value)), StringComparer.Ordinal);
-                for (int kind = 0; kind < KindWords.Length && plot.Villa == null; kind++)
+                var every = new SortedSet<string>(((JObject)row["villaType"]).Properties().Where(item => plot.NumberFlag == null || KindOf(item.Name) < 2).Select(item => Str(item.Value)), StringComparer.Ordinal);
+                // A plot whose label holds two numbers was joined to a sheet or a page by the last of them, so only blocks and texts count for it
+                int kinds = plot.NumberFlag != null ? 2 : KindWords.Length;
+                for (int kind = 0; kind < kinds && plot.Villa == null; kind++)
                 {
                     List<string> given = ((JObject)row["villaType"]).Properties().Where(item => KindOf(item.Name) == kind).Select(item => Str(item.Value)).Distinct(StringComparer.Ordinal).ToList();
                     if (given.Count == 1)
@@ -263,18 +265,20 @@ namespace SiteAdaptation.Common
 
         // R601. The plots of one level: two plots whose outlines lie within the gap of each other are one group, and a chain of such plots
         // is one group. Numbered from 0 in the order the plots are listed, so the same plots give the same labels
-        private static int[] Cluster(List<Plot> plots, double gap)
+        private static int[] Cluster(List<Plot> plots, List<Plot> standIns, double gap)
         {
-            var parent = Enumerable.Range(0, plots.Count).ToArray();
+            // The outlines that got no row are in the distance test, so the gap of a plot with no number does not read as a road
+            List<Plot> members = plots.Concat(standIns).ToList();
+            var parent = Enumerable.Range(0, members.Count).ToArray();
             Func<int, int> find = null;
             find = at => parent[at] == at ? at : (parent[at] = find(parent[at]));
-            int[] order = Enumerable.Range(0, plots.Count).OrderBy(at => plots[at].Box[0]).ToArray();
+            int[] order = Enumerable.Range(0, members.Count).OrderBy(at => members[at].Box[0]).ToArray();
             for (int first = 0; first < order.Length; first++)
             {
-                Plot a = plots[order[first]];
+                Plot a = members[order[first]];
                 for (int second = first + 1; second < order.Length; second++)
                 {
-                    Plot b = plots[order[second]];
+                    Plot b = members[order[second]];
                     if (b.Box[0] > a.Box[2] + gap)
                     {
                         break;

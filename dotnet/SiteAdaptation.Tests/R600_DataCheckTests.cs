@@ -42,7 +42,7 @@ namespace SiteAdaptation.Tests
                         ["labelPattern"] = @"^(?:(.*?)\s+)?(\S*\d\S*)$", ["tokenSplit"] = "[^A-Za-z0-9]+", ["plotNumberShifts"] = new JArray(0), ["pairMinSegments"] = 100,
                         ["pairThreads"] = 1, ["pairTimeCapS"] = 60, ["pdfJoinGapPt"] = 0.3, ["pdfLineTolerancePt"] = 0.05, ["pdfPairDyPt"] = new JArray(1.3, 1.8), ["pdfPairDxPt"] = 1.5,
                     },
-                    ["groupGapsM"] = new JArray(100.0, 1.0), ["wordReachM"] = 30, ["wordShare"] = 0.9, ["wordMinGroups"] = 3, ["roadReachM"] = 20, ["roadMinSegments"] = 2, ["roadOutsideShare"] = 0.5,
+                    ["groupGapsM"] = new JArray(100.0, 1.0), ["wordReachM"] = 30, ["wordShare"] = 0.9, ["wordMinGroups"] = 3, ["standInMaxArea"] = 4, ["roadReachM"] = 20, ["roadMinSegments"] = 2, ["roadOutsideShare"] = 0.5,
                     ["drawingPeak"] = new JObject { ["dwg"] = 252, ["dxf"] = 106 },
                     ["strongShare"] = 0.9, ["usableShare"] = 0.5, ["prototypeFilePattern"] = "(?:^|-)ARC-([A-Za-z0-9]+)(?:-[A-Za-z0-9]{2})?-MOD",
                 },
@@ -275,10 +275,10 @@ namespace SiteAdaptation.Tests
         [Fact]
         public void R603_three_words_on_two_groups_never_give_a_word_even_when_one_is_the_projects_own()
         {
-            // Phase A and B against Facades 1 and 2 and Notes 1 and 2 on the same two areas
+            // Phase A and B against Orchard 1 and 2 and Notes 1 and 2 on the same two areas
             JObject drawing = Drawing(new[] { false, false, false, false, false });
             var texts = (JArray)drawing["texts"];
-            foreach (var at in new[] { Tuple.Create("Facades 1", 1.0, -9.0), Tuple.Create("Facades 2", 301.0, -9.0), Tuple.Create("Notes 1", 2.0, -8.0), Tuple.Create("Notes 2", 302.0, -8.0) })
+            foreach (var at in new[] { Tuple.Create("Orchard 1", 1.0, -9.0), Tuple.Create("Orchard 2", 301.0, -9.0), Tuple.Create("Notes 1", 2.0, -8.0), Tuple.Create("Notes 2", 302.0, -8.0) })
             {
                 texts.Add(new JObject { ["layer"] = "T", ["text"] = at.Item1, ["x"] = at.Item2, ["y"] = at.Item3 });
             }
@@ -424,21 +424,29 @@ namespace SiteAdaptation.Tests
             DataCheckOutput output = DataCheckLogic.Run(Settings(), Input(drawing));
             JObject outlines = NeedOf(output, "plotOutlines");
             Assert.Contains("6 outlines found", (string)outlines["line"]);
-            Assert.Contains("1 with none or more than one", (string)outlines["line"]);
+            Assert.Contains("1 without one", (string)outlines["line"]);
             Assert.Equal("usable", (string)outlines["mark"]);
         }
 
         [Fact]
-        public void R605_a_label_of_two_numbers_is_flagged_and_a_number_used_twice_makes_the_need_weak_with_no_share_over_100()
+        public void R605_a_label_of_two_numbers_gives_a_plot_with_no_number_and_names_both_and_a_number_used_twice_is_weak()
         {
             JObject drawing = Drawing(new[] { false, false, false, false, false });
             ((JArray)drawing["texts"])[1]["text"] = "12 13";
             DataCheckOutput output = DataCheckLogic.Run(Settings(), Input(drawing));
-            JObject plot = PlotOf(output, "13");
-            Assert.Contains("more than one number", (string)plot["weak"]["number"]);
+            var rows = ((JArray)output.Plots["plots"]).OfType<JObject>().ToList();
+            Assert.Equal(5, rows.Count);
+            JObject two = rows.Single(row => (string)row["number"] == null);
+            Assert.Equal("missing", (string)two["source"]["number"]);
+            Assert.Contains("12 and 13", (string)two["missing"]["number"]);
+            Assert.DoesNotContain(rows, row => (string)row["number"] == "13");
             JObject numbers = NeedOf(output, "plotNumbers");
             Assert.Equal("usable", (string)numbers["mark"]);
             Assert.Contains("1 label holds more than one number", (string)numbers["line"]);
+            // The outlines are not strong either, one of 5 has no number of its own
+            JObject outlines = NeedOf(output, "plotOutlines");
+            Assert.Equal("usable", (string)outlines["mark"]);
+            Assert.Contains("4 with a number of their own", (string)outlines["line"]);
             // The same number on two outlines: both are left out and the need says so in counts
             JObject twice = Drawing(new[] { false, false, false, false, false });
             ((JArray)twice["texts"])[4]["text"] = "101";
@@ -448,6 +456,68 @@ namespace SiteAdaptation.Tests
             Assert.Contains("5 outlines hold one and 3 numbers are distinct", (string)line["line"]);
             Assert.Contains("1 number appears more than once", (string)line["line"]);
             Assert.DoesNotContain(" of ", (string)line["line"]);
+        }
+
+        private static JObject RowDrawing(int[] numbered, double[] heights)
+        {
+            var faces = new JArray();
+            var texts = new JArray();
+            for (int index = 0; index < heights.Length; index++)
+            {
+                faces.Add(Face(index * 12.0, 0, 12, heights[index]));
+                if (numbered.Contains(index))
+                {
+                    texts.Add(new JObject { ["layer"] = "N", ["text"] = (201 + index).ToString(), ["x"] = index * 12.0 + 3, ["y"] = 2.0 });
+                }
+            }
+            return new JObject
+            {
+                ["source"] = "row.dxf", ["units"] = "Meters", ["layers"] = new JArray(), ["candidates"] = new JArray(new JObject { ["layers"] = new JArray("P"), ["faces"] = faces }),
+                ["texts"] = texts, ["inserts"] = new JArray(), ["lines"] = new JObject(), ["arcs"] = new JObject(), ["notRead"] = new JArray(), ["notTraced"] = new JArray(),
+            };
+        }
+
+        [Fact]
+        public void R601_an_outline_with_no_number_stays_in_the_distance_test_so_its_gap_is_no_road()
+        {
+            // Six plots in a row, the third has no number: 1, 2, none, 4, 5, 6
+            var all = new[] { 0, 1, 3, 4, 5 };
+            var same = new[] { 20.0, 20.0, 20.0, 20.0, 20.0, 20.0 };
+            DataCheckOutput output = DataCheckLogic.Run(Settings(), Input(RowDrawing(all, same), prototypes: false));
+            var rows = ((JArray)output.Plots["plots"]).OfType<JObject>().ToDictionary(row => (string)row["number"]);
+            Assert.Equal(5, rows.Count);
+            Assert.Equal((string)rows["202"]["groups"][1], (string)rows["204"]["groups"][1]);
+            Assert.Equal((string)rows["201"]["groups"][1], (string)rows["206"]["groups"][1]);
+            // Break it: an outline far larger than a plot is no stand in for one, and the gap it leaves parts the row
+            var huge = new[] { 20.0, 20.0, 400.0, 20.0, 20.0, 20.0 };
+            var parted = ((JArray)DataCheckLogic.Run(Settings(), Input(RowDrawing(all, huge), prototypes: false)).Plots["plots"]).OfType<JObject>().ToDictionary(row => (string)row["number"]);
+            Assert.NotEqual((string)parted["202"]["groups"][1], (string)parted["204"]["groups"][1]);
+        }
+
+        [Fact]
+        public void R601_every_line_of_a_need_follows_the_drawing_the_scan_chose_not_the_first_that_has_a_proposal()
+        {
+            // The first drawing by name proposes an outline too, on 3 plots in millimetres. The second gives 5 plots in metres and is chosen
+            JObject other = Drawing(new[] { false, false, false, false, false }, numberText: "9{0}");
+            other["source"] = "a-other.dxf";
+            other["units"] = "Millimeters";
+            var faces = (JArray)other["candidates"][0]["faces"];
+            while (faces.Count > 3)
+            {
+                faces.RemoveAt(faces.Count - 1);
+            }
+            other["lines"] = new JObject();
+            var input = Input(Drawing(new[] { false, false, false, false, false }));
+            input.CadReads.Insert(0, other);
+            DataCheckOutput output = DataCheckLogic.Run(Settings(), input);
+            JObject outlines = NeedOf(output, "plotOutlines");
+            Assert.Contains("5 outlines found", (string)outlines["line"]);
+            Assert.DoesNotContain("3 outlines", (string)outlines["line"]);
+            // The units, the groups and the road edges are those of the chosen drawing, metres and the layer of its lines
+            var rows = ((JArray)output.Plots["plots"]).OfType<JObject>().ToDictionary(row => (string)row["number"]);
+            Assert.NotEqual((string)rows["101"]["groups"][0], (string)rows["105"]["groups"][0]);
+            Assert.Contains("layer K", (string)NeedOf(output, "roadEdges")["line"]);
+            Assert.Contains("layer N", (string)NeedOf(output, "plotNumbers")["line"]);
         }
 
         [Fact]

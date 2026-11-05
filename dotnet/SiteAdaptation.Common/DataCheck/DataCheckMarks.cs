@@ -138,12 +138,13 @@ namespace SiteAdaptation.Common
             {
                 int outside = ChecksOf(f.Checks, "labelOutside");
                 int faces = Math.Max(f.OutlineFaces, f.LabelledFaces);
-                int noNumber = Math.Max(0, faces - f.LabelledFaces);
-                double share = (double)Math.Min(total, faces) / (faces + outside);
-                string said = Count(faces, "outline", "outlines") + " found on " + Quote(LayerOf(Str(f.Outline["source"]))) + ", " + total + " with a number of their own";
+                int valid = total - f.NumberFlags;
+                int noNumber = Math.Max(0, faces - valid);
+                double share = (double)Math.Min(valid, faces) / (faces + outside);
+                string said = Count(faces, "outline", "outlines") + " found on " + Quote(LayerOf(Str(f.Outline["source"]))) + ", " + valid + " with a number of their own";
                 if (noNumber > 0)
                 {
-                    said += ", " + noNumber + " with none or more than one";
+                    said += ", " + noNumber + " without one";
                 }
                 if (outside > 0)
                 {
@@ -158,7 +159,7 @@ namespace SiteAdaptation.Common
             }
 
             // Plot numbers. Distinct numbers over outlines that hold one, so a share can never pass 100 %
-            JObject numberRow = f.Rows.FirstOrDefault(row => Str(row["kind"]) == "plotNumber" && Str(row["proposedUse"]) == "plot numbers");
+            JObject numberRow = f.NumberRow;
             if (total == 0 || numberRow == null)
             {
                 bool numberTie = f.Checks.Any(item => Str(item["what"]) == "tie" && Str(item["source"]) == "plotNumber");
@@ -377,7 +378,7 @@ namespace SiteAdaptation.Common
             }
             if (plot.NumberFlag != null)
             {
-                weak["number"] = plot.NumberFlag;
+                gone["number"] = plot.NumberFlag;
             }
             if (plot.Hole)
             {
@@ -393,14 +394,14 @@ namespace SiteAdaptation.Common
             }
             return new JObject
             {
-                ["number"] = plot.Number,
+                ["number"] = plot.NumberFlag != null ? null : plot.Number,
                 ["villaType"] = plot.Villa,
                 ["mirror"] = plot.Mirror,
                 ["groups"] = plot.Group == null ? new JArray()
                     : new JArray(Enumerable.Range(0, levels).Select(level => (object)(f.GroupNames[level].TryGetValue(plot.Group[level], out string name) ? name : "L" + (level + 1) + "-" + (plot.Group[level] + 1))).ToArray()),
                 ["source"] = new JObject
                 {
-                    ["number"] = Computed, ["villaType"] = plot.Villa == null ? Missing : Computed, ["mirror"] = plot.Mirror == null ? Missing : Computed,
+                    ["number"] = plot.NumberFlag != null ? Missing : Computed, ["villaType"] = plot.Villa == null ? Missing : Computed, ["mirror"] = plot.Mirror == null ? Missing : Computed,
                     ["groups"] = plot.Group == null ? Missing : Computed,
                 },
                 ["missing"] = gone,

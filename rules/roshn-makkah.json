@@ -833,6 +833,7 @@
       "dataCheck.scan.pdfPairDyPt": {"status": "UNKNOWN", "why": "no Q, no share, no Bader line and no CHOSEN mark"},
       "dataCheck.scan.pdfPairDxPt": {"status": "UNKNOWN", "why": "no Q, no share, no Bader line and no CHOSEN mark"},
       "dataCheck.groupGapsM": {"status": "CHOSEN by Code", "where": "dataCheck.groupGapsWhy"},
+      "dataCheck.standInMaxArea": {"status": "CHOSEN by Code", "where": "dataCheck.groupGapsWhy"},
       "dataCheck.wordReachM": {"status": "CHOSEN by Code", "where": "dataCheck.wordWhy"},
       "dataCheck.wordShare": {"status": "CHOSEN by Code", "where": "dataCheck.wordWhy"},
       "dataCheck.wordMinGroups": {"status": "CHOSEN by Code", "where": "dataCheck.wordWhy"},

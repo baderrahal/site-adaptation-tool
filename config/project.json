@@ -342,7 +342,8 @@
       "why": "labelPattern takes the last token of a label that holds a digit as the plot number, whatever style the team numbers in. plotNumberShifts is 0 only, a shift between a sheet and the drawing is a fact of one project and the check finds none. The pair limits are those of the scan of R428 and R429. The PDF numbers are the label pair numbers of dataBook.locationPlan, which are PDF page geometry in points."
     },
     "groupGapsM": [100, 1.0],
-    "groupGapsWhy": "groupGapsM is CHOSEN by Code (R601). One distance for each group level, the largest group first. Plots whose outlines lie within the distance of each other, in a chain, are one group of that level. 1 m joins plots that touch or share a wall line and parts the plots a road apart, 100 m joins the blocks of an area across its roads and parts areas that lie apart.",
+    "standInMaxArea": 4,
+    "groupGapsWhy": "standInMaxArea is CHOSEN by Code (R601), an outline with no number that lies inside no plot and is no larger than 4 times the median plot stands in the distance test for a plot with no number, so the gap it leaves is no road, a larger outline is no stand in. groupGapsM is CHOSEN by Code (R601). One distance for each group level, the largest group first. Plots whose outlines lie within the distance of each other, in a chain, are one group of that level. 1 m joins plots that touch or share a wall line and parts the plots a road apart, 100 m joins the blocks of an area across its roads and parts areas that lie apart.",
     "wordReachM": 30,
     "wordShare": 0.9,
     "wordMinGroups": 3,

@@ -22,6 +22,7 @@ namespace SiteAdaptation.Common
         public double RoadReachM { get; private set; }
         public double RoadOutsideShare { get; private set; }
         public int WordMinGroups { get; private set; }
+        public double StandInMaxArea { get; private set; }
         public Dictionary<string, double> DrawingPeakMibPerMib { get; private set; }
         public int RoadMinSegments { get; private set; }
         public double StrongShare { get; private set; }
@@ -53,6 +54,7 @@ namespace SiteAdaptation.Common
                 WordShare = Share(block, "wordShare", "R603"),
                 RoadReachM = Positive(block, "roadReachM", "R604"),
                 RoadOutsideShare = Share(block, "roadOutsideShare", "R604"),
+                StandInMaxArea = Positive(block, "standInMaxArea", "R601"),
                 WordMinGroups = block["wordMinGroups"]?.Type == JTokenType.Integer && (int)block["wordMinGroups"] >= 2 ? (int)block["wordMinGroups"]
                     : throw new InvalidDataException("dataCheck.wordMinGroups is no whole number of 2 or more (R603)"),
                 DrawingPeakMibPerMib = PeakTable(block["drawingPeak"] as JObject),

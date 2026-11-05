@@ -31,6 +31,8 @@ namespace SiteAdaptation.Common
             public List<JObject> Rows = new List<JObject>();
             public List<JObject> Checks = new List<JObject>();
             public JObject Outline;
+            public JObject NumberRow;
+            public string PlotSource;
             public JObject Drawing;
             public List<Plot> Plots = new List<Plot>();
             public string Lead;
@@ -48,19 +50,24 @@ namespace SiteAdaptation.Common
             public int NumbersTwice;
             public int NumberFlags;
             public int Holes;
+            public List<Plot> StandIns = new List<Plot>();
         }
 
         public static DataCheckOutput Run(DataCheckSettings settings, DataCheckInput input)
         {
             var codes = new HashSet<string>(input.PrototypeNames.Select(settings.PrototypeCode).Where(code => code != null), StringComparer.Ordinal);
             List<KeyValuePair<string, List<double[]>>> rings;
-            JObject scan = ReadScan(settings, input, codes, out rings);
-            BreakTies(settings, input, codes, ref scan, ref rings);
+            string plotSource;
+            JObject scan = ReadScan(settings, input, codes, out rings, out plotSource);
+            BreakTies(settings, input, codes, ref scan, ref rings, ref plotSource);
             var f = new Findings { Settings = settings, Input = input, Scan = scan };
             f.Rows = scan == null ? new List<JObject>() : ((JArray)scan["rows"]).OfType<JObject>().ToList();
             f.Checks = scan == null ? new List<JObject>() : ((JArray)scan["checks"]).OfType<JObject>().ToList();
-            f.Outline = f.Rows.FirstOrDefault(row => Str(row["kind"]) == "plotOutline" && Str(row["proposedUse"]) == "plot outlines");
-            string drawingName = f.Outline == null ? null : Str(f.Outline["source"]).Split('|')[0];
+            // The scan proposes an outline for each drawing and chose one to give the plots, every line of a need follows that one
+            f.PlotSource = plotSource;
+            f.Outline = plotSource == null ? null : f.Rows.FirstOrDefault(row => Str(row["kind"]) == "plotOutline" && Str(row["source"]) == plotSource);
+            string drawingName = plotSource == null ? null : plotSource.Split('|')[0];
+            f.NumberRow = drawingName == null ? null : f.Rows.FirstOrDefault(row => Str(row["kind"]) == "plotNumber" && Str(row["proposedUse"]) == "plot numbers" && Str(row["source"]).StartsWith(drawingName + "|", StringComparison.Ordinal));
             f.Drawing = drawingName == null ? null : input.CadReads.FirstOrDefault(read => Str(read["source"]) == drawingName);
             string units = f.Drawing == null ? "" : Str(f.Drawing["units"]);
             f.MetersPerUnit = f.Drawing == null ? (double?)null : DataCheckSettings.MetersPerUnit(units);
@@ -74,7 +81,7 @@ namespace SiteAdaptation.Common
                 f.Plots = PlotsOf(scan, rings);
             }
             f.NumberFlags = f.Plots.Count(plot => plot.NumberFlag != null);
-            f.Holes = FindHoles(f.Plots, f.Drawing, f.Outline);
+            f.Holes = FindHoles(f.Plots, f.Drawing, f.Outline, settings.StandInMaxArea, f.StandIns);
             f.BlockSources = BlockSources(f.Rows);
             FindVillaTypes(f.Plots, scan, f.Rows, codes, out f.Lead);
             FindMirror(f.Plots, input, f.BlockSources);
@@ -90,7 +97,7 @@ namespace SiteAdaptation.Common
                 {
                     for (int level = 0; level < levels; level++)
                     {
-                        int[] labels = Cluster(f.Plots, settings.GroupGapsM[level] / f.MetersPerUnit.Value);
+                        int[] labels = Cluster(f.Plots, f.StandIns, settings.GroupGapsM[level] / f.MetersPerUnit.Value);
                         for (int at = 0; at < f.Plots.Count; at++)
                         {
                             f.Plots[at].Group = f.Plots[at].Group ?? new int[levels];
@@ -109,23 +116,24 @@ namespace SiteAdaptation.Common
             }
             if (f.Plots.Count > 0 && f.GroupWhy == null)
             {
-                List<WordCandidate>[] fromCad = CadWords(settings, f.Plots, f.Drawing, f.Rows, f.MetersPerUnit.Value, levels);
+                List<WordCandidate>[] fromCad = CadWords(settings, f.Plots, f.Drawing, f.NumberRow, f.MetersPerUnit.Value, levels);
                 List<HeaderMatch>[] fromSheets = SheetHeaders(settings, f.Plots, input.Excels, levels);
                 DecideWords(settings, f, fromCad, fromSheets);
             }
             return Build(f);
         }
 
-        private static JObject ReadScan(DataCheckSettings settings, DataCheckInput input, HashSet<string> codes, out List<KeyValuePair<string, List<double[]>>> rings)
+        private static JObject ReadScan(DataCheckSettings settings, DataCheckInput input, HashSet<string> codes, out List<KeyValuePair<string, List<double[]>>> rings, out string plotSource)
         {
             rings = new List<KeyValuePair<string, List<double[]>>>();
+            plotSource = null;
             if (input.CadReads.Count == 0)
             {
                 return null;
             }
             try
             {
-                return ScanLogic.Result(settings.Scan, codes, codes, settings.StrongShare, new HashSet<string>(StringComparer.Ordinal), input.CadReads, input.Excels, input.Pdfs, new JArray(), out rings);
+                return ScanLogic.Result(settings.Scan, codes, codes, settings.StrongShare, new HashSet<string>(StringComparer.Ordinal), input.CadReads, input.Excels, input.Pdfs, new JArray(), out rings, out plotSource);
             }
             catch (Exception failure)
             {
@@ -142,7 +150,7 @@ namespace SiteAdaptation.Common
         // R601. Two candidate outlines that tie on the plots they cover are not a conflict when one is the other with more layers, as a layer of
         // blocks added to the plot layer gives the same plots. The candidate with the fewest layers is taken and the tie is said under ties. Any
         // other tie leaves the scan with no proposal and is named in the line of the need, never dropped in silence
-        private static void BreakTies(DataCheckSettings settings, DataCheckInput input, HashSet<string> codes, ref JObject scan, ref List<KeyValuePair<string, List<double[]>>> rings)
+        private static void BreakTies(DataCheckSettings settings, DataCheckInput input, HashSet<string> codes, ref JObject scan, ref List<KeyValuePair<string, List<double[]>>> rings, ref string plotSource)
         {
             for (int round = 0; round < 3 && scan != null; round++)
             {
@@ -173,7 +181,7 @@ namespace SiteAdaptation.Common
                 {
                     return;
                 }
-                scan = ReadScan(settings, input, codes, out rings);
+                scan = ReadScan(settings, input, codes, out rings, out plotSource);
             }
         }
 
@@ -223,7 +231,7 @@ namespace SiteAdaptation.Common
                 };
                 if (labels.TryGetValue(ring.Key, out string label) && Regex.Matches(label, @"\S*\d\S*").Count > 1)
                 {
-                    plot.NumberFlag = "the label holds more than one number and the last is taken: " + Regex.Replace(label, @"\s+", " ").Trim();
+                    plot.NumberFlag = "the label holds more than one number (" + string.Join(" and ", Regex.Matches(label, @"\S*\d\S*").Cast<Match>().Select(found => found.Value)) + "), the plot has no number of its own";
                 }
                 byNumber[ring.Key] = plot;
             }
@@ -239,8 +247,9 @@ namespace SiteAdaptation.Common
 
         // R602. A closed outline of the proposed layers that is no plot and lies inside a plot is a hole or an island of that plot. A face that
         // holds no number is not a plot, so a courtyard drawn inside a plot is one. The plot is flagged and what lies inside the hole is left
-        // out of its mirror. Gives the count of plots flagged
-        private static int FindHoles(List<Plot> plots, JObject drawing, JObject outline)
+        // out of its mirror. An outline that lies inside no plot and is no larger than standInMaxArea times the median plot is a plot with no
+        // number, it gets no row and is given back to stand in the distance test. Gives the count of plots flagged
+        private static int FindHoles(List<Plot> plots, JObject drawing, JObject outline, double standInMaxArea, List<Plot> standIns)
         {
             if (plots.Count == 0 || drawing == null || outline == null)
             {
@@ -253,6 +262,8 @@ namespace SiteAdaptation.Common
                 return 0;
             }
             var own = new HashSet<string>(plots.Select(plot => RingKey(plot.Ring)), StringComparer.Ordinal);
+            List<double> areas = plots.Select(plot => plot.Area).OrderBy(value => value).ToList();
+            double limit = standInMaxArea * areas[areas.Count / 2];
             var grid = new BoxGrid(plots.Select(plot => plot.Box).ToList(), 0);
             foreach (JToken face in (JArray)candidate["faces"])
             {
@@ -272,6 +283,10 @@ namespace SiteAdaptation.Common
                 if (holder != null)
                 {
                     holder.Holes.Add(ring);
+                }
+                else if (area <= limit)
+                {
+                    standIns.Add(new Plot { Ring = ring, Area = area, Box = new[] { ring.Min(point => point[0]), ring.Min(point => point[1]), ring.Max(point => point[0]), ring.Max(point => point[1]) } });
                 }
             }
             return plots.Count(plot => plot.Hole);
@@ -370,14 +385,13 @@ namespace SiteAdaptation.Common
         // plot and within wordReach of one is the words before its last token and that token. A word qualifies for a level when its texts sit
         // by wordShare of the groups of the level, each with a last token of its own. Every word that qualifies is given, the choice is made
         // in DecideWords
-        private static List<WordCandidate>[] CadWords(DataCheckSettings settings, List<Plot> plots, JObject drawing, List<JObject> rows, double metersPerUnit, int levels)
+        private static List<WordCandidate>[] CadWords(DataCheckSettings settings, List<Plot> plots, JObject drawing, JObject numberRow, double metersPerUnit, int levels)
         {
             var result = Enumerable.Range(0, levels).Select(level => new List<WordCandidate>()).ToArray();
             if (drawing == null)
             {
                 return result;
             }
-            JObject numberRow = rows.FirstOrDefault(row => Str(row["kind"]) == "plotNumber" && Str(row["proposedUse"]) == "plot numbers");
             string numberLayer = numberRow == null ? null : Str(numberRow["source"]).Split('|').Last();
             double reach = settings.WordReachM / metersPerUnit;
             var grid = new BoxGrid(plots.Select(plot => plot.Box).ToList(), 0);
