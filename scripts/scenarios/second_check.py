@@ -1,6 +1,6 @@
 """The second check of a scenario run, by a route that shares no code with the reader: the workbooks of the folder read straight with openpyxl.
 
-Usage: second_check.py S1 [S2 ...]. For each scenario it finds in the workbooks the sheet that lists the plots, without looking at the plots the
+Usage: second_check.py [--confirmed] S1 [S2 ...], --confirmed for the runs on a confirmed profile. For each scenario it finds in the workbooks the sheet that lists the plots, without looking at the plots the
 run read: a column of whole numbers for the plot, a column whose cells hold a prototype code as a whole word for the villa type, and a column of
 a few repeated words for the neighbourhood. It counts the plots of the sheet for each neighbourhood and each villa type, then counts what the
 run read the same way, and writes the gap. A plot read that the sheet does not list is an over read, a plot of the sheet the run did not read
@@ -105,9 +105,9 @@ def plot_list(rows, codes):
     return best
 
 
-def run_one(name, root):
+def run_one(name, root, confirmed=False):
     folder = root / name
-    out = root / "runs" / name
+    out = root / "runs" / (name + tools.CONFIRMED_RUN if confirmed else name)
     read = {}
     for row in json.loads((out / "plots.json").read_text(encoding="utf-8"))["plots"]:
         digits = digits_of(row["number"]) if row["number"] is not None else None
@@ -136,22 +136,33 @@ def run_one(name, root):
             "neighbourhoodsInSheet": len(by_area_sheet), "neighbourhoodCountGap": sum(abs(by_area_sheet[a] - by_area_read[a]) for a in set(by_area_sheet) | set(by_area_read)),
             "plotsInSheetWithATypeCode": len(listing["codes"]), "plotsReadWithAType": sum(1 for code in read.values() if code),
         })
+        # The villa types of each neighbourhood, the plots of the sheet against what the run read for those same plots
+        area_type_sheet = collections.Counter((listing["area"][number], code) for number, code in listing["codes"].items() if number in listing["area"])
+        area_type_read = collections.Counter((listing["area"][number], read[number]) for number in listing["codes"] if number in listing["area"] and read.get(number))
+        report.update({
+            "neighbourhoodTypePairs": len(area_type_sheet),
+            "neighbourhoodTypeGap": sum(abs(area_type_sheet[key] - area_type_read[key]) for key in set(area_type_sheet) | set(area_type_read)),
+            "plotsCompared": sum(area_type_sheet.values()),
+        })
     (out / "second_check.json").write_text(json.dumps(report, indent=1), encoding="utf-8")
     print("%s: %d plots read, %d workbooks (unchanged: %s)" % (name, len(read), len(before), unchanged))
     if listing:
         print("  sheet lists %d plots in %d neighbourhoods and %d villa types, %d under read, %d over read" % (
             report["sheetPlots"], report["neighbourhoodsInSheet"], report["villaTypesInSheet"], report["underRead"], report["overRead"]))
         print("  count gap over neighbourhoods %d plots, over villa types %d plots" % (report["neighbourhoodCountGap"], report["villaTypeCountGap"]))
+        print("  villa types per neighbourhood: %d pairs over %d plots, gap %d plots" % (report["neighbourhoodTypePairs"], report["plotsCompared"], report["neighbourhoodTypeGap"]))
     else:
         print("  no sheet lists the plots by whole numbers with a villa type code")
     return report
 
 
 def main(argv=None):
-    names = list(argv if argv is not None else sys.argv[1:]) or sorted(tools.SCENARIOS)
+    words = list(argv if argv is not None else sys.argv[1:])
+    confirmed = "--confirmed" in words
+    names = [word for word in words if word != "--confirmed"] or sorted(tools.SCENARIOS)
     root = tools.work_root() / "scenarios"
     for name in names:
-        run_one(name, root)
+        run_one(name, root, confirmed)
     return 0
 
 

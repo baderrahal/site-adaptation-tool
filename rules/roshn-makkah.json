@@ -845,6 +845,8 @@
       "dataCheck.strongShare": {"status": "CHOSEN by Code", "where": "dataCheck.shareWhy"},
       "dataCheck.usableShare": {"status": "CHOSEN by Code", "where": "dataCheck.shareWhy"},
       "dataCheck.prototypeFilePattern": {"status": "CHOSEN by Code", "where": "dataCheck.prototypeWhy"},
+      "dataCheck.codeTableMaxPairs": {"status": "CHOSEN by Code", "where": "dataCheck.codeWhy"},
+      "dataCheck.handGuessShare": {"status": "CHOSEN by Code", "where": "dataCheck.handWhy"},
       "majority.strongShare": {"status": "CHOSEN by Bader", "line": "the Majority rule of CLAUDE.md", "where": "CLAUDE.md"},
       "majority.levelHoldMm": {"status": "UNKNOWN", "why": "no Q, no share, no Bader line and no CHOSEN mark"},
       "majority.levelPassMm": {"status": "UNKNOWN", "why": "no Q, no share, no Bader line and no CHOSEN mark"},

@@ -530,3 +530,9 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R606 Files that fail.
 - R607 Scenario scoring.
 - R608 Clean folder build.
+- R630 Code table.
+- R631 Typology column.
+- R632 What a person confirmed.
+- R633 Prototype hand and mirror.
+- R634 Words only from a text that names groups.
+- R635 Scoring before and after a confirmed profile.

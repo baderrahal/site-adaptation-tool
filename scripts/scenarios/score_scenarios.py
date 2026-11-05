@@ -12,8 +12,8 @@ def read_json(path):
     return json.loads(path.read_text(encoding="utf-8")) if path.is_file() else None
 
 
-def result_of(name, root):
-    out = root / "runs" / name
+def result_of(name, root, run=None):
+    out = root / "runs" / (run or name)
     answer = read_json(root / "answers" / (name + ".json"))
     check = read_json(out / "data_check.json")
     if answer is None or check is None:
@@ -31,10 +31,12 @@ def result_of(name, root):
 def main(argv=None):
     root = tools.work_root() / "scenarios"
     results = {name: result_of(name, root) for name in tools.SCENARIOS}
+    confirmed = {name: result_of(name, root, name + tools.CONFIRMED_RUN) for name in tools.SCENARIOS}
     target = ROOT / "steps" / "scenarios.md"
-    target.write_text(tools.table(results), encoding="utf-8", newline="\n")
-    (root / "report.md").write_text(tools.lines_of(results), encoding="utf-8", newline="\n")
-    print("wrote %s, %d of %d scenarios scored" % (target.name, sum(1 for result in results.values() if result), len(results)))
+    target.write_text(tools.table(results, confirmed), encoding="utf-8", newline="\n")
+    report = tools.lines_of(results) + "\n# With a confirmed profile\n" + tools.lines_of(confirmed)
+    (root / "report.md").write_text(report, encoding="utf-8", newline="\n")
+    print("wrote %s, %d and %d of %d scenarios scored" % (target.name, sum(1 for result in results.values() if result), sum(1 for result in confirmed.values() if result), len(results)))
     return 0
 
 

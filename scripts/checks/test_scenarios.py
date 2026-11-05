@@ -125,6 +125,40 @@ def test_the_table_holds_all_five_and_says_not_run():
     assert "| rules | missing | not run |" in text
 
 
+def test_the_table_shows_the_confirmed_runs_apart_and_only_when_there_are_some():
+    assert "With a confirmed profile" not in tools.table({"S1": RESULT})
+    assert "With a confirmed profile" not in tools.table({"S1": RESULT}, {"S1": None})
+    better = dict(RESULT, score={"right": 2, "read": 3, "numbers": 2, "villaType": 2, "mirror": 1})
+    before, after = tools.table({"S1": RESULT}, {"S1": better}).split("With a confirmed profile")
+    assert "| 1 of 2 | 1 of 2 |" in before and "| 2 of 2 | 1 of 2 |" in after
+    # Nothing a data check said reaches the second table either
+    assert "SECRET-LAYER" not in after
+
+
+def test_the_confirmed_file_takes_every_proposal_and_nothing_else():
+    import confirmed_profile
+    profile = {
+        "codeMap": {"proposed": [{"old": "A1", "new": "B1", "source": "computed"}], "confirmed": []},
+        "hands": {"proposed": {"B1": "left", "C1": None}, "confirmed": {}},
+        "levels": [{"level": 1, "word": "Phase", "source": "computed"}, {"level": 2, "word": None, "source": "missing"}],
+        "typologyColumn": {"proposed": {"workbook": "w.xlsx", "sheet": "S", "column": "C", "plots": 5}},
+    }
+    assert confirmed_profile.confirmed(profile) == {
+        "codeMap": [{"old": "A1", "new": "B1"}], "hands": {"B1": "left"}, "levels": [{"level": 1, "word": "Phase"}],
+        "typologyColumn": {"workbook": "w.xlsx", "sheet": "S", "column": "C"},
+    }
+    profile["typologyColumn"]["proposed"] = None
+    assert "typologyColumn" not in confirmed_profile.confirmed(profile)
+
+
+def test_a_confirmed_run_names_the_profile_in_its_request():
+    import run_stage1
+    plain = run_stage1.request_for("S1", Path("f"), Path("o"), "c.json")
+    assert [row["role"] for row in plain["inputs"]] == ["scanFolder", "config"]
+    given = run_stage1.request_for("S1", Path("f"), Path("o"), "c.json", Path("p.json"))
+    assert [row["role"] for row in given["inputs"]] == ["scanFolder", "config", "projectProfile"]
+
+
 def test_nothing_a_data_check_said_reaches_the_table():
     text = tools.table({"S1": RESULT, "S3": RESULT})
     for word in ("Base.xlsx", "SECRET-LAYER", "2301", "Awnings"):

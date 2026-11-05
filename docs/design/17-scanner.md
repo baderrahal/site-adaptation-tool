@@ -62,3 +62,12 @@ Stage 1 from the raw files of a folder, built on the files above and reading no 
 - project_profile.json: levels, one row each with level, word (null when none) and source. A level with no word because candidates tie or one word covers too few groups also carries candidates and why.
 - plots.json: plots, one row each with number, villaType, mirror, groups (the name of the group at each level, an empty list when the drawing's unit is unknown), source (a tag for each of the four values), missing (the reason for each value that is null), disputed (a villa type another kind of source contradicts) and weak (a value that is read but not strong, the mirror always, an outline with a hole, groups under an assumed unit). A plot whose label holds two numbers has number null, source missing and both numbers in its reason under missing.
 - The groups, words and road edge layer are found by shape and distance, see R601, R603 and R604. Scenario runs: scripts/scenarios/run_stage1.py and score_scenarios.py write steps/scenarios.md. The clean folder build is scripts/scenarios/clean_stage1.py.
+
+## What a person confirms, round R2 C1 (R630 to R635)
+
+Three inputs of stage 1 are the project's own and a person confirms them. They are found by what the files hold, never by a name of a sheet or column in code.
+
+- project_profile.json gains codeMap (proposed, confirmed, source, foundIn, candidates), typologyColumn (proposed, confirmed, source, candidates) and hands (proposed, proposedAs, evidence, confirmed, source). A proposed row carries source computed, a confirmed one person entered.
+- Input role projectProfile of dataCheck, written by the window of R2-C1-revit-test: codeMap, a list of old and new, hands, a table of code and left or right, levels, a list of level and word, typologyColumn, an object of workbook, sheet and column, workbook optional. The window of the task names the first three, the fourth is added here since the code map alone does not reach a drawing of an older layout, Q496.
+- The order on a plot: the confirmed column gives the code, the map turns it once, the hand reads the code the plot ended with.
+- plots.json gains codeRead, the code before the map when it differs. weak names villaType for one old code with two new codes, and the mirror until a hand is confirmed and the block in the plot is of the plot's own type. data_check.json values gains codeMap, typologyColumn and hands.
