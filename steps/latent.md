@@ -355,3 +355,7 @@ RAMP-3NOV-A, review and breaker, no real input reaches these:
 
 - make_scenarios.py:91-93 styles only the kept plots, as answers and labels leave out the held areas. The S5 folder on disk, made earlier, holds 2956 of 2964 numbers in the other style with all 610 held plots found by --styled. A fresh S5 would leave held plots plain, and --styled would then read a loud 0, never a false pass.
 - No test calls main of score_holdout.py, so test_scenarios.py:228 proves in_style and not the --styled flag. main reads the answers under the work root.
+
+## R2-C1-fix, 5 Nov 2026
+
+- PaneRunState.cs:87 indexes what ConfigOf gives with no null check. ReadInputs.NoPastFiles true then a lock taken before ConfigOf reads a changed settings file gives a NullReferenceException in the pane refresh. Found reading item 6 of R2-C1-fix. Pane wiring is out of that task's files, and no run has reached it.
