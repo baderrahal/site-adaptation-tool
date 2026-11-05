@@ -15,8 +15,6 @@ namespace SiteAdaptation.AddIn.ScanResults
     public static class DataCheckStep
     {
         public const string FolderPrefix = "datacheck_";
-        public const string NoFolder = "{0}: the settings name no input folder, so the data check did not run. The read goes on without it.";
-        public const string NotFinished = "{0}: the data check did not finish, {1}. The read goes on without it.";
         public const string StoppedLine = "{0}: the read stopped at the data check, nothing was written.";
 
         // The window of the section, a stand-in in the tests: true for Use these picks, false for Cancel
@@ -35,24 +33,29 @@ namespace SiteAdaptation.AddIn.ScanResults
             {
                 return read;
             }
+            var shown = new HashSet<string>(StringComparer.Ordinal);
+            // The check runs in the preview, which comes before the checks of the read on its own inputs, so the rows show even where the read
+            // stops on a file this folder does not hold. Once for each run, the preview may be asked again by the same run
             return new ButtonBody
             {
-                Preview = read.Preview, Apply = read.Apply, ReadBack = read.ReadBack, Done = read.Done, Confirm = read.Confirm, Outside = read.Outside,
-                Start = (context, done) =>
+                Preview = context =>
                 {
-                    string line = null;
-                    IReadOnlyList<DataCheckRow> rows = Check(context, settings, document, out string why);
-                    if (rows == null)
+                    bool first;
+                    lock (shown)
                     {
-                        line = string.Format(why == null ? NoFolder : NotFinished, context.Label, why);
+                        first = shown.Add(context.RunId);
                     }
-                    else if (!Window(owner, rows))
+                    if (first)
                     {
-                        done(RunLater.Failed(string.Format(StoppedLine, context.Label)));
-                        return;
+                        IReadOnlyList<DataCheckRow> rows = Check(context, settings, document, out string why);
+                        if (rows != null && !Window(owner, rows))
+                        {
+                            throw new InvalidOperationException(string.Format(StoppedLine, context.Label));
+                        }
                     }
-                    read.Start(context, later => done(line == null || later == null ? later : later.Failure != null ? RunLater.Failed(line + Environment.NewLine + later.Failure) : RunLater.Done(line + Environment.NewLine + later.Message, later.Issues, later.Outputs)));
+                    return read.Preview(context);
                 },
+                Apply = read.Apply, ReadBack = read.ReadBack, Done = read.Done, Confirm = read.Confirm, Outside = read.Outside, Start = read.Start,
             };
         }
 
