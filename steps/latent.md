@@ -617,3 +617,11 @@ RAMP-3NOV-A, review and breaker, no real input reaches these:
 - Measure-ColdStart.ps1 treats the Invalid Signature box on the tool's own files as another maker's, a matter for SETUP-sign-2.
 - Run-RevitTests.ps1, the finally builds a new process tree, a Revit left by a dotnet that has ended stays open. The test does not reach Revit today.
 - Flaky in job tests, cause not measured: R104 FreezeGuardTests, R347 worker time limits, R405 AddInTests on net48, a value came back null in 12 ms, which reads as shared state between tests.
+
+## Build-1 R2-C1-build-1, stage 1 gaps, 5 Nov 2026
+
+- DataCheckCodes.cs ColumnCells: a plot listed twice on a sheet takes the first row, a second row with another code is not said. The proposed column of the real run lists each plot once, not measured for every candidate.
+- DataCheckCodes.cs TableAt: a code table is two columns side by side, a column between them hides it, and the person types it. Its header reads as a column letter when a title row sits above it, only the source text shows this.
+- DataCheckCodes.cs TableAt: the old side is the one the drawings use more, a table whose drawings use neither reads left to right.
+- DataCheckCodes.cs Typology: a column of code shape that runs across the groups and differs from the drawing qualifies though it holds no type, it ranks last with no plot of a prototype. The window shows the first and the rest.
+- config/project.json dataCheck.codePattern and groupNamePattern have no status entry, rule_status.py reads them as an input, as dataCheck.scan.labelPattern.
