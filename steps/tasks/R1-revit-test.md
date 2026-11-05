@@ -8,6 +8,8 @@ allowed:
   - dotnet/SiteAdaptation.TestHost/
   - dotnet/SiteAdaptation.UiShots/
   - dotnet/SiteAdaptation.Tests/R620_DataCheckWindowTests.cs
+  - dotnet/SiteAdaptation.Tests/UiLabelTests.cs
+  - docs/rules/
   - docs/design/14-ui-labels.md
   - steps/ui-shots/
   - steps/revit-results/
@@ -19,7 +21,7 @@ Stage 1 seen in Revit, from an empty model with nothing pre-run. Starts after SE
 
 1. Show the data check in the add-in. Button 2 runs dataCheck on the input folder. The rows go in a new section "Data check" at the top of the existing scan results window, one row per need: its name, its mark, its plain line. Nothing else changes in that window. This layout is CHOSEN by Lead, the smallest that shows it, Bader may change it after the screenshot.
 2. Pane words must match what is built. Reword a pane line that says otherwise.
-3. In Revit 2024, on a copy under the work root of an empty model, with folder S1 of scenarios: press 1 Set up site, 2 Read data, 3 Review data through the real window. Run on copies only, under the shared lock.
+3. In Revit 2024, on a copy under the work root, with folder S1 of scenarios: press 1 Set up site and 2 Read data through the real window, under the shared lock, and see the section Data check. An empty model and a press of 3 Review data wait on the read with no past file, which is in R2-C1-build-1, so they moved to R2-C1-revit-test, Lead's call on 5 Nov 2026.
 
 Out of scope: buttons 4 to 9. Any change to the worker or to Common, that is R1-build-1. If this task needs one, stop and say what.
 
