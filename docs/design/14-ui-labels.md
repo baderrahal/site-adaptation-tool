@@ -125,6 +125,8 @@ The five panels and their buttons of 7.1 of docs/design/12-ui-spec.md, Bader's c
 - `No road surface is picked.` CHOSEN, DRAFT, the line under the row when the order is empty (R492)
 - `The saved project takes its road surfaces from its past job, so this pick is not used.` CHOSEN, DRAFT, the tooltip of the grey button under the past job (R492)
 - `Pick a saved project under Start from first.` CHOSEN, DRAFT, the tooltip of the grey button while no saved project is chosen (R492)
+- `Input folder` CHOSEN, R635, the name of the folder among the inputs of a read of a folder with no past file, in the line that says an input changed since the dry run
+- `Confirmed values` CHOSEN, R636, the name of the confirmed file among the same inputs
 - `These files are Revit <n> and upgrade on each use, use the <n> copies. A remake from them takes 20 to 41 minutes.` CHOSEN, by Bader, the line under the row Prototypes when the oldest file is older than the running Revit, the first <n> is the format read, the second the running Revit (R496)
 
 ### Button messages
@@ -752,34 +754,58 @@ The window What the tool read of Lane C SCAN-UI, word for word from docs/design/
 - `The exact reason the check gives for each file it did not read.` CHOSEN, as the line above
 - `The check stopped` CHOSEN, the note the worker wrote when it stopped before it finished
 - `<n>: a data check of this work folder runs now, wait for its end.` CHOSEN, the line of a press while a check of the folder runs
-- `Confirm what was found` CHOSEN by Lead, R636, window Confirm what was found after 2 Read data on a folder with no past file, draft steps/ui-shots/confirm-profile.png
-- `The tool read the folder and proposes the values below. Nothing here changes the model. What you confirm is saved for the next Read data, which then reads the folder again.` CHOSEN by Lead, R636, window Confirm what was found after 2 Read data on a folder with no past file, draft steps/ui-shots/confirm-profile.png
-- `Villa type of each plot` CHOSEN by Lead, R636, window Confirm what was found after 2 Read data on a folder with no past file, draft steps/ui-shots/confirm-profile.png
-- `The sheet column that gives each plot its villa type. Leave it on none to keep what the drawings give.` CHOSEN by Lead, R636, window Confirm what was found after 2 Read data on a folder with no past file, draft steps/ui-shots/confirm-profile.png
-- `Area of each plot` CHOSEN by Lead, R636, window Confirm what was found after 2 Read data on a folder with no past file, draft steps/ui-shots/confirm-profile.png
-- `The sheet column that gives each plot its area. Leave it on none to group the plots by distance.` CHOSEN by Lead, R636, window Confirm what was found after 2 Read data on a folder with no past file, draft steps/ui-shots/confirm-profile.png
-- `none` CHOSEN by Lead, R636, window Confirm what was found after 2 Read data on a folder with no past file, draft steps/ui-shots/confirm-profile.png
-- `Code map` CHOSEN by Lead, R636, window Confirm what was found after 2 Read data on a folder with no past file, draft steps/ui-shots/confirm-profile.png
-- `One pair per line, the old code, an arrow -> and the new code. Type it when the tool found no table.` CHOSEN by Lead, R636, window Confirm what was found after 2 Read data on a folder with no past file, draft steps/ui-shots/confirm-profile.png
-- `Proposed from {0}.` CHOSEN by Lead, R636, window Confirm what was found after 2 Read data on a folder with no past file, draft steps/ui-shots/confirm-profile.png
-- `Confirmed on an earlier read.` CHOSEN by Lead, R636, window Confirm what was found after 2 Read data on a folder with no past file, draft steps/ui-shots/confirm-profile.png
-- `No table of old and new codes was found.` CHOSEN by Lead, R636, window Confirm what was found after 2 Read data on a folder with no past file, draft steps/ui-shots/confirm-profile.png
-- `Hand of each prototype` CHOSEN by Lead, R636, window Confirm what was found after 2 Read data on a folder with no past file, draft steps/ui-shots/confirm-profile.png
-- `Right when its blocks are drawn unmirrored, left when mirrored. The guess comes from how the blocks are drawn, no prototype file was opened.` CHOSEN by Lead, R636, window Confirm what was found after 2 Read data on a folder with no past file, draft steps/ui-shots/confirm-profile.png
-- `No prototype code was found in the villa blocks.` CHOSEN by Lead, R636, window Confirm what was found after 2 Read data on a folder with no past file, draft steps/ui-shots/confirm-profile.png
-- `Group levels` CHOSEN by Lead, R636, window Confirm what was found after 2 Read data on a folder with no past file, draft steps/ui-shots/confirm-profile.png
-- `The word you call each level of plot groups. Leave it empty to give none.` CHOSEN by Lead, R636, window Confirm what was found after 2 Read data on a folder with no past file, draft steps/ui-shots/confirm-profile.png
-- `No group levels were found.` CHOSEN by Lead, R636, window Confirm what was found after 2 Read data on a folder with no past file, draft steps/ui-shots/confirm-profile.png
-- `Confirm` CHOSEN by Lead, R636, window Confirm what was found after 2 Read data on a folder with no past file, draft steps/ui-shots/confirm-profile.png
-- `left` CHOSEN by Lead, R636, window Confirm what was found, a hand in the list of a prototype
-- `right` CHOSEN by Lead, R636, window Confirm what was found, a hand in the list of a prototype
-- `Level <n>` CHOSEN by Lead, R636, window Confirm what was found, the name of a group level row
-- `Word of level <n>` CHOSEN by Lead, R636, window Confirm what was found, the name of the box of the word of a group level
-- `Cancel` CHOSEN by Lead, R636, window Confirm what was found after 2 Read data on a folder with no past file, draft steps/ui-shots/confirm-profile.png
-- `Nothing was saved. The read stays as it is.` CHOSEN by Lead, R636, window Confirm what was found after 2 Read data on a folder with no past file, draft steps/ui-shots/confirm-profile.png
-- `Nothing was confirmed, so no file was written.` CHOSEN by Lead, R636, window Confirm what was found after 2 Read data on a folder with no past file, draft steps/ui-shots/confirm-profile.png
-- `Saved {0}. Press Read data again to read with it.` CHOSEN by Lead, R636, window Confirm what was found after 2 Read data on a folder with no past file, draft steps/ui-shots/confirm-profile.png
-- `Nothing was saved: {0}` CHOSEN by Lead, R636, window Confirm what was found after 2 Read data on a folder with no past file, draft steps/ui-shots/confirm-profile.png
+- `Confirm what was found` CHOSEN by Lead, R636, the smallest version of the window Confirm what was found, no sketch covers it, draft steps/ui-shots/confirm-profile.png
+- `The tool read the folder. Below is what it found and what was confirmed before. Nothing here changes the model.` CHOSEN by Lead, R636, the smallest version of the window Confirm what was found, no sketch covers it, draft steps/ui-shots/confirm-profile.png
+- `The tool read the folder and has nothing to propose here. Fill in what you know. Nothing here changes the model.` CHOSEN by Lead, R636, the smallest version of the window Confirm what was found, no sketch covers it, draft steps/ui-shots/confirm-profile.png
+- `Confirm takes both columns and the code map as they stand here, as your own values, with each hand you picked and each word you typed. They are saved for the next Read data, which then reads the folder again.` CHOSEN by Lead, R636, a press on Confirm is a person confirming both columns and the code map as the window shows them, so they stay person entered
+- `Villa type of each plot` CHOSEN by Lead, R636, the smallest version of the window Confirm what was found, no sketch covers it, draft steps/ui-shots/confirm-profile.png
+- `The sheet column that gives each plot its villa type. Leave it on none to keep what the drawings give.` CHOSEN by Lead, R636, the smallest version of the window Confirm what was found, no sketch covers it, draft steps/ui-shots/confirm-profile.png
+- `Villa type column` CHOSEN by Lead, R636, the smallest version of the window Confirm what was found, no sketch covers it, draft steps/ui-shots/confirm-profile.png
+- `Area of each plot` CHOSEN by Lead, R636, the smallest version of the window Confirm what was found, no sketch covers it, draft steps/ui-shots/confirm-profile.png
+- `The sheet column that gives each plot its area. Leave it on none to group the plots by distance.` CHOSEN by Lead, R636, the smallest version of the window Confirm what was found, no sketch covers it, draft steps/ui-shots/confirm-profile.png
+- `Area column` CHOSEN by Lead, R636, the smallest version of the window Confirm what was found, no sketch covers it, draft steps/ui-shots/confirm-profile.png
+- `none` CHOSEN by Lead, R636, the smallest version of the window Confirm what was found, no sketch covers it, draft steps/ui-shots/confirm-profile.png
+- `<column> in <sheet> of <workbook>` CHOSEN by Lead, R636, the smallest version of the window Confirm what was found, no sketch covers it, draft steps/ui-shots/confirm-profile.png
+- `, <n> plots` CHOSEN by Lead, R636, the smallest version of the window Confirm what was found, no sketch covers it, draft steps/ui-shots/confirm-profile.png
+- ` (proposed)` CHOSEN by Lead, R636, the smallest version of the window Confirm what was found, no sketch covers it, draft steps/ui-shots/confirm-profile.png
+- ` (confirmed)` CHOSEN by Lead, R636, the smallest version of the window Confirm what was found, no sketch covers it, draft steps/ui-shots/confirm-profile.png
+- `Code map` CHOSEN by Lead, R636, the smallest version of the window Confirm what was found, no sketch covers it, draft steps/ui-shots/confirm-profile.png
+- `One pair per line, the old code, an arrow -> and the new code. Type it when the tool found no table.` CHOSEN by Lead, R636, the smallest version of the window Confirm what was found, no sketch covers it, draft steps/ui-shots/confirm-profile.png
+- `Proposed from <source>.` CHOSEN by Lead, R636, the smallest version of the window Confirm what was found, no sketch covers it, draft steps/ui-shots/confirm-profile.png
+- `Confirmed on an earlier read.` CHOSEN by Lead, R636, the smallest version of the window Confirm what was found, no sketch covers it, draft steps/ui-shots/confirm-profile.png
+- `No table of old and new codes was found.` CHOSEN by Lead, R636, the smallest version of the window Confirm what was found, no sketch covers it, draft steps/ui-shots/confirm-profile.png
+- `Which side is old is only a guess, read left to right. Check the arrows before you confirm.` CHOSEN by Lead, R636, beside the map when the direction is only a guess, before anyone confirms it
+- `Unsure, the drawings hold none of its old codes. Check the table before you confirm.` CHOSEN by Lead, R636, beside the map when the check says unsure
+- `Line <n> of the code map needs the old code, -> and the new code, like A1 -> B1.` CHOSEN by Lead, R636, the smallest version of the window Confirm what was found, no sketch covers it, draft steps/ui-shots/confirm-profile.png
+- `Line <n> of the code map holds a code that starts or ends with - or >.` CHOSEN by Lead, R636, the smallest version of the window Confirm what was found, no sketch covers it, draft steps/ui-shots/confirm-profile.png
+- `Hand of each prototype` CHOSEN by Lead, R636, the smallest version of the window Confirm what was found, no sketch covers it, draft steps/ui-shots/confirm-profile.png
+- `Right when its blocks are drawn unmirrored, left when mirrored. A row left empty confirms no hand.` CHOSEN by Lead, R636, the smallest version of the window Confirm what was found, no sketch covers it, draft steps/ui-shots/confirm-profile.png
+- `A guess comes from how the blocks are drawn, no prototype file was opened. It changes nothing until you pick a hand.` CHOSEN by Lead, R636, shown only when a guess exists, a guess does not start selected
+- `No prototype code was found in the villa blocks.` CHOSEN by Lead, R636, the smallest version of the window Confirm what was found, no sketch covers it, draft steps/ui-shots/confirm-profile.png
+- `no guess` CHOSEN by Lead, R636, the smallest version of the window Confirm what was found, no sketch covers it, draft steps/ui-shots/confirm-profile.png
+- `guess: <hand>` CHOSEN by Lead, R636, beside the empty box of a hand
+- `Group levels` CHOSEN by Lead, R636, the smallest version of the window Confirm what was found, no sketch covers it, draft steps/ui-shots/confirm-profile.png
+- `Type the word you call a level of plot groups. A word the tool found stays as found until you change it.` CHOSEN by Lead, R636, a level word is written only if the person typed or changed it
+- `Level <n>` CHOSEN by Lead, R636, the smallest version of the window Confirm what was found, no sketch covers it, draft steps/ui-shots/confirm-profile.png
+- `Word of level <n>` CHOSEN by Lead, R636, the smallest version of the window Confirm what was found, no sketch covers it, draft steps/ui-shots/confirm-profile.png
+- `found by the tool` CHOSEN by Lead, R636, the smallest version of the window Confirm what was found, no sketch covers it, draft steps/ui-shots/confirm-profile.png
+- `confirmed on an earlier read` CHOSEN by Lead, R636, the smallest version of the window Confirm what was found, no sketch covers it, draft steps/ui-shots/confirm-profile.png
+- `the header of the area column` CHOSEN by Lead, R636, the smallest version of the window Confirm what was found, no sketch covers it, draft steps/ui-shots/confirm-profile.png
+- `No group levels were found.` CHOSEN by Lead, R636, the smallest version of the window Confirm what was found, no sketch covers it, draft steps/ui-shots/confirm-profile.png
+- `Confirm` CHOSEN by Lead, R636, the smallest version of the window Confirm what was found, no sketch covers it, draft steps/ui-shots/confirm-profile.png
+- `Cancel` CHOSEN by Lead, R636, the smallest version of the window Confirm what was found, no sketch covers it, draft steps/ui-shots/confirm-profile.png
+- `Nothing was saved. The read stays as it is.` CHOSEN by Lead, R636, the smallest version of the window Confirm what was found, no sketch covers it, draft steps/ui-shots/confirm-profile.png
+- `Nothing was confirmed, so no file was written.` CHOSEN by Lead, R636, the smallest version of the window Confirm what was found, no sketch covers it, draft steps/ui-shots/confirm-profile.png
+- `Your values are saved. Press Read data again to read with them.` CHOSEN by Lead, R636, the smallest version of the window Confirm what was found, no sketch covers it, draft steps/ui-shots/confirm-profile.png
+- `Every block is empty, so the values confirmed earlier were removed. Press Read data again to read without them.` CHOSEN, R636, the end line when a person clears every block over an earlier confirm, the file is removed
+- `Nothing was saved: <why>` CHOSEN by Lead, R636, the smallest version of the window Confirm what was found, no sketch covers it, draft steps/ui-shots/confirm-profile.png
+- `the read wrote no check result` CHOSEN by Lead, R636, the smallest version of the window Confirm what was found, no sketch covers it, draft steps/ui-shots/confirm-profile.png
+- `the read wrote no proposals` CHOSEN by Lead, R636, the smallest version of the window Confirm what was found, no sketch covers it, draft steps/ui-shots/confirm-profile.png
+- `the data check stopped before it finished: <why>` CHOSEN by Lead, R636, the smallest version of the window Confirm what was found, no sketch covers it, draft steps/ui-shots/confirm-profile.png
+- `The values you confirmed cannot be used: <why> Apply discards them, then press Read data again to read the folder without them. Cancel keeps them and the read does not run.` CHOSEN, R636, the content of the Apply or Cancel prompt of the flow when the worker would refuse the confirmed file
+- `The values you confirmed were discarded. Press Read data again to read the folder without them.` CHOSEN, R636, the end line after Apply on that prompt
+
+The list of a hand in the window Confirm what was found also shows the two values left and right, ConfirmedProfile.Left and Right of Common. They are data, so they are named here and not listed as texts.
 - `<n>: the settings name no input folder, so the data check did not run and nothing was read.` CHOSEN, a stop of button 2
 - `<n>: the input folder is not there, so the data check did not run and nothing was read.` CHOSEN, as the line above
 - `<n>: the data check could not start, <n>. Nothing was read.` CHOSEN, as the line above

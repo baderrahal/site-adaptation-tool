@@ -33,8 +33,6 @@ namespace SiteAdaptation.Tests
         private readonly Action<IntPtr, DataCheckResult> checkBefore = ConfirmProfileStep.ShowCheck;
         private readonly Action<IntPtr, ConfirmProfileSession> confirmBefore = ConfirmProfileStep.ShowConfirm;
         private readonly Func<string, string, bool> askBefore = ConfirmProfileStep.AskDiscard;
-        private readonly Action<IntPtr, DataCheckResult> aloneBefore = DataCheckStep.ShowAlone;
-        private readonly IWorkerStart workerBefore = ReadDataBody.Worker;
         private readonly string folder = Path.Combine(Path.GetTempPath(), "sa_r636_" + Guid.NewGuid().ToString("N"));
 
         public R636_ConfirmWindowTests()
@@ -47,8 +45,6 @@ namespace SiteAdaptation.Tests
             ConfirmProfileStep.ShowCheck = checkBefore;
             ConfirmProfileStep.ShowConfirm = confirmBefore;
             ConfirmProfileStep.AskDiscard = askBefore;
-            DataCheckStep.ShowAlone = aloneBefore;
-            ReadDataBody.Worker = workerBefore;
             Directory.Delete(folder, true);
         }
 
@@ -414,6 +410,17 @@ namespace SiteAdaptation.Tests
             }
         }
 
+        // A worker that takes the request and gives no answer, so a press of the old read stops at its own check and opens no window
+        private sealed class SilentWorker : IWorkerStart
+        {
+            public readonly List<WorkerRequest> Requests = new List<WorkerRequest>();
+
+            public void Start(string requestPath, string workFolder, WorkerRequest request, Action<WorkerAnswer> ended)
+            {
+                Requests.Add(request);
+            }
+        }
+
         // A copy of the shipped config whose inputRoot is a folder of the test, under the mode given
         private PaneSettings Project(string mode)
         {
@@ -445,13 +452,12 @@ namespace SiteAdaptation.Tests
         {
             // Dropping the raw branch of ReadDataBody.Choose fails this test: the press would go to the check of the old read and its scan
             var worker = new CheckWorker();
-            ReadDataBody.Worker = worker;
             var calls = new List<string>();
             ConfirmProfileStep.ShowCheck = (owner, result) => calls.Add("check");
             ConfirmProfileStep.ShowConfirm = (owner, session) => { calls.Add("confirm"); session.Cancel(); };
             var document = new DocumentSession("s1", Path.Combine(folder, "model.rvt"), "model") { Settings = Project("rev6") };
             string work = Work();
-            ButtonBody body = ReadDataBody.For(document, IntPtr.Zero);
+            ButtonBody body = ReadDataBody.For(document, IntPtr.Zero, worker);
             RunContext context = PressContext(document.Settings, work);
             Assert.NotNull(body.Preview(context));
             RunLater ended = Press(body, context);
@@ -466,21 +472,19 @@ namespace SiteAdaptation.Tests
         [Fact]
         public void Past_job_mode_keeps_the_inputs_of_the_pane_and_the_old_body_with_its_own_check()
         {
-            var worker = new CheckWorker();
-            ReadDataBody.Worker = worker;
+            var worker = new SilentWorker();
             bool confirmShown = false;
             ConfirmProfileStep.ShowCheck = (owner, result) => confirmShown = true;
             ConfirmProfileStep.ShowConfirm = (owner, session) => confirmShown = true;
-            DataCheckStep.ShowAlone = (owner, result) => { };
             PaneSettings settings = Project("roshnPastJob");
             string work = Work();
             Assert.False(ReadInputs.NoPastFiles(settings.ConfigFile, "roshnPastJob", work));
             Assert.Equal(PaneRunState.InputsOf(settings, 2).Select(input => input.Name), PaneRunState.InputsInFolder(settings, 2, work).Select(input => input.Name));
             var document = new DocumentSession("s1", Path.Combine(folder, "model.rvt"), "model") { Settings = settings };
-            ButtonBody body = ReadDataBody.For(document, IntPtr.Zero);
+            ButtonBody body = ReadDataBody.For(document, IntPtr.Zero, worker);
             body.Preview(PressContext(settings, work));
             Press(body, PressContext(settings, work));
-            WorkerRequest first = worker.Requests.First();
+            WorkerRequest first = Assert.Single(worker.Requests);
             Assert.EndsWith(DataCheckStep.RunIdSuffix, first.RunId);
             Assert.StartsWith(DataCheckStep.FolderPrefix, Path.GetFileName(first.OutputFolder));
             Assert.False(confirmShown);
