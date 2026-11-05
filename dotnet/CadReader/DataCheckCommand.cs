@@ -60,7 +60,7 @@ namespace CadReader
                     output = DataCheckLogic.Stopped(settings, input, "The check stopped before it finished, the reason is in the stopped note.");
                 }
             }
-            run.WriteJson(request.OutputFolder, "data_check.json", output.Check);
+            run.WriteJson(request.OutputFolder, SiteAdaptation.Common.ReadData.ReadDataRun.DataCheckFile, output.Check);
             run.WriteJson(request.OutputFolder, "project_profile.json", output.Profile);
             run.WriteJson(request.OutputFolder, "plots.json", output.Plots);
             run.WriteJson(request.OutputFolder, SiteAdaptation.Common.ReadData.ReadDataRun.PlotTableFile, DataCheckLogic.PlotTable(output.Plots));

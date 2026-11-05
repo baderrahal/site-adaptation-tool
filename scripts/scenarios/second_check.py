@@ -106,7 +106,8 @@ def plot_list(rows, codes):
 
 
 def run_one(name, root, confirmed=False):
-    folder = root / name
+    # A confirmed run reads the same folder as its first run, so it is held against the same workbooks
+    folder = root / name.replace("_confirmed", "")
     out = root / "runs" / (name + tools.CONFIRMED_RUN if confirmed else name)
     read = {}
     for row in json.loads((out / "plots.json").read_text(encoding="utf-8"))["plots"]:

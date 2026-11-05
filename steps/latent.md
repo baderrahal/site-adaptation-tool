@@ -351,10 +351,6 @@ RAMP-3NOV-A, review and breaker, no real input reaches these:
 - Plots a confirmed area column does not list have no neighbourhood and cannot be picked in Review. The count is said in the line.
 - codePattern and groupNamePattern have no status entry.
 
-## PR 207, second review, 5 Nov 2026
-
-- DataCheckAreas.cs:106 and DataCheckCodes.cs:232 pass over a column whose name two columns carry and no line says so, DataCheckCodes.cs:704 and DataCheckAreas.cs:194. S3 proposes 11 areas where the others read 13, and a person who presses Confirm is not told. Only S3 reaches it, a copy whose headers were rewritten. A real workbook with two columns of one name makes it REAL.
-
 ## PR 208, review, 5 Nov 2026
 
 - make_scenarios.py:91-93 styles only the kept plots, as answers and labels leave out the held areas. The S5 folder on disk, made earlier, holds 2956 of 2964 numbers in the other style with all 610 held plots found by --styled. A fresh S5 would leave held plots plain, and --styled would then read a loud 0, never a false pass.
@@ -367,6 +363,10 @@ RAMP-3NOV-A, review and breaker, no real input reaches these:
 - R636_ConfirmWindowTests.cs:242-248, Cancel_saves_nothing starts with no earlier file. ConfirmProfileSession.cs:59-63 does not delete, so the behaviour holds. The guess help and the map doubt are tested on the model, the Visibility lines at ConfirmProfileWindow.xaml.cs:28-29 are not, and no Revit pass showed a guess or a doubt.
 - InputHash.cs:31 against ReadInputs.cs:291. The flow walks skipped folders and follows links, Raw and the worker do neither. A link loop or an unreadable folder in a skipped folder would stop every press at ButtonFlow.cs:99. S1 has none.
 - PaneRunState.cs:87, ConfigOf can return null if the config locks between two reads, a race. The comment at :77 says Settings only and the code adds two more.
+- R2-C1-fix-build-1, review of PR 216, no current input reaches these four. ReadDataRun.cs:385 NotWhole counts every row of files with a status other than read, and that includes the confirmed column notes of DataCheckFind.cs (:201, :209) and the (plot read) note (:240), which are no file. A column that could not be applied makes the read never reused and the line says files or folders not read, the first is a sheet and column. The confirmed S1 run applied its column and lists 7 files, 0 not read.
+- DataCheckAreas.cs:204 says Two columns of sheet carry the name even when three or more do, the count after and is of the other names.
+- ReadInputs.cs:278 now catches a locked or broken settings file inside Schedules and DataBook too. In past job mode a locked config used to throw from NoPastFiles at ReadDataBody.cs:77 and now goes to the old read, which throws from Make at ReadInputs.cs:109 with its own message. Only a locked or broken settings file reaches it.
+- ReadDataRun.cs:372 NotWhole catches only a JsonException. A data_check.json another program holds open raises an IOException from Reusable or Preview.
 - The folder input costs about 10 ms a refresh on S1 of 37 files, on the UI thread. On a real root of many thousand files it is not measured, and it grows with the count.
 
 ## PR 211, the lane's list, 5 Nov 2026

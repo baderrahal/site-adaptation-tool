@@ -310,9 +310,15 @@ namespace SiteAdaptation.AddIn.ReviewData
 
         public string CadLabel => Row.CadLabel;
 
-        public string VillaType => Row.VillaType ?? ReviewDataText.NotReadYet;
+        // R639. A finished read says what it did not find and why, not read yet stays for what was truly not read
+        public string VillaType => Row.VillaType ?? ReviewTable.Shown(ReviewRowText.NoType, Row.VillaWhy) ?? ReviewDataText.NotReadYet;
 
-        public string Mirror => Row.Mirror.HasValue ? (Row.Mirror.Value ? ReviewDataText.Yes : ReviewDataText.No) : ReviewDataText.NotReadYet;
+        public string Mirror => Row.Mirror.HasValue ? (Row.Mirror.Value ? ReviewDataText.Yes : ReviewDataText.No) : ReviewTable.Shown(ReviewRowText.NoMirror, Row.MirrorWhy) ?? ReviewDataText.NotReadYet;
+
+        // R639. The row trims a long reason to its column, so the whole of it is the tooltip. Null with no reason so no tooltip shows
+        public string VillaTip => Row.VillaType == null ? Row.VillaWhy : null;
+
+        public string MirrorTip => Row.Mirror.HasValue ? null : Row.MirrorWhy;
 
         // R442. The proposal of 4 Check when the plan holds one, else the cluster of the plot table as before
         public string Cluster => ClusterConfirm.Shown(clusters.MarkOf(Row.PlotNo)) ?? Row.Cluster ?? ReviewDataText.NotReadYet;

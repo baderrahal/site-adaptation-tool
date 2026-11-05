@@ -102,8 +102,8 @@
           </Grid.ColumnDefinitions>
           <TextBlock Style="{StaticResource RowText}" Text="{Binding PlotNo}" ToolTip="{Binding RuleTip}" />
           <TextBlock Grid.Column="1" Style="{StaticResource RowText}" Text="{Binding CadLabel}" />
-          <TextBlock Grid.Column="2" Style="{StaticResource RowText}" Text="{Binding VillaType}" />
-          <TextBlock Grid.Column="3" Style="{StaticResource RowText}" Text="{Binding Mirror}" />
+          <TextBlock Grid.Column="2" Style="{StaticResource RowText}" Text="{Binding VillaType}" ToolTip="{Binding VillaTip}" />
+          <TextBlock Grid.Column="3" Style="{StaticResource RowText}" Text="{Binding Mirror}" ToolTip="{Binding MirrorTip}" />
           <TextBlock Grid.Column="4" Style="{StaticResource RowText}" Text="{Binding Cluster}" ToolTip="{Binding ClusterTip}" />
           <!-- R442. The tick of the cluster confirm, live only on a plot the plan of 4 Check proposes a cluster for. MinHeight 0 keeps the row at
                the height of its text, the pane row height of the style would make it 40 -->

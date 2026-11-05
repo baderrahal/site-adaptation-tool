@@ -75,7 +75,8 @@ namespace SiteAdaptation.Common
         // blocks of the finest level, so it is coarser than a block name, at least one value runs across blocks, and the plots around a plot
         // agree with it by areaAgreement beyond chance, as a type, a height or an aspect does not. Best first by the most areas, then the most
         // plots. Columns of one rank that part the plots otherwise are a tie the person settles
-        private static List<AreaCandidate> AreaColumns(DataCheckSettings settings, DataCheckInput input, List<Plot> plots)
+        // R639. A column that would rank but whose name two columns carry goes on nameTwice, for the line, and never on the list
+        private static List<AreaCandidate> AreaColumns(DataCheckSettings settings, DataCheckInput input, List<Plot> plots, List<KeyValuePair<string, string>> nameTwice)
         {
             var found = new List<AreaCandidate>();
             if (plots.Count == 0 || plots.Any(plot => plot.Group == null))
@@ -103,7 +104,7 @@ namespace SiteAdaptation.Common
                     for (int column = 0; column < sheet.Headers.Count; column++)
                     {
                         order++;
-                        if (column == key || NameTwice(sheet, column))
+                        if (column == key)
                         {
                             continue;
                         }
@@ -116,7 +117,11 @@ namespace SiteAdaptation.Common
                         }
                         nearest = nearest ?? NearestPlots(plots, settings.AreaNearPlots);
                         double agreement = NearAgreement(cells, nearest);
-                        if (agreement >= settings.AreaAgreement)
+                        if (agreement >= settings.AreaAgreement && NameTwice(sheet, column))
+                        {
+                            AddNameTwice(nameTwice, sheet, column);
+                        }
+                        else if (agreement >= settings.AreaAgreement)
                         {
                             found.Add(new AreaCandidate { Workbook = book.Name, Sheet = sheet.Name, Column = sheet.Headers[column], Plots = cells.Count, Values = values.Count, Agreement = agreement, Order = order, Cells = cells });
                         }
@@ -174,6 +179,30 @@ namespace SiteAdaptation.Common
                 }
             }
             return null;
+        }
+
+        private static void AddNameTwice(List<KeyValuePair<string, string>> nameTwice, ScanSheet sheet, int column)
+        {
+            var named = new KeyValuePair<string, string>(sheet.Name, sheet.Headers[column]);
+            if (!nameTwice.Contains(named))
+            {
+                nameTwice.Add(named);
+            }
+        }
+
+        // R639. A column passed over for its name, said on the line of the need it could have filled, on every branch of that line. First, so the
+        // cut of Line drops the tail of the old words and never this
+        private static JObject WithNameTwice(JObject row, Findings f)
+        {
+            string need = Str(row["need"]);
+            List<KeyValuePair<string, string>> twice = need == "areaColumn" ? f.AreaTwice : need == "typologyColumn" ? f.TypologyTwice : null;
+            if (twice == null || twice.Count == 0)
+            {
+                return row;
+            }
+            string more = twice.Count == 1 ? "" : " and " + Count(twice.Count - 1, "more name", "more names");
+            row["line"] = Line("Two columns of sheet " + twice[0].Key + " carry the name " + twice[0].Value + more + ", so neither was taken. " + Str(row["line"]));
+            return row;
         }
 
         private static JObject AreaRow(AreaCandidate item)

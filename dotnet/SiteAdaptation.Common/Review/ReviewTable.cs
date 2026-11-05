@@ -53,6 +53,8 @@ namespace SiteAdaptation.Common.Review
                     Nbh = nbh,
                     VillaType = Text(face["typologyRev9"]),
                     Mirror = fact?.Mirror ?? footprint,
+                    VillaWhy = Text(face["typologyRev9"]) == null ? WhyMissing(face, "villaType") : null,
+                    MirrorWhy = fact?.Mirror == null && footprint == null ? WhyMissing(face, "mirror") : null,
                     Cluster = fact?.Cluster,
                     AreaM2 = face["faceAreaM2"] == null || face["faceAreaM2"].Type == JTokenType.Null ? 0 : face["faceAreaM2"].Value<double>(),
                     RoadAtFront = fact?.RoadAtFront,
@@ -67,6 +69,24 @@ namespace SiteAdaptation.Common.Review
             }
             return rows.OrderBy(row => long.TryParse(row.PlotNo, NumberStyles.None, CultureInfo.InvariantCulture, out long value) ? value : long.MaxValue)
                 .ThenBy(row => row.PlotNo, StringComparer.Ordinal).ToList();
+        }
+
+        // R639. The reason the plot table holds for a value, null on a table with no such entry, as the old read. A key the read wrote with no text is
+        // still a finished read
+        private static string WhyMissing(JObject face, string key)
+        {
+            var missing = face["missing"] as JObject;
+            if (missing == null || missing.Property(key) == null)
+            {
+                return null;
+            }
+            return Text(missing[key]) ?? ReviewRowText.NoReason;
+        }
+
+        // R639. What a row says for a value the read holds a reason for, null with no reason, which leaves not read yet for what was truly not read
+        public static string Shown(string template, string why)
+        {
+            return why == null ? null : template.Replace("<n>", why);
         }
 
         // The model coordinates of a CAD point by the survey point of site.json: the CAD point less the shared position of the survey point
