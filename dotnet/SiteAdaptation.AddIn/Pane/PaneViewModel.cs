@@ -694,7 +694,7 @@ namespace SiteAdaptation.AddIn.Pane
                 }
                 var now = new Dictionary<string, string>(StringComparer.Ordinal);
                 bool missing = false;
-                foreach (RunInput input in PaneRunState.InputsOf(document.Settings, step))
+                foreach (RunInput input in PaneRunState.InputsInFolder(document.Settings, step, document.HasPath ? WorkFolderOf?.Invoke(document.Path) : null))
                 {
                     string hash = input.Text != null ? InputHash.Of(input) : string.IsNullOrEmpty(input.Path) ? null : KnownHash(input.Path, input.IsFolder);
                     missing |= hash == null;

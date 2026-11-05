@@ -105,6 +105,16 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
+        public void R661_a_new_value_of_a_date_shape_comes_through_with_the_same_text()
+        {
+            WorkerRequest request = Request("rulesChange", "rules", Made("a.json"));
+            request.NewValue = "2020-01-02T03:04:05.10Z";
+            WorkerRequest back = WorkerRequest.Read(request.Write(folder));
+            Assert.Equal(JTokenType.String, back.NewValue.Type);
+            Assert.Equal("2020-01-02T03:04:05.10Z", (string)back.NewValue);
+        }
+
+        [Fact]
         public void R660_who_and_the_new_value_come_through_and_a_request_with_none_leaves_them_out()
         {
             WorkerRequest request = Request("rulesChange", "rules", Made("a.json"));

@@ -36,6 +36,10 @@ namespace SiteAdaptation.AddIn.Pane
 
         // The name of the config file among the inputs of a run, which the step hashes of R366 hold, never shown since NEWPROJ-UI
         public const string Settings = "Settings";
+
+        // R635, R636. The names of the inputs of a read of a folder with no past file, in the line that says an input changed since the dry run
+        public const string InputFolder = "Input folder";
+        public const string ConfirmedValues = "Confirmed values";
         public const string Setup = "Setup";
         public const string SetupSaved = "Saved for this project";
         public const string NotDone = "Not done";

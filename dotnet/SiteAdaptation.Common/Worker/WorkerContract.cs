@@ -62,7 +62,8 @@ namespace SiteAdaptation.Common
 
         public static WorkerRequest Read(string path)
         {
-            return JsonConvert.DeserializeObject<WorkerRequest>(WorkFiles.ReadText(path));
+            // R661. A new rule value is kept as given. By default a text of a date shape would turn into a date and come back with other digits
+            return JsonConvert.DeserializeObject<WorkerRequest>(WorkFiles.ReadText(path), new JsonSerializerSettings { DateParseHandling = DateParseHandling.None });
         }
 
         // Written by a temporary name and a rename, request_<run id>.json in the work folder

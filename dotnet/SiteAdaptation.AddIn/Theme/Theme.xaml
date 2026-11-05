@@ -749,6 +749,7 @@
   <sys:Double x:Key="SA.Size.LoaderWidth">340</sys:Double>
   <!-- R446. The ask of 3 Review data, wide enough for its three buttons on one line -->
   <sys:Double x:Key="SA.Size.AskWidth">380</sys:Double>
+  <sys:Double x:Key="SA.Size.ConfirmName">120</sys:Double>
   <sys:Double x:Key="SA.Size.LoaderBar">6</sys:Double>
 
 </ResourceDictionary>
