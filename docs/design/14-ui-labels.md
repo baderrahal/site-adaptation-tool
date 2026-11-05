@@ -821,3 +821,7 @@ The loader of every button of Lane C DEMO-FIX (R444), a DRAFT with no board. It 
 - `Running outside Revit. The pane shows the step when it ends.` CHOSEN, the line while 2 Read data or 4 Check runs in the worker (R375)
 - `Elapsed <n>` CHOSEN, the clock in minutes and seconds
 - `Hide` CHOSEN, shown only while the step runs outside Revit, it closes the loader and changes nothing in the run
+
+### Confirm what was found
+
+R636. The window after 2 Read data on a folder with no past file, shown after the section Data check. CHOSEN by Lead: the smallest version, no sketch covers it, its picture is the draft steps/ui-shots/confirm-profile.png with made up values. Its texts are ConfirmProfileText in dotnet/SiteAdaptation.AddIn/ConfirmProfile. Sections: Villa type of each plot, Area of each plot, Code map, Hand of each prototype, Group levels. Buttons Confirm and Cancel. A column list starts on the proposed column or on none. Confirm writes confirmed_profile.json in the work folder with source person entered, only for what was given, and a line the code map cannot read is refused with its number and nothing is written. Cancel saves nothing and is no failure. The next Read data is a new read with the file.

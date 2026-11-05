@@ -28,7 +28,7 @@
         <TextBlock x:Name="RefusalText" Style="{StaticResource HelpText}" VerticalAlignment="Center" Foreground="{StaticResource SA.Warn}" />
       </DockPanel>
     </Border>
-    <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="640">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="640" Background="{StaticResource SA.Surface}">
       <StackPanel Margin="{StaticResource SA.Pad.Box}">
         <TextBlock Style="{StaticResource HelpText}" Text="{x:Static cp:ConfirmProfileText.Intro}" />
 
