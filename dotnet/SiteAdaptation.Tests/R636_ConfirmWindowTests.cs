@@ -187,6 +187,21 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
+        public void A_check_that_stopped_shows_its_note_opens_no_confirm_window_and_fails_in_plain_words()
+        {
+            string read = ReadFolder();
+            File.WriteAllText(Path.Combine(read, "data_check.json"), Check.Replace("\"stopped\":\"\"", "\"stopped\":\"IOException: the file is locked\""));
+            var outputs = Directory.GetFiles(read).ToDictionary(path => path, path => "00");
+            var calls = new List<string>();
+            ConfirmProfileStep.ShowCheck = (owner, result) => calls.Add("check " + result.Stopped);
+            ConfirmProfileStep.ShowConfirm = (owner, session) => calls.Add("confirm");
+            RunLater ended = null;
+            ConfirmProfileStep.Wrap(Read(RunLater.Done("Read done.", new string[0], outputs), out _), IntPtr.Zero).Start(Context(folder), later => ended = later);
+            Assert.Equal(new[] { "check IOException: the file is locked" }, calls);
+            Assert.Contains("the data check stopped before it finished: IOException: the file is locked", ended.Failure);
+        }
+
+        [Fact]
         public void A_read_with_no_profile_file_says_so_in_plain_words()
         {
             RunLater ended = null;

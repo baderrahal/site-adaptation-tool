@@ -55,7 +55,14 @@ namespace SiteAdaptation.AddIn.ConfirmProfile
                     return;
                 }
                 string plots = Path.Combine(Path.GetDirectoryName(check), DataCheckRows.PlotsFileName);
-                ShowCheck(owner, DataCheckRows.ReadResult(WorkFiles.ReadText(check), File.Exists(plots) ? WorkFiles.ReadText(plots) : null));
+                DataCheckResult result = DataCheckRows.ReadResult(WorkFiles.ReadText(check), File.Exists(plots) ? WorkFiles.ReadText(plots) : null);
+                ShowCheck(owner, result);
+                // A check that stopped holds nothing to confirm, the window above told why and the press says so too
+                if (result.Stopped != null)
+                {
+                    done(RunLater.Failed(RunTexts.ChangedNothing(context.Label, RunTexts.Failed("the data check stopped before it finished: " + result.Stopped))));
+                    return;
+                }
                 var session = new ConfirmProfileSession(ConfirmProfileModel.Read(WorkFiles.ReadText(profile)), context.WorkFolder, context.RunId, 0);
                 ShowConfirm(owner, session);
                 // A close by the X is a Cancel, the read stays done and says nothing was saved
