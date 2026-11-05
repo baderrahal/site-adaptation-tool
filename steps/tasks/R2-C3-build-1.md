@@ -22,7 +22,7 @@ Side by side with R2-C2-build-1 on build-1, Bader's order of 5 Nov 2026, so:
 - The runner does not mark or compare the rules input of rulesChange, as the command changes it. So rulesChange itself refuses a rules file under rules/templates, the shipped templates are read only, with a test.
 - Write the rule lines of R660 and R661, the seam cites them. docs/rules/index.md comes from python/rules_index.py, on a clash take main and run it again.
 - steps/latent.md is build-1's. LATENT findings go in the PR body, Lead enters them.
-- SiteAdaptation.Common.ProjectRules.RulesForBuild.Check(string rulesPath, JObject config) is what siteBuild of R2-C2-build-1 calls: a null path gives RulesChoiceLine, the line that asks once, rules not confirmed give BlockingLine under block, and an issue under warn, and it returns the rules. This task merges before C2.
+- SiteAdaptation.Common.ProjectRules.RulesForBuild.Check(string rulesPath, JObject config, string projectMode) is what siteBuild of R2-C2-build-1 calls: a null path gives RulesChoiceLine, the line that asks once, rules not confirmed give BlockingLine under block, and an issue under warn, and it returns the rules. This task merges before C2.
 
 1. Rules live per project in the project folder beside the project profile, never in code. Shipped templates under rules/templates are read only: manual.json from the manual, past-job.json holding the past job measures, never a default.
 2. A first Build with no rules chosen asks once to use the manual rules template.

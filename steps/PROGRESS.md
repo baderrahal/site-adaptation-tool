@@ -1,6 +1,6 @@
-STATE RUNNING, task/R2-C3-build-1, 2026-11-05 17:49
+STATE RUNNING, lead/records-pr209-211 and task/R2-C3-build-1, 2026-11-05 17:58
 # Progress
-Written by scripts/status.ps1 -Progress at 2026-11-05 17:49 from git, PRs and checks, never by hand. Main is at ecf53e3.
+Written by scripts/status.ps1 -Progress at 2026-11-05 17:58 from git, PRs and checks, never by hand. Main is at ecf53e3.
 
 ## State
 
@@ -42,4 +42,4 @@ Written by scripts/status.ps1 -Progress at 2026-11-05 17:49 from git, PRs and ch
 - Task R2-C1-fix-build-1 in lane build-1, open
 - Task R2-C2-build-1 in lane build-1, waiting
 - Task R2-C2-revit-test in lane revit-test, waiting
-Hash of the lines above, a hand edit fails a test: ddb78af07c384c063367cd263a98f386a793088baf37404112ec4463c19df456
+Hash of the lines above, a hand edit fails a test: 1e4cba7ad4221d4ec127cae1449a1863ad82b734aaadcd3a4d942b7f87eee420
