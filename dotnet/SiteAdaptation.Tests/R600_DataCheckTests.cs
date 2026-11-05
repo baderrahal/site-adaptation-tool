@@ -805,6 +805,54 @@ namespace SiteAdaptation.Tests
             Assert.False(string.IsNullOrEmpty((string)row["reason"]));
         }
 
+        private WorkerRequest WithProfile(string text)
+        {
+            string scan = Path.Combine(folder, "handed over");
+            Directory.CreateDirectory(scan);
+            string profile = Path.Combine(folder, "confirmed.json");
+            File.WriteAllText(profile, text);
+            WorkerRequest request = FolderRequest(scan, 1);
+            request.Inputs.Add(new WorkerFile { Role = ConfirmedProfile.Role, Path = profile, Sha256 = "" });
+            return request;
+        }
+
+        [Fact]
+        public void R632_the_worker_takes_the_confirmed_file_with_no_hash_and_writes_who_gave_each_value()
+        {
+            var commands = new Dictionary<string, WorkerCommand> { ["dataCheck"] = CadReader.DataCheckCommand.Run };
+            int code = WorkerRunner.Run(WithProfile("{\"codeMap\": [{\"old\": \"A1\", \"new\": \"B1\"}], \"hands\": {\"B1\": \"left\"}, \"levels\": [{\"level\": 1, \"word\": \"Court\"}]}").Write(folder), commands, () => 9000.0);
+            Assert.True(code == 0, WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, "r1")).Message);
+            JObject profile = JObject.Parse(File.ReadAllText(Path.Combine(folder, "project_profile.json")));
+            Assert.Equal("person entered", (string)profile["codeMap"]["source"]);
+            Assert.Equal("person entered", (string)profile["hands"]["source"]);
+            Assert.Equal("left", (string)profile["hands"]["confirmed"]["B1"]);
+            Assert.Equal("person entered", (string)profile["levels"][0]["source"]);
+            Assert.Contains(WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, "r1")).Opened, item => item.Role == ConfirmedProfile.Role);
+        }
+
+        [Theory]
+        [InlineData("not json at all")]
+        [InlineData("{\"hands\": {\"B1\": \"up\"}}")]
+        [InlineData("{\"levels\": [{\"level\": 9, \"word\": \"Court\"}]}")]
+        public void R632_a_confirmed_file_the_worker_cannot_honour_refuses_the_run_and_writes_no_plots(string text)
+        {
+            var commands = new Dictionary<string, WorkerCommand> { ["dataCheck"] = CadReader.DataCheckCommand.Run };
+            int code = WorkerRunner.Run(WithProfile(text).Write(folder), commands, () => 9000.0);
+            Assert.Equal(2, code);
+            Assert.Contains("project profile", WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, "r1")).Message);
+            Assert.False(File.Exists(Path.Combine(folder, "plots.json")));
+        }
+
+        [Fact]
+        public void R632_only_dataCheck_takes_the_confirmed_file_with_no_hash()
+        {
+            WorkerRequest other = Request("scan", ConfirmedProfile.Role);
+            bool ran = false;
+            var commands = new Dictionary<string, WorkerCommand> { ["scan"] = run => ran = true };
+            Assert.Equal(4, WorkerRunner.Run(other.Write(folder), commands, () => 9000.0));
+            Assert.False(ran);
+        }
+
         [Fact]
         public void R606_a_drawing_is_read_only_when_the_free_memory_holds_its_own_peak_from_the_block_and_the_floor()
         {
