@@ -368,3 +368,36 @@ RAMP-3NOV-A, review and breaker, no real input reaches these:
 - InputHash.cs:31 against ReadInputs.cs:291. The flow walks skipped folders and follows links, Raw and the worker do neither. A link loop or an unreadable folder in a skipped folder would stop every press at ButtonFlow.cs:99. S1 has none.
 - PaneRunState.cs:87, ConfigOf can return null if the config locks between two reads, a race. The comment at :77 says Settings only and the code adds two more.
 - The folder input costs about 10 ms a refresh on S1 of 37 files, on the UI thread. On a real root of many thousand files it is not measured, and it grows with the count.
+
+## PR 211, the lane's list, 5 Nov 2026
+
+- A second rulesSetup has no way past but deleting the file, RulesSetup.cs:43.
+- A project set up from past-job.json can never fill M01 to M15, RulesSetup.cs:43 and RulesChange.cs:73.
+- RulesForBuild.cs:240, :246 and :255 name a rules table no window has yet.
+- ProjectRulesFile.cs:214 copies InsideRoot of RevitListener.cs:87 and leaves out the input root variable, InputRootsVariable at Common/RevitListener.cs:21, read at :67, which NewProjectCheck.cs:717 reads too. Corrected by review of PR 214, the lane gave :114.
+- Rules beside the project profile are not enforced, the request names the folder.
+- Values have no declared type or unit. Every manual value is a text, so build code that casts one to a number will meet a text. R2-C2-build-1 reads this.
+- An id with a trailing space in the file can never be changed, RulesChange.cs:15 trims the id of the request.
+- A log line per change is never trimmed.
+- python/rule_status.py:247 reads the rule text of docs/rules/0*.md only, so a CHOSEN mark in a rule line of the parts 10 to 16 gives no status.
+- A config or a template that changes during a run gives exit 4 from the runner after the command already wrote project_rules.json and the log. Not tested, a run takes under 2 s.
+- A stop between the log line and the rename leaves a temporary file beside the rules, which no reader takes. Not tested by a real kill.
+
+## PR 211, second review, 5 Nov 2026
+
+- RulesForBuild.cs, a hand edited log line whose who is not text makes Check throw instead of giving a line.
+- RulesLog.cs reads a line with failed set to null as a failed line.
+- A value of the JSON word undefined passes NoValueReason.
+- ChangeLog.Open catches only IOException, an UnauthorizedAccessException gives the raw text.
+- ProjectRulesFile.Config uses Read and not ReadOrRefuse, the runner reads the config first.
+- A person who edits both the rules file and the log is not caught. A source edited from past to rule on a row not confirmed passes the past gate under warn.
+- A rules file away from its log reads as log gone, every row not confirmed, under block a stop. siteBuild of R2-C2-build-1 must pass the project's own path.
+
+## PR 213, review, 5 Nov 2026
+
+- Clauses of R639 with no test of their own: a folder not read, past job mode unchanged, which R635_past_job_mode_keeps_the_old_read_and_its_stop holds, and no file to edit. The finished read wording is tested on a table built by hand, not through the worker.
+- R639 on main is named for test_r12 by a comment in R640_WorkerSeamTests.cs until R639_StageOneFixTests.cs is on main. Lead takes the comment out then.
+
+## Gate, R310 under load, 5 Nov 2026
+
+- ParsonsModelTests.cs:126, R310_a_sample_keeps_the_process_memory, Expected Integer, Actual Null: a CIM call of the sample comes back empty when two workers run. 3 of 3 failed while two scenario workers ran at 22:06, 1 of 1 passes alone in 23 s. It failed the quick set twice on 5 Nov, both under load.
