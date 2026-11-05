@@ -13,6 +13,10 @@ out/
 *.pdf
 *.xlsx
 !config/shared_parameters.xlsx
+# The made up project of the clean folder test, tests/acceptance/made_up_project.py. These three paths only, no other file of a drawing type
+!samples/new-project/site.dxf
+!samples/new-project/plots.xlsx
+!samples/new-project/Prototypes/*.rvt
 sample_data/
 sample_output/
 .claude/worktrees/
