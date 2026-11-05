@@ -31,6 +31,7 @@ namespace SiteAdaptation.Common
         public int SharedParameterFiles { get; set; }
         public string Stopped { get; set; }
         public List<string> Ties { get; } = new List<string>();
+        public ConfirmedProfile Confirmed { get; set; }
     }
 
     public sealed class DataCheckOutput
@@ -65,6 +66,13 @@ namespace SiteAdaptation.Common
             public string Villa;
             public string VillaWhy;
             public string VillaDispute;
+            public List<string> OtherCodes = new List<string>();
+            public string DrawingCode;
+            public string CodeRead;
+            public string MapDoubt;
+            public HashSet<string> BlockCodes = new HashSet<string>(StringComparer.Ordinal);
+            public bool HandKnown;
+            public bool BlockOfOtherType;
             public bool? Mirror;
             public bool HasBlock;
             public string MirrorWhy;
@@ -103,10 +111,12 @@ namespace SiteAdaptation.Common
         public static DataCheckOutput Stopped(DataCheckSettings settings, DataCheckInput input, string why)
         {
             var needs = new JArray(Needs.Select(need => Need(need, "missing", why)));
+            var profile = new JObject { ["levels"] = new JArray(LevelCount(settings).Select(level => Level(level, null, Missing))) };
+            AddProposals(profile, new Findings { Input = input });
             return new DataCheckOutput
             {
                 Check = Wrap(needs, input, null),
-                Profile = new JObject { ["levels"] = new JArray(LevelCount(settings).Select(level => Level(level, null, Missing))) },
+                Profile = profile,
                 Plots = new JObject { ["plots"] = new JArray() },
             };
         }
@@ -199,11 +209,14 @@ namespace SiteAdaptation.Common
                     {
                         plot.Villa = given[0];
                         plot.VillaWhy = null;
+                        // Blocks and texts are what the drawing says, a typology column that only repeats them is no new source (R631)
+                        plot.DrawingCode = kind < 2 ? given[0] : null;
                         used[kind]++;
                         // R602. Another kind of source that gives another code is said, the plot keeps the code of the first kind and is counted
                         if (every.Count > 1)
                         {
-                            plot.VillaDispute = "the " + KindWords[kind] + " give " + given[0] + " and another kind of source gives " + string.Join(", ", every.Where(code => code != given[0]));
+                            plot.OtherCodes.AddRange(every.Where(code => code != given[0]));
+                            plot.VillaDispute = "the " + KindWords[kind] + " give " + given[0] + " and another kind of source gives " + string.Join(", ", plot.OtherCodes);
                         }
                     }
                     else if (given.Count > 1)

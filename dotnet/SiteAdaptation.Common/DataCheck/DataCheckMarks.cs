@@ -198,7 +198,7 @@ namespace SiteAdaptation.Common
             {
                 int named = f.Words.Count(word => word != null);
                 string sizes = string.Join(" and ", Enumerable.Range(0, levels).Select(level => plots.Select(plot => plot.Group[level]).Distinct().Count().ToString(CultureInfo.InvariantCulture)));
-                string wordText = named == 0 ? "no word for the levels" : "words " + string.Join(", ", f.Words.Where(word => word != null).Select(Plain));
+                string wordText = named == 0 ? "no word for the levels, name each one once" : "words " + string.Join(", ", f.Words.Where(word => word != null).Select(Plain));
                 string notes = string.Join(" ", Enumerable.Range(0, levels).Where(level => f.WordNotes[level] != null).Select(level => "Level " + (level + 1) + " " + f.WordNotes[level] + "."));
                 string mark = named == levels ? "strong" : named > 0 ? "usable" : "weak";
                 string assumed = "";
@@ -212,6 +212,8 @@ namespace SiteAdaptation.Common
 
             // Villa type. The worst of the coverage, the disagreement between kinds of source and the join of a sheet
             int typed = plots.Count(plot => plot.Villa != null);
+            string codeNote = input.Confirmed != null && input.Confirmed.CodeMap.Count > 0 ? " Code map confirmed."
+                : f.Tables != null && f.Tables.Count > 0 ? " Code table proposed." : " No code table found.";
             if (total == 0)
             {
                 needs.Add(Need("villaType", "missing", "No plots were read, so there is no villa type to give them."));
@@ -219,27 +221,40 @@ namespace SiteAdaptation.Common
             else if (typed == 0)
             {
                 string why = plots[0].VillaWhy ?? "No block, text or sheet column gives a villa type.";
-                needs.Add(Need("villaType", "missing", f.SheetPoor != null ? "Villa type is missing, " + f.SheetPoor + "." : why));
+                needs.Add(Need("villaType", "missing", (f.SheetPoor != null ? "Villa type is missing, " + f.SheetPoor + "." : why) + codeNote));
             }
             else
             {
                 int disputed = plots.Count(plot => plot.VillaDispute != null);
+                int doubted = plots.Count(plot => plot.MapDoubt != null);
+                int noFile = input.Confirmed == null ? 0 : plots.Count(plot => plot.Villa != null && !f.Prototypes.Contains(plot.Villa));
                 string mark = Mark((double)typed / total, settings);
                 if (disputed > (1 - settings.StrongShare) * typed)
                 {
                     mark = Worst(mark, "weak");
                 }
-                string said = "Villa type is read from " + f.Lead + " for " + typed + " of " + total + " plots";
+                string said = "Villa type is read from " + (f.ColumnApplied ? "the confirmed column" : f.Lead) + " for " + typed + " of " + total + " plots";
                 if (disputed > 0)
                 {
                     said += ", another kind of source gives another type on " + disputed;
                 }
-                if (f.SheetPoor != null)
+                // A person confirmed the column, so a sheet the drawing joins poorly no longer lowers what it gives
+                if (f.SheetPoor != null && !f.ColumnApplied)
                 {
                     mark = Worst(mark, "weak");
                     said += ", " + f.SheetPoor;
                 }
-                needs.Add(Need("villaType", mark, said + "."));
+                if (doubted > 0)
+                {
+                    mark = Worst(mark, "weak");
+                    said += ", " + doubted + " with two new codes";
+                }
+                if (noFile > 0)
+                {
+                    mark = Worst(mark, "usable");
+                    said += ", " + noFile + " with no prototype file";
+                }
+                needs.Add(Need("villaType", mark, said + "." + codeNote));
             }
 
             // Villa blocks
@@ -309,14 +324,26 @@ namespace SiteAdaptation.Common
                 ? Need("sharedParameters", "usable", Count(input.SharedParameterFiles, "shared parameter file", "shared parameter files") + " found in the folder.")
                 : Need("sharedParameters", "missing", "No shared parameter file is in the folder."));
 
-            // The mirror is a value of each plot, not a need. It is the sign of the scale of the villa block, which the drawing states, and the
-            // folder does not say which hand a prototype file has, so what the sign means for the link is not known and the value is weak
+            // The mirror is a value of each plot, not a need. It is the sign of the scale of the villa block, which the drawing states. What the
+            // sign means for the link rests on the hand of the prototype, which only a person can confirm, so the value is weak until then
             int hands = plots.Count(plot => plot.Mirror != null);
+            int handed = plots.Count(plot => plot.HandKnown && !plot.BlockOfOtherType);
+            int columns = f.Columns == null ? 0 : f.Columns.Count;
+            int pairs = f.Tables == null || f.Tables.Count == 0 ? 0 : f.Tables[0].Pairs.Count;
             var values = new JArray
             {
                 hands == 0
                     ? Need("mirror", "missing", total == 0 ? "No plots were read, so there is no mirror to give them." : "No villa block inside a plot gives a mirror.")
-                    : Need("mirror", "weak", "Mirror is the sign of the block scale for " + hands + " of " + total + " plots, the folder does not say which hand a prototype has."),
+                    : handed > 0
+                        ? Need("mirror", Mark((double)handed / total, settings), "Mirror comes from the block scale and a confirmed hand for " + handed + " of " + total + " plots.")
+                        : Need("mirror", "weak", "Mirror is the sign of the block scale for " + hands + " of " + total + " plots, the folder does not say which hand a prototype has."),
+                pairs > 0
+                    ? Need("codeMap", "usable", "A table of " + Count(pairs, "old and new code", "old and new codes") + " was found, it changes no plot until it is confirmed.")
+                    : Need("codeMap", "missing", "No table of old and new codes was found, type it if the project has one."),
+                columns > 0
+                    ? Need("typologyColumn", "usable", Count(columns, "column gives", "columns give") + " each plot a villa type, the first changes no plot until it is confirmed.")
+                    : Need("typologyColumn", "missing", "No sheet column gives each plot a villa type the drawing does not already give."),
+                Need("hands", f.HandGuess != null && f.HandGuess.Values.Any(hand => hand != null) ? "weak" : "missing", "The hand of each prototype is a guess from the blocks, confirm it. No prototype file was opened."),
             };
 
             foreach (string tie in TiesOf(f).Where(text => !input.Ties.Contains(text)))
@@ -324,7 +351,8 @@ namespace SiteAdaptation.Common
                 input.Ties.Add(tie);
             }
             var scanChecks = new JArray(f.Checks.Select(item => (string)item["what"]).GroupBy(what => what).Select(group => new JObject { ["what"] = group.Key, ["count"] = group.Count() }));
-            JArray profile = ProfileOf(f);
+            var profile = new JObject { ["levels"] = ProfileOf(f) };
+            AddProposals(profile, f);
             var plotRows = new JArray();
             foreach (Plot plot in plots)
             {
@@ -333,7 +361,7 @@ namespace SiteAdaptation.Common
             return new DataCheckOutput
             {
                 Check = Wrap(new JArray(needs), input, scanChecks, values),
-                Profile = new JObject { ["levels"] = profile },
+                Profile = profile,
                 Plots = new JObject { ["plots"] = plotRows },
             };
         }
@@ -343,7 +371,7 @@ namespace SiteAdaptation.Common
             var rows = new JArray();
             for (int level = 0; level < f.Settings.GroupGapsM.Count; level++)
             {
-                JObject row = Level(level + 1, f.Words[level], f.Words[level] == null ? Missing : Computed);
+                JObject row = Level(level + 1, f.Words[level], f.WordSources[level]);
                 if (f.Words[level] == null && (f.WordCandidates[level].Count > 0 || f.WordNotes[level] != null))
                 {
                     row["candidates"] = new JArray(f.WordCandidates[level]);
@@ -368,9 +396,17 @@ namespace SiteAdaptation.Common
             {
                 gone["mirror"] = plot.MirrorWhy;
             }
-            else
+            else if (!plot.HandKnown)
             {
                 weak["mirror"] = "the sign of the block scale, which hand a prototype file has is not known";
+            }
+            else if (plot.BlockOfOtherType)
+            {
+                weak["mirror"] = "the block in this plot is not of the plot's own type, so its scale says little about the prototype";
+            }
+            if (plot.MapDoubt != null)
+            {
+                weak["villaType"] = plot.MapDoubt;
             }
             if (plot.VillaDispute != null)
             {
@@ -396,6 +432,7 @@ namespace SiteAdaptation.Common
             {
                 ["number"] = plot.NumberFlag != null ? null : plot.Number,
                 ["villaType"] = plot.Villa,
+                ["codeRead"] = plot.CodeRead != null && plot.CodeRead != plot.Villa ? plot.CodeRead : null,
                 ["mirror"] = plot.Mirror,
                 ["groups"] = plot.Group == null ? new JArray()
                     : new JArray(Enumerable.Range(0, levels).Select(level => (object)(f.GroupNames[level].TryGetValue(plot.Group[level], out string name) ? name : "L" + (level + 1) + "-" + (plot.Group[level] + 1))).ToArray()),

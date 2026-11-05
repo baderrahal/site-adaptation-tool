@@ -39,6 +39,10 @@ namespace CadReader
             {
                 input.Stopped = refused.Message;
             }
+            if (settings != null)
+            {
+                input.Confirmed = Confirmed(run, settings);
+            }
             if (settings == null)
             {
                 output = DataCheckLogic.Stopped(null, input, "The project settings hold no values for this check, so nothing was read.");
@@ -62,6 +66,24 @@ namespace CadReader
             run.Counts["data check plots"] = ((JArray)output.Plots["plots"]).Count;
             run.Counts["data check drawings read"] = input.CadReads.Count;
             run.Counts["data check files not read"] = input.Notes.Count(note => !note.Read);
+        }
+
+        // R632. The file the window wrote with what a person confirmed, an optional input. One that cannot be read stops the run with its reason,
+        // since a run that went on without it would hand back plots as though nothing was confirmed
+        private static ConfirmedProfile Confirmed(WorkerContext run, DataCheckSettings settings)
+        {
+            if (!run.Request.Inputs.Any(item => item.Role == ConfirmedProfile.Role))
+            {
+                return null;
+            }
+            try
+            {
+                return ConfirmedProfile.From(JObject.Parse(WorkFiles.ReadText(run.Input(ConfirmedProfile.Role))), settings.GroupGapsM.Count);
+            }
+            catch (Exception failure) when (failure is InvalidDataException || failure is Newtonsoft.Json.JsonException)
+            {
+                throw run.Refusal("the project profile the window wrote cannot be read: " + failure.Message);
+            }
         }
 
         // The files of the folder, each folder walked in ordinal order and a link or junction never followed, so a run reads only what the
