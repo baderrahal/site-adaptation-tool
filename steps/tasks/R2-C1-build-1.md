@@ -2,7 +2,7 @@
 id: R2-C1-build-1
 lane: build-1
 stage: 1
-status: open
+status: done
 allowed:
   - dotnet/SiteAdaptation.Common/
   - dotnet/CadReader/

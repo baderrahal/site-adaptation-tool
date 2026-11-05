@@ -39,6 +39,10 @@ namespace CadReader
             {
                 input.Stopped = refused.Message;
             }
+            if (settings != null)
+            {
+                input.Confirmed = Confirmed(run, settings);
+            }
             if (settings == null)
             {
                 output = DataCheckLogic.Stopped(null, input, "The project settings hold no values for this check, so nothing was read.");
@@ -59,14 +63,33 @@ namespace CadReader
             run.WriteJson(request.OutputFolder, "data_check.json", output.Check);
             run.WriteJson(request.OutputFolder, "project_profile.json", output.Profile);
             run.WriteJson(request.OutputFolder, "plots.json", output.Plots);
+            run.WriteJson(request.OutputFolder, SiteAdaptation.Common.ReadData.ReadDataRun.PlotTableFile, DataCheckLogic.PlotTable(output.Plots));
             run.Counts["data check plots"] = ((JArray)output.Plots["plots"]).Count;
             run.Counts["data check drawings read"] = input.CadReads.Count;
             run.Counts["data check files not read"] = input.Notes.Count(note => !note.Read);
         }
 
+        // R632. The file the window wrote with what a person confirmed, an optional input. One that cannot be read stops the run with its reason,
+        // since a run that went on without it would hand back plots as though nothing was confirmed
+        private static ConfirmedProfile Confirmed(WorkerContext run, DataCheckSettings settings)
+        {
+            if (!run.Request.Inputs.Any(item => item.Role == ConfirmedProfile.Role))
+            {
+                return null;
+            }
+            try
+            {
+                return ConfirmedProfile.From(JObject.Parse(WorkFiles.ReadText(run.Input(ConfirmedProfile.Role))), settings.GroupGapsM.Count);
+            }
+            catch (Exception failure) when (failure is InvalidDataException || failure is Newtonsoft.Json.JsonException)
+            {
+                throw run.Refusal("the project profile the window wrote cannot be read: " + failure.Message);
+            }
+        }
+
         // The files of the folder, each folder walked in ordinal order and a link or junction never followed, so a run reads only what the
         // folder holds
-        private static List<string> Files(string folder, List<DataCheckNote> notes)
+        private static List<string> Files(string folder, List<DataCheckNote> notes, HashSet<string> skip, List<string> skipped)
         {
             var found = new List<string>();
             var pending = new Stack<string>();
@@ -82,7 +105,12 @@ namespace CadReader
                     }
                     foreach (string child in Directory.GetDirectories(here))
                     {
-                        if ((File.GetAttributes(child) & FileAttributes.ReparsePoint) == 0)
+                        // R635. A folder of past outputs names no input of a new project, the tool cannot tell a past file by its own name
+                        if (skip.Contains(Path.GetFileName(child)))
+                        {
+                            skipped.Add(Relative(folder, child));
+                        }
+                        else if ((File.GetAttributes(child) & FileAttributes.ReparsePoint) == 0)
                         {
                             pending.Push(child);
                         }
@@ -114,7 +142,7 @@ namespace CadReader
 
         private static void Gather(WorkerContext run, string folder, DataCheckSettings settings, DataCheckInput input)
         {
-            foreach (string path in Files(folder, input.Notes))
+            foreach (string path in Files(folder, input.Notes, settings.SkipFolders, input.SkippedFolders))
             {
                 string name = Relative(folder, path);
                 string extension = Path.GetExtension(path).ToLowerInvariant();

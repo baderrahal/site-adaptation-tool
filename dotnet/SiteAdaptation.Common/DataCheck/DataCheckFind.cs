@@ -41,6 +41,7 @@ namespace SiteAdaptation.Common
             public bool UnitAssumed;
             public string GroupWhy;
             public string[] Words;
+            public string[] WordSources;
             public string[] WordNotes;
             public List<string>[] WordCandidates;
             public List<Dictionary<int, string>> GroupNames = new List<Dictionary<int, string>>();
@@ -51,16 +52,41 @@ namespace SiteAdaptation.Common
             public int NumberFlags;
             public int Holes;
             public List<Plot> StandIns = new List<Plot>();
+            public List<CodeTable> Tables;
+            public List<CodeTable> TablesTooLarge;
+            public List<TypologyCandidate> Columns;
+            public List<TypologyCandidate> ColumnsTooLarge;
+            public TypologyCandidate ColumnProposed;
+            public string ColumnTie;
+            public string ColumnGone;
+            public int ColumnListedTwice;
+            public List<AreaCandidate> Areas;
+            public AreaCandidate AreaProposed;
+            public string AreaTie;
+            public string AreaGone;
+            public List<string> MapNotHeld;
+            public List<string> HandsNotHeld;
+            public Dictionary<string, HandCount> HandCounts;
+            public Dictionary<string, string> HandGuess;
+            public bool ColumnApplied;
+            public HashSet<string> Prototypes = new HashSet<string>(StringComparer.Ordinal);
         }
 
         public static DataCheckOutput Run(DataCheckSettings settings, DataCheckInput input)
         {
-            var codes = new HashSet<string>(input.PrototypeNames.Select(settings.PrototypeCode).Where(code => code != null), StringComparer.Ordinal);
+            var prototypes = new HashSet<string>(input.PrototypeNames.Select(settings.PrototypeCode).Where(code => code != null), StringComparer.Ordinal);
+            // R632. Where the prototype files carry the new codes the drawing speaks the old ones, so a confirmed old code is looked for as well. A
+            // prototype file still decides which source scores, no old code does
+            var codes = new HashSet<string>(prototypes, StringComparer.Ordinal);
+            if (input.Confirmed != null)
+            {
+                codes.UnionWith(input.Confirmed.CodeMap.Select(pair => pair.Key));
+            }
             List<KeyValuePair<string, List<double[]>>> rings;
             string plotSource;
-            JObject scan = ReadScan(settings, input, codes, out rings, out plotSource);
-            BreakTies(settings, input, codes, ref scan, ref rings, ref plotSource);
-            var f = new Findings { Settings = settings, Input = input, Scan = scan };
+            JObject scan = ReadScan(settings, input, codes, prototypes, out rings, out plotSource);
+            BreakTies(settings, input, codes, prototypes, ref scan, ref rings, ref plotSource);
+            var f = new Findings { Settings = settings, Input = input, Scan = scan, Prototypes = prototypes };
             f.Rows = scan == null ? new List<JObject>() : ((JArray)scan["rows"]).OfType<JObject>().ToList();
             f.Checks = scan == null ? new List<JObject>() : ((JArray)scan["checks"]).OfType<JObject>().ToList();
             // The scan proposes an outline for each drawing and chose one to give the plots, every line of a need follows that one
@@ -84,7 +110,9 @@ namespace SiteAdaptation.Common
             f.Holes = FindHoles(f.Plots, f.Drawing, f.Outline, settings.StandInMaxArea, f.StandIns);
             f.BlockSources = BlockSources(f.Rows);
             FindVillaTypes(f.Plots, scan, f.Rows, codes, out f.Lead);
-            FindMirror(f.Plots, input, f.BlockSources);
+            f.HandCounts = new Dictionary<string, HandCount>(StringComparer.Ordinal);
+            FindMirror(f.Plots, input, f.BlockSources, settings, codes, f.HandCounts);
+            f.HandGuess = HandGuesses(settings, prototypes, f.HandCounts);
             f.SheetPoor = SheetPoor(settings, input, scan, f.Plots, codes);
             int levels = settings.GroupGapsM.Count;
             if (f.Plots.Count > 0)
@@ -106,7 +134,16 @@ namespace SiteAdaptation.Common
                     }
                 }
             }
+            f.TablesTooLarge = new List<CodeTable>();
+            f.ColumnsTooLarge = new List<TypologyCandidate>();
+            f.Tables = CodeTables(settings, input, prototypes, f.Plots, f.TablesTooLarge);
+            f.Columns = TypologyColumns(settings, input, f.Plots, prototypes, f.ColumnsTooLarge);
+            f.ColumnProposed = TypologyProposal(f.Columns, out f.ColumnTie);
+            f.Areas = AreaColumns(settings, input, f.Plots);
+            f.AreaProposed = AreaProposal(f.Areas, out f.AreaTie);
+            ApplyConfirmed(f);
             f.Words = new string[levels];
+            f.WordSources = new string[levels];
             f.WordNotes = new string[levels];
             f.WordCandidates = new List<string>[levels];
             for (int level = 0; level < levels; level++)
@@ -120,10 +157,69 @@ namespace SiteAdaptation.Common
                 List<HeaderMatch>[] fromSheets = SheetHeaders(settings, f.Plots, input.Excels, levels);
                 DecideWords(settings, f, fromCad, fromSheets);
             }
+            for (int level = 0; level < levels; level++)
+            {
+                f.WordSources[level] = f.Words[level] == null ? Missing : Computed;
+                // R635. The header of a column a person confirmed names the areas, a word the person typed still goes over it
+                if (level == 0 && input.Confirmed?.AreaColumn != null && f.AreaGone == null)
+                {
+                    f.Words[level] = input.Confirmed.AreaColumn.Column;
+                    f.WordSources[level] = ConfirmedProfile.PersonEntered;
+                    f.WordNotes[level] = null;
+                    f.WordCandidates[level].Clear();
+                }
+                if (input.Confirmed != null && input.Confirmed.Levels.TryGetValue(level + 1, out string word))
+                {
+                    f.Words[level] = word;
+                    f.WordSources[level] = ConfirmedProfile.PersonEntered;
+                    f.WordNotes[level] = null;
+                    f.WordCandidates[level].Clear();
+                }
+            }
             return Build(f);
         }
 
-        private static JObject ReadScan(DataCheckSettings settings, DataCheckInput input, HashSet<string> codes, out List<KeyValuePair<string, List<double[]>>> rings, out string plotSource)
+        // R632. What a person confirmed, in the order that keeps each change on what the one before it left: the column gives the code, the
+        // map turns it, the hand then reads the code the plot ended with
+        private static void ApplyConfirmed(Findings f)
+        {
+            ConfirmedProfile confirmed = f.Input.Confirmed;
+            if (confirmed == null)
+            {
+                return;
+            }
+            if (confirmed.Column != null)
+            {
+                f.ColumnGone = ApplyColumn(f.Settings, f.Input, f.Plots, confirmed.Column, out f.ColumnListedTwice);
+                f.ColumnApplied = f.ColumnGone == null;
+                if (!f.ColumnApplied)
+                {
+                    f.Input.Notes.Add(new DataCheckNote { Name = confirmed.Column.Sheet + "|" + confirmed.Column.Column, Kind = "confirmed column", Read = false, Reason = "the confirmed typology column was not used, " + f.ColumnGone });
+                }
+            }
+            if (confirmed.AreaColumn != null)
+            {
+                f.AreaGone = ApplyArea(f.Settings, f.Input, f.Plots, confirmed.AreaColumn);
+                if (f.AreaGone != null)
+                {
+                    f.Input.Notes.Add(new DataCheckNote { Name = confirmed.AreaColumn.Sheet + "|" + confirmed.AreaColumn.Column, Kind = "confirmed column", Read = false, Reason = "the confirmed area column was not used, " + f.AreaGone });
+                }
+            }
+            if (confirmed.CodeMap.Count > 0)
+            {
+                ApplyMap(f.Plots, confirmed.CodeMap);
+                f.MapNotHeld = NotHeld(confirmed.CodeMap.Select(pair => pair.Key), f.Plots);
+            }
+            ApplyHands(f.Plots, confirmed.Hands);
+            f.HandsNotHeld = NotHeld(confirmed.Hands.Keys, f.Plots);
+            // R631. Confirming the column settles the type and lifts the mark, what the drawing still says is kept and counted, never dropped
+            foreach (Plot plot in f.Plots.Where(plot => plot.FromColumn && plot.Villa != null && plot.DrawingCode != null && plot.Villa != plot.DrawingCode))
+            {
+                plot.ColumnDisagrees = "the drawing gives " + plot.DrawingCode + " and the confirmed column gives " + plot.Villa;
+            }
+        }
+
+        private static JObject ReadScan(DataCheckSettings settings, DataCheckInput input, HashSet<string> codes, HashSet<string> prototypes, out List<KeyValuePair<string, List<double[]>>> rings, out string plotSource)
         {
             rings = new List<KeyValuePair<string, List<double[]>>>();
             plotSource = null;
@@ -133,7 +229,7 @@ namespace SiteAdaptation.Common
             }
             try
             {
-                return ScanLogic.Result(settings.Scan, codes, codes, settings.StrongShare, new HashSet<string>(StringComparer.Ordinal), input.CadReads, input.Excels, input.Pdfs, new JArray(), out rings, out plotSource);
+                return ScanLogic.Result(settings.Scan, codes, prototypes, settings.StrongShare, new HashSet<string>(StringComparer.Ordinal), input.CadReads, input.Excels, input.Pdfs, new JArray(), out rings, out plotSource);
             }
             catch (Exception failure)
             {
@@ -150,7 +246,7 @@ namespace SiteAdaptation.Common
         // R601. Two candidate outlines that tie on the plots they cover are not a conflict when one is the other with more layers, as a layer of
         // blocks added to the plot layer gives the same plots. The candidate with the fewest layers is taken and the tie is said under ties. Any
         // other tie leaves the scan with no proposal and is named in the line of the need, never dropped in silence
-        private static void BreakTies(DataCheckSettings settings, DataCheckInput input, HashSet<string> codes, ref JObject scan, ref List<KeyValuePair<string, List<double[]>>> rings, ref string plotSource)
+        private static void BreakTies(DataCheckSettings settings, DataCheckInput input, HashSet<string> codes, HashSet<string> prototypes, ref JObject scan, ref List<KeyValuePair<string, List<double[]>>> rings, ref string plotSource)
         {
             for (int round = 0; round < 3 && scan != null; round++)
             {
@@ -181,7 +277,7 @@ namespace SiteAdaptation.Common
                 {
                     return;
                 }
-                scan = ReadScan(settings, input, codes, out rings, out plotSource);
+                scan = ReadScan(settings, input, codes, prototypes, out rings, out plotSource);
             }
         }
 
@@ -333,7 +429,7 @@ namespace SiteAdaptation.Common
 
         // The hand of the villa block inside each plot: the insert is drawn mirrored or not, the plots that hold inserts of both hands none. An
         // insert belongs to the smallest outline that holds it, so what lies in a hole is not given to the plot around it
-        private static void FindMirror(List<Plot> plots, DataCheckInput input, HashSet<string> blockSources)
+        private static void FindMirror(List<Plot> plots, DataCheckInput input, HashSet<string> blockSources, DataCheckSettings settings, HashSet<string> codes, Dictionary<string, HandCount> counts)
         {
             if (blockSources.Count == 0)
             {
@@ -361,6 +457,24 @@ namespace SiteAdaptation.Common
                         hands[own] = set = new HashSet<bool>();
                     }
                     set.Add((bool)insert["mirrored"]);
+                    // R633. The code of the block is what says which prototype's hand this insert speaks for
+                    List<string> named = ScanLogic.ValueCodes(Str(insert["block"]), codes, settings.Scan.TokenSplit);
+                    if (named.Count == 1)
+                    {
+                        own.BlockCodes.Add(named[0]);
+                        if (!counts.TryGetValue(named[0], out HandCount count))
+                        {
+                            counts[named[0]] = count = new HandCount();
+                        }
+                        if ((bool)insert["mirrored"])
+                        {
+                            count.Mirrored++;
+                        }
+                        else
+                        {
+                            count.NotMirrored++;
+                        }
+                    }
                 }
             }
             foreach (Plot plot in plots)
@@ -404,7 +518,8 @@ namespace SiteAdaptation.Common
                     continue;
                 }
                 string[] tokens = Regex.Split(Str(text["text"]).Trim(), @"\s+").Where(token => token.Length > 0).ToArray();
-                if (tokens.Length < 2)
+                // R634. Only a text that names a group can give a word: its last token reads as the name of a group, as a note's last word does not
+                if (tokens.Length < 2 || !settings.GroupName.IsMatch(tokens[tokens.Length - 1]))
                 {
                     continue;
                 }
@@ -460,17 +575,8 @@ namespace SiteAdaptation.Common
             {
                 foreach (ScanSheet sheet in book.Sheets)
                 {
-                    int key = -1, hits = 0;
-                    for (int column = 0; column < sheet.Headers.Count; column++)
-                    {
-                        int count = sheet.Rows.Where(row => column < row.Count && byNumber.ContainsKey(row[column].Trim())).Select(row => row[column].Trim()).Distinct(StringComparer.Ordinal).Count();
-                        if (count > hits)
-                        {
-                            hits = count;
-                            key = column;
-                        }
-                    }
-                    if (key < 0 || hits < settings.UsableShare * plots.Count)
+                    int key = KeyColumn(settings, sheet, byNumber, plots.Count);
+                    if (key < 0)
                     {
                         continue;
                     }
@@ -492,7 +598,10 @@ namespace SiteAdaptation.Common
                         }
                         for (int level = 0; level < levels; level++)
                         {
-                            if (!SamePartition(value, level))
+                            // R634. One value over one group parts nothing, so a column must name wordShare of the groups and two at least
+                            int named = value.Keys.Select(plot => plot.Group[level]).Distinct().Count();
+                            int groups = plots.Select(plot => plot.Group[level]).Distinct().Count();
+                            if (!SamePartition(value, level) || named < 2 || named < settings.WordShare * groups)
                             {
                                 continue;
                             }

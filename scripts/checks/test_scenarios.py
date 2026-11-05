@@ -125,6 +125,61 @@ def test_the_table_holds_all_five_and_says_not_run():
     assert "| rules | missing | not run |" in text
 
 
+def test_the_table_shows_the_confirmed_runs_apart_and_only_when_there_are_some():
+    assert "With a confirmed profile" not in tools.table({"S1": RESULT})
+    assert "With a confirmed profile" not in tools.table({"S1": RESULT}, {"S1": None})
+    better = dict(RESULT, score={"right": 2, "read": 3, "numbers": 2, "villaType": 2, "mirror": 1})
+    before, after = tools.table({"S1": RESULT}, {"S1": better}).split("With a confirmed profile")
+    assert "| 1 of 2 | 1 of 2 |" in before and "| 2 of 2 | 1 of 2 |" in after
+    # Nothing a data check said reaches the second table either
+    assert "SECRET-LAYER" not in after
+
+
+def test_the_table_counts_the_areas_read_beside_the_sheet():
+    assert tools.areas_read([{"nbhId": "A"}, {"nbhId": "A"}, {"nbhId": "B"}, {"nbhId": None}, {}]) == 2
+    text = tools.table({"S1": dict(RESULT, areas=2, sheetAreas=13)})
+    assert "| yes | 2 | 13 |" in text
+    assert "| 3 of 2 |" in tools.table({"S1": RESULT}) and "| yes | UNKNOWN | UNKNOWN |" in tools.table({"S1": RESULT})
+
+
+def test_the_confirmed_file_names_the_area_column_it_was_offered():
+    profile = {"areaColumn": {"proposed": {"workbook": "w.xlsx", "sheet": "S", "column": "C", "areas": 3}}}
+    assert confirmed_profile.confirmed(profile)["areaColumn"] == {"workbook": "w.xlsx", "sheet": "S", "column": "C"}
+    assert "areaColumn" not in confirmed_profile.confirmed({"areaColumn": {"proposed": None}})
+
+
+def test_a_run_that_skipped_a_file_shows_in_the_table():
+    skipped = dict(RESULT, notRead=1)
+    text = tools.table({"S1": RESULT, "S2": skipped})
+    assert "Files not read: S1 UNKNOWN, S2 1, S3 UNKNOWN, S4 UNKNOWN, S5 UNKNOWN." in text
+    both = tools.table({"S1": dict(RESULT, notRead=0)}, {"S1": skipped})
+    assert "S1 0," in both.split("With a confirmed profile")[0] and "S1 1," in both.split("With a confirmed profile")[1]
+
+
+def test_the_confirmed_file_takes_every_proposal_and_nothing_else():
+    import confirmed_profile
+    profile = {
+        "codeMap": {"proposed": [{"old": "A1", "new": "B1", "source": "computed"}], "confirmed": []},
+        "hands": {"proposed": {"B1": "left", "C1": None}, "confirmed": {}},
+        "levels": [{"level": 1, "word": "Phase", "source": "computed"}, {"level": 2, "word": None, "source": "missing"}],
+        "typologyColumn": {"proposed": {"workbook": "w.xlsx", "sheet": "S", "column": "C", "plots": 5}},
+    }
+    assert confirmed_profile.confirmed(profile) == {
+        "codeMap": [{"old": "A1", "new": "B1"}], "hands": {"B1": "left"}, "levels": [{"level": 1, "word": "Phase"}],
+        "typologyColumn": {"workbook": "w.xlsx", "sheet": "S", "column": "C"},
+    }
+    profile["typologyColumn"]["proposed"] = None
+    assert "typologyColumn" not in confirmed_profile.confirmed(profile)
+
+
+def test_a_confirmed_run_names_the_profile_in_its_request():
+    import run_stage1
+    plain = run_stage1.request_for("S1", Path("f"), Path("o"), "c.json")
+    assert [row["role"] for row in plain["inputs"]] == ["scanFolder", "config"]
+    given = run_stage1.request_for("S1", Path("f"), Path("o"), "c.json", Path("p.json"))
+    assert [row["role"] for row in given["inputs"]] == ["scanFolder", "config", "projectProfile"]
+
+
 def test_nothing_a_data_check_said_reaches_the_table():
     text = tools.table({"S1": RESULT, "S3": RESULT})
     for word in ("Base.xlsx", "SECRET-LAYER", "2301", "Awnings"):

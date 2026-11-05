@@ -531,3 +531,9 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R607 Scenario scoring.
 - R608 Clean folder build.
 - R620 Data check in the window.
+- R630 Code table.
+- R631 Typology column.
+- R632 What a person confirmed.
+- R633 Prototype hand and mirror.
+- R634 Words from a naming text.
+- R635 Read data on a raw folder.

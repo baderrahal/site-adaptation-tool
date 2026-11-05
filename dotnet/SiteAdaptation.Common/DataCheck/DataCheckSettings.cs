@@ -28,6 +28,13 @@ namespace SiteAdaptation.Common
         public double StrongShare { get; private set; }
         public double UsableShare { get; private set; }
         public Regex PrototypeFile { get; private set; }
+        public Regex CodeShape { get; private set; }
+        public Regex GroupName { get; private set; }
+        public int CodeTableMaxPairs { get; private set; }
+        public double HandGuessShare { get; private set; }
+        public int AreaNearPlots { get; private set; }
+        public double AreaAgreement { get; private set; }
+        public HashSet<string> SkipFolders { get; private set; }
 
         public static DataCheckSettings From(JObject config)
         {
@@ -62,6 +69,15 @@ namespace SiteAdaptation.Common
                     : throw new InvalidDataException("dataCheck.roadMinSegments is no whole number of 1 or more (R604)"),
                 StrongShare = Share(block, "strongShare", "R605"),
                 UsableShare = Share(block, "usableShare", "R605"),
+                CodeShape = Pattern(block, "codePattern", "R630"),
+                GroupName = Pattern(block, "groupNamePattern", "R634"),
+                CodeTableMaxPairs = block["codeTableMaxPairs"]?.Type == JTokenType.Integer && (int)block["codeTableMaxPairs"] >= 2 ? (int)block["codeTableMaxPairs"]
+                    : throw new InvalidDataException("dataCheck.codeTableMaxPairs is no whole number of 2 or more (R630)"),
+                HandGuessShare = Share(block, "handGuessShare", "R633"),
+                AreaNearPlots = block["areaNearPlots"]?.Type == JTokenType.Integer && (int)block["areaNearPlots"] >= 1 ? (int)block["areaNearPlots"]
+                    : throw new InvalidDataException("dataCheck.areaNearPlots is no whole number of 1 or more (R635)"),
+                AreaAgreement = Share(block, "areaAgreement", "R635"),
+                SkipFolders = SkipFoldersOf(config),
             };
             if (settings.UsableShare > settings.StrongShare)
             {
@@ -81,6 +97,35 @@ namespace SiteAdaptation.Common
                 throw new InvalidDataException("dataCheck.prototypeFilePattern names no group for the code of a prototype file (R602)");
             }
             return settings;
+        }
+
+        // R635. The names of the folders a raw read does not walk, by name with no regard for case. An empty list is allowed, a project's own folder
+        // is the person's to choose
+        public static HashSet<string> SkipFoldersOf(JObject config)
+        {
+            var list = (config?[Block] as JObject)?["skipFolders"] as JArray;
+            if (list == null || list.Any(item => item.Type != JTokenType.String))
+            {
+                throw new InvalidDataException("dataCheck.skipFolders is no list of folder names, an empty list is allowed (R635)");
+            }
+            return new HashSet<string>(list.Select(item => (string)item), StringComparer.OrdinalIgnoreCase);
+        }
+
+        private static Regex Pattern(JObject block, string key, string rule)
+        {
+            string pattern = block[key]?.Type == JTokenType.String ? (string)block[key] : "";
+            if (pattern.Length == 0)
+            {
+                throw new InvalidDataException("dataCheck." + key + " is no pattern (" + rule + ")");
+            }
+            try
+            {
+                return new Regex(pattern, RegexOptions.CultureInvariant);
+            }
+            catch (ArgumentException)
+            {
+                throw new InvalidDataException("dataCheck." + key + " is no pattern (" + rule + ")");
+            }
         }
 
         // R606. The private memory the read of a drawing needs for each MiB of its file, by the file type without its dot, measured on real runs

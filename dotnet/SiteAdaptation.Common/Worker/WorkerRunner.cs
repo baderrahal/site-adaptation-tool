@@ -335,12 +335,12 @@ namespace SiteAdaptation.Common
             return request.Command == "dataCheck" && input.Role == "scanFolder";
         }
 
-        // R600. Only dataCheck, and only for its config and its folder, takes an empty SHA-256 as no comparison. The files it finds in the
+        // R600, R632. Only dataCheck, and only for its config, its folder and the file a person confirmed, takes an empty SHA-256 as no comparison. The files it finds in the
         // folder are marked before and after by WorkerContext.OpenFile. Every other command and role still refuses an input whose SHA-256
         // is not the one of the request
         private static bool NoShaGiven(WorkerRequest request, WorkerFile input)
         {
-            return request.Command == "dataCheck" && (input.Role == "config" || input.Role == "scanFolder") && string.IsNullOrEmpty(input.Sha256);
+            return request.Command == "dataCheck" && (input.Role == "config" || input.Role == "scanFolder" || input.Role == ConfirmedProfile.Role) && string.IsNullOrEmpty(input.Sha256);
         }
 
         private static void Usable(WorkerFile input)
