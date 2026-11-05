@@ -56,10 +56,25 @@ namespace SiteAdaptation.AddIn
                 return read;
             }
             // R620. The data check first, its rows in the window What the tool read, then the scan and the read as before
-            return DataCheckStep.Wrap(ScanStep.Wrap(read, Worker, document, () => ScanInputs(session.Settings),
+            ButtonBody past = DataCheckStep.Wrap(ScanStep.Wrap(read, Worker, document, () => ScanInputs(session.Settings),
                 path => ScanResults.ScanGate.Ask(path, session.Settings, owner, WorkFiles.ReadText),
                 () => new[] { session.Settings.RulesFile, LaunchedWorker.BesideAddIn() }, () => session.Settings.Project.ProjectMode),
                 Worker, document, session.Settings, owner);
+            // R635. A rev6 project with no past file: the read runs the data check itself, so no scan and no second check, then the window
+            // Confirm what was found over the read folder. Decided at the press, by the work folder of the run
+            return Choose(session.Settings, past, ConfirmProfile.ConfirmProfileStep.Wrap(read, owner));
+        }
+
+        // R635. The body of the press: raw for a folder with no past file, else the old read with the scan before it
+        public static ButtonBody Choose(PaneSettings settings, ButtonBody past, ButtonBody raw)
+        {
+            Func<RunContext, ButtonBody> pick = context => ReadInputs.NoPastFiles(settings.ConfigFile, settings.Project.ProjectMode, context.WorkFolder) ? raw : past;
+            return new ButtonBody
+            {
+                Preview = context => pick(context).Preview(context),
+                Start = (context, done) => pick(context).Start(context, done),
+                Apply = past.Apply, ReadBack = past.ReadBack, Done = past.Done, Confirm = past.Confirm, Outside = past.Outside, NotBuilt = past.NotBuilt,
+            };
         }
 
         // The inputs of the read with the Settings file, whose role config the scan needs, and the Prototypes folder

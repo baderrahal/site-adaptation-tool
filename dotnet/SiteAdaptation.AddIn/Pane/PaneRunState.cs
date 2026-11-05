@@ -68,7 +68,21 @@ namespace SiteAdaptation.AddIn.Pane
         // other buttons get theirs as they are built
         public IReadOnlyList<RunInput> Inputs(int button)
         {
-            return InputsOf(model.Settings ?? new PaneSettings(), button);
+            DocumentSession document = model.Document;
+            string work = document != null && document.HasPath ? WorkFolder(document.Path) : null;
+            return InputsInFolder(model.Settings ?? new PaneSettings(), button, work);
+        }
+
+        // R635. Button 2 on a rev6 project that holds no past file takes the Settings file only: the files of the pane belong to the old
+        // read, an empty row of theirs must not stop a read of the folder. work is null where there is no work folder yet, which keeps the
+        // old list
+        public static IReadOnlyList<RunInput> InputsInFolder(PaneSettings settings, int button, string work)
+        {
+            if (button == 2 && !string.IsNullOrEmpty(work) && Common.ReadData.ReadInputs.NoPastFiles(settings.ConfigFile, settings.Project.ProjectMode, work))
+            {
+                return new[] { new RunInput(PaneText.Settings, settings.ConfigFile, false) };
+            }
+            return InputsOf(settings, button);
         }
 
         // The inputs of a button by the settings of the pane, the ones the flow hashes for its run and the pane for the step state
