@@ -86,6 +86,23 @@
         </Border>
       </DataTemplate>
 
+      <DataTemplate x:Key="CheckRow" DataType="{x:Type sr:DataCheckRow}">
+        <Border Padding="{StaticResource SA.Pad.Cell}" BorderBrush="{StaticResource SA.Border}" BorderThickness="{StaticResource SA.Line.Under}">
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="{StaticResource SA.Grid.ScanValue}" />
+              <ColumnDefinition Width="{StaticResource SA.Grid.ScanStatus}" />
+              <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Style="{StaticResource CellText}" Text="{Binding Name}" />
+            <Border Grid.Column="1" Style="{StaticResource ChipBox}" Tag="{Binding IsGood}">
+              <TextBlock Style="{StaticResource ChipText}" Text="{Binding Mark}" />
+            </Border>
+            <TextBlock Grid.Column="2" Style="{StaticResource CellText}" Text="{Binding Line}" />
+          </Grid>
+        </Border>
+      </DataTemplate>
+
       <DataTemplate x:Key="FileRow">
         <Border Padding="{StaticResource SA.Pad.Cell}" BorderBrush="{StaticResource SA.Border}" BorderThickness="{StaticResource SA.Line.Under}">
           <Grid>
@@ -192,6 +209,23 @@
         </Grid.ColumnDefinitions>
 
         <StackPanel Margin="{StaticResource SA.Gap.Right24}">
+          <StackPanel Visibility="{Binding HasDataCheck, Converter={StaticResource Shown}}" Margin="{StaticResource SA.Gap.Bottom16}">
+            <TextBlock Style="{StaticResource SA.Type.Section}" Foreground="{StaticResource SA.Heading}" Text="{x:Static sr:ScanResultsText.DataCheckTitle}" />
+            <TextBlock Style="{StaticResource HelpText}" Margin="{StaticResource SA.Gap.Top4}" Text="{x:Static sr:ScanResultsText.DataCheckHelp}" />
+            <Border Margin="{StaticResource SA.Gap.Top8}" Background="{StaticResource SA.Panel}" Padding="{StaticResource SA.Pad.Cell}" BorderBrush="{StaticResource SA.Border}" BorderThickness="{StaticResource SA.Line.Under}">
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="{StaticResource SA.Grid.ScanValue}" />
+                  <ColumnDefinition Width="{StaticResource SA.Grid.ScanStatus}" />
+                  <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Style="{StaticResource HeadText}" Text="{x:Static sr:ScanResultsText.ColumnNeed}" />
+                <TextBlock Grid.Column="1" Style="{StaticResource HeadText}" Text="{x:Static sr:ScanResultsText.ColumnMark}" />
+                <TextBlock Grid.Column="2" Style="{StaticResource HeadText}" Text="{x:Static sr:ScanResultsText.ColumnLine}" />
+              </Grid>
+            </Border>
+            <ItemsControl ItemsSource="{Binding DataCheck}" ItemTemplate="{StaticResource CheckRow}" />
+          </StackPanel>
           <TextBlock Style="{StaticResource SA.Type.Section}" Foreground="{StaticResource SA.Heading}" Text="{x:Static sr:ScanResultsText.ValuesTitle}" />
           <TextBlock Style="{StaticResource HelpText}" Margin="{StaticResource SA.Gap.Top4}" Text="{x:Static sr:ScanResultsText.ValuesHelp}" />
           <Border Margin="{StaticResource SA.Gap.Top8}" Background="{StaticResource SA.Panel}" Padding="{StaticResource SA.Pad.Cell}" BorderBrush="{StaticResource SA.Border}" BorderThickness="{StaticResource SA.Line.Under}">

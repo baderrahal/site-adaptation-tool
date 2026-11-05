@@ -15,9 +15,9 @@ namespace SiteAdaptation.AddIn.ScanResults
         private readonly ProjectSettings settings;
         private readonly Func<string> pickExportPath;
 
-        public ScanResultsSession(ScanViewData data, ProjectSettings settings, Func<string> pickExportPath)
+        public ScanResultsSession(ScanViewData data, ProjectSettings settings, Func<string> pickExportPath, IReadOnlyList<DataCheckRow> dataCheck = null)
         {
-            Model = new ScanResultsViewModel(data);
+            Model = new ScanResultsViewModel(data, dataCheck);
             this.settings = settings ?? new ProjectSettings();
             this.pickExportPath = pickExportPath;
         }

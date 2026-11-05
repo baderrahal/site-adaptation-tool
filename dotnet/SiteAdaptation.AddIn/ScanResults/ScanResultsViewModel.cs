@@ -120,8 +120,9 @@ namespace SiteAdaptation.AddIn.ScanResults
         private IReadOnlyList<ScanUnclear> unclear;
         private string footLine = ScanResultsText.Foot;
 
-        public ScanResultsViewModel(ScanViewData data)
+        public ScanResultsViewModel(ScanViewData data, IReadOnlyList<DataCheckRow> dataCheck = null)
         {
+            DataCheck = dataCheck ?? new DataCheckRow[0];
             Data = data ?? throw new ArgumentNullException(nameof(data));
             Values = data.Values.Select(row => new ScanValueViewModel(row, Refresh)).ToList();
             Files = data.Files;
@@ -130,6 +131,10 @@ namespace SiteAdaptation.AddIn.ScanResults
         }
 
         public ScanViewData Data { get; }
+
+        // R620. The section Data check at the top of the window, empty when no check ran
+        public IReadOnlyList<DataCheckRow> DataCheck { get; }
+        public bool HasDataCheck { get { return DataCheck.Count > 0; } }
         public IReadOnlyList<ScanValueViewModel> Values { get; }
         public IReadOnlyList<ScanFileRow> Files { get; }
         public IReadOnlyList<ScanConflictViewModel> AllConflicts { get; }
