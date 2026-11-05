@@ -240,13 +240,46 @@ namespace SiteAdaptation.Tests
             ScanGate.Window = (owner, path, settings) => settings;
             ScanGateAnswer used = ScanGate.Ask("scan.json", new PaneSettings(), IntPtr.Zero, path => R435_ScanViewTests.Scan(true, 0).ToString());
             Assert.True(used.GoOn);
-            Assert.DoesNotContain(ScanResultsText.PicksSaved, used.Line);
+            Assert.Equal(ScanResultsText.PicksSaved, used.Line);
 
             // With no check pending the clear scan opens nothing, as before
             shown = 0;
             ScanGate.Window = (owner, path, settings) => { shown++; return settings; };
             Assert.True(ScanGate.Ask("scan.json", new PaneSettings(), IntPtr.Zero, path => R435_ScanViewTests.Scan(true, 0).ToString()).GoOn);
             Assert.Equal(0, shown);
+        }
+
+        [Fact]
+        public void A_pick_made_in_the_window_the_check_opened_on_a_clear_scan_is_saved()
+        {
+            ScanGate.PendingCheck = DataCheckRows.ReadResult(Json, Plots);
+            // The window of the test changes one pick, as a person does from the list of a row
+            ScanGate.Window = (owner, path, settings) =>
+            {
+                return new ProjectSettings
+                {
+                    ScanPicks = new SortedDictionary<string, string> { ["villaType"] = "a.dwg|LAYER" },
+                    ConflictPicks = new SortedDictionary<string, string> { ["12"] = "a.dwg|LAYER" },
+                };
+            };
+            var pane = new PaneSettings();
+            ScanGateAnswer answer = ScanGate.Ask("scan.json", pane, IntPtr.Zero, path => R435_ScanViewTests.Scan(true, 0).ToString());
+            Assert.True(answer.GoOn);
+            Assert.Equal(ScanResultsText.PicksSaved, answer.Line);
+            Assert.Equal("a.dwg|LAYER", pane.Project.ScanPicks["villaType"]);
+            Assert.Equal("a.dwg|LAYER", pane.Project.ConflictPicks["12"]);
+        }
+
+        [Fact]
+        public void A_window_that_fails_when_the_read_ends_still_ends_the_run_and_frees_the_folder()
+        {
+            var worker = new FakeWorker { Reply = request => Good(request) };
+            DataCheckStep.ShowAlone = (owner, result) => throw new InvalidOperationException("the window could not open");
+            RunContext context = Context();
+            RunLater end = Press(DataCheckStep.Wrap(new Read().Body(), worker, new WorkerDocument(), Settings(), IntPtr.Zero), context);
+            Assert.NotNull(end);
+            Assert.Contains("the window could not open", end.Failure);
+            Assert.False(DataCheckStep.IsRunning(context.WorkFolder));
         }
 
         [Fact]

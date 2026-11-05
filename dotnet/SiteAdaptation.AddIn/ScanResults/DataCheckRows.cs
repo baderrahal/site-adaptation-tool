@@ -54,11 +54,6 @@ namespace SiteAdaptation.AddIn.ScanResults
             return at < 0 ? id : words[at];
         }
 
-        public static IReadOnlyList<DataCheckRow> Read(string dataCheckJson)
-        {
-            return ReadResult(dataCheckJson, null).Rows;
-        }
-
         // plotsJson may be null, the plots found are then 0
         public static DataCheckResult ReadResult(string dataCheckJson, string plotsJson)
         {

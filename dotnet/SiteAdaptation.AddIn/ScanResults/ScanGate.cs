@@ -53,11 +53,8 @@ namespace SiteAdaptation.AddIn.ScanResults
             {
                 return new ScanGateAnswer { GoOn = false };
             }
-            if (!view.NeedsWindow)
-            {
-                // Only the check was shown, no pick was asked, so no pick is saved
-                return new ScanGateAnswer { GoOn = true, Line = string.Format(CultureInfo.InvariantCulture, ScanStep.ClearLine, view.FilesRead, view.PlotsFound) };
-            }
+            // The window shows the values of the scan with a list for each, so a pick made there is saved as in the window of a scan that
+            // needed it, also when only the check opened the window
             settings.Project.ScanPicks = next.ScanPicks;
             settings.Project.ConflictPicks = next.ConflictPicks;
             return new ScanGateAnswer { GoOn = true, Line = ScanResultsText.PicksSaved };

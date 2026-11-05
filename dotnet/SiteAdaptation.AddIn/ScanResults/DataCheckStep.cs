@@ -87,9 +87,13 @@ namespace SiteAdaptation.AddIn.ScanResults
                 done(RunLater.Failed(ScanView.Fill(DataCheckText.FolderGone, context.Label)));
                 return;
             }
+            if (ScanStep.IsRunning(work) || IsRunning(work))
+            {
+                throw new InvalidOperationException(ScanView.Fill(DataCheckText.RunningLine, context.Label));
+            }
             lock (Running)
             {
-                if (ScanStep.IsRunning(work) || !Running.Add(work))
+                if (!Running.Add(work))
                 {
                     throw new InvalidOperationException(ScanView.Fill(DataCheckText.RunningLine, context.Label));
                 }
@@ -180,7 +184,15 @@ namespace SiteAdaptation.AddIn.ScanResults
                     DataCheckResult left = ScanGate.TakeCheck();
                     if (left != null)
                     {
-                        ShowAlone(owner, left);
+                        try
+                        {
+                            ShowAlone(owner, left);
+                        }
+                        catch (Exception failure)
+                        {
+                            end(RunLater.Failed(RunTexts.ChangedNothing(context.Label, RunTexts.Failed(failure.Message))));
+                            return;
+                        }
                     }
                     end(later);
                 });
