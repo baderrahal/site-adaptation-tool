@@ -900,6 +900,24 @@ namespace SiteAdaptation.Common
         public static JObject Result(ScanSettings settings, HashSet<string> codes, HashSet<string> prototypeCodes, double strongShare, HashSet<string> pairs, IEnumerable<JObject> cadReads,
             IEnumerable<ScanWorkbook> excels, IEnumerable<ScanPdf> pdfs, JArray inputs)
         {
+            List<KeyValuePair<string, List<double[]>>> rings;
+            return Result(settings, codes, prototypeCodes, strongShare, pairs, cadReads, excels, pdfs, inputs, out rings);
+        }
+
+        // R600. The same result with the ring of each plot of the plot drawing by its number, in ordinal order of the numbers, which the data
+        // check groups and finds the hand of a villa block by
+        public static JObject Result(ScanSettings settings, HashSet<string> codes, HashSet<string> prototypeCodes, double strongShare, HashSet<string> pairs, IEnumerable<JObject> cadReads,
+            IEnumerable<ScanWorkbook> excels, IEnumerable<ScanPdf> pdfs, JArray inputs, out List<KeyValuePair<string, List<double[]>>> rings)
+        {
+            string plotDrawing;
+            return Result(settings, codes, prototypeCodes, strongShare, pairs, cadReads, excels, pdfs, inputs, out rings, out plotDrawing);
+        }
+
+        // R600. The same again with the source of the proposed outline of the plot drawing the scan chose, file and layers as the outline row
+        // names it, null when no drawing was chosen. Each drawing with a proposal has an outline row, only this one gave the plots
+        public static JObject Result(ScanSettings settings, HashSet<string> codes, HashSet<string> prototypeCodes, double strongShare, HashSet<string> pairs, IEnumerable<JObject> cadReads,
+            IEnumerable<ScanWorkbook> excels, IEnumerable<ScanPdf> pdfs, JArray inputs, out List<KeyValuePair<string, List<double[]>>> rings, out string plotDrawing)
+        {
             var rows = new List<JObject>();
             var conflicts = new List<JObject>();
             var checks = new List<JObject>();
@@ -1001,6 +1019,8 @@ namespace SiteAdaptation.Common
                 }
                 plotRows.Add(new JObject { ["plot"] = number, ["label"] = plots[number].Label, ["centroid"] = PointText(plots[number].Centroid), ["villaType"] = types });
             }
+            rings = numbers.Select(number => new KeyValuePair<string, List<double[]>>(number, plots[number].Ring)).ToList();
+            plotDrawing = drawing == null ? null : drawing.Source;
             return new JObject
             {
                 ["inputs"] = inputs ?? new JArray(),

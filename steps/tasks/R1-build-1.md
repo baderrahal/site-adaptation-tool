@@ -2,7 +2,7 @@
 id: R1-build-1
 lane: build-1
 stage: 1
-status: open
+status: done
 allowed:
   - config/project.json
   - rules/roshn-makkah.json

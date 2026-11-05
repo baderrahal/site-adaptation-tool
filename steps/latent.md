@@ -603,3 +603,17 @@ RAMP-3NOV-A, review and breaker, no real input reaches these:
 - RoadTopography: a scope with no ramp passes with no row, nothing proven. RoadTopographySettings.Number takes any range, a gap of 0 or a margin under 0 needs a hand edit. Grow mitres a sharp hull corner far out, NBH 012 matches shapely's limited mitre with no difference.
 - FloorsRun: a surface delegate giving null ends in a null error line, and a plan with no NBH runs as all. FloorLoad.RoadSurface: a config path gone from disk ends in the plain file error, as an issue line.
 - RevitFloorDocument.CreateToposolid duplicates the first type whatever its thickness, the report names it (R572).
+
+## Build-1 R1-build-1, stage 1 data check, second review, 5 Nov 2026
+
+- DataCheckFind.cs:166 BreakTies takes the candidate with the fewest layers when candidates tie and never checks it is a subset of the others. 0 of the 5 runs broke a tie.
+- DataCheckFind.cs:525 DecideWords takes a sheet header that parts the plots as the groups do with no minimum of groups, a 2 group level fits any 2 valued column.
+- config/project.json dataCheck.scan.labelPattern has no status entry, the past profile holds the same name, so the status tool treats it as shared.
+- No unit header gives wrong groups with a weak mark and a line: DataCheckSettings.cs:131 and :144, DataCheckFind.cs:74. All five real runs state metres.
+- An insert in a hole is credited to the plot for villa type, DataCheckFind.cs:252. Only the mirror leaves the hole out, HoleWhy says so.
+- A scale of 0 reads not mirrored: CadScan.cs:97.
+- Numbers are compared as exact text: DataCheckFind.cs:465 and ScanLogic.cs:318. Only a risk if a drawing mixes case or leading zeros.
+- A killed run or a Ctrl+C can leave the developer add-ins until the next run or install, TestHostPaths.ps1. Two runs a few milliseconds apart can race on them. Developer PCs only.
+- Measure-ColdStart.ps1 treats the Invalid Signature box on the tool's own files as another maker's, a matter for SETUP-sign-2.
+- Run-RevitTests.ps1, the finally builds a new process tree, a Revit left by a dotnet that has ended stays open. The test does not reach Revit today.
+- Flaky in job tests, cause not measured: R104 FreezeGuardTests, R347 worker time limits, R405 AddInTests on net48, a value came back null in 12 ms, which reads as shared state between tests.
