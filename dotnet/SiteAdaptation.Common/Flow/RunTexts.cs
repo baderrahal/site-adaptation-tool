@@ -6,8 +6,6 @@ namespace SiteAdaptation.Common.Flow
     // R382. Every text the flow shows a user, in one place for the text test of docs/design/12-ui-spec.md
     public static class RunTexts
     {
-        public const string ReadFromDataCheck = "This project holds no schedules or data book, so the plot table comes from the data check of its folder.";
-
         public const string SaveFirst = "Save the project first, its work folder is named by its file";
         public const string Apply = "Apply";
         public const string DryRunDone = "Dry run done, nothing was changed.";

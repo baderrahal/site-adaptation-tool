@@ -96,12 +96,7 @@ namespace SiteAdaptation.Common.ReadData
             JObject last = Last(context.WorkFolder);
             var held = new HashSet<string>(last == null ? Enumerable.Empty<string>() : ((JArray)last["inputs"]).Select(input => (string)input["role"] + "|" + (string)input["sha256"]), StringComparer.Ordinal);
             IEnumerable<string> unchanged = files.Inputs.Where(input => held.Contains(input.Role + "|" + input.Sha256)).Select(input => input.Role);
-            IReadOnlyList<string> lines = Lines(files, unchanged);
-            if (files.FromDataCheck)
-            {
-                lines = new[] { RunTexts.ReadFromDataCheck }.Concat(lines).ToList();
-            }
-            return new RunSummary(RunTexts.ReadCounts(files.Inputs.Count, files.Inputs.Sum(input => input.Bytes) / 1048576.0), lines);
+            return new RunSummary(RunTexts.ReadCounts(files.Inputs.Count, files.Inputs.Sum(input => input.Bytes) / 1048576.0), Lines(files, unchanged));
         }
 
         private void Start(RunContext context, Action<RunLater> done)

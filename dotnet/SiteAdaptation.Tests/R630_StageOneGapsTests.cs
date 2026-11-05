@@ -507,7 +507,8 @@ namespace SiteAdaptation.Tests
             RunOutcome done = Press(configPath, work, worker, DesignBasis.Rev6, confirm);
             Assert.True(done.End == RunEnd.Committed, done.Message);
             Assert.True(done.Record.StepDone);
-            Assert.Contains(RunTexts.ReadFromDataCheck, confirm.Asked.PerPlot);
+            // The preview lists the folder as an input of the read
+            Assert.Contains(confirm.Asked.PerPlot, line => line.Contains("handed over"));
             WorkerRequest request = Assert.Single(worker.Requests);
             Assert.Equal("dataCheck", request.Command);
             Assert.Equal(new[] { "config", "scanFolder" }, request.Inputs.Select(item => item.Role));
