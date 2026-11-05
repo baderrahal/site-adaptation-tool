@@ -387,3 +387,19 @@ Q497. The hand of a prototype (R2-C1-build-1, PR 203). No guess from the blocks 
 Q498. A plot the confirmed column does not list (R2-C1-build-1, PR 203). As built it has no type and says why. On S1 394 of 2964 plots end with no type, not listed or listed with no code, the two not counted apart.
 - Recommended: As built, no stale code of the drawing kept.
 - Other: Keep the drawing's code with a weak flag.
+
+Q513. The values of the manual template (R2-C3-build-1, PR 211). rules/templates/manual.json can hold M01 to M15 as Bader approved them word for word on 28 Oct 2026, docs/design/15-manual-rules.md, each not confirmed until a person confirms. Lead has the lane do this. The approval was of the canvas text, not a new check against the PDF, and those rules name types of that one manual, so the template names its manual.
+- Recommended: Keep them as approved. Q149 and Q150 stay for M14 and M15, where the PDF differs.
+- Other: Empty values until a check against the PDF.
+
+Q514. What the Saudi checks are (R2-C3-build-1, PR 211). The order says they always run and are not settable. Nothing in the repo defines them, so fixed.saudiChecks runs no check today and the lines must say so.
+- Recommended: Bader names the checks, the setting says it runs nothing until then.
+- Other: Drop the rule until R3.
+
+Q515. What counts as confirming a rule (R2-C3-build-1, PR 211). As built, a person who enters a new value also confirms it, and entering the same value confirms it.
+- Recommended: Keep this until lead only confirm of R3.
+- Other: A new value stays not confirmed until a second step.
+
+Q516. Asks once (R2-C3-build-1, PR 211). The check holds no state, so every build of a project with no rules gives the line that asks.
+- Recommended: The add-in of R2-C3-revit-test records a no in the project settings and does not ask again.
+- Other: Ask at every build until rules are chosen.

@@ -14,3 +14,4 @@ rules/roshn-makkah.json
 */data_book/*
 c:/02-site adaptation/*
 c:/10- roshen mecca/*
+rules/templates/past-job.json

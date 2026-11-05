@@ -122,7 +122,7 @@ def test_r12_every_rule_in_the_rules_file_is_named_by_a_test():
     withdrawn = set(re.findall(r"\*\*(R\d+) Withdrawn\.\*\*", text))
     assert withdrawn <= set(rules)
     test_text = ""
-    for path in list((ROOT / "python" / "tests").glob("*.py")) + list((ROOT / "dotnet" / "SiteAdaptation.Tests").glob("*.cs")):
+    for path in list((ROOT / "python" / "tests").glob("*.py")) + [item for item in (ROOT / "dotnet" / "SiteAdaptation.Tests").rglob("*.cs") if not {"bin", "obj"} & set(item.parts)]:
         test_text += path.read_text(encoding="utf-8")
     # R6 and R10 are process rules proved by the round log, R11 by the workflow
     process_rules = {"R6", "R10", "R11"}

@@ -20,10 +20,13 @@ The Revit side of the rules per project. Starts after R2-C3-build-1 is merged.
 2. The pane shows one amber line until the rules are confirmed.
 3. The first Build with no rules chosen asks once to use the manual rules template.
 4. The Before Build setting.
+5. The templates reach an installed add-in. R486 ships rules/roshn-makkah.json alone today, docs/rules/10-addin-r407-up.md:66. If that takes a file outside this list, ask Lead.
 
 Windows follow the approved sketches. Where none covers one, the smallest version, CHOSEN by Lead, with a screenshot for Bader.
 
 Rule ids: R665 to R669. Question ids: Q517 to Q519. Take no other id.
+
+The driver: a person may be at this PC. Send a click, a key or a shot only with Revit in front, after 5 minutes idle and with no meeting window, and stop when another input comes (CLAUDE.md). A wait for that is no failure, say how long.
 
 # Acceptance tests
 
