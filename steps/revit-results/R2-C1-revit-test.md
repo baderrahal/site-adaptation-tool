@@ -40,7 +40,7 @@ Pass 3 (`shots/drv4`), after the second fix. A first start of this pass lost the
 
 Pass 4 (`shots/drv5`), the final build (window files in ScanResults, level rows by constants, merged with main), same model:
 17. Use a saved project, 1 Set up site (invented position, Dry run, Apply), Run 2 Read data. The dry run said "Reuses the read of run 2_20261105-133841-555, its 3 input files are unchanged" (`p4-d-read-preview.png`), so the confirmed read of pass 3 was reused and no worker started.
-18. Apply showed the check window (`p4-e-check-window.png`), then the confirm window on the confirmed values (`p4-f-confirm-top.png`). Scrolled down, the sections Hand of each prototype (13 rows, DP1 right) and Group levels (Level 1 word typed earlier, Level 2 empty) show (`p4-g-confirm-levels.png`). Cancel gave the line that nothing was saved (`p4-h-after-cancel.png`). Revit closed, 0 processes, no lock file.
+18. Apply showed the check window (`p4-e-check-window.png`), then the confirm window on the confirmed values (`p4-f-confirm-top.png`). Scrolled down, the sections Hand of each prototype (13 rows, one set to right, the code is not named here) and Group levels (Level 1 word typed earlier, Level 2 empty) show (`p4-g-confirm-levels.png`). Cancel gave the line that nothing was saved (`p4-h-after-cancel.png`). Revit closed, 0 processes, no lock file.
 
 ## Plot count against plots.json
 

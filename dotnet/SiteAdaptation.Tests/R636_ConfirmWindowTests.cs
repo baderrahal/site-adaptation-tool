@@ -79,14 +79,14 @@ namespace SiteAdaptation.Tests
         {
             ConfirmProfileModel model = ConfirmProfileModel.Read(Profile);
             model.Levels[0].Word = "Area";
-            model.CodeMapText = "A1 -> B1\r\nC1, D1\r\nDP1 (SA) -> VD1\r\n";
+            model.CodeMapText = "A1 -> B1\r\nC1, D1\r\nQ7 (old note) -> Q9\r\n";
             model.Hands[1].Chosen = "left";
             var session = new ConfirmProfileSession(model, folder, "run", 2);
             session.Confirm();
             Assert.True(session.Saved);
             JObject file = JObject.Parse(File.ReadAllText(Path.Combine(folder, ConfirmedProfile.FileName)));
             Assert.Equal(3, ((JArray)file["codeMap"]).Count);
-            Assert.Equal("DP1 (SA)", (string)file["codeMap"][2]["old"]);
+            Assert.Equal("Q7 (old note)", (string)file["codeMap"][2]["old"]);
             Assert.Equal("left", (string)file["hands"]["C3"]);
             Assert.Equal("Area", (string)file["levels"][0]["word"]);
             Assert.Equal("Type", (string)file["typologyColumn"]["column"]);
@@ -215,12 +215,12 @@ namespace SiteAdaptation.Tests
         {
             JObject profile = JObject.Parse(Profile);
             profile["typologyColumn"]["confirmed"] = new JObject { ["workbook"] = "w.xlsx", ["sheet"] = "S", ["column"] = "Other" };
-            profile["codeMap"]["confirmed"] = new JArray(new JObject { ["old"] = "DP1 (SA)", ["new"] = "VD1" });
+            profile["codeMap"]["confirmed"] = new JArray(new JObject { ["old"] = "Q7 (old note)", ["new"] = "Q9" });
             profile["hands"]["confirmed"] = new JObject { ["C3"] = "left", ["Z9"] = "right" };
             ConfirmProfileModel model = ConfirmProfileModel.Read(profile.ToString());
             Assert.Equal("Other", model.Typology.Column);
             Assert.EndsWith("(confirmed)", model.Typology.Label);
-            Assert.Equal("DP1 (SA) -> VD1", model.CodeMapText);
+            Assert.Equal("Q7 (old note) -> Q9", model.CodeMapText);
             Assert.True(model.CodeMapConfirmed);
             Assert.Equal("left", model.Hands.Single(hand => hand.Code == "C3").Chosen);
             Assert.Equal("right", model.Hands.Single(hand => hand.Code == "Z9").Chosen);
