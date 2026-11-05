@@ -640,3 +640,7 @@ RAMP-3NOV-A, review and breaker, no real input reaches these:
 - DataCheckMarks.cs:485 areaM2 under an assumed unit carries no weak of its own. All five real runs state metres.
 - Plots a confirmed area column does not list have no neighbourhood and cannot be picked in Review. The count is said in the line.
 - codePattern and groupNamePattern have no status entry.
+
+## PR 207, second review, 5 Nov 2026
+
+- DataCheckAreas.cs:106 and DataCheckCodes.cs:232 pass over a column whose name two columns carry and no line says so, DataCheckCodes.cs:704 and DataCheckAreas.cs:194. S3 proposes 11 areas where the others read 13, and a person who presses Confirm is not told. Only S3 reaches it, a copy whose headers were rewritten. A real workbook with two columns of one name makes it REAL.
