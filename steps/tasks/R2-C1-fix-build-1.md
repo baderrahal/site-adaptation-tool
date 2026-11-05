@@ -2,7 +2,7 @@
 id: R2-C1-fix-build-1
 lane: build-1
 stage: 1
-status: open
+status: done
 allowed:
   - dotnet/SiteAdaptation.Common/ReadData/
   - dotnet/SiteAdaptation.Common/Review/
@@ -46,6 +46,14 @@ dotnet/SiteAdaptation.Tests/R639_StageOneFixTests.cs. Each item has a test that 
 - S1 and the hold-out are run on the merged code, by run_stage1.py and score_scenarios.py, Lead runs score_holdout.py: numbers 1873, villa type confirmed 1859, S3 stays for the round end. Any drop stops and tells Lead. Bader's order of 5 Nov 2026 is S1 and the hold-out per PR. All five run once at the end of the round.
 - Past job mode equals main.
 - A scenario run is one at a time. A run refused for memory while Revit is open is run again alone and said in the PR. Read files not exit codes.
+
+# Rules for Lead
+
+docs/rules/ is build-2's, so Lead enters this line.
+
+- **R639 Stage 1 says what it did.** Input: data_check.json of the read folder of a read of R635, the old read's list in addin.readData of config, the column names of a sheet, missing of read_plotTable.json. Output: a raw read whose check stopped or left a file or folder not read is never reused, and its confirm and end lines say why it reads again. A raw read counts the files its folder holds and never says it reads that many, names the folder under Read from of 3 Review data, and names what the old read lacks that sent it to the folder, with no stop and no file to edit. A plot a finished read gave no villa type or mirror says so with the reason the read holds, not read yet stays for what was truly not read. A settings file that cannot be read at the pane refresh is not read and said, never a crash. A column that would rank but whose name two columns carry is said on the areaColumn or typologyColumn line and is still not taken. A read with every file read stays reused, past job mode is unchanged.
+
+For the index: - R639 Stage 1 says what it did.
 
 # Revit check needed
 
