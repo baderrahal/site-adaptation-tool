@@ -1,8 +1,9 @@
 """Lead only. Writes the right answers of the scenarios from the plans of the past models, which are for compare, never for a build, and sets the
 two Actions secrets. Usage: make_answers.py --plans <folder> --book <plots.csv> --holdout <area> <area> --golden-from <area> <area>.
 
-The areas are arguments, so this file names none. Answers of the held out areas and the golden levels leave this machine in the secrets alone,
-nothing is kept on disk and no value is printed, only counts.
+The areas are arguments, so this file names none. Answers of the held out areas and the golden levels go in the secrets, and the held out ones also in scenarios\\holdout_answers
+for score_holdout.py, as a secret cannot be read back and a run cannot reach GitHub with no real value in git. A hook blocks every lane from that
+folder. No value is printed, only counts.
 """
 import argparse
 import csv
@@ -70,6 +71,9 @@ def main(argv=None):
         (folder / (name + ".json")).write_text(json.dumps(tools.scenario_answer(keep, name), indent=0), encoding="utf-8")
     (folder / "labels.json").write_text(json.dumps(labels), encoding="utf-8")
     set_secret("HOLDOUT_ANSWERS", {"passShare": 0.9, "answers": {number + "/" + field: row[field] for number, row in held.items() for field in ("villaType", "mirror")}})
+    held_folder = tools.work_root() / "scenarios" / "holdout_answers"
+    held_folder.mkdir(parents=True, exist_ok=True)
+    (held_folder / "answers.json").write_text(json.dumps(tools.holdout_rows(plans, set(args.holdout)), indent=0), encoding="utf-8")
     golden = golden_plots(book, set(args.golden_from))
     if len(golden) < GOLDEN_COUNT:
         raise SystemExit("only %d golden plots" % len(golden))
