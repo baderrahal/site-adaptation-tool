@@ -263,9 +263,9 @@ namespace SiteAdaptation.Tests.ProjectRules
         [Fact]
         public void R661_a_text_that_looks_like_a_date_stays_as_typed_when_another_rule_changes()
         {
-            Assert.Equal(0, Setup(Template(Valued("M1", "2020-01-02"), Missing("M2"))));
+            Assert.Equal(0, Setup(Template(Valued("M1", "2020-01-02T03:04:05.10Z"), Missing("M2"))));
             Assert.Equal(0, Change("M2", 1.0));
-            Assert.Contains("\"2020-01-02\"", File.ReadAllText(RulesPath));
+            Assert.Contains("\"2020-01-02T03:04:05.10Z\"", File.ReadAllText(RulesPath));
         }
 
         [Fact]
