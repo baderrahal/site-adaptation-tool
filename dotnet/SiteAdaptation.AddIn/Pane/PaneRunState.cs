@@ -17,6 +17,7 @@ namespace SiteAdaptation.AddIn.Pane
         // R492. The name of the input of step 2 that holds the road order under rev6, a key of the hashes the user never sees, as a value is never absent
         public const string RoadOrderInput = "Road surface order";
 
+
         private readonly PaneViewModel model;
         private readonly Func<string> root;
         private readonly Func<string, string> readText;
@@ -68,7 +69,31 @@ namespace SiteAdaptation.AddIn.Pane
         // other buttons get theirs as they are built
         public IReadOnlyList<RunInput> Inputs(int button)
         {
-            return InputsOf(model.Settings ?? new PaneSettings(), button);
+            DocumentSession document = model.Document;
+            string work = document != null && document.HasPath ? WorkFolder(document.Path) : null;
+            return InputsInFolder(model.Settings ?? new PaneSettings(), button, work);
+        }
+
+        // R635. Button 2 on a rev6 project that holds no past file takes the Settings file only: the files of the pane belong to the old
+        // read, an empty row of theirs must not stop a read of the folder. work is null where there is no work folder yet, which keeps the
+        // old list
+        public static IReadOnlyList<RunInput> InputsInFolder(PaneSettings settings, int button, string work)
+        {
+            if (button == 2 && !string.IsNullOrEmpty(work) && Common.ReadData.ReadInputs.NoPastFiles(settings.ConfigFile, settings.Project.ProjectMode, work))
+            {
+                var raw = new List<RunInput> { new RunInput(PaneText.Settings, settings.ConfigFile, false) };
+                // R635. A changed file of the folder is another read. As Road surface and Prototypes the folder is hashed by the list of its files, off
+                // the UI thread in the pane, so step 2 and the chain after it stop being done
+                raw.Add(new RunInput(PaneText.InputFolder, (string)ConfigOf(settings.ConfigFile, settings.Project.ProjectMode)["inputRoot"], true));
+                // What a person confirmed is an input of the read as a file is, so a new file leaves step 2 not done and the chain after it
+                string confirmed = Path.Combine(work, Common.ConfirmedProfile.FileName);
+                if (File.Exists(confirmed))
+                {
+                    raw.Add(new RunInput(PaneText.ConfirmedValues, confirmed, false));
+                }
+                return raw;
+            }
+            return InputsOf(settings, button);
         }
 
         // The inputs of a button by the settings of the pane, the ones the flow hashes for its run and the pane for the step state

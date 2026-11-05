@@ -192,7 +192,8 @@ namespace SiteAdaptation.Tests
             // R542 added 13, the Report file name section of New project, R543 added 4, the step 1 lines
             // R620 added 20: the section Data check of What the tool read, its 5 headings, the 11 needs and the 4 marks. Its second pass added 13: the
             // band and foot lines and the Close of a check alone, the files not read, the stopped note and 7 lines of button 2 when the check stops
-            Assert.Equal(371, chosen);
+            // R636 and R635 added 52: 50 of the window Confirm what was found and of its end, filed under What the tool read since its files lie in the folder ScanResults, and 2 of the pane, Input folder and Confirmed values
+            Assert.Equal(423, chosen);
             Assert.True(matched > 100, matched.ToString());
         }
 
