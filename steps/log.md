@@ -2,9 +2,10 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
-## Recovery, 5 Nov 2026, after the PC shut down at about 19:15
+## Recovery, 5 Nov 2026, after the PC shut down by mistake that evening
 
-- Lost: the lane sessions of build-1 and build-2 and Lead's background loops. The last commit before is 19:24, build-1 608d219, S1 scores of its head.
+- When: Bader gave about 19:15, the last commit made on the PC is build-1 608d219 at 19:24 by its reflog, so it shut down after 19:24. Restarted about 21:00.
+- Lost: the lane sessions of build-1 and build-2 and Lead's background loops.
 - Found: no git lock, no OneDrive conflict copy, no window lock or listener job held, no Revit or worker left running, no run cut. Nine old agent folders under .claude/worktrees from 28 Oct to 4 Nov are not registered worktrees, left for Bader.
 - Saved: 608d219 pushed from build-1. Quick tests on main pass, 154 pytest and 2524 dotnet.
 - Done: PR 213 the R639 rule line, one clause made to say what the code does. S1 and the hold-out on PR 211 held: numbers 1873, villa type 233 and 1859 confirmed, hold-out 610, 606, 146. PR 211 merged, R2-C3-revit-test opens.

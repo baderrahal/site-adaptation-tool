@@ -374,7 +374,7 @@ RAMP-3NOV-A, review and breaker, no real input reaches these:
 - A second rulesSetup has no way past but deleting the file, RulesSetup.cs:43.
 - A project set up from past-job.json can never fill M01 to M15, RulesSetup.cs:43 and RulesChange.cs:73.
 - RulesForBuild.cs:240, :246 and :255 name a rules table no window has yet.
-- ProjectRulesFile.cs:214 copies InsideRoot of RevitListener.cs:87 and leaves out the input root variable of RevitListener.cs:114 and NewProjectCheck.cs:717.
+- ProjectRulesFile.cs:214 copies InsideRoot of RevitListener.cs:87 and leaves out the input root variable, InputRootsVariable at Common/RevitListener.cs:21, read at :67, which NewProjectCheck.cs:717 reads too. Corrected by review of PR 214, the lane gave :114.
 - Rules beside the project profile are not enforced, the request names the folder.
 - Values have no declared type or unit. Every manual value is a text, so build code that casts one to a number will meet a text. R2-C2-build-1 reads this.
 - An id with a trailing space in the file can never be changed, RulesChange.cs:15 trims the id of the request.
