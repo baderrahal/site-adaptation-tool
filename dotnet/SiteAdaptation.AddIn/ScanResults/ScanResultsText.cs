@@ -12,6 +12,12 @@ namespace SiteAdaptation.AddIn.ScanResults
         public const string PlotsFound = "plots found";
         public const string Conflicts = "conflicts";
 
+        public const string DataCheckTitle = "Data check";
+        public const string DataCheckHelp = "What the folder you gave holds for each thing the build needs. Nothing is written in your folder.";
+        public const string ColumnNeed = "Need";
+        public const string ColumnMark = "Mark";
+        public const string ColumnLine = "What the tool found";
+
         public const string ValuesTitle = "Where each value comes from";
         public const string ValuesHelp = "The tool picks the source that covers the most plots. The others stay as checks.";
         public const string ColumnValue = "Value";

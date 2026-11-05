@@ -190,7 +190,9 @@ namespace SiteAdaptation.Tests
             // R510 to R514 added 14: the row Position from, the section Position source and the section CAD and position file of Set up site
             // COORD-3NOV-A review added 11: the words that follow the source, the title of the file dialog, the rows Place and Typed origin to the plots, the help of Current files
             // R542 added 13, the Report file name section of New project, R543 added 4, the step 1 lines
-            Assert.Equal(338, chosen);
+            // R620 added 20: the section Data check of What the tool read, its 5 headings, the 11 needs and the 4 marks. Its second pass added 13: the
+            // band and foot lines and the Close of a check alone, the files not read, the stopped note and 7 lines of button 2 when the check stops
+            Assert.Equal(371, chosen);
             Assert.True(matched > 100, matched.ToString());
         }
 

@@ -530,6 +530,7 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R606 Files that fail.
 - R607 Scenario scoring.
 - R608 Clean folder build.
+- R620 Data check in the window.
 - R630 Code table.
 - R631 Typology column.
 - R632 What a person confirmed.

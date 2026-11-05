@@ -7,6 +7,7 @@ using SiteAdaptation.Common;
 using SiteAdaptation.Common.Flow;
 using SiteAdaptation.Common.ReadData;
 using SiteAdaptation.Common.Settings;
+using SiteAdaptation.AddIn.ScanResults;
 
 namespace SiteAdaptation.AddIn
 {
@@ -54,9 +55,11 @@ namespace SiteAdaptation.AddIn
             {
                 return read;
             }
-            return ScanStep.Wrap(read, Worker, document, () => ScanInputs(session.Settings),
+            // R620. The data check first, its rows in the window What the tool read, then the scan and the read as before
+            return DataCheckStep.Wrap(ScanStep.Wrap(read, Worker, document, () => ScanInputs(session.Settings),
                 path => ScanResults.ScanGate.Ask(path, session.Settings, owner, WorkFiles.ReadText),
-                () => new[] { session.Settings.RulesFile, LaunchedWorker.BesideAddIn() }, () => session.Settings.Project.ProjectMode);
+                () => new[] { session.Settings.RulesFile, LaunchedWorker.BesideAddIn() }, () => session.Settings.Project.ProjectMode),
+                Worker, document, session.Settings, owner);
         }
 
         // The inputs of the read with the Settings file, whose role config the scan needs, and the Prototypes folder

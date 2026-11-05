@@ -714,7 +714,7 @@ The page How it works of Lane C NEWPROJ-UI, word for word from docs/design/board
 
 ### What the tool read
 
-The window What the tool read of Lane C SCAN-UI, word for word from docs/design/boards/ScanResults.dc.html. Its picture is steps/ui-shots/scan-results.png. Its rows are ScanView (R435) and the texts of the rows are ScanViewText of Common. The rows Mirror, Survey point and Road level of the board wait for readers of a later round.
+The window What the tool read of Lane C SCAN-UI, word for word from docs/design/boards/ScanResults.dc.html. Its picture is steps/ui-shots/scan-results.png. The section Data check has no picture in git, the screens of the Revit check show client file names and real coordinates and stay under the work root (steps/revit-results/R1-revit-test.md). The layout of the section is CHOSEN by Lead, docs/design/12-ui-spec.md holds nothing for it. Its rows are ScanView (R435) and the texts of the rows are ScanViewText of Common. The rows Mirror, Survey point and Road level of the board wait for readers of a later round.
 
 - `What the tool read`
 - `Check before step 3`
@@ -740,6 +740,39 @@ The window What the tool read of Lane C SCAN-UI, word for word from docs/design/
 - `Use`
 - `Show all <n>`
 - `Use the proposed for all`
+- `Data check` CHOSEN by Lead, R620, the section at the top of the window, shown when button 2 ran the data check on the input folder
+- `What the folder you gave holds for each thing the build needs. Nothing is written in your folder.` CHOSEN, as the line above
+- `Need` CHOSEN, as the line above
+- `Mark` CHOSEN, as the line above
+- `What the tool found` CHOSEN, as the line above
+- `The tool read the folder you gave and says what it holds for each need. Nothing changes in the model.` CHOSEN, the band line when only the check is shown, the read cannot go on or has nothing to pick
+- `The check wrote nothing in your folder and nothing in the model.` CHOSEN, the foot line when only the check is shown
+- `Close` CHOSEN, the one button when only the check is shown
+- `Files not read` CHOSEN, the section of the files the check did not read, each with the exact reason the worker wrote
+- `The exact reason the check gives for each file it did not read.` CHOSEN, as the line above
+- `The check stopped` CHOSEN, the note the worker wrote when it stopped before it finished
+- `<n>: a data check of this work folder runs now, wait for its end.` CHOSEN, the line of a press while a check of the folder runs
+- `<n>: the settings name no input folder, so the data check did not run and nothing was read.` CHOSEN, a stop of button 2
+- `<n>: the input folder is not there, so the data check did not run and nothing was read.` CHOSEN, as the line above
+- `<n>: the data check could not start, <n>. Nothing was read.` CHOSEN, as the line above
+- `<n>: the data check did not finish, <n>. Nothing was read.` CHOSEN, as the line above
+- `<n>: the data check wrote no result file, <n>. Nothing was read.` CHOSEN, as the line above
+- `<n>: the data check result could not be read, <n>. Nothing was read.` CHOSEN, as the line above
+- `Plot outlines` CHOSEN, the plain name of a need of R605, in the order the worker writes them
+- `Plot numbers` CHOSEN, the plain name of a need of R605, in the order the worker writes them
+- `Group levels` CHOSEN, the plain name of a need of R605, in the order the worker writes them
+- `Villa types` CHOSEN, the plain name of a need of R605, in the order the worker writes them
+- `Villa blocks` CHOSEN, the plain name of a need of R605, in the order the worker writes them
+- `Road edges` CHOSEN, the plain name of a need of R605, in the order the worker writes them
+- `Road levels` CHOSEN, the plain name of a need of R605, in the order the worker writes them
+- `Coordinates` CHOSEN, the plain name of a need of R605, in the order the worker writes them
+- `Prototypes` CHOSEN, the plain name of a need of R605, in the order the worker writes them
+- `Rule sets` CHOSEN, the plain name of a need of R605, in the order the worker writes them
+- `Shared parameters` CHOSEN, the plain name of a need of R605, in the order the worker writes them
+- `Strong` CHOSEN, a mark of R605
+- `Usable` CHOSEN, a mark of R605
+- `Weak` CHOSEN, a mark of R605
+- `Missing` CHOSEN, a mark of R605
 - `Your picks are saved with the setup. Step 2 Read data uses them next time.`
 - `Cancel`
 - `Export to Excel`
