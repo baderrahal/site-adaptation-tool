@@ -15,7 +15,7 @@ allowed:
 
 # Scope
 
-The window where the user confirms what stage 1 proposed: the code map, or types it if none was found, the hand of each prototype with the scanner's guess shown, and the word of each group level. It writes the confirmed values to the project profile, source person entered. Windows follow the approved sketches, docs/design/12-ui-spec.md and docs/design/boards. No sketch covers this one, so build the smallest version, write CHOSEN by Lead in the record, and save a screenshot for Bader. Do not design new screens beyond it.
+The window where the user confirms what stage 1 proposed: the typology column per plot, the code map, or types it if none was found, the hand of each prototype with the scanner's guess shown, and the word of each group level. It writes the confirmed values to the project profile, source person entered. Windows follow the approved sketches, docs/design/12-ui-spec.md and docs/design/boards. No sketch covers this one, so build the smallest version, write CHOSEN by Lead in the record, and save a screenshot for Bader. Do not design new screens beyond it.
 
 Then run in Revit on S1 through the real window, on a copy of a truly empty model with nothing pre-run: 1 Set up site, 2 Read data, the confirm window, 3 Review data. Moved here from R1-revit-test, as button 2 stopped on a past schedule until R2-C1-build-1. The add-in takes the plot table by the seam build-1 names in its PR.
 
