@@ -847,7 +847,7 @@
       "dataCheck.prototypeFilePattern": {"status": "CHOSEN by Code", "where": "dataCheck.prototypeWhy"},
       "dataCheck.codeTableMaxPairs": {"status": "CHOSEN by Code", "where": "dataCheck.codeWhy"},
       "dataCheck.areaNearPlots": {"status": "CHOSEN by Code", "where": "dataCheck.areaWhy"},
-      "dataCheck.areaAgreement": {"status": "UNKNOWN", "why": "no Q, no share, no Bader line and no CHOSEN mark"},
+      "dataCheck.areaAgreement": {"status": "CHOSEN by Code", "where": "dataCheck.areaWhy"},
       "dataCheck.skipFolders": {"status": "CHOSEN by Code", "where": "dataCheck.skipFoldersWhy"},
       "dataCheck.handGuessShare": {"status": "CHOSEN by Code", "where": "dataCheck.handWhy"},
       "majority.strongShare": {"status": "CHOSEN by Bader", "line": "the Majority rule of CLAUDE.md", "where": "CLAUDE.md"},

@@ -211,11 +211,11 @@ namespace SiteAdaptation.Common.ReadData
         {
             RunInput configInput = (pane ?? new RunInput[0]).FirstOrDefault(input => roles.TryGetValue(input.Name, out string role) && role == Config);
             string configPath = configInput?.Path;
-            JObject config = RawConfig(configPath, mode, workFolder);
-            if (config == null)
+            if (!NoPastFiles(configPath, mode, workFolder))
             {
                 return null;
             }
+            JObject config = RawConfig(configPath, mode, workFolder);
             string folder = Path.GetFullPath((string)config["inputRoot"]);
             configPath = Path.GetFullPath(configPath);
             HashSet<string> skip;
