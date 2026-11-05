@@ -23,6 +23,14 @@ def run_hook(name, payload, *args):
     return done.returncode, done.stdout, done.stderr
 
 
+def test_the_required_job_leaves_out_the_r347_tests_and_the_other_job_keeps_them():
+    required = (ROOT / ".github" / "workflows" / "tests.yml").read_text(encoding="utf-8")
+    other = (ROOT / ".github" / "workflows" / "test.yml").read_text(encoding="utf-8")
+    assert "FullyQualifiedName!~WorkerRunTests.R347" in required
+    assert "R347" not in other.replace("# R11, R346", "").split("filter", 1)[-1] or "filter" not in other
+    assert "R347 worker tests" in (ROOT / "steps" / "backlog.md").read_text(encoding="utf-8")
+
+
 def test_attribution_is_off():
     assert SETTINGS["attribution"] is False
 

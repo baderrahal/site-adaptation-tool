@@ -626,3 +626,17 @@ RAMP-3NOV-A, review and breaker, no real input reaches these:
 - DataCheckCodes.cs Typology: a column of code shape that runs across the groups and differs from the drawing qualifies though it holds no type, it ranks last with no plot of a prototype. The window shows the first and the rest.
 - config/project.json dataCheck.codePattern and groupNamePattern have no status entry, rule_status.py reads them as an input, as dataCheck.scan.labelPattern.
 - ReadInputs.cs FolderInput: a work folder inside the input root would change the hash of the folder on each run, so no read is reused. Runs write under the work root, D19, and no project has it so.
+
+## R2-C1-build-1, second review, 5 Nov 2026
+
+- ReadDataRun.cs:305 Reusable ignores files not read and a stopped check, so a raw read made while a file was locked is reused on the next press with no new run. Revit-test's wiring of NoPastFiles reaches it, so look again then.
+- DataCheckAreas.cs:154 ApplyArea takes the first area of a plot listed twice with two areas, with no word.
+- DataCheckCodes.cs:58 KeyColumn takes the first column on a tie, so a serial number column could join codes to the wrong plots. The scored runs joined well.
+- DataCheckCodes.cs:348 FindColumn with no workbook takes the first sheet of that name.
+- ReadInputs.cs:283 FolderInput throws on a locked subfolder where the worker notes it and carries on. It is said, not silent.
+- DataCheckMarks.cs:366 the mirror line says the folder does not give the hand even when hands are confirmed, if every block is of another type.
+- DataCheckCodes.cs:674 typologyColumn reads usable, gave 0 plots a code, when a confirmed column holds only words. The villaType need does read missing.
+- DataCheckLogic.cs:93 the 160 character cut can drop the tail of a long villaType line. The mark stays weak.
+- DataCheckMarks.cs:485 areaM2 under an assumed unit carries no weak of its own. All five real runs state metres.
+- Plots a confirmed area column does not list have no neighbourhood and cannot be picked in Review. The count is said in the line.
+- codePattern and groupNamePattern have no status entry.
