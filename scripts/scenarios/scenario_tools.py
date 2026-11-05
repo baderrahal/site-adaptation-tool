@@ -244,6 +244,11 @@ def score_rows(results):
     return out
 
 
+def not_read_line(results):
+    """How many files each run could not read, as a run that skipped one reads as done with the same score. Counts only."""
+    return "Files not read: " + ", ".join("%s %s" % (name, (results.get(name) or {}).get("notRead", "UNKNOWN")) for name in sorted(SCENARIOS)) + "."
+
+
 def mark_rows(results):
     """The mark of each need per scenario."""
     out = ["| Need | S1 | S2 | S3 | S4 | S5 |", "|---|---|---|---|---|---|"]
@@ -267,8 +272,8 @@ def table(results, confirmed=None):
     out = ["# Scenarios", "",
            "Written by scripts/scenarios/score_scenarios.py, never by hand. Stage 1 on each folder under the work root, scored against its right answer. Counts and marks only, the folders stay out of git and what each data check said is in scenarios\\report.md under the work root. The right answers leave the hold-out neighbourhoods out.", "",
            "## With no confirmed input", ""]
-    out += score_rows(results) + ["", "## Mark of each need", ""] + mark_rows(results)
+    out += score_rows(results) + ["", not_read_line(results), "", "## Mark of each need", ""] + mark_rows(results)
     if confirmed and any(confirmed.values()):
         out += ["", "## With a confirmed profile", "", "Each scenario again on what its own first run proposed, as a person pressing Confirm on all of it (scripts/scenarios/confirmed_profile.py). Nothing comes from a past file or an answer, a proposal that is wrong stays wrong and scores so.", ""]
-        out += score_rows(confirmed) + ["", "## Mark of each need with a confirmed profile", ""] + mark_rows(confirmed)
+        out += score_rows(confirmed) + ["", not_read_line(confirmed), "", "## Mark of each need with a confirmed profile", ""] + mark_rows(confirmed)
     return "\n".join(out) + "\n"

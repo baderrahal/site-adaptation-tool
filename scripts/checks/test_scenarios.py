@@ -135,6 +135,14 @@ def test_the_table_shows_the_confirmed_runs_apart_and_only_when_there_are_some()
     assert "SECRET-LAYER" not in after
 
 
+def test_a_run_that_skipped_a_file_shows_in_the_table():
+    skipped = dict(RESULT, notRead=1)
+    text = tools.table({"S1": RESULT, "S2": skipped})
+    assert "Files not read: S1 UNKNOWN, S2 1, S3 UNKNOWN, S4 UNKNOWN, S5 UNKNOWN." in text
+    both = tools.table({"S1": dict(RESULT, notRead=0)}, {"S1": skipped})
+    assert "S1 0," in both.split("With a confirmed profile")[0] and "S1 1," in both.split("With a confirmed profile")[1]
+
+
 def test_the_confirmed_file_takes_every_proposal_and_nothing_else():
     import confirmed_profile
     profile = {

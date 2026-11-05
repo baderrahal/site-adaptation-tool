@@ -23,7 +23,7 @@ def result_of(name, root, run=None):
     worker = read_json(out / "answer_stage1.json") or {}
     manifest = read_json(root / (name + "_manifest.json")) or {}
     return {
-        "ran": str(worker.get("status", "UNKNOWN")), "needs": check["needs"], "score": tools.score(answer, plots["plots"]),
+        "ran": str(worker.get("status", "UNKNOWN")), "needs": check["needs"], "notRead": sum(1 for row in check.get("files", []) if row.get("status") != "read"), "score": tools.score(answer, plots["plots"]),
         "faults": tools.manifest_faults(root / name, manifest), "levels": profile["levels"], "built": str((read_json(out / "built_from.json") or {}).get("commit", "UNKNOWN"))[:7],
     }
 
