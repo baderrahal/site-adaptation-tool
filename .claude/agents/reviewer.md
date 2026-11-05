@@ -13,7 +13,7 @@ The caller hands you three paths: the diff, the PR body and the test output. If 
 
 1. Read `CLAUDE.md`, then the diff, cold, before you read the PR body.
 2. List every claim in the PR body. For each one, open the file or test output that would prove it. A claim you could not check is UNKNOWN, never a pass.
-3. Check the changed files against `allowed` in the task file of steps/tasks/.
+3. Check the changed files against `allowed` in the task file of steps/tasks/. A first line `Lead: <reason>` waives that check: say whether the reason holds and list every file it waives, it goes in the round's check file.
 4. Check each new function has the caller the PR lists, found by grep. A test alone is not a caller.
 5. Check the change itself:
    - It fixes the fault at the line that causes it, not a symptom.

@@ -236,7 +236,7 @@ One backlog by stage, one line each with its Q or R id if it has one. Sources: s
 - Move the 6b driver and second method scripts into the repo, tools only with values out, Lane B
 - Refresh C:\SA-demo\config, it may lack floors.plotPull and floors.roadTopography, Q454, Lane B and D
 - Do not show the dry run kit again until truth audit 7, 5 and 11 are done, Lane C
-- R347 worker time limit test fails under load, cause not fixed, steps/latent.md:473, Lane A and C
+- R347 worker tests of WorkerRunTests fail at random under load, moved out of the required job tests on 5 Nov 2026 by Bader's order, as reruns to get green hide faults. They still run in job dotnet of test.yml, which is not required. Fix: measure the timing they rest on and take it from the run, not the clock, then put them back. steps/latent.md:473
 - R310 process sample failed once, cause UNKNOWN, steps/log.md:44, Lane C
 - R104 FreezeGuardTests failed once on net8.0 on the Windows runner of job tests, run 41856763267, and passed on the same commit in run 41856748086, cause not measured, setup-lanes
 - A rule that a round's test model is rechecked against main before it starts, Lane D
