@@ -15,10 +15,11 @@ def test_the_three_stage_pane_is_recorded_in_revit():
 
 
 @TASK
-def test_each_card_has_a_screenshot_with_no_real_value():
+def test_each_card_has_a_screenshot_by_its_name():
+    # The shots hold no real value, which the review of each PR checks by eye, a test cannot
     shots = ROOT / "steps" / "ui-shots"
-    names = sorted(path.name for path in shots.glob("pane-stage-*.png"))
-    assert len(names) >= 3, names
+    for name in ("pane-stage-1.png", "pane-stage-2.png", "pane-stage-3.png"):
+        assert (shots / name).is_file(), name
 
 
 @TASK
