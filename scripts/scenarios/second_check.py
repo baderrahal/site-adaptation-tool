@@ -110,7 +110,7 @@ def run_one(name, root):
     out = root / "runs" / name
     read = {}
     for row in json.loads((out / "plots.json").read_text(encoding="utf-8"))["plots"]:
-        digits = digits_of(row["number"])
+        digits = digits_of(row["number"]) if row["number"] is not None else None
         if digits is not None:
             read[digits] = row["villaType"]
     codes = codes_of(folder)

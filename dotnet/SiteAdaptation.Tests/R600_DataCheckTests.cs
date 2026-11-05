@@ -433,8 +433,14 @@ namespace SiteAdaptation.Tests
         {
             JObject drawing = Drawing(new[] { false, false, false, false, false });
             ((JArray)drawing["texts"])[1]["text"] = "12 13";
+            // The other labels are a type code on a line of its own and the number on the next, as a real baseplan prints them
+            foreach (int at in new[] { 0, 2, 3, 4 })
+            {
+                ((JArray)drawing["texts"])[at]["text"] = "VL4\n" + (string)((JArray)drawing["texts"])[at]["text"];
+            }
             DataCheckOutput output = DataCheckLogic.Run(Settings(), Input(drawing));
             var rows = ((JArray)output.Plots["plots"]).OfType<JObject>().ToList();
+            Assert.Equal(new[] { "101", "103", "104", "105" }, rows.Where(row => (string)row["number"] != null).Select(row => (string)row["number"]).OrderBy(name => name).ToArray());
             Assert.Equal(5, rows.Count);
             JObject two = rows.Single(row => (string)row["number"] == null);
             Assert.Equal("missing", (string)two["source"]["number"]);

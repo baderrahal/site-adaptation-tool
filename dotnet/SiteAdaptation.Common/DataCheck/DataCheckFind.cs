@@ -229,9 +229,10 @@ namespace SiteAdaptation.Common
                     Number = ring.Key, Ring = ring.Value, Area = RingArea(ring.Value),
                     Box = new[] { ring.Value.Min(p => p[0]), ring.Value.Min(p => p[1]), ring.Value.Max(p => p[0]), ring.Value.Max(p => p[1]) },
                 };
-                if (labels.TryGetValue(ring.Key, out string label) && Regex.Matches(label, @"\S*\d\S*").Count > 1)
+                // Only a token of digits alone is a second number, a type code such as VL4 on a line of its own or before the number is not
+                if (labels.TryGetValue(ring.Key, out string label) && Regex.Matches(label, @"(?<!\S)\d+(?!\S)").Count > 1)
                 {
-                    plot.NumberFlag = "the label holds more than one number (" + string.Join(" and ", Regex.Matches(label, @"\S*\d\S*").Cast<Match>().Select(found => found.Value)) + "), the plot has no number of its own";
+                    plot.NumberFlag = "the label holds more than one number (" + string.Join(" and ", Regex.Matches(label, @"(?<!\S)\d+(?!\S)").Cast<Match>().Select(found => found.Value)) + "), the plot has no number of its own";
                 }
                 byNumber[ring.Key] = plot;
             }
