@@ -32,6 +32,7 @@ The old lanes A to D are read only advisers until round R1 is merged. Trust an a
 - Claims need proof as a file and line or command output. Write UNKNOWN instead of guessing.
 - Never mark a thing done without a second check by a different method.
 - Never commit to main, a hook blocks it. Merge a green PR at once, never two waiting.
+- Per PR, S1 and the hold-out. All five scenarios once at the end of a round, before its check. One review pass for a small change, a second only for logic, Excel numbers, overrides or Revit model writes. Run scripts/status.ps1 -Progress after each merge.
 - Use `git push origin --delete` for a merged branch, never gh with --delete-branch.
 - New question: next free Q id after checking origin/main, recommended answer first, in steps/questions-open.md. That file is near the 100 KB cap of R400, move or shorten text first.
 - A fix on its third attempt stops and goes back to measuring.

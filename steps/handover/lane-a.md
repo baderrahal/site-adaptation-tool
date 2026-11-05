@@ -19,7 +19,7 @@ Main at 13356fe when written. Tags as CLAUDE.md. Paths under round_addin/logs/ a
 
 - No code half done. No branch holds unmerged work. RAN git rev-list origin/main..branch, 0 for fix/coord-window-a, fix/known-3nov-a, fix/3nov-a-mode.
 - Named but never built: the copy offer of Q397. steps/truth-audit.md:245.
-- newProjectCheck has no sender in the add-in. WorkerRequest.CoordinateSource and PositionFile wait for one. steps/latent.md:576.
+- newProjectCheck has no sender in the add-in. WorkerRequest.CoordinateSource and PositionFile wait for one. steps/latent.md:286.
 
 ## Known bugs and traps
 
