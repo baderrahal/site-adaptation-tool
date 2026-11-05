@@ -5,7 +5,7 @@ using Newtonsoft.Json.Linq;
 
 namespace SiteAdaptation.Common.SiteBuild
 {
-    // R640. The outline of each plot of the plot table, in metres, so the build and the preview have a ring to draw. Stage 1 finds the rings and keeps only their
+    // R645. The outline of each plot of the plot table, in metres, so the build and the preview have a ring to draw. Stage 1 finds the rings and keeps only their
     // numbers, so the same scan of the same reads gives them again. A plot whose ring cannot be given stays without an outline and a note says why, the table
     // never gets an empty ring in its place
     public static class PlotOutlines

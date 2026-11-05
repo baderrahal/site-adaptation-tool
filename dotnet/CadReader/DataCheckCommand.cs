@@ -62,7 +62,7 @@ namespace CadReader
             }
             if (settings != null && input.Stopped == null)
             {
-                // R640. The build draws the plots, so the table carries each ring. A plot without one is said in an issue of the run
+                // R645. The build draws the plots, so the table carries each ring. A plot without one is said in an issue of the run
                 foreach (string note in SiteAdaptation.Common.SiteBuild.PlotOutlines.Add(output.Plots, settings, input))
                 {
                     run.Issues.Add(note);
