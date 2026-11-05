@@ -47,7 +47,7 @@ Main at 13356fe when written. Paths are from the repo root. "Note" means my sess
 - Its index does not match its text. steps/questions-for-bader-4nov.md, "Faults in the open file".
 - Commit b69260d says Q415 closed, but steps/questions-open.md:709 holds it open. A question named in config stays open until Bader answers, a test failed when I closed it. Note lane-c-rules-3nov.md:19. Which test: UNKNOWN.
 - Closing a question with values in the status block needs rule_status.py --write. Note lane-c-fix-1nov-c-resume.md:13.
-- R347 worker time limit tests fail under load, a rerun passes. steps/latent.md:473, 513.
+- R347 worker time limit tests fail under load, a rerun passes. steps/latent.md:183, 513.
 - R310 process sample failed once, passed 3 of 3 alone, cause UNKNOWN. steps/log.md:44.
 - A hidden window still takes a UI automation click, so a driver press proves nothing about what a person sees. Note lane-c-fix-1nov-c-resume.md:21.
 - A locked screen stops every window press. Note lane-c-rules-3nov.md:14.

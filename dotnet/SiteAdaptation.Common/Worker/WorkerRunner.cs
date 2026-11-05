@@ -289,7 +289,7 @@ namespace SiteAdaptation.Common
                     throw new WorkerStop(WorkerExit.Memory, refusal);
                 }
             }
-            foreach (WorkerFile input in inputs.Where(input => !IsScanFolder(request, input)))
+            foreach (WorkerFile input in inputs.Where(input => !IsScanFolder(request, input) && !CommandWritesIt(request, input)))
             {
                 InputMark before = InputGuard.Mark(input.Path);
                 var opened = new WorkerOpened { Role = input.Role, Path = input.Path, Sha256Before = before.Sha256, SizeBefore = before.Size, WriteTimeBefore = before.WriteTimeUtc };
@@ -332,7 +332,7 @@ namespace SiteAdaptation.Common
         // R600. The command dataCheck reads the folder a team hands over, so its folder input is a folder, which no SHA-256 can name
         private static bool IsScanFolder(WorkerRequest request, WorkerFile input)
         {
-            return request.Command == "dataCheck" && input.Role == "scanFolder";
+            return (request.Command == "dataCheck" && input.Role == "scanFolder") || (request.Command == "rulesSetup" && input.Role == "projectFolder");
         }
 
         // R600, R632. Only dataCheck, and only for its config, its folder and the file a person confirmed, takes an empty SHA-256 as no comparison. The files it finds in the
@@ -340,7 +340,20 @@ namespace SiteAdaptation.Common
         // is not the one of the request
         private static bool NoShaGiven(WorkerRequest request, WorkerFile input)
         {
+            // R640, R660. The commands of a project with no past file take what the person and stage 1 made, as dataCheck takes the folder
+            if (OwnFileCommands.Contains(request.Command) && string.IsNullOrEmpty(input.Sha256))
+            {
+                return true;
+            }
             return request.Command == "dataCheck" && (input.Role == "config" || input.Role == "scanFolder" || input.Role == ConfirmedProfile.Role) && string.IsNullOrEmpty(input.Sha256);
+        }
+
+        private static readonly string[] OwnFileCommands = { "siteBuild", "rulesSetup", "rulesChange" };
+
+        // R661. rulesChange changes the rules file of the project on purpose, so the guard that fails a run on a changed input does not mark it. Real inputs keep the guard
+        private static bool CommandWritesIt(WorkerRequest request, WorkerFile input)
+        {
+            return request.Command == "rulesChange" && input.Role == "rules";
         }
 
         private static void Usable(WorkerFile input)

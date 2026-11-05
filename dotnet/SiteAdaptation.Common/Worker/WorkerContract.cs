@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace SiteAdaptation.Common
 {
@@ -16,7 +17,7 @@ namespace SiteAdaptation.Common
         public const int CurrentFormatVersion = 1;
 
         // The commands of docs/design/02-folders.md
-        public static readonly string[] Commands = { "read", "build", "levelExcel", "reportExcel", "exportChecks", "position", "updateFromReport", "newProjectCheck", "scan", "crs", "dataCheck" };
+        public static readonly string[] Commands = { "read", "build", "levelExcel", "reportExcel", "exportChecks", "position", "updateFromReport", "newProjectCheck", "scan", "crs", "dataCheck", "siteBuild", "rulesSetup", "rulesChange" };
 
         public int FormatVersion { get; set; }
         public string RunId { get; set; }
@@ -48,6 +49,11 @@ namespace SiteAdaptation.Common
         public string StepsFolder { get; set; }
 
         public double TimeLimitS { get; set; }
+
+        // R660 to R664. Who asks, and the rule and its new value, of rulesSetup and rulesChange. Null is left out of the JSON, as for the mode
+        public string Who { get; set; }
+        public string RuleId { get; set; }
+        public JToken NewValue { get; set; }
 
         public string ToJson()
         {

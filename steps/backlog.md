@@ -8,7 +8,7 @@ One backlog by stage, one line each with its Q or R id if it has one. Sources: s
 - Remove the need for plots.csv, labels.csv and phase1_border.csv, border from a CAD ring the team picks, truth audit item 2, Large
 - Remove needless stops: prototype_offsets.json, floor_outlines.json past values, addin.position.file under CAD, truth audit item 7, Small
 - A shipped set with no past names, New project asks for them, Q379, truth audit item 8, Medium
-- newProjectCheck has no sender, WorkerRequest.CoordinateSource and PositionFile wait for one, steps/latent.md:576, Lane A
+- newProjectCheck has no sender, WorkerRequest.CoordinateSource and PositionFile wait for one, steps/latent.md:286, Lane A
 - Test host: a press of Use CAD, and a run of R523 on a real model, Lane A
 - Look at the badge and side by side position of PR 174 at the next Set up site run, not seen in Revit, Lane A
 - Browse time not measured, Lane B and C
@@ -236,7 +236,7 @@ One backlog by stage, one line each with its Q or R id if it has one. Sources: s
 - Move the 6b driver and second method scripts into the repo, tools only with values out, Lane B
 - Refresh C:\SA-demo\config, it may lack floors.plotPull and floors.roadTopography, Q454, Lane B and D
 - Do not show the dry run kit again until truth audit 7, 5 and 11 are done, Lane C
-- R347 worker tests of WorkerRunTests fail at random under load, moved out of the required job tests on 5 Nov 2026 by Bader's order, as reruns to get green hide faults. They still run in job dotnet of test.yml, which is not required. Fix: measure the timing they rest on and take it from the run, not the clock, then put them back. steps/latent.md:473
+- R347 worker tests of WorkerRunTests fail at random under load, moved out of the required job tests on 5 Nov 2026 by Bader's order, as reruns to get green hide faults. They still run in job dotnet of test.yml, which is not required. Fix: measure the timing they rest on and take it from the run, not the clock, then put them back. steps/latent.md:183
 - R310 process sample failed once, cause UNKNOWN, steps/log.md:44, Lane C
 - R104 FreezeGuardTests failed once on net8.0 on the Windows runner of job tests, run 41856763267, and passed on the same commit in run 41856748086, cause not measured, setup-lanes
 - A rule that a round's test model is rechecked against main before it starts, Lane D

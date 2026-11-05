@@ -37,6 +37,8 @@ namespace CadReader
             commands[DataCheckCommand.Command] = DataCheckCommand.Run;
             // R454. The coordinate system each drawing and LandXML states and the plot outlines of the baseplan, for button 1
             commands[SiteAdaptation.Common.SetUp.CoordinateRequest.Command] = CoordinateSystemRead.Command;
+            // R660. The rules per project add their own commands, so that lane needs no line here
+            SiteAdaptation.Common.ProjectRules.ProjectRulesCommands.Add(commands);
             return commands;
         }
 

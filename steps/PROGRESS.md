@@ -1,43 +1,45 @@
-STATE WAITING, 2026-11-05 11:35
+STATE RUNNING, task/R2-C1-revit-test, 2026-11-05 15:17
 # Progress
-Written by scripts/status.ps1 -Progress at 2026-11-05 11:35 from git, PRs and checks, never by hand. Main is at 53c1425.
+Written by scripts/status.ps1 -Progress at 2026-11-05 15:17 from git, PRs and checks, never by hand. Main is at ae4b543.
 
 ## State
 
 - Task R1-build-1, lane build-1, status done
 - Task R1-revit-test, lane revit-test, status done
 - Task R2-C1-build-1, lane build-1, status done
+- Task R2-C1-fix-build-1, lane build-1, status open
 - Task R2-C1-revit-test, lane revit-test, status open
 - Task R2-C2-build-1, lane build-1, status waiting
 - Task R2-C2-revit-test, lane revit-test, status waiting
-- Task R2-C3-build-1, lane build-1, status waiting
+- Task R2-C3-build-1, lane build-2, status open
 - Task R2-C3-revit-test, lane revit-test, status waiting
-- Task SETUP-sign-2, lane revit-test, status waiting
 - Task SETUP-sign, lane revit-test, status done
+- Task SETUP-sign-2, lane revit-test, status waiting
 
 ## Done
 
-- PR 205, merged 11/5/2026 : R1 check, the rules out of memory, the lane starter
-- PR 204, merged 11/5/2026 : R1-revit-test: scope after its first review
-- PR 203, merged 11/5/2026 : R2-C1-build-1: stage 1 finds the code table and typology column, takes what a person confirmed
-- PR 202, merged 11/5/2026 : R1-revit-test: the section Data check in the window What the tool read
-- PR 201, merged 11/5/2026 : R2: acceptance tests, tasks and hold-out scoring
-- PR 200, merged 11/5/2026 : Harness to AI MAX version 5
-- PR 199, merged 11/4/2026 : Records: cut questions-open and log under the cap, byte for byte
-- PR 198, merged 11/4/2026 : Scenarios: the repo table holds counts and marks only
+- PR 208, merged 2026-11-05: Hold-out score of S5, questions Q495 to Q498, the S3 latent line
+- PR 207, merged 2026-11-05: R2-C1: scores of the merged code, before and after a confirmed profile
+- PR 206, merged 2026-11-05: R347 out of the required job, open R2-C1-revit-test
+- PR 205, merged 2026-11-05: R1 check, the rules out of memory, the lane starter
+- PR 204, merged 2026-11-05: R1-revit-test: scope after its first review
+- PR 203, merged 2026-11-05: R2-C1-build-1: stage 1 finds the code table and typology column, takes what a person confirmed
+- PR 202, merged 2026-11-05: R1-revit-test: the section Data check in the window What the tool read
+- PR 201, merged 2026-11-05: R2: acceptance tests, tasks and hold-out scoring
 
 ## Open bugs
 
+- PR 209 has a failed check: R2-C1-revit-test: the window Confirm what was found, button 2 on a raw folder, checked in Revit on an empty model
 - Known bugs and leftovers: steps/backlog.md, steps/latent.md
 
 ## Bader's turn
 
-- 197 questions open, steps/questions-open.md and steps/history/questions-open-older.md
+- 200 questions open, steps/questions-open.md and steps/history/questions-open-older.md
 - Read steps/bader-trust.md
 
 ## Next three steps
 
+- Task R2-C1-fix-build-1 in lane build-1, open
 - Task R2-C1-revit-test in lane revit-test, open
 - Task R2-C2-build-1 in lane build-1, waiting
-- Task R2-C2-revit-test in lane revit-test, waiting
-Hash of the lines above, a hand edit fails a test: e9a7de8155bfb7cb0e21efeee2665ef8309b8c50776f0d8d0c4d141eb7fae8fd
+Hash of the lines above, a hand edit fails a test: 0f7e2cc0997de95df582afa3021fc4001f373c1768601238bccb7f7a8ac2372f
