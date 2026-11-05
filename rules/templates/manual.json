@@ -1,0 +1,22 @@
+{
+  "template": "manual",
+  "manual": "site adaptation manual 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06",
+  "note": "R660. The rules M01 to M15 as Bader approved them on 28 Oct 2026, each text word for word as the rule value, source rule, a person confirms each for a project. They name the unit types and values of that one manual, so a person on another project must check they fit. A template is read only, a project takes a copy by rulesSetup, the values are copied here so no run reads the rules profile.",
+  "rules": [
+    {"id": "M01", "name": "How units attach by type", "group": "Plots and clusters", "manualRef": "2.1.A to 2.1.C", "value": "Villas and VD units detached. DP and DT semi-attached. TH attached both sides, always in pairs", "source": "rule"},
+    {"id": "M02", "name": "Clusters allowed", "group": "Plots and clusters", "manualRef": "2.1.E", "value": "Only the 11 Phase 1 clusters are allowed", "limits": ["11 Phase 1 clusters"], "source": "rule"},
+    {"id": "M03", "name": "Units in a block and the expansion joint", "group": "Plots and clusters", "manualRef": "2.1.E and 3.2.A", "value": "A block has at most 4 units. A 6-unit block takes an expansion joint at the 4th unit", "limits": ["4 units", "4th unit"], "source": "rule"},
+    {"id": "M04", "name": "FFL per cluster and where a split falls", "group": "Levels and steps", "manualRef": "2.2.A and 2.2.B", "value": "One FFL per cluster. A split is after unit 2 or 3, with a construction joint and a double wall", "source": "rule"},
+    {"id": "M05", "name": "Front yard slope", "group": "Slopes", "manualRef": "2.3.A", "value": "Front yard has one slope, parallel to the road, 0.5% to 2%", "limits": ["0.5% to 2%"], "source": "rule"},
+    {"id": "M06", "name": "Back yard slope", "group": "Slopes", "manualRef": "2.3.B", "value": "Back yard graded to the front at 0.3% to 0.5%", "limits": ["0.3% to 0.5%"], "source": "rule"},
+    {"id": "M07", "name": "Townhouse back yard slope", "group": "Slopes", "manualRef": "2.3.C", "value": "Townhouse back yard at 2% to a soakaway trench along the back boundary", "limits": ["2%"], "source": "rule"},
+    {"id": "M08", "name": "Added steps and step heights", "group": "Levels and steps", "manualRef": "2.4.A and Appendix A", "value": "At most 3 added steps. Step heights 100, 200, 270, 370, 440, 540 mm", "limits": ["3 added steps", "100, 200, 270, 370, 440, 540 mm"], "source": "rule"},
+    {"id": "M09", "name": "Riser height limits", "group": "Levels and steps", "manualRef": "2.4.A", "value": "Riser at least 100 mm, at most 180 mm", "limits": ["100 mm", "180 mm"], "source": "rule"},
+    {"id": "M10", "name": "Unit types with a set step count", "group": "Levels and steps", "manualRef": "Appendix A", "value": "C10, VL4 and VL6 always have 1 step", "limits": ["1 step"], "source": "rule"},
+    {"id": "M11", "name": "Boundary wall top", "group": "Walls", "manualRef": "2.5.C", "value": "Boundary wall top at FFL + 1.70 m, kept level while FFL steps stay under 0.50 m", "limits": ["FFL + 1.70 m", "0.50 m"], "source": "rule"},
+    {"id": "M12", "name": "Garden wall top", "group": "Walls", "manualRef": "2.6", "value": "Garden wall top at FFL + 1.70 m", "limits": ["FFL + 1.70 m"], "source": "rule"},
+    {"id": "M13", "name": "Front setback", "group": "Plots and clusters", "manualRef": "2.8.B", "value": "Front setback 5.52 m, C10 5.50 m", "limits": ["5.52 m", "5.50 m"], "source": "rule"},
+    {"id": "M14", "name": "Walls of irregular plots", "group": "Walls", "manualRef": "2.8.A and 2.8.B", "value": "Irregular plots: boundary wall 200 mm inside the plot limit, garden wall extends 2.0 m", "limits": ["200 mm", "2.0 m"], "pdfDiffers": "Q149: the PDF differs here, the text stays as approved.", "source": "rule"},
+    {"id": "M15", "name": "Foundation depth", "group": "Structure", "manualRef": "3.2.A", "value": "Foundation at least 1.20 m below existing ground", "limits": ["1.20 m"], "pdfDiffers": "Q150: the PDF differs here, the text stays as approved.", "source": "rule"}
+  ]
+}
