@@ -40,6 +40,18 @@ The old lanes A to D are read only advisers until round R1 is merged. Trust an a
 - The repo is public. Every review also checks the diff holds no real coordinate, level, plot data, client file contents, or path with a client name beyond what config already names.
 - steps/PROGRESS.md and steps/STATUS.md are written by scripts/status.ps1, never by hand.
 - The scenario and hold-out answers are read by the scoring scripts alone, a hook blocks every lane.
+- Lead starts a lane with scripts/lanes/run_lane.py, a fresh session in the lane's folder. A message cannot clear a session.
+- A PR body starts with the exact line `Task: <id>` or `Lead: <reason>`, nothing after the id. Every new function goes under Callers, private ones too.
+
+Traps moved here from memory, 5 Nov 2026:
+
+- Run gh merges from the lane's own folder, never chain gh pr merge after a watch, delete the remote branch on its own.
+- Never run git worktree prune without Bader. Never build a lane's folder while a runner runs from it, a worker run takes a copy of its build.
+- A question a config value cites stays open until Bader answers, or R401 fails. A new config value needs python/rule_status.py --write.
+- A new Python file naming the mode rev6 must join the modes list of test_r62.
+- TaskStop does not end the children of a background shell. Stop by your own process id, never a whole tree.
+- A commit of a run that may stall takes `git -c gc.auto=0`. A status script stays under the tool's time limit, and is never piped into head.
+- guard-main judges a command before it runs. Split a branch switch and a commit into two calls.
 
 ## The tool must work for any project
 
