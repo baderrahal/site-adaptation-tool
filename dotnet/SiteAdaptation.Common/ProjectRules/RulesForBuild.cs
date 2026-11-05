@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using SiteAdaptation.Common.Settings;
 
 namespace SiteAdaptation.Common.ProjectRules
 {
@@ -29,26 +28,31 @@ namespace SiteAdaptation.Common.ProjectRules
         public List<RuleForBuild> Rules { get; } = new List<RuleForBuild>();
     }
 
-    // R664. What a build gets from the rules of its project. A rules file can be edited outside the tool, so nothing in it is trusted on its word: a value whose
-    // source does not stand becomes missing, a status of confirmed with no person behind it stays not confirmed, and the fixed rules stay on whatever it says
+    // R664. What a build gets from the rules of its project. A rules file can be edited outside the tool, so nothing in it is trusted on its word: a value whose source
+    // does not stand becomes missing, a confirmed row the log does not hold counts as not confirmed, and the fixed rules hold whatever it says
     public static class RulesForBuild
     {
-        private const string ChoiceLine = "No rules are chosen for this project. Use the manual rules template? Its rules stay not confirmed until a person confirms them.";
         private const string NoChoiceMark = "No rules are chosen for this project, so this rule has no value.";
         private static readonly string[] ValueSources = { ProjectRulesFile.Computed, ProjectRulesFile.FromRule, ProjectRulesFile.PersonEntered, ProjectRulesFile.Default };
 
-        public static RulesForBuildAnswer Check(string rulesPath, JObject config)
+        // projectMode is the mode of the request, as the mode in config is the default of every run and says past job mode in the shipped config. Null takes no past row (R660)
+        public static RulesForBuildAnswer Check(string rulesPath, JObject config, string projectMode)
         {
             var answer = new RulesForBuildAnswer();
-            JArray listed = (config?["projectRules"] as JObject)?["ruleIds"] as JArray;
-            if (listed == null || listed.Count == 0 || listed.Any(id => id.Type != JTokenType.String))
+            answer.Issues.Add(ProjectRulesFile.SaudiLine);
+            JObject block = config?["projectRules"] as JObject;
+            JArray listed = block?["ruleIds"] as JArray;
+            string manual = block?["manualName"]?.Type == JTokenType.String ? (string)block["manualName"] : null;
+            // A saved project keeps an older copy of the config, that is no fault in the tool to throw on
+            if (listed == null || listed.Count == 0 || listed.Any(id => id.Type != JTokenType.String) || string.IsNullOrEmpty(manual))
             {
-                throw new InvalidDataException("the config holds no list projectRules.ruleIds of the rules a build needs (R664)");
+                answer.BlockingLine = "The config of this project names no rules, its copy may be older than this tool, so Build stops. Take a new copy of the config for this project.";
+                return answer;
             }
             List<string> ids = listed.Select(id => (string)id).ToList();
             if (string.IsNullOrEmpty(rulesPath))
             {
-                answer.RulesChoiceLine = ChoiceLine;
+                answer.RulesChoiceLine = "No rules are chosen for this project. Use the rules template of " + manual + "? Its rules name the unit types of that one manual, so check they fit this project. They stay not confirmed until a person confirms them.";
                 AddAllMissing(answer, ids, NoChoiceMark);
                 return answer;
             }
@@ -60,9 +64,14 @@ namespace SiteAdaptation.Common.ProjectRules
                 AddAllMissing(answer, ids, "The rules file of this project cannot be used, so this rule has no value.");
                 return answer;
             }
-            TakeRules(answer, file, ids, config);
+            RulesLog log = RulesLog.Beside(rulesPath);
+            if (log.Gone)
+            {
+                answer.Issues.Add("The log of the rules of this project is gone or cannot be read, so every rule counts as not confirmed.");
+            }
+            TakeRules(answer, file, ids, config, projectMode, log);
             Fixed(answer, file);
-            Before(answer, file);
+            Before(answer, file, log);
             return answer;
         }
 
@@ -117,9 +126,9 @@ namespace SiteAdaptation.Common.ProjectRules
             return file;
         }
 
-        private static void TakeRules(RulesForBuildAnswer answer, JObject file, List<string> ids, JObject config)
+        private static void TakeRules(RulesForBuildAnswer answer, JObject file, List<string> ids, JObject config, string projectMode, RulesLog log)
         {
-            bool pastAllowed = ProjectRulesFile.PastJobMode(config) != null && ProjectModes.OfConfig(config) == ProjectRulesFile.PastJobMode(config);
+            bool pastAllowed = projectMode != null && projectMode == ProjectRulesFile.PastJobMode(config);
             var held = new HashSet<string>();
             foreach (JObject row in ((JArray)file["rules"]).OfType<JObject>())
             {
@@ -127,7 +136,7 @@ namespace SiteAdaptation.Common.ProjectRules
                 held.Add(id);
                 if (!ProjectRulesFile.IsFixed(id))
                 {
-                    answer.Rules.Add(Take(row, id, pastAllowed, answer.Issues));
+                    answer.Rules.Add(Take(row, id, pastAllowed, log, answer.Issues));
                 }
             }
             // A rule the build needs that the file lost is missing, it does not fall back on a template
@@ -137,12 +146,12 @@ namespace SiteAdaptation.Common.ProjectRules
             }
         }
 
-        private static RuleForBuild Take(JObject row, string id, bool pastAllowed, List<string> issues)
+        private static RuleForBuild Take(JObject row, string id, bool pastAllowed, RulesLog log, List<string> issues)
         {
             string name = row["name"]?.Type == JTokenType.String ? (string)row["name"] : id;
             string source = row["source"]?.Type == JTokenType.String ? (string)row["source"] : null;
             JToken value = row["value"];
-            if (value == null || value.Type == JTokenType.Null || source == ProjectRulesFile.Missing)
+            if (ProjectRulesFile.NoValueReason(value) != null || source == ProjectRulesFile.Missing)
             {
                 return MissingRule(id, name, row["marked"]?.Type == JTokenType.String ? (string)row["marked"] : ProjectRulesFile.MissingMark);
             }
@@ -156,13 +165,48 @@ namespace SiteAdaptation.Common.ProjectRules
                 issues.Add("The rule " + id + " has a source the tool does not know, so its value is not used.");
                 return MissingRule(id, name, "The source of this value is not one the tool knows.");
             }
-            bool confirmed = row["status"]?.Type == JTokenType.String && (string)row["status"] == ProjectRulesFile.Confirmed
-                && row["confirmedBy"]?.Type == JTokenType.String && !string.IsNullOrWhiteSpace((string)row["confirmedBy"]);
             return new RuleForBuild
             {
                 Id = id, Name = name, Value = value.DeepClone(), Source = source, Rule = source == ProjectRulesFile.FromRule ? id : null,
-                Status = confirmed ? ProjectRulesFile.Confirmed : ProjectRulesFile.NotConfirmed,
+                Status = Stands(row, id, value, log, issues) ? ProjectRulesFile.Confirmed : ProjectRulesFile.NotConfirmed,
             };
+        }
+
+        // R662. A row is confirmed only when the log says so. A row with a log line must hold the value of that line whatever its status says, so a value edited by hand is seen.
+        // A not confirmed row with no line is what rulesSetup wrote, or a hand edit no line can show, and it counts as not confirmed either way
+        private static bool Stands(JObject row, string id, JToken value, RulesLog log, List<string> issues)
+        {
+            string by = row["confirmedBy"]?.Type == JTokenType.String ? ((string)row["confirmedBy"]).Trim() : null;
+            bool claimed = row["status"]?.Type == JTokenType.String && (string)row["status"] == ProjectRulesFile.Confirmed && !string.IsNullOrEmpty(by);
+            if (log.Gone)
+            {
+                return false;
+            }
+            JObject line = log.LastOf(id);
+            if (line == null)
+            {
+                if (claimed)
+                {
+                    issues.Add(Outside(id, "says confirmed and no log line holds it"));
+                }
+                return false;
+            }
+            if (!ProjectRulesFile.SameValue(line["new"], value))
+            {
+                issues.Add(Outside(id, "does not hold the value of its last log line"));
+                return false;
+            }
+            if (claimed && (string)line["who"] != by)
+            {
+                issues.Add(Outside(id, "names another person than its last log line"));
+                return false;
+            }
+            return claimed;
+        }
+
+        private static string Outside(string id, string what)
+        {
+            return "The rule " + id + " " + what + ", so it was changed outside the tool or a run stopped before it wrote, and it counts as not confirmed.";
         }
 
         // R663. The fixed rules hold whatever the file says, and an edit that tried to change one is said
@@ -173,13 +217,14 @@ namespace SiteAdaptation.Common.ProjectRules
                 JObject held = ((JArray)file["rules"]).OfType<JObject>().FirstOrDefault(row => (string)row["id"] == (string)rule["id"]);
                 if (held == null || !JToken.DeepEquals(held["value"], rule["value"]) || !JToken.DeepEquals(held["fixed"], rule["fixed"]))
                 {
-                    answer.Issues.Add("The rules file changed or lost the fixed rule " + rule["name"] + ". The tool keeps it on.");
+                    answer.Issues.Add("The rules file changed or lost the fixed rule " + rule["name"] + ". The tool goes by its own fixed rules and not by the file.");
                 }
             }
         }
 
-        // R662. Under warn the build goes on and says so, under block it stops. A missing value is never confirmed, so a rule with no value counts as not confirmed
-        private static void Before(RulesForBuildAnswer answer, JObject file)
+        // R662. Under warn the build goes on and says so, under block it stops. A missing value is never confirmed, so a rule with no value counts as not confirmed.
+        // The setting is the last one logged, so an edit of the file cannot pass a block by writing warn
+        private static void Before(RulesForBuildAnswer answer, JObject file, RulesLog log)
         {
             JToken setting = file[ProjectRulesFile.BeforeBuild];
             bool absent = setting == null || setting.Type == JTokenType.Null;
@@ -193,6 +238,12 @@ namespace SiteAdaptation.Common.ProjectRules
             if (before != ProjectRulesFile.Warn && before != ProjectRulesFile.Block)
             {
                 answer.BlockingLine = "The Before Build setting of this project is neither warn nor block, so Build stops. Choose one in the rules table.";
+                return;
+            }
+            string logged = log.Setting() ?? ProjectRulesFile.Warn;
+            if (!log.Gone && before != logged)
+            {
+                answer.BlockingLine = "The rules file says Before Build is " + before + " and the log says " + logged + ", so the file was changed outside the tool or a run stopped before it wrote, and Build stops. Choose the setting again in the rules table.";
                 return;
             }
             if (open == 0)

@@ -1,7 +1,6 @@
 using System;
 using System.IO;
 using System.Linq;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace SiteAdaptation.Common.ProjectRules
@@ -23,9 +22,10 @@ namespace SiteAdaptation.Common.ProjectRules
                 throw run.Refusal("the rule " + id + " is fixed by the tool and cannot be changed (R663)");
             }
             JToken wanted = run.Request.NewValue;
-            if (wanted == null || wanted.Type == JTokenType.Null)
+            string noValue = ProjectRulesFile.NoValueReason(wanted);
+            if (noValue != null)
             {
-                throw run.Refusal("the request gives no new value for " + id + ". A value is never cleared, a person enters another one");
+                throw run.Refusal("the new value of " + id + " is " + noValue + ", nothing changed. A value is never cleared, a person enters another one");
             }
             string path = run.Input("rules");
             if (ProjectRulesFile.UnderTemplates(path))
@@ -45,19 +45,10 @@ namespace SiteAdaptation.Common.ProjectRules
             using (ChangeLog log = ChangeLog.Open(folder, run))
             {
                 // Read with the log held, so a change that ended a moment ago is in what this one builds on
-                JObject rules = ProjectRulesFile.Read(path);
+                JObject rules = ProjectRulesFile.ReadOrRefuse(path, "the rules file", run);
                 string when = ChangeLog.Now();
                 JToken before = id == ProjectRulesFile.BeforeBuild ? ChangeSetting(rules, wanted, run) : ChangeRule(rules, id, wanted, who, when, run);
-                log.Add(who, when, id, before, wanted);
-                try
-                {
-                    ProjectRulesFile.Write(path, rules, run.Request.RunId);
-                }
-                catch (Exception failure) when (failure is IOException || failure is UnauthorizedAccessException)
-                {
-                    log.Add(who, when, id, before, wanted, failure.Message);
-                    throw;
-                }
+                log.Change(who, when, id, before, wanted, () => ProjectRulesFile.Write(path, rules, run.Request.RunId));
             }
             run.Counts["changed"] = 1;
         }
@@ -86,7 +77,7 @@ namespace SiteAdaptation.Common.ProjectRules
                 throw run.Refusal("the rule " + id + " is fixed by the tool and cannot be changed (R663)");
             }
             JToken before = rule["value"]?.DeepClone();
-            if (!SameValue(before, wanted))
+            if (!ProjectRulesFile.SameValue(before, wanted))
             {
                 rule["value"] = wanted.DeepClone();
                 rule["source"] = ProjectRulesFile.PersonEntered;
@@ -96,17 +87,6 @@ namespace SiteAdaptation.Common.ProjectRules
             rule["confirmedWhen"] = when;
             rule.Remove("marked");
             return before;
-        }
-
-        // A window may send 2 for a value the file holds as 2.0, which is the same value and no change of source
-        internal static bool SameValue(JToken one, JToken other)
-        {
-            if (one == null || other == null)
-            {
-                return one == null && other == null;
-            }
-            bool bothNumbers = (one.Type == JTokenType.Integer || one.Type == JTokenType.Float) && (other.Type == JTokenType.Integer || other.Type == JTokenType.Float);
-            return bothNumbers ? (double)one == (double)other : JToken.DeepEquals(one, other);
         }
     }
 }

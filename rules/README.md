@@ -1,6 +1,6 @@
 # Project rules
 
-templates/ holds the shipped templates of the rules per project, read only (R660). manual.json has the rules M01 to M15 of the manual with every value missing and marked, as the manual text is not in this repo. past-job.json holds the past job measures of keyRules, tagged past, for compare only and never a default. A project takes a copy as project_rules.json in its own folder by the command rulesSetup, and changes it by rulesChange (R661), never by hand.
+templates/ holds the shipped templates of the rules per project, read only (R660). manual.json has the rules M01 to M15 of one manual, named in the file by its number and Rev 06, each text word for word as Bader approved it on 28 Oct 2026 as a rule value with source rule, not confirmed until a person confirms it. M14 and M15 carry pdfDiffers, as the PDF differs there (Q149, Q150). The values are copied, no run reads the block manualRules. past-job.json holds the past job measures of keyRules, tagged past, for compare only and never a default. A project takes a copy as project_rules.json in its own folder by the command rulesSetup, and changes it by rulesChange (R661), never by hand.
 
 One JSON file per project. config/project.json names the profile the tool reads (R63), and every rule value is read from that file, so a new rule value goes in the profile and not in code. The profile stays in git.
 

@@ -908,6 +908,8 @@
   },
   "projectRules": {
     "note": "R660, R664. What the rules per project take from config, the rules themselves live per project and in rules/templates.",
+    "manualName": "site adaptation manual 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06",
+    "manualNameNote": "CHOSEN by Code in R2-C3-build-1. The manual the shipped template holds the rules of, which the line that asks at a first Build names, so a person on another project sees they belong to that one manual. By its document number and revision, the same words as rules/templates/manual.json, a gate test holds the two equal.",
     "pastJobMode": "roshnPastJob",
     "pastJobModeNote": "CHOSEN by Code in R2-C3-build-1. The mode in which a project may take rules/templates/past-job.json, named by the request itself, never a default.",
     "ruleIds": ["M01", "M02", "M03", "M04", "M05", "M06", "M07", "M08", "M09", "M10", "M11", "M12", "M13", "M14", "M15"],

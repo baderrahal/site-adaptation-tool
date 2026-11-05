@@ -22,7 +22,7 @@ namespace SiteAdaptation.Common.ProjectRules
             {
                 throw run.Refusal(place);
             }
-            JObject template = ProjectRulesFile.Read(templatePath);
+            JObject template = ProjectRulesFile.ReadOrRefuse(templatePath, "the template", run);
             JArray rules = FromTemplate(template, Path.GetFileName(templatePath), run, config);
             foreach (JObject rule in ProjectRulesFile.FixedRules())
             {
@@ -30,6 +30,10 @@ namespace SiteAdaptation.Common.ProjectRules
             }
             string name = Path.GetFileName(templatePath);
             var file = new JObject { ["formatVersion"] = 1, ["fromTemplate"] = name, [ProjectRulesFile.BeforeBuild] = ProjectRulesFile.Warn, ["rules"] = rules };
+            if (template["manual"]?.Type == JTokenType.String)
+            {
+                file["manual"] = template["manual"].DeepClone();
+            }
             string path = Path.Combine(folder, ProjectRulesFile.FileName);
             using (ChangeLog log = ChangeLog.Open(folder, run))
             {
@@ -38,17 +42,7 @@ namespace SiteAdaptation.Common.ProjectRules
                 {
                     throw run.Refusal("this project already holds its rules, nothing changed: " + path);
                 }
-                string when = ChangeLog.Now();
-                log.Add(who, when, "rulesSetup", null, name);
-                try
-                {
-                    ProjectRulesFile.Write(path, file, run.Request.RunId);
-                }
-                catch (Exception failure) when (failure is IOException || failure is UnauthorizedAccessException)
-                {
-                    log.Add(who, when, "rulesSetup", null, name, failure.Message);
-                    throw;
-                }
+                log.Change(who, ChangeLog.Now(), ProjectRulesFile.SetupLine, null, name, () => ProjectRulesFile.Write(path, file, run.Request.RunId));
             }
             List<JObject> settable = rules.OfType<JObject>().Where(rule => rule["fixed"] == null).ToList();
             int missing = settable.Count(rule => (string)rule["source"] == ProjectRulesFile.Missing);
@@ -74,13 +68,13 @@ namespace SiteAdaptation.Common.ProjectRules
             {
                 JObject rule = row as JObject;
                 string id = rule?["id"]?.Type == JTokenType.String ? (string)rule["id"] : null;
-                if (string.IsNullOrEmpty(id) || !seen.Add(id) || ProjectRulesFile.IsFixed(id) || id == ProjectRulesFile.BeforeBuild)
+                if (string.IsNullOrEmpty(id) || !seen.Add(id) || ProjectRulesFile.IsFixed(id) || id == ProjectRulesFile.BeforeBuild || id == ProjectRulesFile.SetupLine)
                 {
                     throw run.Refusal("the template " + name + " holds a rule with no id, a repeated id or an id the tool keeps: " + (id ?? "none"));
                 }
                 string source = rule["source"]?.Type == JTokenType.String ? (string)rule["source"] : null;
-                bool hasValue = rule["value"] != null && rule["value"].Type != JTokenType.Null;
-                // A value with no real source would reach the build as if it were known, and a source with no value would hide that it is missing
+                bool hasValue = ProjectRulesFile.NoValueReason(rule["value"]) == null;
+                // A value with no real source would reach the build as if it were known, and a source with no value would hide that it is missing. A blank is no value
                 if (hasValue ? !TemplateSources.Contains(source) : source != ProjectRulesFile.Missing)
                 {
                     throw run.Refusal("the template " + name + " rule " + id + " has a value and a source that do not fit, value " + (hasValue ? "given" : "none") + ", source " + (source ?? "none"));
