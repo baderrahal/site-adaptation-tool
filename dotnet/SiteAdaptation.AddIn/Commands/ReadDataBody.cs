@@ -62,7 +62,7 @@ namespace SiteAdaptation.AddIn
                 Worker, document, session.Settings, owner);
             // R635. A rev6 project with no past file: the read runs the data check itself, so no scan and no second check, then the window
             // Confirm what was found over the read folder. Decided at the press, by the work folder of the run
-            return Choose(session.Settings, past, ConfirmProfile.ConfirmProfileStep.Wrap(read, owner));
+            return Choose(session.Settings, past, ConfirmProfile.ConfirmProfileStep.Wrap(read, session.Settings, owner));
         }
 
         // R635. The body of the press: raw for a folder with no past file, else the old read with the scan before it

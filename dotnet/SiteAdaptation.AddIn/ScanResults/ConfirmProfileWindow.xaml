@@ -5,8 +5,8 @@
         Title="{x:Static cp:ConfirmProfileText.Title}" Width="{DynamicResource SA.Size.ScanWidth}" MaxHeight="{DynamicResource SA.Size.DialogMaxHeight}"
         SizeToContent="Height" ResizeMode="NoResize" ShowInTaskbar="False" WindowStartupLocation="CenterOwner"
         Background="{DynamicResource SA.Surface}">
-  <!-- R636. CHOSEN by Lead: the smallest window, no sketch covers it. Every colour, size and font by Theme.xaml, every text in
-       docs/design/14-ui-labels.md under Confirm what was found -->
+  <!-- R636. CHOSEN by Lead: the smallest window, no sketch covers it. Every colour, size, gap and font by Theme.xaml, every text in
+       docs/design/14-ui-labels.md under What the tool read -->
   <Window.Resources>
     <ResourceDictionary>
       <ResourceDictionary.MergedDictionaries>
@@ -28,50 +28,54 @@
         <TextBlock x:Name="RefusalText" Style="{StaticResource HelpText}" VerticalAlignment="Center" Foreground="{StaticResource SA.Warn}" />
       </DockPanel>
     </Border>
-    <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="640" Background="{StaticResource SA.Surface}">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Background="{StaticResource SA.Surface}">
       <StackPanel Margin="{StaticResource SA.Pad.Box}">
-        <TextBlock Style="{StaticResource HelpText}" Text="{x:Static cp:ConfirmProfileText.Intro}" />
+        <TextBlock Style="{StaticResource HelpText}" Text="{Binding Intro, Mode=OneTime}" />
+        <TextBlock Style="{StaticResource HelpText}" Text="{x:Static cp:ConfirmProfileText.ConfirmMeans}" />
 
-        <TextBlock Style="{StaticResource SA.Type.Section}" Margin="0,12,0,0" Text="{x:Static cp:ConfirmProfileText.Typology}" />
+        <TextBlock Style="{StaticResource SA.Type.Section}" Margin="{StaticResource SA.Gap.Top12}" Text="{x:Static cp:ConfirmProfileText.Typology}" />
         <TextBlock Style="{StaticResource HelpText}" Text="{x:Static cp:ConfirmProfileText.TypologyHelp}" />
-        <ComboBox x:Name="TypologyBox" AutomationProperties.Name="Villa type column" Margin="0,4,0,0" />
+        <ComboBox x:Name="TypologyBox" AutomationProperties.Name="{x:Static cp:ConfirmProfileText.TypologyName}" Margin="{StaticResource SA.Gap.Top4}" />
         <TextBlock x:Name="TypologyNote" Style="{StaticResource HelpText}" />
 
-        <TextBlock Style="{StaticResource SA.Type.Section}" Margin="0,12,0,0" Text="{x:Static cp:ConfirmProfileText.Area}" />
+        <TextBlock Style="{StaticResource SA.Type.Section}" Margin="{StaticResource SA.Gap.Top12}" Text="{x:Static cp:ConfirmProfileText.Area}" />
         <TextBlock Style="{StaticResource HelpText}" Text="{x:Static cp:ConfirmProfileText.AreaHelp}" />
-        <ComboBox x:Name="AreaBox" AutomationProperties.Name="Area column" Margin="0,4,0,0" />
+        <ComboBox x:Name="AreaBox" AutomationProperties.Name="{x:Static cp:ConfirmProfileText.AreaName}" Margin="{StaticResource SA.Gap.Top4}" />
         <TextBlock x:Name="AreaNote" Style="{StaticResource HelpText}" />
 
-        <TextBlock Style="{StaticResource SA.Type.Section}" Margin="0,12,0,0" Text="{x:Static cp:ConfirmProfileText.CodeMap}" />
+        <TextBlock Style="{StaticResource SA.Type.Section}" Margin="{StaticResource SA.Gap.Top12}" Text="{x:Static cp:ConfirmProfileText.CodeMap}" />
         <TextBlock Style="{StaticResource HelpText}" Text="{x:Static cp:ConfirmProfileText.CodeMapHelp}" />
-        <TextBlock x:Name="CodeMapSource" Style="{StaticResource HelpText}" />
-        <TextBox x:Name="CodeMapBox" AutomationProperties.Name="Code map" AcceptsReturn="True" MinLines="3" MaxLines="8" VerticalScrollBarVisibility="Auto" Margin="0,4,0,0"
+        <TextBlock Style="{StaticResource HelpText}" Text="{Binding CodeMapLine, Mode=OneTime}" />
+        <TextBlock x:Name="CodeMapDoubt" Style="{StaticResource HelpText}" Foreground="{StaticResource SA.Warn}" Text="{Binding CodeMapDoubt, Mode=OneTime}" />
+        <TextBox x:Name="CodeMapBox" AutomationProperties.Name="{x:Static cp:ConfirmProfileText.CodeMap}" AcceptsReturn="True" MinLines="3" MaxLines="8" VerticalScrollBarVisibility="Auto" Margin="{StaticResource SA.Gap.Top4}"
                  Text="{Binding CodeMapText, UpdateSourceTrigger=PropertyChanged}" />
 
-        <TextBlock Style="{StaticResource SA.Type.Section}" Margin="0,12,0,0" Text="{x:Static cp:ConfirmProfileText.Hands}" />
+        <TextBlock Style="{StaticResource SA.Type.Section}" Margin="{StaticResource SA.Gap.Top12}" Text="{x:Static cp:ConfirmProfileText.Hands}" />
         <TextBlock Style="{StaticResource HelpText}" Text="{x:Static cp:ConfirmProfileText.HandsHelp}" />
+        <TextBlock x:Name="HandsGuessHelp" Style="{StaticResource HelpText}" Text="{x:Static cp:ConfirmProfileText.HandsGuessHelp}" />
         <TextBlock x:Name="HandsNone" Style="{StaticResource HelpText}" Text="{x:Static cp:ConfirmProfileText.HandsNone}" />
         <ItemsControl ItemsSource="{Binding Hands}">
           <ItemsControl.ItemTemplate>
             <DataTemplate>
-              <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                <TextBlock Style="{StaticResource SA.Type.Body}" Width="120" VerticalAlignment="Center" Text="{Binding Code}" />
-                <ComboBox Width="120" ItemsSource="{x:Static cp:ConfirmProfileWindow.HandChoices}" SelectedItem="{Binding Chosen}" AutomationProperties.Name="{Binding Code}" />
-                <TextBlock Style="{StaticResource HelpText}" Margin="8,0,0,0" VerticalAlignment="Center" Text="{Binding GuessText}" />
+              <StackPanel Orientation="Horizontal" Margin="{StaticResource SA.Gap.Top4}">
+                <TextBlock Style="{StaticResource SA.Type.Body}" Width="{StaticResource SA.Size.ConfirmName}" VerticalAlignment="Center" Text="{Binding Code}" />
+                <ComboBox Width="{StaticResource SA.Size.ConfirmName}" ItemsSource="{x:Static cp:ConfirmProfileWindow.HandChoices}" SelectedItem="{Binding Chosen}" AutomationProperties.Name="{Binding Code}" />
+                <TextBlock Style="{StaticResource HelpText}" Margin="{StaticResource SA.Gap.Left8}" VerticalAlignment="Center" Text="{Binding GuessText}" />
               </StackPanel>
             </DataTemplate>
           </ItemsControl.ItemTemplate>
         </ItemsControl>
 
-        <TextBlock Style="{StaticResource SA.Type.Section}" Margin="0,12,0,0" Text="{x:Static cp:ConfirmProfileText.Levels}" />
+        <TextBlock Style="{StaticResource SA.Type.Section}" Margin="{StaticResource SA.Gap.Top12}" Text="{x:Static cp:ConfirmProfileText.Levels}" />
         <TextBlock Style="{StaticResource HelpText}" Text="{x:Static cp:ConfirmProfileText.LevelsHelp}" />
         <TextBlock x:Name="LevelsNone" Style="{StaticResource HelpText}" Text="{x:Static cp:ConfirmProfileText.LevelsNone}" />
         <ItemsControl ItemsSource="{Binding Levels}">
           <ItemsControl.ItemTemplate>
             <DataTemplate>
-              <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                <TextBlock Style="{StaticResource SA.Type.Body}" Width="120" VerticalAlignment="Center" Text="{Binding Name}" />
-                <TextBox Width="240" AutomationProperties.Name="{Binding BoxName}" Text="{Binding Word, UpdateSourceTrigger=PropertyChanged}" />
+              <StackPanel Orientation="Horizontal" Margin="{StaticResource SA.Gap.Top4}">
+                <TextBlock Style="{StaticResource SA.Type.Body}" Width="{StaticResource SA.Size.ConfirmName}" VerticalAlignment="Center" Text="{Binding Name}" />
+                <TextBox Width="{StaticResource SA.Size.SetupName}" AutomationProperties.Name="{Binding BoxName}" Text="{Binding Word, UpdateSourceTrigger=PropertyChanged}" />
+                <TextBlock Style="{StaticResource HelpText}" Margin="{StaticResource SA.Gap.Left8}" VerticalAlignment="Center" Text="{Binding SourceText}" />
               </StackPanel>
             </DataTemplate>
           </ItemsControl.ItemTemplate>

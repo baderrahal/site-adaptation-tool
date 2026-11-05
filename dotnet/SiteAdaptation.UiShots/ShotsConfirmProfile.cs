@@ -16,7 +16,7 @@ namespace SiteAdaptation.UiShots
 
         private static BitmapSource ConfirmProfilePage()
         {
-            var window = new ConfirmProfileWindow(new ConfirmProfileSession(ConfirmProfileModel.Read(SampleProfile), Path.GetTempPath(), "shot", 2));
+            var window = new ConfirmProfileWindow(new ConfirmProfileSession(ConfirmProfileModel.Read(SampleProfile), Path.GetTempPath(), "shot"));
             LayOut(window);
             return Draw(Body(window));
         }

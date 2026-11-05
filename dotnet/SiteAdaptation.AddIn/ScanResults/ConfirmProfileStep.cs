@@ -2,6 +2,10 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Windows.Interop;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using SiteAdaptation.AddIn.Revit;
+using SiteAdaptation.AddIn.Pane;
 using SiteAdaptation.AddIn.ScanResults;
 using SiteAdaptation.Common;
 using SiteAdaptation.Common.Flow;
@@ -20,7 +24,10 @@ namespace SiteAdaptation.AddIn.ConfirmProfile
         public static Action<IntPtr, DataCheckResult> ShowCheck { get; set; } = (owner, result) => ScanResultsDialog.ShowCheck(owner, result);
         public static Action<IntPtr, ConfirmProfileSession> ShowConfirm { get; set; } = (owner, session) => ConfirmProfileDialog.Show(owner, session);
 
-        public static ButtonBody Wrap(ButtonBody read, IntPtr owner)
+        // The Apply or Cancel prompt the flow already uses, a stand-in in the tests. True when the person says to discard
+        public static Func<string, string, bool> AskDiscard { get; set; } = (label, why) => new TaskDialogConfirm().Apply(label, new RunSummary(ConfirmProfileText.DiscardAsk.Replace("<why>", why), null), false);
+
+        public static ButtonBody Wrap(ButtonBody read, PaneSettings settings, IntPtr owner)
         {
             if (read == null)
             {
@@ -33,8 +40,58 @@ namespace SiteAdaptation.AddIn.ConfirmProfile
             return new ButtonBody
             {
                 Preview = read.Preview, Apply = read.Apply, ReadBack = read.ReadBack, Done = read.Done, Confirm = read.Confirm, Outside = read.Outside,
-                Start = (context, done) => read.Start(context, later => Ended(owner, context, later, done)),
+                Start = (context, done) =>
+                {
+                    string refused = RefusedProfile(settings.ConfigFile, context.WorkFolder);
+                    if (refused != null)
+                    {
+                        Refused(context, refused, done);
+                        return;
+                    }
+                    read.Start(context, later => Ended(owner, context, later, done));
+                },
             };
+        }
+
+        // Why the worker would refuse the confirmed file of the work folder, as a person cannot edit it by hand, null when it would take it or
+        // there is none. It holds the file as DataCheckCommand.Confirmed does, a settings file that does not read is said by the check itself
+        public static string RefusedProfile(string configFile, string workFolder)
+        {
+            string path = Path.Combine(workFolder, ConfirmedProfile.FileName);
+            if (!File.Exists(path))
+            {
+                return null;
+            }
+            DataCheckSettings settings;
+            try
+            {
+                settings = DataCheckSettings.From(JObject.Parse(WorkFiles.ReadText(configFile)));
+            }
+            catch (Exception failure) when (failure is InvalidDataException || failure is JsonException)
+            {
+                return null;
+            }
+            try
+            {
+                ConfirmedProfile.From(JObject.Parse(WorkFiles.ReadText(path)), settings.GroupGapsM.Count);
+                return null;
+            }
+            catch (Exception failure) when (failure is InvalidDataException || failure is JsonException)
+            {
+                return failure.Message;
+            }
+        }
+
+        // The press cannot read again here: the flow hashed the file before its dry run and the read holds its plan to it, so the next press does
+        private static void Refused(RunContext context, string why, Action<RunLater> done)
+        {
+            if (!AskDiscard(context.Label, why))
+            {
+                done(RunLater.Failed(RunTexts.ChangedNothing(context.Label, RunTexts.Failed(why))));
+                return;
+            }
+            File.Delete(Path.Combine(context.WorkFolder, ConfirmedProfile.FileName));
+            done(RunLater.Failed(ConfirmProfileText.Discarded));
         }
 
         // In the API context of Revit, by the hand of the pane, as the end of the read
@@ -51,7 +108,7 @@ namespace SiteAdaptation.AddIn.ConfirmProfile
                 string profile = Find(later, ProfileFile);
                 if (check == null || profile == null)
                 {
-                    done(RunLater.Failed(RunTexts.ChangedNothing(context.Label, RunTexts.Failed("the read wrote no " + (check == null ? DataCheckRows.FileName : ProfileFile)))));
+                    done(RunLater.Failed(RunTexts.ChangedNothing(context.Label, RunTexts.Failed(check == null ? ConfirmProfileText.NoCheckFile : ConfirmProfileText.NoProposalFile))));
                     return;
                 }
                 string plots = Path.Combine(Path.GetDirectoryName(check), DataCheckRows.PlotsFileName);
@@ -60,10 +117,10 @@ namespace SiteAdaptation.AddIn.ConfirmProfile
                 // A check that stopped holds nothing to confirm, the window above told why and the press says so too
                 if (result.Stopped != null)
                 {
-                    done(RunLater.Failed(RunTexts.ChangedNothing(context.Label, RunTexts.Failed("the data check stopped before it finished: " + result.Stopped))));
+                    done(RunLater.Failed(RunTexts.ChangedNothing(context.Label, RunTexts.Failed(ConfirmProfileText.CheckStopped.Replace("<why>", result.Stopped)))));
                     return;
                 }
-                var session = new ConfirmProfileSession(ConfirmProfileModel.Read(WorkFiles.ReadText(profile)), context.WorkFolder, context.RunId, 0);
+                var session = new ConfirmProfileSession(ConfirmProfileModel.Read(WorkFiles.ReadText(profile)), context.WorkFolder, context.RunId);
                 ShowConfirm(owner, session);
                 // A close by the X is a Cancel, the read stays done and says nothing was saved
                 string line = session.Result ?? ConfirmProfileText.CancelledLine;

@@ -1,13 +1,15 @@
+using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using SiteAdaptation.Common;
 
 namespace SiteAdaptation.AddIn.ConfirmProfile
 {
     // R636. The window Confirm what was found. It holds no logic: the clicks go to the session, which a test drives with no click
     public partial class ConfirmProfileWindow : Window
     {
-        public static readonly string[] HandChoices = { "", "left", "right" };
+        public static readonly string[] HandChoices = { "", ConfirmedProfile.Left, ConfirmedProfile.Right };
 
         private readonly ConfirmProfileSession session;
 
@@ -23,13 +25,19 @@ namespace SiteAdaptation.AddIn.ConfirmProfile
             AreaBox.SelectionChanged += (sender, e) => model.Area = Picked(AreaBox, model.AreaColumns);
             TypologyNote.Text = model.TypologyNote ?? "";
             AreaNote.Text = model.AreaNote ?? "";
-            CodeMapSource.Text = model.CodeMapConfirmed ? ConfirmProfileText.CodeMapConfirmed : model.CodeMapFoundIn == null ? ConfirmProfileText.CodeMapNone : string.Format(System.Globalization.CultureInfo.InvariantCulture, ConfirmProfileText.CodeMapFound, model.CodeMapFoundIn);
-            HandsNone.Visibility = model.Hands.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-            LevelsNone.Visibility = model.Levels.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+            CodeMapDoubt.Visibility = Shown(model.CodeMapDoubt.Length > 0);
+            HandsGuessHelp.Visibility = Shown(model.AnyGuess);
+            HandsNone.Visibility = Shown(model.Hands.Count == 0);
+            LevelsNone.Visibility = Shown(model.Levels.Count == 0);
+        }
+
+        private static Visibility Shown(bool shown)
+        {
+            return shown ? Visibility.Visible : Visibility.Collapsed;
         }
 
         // Entry 0 is none, then the columns in the order the check gave them
-        private static void Fill(ComboBox box, System.Collections.Generic.IReadOnlyList<ColumnChoice> columns, ColumnChoice selected)
+        private static void Fill(ComboBox box, IReadOnlyList<ColumnChoice> columns, ColumnChoice selected)
         {
             box.Items.Add(ConfirmProfileText.NoneChoice);
             foreach (ColumnChoice column in columns)
@@ -39,7 +47,7 @@ namespace SiteAdaptation.AddIn.ConfirmProfile
             box.SelectedIndex = selected == null ? 0 : columns.ToList().IndexOf(selected) + 1;
         }
 
-        private static ColumnChoice Picked(ComboBox box, System.Collections.Generic.IReadOnlyList<ColumnChoice> columns)
+        private static ColumnChoice Picked(ComboBox box, IReadOnlyList<ColumnChoice> columns)
         {
             return box.SelectedIndex <= 0 ? null : columns[box.SelectedIndex - 1];
         }

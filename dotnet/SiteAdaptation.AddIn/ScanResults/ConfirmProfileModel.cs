@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using Newtonsoft.Json.Linq;
@@ -19,64 +20,101 @@ namespace SiteAdaptation.AddIn.ConfirmProfile
 
         public string Label
         {
-            get { return Column + " in " + Sheet + " of " + Workbook + (Plots > 0 ? ", " + Plots + " plots" : "") + (Confirmed ? " (confirmed)" : Proposed ? " (proposed)" : ""); }
+            get
+            {
+                string where = ConfirmProfileText.ColumnLabel.Replace("<column>", Column).Replace("<sheet>", Sheet).Replace("<workbook>", Workbook);
+                string plots = Plots > 0 ? ConfirmProfileText.ColumnPlots.Replace("<n>", Plots.ToString(CultureInfo.InvariantCulture)) : "";
+                return where + plots + (Confirmed ? ConfirmProfileText.ColumnConfirmed : Proposed ? ConfirmProfileText.ColumnProposed : "");
+            }
         }
     }
 
-    // R636. One prototype and its hand: the scanner's guess as the check wrote it, and the hand the person picks
+    // R636, R633. One prototype and its hand. CHOSEN by Lead: a guess is shown beside the box and does not start selected, as a guess changes
+    // no mirror until it is confirmed and one press on the whole form is not that. Only a hand confirmed on an earlier read starts selected
     public sealed class HandRow
     {
         public string Code { get; set; }
         public string Guess { get; set; }
 
-        // "", left or right. Empty means the person gave none and no hand is written for the code
+        // "", left or right. Empty means no hand is written for the code
         public string Chosen { get; set; } = "";
 
         public string GuessText
         {
-            get { return Guess == null ? "no guess" : "guess: " + Guess; }
+            get { return Guess == null ? ConfirmProfileText.NoGuess : ConfirmProfileText.GuessLine.Replace("<hand>", Guess); }
         }
     }
 
-    // R636. One group level and the word the person gives it
+    // R636. One group level. CHOSEN by Lead: a word is written only when the person typed or changed it, or confirmed it on an earlier read. A
+    // computed word left alone stays computed, and so does not go over the header of the area column the person just picked (DataCheckFind.cs)
     public sealed class LevelRow
     {
         public int Level { get; set; }
         public string Word { get; set; } = "";
-        public string Found { get; set; }
 
-        // The words of the row and of its box, put together here so the window holds no format string
-        public string Name { get { return ConfirmProfileText.LevelRow.Replace("<n>", Level.ToString(System.Globalization.CultureInfo.InvariantCulture)); } }
-        public string BoxName { get { return ConfirmProfileText.LevelBox.Replace("<n>", Level.ToString(System.Globalization.CultureInfo.InvariantCulture)); } }
+        // The word as the window opened on it
+        public string First { get; set; } = "";
+
+        // True when the check holds this word as what a person typed on an earlier read
+        public bool Given { get; set; }
+
+        // Where the word came from, beside the box, so a word found by the tool and one confirmed before do not look alike
+        public string SourceText { get; set; } = "";
+
+        public string Name { get { return ConfirmProfileText.LevelRow.Replace("<n>", Level.ToString(CultureInfo.InvariantCulture)); } }
+        public string BoxName { get { return ConfirmProfileText.LevelBox.Replace("<n>", Level.ToString(CultureInfo.InvariantCulture)); } }
+
+        public bool Written
+        {
+            get { return !string.IsNullOrWhiteSpace(Word) && (Given || Word.Trim() != First); }
+        }
     }
 
-    // R636 to R638. What the window of 2 Read data lets a person confirm, read from project_profile.json of the read folder, and the
-    // file it writes, confirmed_profile.json of the work folder, which the next read takes (R632). No window type, so a test drives it.
+    // R636. What the window of 2 Read data lets a person confirm, read from project_profile.json of the read folder, and the file it writes,
+    // confirmed_profile.json of the work folder, which the next read takes (R632). No window type, so a test drives it.
     // CHOSEN by Lead: the smallest version, no sketch covers this window
     public sealed class ConfirmProfileModel
     {
-        public const string NoColumn = "none";
         public const string Arrow = "->";
+
+        // The word the check gives direction when only reading left to right set it, DataCheckCodes.Guess, a private text of Common
+        public const string DirectionGuessWord = "a guess";
 
         public IReadOnlyList<ColumnChoice> TypologyColumns { get; private set; } = new ColumnChoice[0];
         public IReadOnlyList<ColumnChoice> AreaColumns { get; private set; } = new ColumnChoice[0];
 
-        // Null for none, the person's pick of the offered columns
+        // Null for none, else the column the window shows, which starts on the column confirmed before or proposed
         public ColumnChoice Typology { get; set; }
         public ColumnChoice Area { get; set; }
 
-        // One "old -> new" pair per line, as the proposal gave them or as the person types them
+        // One "old -> new" pair per line, as the check gave them or as the person types them
         public string CodeMapText { get; set; } = "";
-        public string CodeMapFoundIn { get; private set; }
 
-        // True when the text is what a person confirmed on an earlier read
-        public bool CodeMapConfirmed { get; private set; }
+        // What the window says of the map: where it came from, and any doubt on it before anyone confirms it
+        public string CodeMapLine { get; private set; } = ConfirmProfileText.CodeMapNone;
+        public string CodeMapDoubt { get; private set; } = "";
+
         public IReadOnlyList<HandRow> Hands { get; private set; } = new HandRow[0];
         public IReadOnlyList<LevelRow> Levels { get; private set; } = new LevelRow[0];
 
         // The tie or the reason a column was not proposed, in the words of the check, null for none
         public string TypologyNote { get; private set; }
         public string AreaNote { get; private set; }
+
+        public bool AnyGuess
+        {
+            get { return Hands.Any(hand => hand.Guess != null); }
+        }
+
+        // The first line of the window, which says proposes only when something is there
+        public string Intro
+        {
+            get
+            {
+                bool shown = Typology != null || Area != null || !string.IsNullOrWhiteSpace(CodeMapText) || AnyGuess || Hands.Any(hand => hand.Chosen.Length > 0) || Levels.Any(level => level.First.Length > 0);
+                return shown ? ConfirmProfileText.IntroFound : ConfirmProfileText.IntroNothing;
+            }
+        }
 
         public static ConfirmProfileModel Read(string profileJson)
         {
@@ -88,30 +126,55 @@ namespace SiteAdaptation.AddIn.ConfirmProfile
             model.Area = area;
             model.TypologyNote = (string)root["typologyColumn"]?["tie"];
             model.AreaNote = (string)root["areaColumn"]?["tie"];
-            JToken map = root["codeMap"];
-            if (map?["proposed"] is JArray pairs)
-            {
-                model.CodeMapText = string.Join(Environment.NewLine, pairs.Select(pair => (string)pair["old"] + " " + Arrow + " " + (string)pair["new"]));
-                model.CodeMapFoundIn = (string)map["foundIn"];
-            }
+            model.ReadCodeMap(root["codeMap"]);
+            model.Hands = HandsOf(root["hands"]);
+            model.Levels = LevelsOf(root["levels"] as JArray, root["areaColumn"]?["confirmed"]);
+            return model;
+        }
+
+        private void ReadCodeMap(JToken map)
+        {
             if (map?["confirmed"] is JArray given && given.Count > 0)
             {
-                model.CodeMapText = string.Join(Environment.NewLine, given.Select(pair => (string)pair["old"] + " " + Arrow + " " + (string)pair["new"]));
-                model.CodeMapFoundIn = null;
-                model.CodeMapConfirmed = true;
+                CodeMapText = PairLines(given);
+                CodeMapLine = ConfirmProfileText.CodeMapConfirmed;
+                return;
             }
+            if (map?["proposed"] is JArray pairs && pairs.Count > 0)
+            {
+                CodeMapText = PairLines(pairs);
+                CodeMapLine = ConfirmProfileText.CodeMapFound.Replace("<source>", (string)map["foundIn"] ?? "");
+                var doubts = new List<string>();
+                if (((string)map["direction"] ?? "").StartsWith(DirectionGuessWord, StringComparison.Ordinal))
+                {
+                    doubts.Add(ConfirmProfileText.CodeMapGuess);
+                }
+                if (map["unsure"]?.Type == JTokenType.Boolean && (bool)map["unsure"])
+                {
+                    doubts.Add(ConfirmProfileText.CodeMapUnsure);
+                }
+                CodeMapDoubt = string.Join(" ", doubts);
+            }
+        }
+
+        private static string PairLines(JArray pairs)
+        {
+            return string.Join(Environment.NewLine, pairs.Select(pair => (string)pair["old"] + " " + Arrow + " " + (string)pair["new"]));
+        }
+
+        private static IReadOnlyList<HandRow> HandsOf(JToken block)
+        {
             var hands = new List<HandRow>();
-            if (root["hands"]?["proposed"] is JObject proposed)
+            if (block?["proposed"] is JObject proposed)
             {
                 foreach (JProperty guess in proposed.Properties().OrderBy(item => item.Name, StringComparer.Ordinal))
                 {
-                    string value = guess.Value.Type == JTokenType.String ? (string)guess.Value : null;
-                    hands.Add(new HandRow { Code = guess.Name, Guess = value, Chosen = value ?? "" });
+                    hands.Add(new HandRow { Code = guess.Name, Guess = guess.Value.Type == JTokenType.String ? (string)guess.Value : null });
                 }
             }
-            if (root["hands"]?["confirmed"] is JObject confirmedHands)
+            if (block?["confirmed"] is JObject confirmed)
             {
-                foreach (JProperty hand in confirmedHands.Properties())
+                foreach (JProperty hand in confirmed.Properties())
                 {
                     HandRow row = hands.FirstOrDefault(item => item.Code == hand.Name);
                     if (row == null)
@@ -122,14 +185,24 @@ namespace SiteAdaptation.AddIn.ConfirmProfile
                     row.Chosen = (string)hand.Value;
                 }
             }
-            model.Hands = hands;
-            model.Levels = (root["levels"] as JArray ?? new JArray()).OfType<JObject>().Select(row => new LevelRow
+            return hands;
+        }
+
+        private static IReadOnlyList<LevelRow> LevelsOf(JArray levels, JToken areaConfirmed)
+        {
+            string header = areaConfirmed != null && areaConfirmed.Type == JTokenType.Object ? (string)areaConfirmed["column"] : null;
+            return (levels ?? new JArray()).OfType<JObject>().Select(row =>
             {
-                Level = (int)row["level"],
-                Found = row["word"]?.Type == JTokenType.String ? (string)row["word"] : null,
-                Word = row["word"]?.Type == JTokenType.String ? (string)row["word"] : "",
+                string word = row["word"]?.Type == JTokenType.String ? (string)row["word"] : "";
+                bool entered = (string)row["source"] == ConfirmedProfile.PersonEntered;
+                // The check tags the header of a confirmed area column as person entered too. It is no typed word, so a change of the column takes its new header
+                bool fromArea = entered && (int)row["level"] == 1 && word == header;
+                return new LevelRow
+                {
+                    Level = (int)row["level"], Word = word, First = word, Given = entered && !fromArea,
+                    SourceText = fromArea ? ConfirmProfileText.LevelFromArea : entered ? ConfirmProfileText.LevelConfirmed : word.Length > 0 ? ConfirmProfileText.LevelFound : "",
+                };
             }).ToList();
-            return model;
         }
 
         private static IReadOnlyList<ColumnChoice> Columns(JToken block, out ColumnChoice proposed)
@@ -175,7 +248,8 @@ namespace SiteAdaptation.AddIn.ConfirmProfile
             return list;
         }
 
-        // The pairs of the typed text. A line with other than two words is refused with its number, so nothing typed is dropped
+        // The pairs of the text. A line that is no pair, or a code that holds what is left of a mistyped arrow, is refused with its line number,
+        // so nothing typed is dropped and no junk code reaches the read
         public IReadOnlyList<KeyValuePair<string, string>> CodeMap()
         {
             var pairs = new List<KeyValuePair<string, string>>();
@@ -192,16 +266,24 @@ namespace SiteAdaptation.AddIn.ConfirmProfile
                 string[] words = line.Contains(Arrow)
                     ? line.Split(new[] { Arrow }, StringSplitOptions.None).Select(word => word.Trim()).ToArray()
                     : line.Split(new[] { ' ', '	', ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
+                string lineNumber = number.ToString(CultureInfo.InvariantCulture);
                 if (words.Length != 2 || words.Any(word => word.Length == 0))
                 {
-                    throw new InvalidDataException("Line " + number + " of the code map needs the old code, " + Arrow + " and the new code, like A1 " + Arrow + " B1.");
+                    throw new InvalidDataException(ConfirmProfileText.CodeLine.Replace("<n>", lineNumber));
+                }
+                if (words.Any(word => Arrow.IndexOf(word[0]) >= 0 || Arrow.IndexOf(word[word.Length - 1]) >= 0))
+                {
+                    throw new InvalidDataException(ConfirmProfileText.CodeEdge.Replace("<n>", lineNumber));
                 }
                 pairs.Add(new KeyValuePair<string, string>(words[0], words[1]));
             }
             return pairs;
         }
 
-        // The file R632 reads: only what the person gave, so a block left empty is not written
+        // The file R632 reads. CHOSEN by Lead: a press on Confirm is a person confirming what the window shows, so both columns and the code map go
+        // in as they stand at the press, also when the tool proposed them and they were not touched, and the read tags them person entered. A
+        // hand goes in only when one is selected and a level word only as LevelRow.Written says, so a guess or a computed word left alone stays
+        // what it was. A block that is empty is not written
         public JObject ToFile()
         {
             var file = new JObject();
@@ -219,7 +301,7 @@ namespace SiteAdaptation.AddIn.ConfirmProfile
             {
                 file["hands"] = hands;
             }
-            JArray levels = new JArray(Levels.Where(item => !string.IsNullOrWhiteSpace(item.Word)).Select(item => new JObject { ["level"] = item.Level, ["word"] = item.Word.Trim() }));
+            JArray levels = new JArray(Levels.Where(item => item.Written).Select(item => new JObject { ["level"] = item.Level, ["word"] = item.Word.Trim() }));
             if (levels.Count > 0)
             {
                 file["levels"] = levels;
@@ -240,22 +322,20 @@ namespace SiteAdaptation.AddIn.ConfirmProfile
             return new JObject { ["workbook"] = choice.Workbook, ["sheet"] = choice.Sheet, ["column"] = choice.Column };
         }
 
-        // True when the person gave nothing, so there is no file to write and no read to start again
+        // True when every block is empty, so there is nothing to write
         public bool GivesNothing
         {
             get { return ToFile().Count == 0; }
         }
 
-        // Writes confirmed_profile.json in the work folder after checking it as the read will. Returns the path, throws the reason when the
-        // file would be refused, so a pick the window says is saved is saved
-        public string Save(string workFolder, string runId, int levelCount)
+        // Writes confirmed_profile.json in the work folder after checking it as the read will, so a pick the window says is saved is saved.
+        // Throws the reason when the file would be refused
+        public void Save(string workFolder, string runId)
         {
             JObject file = ToFile();
-            ConfirmedProfile.From(file, Math.Max(levelCount, Levels.Count));
+            ConfirmedProfile.From(file, Levels.Count);
             Directory.CreateDirectory(workFolder);
-            string path = Path.Combine(workFolder, ConfirmedProfile.FileName);
-            WorkFiles.WriteText(path, runId, file.ToString(Newtonsoft.Json.Formatting.Indented));
-            return path;
+            WorkFiles.WriteText(Path.Combine(workFolder, ConfirmedProfile.FileName), runId, file.ToString(Newtonsoft.Json.Formatting.Indented));
         }
     }
 }

@@ -9,23 +9,24 @@ namespace SiteAdaptation.AddIn.ConfirmProfile
     {
         private readonly string workFolder;
         private readonly string runId;
-        private readonly int levelCount;
 
-        public ConfirmProfileSession(ConfirmProfileModel model, string workFolder, string runId, int levelCount)
+        public ConfirmProfileSession(ConfirmProfileModel model, string workFolder, string runId)
         {
             Model = model;
             this.workFolder = workFolder;
             this.runId = runId;
-            this.levelCount = levelCount;
         }
 
         public ConfirmProfileModel Model { get; }
 
-        // The line the window shows and the pane tells after it: what was saved or why not, null while the window is open
+        // The line the pane tells after the window: what was saved or removed, null while the window is open
         public string Result { get; private set; }
 
         // True when the file was written
         public bool Saved { get; private set; }
+
+        // True when a file of an earlier Confirm was removed, as the person cleared every block
+        public bool Removed { get; private set; }
 
         // The reason the last Confirm was refused, the window stays open to correct it
         public string Refusal { get; private set; }
@@ -38,19 +39,26 @@ namespace SiteAdaptation.AddIn.ConfirmProfile
             {
                 if (Model.GivesNothing)
                 {
-                    Result = ConfirmProfileText.NothingGiven;
+                    // A file of an earlier Confirm would stay in force behind a line that says nothing was confirmed
+                    string earlier = Path.Combine(workFolder, ConfirmedProfile.FileName);
+                    Removed = File.Exists(earlier);
+                    if (Removed)
+                    {
+                        File.Delete(earlier);
+                    }
+                    Result = Removed ? ConfirmProfileText.Removed : ConfirmProfileText.NothingGiven;
                 }
                 else
                 {
-                    string path = Model.Save(workFolder, runId, levelCount);
+                    Model.Save(workFolder, runId);
                     Saved = true;
-                    Result = string.Format(System.Globalization.CultureInfo.InvariantCulture, ConfirmProfileText.Saved, Path.GetFileName(path));
+                    Result = ConfirmProfileText.Saved;
                 }
                 Refusal = null;
             }
             catch (Exception failure) when (failure is InvalidDataException || failure is IOException || failure is UnauthorizedAccessException)
             {
-                Refusal = string.Format(System.Globalization.CultureInfo.InvariantCulture, ConfirmProfileText.NotSaved, failure.Message);
+                Refusal = ConfirmProfileText.NotSaved.Replace("<why>", failure.Message);
                 return;
             }
             Finished?.Invoke();
