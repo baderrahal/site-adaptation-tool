@@ -166,6 +166,18 @@ def answer_rows(plans):
     return rows, twice
 
 
+def holdout_rows(plans, holdout):
+    """Per plot of the held out areas: type, mirror and each level the past model holds, in metres."""
+    rows = {}
+    for plan in plans:
+        if plan.get("neighbourhood") not in holdout:
+            continue
+        for plot in plan.get("plots", []):
+            levels = {name: plain_value(field) for name, field in (plot.get("levels") or {}).items()}
+            rows[str(plot.get("plot"))] = {"villaType": plain_value(plot.get("unit")), "mirror": plain_value(plot.get("mirrored")), "levels": levels}
+    return rows
+
+
 def split_holdout(rows, holdout):
     """The rows to tune on, and the rows of the held out areas, which no lane sees."""
     keep = {number: row for number, row in rows.items() if row["area"] not in holdout}
