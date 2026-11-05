@@ -53,7 +53,19 @@ namespace SiteAdaptation.Common
             public int Holes;
             public List<Plot> StandIns = new List<Plot>();
             public List<CodeTable> Tables;
+            public List<CodeTable> TablesTooLarge;
             public List<TypologyCandidate> Columns;
+            public List<TypologyCandidate> ColumnsTooLarge;
+            public TypologyCandidate ColumnProposed;
+            public string ColumnTie;
+            public string ColumnGone;
+            public int ColumnListedTwice;
+            public List<AreaCandidate> Areas;
+            public AreaCandidate AreaProposed;
+            public string AreaTie;
+            public string AreaGone;
+            public List<string> MapNotHeld;
+            public List<string> HandsNotHeld;
             public Dictionary<string, HandCount> HandCounts;
             public Dictionary<string, string> HandGuess;
             public bool ColumnApplied;
@@ -122,8 +134,13 @@ namespace SiteAdaptation.Common
                     }
                 }
             }
-            f.Tables = CodeTables(settings, input, prototypes, f.Plots);
-            f.Columns = TypologyColumns(settings, input, f.Plots, prototypes);
+            f.TablesTooLarge = new List<CodeTable>();
+            f.ColumnsTooLarge = new List<TypologyCandidate>();
+            f.Tables = CodeTables(settings, input, prototypes, f.Plots, f.TablesTooLarge);
+            f.Columns = TypologyColumns(settings, input, f.Plots, prototypes, f.ColumnsTooLarge);
+            f.ColumnProposed = TypologyProposal(f.Columns, out f.ColumnTie);
+            f.Areas = AreaColumns(settings, input, f.Plots);
+            f.AreaProposed = AreaProposal(f.Areas, out f.AreaTie);
             ApplyConfirmed(f);
             f.Words = new string[levels];
             f.WordSources = new string[levels];
@@ -143,6 +160,14 @@ namespace SiteAdaptation.Common
             for (int level = 0; level < levels; level++)
             {
                 f.WordSources[level] = f.Words[level] == null ? Missing : Computed;
+                // R635. The header of a column a person confirmed names the areas, a word the person typed still goes over it
+                if (level == 0 && input.Confirmed?.AreaColumn != null && f.AreaGone == null)
+                {
+                    f.Words[level] = input.Confirmed.AreaColumn.Column;
+                    f.WordSources[level] = ConfirmedProfile.PersonEntered;
+                    f.WordNotes[level] = null;
+                    f.WordCandidates[level].Clear();
+                }
                 if (input.Confirmed != null && input.Confirmed.Levels.TryGetValue(level + 1, out string word))
                 {
                     f.Words[level] = word;
@@ -165,17 +190,36 @@ namespace SiteAdaptation.Common
             }
             if (confirmed.Column != null)
             {
-                f.ColumnApplied = ApplyColumn(f.Settings, f.Input, f.Plots, confirmed.Column);
+                f.ColumnGone = ApplyColumn(f.Settings, f.Input, f.Plots, confirmed.Column, out f.ColumnListedTwice);
+                f.ColumnApplied = f.ColumnGone == null;
                 if (!f.ColumnApplied)
                 {
-                    f.Input.Notes.Add(new DataCheckNote { Name = confirmed.Column.Sheet + "|" + confirmed.Column.Column, Kind = "confirmed column", Read = false, Reason = "the confirmed typology column does not join to the plots of this folder, no plot took a code from it" });
+                    f.Input.Notes.Add(new DataCheckNote { Name = confirmed.Column.Sheet + "|" + confirmed.Column.Column, Kind = "confirmed column", Read = false, Reason = "the confirmed typology column was not used, " + f.ColumnGone });
+                }
+            }
+            if (confirmed.AreaColumn != null)
+            {
+                f.AreaGone = ApplyArea(f.Settings, f.Input, f.Plots, confirmed.AreaColumn);
+                if (f.AreaGone != null)
+                {
+                    f.Input.Notes.Add(new DataCheckNote { Name = confirmed.AreaColumn.Sheet + "|" + confirmed.AreaColumn.Column, Kind = "confirmed column", Read = false, Reason = "the confirmed area column was not used, " + f.AreaGone });
                 }
             }
             if (confirmed.CodeMap.Count > 0)
             {
                 ApplyMap(f.Plots, confirmed.CodeMap);
+                f.MapNotHeld = NotHeld(confirmed.CodeMap.Select(pair => pair.Key), f.Plots);
             }
             ApplyHands(f.Plots, confirmed.Hands);
+            f.HandsNotHeld = NotHeld(confirmed.Hands.Keys, f.Plots);
+            // R631. Confirming the column settles the type and lifts the mark, what the drawing still says is kept and counted, never dropped
+            foreach (Plot plot in f.Plots.Where(plot => plot.FromColumn && plot.DrawingCode != null && plot.Villa != plot.DrawingCode && !(plot.Villa == null && plot.VillaWhy != null && plot.CodeRead != null)))
+            {
+                if (plot.Villa != null)
+                {
+                    plot.ColumnDisagrees = "the drawing gives " + plot.DrawingCode + " and the confirmed column gives " + plot.Villa;
+                }
+            }
         }
 
         private static JObject ReadScan(DataCheckSettings settings, DataCheckInput input, HashSet<string> codes, HashSet<string> prototypes, out List<KeyValuePair<string, List<double[]>>> rings, out string plotSource)

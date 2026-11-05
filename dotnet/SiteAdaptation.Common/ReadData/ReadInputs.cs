@@ -218,10 +218,19 @@ namespace SiteAdaptation.Common.ReadData
             }
             string folder = Path.GetFullPath((string)config["inputRoot"]);
             configPath = Path.GetFullPath(configPath);
+            HashSet<string> skip;
+            try
+            {
+                skip = DataCheckSettings.SkipFoldersOf(config);
+            }
+            catch (InvalidDataException refused)
+            {
+                return new ReadPlan(new ReadInput[0], new string[0], new[] { refused.Message }, configPath, null, true);
+            }
             var inputs = new List<ReadInput>
             {
                 new ReadInput(Config, configPath, new FileInfo(configPath).Length, FileHash.Sha256(configPath)),
-                FolderInput(folder),
+                FolderInput(folder, skip),
             };
             string profile = Path.Combine(Path.GetFullPath(workFolder), ConfirmedProfile.FileName);
             if (File.Exists(profile))
@@ -263,7 +272,7 @@ namespace SiteAdaptation.Common.ReadData
             return read == null || stops.Count > 0 ? config : null;
         }
 
-        private static ReadInput FolderInput(string folder)
+        private static ReadInput FolderInput(string folder, HashSet<string> skip)
         {
             long bytes = 0;
             var lines = new List<string>();
@@ -279,7 +288,7 @@ namespace SiteAdaptation.Common.ReadData
                     lines.Add(file.Substring(folder.Length) + "|" + info.Length + "|" + info.LastWriteTimeUtc.Ticks);
                 }
                 // As the worker walks it, a link or junction is never followed
-                foreach (string child in Directory.GetDirectories(here).Where(child => (File.GetAttributes(child) & FileAttributes.ReparsePoint) == 0))
+                foreach (string child in Directory.GetDirectories(here).Where(child => !skip.Contains(Path.GetFileName(child)) && (File.GetAttributes(child) & FileAttributes.ReparsePoint) == 0))
                 {
                     pending.Push(child);
                 }

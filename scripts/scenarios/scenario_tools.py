@@ -226,21 +226,26 @@ def lines_of(results):
     return "\n".join(out) + "\n"
 
 
+def areas_read(rows):
+    """The areas of the plot table of a run, the key every later button works by."""
+    return len({row.get("nbhId") for row in rows if row.get("nbhId")})
+
+
 def score_rows(results):
     """One row per scenario of a set of runs, counts and marks only."""
-    out = ["| Scenario | What it is | Ran | Built from | Plots read | Numbers right | Villa type right | Mirror right | Group words right | Marks: strong, usable, weak, missing | Copies unchanged |",
-           "|---|---|---|---|---|---|---|---|---|---|---|"]
+    out = ["| Scenario | What it is | Ran | Built from | Plots read | Numbers right | Villa type right | Mirror right | Group words right | Marks: strong, usable, weak, missing | Copies unchanged | Areas read | Areas on the sheet, second check |",
+           "|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
     for name in sorted(SCENARIOS):
         result = results.get(name)
         if not result:
-            out.append("| %s | %s | not run | UNKNOWN | 0 of 0 | 0 of 0 | 0 of 0 | 0 of 0 | not scored | none | UNKNOWN |" % (name, SCENARIOS[name]))
+            out.append("| %s | %s | not run | UNKNOWN | 0 of 0 | 0 of 0 | 0 of 0 | 0 of 0 | not scored | none | UNKNOWN | UNKNOWN | UNKNOWN |" % (name, SCENARIOS[name]))
             continue
         marks = [row["mark"] for row in result["needs"]]
         scored = result["score"]
-        out.append("| %s | %s | %s | %s | %d of %d | %d of %d | %d of %d | %d of %d | %s | %s | %s |" % (
+        out.append("| %s | %s | %s | %s | %d of %d | %d of %d | %d of %d | %d of %d | %s | %s | %s | %s | %s |" % (
             name, SCENARIOS[name], result["ran"], result.get("built", "UNKNOWN"), scored["read"], scored["right"], scored["numbers"], scored["right"], scored["villaType"], scored["right"], scored["mirror"], scored["right"],
             words_score(name, result.get("levels", [])),
-            ", ".join(str(marks.count(mark)) for mark in ("strong", "usable", "weak", "missing")), "yes" if not result["faults"] else "NO, %d files" % len(result["faults"])))
+            ", ".join(str(marks.count(mark)) for mark in ("strong", "usable", "weak", "missing")), "yes" if not result["faults"] else "NO, %d files" % len(result["faults"]), result.get("areas", "UNKNOWN"), result.get("sheetAreas", "UNKNOWN")))
     return out
 
 

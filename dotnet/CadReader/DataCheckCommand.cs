@@ -89,7 +89,7 @@ namespace CadReader
 
         // The files of the folder, each folder walked in ordinal order and a link or junction never followed, so a run reads only what the
         // folder holds
-        private static List<string> Files(string folder, List<DataCheckNote> notes)
+        private static List<string> Files(string folder, List<DataCheckNote> notes, HashSet<string> skip, List<string> skipped)
         {
             var found = new List<string>();
             var pending = new Stack<string>();
@@ -105,7 +105,12 @@ namespace CadReader
                     }
                     foreach (string child in Directory.GetDirectories(here))
                     {
-                        if ((File.GetAttributes(child) & FileAttributes.ReparsePoint) == 0)
+                        // R635. A folder of past outputs names no input of a new project, the tool cannot tell a past file by its own name
+                        if (skip.Contains(Path.GetFileName(child)))
+                        {
+                            skipped.Add(Relative(folder, child));
+                        }
+                        else if ((File.GetAttributes(child) & FileAttributes.ReparsePoint) == 0)
                         {
                             pending.Push(child);
                         }
@@ -137,7 +142,7 @@ namespace CadReader
 
         private static void Gather(WorkerContext run, string folder, DataCheckSettings settings, DataCheckInput input)
         {
-            foreach (string path in Files(folder, input.Notes))
+            foreach (string path in Files(folder, input.Notes, settings.SkipFolders, input.SkippedFolders))
             {
                 string name = Relative(folder, path);
                 string extension = Path.GetExtension(path).ToLowerInvariant();

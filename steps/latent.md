@@ -626,4 +626,3 @@ RAMP-3NOV-A, review and breaker, no real input reaches these:
 - DataCheckCodes.cs Typology: a column of code shape that runs across the groups and differs from the drawing qualifies though it holds no type, it ranks last with no plot of a prototype. The window shows the first and the rest.
 - config/project.json dataCheck.codePattern and groupNamePattern have no status entry, rule_status.py reads them as an input, as dataCheck.scan.labelPattern.
 - ReadInputs.cs FolderInput: a work folder inside the input root would change the hash of the folder on each run, so no read is reused. Runs write under the work root, D19, and no project has it so.
-- DataCheckCodes.cs PlotTable: the neighbourhood of a raw read is the group of level 1. Level 1 of a real folder is 100 m chains of plots, not the neighbourhoods of the sheet, so the scope offers those chains until a project names its areas.

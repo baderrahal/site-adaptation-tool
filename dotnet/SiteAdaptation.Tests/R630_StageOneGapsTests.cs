@@ -123,7 +123,7 @@ namespace SiteAdaptation.Tests
                 new[] { "Sizes (m)", "", "", "" },
                 new[] { "Form", "Former", "Current", "Area" },
                 new[] { "Villa", "OLD1", "NEW1", "400" },
-                new[] { "Villa", "OLD2-0 (SA)", "NEW2", "250" },
+                new[] { "Villa", "OLD2-0 (ZQ)", "NEW2", "250" },
                 new[] { "Duplex", "OLD2", "NEW3", "250" },
                 new[] { "", "OLD9", "", "250" },
                 new[] { "", "NEW1", "NEW1", "400" }));
@@ -149,7 +149,7 @@ namespace SiteAdaptation.Tests
         {
             DataCheckOutput output = DataCheckLogic.Run(Settings(), Input(null, RealShapeTable()));
             var proposed = ((JArray)output.Profile["codeMap"]["proposed"]).Select(row => (string)row["old"] + ">" + (string)row["new"]).ToList();
-            Assert.Equal(new[] { "OLD1>NEW1", "OLD2-0 (SA)>NEW2", "OLD2>NEW3", "NEW1>NEW1" }, proposed);
+            Assert.Equal(new[] { "OLD1>NEW1", "OLD2-0 (ZQ)>NEW2", "OLD2>NEW3", "NEW1>NEW1" }, proposed);
             Assert.Equal("computed", (string)output.Profile["codeMap"]["source"]);
             Assert.All((JArray)output.Profile["codeMap"]["proposed"], row => Assert.Equal("computed", (string)row["source"]));
         }

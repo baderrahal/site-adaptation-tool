@@ -32,6 +32,7 @@ namespace SiteAdaptation.Common
         public string Stopped { get; set; }
         public List<string> Ties { get; } = new List<string>();
         public ConfirmedProfile Confirmed { get; set; }
+        public List<string> SkippedFolders { get; } = new List<string>();
     }
 
     public sealed class DataCheckOutput
@@ -73,6 +74,11 @@ namespace SiteAdaptation.Common
             public HashSet<string> BlockCodes = new HashSet<string>(StringComparer.Ordinal);
             public bool HandKnown;
             public bool BlockOfOtherType;
+            public bool FromColumn;
+            public string ColumnDisagrees;
+            public string ListedTwoWays;
+            public string AreaName;
+            public string AreaWhy;
             public bool? Mirror;
             public bool HasBlock;
             public string MirrorWhy;
@@ -143,6 +149,7 @@ namespace SiteAdaptation.Common
                 })),
                 ["stopped"] = input.Stopped,
                 ["ties"] = new JArray(input.Ties),
+                ["skippedFolders"] = new JArray(input.SkippedFolders),
                 ["scanChecks"] = checks ?? new JArray(),
             };
         }

@@ -22,6 +22,7 @@ namespace SiteAdaptation.Common
         public Dictionary<string, string> Hands { get; } = new Dictionary<string, string>(StringComparer.Ordinal);
         public Dictionary<int, string> Levels { get; } = new Dictionary<int, string>();
         public ConfirmedColumn Column { get; private set; }
+        public ConfirmedColumn AreaColumn { get; private set; }
 
         // A file the person made is never half taken: a value of the wrong shape refuses the run with a line that names it, so a run that
         // goes on has honoured all of it
@@ -65,17 +66,24 @@ namespace SiteAdaptation.Common
                     profile.Levels[(int)level] = Text(row, "word", "levels");
                 }
             }
-            if (file["typologyColumn"] != null && file["typologyColumn"].Type != JTokenType.Null)
-            {
-                JToken column = file["typologyColumn"];
-                profile.Column = new ConfirmedColumn
-                {
-                    Sheet = Text(column, "sheet", "typologyColumn"),
-                    Column = Text(column, "column", "typologyColumn"),
-                    Workbook = column["workbook"]?.Type == JTokenType.String ? (string)column["workbook"] : null,
-                };
-            }
+            profile.Column = ColumnOf(file, "typologyColumn");
+            profile.AreaColumn = ColumnOf(file, "areaColumn");
             return profile;
+        }
+
+        private static ConfirmedColumn ColumnOf(JObject file, string name)
+        {
+            JToken column = file[name];
+            if (column == null || column.Type == JTokenType.Null)
+            {
+                return null;
+            }
+            return new ConfirmedColumn
+            {
+                Sheet = Text(column, "sheet", name),
+                Column = Text(column, "column", name),
+                Workbook = column["workbook"]?.Type == JTokenType.String ? (string)column["workbook"] : null,
+            };
         }
 
         private static JArray List(JToken token, string name)

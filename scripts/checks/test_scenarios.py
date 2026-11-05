@@ -135,6 +135,19 @@ def test_the_table_shows_the_confirmed_runs_apart_and_only_when_there_are_some()
     assert "SECRET-LAYER" not in after
 
 
+def test_the_table_counts_the_areas_read_beside_the_sheet():
+    assert tools.areas_read([{"nbhId": "A"}, {"nbhId": "A"}, {"nbhId": "B"}, {"nbhId": None}, {}]) == 2
+    text = tools.table({"S1": dict(RESULT, areas=2, sheetAreas=13)})
+    assert "| yes | 2 | 13 |" in text
+    assert "| 3 of 2 |" in tools.table({"S1": RESULT}) and "| yes | UNKNOWN | UNKNOWN |" in tools.table({"S1": RESULT})
+
+
+def test_the_confirmed_file_names_the_area_column_it_was_offered():
+    profile = {"areaColumn": {"proposed": {"workbook": "w.xlsx", "sheet": "S", "column": "C", "areas": 3}}}
+    assert confirmed_profile.confirmed(profile)["areaColumn"] == {"workbook": "w.xlsx", "sheet": "S", "column": "C"}
+    assert "areaColumn" not in confirmed_profile.confirmed({"areaColumn": {"proposed": None}})
+
+
 def test_a_run_that_skipped_a_file_shows_in_the_table():
     skipped = dict(RESULT, notRead=1)
     text = tools.table({"S1": RESULT, "S2": skipped})

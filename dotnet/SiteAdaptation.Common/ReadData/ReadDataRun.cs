@@ -270,9 +270,13 @@ namespace SiteAdaptation.Common.ReadData
         private ReadPlan Plan(RunContext context)
         {
             ReadPlan raw = ReadInputs.Raw(context.Inputs, roles, context.WorkFolder, ModePick?.Invoke());
-            if (raw != null)
+            if (raw != null && raw.Stops.Count == 0)
             {
                 return raw;
+            }
+            if (raw != null)
+            {
+                throw new InvalidDataException(string.Join(". ", raw.Stops));
             }
             ReadPlan plan = ReadInputs.Make(context.Inputs, roles, context.WorkFolder, RoadPick?.Invoke(), ModePick?.Invoke());
             if (plan.Stops.Count > 0)
@@ -366,7 +370,8 @@ namespace SiteAdaptation.Common.ReadData
         private static IReadOnlyList<string> Lines(ReadPlan plan, IEnumerable<string> unchanged)
         {
             var same = new HashSet<string>(unchanged, StringComparer.Ordinal);
-            return plan.Inputs.Select(input => RunTexts.ReadFile(Path.GetFileName(input.Path), input.Bytes, input.Sha256, same.Contains(input.Role))).ToList();
+            // R635. The folder of a raw read by its whole path, so the person sees which folder was read
+            return plan.Inputs.Select(input => RunTexts.ReadFile(input.Role == ReadInputs.ScanFolder ? input.Path : Path.GetFileName(input.Path), input.Bytes, input.Sha256, same.Contains(input.Role))).ToList();
         }
     }
 }
