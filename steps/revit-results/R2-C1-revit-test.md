@@ -1,6 +1,6 @@
 # R2-C1-revit-test, Revit check
 
-Date 2026-11-05. Lane revit-test, Revit 2024.3, one Revit window at a time under python/window_lock.py (round R2-C1-revit-test). Revit was closed after each of the three passes, tasklist showed 0 Revit processes each time, and the lock file was gone at the end.
+Date 2026-11-05. Lane revit-test, Revit 2024.3, one Revit window at a time under python/window_lock.py (round R2-C1-revit-test). Revit was closed after each of the four passes, tasklist showed 0 Revit processes each time, and the lock file was gone at the end.
 Screenshots and result files of the real run show client file names, the user name of this machine and plot data. They stay under the work root, folder `r2-c1-revit-test/shots`, never in git. The one picture in git is the draft `steps/ui-shots/confirm-profile.png`, made with invented names and codes.
 
 ## Build
@@ -9,7 +9,7 @@ Branch task/R2-C1-revit-test, installed with dotnet/SiteAdaptation.AddIn/Install
 
 ## Model and folder
 
-- Model: `R2-empty-model.rvt` in the folder r2-c1-revit-test of the work root, a copy of the project a test job made from the Revit metric template. Nothing was run on it before. Proof that it is empty: the window 1 Set up site opened with the badge "Empty project found" and the text "This model has no site coordinates" (`r2-c1-revit-test/shots/drv/d-setup-window.png`), the pane opened on "Start here, Set up this project" with no saved setup (`shots/drv/a-start.png`), and the model browser holds only the template views, Level 1 and Level 2. All three passes opened this same file, never saved, so each pass started from the empty model.
+- Model: `R2-empty-model.rvt` in the folder r2-c1-revit-test of the work root, a copy of the project a test job made from the Revit metric template. Nothing was run on it before. Proof that it is empty: the window 1 Set up site opened with the badge "Empty project found" and the text "This model has no site coordinates" (`r2-c1-revit-test/shots/drv/d-setup-window.png`), the pane opened on "Start here, Set up this project" with no saved setup (`shots/drv/a-start.png`), and the model browser holds only the template views, Level 1 and Level 2. All four passes opened this same file, never saved, so each pass started from the empty model.
 - Folder: S1 of the work root, named by inputRoot of a copy of the shipped config. The config copy is the shipped config/project.json with inputRoot changed to S1. A first copy of an older config lacked dataCheck.skipFolders and button 2 stopped in plain words, see Seen below.
 - S1 was only read. The name, size and write time of every file in it gave the same fingerprint before and after (`r2-c1-revit-test/s1_before.txt` against the same listing after the last pass).
 - The saved project of the pane named the config, mode rev6 and no input file. All the file rows of the pane stayed "Not chosen" during the whole run.
@@ -38,6 +38,10 @@ Pass 3 (`shots/drv4`), after the second fix. A first start of this pass lost the
 15. Cancel gave the same "Nothing was saved. The read stays as it is." and the pane moved to Review data (`p3-h-after-cancel.png`).
 16. Scope, Neighbourhood, one of the 14 areas of the confirmed area column, Run 3 Review data: "3 Review data, 386 plots" (`p3-k-review.png`).
 
+Pass 4 (`shots/drv5`), the final build (window files in ScanResults, level rows by constants, merged with main), same model:
+17. Use a saved project, 1 Set up site (invented position, Dry run, Apply), Run 2 Read data. The dry run said "Reuses the read of run 2_20261105-133841-555, its 3 input files are unchanged" (`p4-d-read-preview.png`), so the confirmed read of pass 3 was reused and no worker started.
+18. Apply showed the check window (`p4-e-check-window.png`), then the confirm window on the confirmed values (`p4-f-confirm-top.png`). Scrolled down, the sections Hand of each prototype (13 rows, DP1 right) and Group levels (Level 1 word typed earlier, Level 2 empty) show (`p4-g-confirm-levels.png`). Cancel gave the line that nothing was saved (`p4-h-after-cancel.png`). Revit closed, 0 processes, no lock file.
+
 ## Plot count against plots.json
 
 - Pass 1 read, folder `read_125fd91d15620fe8` of the work folder of the model: plots.json 2964 plots, read_plotTable.json 2964 rows (area by distance: 2963 and 1), window counters 2,964 plots found, 3 Review data 2963 plots for the first area.
@@ -49,7 +53,7 @@ Pass 3 (`shots/drv4`), after the second fix. A first start of this pass lost the
 - Code map: proposed 16 pairs, typed by the person or kept, saved as source person entered, shown again as confirmed (steps 6, 9, 14).
 - Hand of each prototype: 13 prototypes, every one "no guess" on S1, the person gave one, saved and shown again (9, 14).
 - Group levels: the word of level 1 typed and saved, shown again (9). The window lists two levels.
-- Screenshots: draft in git `steps/ui-shots/confirm-profile.png`. Real run in the work root `r2-c1-revit-test/shots/drv`, `drv2`, `drv3` (the lost start), `drv4`.
+- Screenshots: draft in git `steps/ui-shots/confirm-profile.png`. Real run in the work root `r2-c1-revit-test/shots/drv`, `drv2`, `drv3` (the lost start), `drv4`, `drv5`.
 
 ## Not seen in Revit, UNKNOWN
 
