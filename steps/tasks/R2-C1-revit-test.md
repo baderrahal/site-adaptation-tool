@@ -8,6 +8,9 @@ allowed:
   - dotnet/SiteAdaptation.UiShots/
   - dotnet/SiteAdaptation.TestHost/
   - dotnet/SiteAdaptation.Tests/R636_ConfirmWindowTests.cs
+  - dotnet/SiteAdaptation.Tests/UiLabelTests.cs
+  - docs/rules/15-data-check-r600-up.md
+  - docs/rules/index.md
   - docs/design/14-ui-labels.md
   - steps/ui-shots/
   - steps/revit-results/

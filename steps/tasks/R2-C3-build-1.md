@@ -1,21 +1,28 @@
 ---
 id: R2-C3-build-1
-lane: build-1
+lane: build-2
 stage: rules
-status: waiting
+status: open
 allowed:
-  - dotnet/SiteAdaptation.Common/
-  - dotnet/CadReader/
-  - dotnet/SiteAdaptation.Tests/
-  - config/project.json
+  - dotnet/SiteAdaptation.Common/ProjectRules/
+  - dotnet/SiteAdaptation.Tests/ProjectRules/
   - rules/
   - docs/rules/
-  - steps/latent.md
+  - config/project.json
 ---
 
 # Scope
 
 Rules per project, the basics, no Revit call. Bader's order, round R2 C3.
+
+Side by side with R2-C2-build-1 on build-1, Bader's order of 5 Nov 2026, so:
+
+- In Common and Tests this lane writes only new files, in ProjectRules/ of each. The commands rulesSetup and rulesChange are added in ProjectRulesCommands.Add, which the worker already calls. Their names, the request fields Who, RuleId and NewValue, a project folder as a folder input and a rules file that rulesChange may change are already in place (R640_WorkerSeamTests).
+- A change to an existing file of Common is asked of Lead with the reason. Lead adds that exact path to this list by a PR, or says do it another way. Do not edit it first.
+- The runner does not mark or compare the rules input of rulesChange, as the command changes it. So rulesChange itself refuses a rules file under rules/templates, the shipped templates are read only, with a test.
+- Write the rule lines of R660 and R661, the seam cites them. docs/rules/index.md comes from python/rules_index.py, on a clash take main and run it again.
+- steps/latent.md is build-1's. LATENT findings go in the PR body, Lead enters them.
+- SiteAdaptation.Common.ProjectRules.RulesForBuild.Check(string rulesPath, JObject config) is what siteBuild of R2-C2-build-1 calls: a null path gives RulesChoiceLine, the line that asks once, rules not confirmed give BlockingLine under block, and an issue under warn, and it returns the rules. This task merges before C2.
 
 1. Rules live per project in the project folder beside the project profile, never in code. Shipped templates under rules/templates are read only: manual.json from the manual, past-job.json holding the past job measures, never a default.
 2. A first Build with no rules chosen asks once to use the manual rules template.
@@ -34,7 +41,7 @@ tests/acceptance/test_r2_build.py, those marked R2-C3-build-1.
 
 # Done when
 
-Those tests pass, and a project with no rules builds with every rule value missing and marked, never a default from a past job.
+Those tests pass. RulesForBuild.Check with no rules gives every rule value missing and marked, never a default from a past job. S1 and the hold-out are unchanged by the PR, Bader's order of 5 Nov 2026. The build through siteBuild is proven by the tests C2 holds.
 
 # Revit check needed
 

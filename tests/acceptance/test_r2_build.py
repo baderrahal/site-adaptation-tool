@@ -151,7 +151,7 @@ def test_the_past_measures_are_a_template_of_their_own_and_never_the_default(tmp
     assert all(rule.get("source") != "past" for rule in json.loads(rules.read_text(encoding="utf-8"))["rules"])
 
 
-@RULES
+@BUILD
 def test_a_first_build_with_no_rules_asks_once(stage1, tmp_path):
     plan, _ = build(stage1, tmp_path / "b")
     assert plan["rulesChoice"] and plan["rulesChoice"]["line"]
@@ -165,7 +165,7 @@ def test_rules_from_a_template_stay_not_confirmed(tmp_path):
     assert data["rules"] and all(rule["status"] == "not confirmed" for rule in data["rules"] if not rule.get("fixed"))
 
 
-@RULES
+@BUILD
 @pytest.mark.parametrize("setting, blocks", [("warn", False), ("block", True)])
 def test_before_build_warns_or_blocks_on_rules_not_confirmed(stage1, tmp_path, setting, blocks):
     made_up_project.write_project(tmp_path / "project")
