@@ -2,6 +2,30 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## FAST-1-build-1 PR 6, card 3 Review and deliver, 6 Nov 2026
+
+Goal:
+- Item 5 of FAST-1: the issues count, the source mix bar, Report and Update from report, and point 1 of R2-C3, the rules table from a rule issue.
+
+Done:
+- dotnet/SiteAdaptation.AddIn/Pane/StageResults.cs reads build_plan.json of the newest build folder of the work folder: its issues, and the source of each plot value, the tags of R703, counted as computed, rule, person entered, missing and other. The closing messages of the steps are no issues, card 2 says them. R689.
+- Card 3 shows the count, Open rules when an issue names a rule, the bar and its line, Report and Update from report, which runs the command of its ribbon button. R690.
+
+Checked:
+- R689 3 of 3, with R680, R686, R688, the labels and the shots 39 of 39 on net48 after review 1. pane-stage-3.png rendered.
+
+Remains:
+- Item 6 Q504, item 7 a shot of each window.
+
+Known bugs:
+- Not seen in Revit.
+
+Next:
+- Item 6, Q504.
+
+Your turn:
+- FAST-3-revit-test opens card 3 in Revit after a build, label revit-later.
+
 ## Rules R730 to R732 and R688, FAST-3 opens tonight, 6 Nov 2026
 
 Goal:
