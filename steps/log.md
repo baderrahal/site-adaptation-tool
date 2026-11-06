@@ -2,6 +2,29 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## FAST-4-build-3, the plot read and the mirror, 6 Nov 2026
+
+Goal:
+- Items 1 and 2 of FAST-4: the plot table holds the villa plots and lists the rest with the reason, the mirror from the block scale, its footprint and the pair trace.
+
+Done:
+- R730 plots.json plots holds the plots a villa goes on, the rest in otherPlots with the reason. R731 a block goes to every plot its outline covers, the hand turns at each house along it, CadScan writes the outline and axes of each insert. R732 a pair with no block is traced and said, its hand left missing.
+
+Checked:
+- S1 on main 4c11b72 then on f153f14: plots read 2964 to 2618, 346 listed apart, numbers right 1873 of 1891 kept, mirror right 448 to 735 of 1891. S2: 2964 to 2632, 332 apart, mirror 0 to 0, 802 plots traced into pairs. A shapely route on the plain blocks.json gives the same hand on 2079 of 2079 plots. FAST4 tests 7 of 7, quick tests and tests/acceptance pass.
+
+Remains:
+- 2618 is not 1891: 745 plots read with a villa sign are not in the answer, which leaves the hold-out areas out, and 18 plots of the answer are not read, as before. The tool cannot tell a hold-out area. 499 plots under blocks of two layers the scan does not pick as villa block layers get no block hand.
+
+Known bugs:
+- Not seen in Revit, no Revit file touched. ParsonsModelTests R310 failed once under the 24 GB scenario run and passed alone on this branch and on main.
+
+Next:
+- Lead takes the rule lines R730 to R732 from steps/seam.md into docs/rules.
+
+Your turn:
+- None.
+
 ## FAST-2-build-2 PR 3, 6 Nov 2026, Update from report on a new project, no road level, wall thickness, the docked page
 
 Goal:

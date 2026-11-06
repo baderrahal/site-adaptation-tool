@@ -104,6 +104,13 @@ namespace CadReader
                         insert["insertY"] = insert["y"];
                         insert["x"] = R(centre[0]);
                         insert["y"] = R(centre[1]);
+                        // R731. The outline gives the block to every plot it covers, a duplex or a row of houses stands on several
+                        insert["outline"] = new JArray(block.Outline.Select(point => new JArray(R(point[0]), R(point[1]))));
+                    }
+                    if (block.AxisX != null && block.AxisY != null)
+                    {
+                        insert["axisX"] = new JArray(Math.Round(block.AxisX[0], 6), Math.Round(block.AxisX[1], 6));
+                        insert["axisY"] = new JArray(Math.Round(block.AxisY[0], 6), Math.Round(block.AxisY[1], 6));
                     }
                 }
                 inserts.Add(insert);

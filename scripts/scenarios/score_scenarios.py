@@ -29,10 +29,30 @@ def result_of(name, root, run=None):
     plan = read_json(built / "build_plan.json")
     seconds = (read_json(built / "build_time.json") or {}).get("seconds")
     return {
-        "build": tools.build_counts(plan, seconds) if plan else None,
+        "build": tools.build_counts(plan, seconds) if plan else None, "listedApart": len(plots["otherPlots"]) if "otherPlots" in plots else "not listed by this worker",
         "ran": str(worker.get("status", "UNKNOWN")), "needs": check["needs"], "areas": tools.areas_read(table["plots"]), "sheetAreas": second.get("neighbourhoodsInSheet") or "not found", "notRead": sum(1 for row in check.get("files", []) if row.get("status") != "read"), "score": tools.score(answer, plots["plots"]),
         "faults": tools.manifest_faults(root / name, manifest), "levels": profile["levels"], "built": str((read_json(out / "built_from.json") or {}).get("commit", "UNKNOWN"))[:7],
     }
+
+
+BEFORE_RUN = "_before"
+
+
+def apart_line(results, names=None):
+    """R730. How many plots each run listed apart as no villa goes on them, each with its reason in plots.json under otherPlots."""
+    return "Plots listed apart, no villa goes on them: " + ", ".join("%s %s" % (name, (results.get(name) or {}).get("listedApart", "UNKNOWN")) for name in (names or sorted(tools.SCENARIOS))) + "."
+
+
+def before_section(before):
+    """FAST-4. The runs of main before the change of a task, made by run_stage1.py --suffix _before, beside the runs above. Only the
+    scenarios that have such a run are shown."""
+    names = [name for name in sorted(tools.SCENARIOS) if before.get(name)]
+    if not names:
+        return ""
+    rows = tools.score_rows(before)
+    kept = rows[:2] + [row for row in rows[2:] if row.split(" | ")[0].strip("| ") in names]
+    return "\n".join(["", "## Before the change, the same folders on main", "", "Each run named _before under the work root, made with a worker built from the commit in Built from. Only the scenarios with such a run are shown: " + ", ".join(names) + ".", ""]
+                     + kept + ["", apart_line(before, names)]) + "\n"
 
 
 def main(argv=None):
@@ -40,7 +60,9 @@ def main(argv=None):
     results = {name: result_of(name, root) for name in tools.SCENARIOS}
     confirmed = {name: result_of(name, root, name + tools.CONFIRMED_RUN) for name in tools.SCENARIOS}
     target = ROOT / "steps" / "scenarios.md"
-    target.write_text(tools.table(results, confirmed), encoding="utf-8", newline="\n")
+    before = {name: result_of(name, root, name + BEFORE_RUN) for name in tools.SCENARIOS}
+    text = tools.table(results, confirmed).replace(tools.not_read_line(results) + "\n", tools.not_read_line(results) + "\n\n" + apart_line(results) + "\n", 1)
+    target.write_text(text + before_section(before), encoding="utf-8", newline="\n")
     report = tools.lines_of(results) + "\n# With a confirmed profile\n" + tools.lines_of(confirmed)
     (root / "report.md").write_text(report, encoding="utf-8", newline="\n")
     print("wrote %s, %d and %d of %d scenarios scored" % (target.name, sum(1 for result in results.values() if result), sum(1 for result in confirmed.values() if result), len(results)))

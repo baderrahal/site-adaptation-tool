@@ -213,6 +213,14 @@ namespace CadReader
         public bool? ChainMirrored { get; set; }
         public List<double[]> Outline { get; set; }
 
+        // R731. The directions in world coordinates of the X and Y axes of the block as inserted, the whole chain of inserts and the scale
+        // sign taken, so a plot can be placed along the block. Kept out of blocks.json, whose fields R68 fixes
+        [Newtonsoft.Json.JsonIgnore]
+        public double[] AxisX { get; set; }
+
+        [Newtonsoft.Json.JsonIgnore]
+        public double[] AxisY { get; set; }
+
         // R453. Each polyline drawn in the block with its ends joined, null when the block holds none
         public List<BlockRing> Rings { get; set; }
         public string Note { get; set; }
