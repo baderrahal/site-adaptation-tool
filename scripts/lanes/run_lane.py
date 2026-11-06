@@ -48,6 +48,7 @@ def main(argv=None):
     parser.add_argument("lane")
     parser.add_argument("prompt")
     parser.add_argument("--model")
+    parser.add_argument("--effort", help="the effort level of the session, as the CLI takes it")
     parser.add_argument("--resume", help="the log stem of the session to carry on")
     args = parser.parse_args(argv)
     prompt = Path(args.prompt)
@@ -57,9 +58,15 @@ def main(argv=None):
     command = [str(program()), "-p", prompt.read_text(encoding="utf-8"), "--permission-mode", "auto", "--output-format", "stream-json", "--verbose"]
     if args.model:
         command += ["--model", args.model]
+    if args.effort:
+        command += ["--effort", args.effort]
     if args.resume:
         command += ["--resume", session_of(log)]
-    env = dict(os.environ, CLAUDE_CODE_GIT_BASH_PATH=git_bash())
+    # Bader's order of 6 Nov: a session from the sidebar failed as its hooks found no bash and no project folder, so both are set here
+    bash = git_bash()
+    lane_folder = ROOT / ".claude" / "worktrees" / args.lane
+    env = dict(os.environ, CLAUDE_CODE_GIT_BASH_PATH=bash, CLAUDE_PROJECT_DIR=str(lane_folder))
+    env["PATH"] = str(Path(bash).parent) + os.pathsep + env.get("PATH", "")
     env.pop("SITE_ADAPTATION_INPUT", None)
     with open(log, "a" if args.resume else "w", encoding="utf-8") as out:
         done = subprocess.run(command, cwd=ROOT / ".claude" / "worktrees" / args.lane, stdin=subprocess.DEVNULL, stdout=out, stderr=subprocess.STDOUT, text=True, encoding="utf-8", errors="replace", env=env)

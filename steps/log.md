@@ -2,6 +2,29 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Lanes started hidden, 6 Nov 2026
+
+Goal:
+- Bader's order: Lead starts the builders hidden, he opens no terminal.
+
+Done:
+- scripts/lanes/run_lane.py takes --effort, and gives the lane CLAUDE_PROJECT_DIR of its folder and the bin of Git Bash first on PATH. build-1 on FAST-1-build-1 and build-2 on FAST-2-build-2 run hidden, opus, effort high.
+
+Checked:
+- Both logs show the hook found the lane and its task, model claude-opus-5-5, no tool error. Both task branches on origin.
+
+Remains:
+- FAST-1 and FAST-2 build.
+
+Known bugs:
+- R310 at random until FAST-2 item 9.
+
+Next:
+- The lanes' first PRs.
+
+Your turn:
+- None.
+
 ## Bader's form answered, 6 Nov 2026
 
 Goal:
