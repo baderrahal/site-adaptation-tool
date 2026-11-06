@@ -115,7 +115,7 @@ namespace SiteAdaptation.AddIn.Pane
                 string plots = Path.Combine(readFolder, DataCheckRows.PlotsFileName);
                 return DataCheckRows.ReadResult(WorkFiles.ReadText(Path.Combine(readFolder, DataCheckRows.FileName)), File.Exists(plots) ? WorkFiles.ReadText(plots) : null).Rows;
             }
-            catch (Exception failure) when (failure is IOException || failure is UnauthorizedAccessException || failure is Newtonsoft.Json.JsonException || failure is InvalidDataException)
+            catch (Exception failure) when (failure is IOException || failure is UnauthorizedAccessException || failure is Newtonsoft.Json.JsonException || failure is InvalidDataException || failure is FormatException)
             {
                 return new DataCheckRow[0];
             }

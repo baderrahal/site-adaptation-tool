@@ -18,6 +18,9 @@ Control 3 of docs/design/12-ui-spec.md, UI controls. Each PNG is a render of a w
 | new-project.png | The New project window of Lane C NEWPROJ-UI, the site drawing and the plot list found, road levels and the parameter sheet missing as on the board, sample counts 337 plots and 14 villa types, the content of the window at 1080 wide with no title bar of Windows | Draft (Q286) |
 | road-surfaces.png | The window Road surfaces of Lane D FIX-2NOV-D, R492, two surfaces ticked in order, sample names made up, no board holds it | Draft (Q370) |
 | how-it-works.png | The How it works page of Lane C NEWPROJ-UI, the 9 steps, the content of the window at 1080 wide with no title bar of Windows | Draft (Q286) |
+| pane-stage-1.png | Card 1 Project data of the pane in 3 stages of FAST-1-build-1 (R680, R681), 3 made up data check rows, strong, weak and missing, drawn from the Drafts list of Shots | Draft, not seen in Revit |
+| pane-stage-2.png | Card 2 Build site of the same pane, the Build button grey until the one Build is wired | Draft, not seen in Revit |
+| pane-stage-3.png | Card 3 Review and deliver of the same pane, Report runs step 9 of version 1 | Draft, not seen in Revit |
 | revit-ribbon.png | The Site Adaptation tab in Revit 2024, cut from the window by PrintWindow in Revit run 3 of 5a, 29 Oct 2026 | Taken in Revit, for Bader's check |
 | revit-pane.png | The live pane page in Revit run 3 of 5a by RenderTargetBitmap at 96 DPI, first open state, the detached document of the run active | Taken in Revit, for Bader's check |
 
