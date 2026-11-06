@@ -189,6 +189,59 @@ namespace SiteAdaptation.AddIn
             }
         }
 
+        // R682. Where the rules table of the active project reads and writes, null with no project
+        private RulesWindow.ProjectRulesPlace RulesPlace()
+        {
+            PaneSettings settings = model.Settings;
+            DocumentSession document = model.Document;
+            if (settings == null || document == null)
+            {
+                return null;
+            }
+            return new RulesWindow.ProjectRulesPlace
+            {
+                ConfigFile = settings.ConfigFile, RulesProfile = settings.RulesFile, WorkRoot = WorkRoot(), WorkFolder = WorkFolderNow(),
+                ProjectMode = settings.Project.ProjectMode, TemplateFolder = RulesWindow.ProjectRulesTable.InstalledTemplates(), Who = Environment.UserName,
+                Document = new Common.WorkerDocument { Path = document.Path, SessionId = document.SessionId },
+            };
+        }
+
+        // R682. Settings, Rules, Open: the rules table over the main window of Revit, then the pane reads the rules again
+        private void OpenRules(StagesViewModel stages)
+        {
+            RulesWindow.ProjectRulesPlace place = RulesPlace();
+            if (place == null)
+            {
+                return;
+            }
+            var window = new RulesWindow.ProjectRulesWindow(new RulesWindow.ProjectRulesViewModel(place));
+            new System.Windows.Interop.WindowInteropHelper(window).Owner = owner;
+            window.ShowDialog();
+            rulesStamp = null;
+            stages.Refresh();
+        }
+
+        // R683. The amber line, read again only when the config, the rules or their log changed, as the pane refreshes on every change of its model
+        private string rulesStamp;
+        private string rulesLine;
+
+        private string RulesLineNow()
+        {
+            RulesWindow.ProjectRulesPlace place = RulesPlace();
+            if (place == null)
+            {
+                return null;
+            }
+            string stamp = string.Join("|", new[] { place.ConfigFile, place.RulesFile, place.Folder == null ? null : System.IO.Path.Combine(place.Folder, RulesWindow.RulesFileNames.LogName) }
+                .Select(path => string.IsNullOrEmpty(path) || !System.IO.File.Exists(path) ? path + "@none" : path + "@" + System.IO.File.GetLastWriteTimeUtc(path).Ticks));
+            if (stamp != rulesStamp)
+            {
+                rulesStamp = stamp;
+                rulesLine = RulesWindow.ProjectRulesTable.AmberLine(RulesWindow.ProjectRulesTable.Read(place), RulesWindow.ProjectRulesTable.HasRules(place));
+            }
+            return rulesLine;
+        }
+
         private static string WorkRoot()
         {
             return WorkFolder.Root(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
@@ -281,6 +334,8 @@ namespace SiteAdaptation.AddIn
             var stages = new StagesViewModel(model) { WorkFolderNow = WorkFolderNow };
             stages.ChooseFolderRequested += ChooseProjectFolder;
             stages.FixItemsRequested += FixItems;
+            stages.RulesRequested += () => OpenRules(stages);
+            stages.RulesLineNow = RulesLineNow;
             var page = new StagesPage(stages, new SitePanePage(model));
             probe.Post = action => page.Dispatcher.BeginInvoke(action);
             data.FrameworkElement = page;

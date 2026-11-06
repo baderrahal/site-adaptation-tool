@@ -72,6 +72,25 @@ namespace SiteAdaptation.AddIn.ScanResults
             };
         }
 
+        // R700, FAST-2. The parameter sheet of the project settings, else the one config names, so the need sharedParameters reads it. Null when
+        // neither is on disk, as the runner refuses an input that is not, and the need then says missing
+        public static WorkerFile SheetInput(PaneSettings settings)
+        {
+            string sheet = settings.InputPath(InputKeys.ParameterSheet);
+            if (string.IsNullOrEmpty(sheet) || !File.Exists(sheet))
+            {
+                try
+                {
+                    sheet = Common.SetUp.ParameterSheet.PathOf(settings.ConfigFile, Newtonsoft.Json.Linq.JObject.Parse(WorkFiles.ReadText(settings.ConfigFile)));
+                }
+                catch (Exception failure) when (failure is IOException || failure is UnauthorizedAccessException || failure is InvalidDataException || failure is Newtonsoft.Json.JsonException || failure is ArgumentException)
+                {
+                    return null;
+                }
+            }
+            return File.Exists(sheet) ? new WorkerFile { Role = InputNames.ParameterSheet, Path = Path.GetFullPath(sheet), Sha256 = string.Empty } : null;
+        }
+
         private static void Start(ButtonBody read, IWorkerStart worker, WorkerDocument document, PaneSettings settings, IntPtr owner, RunContext context, Action<RunLater> done)
         {
             Held.TryRemove(context.RunId, out string held);
@@ -121,7 +140,8 @@ namespace SiteAdaptation.AddIn.ScanResults
                 {
                     FormatVersion = WorkerRequest.CurrentFormatVersion, RunId = context.RunId + RunIdSuffix, Document = document, Command = Command,
                     // The empty SHA-256 of these two roles is the one R600 allows this command alone
-                    Inputs = new List<WorkerFile> { new WorkerFile { Role = DataCheckStepRoles.Folder, Path = folder }, new WorkerFile { Role = ReadInputs.Config, Path = settings.ConfigFile } },
+                    Inputs = new List<WorkerFile> { new WorkerFile { Role = DataCheckStepRoles.Folder, Path = folder }, new WorkerFile { Role = ReadInputs.Config, Path = settings.ConfigFile } }
+                        .Concat(new[] { SheetInput(settings) }).Where(input => input != null).ToList(),
                     Scope = new WorkerScope { Kind = "project" }, OutputFolder = output,
                     TimeLimitS = AddinConfig.Load(settings.ConfigFile).WorkerTimeLimitS(Command),
                 };
