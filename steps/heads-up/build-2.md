@@ -35,6 +35,6 @@ FAST-2-build-2 is done with PR 4. Items 1, 2, 3, 6, 7, 8, 9, 10, 11 and 12 are b
 - Item 6: no floor of free memory is left in the worker, the listener, the Python tools or config.
 - Item 9: the R310 tests take a CIM limit from times measured on this PC.
 Left for others:
-- build-1: the floor lines of the three TestHost scripts. Then the tests can be held to the lines without the floor.
+- build-1: the variable SITEADAPT_LISTENER_MIN_FREE_GB of Start-RevitListener.ps1 line 66. The listener no longer reads it, R448_RevitListenerTests.cs holds a setting with it and without it. Run-TestHost.ps1 and Run-Parallel.ps1 hold no floor since PR 237, and ParsonsModelTests.cs and TestHostTests.cs R110 now assert the lines without it.
 - build-1: AddinProbe can take AddinRunNames.DockedPage.
 Not seen in Revit: nothing of this task was opened in Revit.

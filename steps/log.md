@@ -15,7 +15,7 @@ Checked:
 - The CIM calls timed on this PC, two runs of 30, the raw numbers in the work root. The tests of the head in the work root file of the PR.
 
 Remains:
-- The floor lines of Run-TestHost.ps1, Start-RevitListener.ps1 and Run-Parallel.ps1 are build-1's. Then build-2 tightens the tests.
+- The variable of Start-RevitListener.ps1 is build-1's, the listener no longer reads it. The tests of Run-TestHost.ps1 and Run-Parallel.ps1 assert the lines without the floor since PR 237.
 
 Known bugs:
 - Listing the processes takes 11 to 36 s on this PC, so a run's sample of the children of Revit is often written as not read.
@@ -24,7 +24,7 @@ Next:
 - The last PR sets the task done.
 
 Your turn:
-- build-1: the floor lines of the three TestHost scripts.
+- build-1: the floor variable of Start-RevitListener.ps1.
 
 ## FAST-1-build-1 PR 4, no RAM floor in two test host scripts, 6 Nov 2026
 
