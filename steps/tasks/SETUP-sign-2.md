@@ -16,7 +16,7 @@ allowed:
 
 What SETUP-sign could not close, moved here so that task can close on what it proved. Waits for Bader's decision on how to get from one prompt to none.
 
-1. Zero prompts on a cold Revit start, by the route Bader picks: Always Load pressed by him, a certificate the company trusts, or the self-made one in Trusted Root, which a security check refused and only he may do. Whether a new build asks again is to be measured.
+1. Zero prompts on a cold Revit start, by the route Bader picks: Always Load pressed by him, a certificate the company trusts, or the self-made one in Trusted Root, which a security check refused and only he may do. Whether a new build asks again is to be measured. Measured on 6 Nov: a new build of the DLL brings the Load Once box back, so Always Load does not survive an install. Until a signed build, the driver presses Always Load on that box of Site Adaptation, Bader's order of 6 Nov 23:37.
 2. If a certificate is used: the remove and restore test, the prompt comes back when it is taken away.
 3. A screenshot of the Site Adaptation ribbon tab with its buttons. The tab sits under the ribbon's overflow arrow.
 4. The ricaun.RevitTest test reaching Revit, or a plain finding that it cannot on this PC and what replaces it, with two floor counts by different methods.
