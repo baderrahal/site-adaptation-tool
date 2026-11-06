@@ -145,7 +145,12 @@ The five panels and their buttons of 7.1 of docs/design/12-ui-spec.md, Bader's c
 - `Not started` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
 - `Waits for stage <n>` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
 - `No data check yet. Choose the project folder.` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
-- `Report runs step 9 of version 1. The issues count, where each value came from and Update from report are not wired here yet. Update from report stays on the ribbon.` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
+- `No build yet. Build site in stage 2 first.` CHOSEN, card 3 Review and deliver of FAST-1-build-1, item 5
+- `<n> issues from the last build.` CHOSEN, card 3 Review and deliver of FAST-1-build-1, item 5
+- `Values: computed <n>, rule <n>, person entered <n>, missing <n>, other <n>.` CHOSEN, card 3 Review and deliver of FAST-1-build-1, item 5
+- `Open rules` CHOSEN, card 3 Review and deliver of FAST-1-build-1, item 5
+- `Update from report` CHOSEN, card 3 Review and deliver of FAST-1-build-1, item 5
+- `Report runs step 9 of version 1, Update from report reads the Excel back.` CHOSEN, card 3 Review and deliver of FAST-1-build-1, item 5
 - `This project uses the shipped settings, so the tool cannot set its folder. Start a new project in Settings, Project setup, then choose the folder.` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
 - `The work folder of this model lies inside that folder, and the tool never writes into a project folder. Choose another folder or save the model elsewhere.` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
 - `The project folder was not saved: <name>` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
