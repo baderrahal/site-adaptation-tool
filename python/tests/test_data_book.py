@@ -31,7 +31,7 @@ def book_config(tmp_path):
     (tmp_path / "source").mkdir()
     return {"sourceRoot": str(tmp_path / "source"), "language": "en-US", "probeDll": str(tmp_path / "probe.dll"),
             "dataBook": {"root": str(root), "drawings": {"cutsheet": "Base Plans/cut.dwg"}, "acad": "acad.exe", "watcher": "watch.exe",
-                         "minFreeGB": 2, "timeoutMinutes": 1, "knownSurfaces": {}}}
+                         "timeoutMinutes": 1, "knownSurfaces": {}}}
 
 
 class Fake:
@@ -69,24 +69,17 @@ def test_r160_script_and_arguments():
     assert c3d_window.watch_args("w.exe", 7, "p.dll", "o.json", 5)[1:4] == ["--pid", "7", "--probe"]
 
 
-def test_r160_skips_when_memory_is_low_and_starts_nothing(tmp_path):
-    config = book_config(tmp_path)
-    (tmp_path / "book" / "work" / "Base Plans" / "cut.dwg").write_bytes(b"dwg")
-    record = c3d_window.run(config, "cutsheet", launcher=lambda a, e: pytest.fail("started"), memory=lambda: 1.5)
-    assert record["skipped"] and record["pids"] == []
-
-
-def test_r160_stops_only_its_own_window_when_memory_falls(tmp_path, monkeypatch):
+def test_r701_low_free_memory_neither_skips_nor_stops_the_window_and_is_recorded(tmp_path, monkeypatch):
     config = book_config(tmp_path)
     drawing = tmp_path / "book" / "work" / "Base Plans" / "cut.dwg"
     drawing.write_bytes(b"dwg")
     stopped = []
     monkeypatch.setattr(c3d_run, "stop_own", lambda process: stopped.append(process.pid) or True)
-    started = iter([Fake(100, polls=[None, None]), Fake(200, polls=[0])])
-    memory = iter([4.0, 3.0, 1.5])
+    started = iter([Fake(100, polls=[None, None, 0]), Fake(200, polls=[0])])
+    memory = iter([0.5, 0.4, 0.2, 0.3, 0.3, 0.3])
     record = c3d_window.run(config, "cutsheet", launcher=lambda a, e: next(started), memory=lambda: next(memory), sleep=lambda s: None)
-    assert record["pids"] == [100, 200] and stopped == [100]
-    assert "under 2 GB" in record["stopped"] and record["unchanged"] and record["done"] is False
+    assert record["pids"] == [100, 200] and stopped == []
+    assert "skipped" not in record and "stopped" not in record and record["freeGbAtStart"] == 0.5 and record["freeGbLowest"] == 0.2
     assert drawing.read_bytes() == b"dwg"
 
 

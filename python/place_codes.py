@@ -1,8 +1,7 @@
 """R231. A new site file placed one prototype code at a time, each run a linksAndFloors job of the test host into the same file.
 
-The codes are those of testHost.order the plan has plots of, in that order. Before each run free memory must reach
-siteBuild.minFreeGB within siteBuild.placeSettleMinutes, looked at once a minute, as memory comes back slowly after a Revit
-closes. When it does not, no more code is added and the codes left are listed. Every run goes through window_lock.py, the test
+The codes are those of testHost.order the plan has plots of, in that order. Free memory is logged before and after each run and
+holds no run back, R701 took the floor out. A run that fails stops the codes left, which are listed. Every run goes through window_lock.py, the test
 host saves the file after each run, and the time and free memory of each run go to logs/place_codes.jsonl of siteBuild.folder.
 """
 import argparse
@@ -31,27 +30,12 @@ def plan_codes(plan, order):
     return found
 
 
-def settle(free, floor, minutes, sleep=time.sleep):
-    """Free memory once it reaches floor within minutes, looked at once a minute, else None."""
-    for look in range(int(minutes) + 1):
-        value = free()
-        if value >= floor:
-            return value
-        if look < minutes:
-            sleep(60)
-    return None
-
-
-def run(codes, plan_path, block, first_code, log, free=window_lock.free_gb, launch=None, sleep=time.sleep):
-    """R231. One run per code until free memory stays under the floor. Returns the runs and the codes left."""
+def run(codes, plan_path, block, first_code, log, free=window_lock.free_gb, launch=None):
+    """R231. One run per code until a run fails. Returns the runs and the codes left."""
     runs, left = [], []
     work = Path(block["folder"]) / "logs"
     for index, (code, count) in enumerate(codes):
-        before = settle(free, block["minFreeGB"], block["placeSettleMinutes"], sleep)
-        if before is None:
-            left = [name for name, _ in codes[index:]]
-            log({"event": "stopped", "code": code, "why": "free memory stayed under the floor", "left": left})
-            break
+        before = free()
         job_code = "S" + str(first_code + index)
         spec = work / ("spec_" + job_code + "_links.json")
         spec.write_text(json.dumps({"kind": "linksAndFloors", "code": job_code, "prototypeCode": code, "plan": str(plan_path)}), encoding="utf-8")
