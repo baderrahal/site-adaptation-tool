@@ -2,7 +2,7 @@
 id: R2-C4-revit-test
 lane: revit-test
 stage: 1
-status: waiting
+status: done
 allowed:
   - dotnet/SiteAdaptation.AddIn/
   - dotnet/SiteAdaptation.UiShots/
@@ -12,6 +12,8 @@ allowed:
   - steps/ui-shots/
   - steps/revit-results/
 ---
+
+Folded into FAST-1-build-1.
 
 # Scope
 

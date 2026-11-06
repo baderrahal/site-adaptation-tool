@@ -206,15 +206,15 @@ def test_fixed_rules_cannot_be_changed(tmp_path):
     assert code != 0 or "fixed" in json.dumps(answer).lower()
 
 
-@pytest.mark.task("R2-C2-revit-test")
+@pytest.mark.task("FAST-3-revit-test")
 def test_the_build_run_in_revit_is_recorded():
-    text = (ROOT / "steps" / "revit-results" / "R2-C2-revit-test.md").read_text(encoding="utf-8")
+    text = (ROOT / "steps" / "revit-results" / "FAST-3-revit-test.md").read_text(encoding="utf-8")
     for word in ("Build", "preview", "progress", "screenshot", "4 Check", "5 Floors", "6 Levels", "7 Place", "8 Walls", "Q439"):
         assert word in text, word
 
 
-@pytest.mark.task("R2-C3-revit-test")
+@pytest.mark.task("FAST-3-revit-test")
 def test_the_rules_window_in_revit_is_recorded():
-    text = (ROOT / "steps" / "revit-results" / "R2-C3-revit-test.md").read_text(encoding="utf-8")
+    text = (ROOT / "steps" / "revit-results" / "FAST-3-revit-test.md").read_text(encoding="utf-8")
     for word in ("gear", "amber", "not confirmed", "screenshot"):
         assert word in text, word
