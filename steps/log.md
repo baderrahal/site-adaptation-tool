@@ -2,6 +2,29 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## FAST-1-build-1 PR 7, Q504 on card 3, 6 Nov 2026
+
+Goal:
+- Item 6 of FAST-1, Q504, Bader's answer 5A of 6 Nov: the card shows the count of the plots with no road level that the plan lists.
+
+Done:
+- StageResults.NoRoadLevelCount counts the issues of the plan with the words no road level, those of R705 of FAST-2. Card 3 says "<n> plots have no road level, so no floor level, and steps 6 to 8 leave them out." R691.
+
+Checked:
+- R691 with R689, R688 and the labels 16 of 16 on net48.
+
+Remains:
+- The listener floor line, once FAST-2 drops its refusal, Q570.
+
+Known bugs:
+- Not seen in Revit.
+
+Next:
+- The final statement of FAST-1.
+
+Your turn:
+- None.
+
 ## FAST-1-build-1 PR 6, card 3 Review and deliver, 6 Nov 2026
 
 Goal:
