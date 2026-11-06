@@ -7,8 +7,8 @@ using SiteAdaptation.Common.Flow;
 namespace SiteAdaptation.AddIn.Pane
 {
     // R688. The one Build runs set up site, check, floors and ramps, levels, villas and walls one after another through the step code of version 1, each step a run
-    // of its own button as a press of its row is. It stops only when a step did not end well, and says at which step and why. The messages of the steps that ended
-    // well are said in the line at the end. No Revit type, so a test drives it step by step
+    // of its own button as a press of its row is. It stops only when a step did not end well, and says at which step and why. The closing message of each step
+    // that ended well, most often a summary and no issue, is said in the line at the end. No Revit type, so a test drives it step by step
     public sealed class BuildChain
     {
         public static readonly int[] Order = { 1, 4, 5, 6, 7, 8 };
@@ -19,7 +19,7 @@ namespace SiteAdaptation.AddIn.Pane
         private readonly Func<int, string> name;
         private readonly Func<int, StepStatus> status;
         private readonly List<int> steps = new List<int>();
-        private readonly List<string> issues = new List<string>();
+        private readonly List<string> messages = new List<string>();
         private int at = -1;
         private int added;
 
@@ -39,7 +39,7 @@ namespace SiteAdaptation.AddIn.Pane
             {
                 return null;
             }
-            issues.Clear();
+            messages.Clear();
             steps.Clear();
             added = 0;
             steps.AddRange(Order.Where(step => step != 1 || !Ran(step)));
@@ -83,13 +83,13 @@ namespace SiteAdaptation.AddIn.Pane
             }
             if (!string.IsNullOrWhiteSpace(message))
             {
-                issues.Add(step + ": " + message.Trim());
+                messages.Add(step + ": " + message.Trim());
             }
             at++;
             if (at >= steps.Count)
             {
                 at = -1;
-                line = string.Join(" ", new[] { TextTemplate.Fill(SiteBuildText.BuildDone, steps.Count.ToString(CultureInfo.InvariantCulture), issues.Count.ToString(CultureInfo.InvariantCulture)) }.Concat(issues));
+                line = string.Join(" ", new[] { TextTemplate.Fill(SiteBuildText.BuildDone, steps.Count.ToString(CultureInfo.InvariantCulture)) }.Concat(messages));
                 return true;
             }
             next = Before(steps[at]);
