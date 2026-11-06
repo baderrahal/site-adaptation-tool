@@ -53,3 +53,10 @@ The S1 folder scans with sharedParameters strong, the plan carries a source on e
 - Keep steps/heads-up/<lane>.md current: what changed, where, what calls what, what is next. One page.
 
 At the end, put your final statement in the PR body and in steps/heads-up/<lane>.md, then push.
+
+# Rules for Lead
+
+Written by build-2, Lead enters them in docs/rules.
+
+- **R700 Shared parameters from the parameter sheet.** Input: the parameter sheet addin.parameterSheet of the project settings names, read in place by the worker of dataCheck and marked before and after, and the count of Revit shared parameter text files in the folder. Output: the need sharedParameters. Strong when the sheet holds at least one row for the villa links, category RVT Links, and each such row has a GUID. Usable when a link row has no GUID, the names listed, or when no sheet reads but the folder holds a shared parameter text file. Weak when the sheet is there and does not read, with the reason. Missing when the settings name no sheet, the sheet is not there, or it holds no link row, each said in plain words. Test: dotnet/SiteAdaptation.Tests/FAST2/R700_SharedParametersNeedTests.cs.
+- **R701 No free memory floor.** Input: free memory. Output: python/window_lock.py, python/c3d_window.py and python/place_codes.py log free memory and never wait, skip or stop on it, only the lock, the window processes, the time limit and a failed run hold a run back. python/c3d_probe.json holds no minFreeGB. The worker, the listener and siteBuild.minFreeGB of config follow once their tests are on build-2's list, steps/seam.md. Test: python/tests/test_window_lock.py test_r701_*, python/tests/test_data_book.py test_r701_*, python/tests/test_round16.py test_r701_*.
