@@ -171,6 +171,7 @@ namespace SiteAdaptation.AddIn.Pane
         public const int ReadDataStep = 2;
         public const int ReportStep = 9;
         private bool settingsOpen;
+        private string rulesLine;
         private string readFolder;
         private string fixFolder;
         private DateTime readStamp;
@@ -188,6 +189,7 @@ namespace SiteAdaptation.AddIn.Pane
             });
             FixItemsCommand = new PaneCommand(() => FixItemsRequested?.Invoke(fixFolder), () => fixFolder != null);
             SettingsCommand = new PaneCommand(() => SettingsOpen = !SettingsOpen, () => true);
+            RulesCommand = new PaneCommand(() => RulesRequested?.Invoke(), () => model.InUse);
             model.PropertyChanged += OnModelChanged;
             Refresh();
         }
@@ -202,13 +204,22 @@ namespace SiteAdaptation.AddIn.Pane
         public PaneCommand FixItemsCommand { get; }
         public PaneCommand SettingsCommand { get; }
         public bool SettingsOpen { get { return settingsOpen; } set { Set(ref settingsOpen, value); } }
+        public PaneCommand RulesCommand { get; }
+
+        // R683. The one amber line of the pane until every rule of the project is confirmed, null when they all are
+        public string RulesLine { get { return rulesLine; } private set { Set(ref rulesLine, value); Changed(nameof(HasRulesLine)); } }
+        public bool HasRulesLine { get { return !string.IsNullOrEmpty(rulesLine); } }
 
         // The Revit side opens the folder picker and the Confirm window, the pane holds no window
         public event Action ChooseFolderRequested;
         public event Action<string> FixItemsRequested;
+        public event Action RulesRequested;
 
         // The work folder of the active document, null with none
         public Func<string> WorkFolderNow { get; set; }
+
+        // The amber line of the rules of the active project, null with none to say
+        public Func<string> RulesLineNow { get; set; }
 
         private void OnModelChanged(object sender, PropertyChangedEventArgs e)
         {
@@ -227,6 +238,8 @@ namespace SiteAdaptation.AddIn.Pane
             }
             Card2.Line = StageText.BuildNotWired;
             Card3.Line = StageText.ReportLine;
+            RulesCommand.Refresh();
+            RulesLine = Model.HasDocument && Model.InUse ? RulesLineNow?.Invoke() : null;
             RefreshRead();
         }
 

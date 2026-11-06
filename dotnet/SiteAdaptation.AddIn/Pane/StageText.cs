@@ -32,7 +32,6 @@ namespace SiteAdaptation.AddIn.Pane
         public const string ReadStopped = "The last read stopped and holds nothing to fix: <name>. Fix the cause and choose the folder again.";
         public const string BuildNotWired = "The one Build button is not wired yet. Until then run steps 4 to 8 under Advanced.";
         public const string ReportLine = "Report runs step 9 of version 1. The issues count, where each value came from and Update from report are not wired here yet. Update from report stays on the ribbon.";
-        public const string RulesLater = "The rules table of this project is not wired yet.";
 
         // Choose project folder, R681
         public const string FolderOwnCopyOnly = "This project uses the shipped settings, so the tool cannot set its folder. Start a new project in Settings, Project setup, then choose the folder.";
