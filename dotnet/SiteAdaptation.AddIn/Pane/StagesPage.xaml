@@ -173,6 +173,7 @@
               <Button Grid.Column="1" Style="{StaticResource SA.Button.Base}" Content="{x:Static pane:StageResultsText.OpenRules}" Command="{Binding RulesCommand}"
                       Visibility="{Binding RuleIssue, Converter={StaticResource Shown}}" />
             </Grid>
+            <TextBlock Style="{StaticResource CardLine}" Foreground="{StaticResource SA.Warn}" Text="{Binding NoRoadLevelLine}" />
             <StackPanel x:Name="MixBox" Margin="{StaticResource SA.Gap.Top8}" Visibility="{Binding HasMix, Converter={StaticResource Shown}}">
               <Grid Height="{StaticResource SA.Size.StatusMark}">
                 <Grid.ColumnDefinitions>

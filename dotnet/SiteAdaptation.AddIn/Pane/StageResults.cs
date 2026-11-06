@@ -48,6 +48,12 @@ namespace SiteAdaptation.AddIn.Pane
         public bool HasPlan { get; set; }
 
         // An issue that names a rule, so card 3 offers the rules table from it, point 1 of R2-C3
+        // Q504, Bader's answer 5A of 6 Nov: the plan lists each plot whose floor level is missing as an issue with the words no road level, and the steps
+        // 6 to 8 of version 1 leave such a plot out (R344). The words are those of FAST-2's plan
+        public const string NoRoadLevel = "no road level";
+
+        public int NoRoadLevelCount { get { return Issues.Count(issue => issue.IndexOf(NoRoadLevel, StringComparison.OrdinalIgnoreCase) >= 0); } }
+
         public bool RuleIssue { get { return Issues.Any(issue => issue.IndexOf("rule", StringComparison.OrdinalIgnoreCase) >= 0); } }
 
         // The newest plan of a build in the work folder, null with none
