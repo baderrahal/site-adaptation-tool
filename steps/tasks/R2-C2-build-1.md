@@ -2,7 +2,7 @@
 id: R2-C2-build-1
 lane: build-1
 stage: 2
-status: open
+status: done
 allowed:
   - dotnet/SiteAdaptation.Common/SiteBuild/
   - dotnet/SiteAdaptation.Tests/SiteBuild/
