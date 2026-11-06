@@ -39,8 +39,8 @@ namespace SiteAdaptation.AddIn.Pane
         }
     }
 
-    // R689. What card 3 shows of the last build: its issues and the source mix of the values of its plan, from build_plan.json of the newest build folder
-    // of the work folder, so a model opened again shows them too, and the messages of the steps of the build of this session
+    // R689. What card 3 shows of the last build: the issues and the source mix of the values of its plan, from build_plan.json of the newest build folder
+    // of the work folder, so a model opened again shows them too. The closing messages of the steps are no issues, card 2 says them
     public sealed class StageResults
     {
         public SourceMix Mix { get; set; } = new SourceMix();
@@ -77,7 +77,7 @@ namespace SiteAdaptation.AddIn.Pane
             }
         }
 
-        public static StageResults Read(string planFile, IEnumerable<string> stepIssues)
+        public static StageResults Read(string planFile)
         {
             var results = new StageResults();
             if (planFile != null)
@@ -96,7 +96,6 @@ namespace SiteAdaptation.AddIn.Pane
                     results.HasPlan = false;
                 }
             }
-            results.Issues.AddRange(stepIssues ?? Enumerable.Empty<string>());
             return results;
         }
 

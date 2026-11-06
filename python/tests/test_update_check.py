@@ -290,3 +290,20 @@ def test_r402_the_compare_counts_each_cell_and_names_a_planted_mismatch(books):
 def test_r402_the_counts_go_outside_the_repo():
     with pytest.raises(check.Refused, match="inside the repo"):
         check.outside_repo(check.REPO / "sample_output")
+
+
+def test_r704_on_a_new_project_a_plot_with_no_entry_is_saved_as_a_new_entry_with_the_excel_as_its_model(books):
+    """R704, Q394 CHOSEN: the changes of a plot with no entry of the job are new entries, the Excel the value came from their model, no key."""
+    overrides = copy.deepcopy(OVERRIDES)
+    del overrides["overrides"][2]
+    found = check.result(books, PLAN, SHA, RULES, PROFILE, overrides, "u8", tick="all", new=True)
+    assert all(item["notSavable"] is None for item in found["changes"])
+    assert [item["plot"] for item in found["changes"] if item["newEntry"]] == ["102", "102"]
+    made = [entry for entry in found["entries"] if entry["plot"] == "102"]
+    assert made and all(entry["key"] is None and entry["model"].endswith(".xlsx") for entry in made)
+    # Review 1 of PR 3: the list Apply wrote still passes the check of R330 every reader runs, an entry with no hand mark does not
+    import override_source
+    groups = {"parsons": ["imc"], "native": ["u11"]}
+    override_source.check_entries(made, groups)
+    with pytest.raises(Exception):
+        override_source.check_entries([{name: value for name, value in made[0].items() if name != "byHand"}], groups)

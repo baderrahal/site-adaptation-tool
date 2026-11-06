@@ -59,9 +59,10 @@ namespace SiteAdaptation.Tests
             Plan("other_c", new DateTime(2026, 1, 3, 0, 0, 0, DateTimeKind.Utc));
             Assert.Equal(newer, StageResults.LatestPlan(work));
 
-            StageResults results = StageResults.Read(newer, new[] { "Step4: Made up message" });
+            StageResults results = StageResults.Read(newer);
             Assert.True(results.HasPlan);
-            Assert.Equal(new[] { "1: Made up fault", "2 of 15 rules are not confirmed", "Step4: Made up message" }, results.Issues.ToArray());
+            // Review of PR 6: the issues are those of the plan, the closing messages of the steps are no issues
+            Assert.Equal(new[] { "1: Made up fault", "2 of 15 rules are not confirmed" }, results.Issues.ToArray());
             Assert.True(results.RuleIssue);
             Assert.Equal(2, results.Mix.ComputedCount);
             Assert.Equal(1, results.Mix.RuleCount);
@@ -69,12 +70,13 @@ namespace SiteAdaptation.Tests
             Assert.Equal(1, results.Mix.MissingCount);
             Assert.Equal(1, results.Mix.OtherCount);
             Assert.Equal("Values: computed 2, rule 1, person entered 1, missing 1, other 1.", results.Mix.Line);
-            // Broken on purpose: a plan that does not read gives no mix and still the issues of the steps
+            // Broken on purpose: a plan that does not read gives no plan, no issue and no mix
             File.WriteAllText(newer, "{ not json");
-            StageResults broken = StageResults.Read(newer, new[] { "Step4: m" });
+            StageResults broken = StageResults.Read(newer);
             Assert.False(broken.HasPlan);
-            Assert.Equal(new[] { "Step4: m" }, broken.Issues.ToArray());
+            Assert.Empty(broken.Issues);
             Assert.False(broken.RuleIssue);
+            Assert.False(StageResults.Read(null).HasPlan);
         }
 
         [Fact]
@@ -89,7 +91,7 @@ namespace SiteAdaptation.Tests
                     var stages = (StagesViewModel)Shots.LaidOutStages(false).DataContext;
                     Assert.Equal(StageResultsText.NoBuild, stages.IssuesLine);
                     Assert.False(stages.HasMix);
-                    stages.ResultsNow = () => StageResults.Read(plan, null);
+                    stages.ResultsNow = () => StageResults.Read(plan);
                     stages.Refresh();
                     Assert.Equal("2 issues from the last build.", stages.IssuesLine);
                     Assert.True(stages.HasMix);

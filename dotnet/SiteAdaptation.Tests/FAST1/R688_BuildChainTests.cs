@@ -46,8 +46,8 @@ namespace SiteAdaptation.Tests
             Assert.Null(chain.Start());
             List<int> ran = RunAll(chain, 4, out string last, "Made up message");
             Assert.Equal(new[] { 4, 5, 6, 7, 8 }, ran.ToArray());
-            // The message of a step that ended well is said at the end, not only counted
-            Assert.Equal("Build done: 5 steps, 1 issues. Step5: Made up message", last);
+            // Review of PR 6: the closing message of a step that ended well is a message, said at the end, never counted as an issue
+            Assert.Equal("Build done: 5 steps. Step5: Made up message", last);
             Assert.False(chain.Running);
         }
 
@@ -74,7 +74,7 @@ namespace SiteAdaptation.Tests
             state[4] = new StepStatus(StepKind.Ready);
             List<int> ran = RunAll(chain, 3, out string last);
             Assert.Equal(new[] { 3, 4, 5, 6, 7, 8 }, ran.ToArray());
-            Assert.Equal("Build done: 8 steps, 0 issues.", last);
+            Assert.Equal("Build done: 8 steps.", last);
         }
 
         [Fact]

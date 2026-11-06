@@ -397,17 +397,17 @@ namespace SiteAdaptation.AddIn
                     model.RequestRun(first.Value);
                 }
             };
-            // R689. Card 3 reads the newest plan of the work folder again only when it or the issues of the steps changed
+            // R689. Card 3 reads the newest plan of the work folder again only when it changed
             string resultsStamp = null;
             StageResults results = null;
             stages.ResultsNow = () =>
             {
                 string plan = StageResults.LatestPlan(WorkFolderNow());
-                string stamp = (plan == null ? "none" : plan + "@" + System.IO.File.GetLastWriteTimeUtc(plan).Ticks) + "#" + chain.Issues.Count;
+                string stamp = plan == null ? "none" : plan + "@" + System.IO.File.GetLastWriteTimeUtc(plan).Ticks;
                 if (stamp != resultsStamp)
                 {
                     resultsStamp = stamp;
-                    results = StageResults.Read(plan, chain.Issues);
+                    results = StageResults.Read(plan);
                 }
                 return results;
             };

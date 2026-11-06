@@ -20,7 +20,7 @@ namespace SiteAdaptation.AddIn.Pane
         public const string StepCancelled = "Build stopped at <name>, cancelled.";
         public const string StepStopped = "Build stopped at <name>: <name>";
         public const string NoReason = "the step changed nothing and gave no reason.";
-        public const string BuildDone = "Build done: <n> steps, <n> issues.";
+        public const string BuildDone = "Build done: <n> steps.";
 
         public const string PreviewTitle = "Preview of the build";
         public const string PreviewLine = "<n> plots with an outline, <n> issues. Nothing is written to the model yet.";

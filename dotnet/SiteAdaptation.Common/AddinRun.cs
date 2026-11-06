@@ -138,6 +138,9 @@ namespace SiteAdaptation.Common
         public const string RibbonLayout = "SiteAdaptation.AddIn.RibbonLayout";
         public const string Tab = "Tab";
         public const string Page = "SiteAdaptation.AddIn.Pane.SitePanePage";
+        // FAST-2 item 10. Since FAST-1 the docked pane shows the 3 stages, the page above sits inside it under Advanced, so the test host looks for
+        // this one. Page keeps the old pane for the tests that load it
+        public const string DockedPage = "SiteAdaptation.AddIn.Pane.StagesPage";
         public const string Panels = "Panels";
         public const string PanelName = "Name";
         public const string RibbonButtons = "AllButtons";
