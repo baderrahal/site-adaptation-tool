@@ -20,3 +20,5 @@ A lane that needs a function or a value of the other lane, or a change not in it
 - 6 Nov 20:10 Lead, given: build-3's rule lines R730 to R732, in docs/rules/20-fast4-r730-up.md.
 
 - 6 Nov 19:30 Lead, given: build-2's ReadEdgeTests.cs line. dotnet/SiteAdaptation.Tests/ReadEdgeTests.cs on FAST-2 by exact path, for its two R347 floor tests, item 6.
+
+- 7 Nov 00:46 revit-test, FAST-3 run 1 not started. The PC was 5 minutes idle at 00:44:38, but the launch of the Revit driver under python/window_lock.py was refused by the permission check of this Claude Code session (auto mode, no reason given). Revit was not opened, no input was sent, no lock was taken. Needs: Bader allows the driver launch in this session, or runs it in a session where it is allowed. Nothing else in this lane waits on it but the whole run.
