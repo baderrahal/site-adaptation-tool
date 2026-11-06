@@ -6,7 +6,7 @@ Written by scripts/scenarios/score_scenarios.py, never by hand. Stage 1 on each 
 
 | Scenario | What it is | Ran | Built from | Plots read | Numbers right | Villa type right | Mirror right | Group words right | Marks: strong, usable, weak, missing | Copies unchanged | Areas read | Areas on the sheet, second check |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| S1 | raw inputs only, every past output removed | done | e0e5543 | 2964 of 1891 | 1873 of 1891 | 233 of 1891 | 448 of 1891 | not scored | 3, 1, 5, 2 | yes | 2 | 13 |
+| S1 | raw inputs only, every past output removed | done | aae9916 | 2964 of 1891 | 1873 of 1891 | 233 of 1891 | 448 of 1891 | not scored | 3, 1, 5, 2 | yes | 2 | 13 |
 | S2 | as S1, footprint drawing removed | done | 773c095 | 2964 of 1891 | 1873 of 1891 | 233 of 1891 | 0 of 1891 | not scored | 3, 1, 5, 2 | yes | 2 | 13 |
 | S3 | as S1, zone and neighbourhood words changed to Phase and Block | done | 773c095 | 2964 of 1891 | 1873 of 1891 | 231 of 1891 | 448 of 1891 | 0 of 2 | 3, 1, 5, 2 | yes | 2 | not found |
 | S4 | as S1, no LandXML and no Civil 3D surfaces, 2D CAD only | done | 773c095 | 2964 of 1891 | 1873 of 1891 | 233 of 1891 | 448 of 1891 | not scored | 3, 0, 5, 3 | yes | 2 | 13 |
@@ -36,7 +36,7 @@ siteBuild on the plot table of each run above (scripts/scenarios/run_build.py). 
 
 | Scenario | Plots planned | Built | Missing | Plots marked | Blocking | Issues | Copied from the past | Seconds |
 |---|---|---|---|---|---|---|---|---|
-| S1 | 2964 | 9474 | 26094 | 2964 | 0 | 3 | 0 | 1.6 |
+| S1 | 2964 | 9474 | 26094 | 2964 | 0 | 3 | 0 | 2.0 |
 | S2 | no build made | | | | | | | |
 | S3 | no build made | | | | | | | |
 | S4 | no build made | | | | | | | |
@@ -48,7 +48,7 @@ Each scenario again on what its own first run proposed, as a person pressing Con
 
 | Scenario | What it is | Ran | Built from | Plots read | Numbers right | Villa type right | Mirror right | Group words right | Marks: strong, usable, weak, missing | Copies unchanged | Areas read | Areas on the sheet, second check |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| S1 | raw inputs only, every past output removed | done | e0e5543 | 2964 of 1891 | 1873 of 1891 | 1859 of 1891 | 448 of 1891 | not scored | 3, 2, 4, 2 | yes | 13 | 13 |
+| S1 | raw inputs only, every past output removed | done | aae9916 | 2964 of 1891 | 1873 of 1891 | 1859 of 1891 | 448 of 1891 | not scored | 3, 2, 4, 2 | yes | 13 | 13 |
 | S2 | as S1, footprint drawing removed | done | 773c095 | 2964 of 1891 | 1873 of 1891 | 1859 of 1891 | 0 of 1891 | not scored | 3, 2, 4, 2 | yes | 13 | 13 |
 | S3 | as S1, zone and neighbourhood words changed to Phase and Block | done | 773c095 | 2964 of 1891 | 1873 of 1891 | 1859 of 1891 | 448 of 1891 | 0 of 2 | 3, 2, 4, 2 | yes | 11 | not found |
 | S4 | as S1, no LandXML and no Civil 3D surfaces, 2D CAD only | done | 773c095 | 2964 of 1891 | 1873 of 1891 | 1859 of 1891 | 448 of 1891 | not scored | 3, 1, 4, 3 | yes | 13 | 13 |
@@ -76,7 +76,7 @@ Files not read: S1 0, S2 0, S3 0, S4 0, S5 0.
 
 | Scenario | Plots planned | Built | Missing | Plots marked | Blocking | Issues | Copied from the past | Seconds |
 |---|---|---|---|---|---|---|---|---|
-| S1 | 2964 | 12738 | 22830 | 2964 | 0 | 3 | 0 | 1.7 |
+| S1 | 2964 | 12738 | 22830 | 2964 | 0 | 3 | 0 | 2.0 |
 | S2 | no build made | | | | | | | |
 | S3 | no build made | | | | | | | |
 | S4 | no build made | | | | | | | |
