@@ -26,6 +26,30 @@ Next:
 Your turn:
 - FAST-3-revit-test opens card 3 in Revit after a build, label revit-later.
 
+## Rules R730 to R732 and R688, FAST-3 opens tonight, 6 Nov 2026
+
+Goal:
+- Enter the rule lines of FAST-4, which is done, and keep the plan true.
+
+Done:
+- docs/rules/20-fast4-r730-up.md with R730 to R732 from the seam line of build-3, index.md. Seam line given. Plan: FAST-4 done by PR 240.
+- R688 of PR 238 in docs/rules/18-fast-pane-r680-up.md. FAST-3-revit-test open, Bader's order of 21:10: a first run tonight, a second on Sun 8 Nov, the window shots of FAST-1 item 7 moved to it. The plan holds the night.
+
+Checked:
+- pytest scripts/checks -k "r12 or rules or index or r26": 22 passed. rules_docs.py PASS.
+
+Remains:
+- R689 to R691 of FAST-1 once their PRs are on main. The install at 23:00 and the start of revit-test at 23:30.
+
+Known bugs:
+- R310, R347 and R444 fail at random under load, FAST-2 item 9 measures it.
+
+Next:
+- PR 237, 238, 239 merge on green.
+
+Your turn:
+- None.
+
 ## FAST-1-build-1 PR 5, the one Build runs the steps, 6 Nov 2026
 
 Goal:
