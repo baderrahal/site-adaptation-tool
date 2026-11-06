@@ -547,3 +547,15 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R662 Before Build setting.
 - R663 Fixed rules and the log.
 - R664 Rules for a build.
+
+## 17-site-build-r640-up.md
+
+- R640 The siteBuild plan.
+- R641 Numbers from a manual rule text.
+- R642 Coordinates of an empty model.
+- R643 Only a blocking line stops.
+- R644 Steps and the 2D preview.
+- R645 Plot outlines in the plot table.
+- R646 Overlap on the whole site.
+- R647 Toposolid cut per neighbourhood.
+- R648 Floors placed with another outline.
