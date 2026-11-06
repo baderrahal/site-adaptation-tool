@@ -2,6 +2,8 @@
 
 At most 5 items that block work, each with a recommended answer first. Answer by the letter.
 
+Bader's answers, 6 Nov: 1A, 2A, 3A, 4A, 5A. Item 5 also: steps 6 to 8 list every plot with no ffl in the issues list with the words no road level, so the card shows the count. 2A and 4A done by Lead's PR, 5A in FAST-1 and FAST-2, D-46, Q520 and Q504 closed. 3A is Bader's own press of Always Load and his ask to IT, SETUP-sign-2 stays waiting.
+
 1. D-46, the Confirm window, steps/ui-shots/confirm-profile.png. It is the smallest version, CHOSEN by Lead, as no sketch covered it: two columns, the code map, the hand of each prototype starting empty with the guess beside it, the group levels.
    - A. Approve it as it is. Recommended.
    - B. Change it, say what.
