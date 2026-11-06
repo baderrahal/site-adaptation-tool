@@ -11,6 +11,24 @@ using SiteAdaptation.Common.ProjectRules;
 
 namespace SiteAdaptation.AddIn.RulesWindow
 {
+    // R682. The names of the rules file of Common/ProjectRules/RulesFileNames.cs, which is internal to Common. A test holds the two equal
+    public static class RulesFileNames
+    {
+        public const string FileName = "project_rules.json";
+        public const string LogName = "rules_log.jsonl";
+        public const string Confirmed = "confirmed";
+        public const string BeforeBuild = "beforeBuild";
+        public const string Warn = "warn";
+        public const string Block = "block";
+        public const string FixedPrefix = "fixed.";
+
+        // The rules the tool holds, which no person changes (R663)
+        public static bool IsFixed(string id)
+        {
+            return id != null && id.StartsWith(FixedPrefix, StringComparison.Ordinal);
+        }
+    }
+
     // R682. Where the rules table of a project reads and writes. The rules sit beside the rules profile of the project, where siteBuild
     // looks for them (SiteBuildRun.AskRules). Only a new project's copy under the work root takes rules, never the shipped set or a past job
     public sealed class ProjectRulesPlace
@@ -26,7 +44,7 @@ namespace SiteAdaptation.AddIn.RulesWindow
 
         public string Folder { get { return string.IsNullOrEmpty(RulesProfile) ? null : Path.GetDirectoryName(Path.GetFullPath(RulesProfile)); } }
 
-        public string RulesFile { get { return Folder == null ? null : Path.Combine(Folder, ProjectRulesFile.FileName); } }
+        public string RulesFile { get { return Folder == null ? null : Path.Combine(Folder, RulesFileNames.FileName); } }
     }
 
     // R682, R683. The rules table of a project over RulesForBuild.Check of R664, and its changes by the commands rulesSetup and rulesChange of
@@ -85,11 +103,11 @@ namespace SiteAdaptation.AddIn.RulesWindow
         {
             try
             {
-                return HasRules(place) && (string)JObject.Parse(WorkFiles.ReadText(place.RulesFile))[ProjectRulesFile.BeforeBuild] == ProjectRulesFile.Block ? ProjectRulesFile.Block : ProjectRulesFile.Warn;
+                return HasRules(place) && (string)JObject.Parse(WorkFiles.ReadText(place.RulesFile))[RulesFileNames.BeforeBuild] == RulesFileNames.Block ? RulesFileNames.Block : RulesFileNames.Warn;
             }
             catch (Exception failure) when (failure is IOException || failure is UnauthorizedAccessException || failure is JsonException || failure is InvalidCastException)
             {
-                return ProjectRulesFile.Warn;
+                return RulesFileNames.Warn;
             }
         }
 
@@ -104,8 +122,8 @@ namespace SiteAdaptation.AddIn.RulesWindow
             {
                 return ProjectRulesText.AmberNone;
             }
-            List<RuleForBuild> settable = answer.Rules.Where(rule => !ProjectRulesFile.IsFixed(rule.Id)).ToList();
-            int open = settable.Count(rule => rule.Status != ProjectRulesFile.Confirmed);
+            List<RuleForBuild> settable = answer.Rules.Where(rule => !RulesFileNames.IsFixed(rule.Id)).ToList();
+            int open = settable.Count(rule => rule.Status != RulesFileNames.Confirmed);
             return open == 0 ? null : TextTemplate.Fill(ProjectRulesText.AmberSome, open, settable.Count);
         }
 
@@ -172,7 +190,7 @@ namespace SiteAdaptation.AddIn.RulesWindow
             {
                 return ProjectRulesText.NoTemplate;
             }
-            return Run(place, "rulesSetup", new List<WorkerFile> { File(TemplateRole, template), File(ProjectFolderRole, place.Folder), File(ConfigRole, place.ConfigFile) }, null, null);
+            return Run(place, "rulesSetup", new List<WorkerFile> { Input(TemplateRole, template), Input(ProjectFolderRole, place.Folder), Input(ConfigRole, place.ConfigFile) }, null, null);
         }
 
         // R661, R662. One rule changed or confirmed, or the Before Build setting by its id. Null when done, else the plain reason
@@ -183,10 +201,10 @@ namespace SiteAdaptation.AddIn.RulesWindow
             {
                 return refused;
             }
-            return Run(place, "rulesChange", new List<WorkerFile> { File(RulesRole, place.RulesFile), File(ConfigRole, place.ConfigFile) }, ruleId, value);
+            return Run(place, "rulesChange", new List<WorkerFile> { Input(RulesRole, place.RulesFile), Input(ConfigRole, place.ConfigFile) }, ruleId, value);
         }
 
-        private static WorkerFile File(string role, string path)
+        private static WorkerFile Input(string role, string path)
         {
             // The empty SHA-256 is what the tests of R660 and R661 send, the runner measures the file itself
             return new WorkerFile { Role = role, Path = path, Sha256 = string.Empty };

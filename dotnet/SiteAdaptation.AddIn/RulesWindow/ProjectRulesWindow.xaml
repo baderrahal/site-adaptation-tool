@@ -1,0 +1,117 @@
+<Window x:Class="SiteAdaptation.AddIn.RulesWindow.ProjectRulesWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:rw="clr-namespace:SiteAdaptation.AddIn.RulesWindow"
+        Title="{Binding Title}" Width="{DynamicResource SA.Size.DialogWidth}" MaxHeight="{DynamicResource SA.Size.DialogMaxHeight}"
+        SizeToContent="Height" ResizeMode="NoResize" ShowInTaskbar="False" WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource SA.Surface}">
+  <!-- R682. The rules table of a project, opened from Settings on the pane. Every colour, size and font by Theme.xaml, every text in
+       docs/design/14-ui-labels.md under Site Adaptation Rules. CHOSEN: the smallest table that shows each rule with its value, source and
+       status and one button, no sketch covers it -->
+  <Window.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="/SiteAdaptation.AddIn;component/Theme/Theme.xaml" />
+      </ResourceDictionary.MergedDictionaries>
+      <BooleanToVisibilityConverter x:Key="Shown" />
+      <Style x:Key="HeadText" TargetType="TextBlock" BasedOn="{StaticResource SA.Type.Label}">
+        <Setter Property="Foreground" Value="{StaticResource SA.TextMuted}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+      </Style>
+    </ResourceDictionary>
+  </Window.Resources>
+
+  <DockPanel>
+    <Border DockPanel.Dock="Top" Background="{StaticResource SA.Band}" Padding="{StaticResource SA.Pad.Box}">
+      <StackPanel>
+        <TextBlock Style="{StaticResource SA.Type.Title}" Foreground="{StaticResource SA.Surface}" Text="{x:Static rw:ProjectRulesText.Title}" />
+        <TextBlock Style="{StaticResource SA.Type.Body}" Foreground="{StaticResource SA.BandAccent}" TextWrapping="Wrap" Margin="{StaticResource SA.Gap.Top4}" Text="{x:Static rw:ProjectRulesText.Intro}" />
+      </StackPanel>
+    </Border>
+
+    <Border DockPanel.Dock="Bottom" BorderBrush="{StaticResource SA.Border}" BorderThickness="{StaticResource SA.Line.Over}" Padding="{StaticResource SA.Pad.Foot}">
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <TextBlock x:Name="LineText" Style="{StaticResource SA.Type.Body}" TextWrapping="Wrap" VerticalAlignment="Center" Text="{Binding Line}" />
+        <Button Grid.Column="1" Style="{StaticResource SA.Button.Base}" Content="{x:Static rw:ProjectRulesText.Close}" IsCancel="True" Click="OnClose" />
+      </Grid>
+    </Border>
+
+    <StackPanel DockPanel.Dock="Top" Margin="{StaticResource SA.Pad.Section}">
+      <!-- No rules yet: the one choice of R660, the manual template -->
+      <StackPanel x:Name="NoRulesBox" Visibility="{Binding NoRules, Converter={StaticResource Shown}}">
+        <TextBlock Style="{StaticResource SA.Type.Body}" TextWrapping="Wrap" Text="{x:Static rw:ProjectRulesText.NoRules}" />
+        <Button x:Name="UseManualButton" Style="{StaticResource SA.Button.Primary}" HorizontalAlignment="Left" Margin="{StaticResource SA.Gap.Top8}"
+                Content="{x:Static rw:ProjectRulesText.UseManual}" Command="{Binding UseManualCommand}" />
+      </StackPanel>
+
+      <!-- R662. Before Build, warn or block -->
+      <Grid Visibility="{Binding HasRules, Converter={StaticResource Shown}}">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="Auto" />
+          <ColumnDefinition Width="Auto" />
+          <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <TextBlock Style="{StaticResource SA.Type.Body}" VerticalAlignment="Center" Margin="{StaticResource SA.Gap.Right8}" Text="{x:Static rw:ProjectRulesText.BeforeBuild}" />
+        <ComboBox x:Name="BeforeBuildBox" Grid.Column="1" Style="{StaticResource SA.Pane.Combo}"
+                  ItemsSource="{Binding BeforeBuildChoices}" SelectedIndex="{Binding BeforeBuildIndex, Mode=TwoWay}" />
+        <TextBlock Grid.Column="2" Style="{StaticResource SA.Pane.Help}" VerticalAlignment="Center" TextWrapping="Wrap" Margin="{StaticResource SA.Gap.Left8}" Text="{x:Static rw:ProjectRulesText.BeforeBuildHelp}" />
+      </Grid>
+    </StackPanel>
+
+    <Grid Margin="{StaticResource SA.Pad.Section}">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="*" />
+      </Grid.RowDefinitions>
+      <Grid Margin="{StaticResource SA.Gap.Bottom8}">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="3*" />
+          <ColumnDefinition Width="4*" />
+          <ColumnDefinition Width="1*" />
+          <ColumnDefinition Width="1*" />
+          <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <TextBlock Style="{StaticResource HeadText}" Text="{x:Static rw:ProjectRulesText.Rule}" />
+        <TextBlock Grid.Column="1" Style="{StaticResource HeadText}" Text="{x:Static rw:ProjectRulesText.Value}" />
+        <TextBlock Grid.Column="2" Style="{StaticResource HeadText}" Text="{x:Static rw:ProjectRulesText.Source}" />
+        <TextBlock Grid.Column="3" Style="{StaticResource HeadText}" Text="{x:Static rw:ProjectRulesText.Status}" />
+      </Grid>
+      <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <ItemsControl x:Name="RuleRows" ItemsSource="{Binding Rows}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate DataType="{x:Type rw:ProjectRuleRow}">
+              <Border BorderBrush="{StaticResource SA.Border}" BorderThickness="{StaticResource SA.Line.Under}" Padding="{StaticResource SA.Pad.Cell}">
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="3*" />
+                    <ColumnDefinition Width="4*" />
+                    <ColumnDefinition Width="1*" />
+                    <ColumnDefinition Width="1*" />
+                    <ColumnDefinition Width="Auto" />
+                  </Grid.ColumnDefinitions>
+                  <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                  </Grid.RowDefinitions>
+                  <TextBlock Style="{StaticResource SA.Type.Body}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="{StaticResource SA.Gap.Right8}" Text="{Binding Name}" ToolTip="{Binding Id}" />
+                  <TextBox Grid.Column="1" Style="{StaticResource SA.Pane.Entry}" TextWrapping="Wrap" IsReadOnly="{Binding Fixed}" IsEnabled="{Binding Editable}"
+                           Text="{Binding Text, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                  <TextBlock Grid.Column="2" Style="{StaticResource SA.Type.Body}" VerticalAlignment="Center" Margin="{StaticResource SA.Gap.Left8}" Text="{Binding Source}" />
+                  <TextBlock Grid.Column="3" Style="{StaticResource SA.Type.Body}" VerticalAlignment="Center" Margin="{StaticResource SA.Gap.Left8}" Text="{Binding Status}" />
+                  <Button Grid.Column="4" Style="{StaticResource SA.Button.Base}" Margin="{StaticResource SA.Gap.Left8}" Content="{Binding ButtonText}" Command="{Binding SaveCommand}"
+                          Visibility="{Binding Editable, Converter={StaticResource Shown}}" />
+                  <TextBlock Grid.Row="1" Grid.ColumnSpan="5" Style="{StaticResource SA.Pane.Help}" Foreground="{StaticResource SA.Warn}" TextWrapping="Wrap"
+                             Text="{Binding Marked}" Visibility="{Binding HasMark, Converter={StaticResource Shown}}" />
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
+    </Grid>
+  </DockPanel>
+</Window>

@@ -74,7 +74,7 @@ namespace SiteAdaptation.Tests
             var wanted = new[]
             {
                 "config/project.json", "config/floor_outlines.json", "config/prototype_offsets.json", "config/rule_values.json", "config/" + (string)config["addin"]["readData"]["cadLayers"],
-                (string)config["addin"]["parameterSheet"], (string)config["profile"],
+                (string)config["addin"]["parameterSheet"], (string)config["profile"], "rules/templates/manual.json",
             }.Select(path => path.Replace('/', Path.DirectorySeparatorChar)).OrderBy(path => path, StringComparer.Ordinal).ToArray();
             string[] landed = Directory.GetFiles(SetFolder, "*", SearchOption.AllDirectories).Select(path => path.Substring(SetFolder.Length + 1)).OrderBy(path => path, StringComparer.Ordinal).ToArray();
             Assert.Equal(wanted, landed);

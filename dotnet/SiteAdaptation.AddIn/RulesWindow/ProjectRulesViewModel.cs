@@ -20,7 +20,7 @@ namespace SiteAdaptation.AddIn.RulesWindow
             Source = rule.Source;
             Status = rule.Status;
             Marked = rule.Marked;
-            Fixed = ProjectRulesFile.IsFixed(rule.Id);
+            Fixed = RulesFileNames.IsFixed(rule.Id);
             text = ProjectRulesTable.ValueText(rule.Value);
             SaveCommand = new PaneCommand(() => owner.Save(this), () => !Fixed && owner.HasRules);
         }
@@ -83,7 +83,7 @@ namespace SiteAdaptation.AddIn.RulesWindow
                 {
                     return;
                 }
-                Said(ProjectRulesTable.Change(place, ProjectRulesFile.BeforeBuild, value == 1 ? ProjectRulesFile.Block : ProjectRulesFile.Warn), TextTemplate.Fill(ProjectRulesText.Saved, ProjectRulesText.BeforeBuild));
+                Said(ProjectRulesTable.Change(place, RulesFileNames.BeforeBuild, value == 1 ? RulesFileNames.Block : RulesFileNames.Warn), TextTemplate.Fill(ProjectRulesText.Saved, ProjectRulesText.BeforeBuild));
             }
         }
 
@@ -117,7 +117,7 @@ namespace SiteAdaptation.AddIn.RulesWindow
                     Rows.Add(new ProjectRuleRow(this, rule));
                 }
             }
-            beforeBuild = ProjectRulesTable.BeforeBuild(place) == ProjectRulesFile.Block ? 1 : 0;
+            beforeBuild = ProjectRulesTable.BeforeBuild(place) == RulesFileNames.Block ? 1 : 0;
             Line = ProjectRulesTable.Refusal(place) ?? string.Empty;
             Changed(nameof(HasRules));
             Changed(nameof(NoRules));
