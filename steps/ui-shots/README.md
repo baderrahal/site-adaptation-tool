@@ -21,6 +21,7 @@ Control 3 of docs/design/12-ui-spec.md, UI controls. Each PNG is a render of a w
 | pane-stage-1.png | Card 1 Project data of the pane in 3 stages of FAST-1-build-1 (R680, R681), a made up read with 3 needs, strong, weak and missing, each with its plain line, drawn from the Drafts list of Shots | Draft, not seen in Revit |
 | pane-stage-2.png | Card 2 Build site of the same pane, the Build button grey until the one Build is wired | Draft, not seen in Revit |
 | pane-stage-3.png | Card 3 Review and deliver of the same pane, Report runs step 9 of version 1 | Draft, not seen in Revit |
+| project-rules.png | The rules table of a project of FAST-1-build-1 item 3 (R682), a made up template of 4 rules set up and one confirmed by the commands of Common, one rule with no value and its mark, drawn from the Drafts list of Shots | Draft, not seen in Revit |
 | revit-ribbon.png | The Site Adaptation tab in Revit 2024, cut from the window by PrintWindow in Revit run 3 of 5a, 29 Oct 2026 | Taken in Revit, for Bader's check |
 | revit-pane.png | The live pane page in Revit run 3 of 5a by RenderTargetBitmap at 96 DPI, first open state, the detached document of the run active | Taken in Revit, for Bader's check |
 

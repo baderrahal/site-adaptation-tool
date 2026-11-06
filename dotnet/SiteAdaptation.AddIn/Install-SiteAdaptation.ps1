@@ -69,7 +69,9 @@ Copy-Files $WorkerBuild $workerFolder $workerFiles
 $setFolder = Join-Path $addInFolder 'ShippedSet'
 $projectFile = Join-Path $repo 'config\project.json'
 $project = Get-Content -Raw -LiteralPath $projectFile | ConvertFrom-Json -AsHashtable
-$setFiles = @('config/project.json', 'config/floor_outlines.json', 'config/prototype_offsets.json', 'config/rule_values.json', "config/$($project.addin.readData.cadLayers)", $project.addin.parameterSheet, $project.profile)
+# R684. The manual template of R660 too, read only, the rules table takes it when a project has no rules. Not past-job.json, as the set is
+# copied into every new project and a past measure is never a source of one
+$setFiles = @('config/project.json', 'config/floor_outlines.json', 'config/prototype_offsets.json', 'config/rule_values.json', "config/$($project.addin.readData.cadLayers)", $project.addin.parameterSheet, $project.profile, 'rules/templates/manual.json')
 if (Test-Path -LiteralPath $setFolder) {
     Remove-Item -LiteralPath $setFolder -Recurse -Force
 }

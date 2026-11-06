@@ -1,37 +1,26 @@
 # build-1 heads-up, FAST-1-build-1
 
-6 Nov 2026. Restarted from ebb346e as the one session of build-1. PR 1 holds items 1 and 2, label revit-later.
+6 Nov 2026. PR 228 (items 1 and 2) merged as 389af4c. PR 2 holds item 3, the rules of a project, and item 2b, the parameter sheet, label revit-later.
 
 ## What changed, where
 
-- dotnet/SiteAdaptation.AddIn/Pane/StageText.cs: every word of the pane in 3 stages (R680, R681).
-- dotnet/SiteAdaptation.AddIn/Pane/StageCards.cs: StageCard, StageStatus (stage 1 = steps 1 to 3, stage 2 = 4 to 8, stage 3 = 9), StageRead (the latest read folder of the work folder and its data check rows), ProjectFolderPick (writes inputRoot into the config copy of a new project under the work root only), StagesViewModel.
-- dotnet/SiteAdaptation.AddIn/Pane/StagesPage.xaml and .cs: the docked page, 3 cards, Settings, Advanced closed over the pane of version 1.
-- dotnet/SiteAdaptation.AddIn/Pane/PaneViewModel.cs: RequestRun(int), RefreshSteps raises Statuses.
-- dotnet/SiteAdaptation.AddIn/App/PaneHost.cs: SetupDockablePane docks StagesPage, WorkFolderNow, ChooseProjectFolder, FixItems.
-- dotnet/SiteAdaptation.UiShots/ShotsStages.cs: pane-stage-1, -2, -3 in steps/ui-shots/.
-- dotnet/SiteAdaptation.Tests/FAST1/R680_StagePaneTests.cs, net48 only.
-- docs/design/14-ui-labels.md: 26 Pane entries, CHOSEN. UiLabelTests count 440 to 466.
-- dotnet/SiteAdaptation.TestHost/AddinProbe.cs: PageType finds StagesPage by DockedPage, the docked page since FAST-1.
+- dotnet/SiteAdaptation.AddIn/Pane/: the pane in 3 stages (R680, R681). StageCards.cs holds StageCard, StageStatus, StageRead, ProjectFolderPick, StagesViewModel. StagesPage.xaml docks it, Advanced holds the pane of version 1.
+- dotnet/SiteAdaptation.AddIn/RulesWindow/ProjectRulesTable.cs: RulesFileNames (the names of the internal ProjectRulesFile of Common, a test holds them equal), ProjectRulesPlace (config, rules profile, work root, work folder, mode, templates, who), ProjectRulesTable (Refusal, Read, AmberLine, Parse, UseManual, Change, Run by WorkerRunner.Run in process). R682, R683.
+- dotnet/SiteAdaptation.AddIn/RulesWindow/ProjectRulesViewModel.cs, ProjectRulesWindow.xaml: the rules table window. ProjectRulesText.cs its words.
+- dotnet/SiteAdaptation.AddIn/Install-SiteAdaptation.ps1: ships rules/templates/manual.json in ShippedSet, R684.
+- dotnet/SiteAdaptation.AddIn/ScanResults/DataCheckStep.cs: SheetInput sends the parameter sheet with dataCheck, R685.
+- dotnet/SiteAdaptation.TestHost/AddinProbe.cs: PageType finds StagesPage.
+- Tests in dotnet/SiteAdaptation.Tests/FAST1/: R680_StagePaneTests, R682_ProjectRulesTests, R685_SheetInputTests, net48 only.
 
 ## What calls what
 
-PaneHost.SetupDockablePane makes StagesViewModel and StagesPage. Card 1 Choose project folder raises ChooseFolderRequested, PaneHost.ChooseProjectFolder writes the folder then model.RequestRun(2). Fix items raises FixItemsRequested, PaneHost.FixItems opens ConfirmProfileStep.ShowConfirm. Card 3 Report calls model.RequestRun(9). Card 2 Build is grey and says it is not wired yet.
-
-## Fixed this session
-
-- StagesPage has no accessor a test alone reads, the test reads the Frame after the dispatcher runs its navigation.
-- StageRead.Read gives the reason of a stopped or unreadable data check, card 1 says it and Fix items stays off.
-- A fresh pane with no read shows No data check yet. Each need shows its plain line under it.
-- R680_StagePaneTests 7 of 7 on net48.
+PaneHost.SetupDockablePane makes StagesViewModel and StagesPage. Card 1 Choose project folder, PaneHost.ChooseProjectFolder, then RequestRun(2). Fix items, PaneHost.FixItems, the Confirm window. Settings, Rules, Open raises RulesRequested, PaneHost.OpenRules opens ProjectRulesWindow over PaneHost.RulesPlace. StagesViewModel.Refresh asks RulesLineNow, PaneHost.RulesLineNow reads ProjectRulesTable.AmberLine when the config, rules or log changed. DataCheckStep.Start adds SheetInput.
 
 ## Next, in order
 
-Item 3 Settings and the rules per project (R2-C3 points), item 4 the one Build with Preview and coordinates, item 5 stage 3 issues count and source mix bar, Update from report, item 6 Q504 no road level, item 7 a shot of each window.
+Item 4 the one Build with Preview and coordinates, and the first Build asks once for the manual template (point 3 of R2-C3). Item 5 stage 3, issues count, source mix, Update from report, and open the rules table from a rule issue (point 1). Item 6 Q504. Item 7 a shot of each window. Item 8 the RAM floor lines of three TestHost scripts, after FAST-2 makes its tests take either.
 
 ## Open for Lead
 
+- R682 to R685 for docs/rules, lines in the PR body.
 - Opening each window in Revit is FAST-3-revit-test's.
-- The comment naming R680 and R681 in R640_WorkerSeamTests.cs can go once PR 1 merges.
-- AddinRunNames.Page of dotnet/SiteAdaptation.Common/AddinRun.cs:140 still names SitePanePage, seam line.
-- Item 3 work in progress on branch task/FAST-1-build-1-rules, the rules table of a project.
