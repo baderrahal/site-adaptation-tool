@@ -20,8 +20,12 @@ The rule text for docs/rules is in steps/seam.md, R730 to R732, docs/rules is no
 
 ## Result
 
-See the PR body and steps/scenarios.md.
+PR 240. S1 plots read 2964 to 2618, 346 listed apart, numbers right 1873 kept, mirror right 448 to 735 of 1891. S2 2964 to 2632, mirror 0 to 0, 802 plots traced into pairs. steps/scenarios.md holds both tables.
 
 ## Next
 
 Nothing left on FAST-4 after this PR, unless Lead reopens it.
+
+## Final statement
+
+FAST-4 is done. The plot table holds the plots a villa goes on, and every other plot is listed with its reason, 346 on S1. Numbers right stay at 1873. Mirror right on S1 went from 448 to 735 of 1891. S2 has no villa block, so it stays at 0, and its 802 traced pair plots say why their hand is missing. 2618 plots stay against 1891 because the tool cannot tell the hold-out areas. Lead takes R730 to R732 from steps/seam.md into docs/rules. The admin folder .git/worktrees/b3_main_src of a worktree I added and removed for the before run stays behind, Windows denied its delete, git worktree prune is Bader's to run.
