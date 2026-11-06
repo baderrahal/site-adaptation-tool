@@ -199,26 +199,24 @@ def test_r231_the_codes_follow_the_order_with_their_plot_counts():
     assert place_codes.plan_codes(plan, ["C10", "TH1", "DT3"]) == [("C10", 1), ("DT3", 2)]
 
 
-def test_r231_a_code_waits_for_memory_to_settle_and_the_run_stops_with_the_codes_left(tmp_path):
-    block = {"folder": str(tmp_path), "minFreeGB": 2.0, "placeSettleMinutes": 2}
+def test_r701_low_free_memory_holds_no_code_back_and_a_failed_run_stops_with_the_codes_left(tmp_path):
+    block = {"folder": str(tmp_path)}
     (tmp_path / "logs").mkdir()
-    memory = iter([1.5, 2.5, 3.0, 1.0, 1.0, 1.0, 1.0])
-    rows, slept = [], []
+    memory = iter([0.5, 0.4, 0.3, 0.2, 0.1, 0.1])
+    rows = []
 
     runs, left = place_codes.run([("C10", 3), ("DT3", 5), ("TH1", 2)], tmp_path / "plan.json", block, 161, rows.append,
-                                 free=lambda: next(memory), launch=lambda job, code, spec: 0, sleep=slept.append)
+                                 free=lambda: next(memory), launch=lambda job, code, spec: 0 if code == "C10" else 1)
 
-    assert [row["code"] for row in runs] == ["C10"] and runs[0]["jobCode"] == "S161" and runs[0]["freeGBBefore"] == 2.5
-    assert left == ["DT3", "TH1"] and rows[-1]["event"] == "stopped"
+    assert [row["code"] for row in runs] == ["C10", "DT3"] and runs[0]["jobCode"] == "S161" and runs[0]["freeGBBefore"] == 0.5
+    assert left == ["TH1"] and rows[-1]["event"] == "stopped" and "exit code 1" in rows[-1]["why"]
     assert json.loads((tmp_path / "logs" / "spec_S161_links.json").read_text(encoding="utf-8"))["prototypeCode"] == "C10"
 
 
 def test_r231_a_failed_run_stops_the_next_codes():
-    block = {"folder": "unused", "minFreeGB": 2.0, "placeSettleMinutes": 0}
-
     with pytest.raises(OSError):
-        place_codes.run([("C10", 1)], "plan.json", {**block, "folder": "Z:/no/such"}, 161, list().append, free=lambda: 5.0, launch=lambda *a: 0)
-    assert math.isclose(place_codes.settle(lambda: 1.0, 2.0, 0, sleep=lambda s: None) or 0.0, 0.0)
+        place_codes.run([("C10", 1)], "plan.json", {"folder": "Z:/no/such"}, 161, list().append, free=lambda: 5.0, launch=lambda *a: 0)
+    assert not hasattr(place_codes, "settle")
 
 
 # R235 second method

@@ -349,9 +349,7 @@ namespace SiteAdaptation.Common
             needs.Add(input.RuleFiles > 0
                 ? Need("rules", "usable", Count(input.RuleFiles, "rule set file", "rule set files") + " found in the folder.")
                 : Need("rules", "missing", "No rule set file is in the folder, the rules are chosen in the add-in."));
-            needs.Add(input.SharedParameterFiles > 0
-                ? Need("sharedParameters", "usable", Count(input.SharedParameterFiles, "shared parameter file", "shared parameter files") + " found in the folder.")
-                : Need("sharedParameters", "missing", "No shared parameter file is in the folder."));
+            needs.Add(SharedParametersNeed(input));
 
             // The mirror is a value of each plot, not a need. It is the sign of the scale of the villa block, which the drawing states. What the
             // sign means for the link rests on the hand of the prototype, which only a person can confirm, so the value is weak until then

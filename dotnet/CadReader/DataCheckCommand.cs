@@ -50,6 +50,7 @@ namespace CadReader
             else
             {
                 Gather(run, folder, settings, input);
+                ReadParameterSheet(run, input);
                 try
                 {
                     output = DataCheckLogic.Run(settings, input);
@@ -268,6 +269,32 @@ namespace CadReader
             if (file["typologies"] is JObject)
             {
                 input.RuleFiles++;
+            }
+        }
+
+        // R700. The parameter sheet of the project, the input of the request that the add-in or the scenario run takes from the project
+        // settings, so the folder alone says nothing of it. The runner guards it as every input. A request that names none, or a sheet that
+        // is not there or does not read, is said by the need sharedParameters and the run carries on
+        private static void ReadParameterSheet(WorkerContext run, DataCheckInput input)
+        {
+            if (!run.Request.Inputs.Any(item => item.Role == SiteAdaptation.Common.Settings.InputNames.ParameterSheet))
+            {
+                return;
+            }
+            string path = run.Input(SiteAdaptation.Common.Settings.InputNames.ParameterSheet);
+            input.SheetName = Path.GetFileName(path);
+            input.SheetFound = File.Exists(path);
+            if (!input.SheetFound)
+            {
+                return;
+            }
+            try
+            {
+                input.Sheet = SiteAdaptation.Common.SetUp.ParameterSheet.FromFile(path);
+            }
+            catch (Exception failure)
+            {
+                input.SheetProblem = failure.Message;
             }
         }
 

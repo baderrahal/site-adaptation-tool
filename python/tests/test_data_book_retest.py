@@ -48,7 +48,7 @@ def test_r169_runner_passes_an_empty_known_list(tmp_path):
     (tmp_path / "source").mkdir()
     (root / "work" / "Roads" / "s.dwg").write_bytes(b"dwg")
     config = {"sourceRoot": str(tmp_path / "source"), "language": "en-US", "probeDll": str(tmp_path / "probe.dll"),
-              "dataBook": {"root": str(root), "drawings": {"roadSurface": "Roads/s.dwg"}, "acad": "acad.exe", "watcher": "watch.exe", "minFreeGB": 2,
+              "dataBook": {"root": str(root), "drawings": {"roadSurface": "Roads/s.dwg"}, "acad": "acad.exe", "watcher": "watch.exe",
                            "timeoutMinutes": 1, "knownSurfaces": {"roadSurface": ["A", "B"]}, "exportKnownSurfaces": True}}
     seen = []
 

@@ -29,6 +29,13 @@ namespace SiteAdaptation.Common
         public int LandXmlWithCoordinateSystem { get; set; }
         public int RuleFiles { get; set; }
         public int SharedParameterFiles { get; set; }
+
+        // R700. The parameter sheet the project settings name, the one source of the shared parameters. Sheet is null when it was not
+        // read, SheetProblem then says why in plain words
+        public string SheetName { get; set; }
+        public bool SheetFound { get; set; }
+        public SetUp.ParameterSheet Sheet { get; set; }
+        public string SheetProblem { get; set; }
         public string Stopped { get; set; }
         public List<string> Ties { get; } = new List<string>();
         public ConfirmedProfile Confirmed { get; set; }
