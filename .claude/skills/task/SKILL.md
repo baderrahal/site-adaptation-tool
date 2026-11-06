@@ -33,3 +33,5 @@ New values and their tag: computed, rule, user pick, missing, past.
 8. Run /merge, then stop. Do not start another task in this session.
 
 A PR touching Revit add-in files needs a file in steps/revit-results/, or the label revit-later when the revit-test lane still owes the check. A fix on its third attempt stops and goes back to measuring.
+
+At the end, put your final statement in the PR body and in steps/heads-up/<lane>.md, then push.

@@ -7,6 +7,7 @@ allowed:
   - dotnet/SiteAdaptation.Common/
   - dotnet/CadReader/
   - dotnet/SiteAdaptation.Tests/FAST2/
+  - dotnet/SiteAdaptation.Tests/ParsonsModelTests.cs
   - python/
   - scripts/scenarios/
   - config/
@@ -29,6 +30,8 @@ The logic behind the face, for any project. Bader's order of 6 Nov, fast build, 
 5. Mirror from what CAD gives: block Scale X, the footprint when it exists, the pair trace when it does not. Mirror right before and after on S1 and S2 in steps/scenarios.md, one run each.
 6. No RAM floor: remove siteBuild.minFreeGB from config/project.json and every reader, python/window_lock.py, python/c3d_window.py and the worker checks.
 7. Boundary wall thickness from the rules file, Q149. The link parameter group, Q336.
+8. Q504, Bader's answer 5A of 6 Nov: a plot whose ffl is missing is marked, steps 6 to 8 skip it, and the plan lists every such plot in the issues list with the words no road level, so the card shows the count.
+9. Bader's answer 4A of 6 Nov: the R310 tests of ParsonsModelTests.cs fail at random on this PC. Measure the time of a CIM call on this PC and take the limit of the tests from it. dotnet/SiteAdaptation.TestHost/WindowSamples.ps1 is FAST-1's, a change there is a line in steps/seam.md.
 
 Tests in dotnet/SiteAdaptation.Tests/FAST2/ and python/tests/. tests/acceptance/ stays Lead's, the required check fails a lane that changes it, and scripts/ is held to scripts/scenarios/, as scripts/checks/ is the gate and scripts/lanes/ the lane starter. CHOSEN by Lead.
 
@@ -48,3 +51,5 @@ The S1 folder scans with sharedParameters strong, the plan carries a source on e
 - Each PR body: plan items done, skipped and extra with the reason, callers, what was opened in Revit, the log entry.
 - Push at least every 2 hours. Open the PR when one card or one function works, not at the end. Merge main before every push.
 - Keep steps/heads-up/<lane>.md current: what changed, where, what calls what, what is next. One page.
+
+At the end, put your final statement in the PR body and in steps/heads-up/<lane>.md, then push.

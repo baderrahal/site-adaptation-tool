@@ -34,6 +34,8 @@ A check by a second method, with what it must show.
 
 # Revit check needed
 What the revit-test lane must see, or none.
+
+At the end, put your final statement in the PR body and in steps/heads-up/<lane>.md, then push.
 ```
 
 `stage` is 1, 2, 3 or rules. `allowed` lists folders from the repo root, ending in a slash, or single files. The Edit and Write hook and the folder rules check read it from main, so a lane cannot widen it, and the task must be merged before the lane starts. A shell write passes the hook, the check catches it on the PR.

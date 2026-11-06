@@ -2,6 +2,30 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Bader's form answered, 6 Nov 2026
+
+Goal:
+- Do what Bader's answers to steps/bader-form-6nov.md ask.
+
+Done:
+- 1A: the Confirm window approved, D-46 closed. 2A: the account name of the PC gone from 10 files under steps/, and a check by its hash. 3A: Bader's own. 4A: ParsonsModelTests.cs on the list of FAST-2 by exact path, with a scope item. 5A: FAST-1 and FAST-2 skip steps 6 to 8 for a plot with no ffl and list each as no road level. Q520 and Q504 closed.
+- Every open or waiting task, the task skill and the task shape of the round skill end with the line of the final statement.
+
+Checked:
+- git grep finds the account name in 0 files. The new check passes, its stored hash equals the hash of the account of this PC.
+
+Remains:
+- FAST-1 and FAST-2 build. FAST-3 on Sun 8 Nov.
+
+Known bugs:
+- R310 at random until FAST-2 item 9.
+
+Next:
+- The lanes' first PRs.
+
+Your turn:
+- 3A: press Always Load once by hand and ask IT for a company certificate.
+
 ## Fast build set up, 6 Nov 2026
 
 Goal:

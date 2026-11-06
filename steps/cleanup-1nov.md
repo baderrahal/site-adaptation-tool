@@ -1,6 +1,6 @@
 # Folder cleanup, 2 Nov 2026
 
-Done by Lane C on Bader's resume prompt. Moves only, nothing was deleted. Every moved folder is in C:\_cleanup-1nov under its own name. To put one back, move it back to C:\Users\p003653k\OneDrive - Parsons Corp\Documents\GitHub\ under the same name. If a lane needs one, it tells lane-c and the move back is noted here.
+Done by Lane C on Bader's resume prompt. Moves only, nothing was deleted. Every moved folder is in C:\_cleanup-1nov under its own name. To put one back, move it back to C:\Users\<user>\OneDrive - Parsons Corp\Documents\GitHub\ under the same name. If a lane needs one, it tells lane-c and the move back is noted here.
 
 How each move was checked:
 
