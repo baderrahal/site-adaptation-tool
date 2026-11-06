@@ -23,7 +23,7 @@ allowed:
 
 The logic behind the face, for any project. Bader's order of 6 Nov, fast build, 6 to 8 Nov. In this order:
 
-1. Shared parameters for any project. config/shared_parameters.xlsx is the one source, a new project edits only that Excel. Parameters go on the villa links only, never on floors. Never write RRE_ZZ_SP_Prototype-FFL. The data check marks sharedParameters strong when the Excel is found and says in plain words what is missing when it is not.
+1. Shared parameters for any project. config/shared_parameters.xlsx is the one source, a new project edits only that Excel. Parameters go on the villa links only, never on floors, apart from Plot, which stays on floors as the tool's own tag by Q560, item 11. Never write RRE_ZZ_SP_Prototype-FFL. The data check marks sharedParameters strong when the Excel is found and says in plain words what is missing when it is not.
 2. The source mark per value: computed, rule, person entered, missing, carried through the plan, the check table and the report. The report on a new project prints no past shares, each sheet says the source of its values.
 3. Update from report on a new project, Q394.
 4. Plots read: S1 reads 2964 plots where the answer holds 1891. The plot table holds the plots a villa goes on, every other plot is listed with its reason, never dropped in silence. Numbers right stays at 1873 or more.
