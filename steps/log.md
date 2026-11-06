@@ -2,6 +2,29 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## The night of 6 Nov: lanes stopped, add-in installed, 6 Nov 2026
+
+Goal:
+- Bader's order of 21:10: the one test runs tonight. Merge what is open, stop the builders, install, start revit-test.
+
+Done:
+- Merged PR 237, 238, 240, 241, 242, 243, 244. FAST-2 and FAST-4 done, build-1 stopped with FAST-1 open. Add-in built from main 14044dd and installed at 23:00. revit-test folder on task/FAST-3-revit-test.
+
+Checked:
+- Every PR green on the tests job before its merge. The installed SiteAdaptation.AddIn.dll is the 23:00:40 build of 14044dd. No process of the hidden builder sessions left.
+
+Remains:
+- The first run of FAST-3 from 23:30, and its fix list by 08:00 Sat.
+
+Known bugs:
+- R310 and R347 failed at random under load until PR 242. R444 failed once on CI.
+
+Next:
+- revit-test starts 23:30.
+
+Your turn:
+- Open Revit 2024 once, press Always Load, close it.
+
 ## FAST-1-build-1 PR 7, Q504 on card 3, 6 Nov 2026
 
 Goal:
