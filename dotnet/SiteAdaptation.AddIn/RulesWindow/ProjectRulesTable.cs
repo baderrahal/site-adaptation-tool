@@ -105,7 +105,7 @@ namespace SiteAdaptation.AddIn.RulesWindow
             {
                 return HasRules(place) && (string)JObject.Parse(WorkFiles.ReadText(place.RulesFile))[RulesFileNames.BeforeBuild] == RulesFileNames.Block ? RulesFileNames.Block : RulesFileNames.Warn;
             }
-            catch (Exception failure) when (failure is IOException || failure is UnauthorizedAccessException || failure is JsonException || failure is InvalidCastException)
+            catch (Exception failure) when (failure is IOException || failure is UnauthorizedAccessException || failure is JsonException || failure is InvalidCastException || failure is ArgumentException)
             {
                 return RulesFileNames.Warn;
             }
@@ -117,6 +117,11 @@ namespace SiteAdaptation.AddIn.RulesWindow
             if (answer == null)
             {
                 return null;
+            }
+            // A config with no rule list or a rules file that does not read stops the build, so the pane says that line
+            if (!string.IsNullOrEmpty(answer.BlockingLine))
+            {
+                return answer.BlockingLine;
             }
             if (!hasRules)
             {

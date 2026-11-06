@@ -148,6 +148,19 @@ namespace SiteAdaptation.Tests
             Assert.Equal(1, model.BeforeBuildIndex);
             Assert.Equal(TextTemplate.Fill(ProjectRulesText.Saved, ProjectRulesText.BeforeBuild), model.Line);
             Assert.Equal(4, File.ReadAllLines(Path.Combine(place.Folder, RulesFileNames.LogName)).Length);
+
+            // Review of PR 2: a config copy with no rule list stops a build, so the amber line says why and is never empty
+            JObject config = JObject.Parse(File.ReadAllText(place.ConfigFile));
+            ((JObject)config["projectRules"]).Remove("ruleIds");
+            File.WriteAllText(place.ConfigFile, config.ToString());
+            RulesForBuildAnswer blocked = ProjectRulesTable.Read(place);
+            Assert.False(string.IsNullOrEmpty(blocked.BlockingLine));
+            Assert.Equal(blocked.BlockingLine, ProjectRulesTable.AmberLine(blocked, true));
+            // A hand edit that makes Before Build a list reads as warn and throws nothing
+            JObject rules = JObject.Parse(File.ReadAllText(place.RulesFile));
+            rules[RulesFileNames.BeforeBuild] = new JArray("block");
+            File.WriteAllText(place.RulesFile, rules.ToString());
+            Assert.Equal(RulesFileNames.Warn, ProjectRulesTable.BeforeBuild(place));
         }
 
         // The draft shot of the window: a set up project shows each rule with its value and the line of the last change
