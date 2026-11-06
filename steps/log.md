@@ -9,10 +9,11 @@ Goal:
 
 Done:
 - dotnet/SiteAdaptation.AddIn/Pane/BuildChain.cs runs the steps 1, 4, 5, 6, 7 and 8 one after another, each by RequestRun as a press of its row, through the step code of version 1. R688.
-- Buttons.ChainEnded hands the end of each step to the build, card 2 says Step <n> of 6, the build stops only on a step that did not end well and says where and why, the message of a step that ended well goes to the issues.
+- Buttons.ChainEnded hands the end of each step to the build, card 2 says Step <n> of <n>, the build stops only on a step that did not end well and says where and why, the messages of the steps that ended well are said at the end.
+- Review 1: set up site runs only when it has not run, and a step that waits on an earlier one runs that one first, so a build after set up site reads and reviews again before check.
 
 Checked:
-- R688 4 of 4, with R686, R680 and the labels 24 of 24 on net48.
+- R688 6 of 6, with R686, R680 and the labels 26 of 26 on net48.
 
 Remains:
 - Item 5 stage 3, item 6 Q504.
