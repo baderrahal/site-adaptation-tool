@@ -25,6 +25,7 @@ namespace SiteAdaptation.AddIn
         private readonly DiskProbe probe;
         private readonly PaneViewModel model;
         private ExternalEvent runEvent;
+        private RunButtonHandler runner;
         private ExternalEvent answerEvent;
         private ExternalEvent tellEvent;
         private ExternalEvent newProjectEvent;
@@ -55,6 +56,7 @@ namespace SiteAdaptation.AddIn
         {
             var host = new PaneHost();
             var runner = new RunButtonHandler();
+            host.runner = runner;
             // R496. The row Prototypes warns for files older than this Revit, the look runs off the UI thread. A version text that is no
             // number gives no warning
             host.model.FormatLook = host.probe.LookFormat;
@@ -394,6 +396,26 @@ namespace SiteAdaptation.AddIn
                     model.RequestRun(first.Value);
                 }
             };
+            // R689. Card 3 reads the newest plan of the work folder again only when it or the issues of the steps changed
+            string resultsStamp = null;
+            StageResults results = null;
+            stages.ResultsNow = () =>
+            {
+                string plan = StageResults.LatestPlan(WorkFolderNow());
+                string stamp = (plan == null ? "none" : plan + "@" + System.IO.File.GetLastWriteTimeUtc(plan).Ticks) + "#" + chain.Issues.Count;
+                if (stamp != resultsStamp)
+                {
+                    resultsStamp = stamp;
+                    results = StageResults.Read(plan, chain.Issues);
+                }
+                return results;
+            };
+            // R690. Update from report of version 1 from card 3, the command of its ribbon button
+            stages.UpdateRequested += () =>
+            {
+                runner.Command = nameof(Commands.UpdateFromReportCommand);
+                runEvent.Raise();
+            };
             Buttons.ChainEnded = (number, outcome) =>
             {
                 if (!chain.Ended(number, outcome.End, outcome.Message, out int? next, out string line))
@@ -401,6 +423,7 @@ namespace SiteAdaptation.AddIn
                     return false;
                 }
                 stages.ShowBuild(planLine + " " + line);
+                stages.Refresh();
                 if (next.HasValue)
                 {
                     model.RequestRun(next.Value);
@@ -583,8 +606,18 @@ namespace SiteAdaptation.AddIn
     {
         public int Number { get; set; }
 
+        // R690. A button with no number, run by its command once, as Update from report of card 3
+        public string Command { get; set; }
+
         public void Execute(UIApplication app)
         {
+            string command = Command;
+            Command = null;
+            if (command != null)
+            {
+                Buttons.Run(command, app);
+                return;
+            }
             try
             {
                 Buttons.Run(Number, app);
