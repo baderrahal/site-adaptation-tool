@@ -25,6 +25,31 @@ Next:
 Your turn:
 - None.
 
+## FAST-1-build-1 PR 5, the one Build runs the steps, 6 Nov 2026
+
+Goal:
+- Item 4 of FAST-1, second part: one Build runs set up site, check, floors and ramps, levels, villas and walls as one run with one progress line.
+
+Done:
+- dotnet/SiteAdaptation.AddIn/Pane/BuildChain.cs runs the steps 1, 4, 5, 6, 7 and 8 one after another, each by RequestRun as a press of its row, through the step code of version 1. R688.
+- Buttons.ChainEnded hands the end of each step to the build, card 2 says Step <n> of <n>, the build stops only on a step that did not end well and says where and why, the messages of the steps that ended well are said at the end.
+- Review 1: set up site runs only when it has not run, and a step that waits on an earlier one runs that one first, so a build after set up site reads and reviews again before check.
+
+Checked:
+- R688 6 of 6, with R686, R680 and the labels 26 of 26 on net48.
+
+Remains:
+- Item 5 stage 3, item 6 Q504.
+
+Known bugs:
+- The windows and confirm boxes each step of version 1 opens still open during the build. Not seen in Revit.
+
+Next:
+- Item 5, card 3.
+
+Your turn:
+- FAST-3-revit-test runs Build in Revit on a copy, label revit-later.
+
 ## FAST-1-build-1 PR 4, no RAM floor in two test host scripts, 6 Nov 2026
 
 Goal:
