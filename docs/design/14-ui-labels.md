@@ -147,7 +147,6 @@ The five panels and their buttons of 7.1 of docs/design/12-ui-spec.md, Bader's c
 - `No data check yet. Choose the project folder.` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
 - `The one Build button is not wired yet. Until then run steps 4 to 8 under Advanced.` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
 - `Report runs step 9 of version 1. The issues count, where each value came from and Update from report are not wired here yet. Update from report stays on the ribbon.` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
-- `The rules table of this project is not wired yet.` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
 - `This project uses the shipped settings, so the tool cannot set its folder. Start a new project in Settings, Project setup, then choose the folder.` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
 - `The work folder of this model lies inside that folder, and the tool never writes into a project folder. Choose another folder or save the model elsewhere.` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
 - `The project folder was not saved: <name>` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
@@ -378,6 +377,31 @@ Built in Lane B 5c. The title, band line, buttons, chips, columns and side box a
 - `The manual PDF did not open: <n>` CHOSEN, when the shell refuses the file
 - `No rules file is chosen yet. Choose it in Set up site first.` CHOSEN, the line of the ribbon command Site Adaptation Rules when the pane holds no rules file, shown in place of the window
 - `The rules file was not found: <n>` CHOSEN, the line of that command when the chosen rules file is gone, with its path
+- `Rules of this project` CHOSEN, the rules table of a project of FAST-1-build-1, item 3
+- `Each rule this project builds by. Confirm a value as it stands, or type another one and save it.` CHOSEN, the rules table of a project of FAST-1-build-1, item 3
+- `Value` CHOSEN, the rules table of a project of FAST-1-build-1, item 3
+- `Source` CHOSEN, the rules table of a project of FAST-1-build-1, item 3
+- `Status` CHOSEN, the rules table of a project of FAST-1-build-1, item 3
+- `Confirm` CHOSEN, the rules table of a project of FAST-1-build-1, item 3
+- `Save` CHOSEN, the rules table of a project of FAST-1-build-1, item 3
+- `Close` CHOSEN, the rules table of a project of FAST-1-build-1, item 3
+- `Before Build` CHOSEN, the rules table of a project of FAST-1-build-1, item 3
+- `Warn and build` CHOSEN, the rules table of a project of FAST-1-build-1, item 3
+- `Stop the build` CHOSEN, the rules table of a project of FAST-1-build-1, item 3
+- `What a Build does while a rule is not confirmed.` CHOSEN, the rules table of a project of FAST-1-build-1, item 3
+- `Use the manual template` CHOSEN, the rules table of a project of FAST-1-build-1, item 3
+- `No rules chosen for this project yet.` CHOSEN, the rules table of a project of FAST-1-build-1, item 3
+- `No rules chosen for this project yet. Open Rules in Settings.` CHOSEN, the rules table of a project of FAST-1-build-1, item 3
+- `<n> of <n> rules are not confirmed. Open Rules in Settings.` CHOSEN, the rules table of a project of FAST-1-build-1, item 3
+- `Rules` CHOSEN, the rules table of a project of FAST-1-build-1, item 3
+- `Open` CHOSEN, the rules table of a project of FAST-1-build-1, item 3
+- `This project uses the shipped settings, so its rules cannot be set here. Start a new project in Settings, Project setup, then choose its rules.` CHOSEN, the rules table of a project of FAST-1-build-1, item 3
+- `The rules templates are not installed with the add-in. Install the add-in again.` CHOSEN, the rules table of a project of FAST-1-build-1, item 3
+- `Save the model first, the rules table keeps its record beside the work of the model.` CHOSEN, the rules table of a project of FAST-1-build-1, item 3
+- `The value of <name> is not a list or a set the tool can read: <name>` CHOSEN, the rules table of a project of FAST-1-build-1, item 3
+- `Nothing changed: <name>` CHOSEN, the rules table of a project of FAST-1-build-1, item 3
+- `Saved <name>.` CHOSEN, the rules table of a project of FAST-1-build-1, item 3
+- `The rules of the manual template are now the rules of this project. Each is not confirmed until a person confirms it.` CHOSEN, the rules table of a project of FAST-1-build-1, item 3
 
 ### Check table
 

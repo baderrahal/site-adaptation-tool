@@ -27,6 +27,30 @@ Next:
 Your turn:
 - build-1: the floor lines of Run-TestHost.ps1, Start-RevitListener.ps1 and Run-Parallel.ps1 can go, the tests take both.
 
+## FAST-1-build-1 PR 2, the rules of a project and the parameter sheet, 6 Nov 2026
+
+Goal:
+- Item 3 of FAST-1, Settings and the rules per project, and item 2b, stage 1 sends the parameter sheet.
+
+Done:
+- dotnet/SiteAdaptation.AddIn/RulesWindow/ProjectRulesWindow.xaml, the rules table of a project from Settings, Rules, Open. Confirm or Save runs rulesChange, Use the manual template runs rulesSetup, Before Build warn or block, all by WorkerRunner.Run in process. R682.
+- One amber line on the pane until every rule is confirmed, R683. The install ships rules/templates/manual.json, R684. DataCheckStep.SheetInput sends the parameter sheet, R685.
+
+Checked:
+- R682 6 of 6, R685 1 of 1 on net48. project-rules.png rendered by SiteAdaptation.UiShots.
+
+Remains:
+- Point 1 open from a rule issue goes with the issues list of item 5. Point 3 the first Build asks once goes with the Build of item 4. Item 8 waits for FAST-2.
+
+Known bugs:
+- Not seen in Revit.
+
+Next:
+- Item 4, the one Build button.
+
+Your turn:
+- FAST-3-revit-test opens the rules table in Revit, label revit-later.
+
 ## A third builder and the seam of 16:50, 6 Nov 2026
 
 Goal:
