@@ -9,6 +9,7 @@ allowed:
   - dotnet/SiteAdaptation.TestHost/
   - dotnet/SiteAdaptation.Tests/FAST1/
   - dotnet/SiteAdaptation.Tests/UiLabelTests.cs
+  - dotnet/SiteAdaptation.Tests/InstallScriptTests.cs
   - docs/design/14-ui-labels.md
   - steps/ui-shots/
   - steps/revit-results/
@@ -23,11 +24,13 @@ The face of the tool in Revit. Bader's order of 6 Nov, fast build, 6 to 8 Nov. I
 
 1. The pane in 3 stages, the 7 points of steps/tasks/R2-C4-revit-test.md: 3 cards each with status, an i icon and one main button. Settings gear. Advanced holds the old 9 rows closed by default. Pane words match what is built.
 2. Stage 1 Project data wired: Choose project folder runs the scan on that folder, the data check rows show in the card in plain CAD and Revit words (strong, usable, weak, missing), Fix items opens the Confirm window of R2-C1.
+2b. Bader's order of 6 Nov, the seam of build-2: stage 1 sends the sheet of the project settings with the dataCheck request as the input role parameterSheet when the file is on disk, so card 1 shows sharedParameters strong. dotnet/SiteAdaptation.AddIn/ScanResults/DataCheckStep.cs near line 211, from Settings.InputPath(InputKeys.ParameterSheet) or the sheet of config.
 3. Settings: project profile and the rules per project, the 5 points of steps/tasks/R2-C3-revit-test.md: the rules table from the gear and from any rule issue, one amber line until rules are confirmed, the first Build asks once to use the manual template, the Before Build setting, the templates reach an installed add-in.
 4. Stage 2 Build site wired: the scope list in the project's words, a Preview tick that opens the 2D preview, one Build button that runs set up site, check, floors and ramps, levels, villas and walls as one run with one progress line, through the existing step code of version 1. It stops only on a blocking issue and says why in plain words. Everything else goes to the issues list. Coordinates from CAD shown with the file difference in mm.
 5. Stage 3 Review and deliver: the issues count, the source mix bar (computed, rule, person entered, missing) read from what build-2 writes, Report and Update from report on the existing version 1 code.
 6. Q504, Bader's answer 5A of 6 Nov: the Build skips steps 6 to 8 for a plot with no ffl, and the card shows the count of the issues no road level that the plan of FAST-2 lists.
 7. Each window rendered once by SiteAdaptation.UiShots, one screenshot each in steps/ui-shots/ with no real value, and the PR labelled revit-later. Opening the windows in Revit is FAST-3-revit-test's, as .claude/rules/revit.md lets the revit-test lane alone open Revit. CHOSEN by Lead on the seam line of 6 Nov. No scoring, no second method, no counts against the plan.
+8. Bader's order of 6 Nov, FAST-2 item 6: the RAM floor lines of Run-TestHost.ps1, Start-RevitListener.ps1 and Run-Parallel.ps1 in dotnet/SiteAdaptation.TestHost/ go, they are this task's. The Common and test side is FAST-2's.
 
 Tests in dotnet/SiteAdaptation.Tests/FAST1/, a folder as the lane guard and the folder check take a path, not a file name pattern. CHOSEN by Lead.
 
