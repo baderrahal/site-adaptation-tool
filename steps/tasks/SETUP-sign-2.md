@@ -9,6 +9,7 @@ allowed:
   - dotnet/SiteAdaptation.AddIn/Install-SiteAdaptation.ps1
   - docs/licences.md
   - steps/revit-results/
+  - steps/heads-up/revit-test.md
 ---
 
 # Scope
@@ -31,3 +32,5 @@ The four items above, each with its result in steps/revit-results/SETUP-sign-2.m
 # Revit check needed
 
 All of the above.
+
+At the end, put your final statement in the PR body and in steps/heads-up/<lane>.md, then push.

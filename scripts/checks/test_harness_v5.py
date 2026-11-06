@@ -33,6 +33,27 @@ def test_the_required_job_leaves_out_only_the_r347_tests_on_a_1_s_limit_and_the_
     assert "R347 worker tests" in (ROOT / "steps" / "backlog.md").read_text(encoding="utf-8")
 
 
+# Bader's answer 2A of 6 Nov: the Windows account of the PC is in no tracked file. The check holds its SHA-256 and its length, never the name
+ACCOUNT_SHA256 = "b62fd25836f434603ae50e48aa2ff85a4b8a059a3ec7b7a472a6892f157d8bac"
+ACCOUNT_LENGTH = 8
+
+
+def test_no_tracked_file_names_the_account_of_the_pc():
+    import hashlib
+    import re
+    import subprocess
+    found = []
+    for path in subprocess.run(["git", "ls-files"], cwd=ROOT, capture_output=True, text=True, encoding="utf-8").stdout.splitlines():
+        try:
+            text = (ROOT / path).read_text(encoding="utf-8")
+        except (UnicodeDecodeError, OSError):
+            continue
+        for word in set(re.findall(r"[A-Za-z0-9]+", text)):
+            if len(word) == ACCOUNT_LENGTH and hashlib.sha256(word.lower().encode("utf-8")).hexdigest() == ACCOUNT_SHA256:
+                found.append(path)
+    assert found == []
+
+
 def test_attribution_is_off():
     assert SETTINGS["attribution"] is False
 

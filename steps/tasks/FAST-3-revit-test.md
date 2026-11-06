@@ -37,3 +37,5 @@ Rule ids: R720 to R729. Question ids: Q550 to Q559. Take no other id.
 - Each PR body: plan items done, skipped and extra with the reason, callers, what was opened in Revit, the log entry.
 - Push at least every 2 hours. Open the PR when one card or one function works, not at the end. Merge main before every push.
 - Keep steps/heads-up/<lane>.md current: what changed, where, what calls what, what is next. One page.
+
+At the end, put your final statement in the PR body and in steps/heads-up/<lane>.md, then push.

@@ -134,7 +134,7 @@ Round 17 gave the IDs. Each open question of the DATA-4 list kept its number as 
 | Q124 | Counts box before the Revit read | As recommended: keep it until the Revit read of 5e fills its Revit column. Code work, join item of 5e in steps/01_next.md | Bader, 2026-10-29, answer pass |
 | Q125 | Walls Issues row in the Issues sheet | As recommended: one Issues row per weak wall decision, in 5e. Code work, join item of 5e in steps/01_next.md | Bader, 2026-10-29, answer pass |
 | Q126 | Inputs on the laptop, was QL1 | The inputs are copied from the PC to C:\02-Site Adaptation, proven by hash. C:\10- ROSHEN MECCA is not used by the tool | 2026-10-28, Lane B L0 |
-| Q127 | Work root of the laptop, was QL2 | One machine file, %APPDATA%\SiteAdaptation\machine.json, gives the work root C:\Users\p003653k\Documents\SiteAdaptation, outside OneDrive. No path of a user goes into config/project.json | 2026-10-28, Lane B L0 |
+| Q127 | Work root of the laptop, was QL2 | One machine file, %APPDATA%\SiteAdaptation\machine.json, gives the work root <work root>, outside OneDrive. No path of a user goes into config/project.json | 2026-10-28, Lane B L0 |
 | Q128 | Split of U1 to U7, was QL3 | Keep the U1 to U7 split of steps/decisions-2026-10-28.md | 2026-10-28, Lane B L0 |
 | Q129 | Villa mode default, was QL4 | Masses by default, Links picked per run | 2026-10-28, Lane B L0 |
 | Q130 | Base of a solid against the footprint, was QL5 | The largest distance between the two outlines, both ways, in mm, against a limit in config | 2026-10-28, Lane B L0 |
@@ -397,3 +397,6 @@ Lane B numbered its questions QL1 upward from 28 Oct 2026. At the fold in of Rou
 | Q341 | Back corners two ramps share | Bader's order of 3 Nov, 0 shared corners over 1 mm. CHOSEN by Code: road at front plus 0.5% over the depth, El @ Entry moves, R515. No road surface reaches a back corner, 0 of 270. See Q433. | 2026-11-04 |
 | Q398 | The 443 hairline floor overlaps at step 5 | Bader's order of 3 Nov. R517 pulls every floor in 2 mm. Revit, RAN, NBH 012: past job 2 two plot overlaps from 443, new project 0. See Q432. | 2026-11-04 |
 | Q496 | Where the typology column is held | Decided by Lead on Bader's order: the window holds it, the person confirms it with the code map. In R2-C1-revit-test | 2026-11-05 |
+| D-46 | The Confirm window, steps/ui-shots/confirm-profile.png | Bader 1A: approved as it is | 2026-11-06 |
+| Q520 | The Windows account name in public files | Bader 2A: <work root> or <user> in its place, and a check in scripts/checks/test_harness_v5.py that fails a new one by its hash | 2026-11-06 |
+| Q504 | Floor level with no road surface | Bader 5A: steps 6 to 8 skip a plot whose ffl is missing, the plan says how many and lists every such plot as an issue with the words no road level | 2026-11-06 |

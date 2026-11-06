@@ -8,7 +8,7 @@ Merged to main: fix/1nov-d (PR 126), fix/1nov-b (PR 127), fix/1nov-a (PR 128), f
 
 1. Close Revit 2024. The install refuses while it runs.
 2. Open VS Code.
-3. File, Open Folder, pick C:\Users\p003653k\OneDrive - Parsons Corp\Documents\GitHub\site-adaptation-tool, then Select Folder.
+3. File, Open Folder, pick C:\Users\<user>\OneDrive - Parsons Corp\Documents\GitHub\site-adaptation-tool, then Select Folder.
 4. Terminal, New Terminal. A PowerShell terminal opens at the bottom, in the repo folder.
 5. Run each line below on its own, in this order, and wait for the prompt to come back after each.
 
@@ -16,7 +16,7 @@ Merged to main: fix/1nov-d (PR 126), fix/1nov-b (PR 127), fix/1nov-a (PR 128), f
 git switch main
 git pull
 dotnet build dotnet\SiteAdaptation.sln -c Release
-C:\Users\p003653k\Tools\pwsh\pwsh.exe -File dotnet\SiteAdaptation.AddIn\Install-SiteAdaptation.ps1 -NoBuild
+C:\Users\<user>\Tools\pwsh\pwsh.exe -File dotnet\SiteAdaptation.AddIn\Install-SiteAdaptation.ps1 -NoBuild
 ```
 
 Look for: git pull ends on the merge of fix/2nov-c-check. The build ends with "0 Error(s)". The install shows no red line and ends with two lines, "Manifest ... SiteAdaptationAddIn_Revit2024.addin names ..." and "one SiteAdaptation.Common.dll in ... folders of the tool, SHA-256 ...". If it says "Revit 2024 is running", close Revit and run the last line again.
@@ -24,7 +24,7 @@ Look for: git pull ends on the merge of fix/2nov-c-check. The build ends with "0
 ## 2. The model and the config
 
 1. Copy C:\SA-demo\SA-demo-start.rvt to a new name, for example C:\SA-demo\SA-fix1nov.rvt. Every test below runs on that copy.
-2. C:\SA-demo\config\project.json is from 691e1fc and lacks the keys of today (addin.lightMode linkFolder, massFolder, houseLayer, the coordinates block, addin.parameterSheet). Either pick the repo config C:\Users\p003653k\OneDrive - Parsons Corp\Documents\GitHub\site-adaptation-tool\config\project.json in the pane, or wait for Lane B's refresh of C:\SA-demo\config, answered in Q309 on 2 Nov.
+2. C:\SA-demo\config\project.json is from 691e1fc and lacks the keys of today (addin.lightMode linkFolder, massFolder, houseLayer, the coordinates block, addin.parameterSheet). Either pick the repo config C:\Users\<user>\OneDrive - Parsons Corp\Documents\GitHub\site-adaptation-tool\config\project.json in the pane, or wait for Lane B's refresh of C:\SA-demo\config, answered in Q309 on 2 Nov.
 3. Start Revit 2024 and open the copy. If Revit asks about the Site Adaptation add-in, press Always Load.
 4. Leave Dry run first as it is. From FIX-2NOV-C the tool unticks it before 4 Check and says why under the tick (Q195, R446).
 
@@ -119,9 +119,9 @@ Lane D ran this through the test host only, so this is the first run through the
 
 1. Open the config you run from (part 2) in VS Code.
 2. Set addin.lightMode.linkFolder to "prototypes". Leave addin.lightMode.villaModeDefault at "masses".
-3. Set pastJob.upgradedPrototypeFolder to "C:\\Users\\p003653k\\Documents\\SiteAdaptation\\prototypes_2024" and save the file. Write the double backslashes as shown.
+3. Set pastJob.upgradedPrototypeFolder to "<work root>\\prototypes_2024" and save the file. Write the double backslashes as shown.
 4. Copy C:\SA-demo\SA-demo-start.rvt to C:\SA-demo\SA-links.rvt and open the copy in Revit 2024.
-5. In the pane, on the row Prototypes, press Browse and pick C:\Users\p003653k\Documents\SiteAdaptation\prototypes_2024.
+5. In the pane, on the row Prototypes, press Browse and pick <work root>\prototypes_2024.
 6. Run 1 to 9 on Neighbourhood 012 with Villa mode Masses, as steps/demo-fill.md says. At 7 Place villas press Run, then Apply.
 7. Manage, Manage Links, tab Revit, and read the Saved Path column.
 8. Save the model and close it.

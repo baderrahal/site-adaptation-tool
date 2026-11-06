@@ -404,10 +404,6 @@ Q516. Asks once (R2-C3-build-1, PR 211). The check holds no state, so every buil
 - Recommended: The add-in of R2-C3-revit-test records a no in the project settings and does not ask again.
 - Other: Ask at every build until rules are chosen.
 
-Q520. The Windows account name in public files (Lead, 5 Nov 2026). It stands 52 times in 10 files under steps/, in paths under the work root, and git history keeps it. PR 211's text named it until Lead took it out, its edit history keeps it.
-- Recommended: Write <work root> for those paths in a records PR, and a check that fails a new one. History stays as it is.
-- Other: Leave it, it names an account and no client data.
-
 Q501. Numbers from the text of manual rules (R641). Rules M01 to M15 of the manual template are text, so only M10, M11, M12 and M13 give a number, and only in the plain forms of R641.
 - Recommended: Keep the narrow forms. A rule that needs a number gets a number field in the rules window in R3.
 - Other: Read any number in a rule text.
@@ -419,10 +415,6 @@ Q502. Road edge points (R647). Nothing in stage 1 yields road edge points today,
 Q503. Floors placed by the tool (R648). The plan can only compare floors it is given. The Revit lane lists them in placedFloors from the floors that carry the tool mark.
 - Recommended: R2-C2-revit-test writes placedFloors from the floors with the tool mark before it runs Build.
 - Other: Compare every floor of the model, which would replace a floor a person drew.
-
-Q504. Floor level with no road surface (R640). The level of a plot needs the road level at its front and a rule for the height above the road. Neither is in the inputs, so ffl is missing and the plot is marked.
-- Recommended: Steps 6 to 8 skip a plot whose ffl is missing and the plan says how many.
-- Other: Stop the build when any ffl is missing.
 
 Q505. Masses for the overlap check (R646). The masses exist only in the model after step 7.
 - Recommended: The Revit lane lists the base ring of each mass in masses after step 7 and the check runs again.

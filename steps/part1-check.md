@@ -9,7 +9,7 @@ For Bader at 16:00, before the dry run at 17:00 on NBH 012. One action per step.
 ## 2. Open the repo in VS Code
 
 2. Open VS Code.
-3. File, Open Folder, pick C:\Users\p003653k\OneDrive - Parsons Corp\Documents\GitHub\site-adaptation-tool, then Select Folder.
+3. File, Open Folder, pick C:\Users\<user>\OneDrive - Parsons Corp\Documents\GitHub\site-adaptation-tool, then Select Folder.
 4. Terminal, New Terminal. A PowerShell terminal opens at the bottom, in that folder.
 
 ## 3. Run each line on its own
@@ -35,7 +35,7 @@ dotnet build dotnet\SiteAdaptation.sln -c Release
 Prints: Build succeeded and 0 Error(s), after a minute or two.
 
 ```
-C:\Users\p003653k\Tools\pwsh\pwsh.exe -File dotnet\SiteAdaptation.AddIn\Install-SiteAdaptation.ps1 -NoBuild
+C:\Users\<user>\Tools\pwsh\pwsh.exe -File dotnet\SiteAdaptation.AddIn\Install-SiteAdaptation.ps1 -NoBuild
 ```
 
 Prints: no red line, and ends with two lines, Manifest ... SiteAdaptationAddIn_Revit2024.addin names ..., then one SiteAdaptation.Common.dll in 5 folders of the tool.

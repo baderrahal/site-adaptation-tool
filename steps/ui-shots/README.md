@@ -108,7 +108,7 @@ Code went through 7.1, 7.2 and the parts Rules, Font, Colours, Sizes and Icons o
 
 ## The Revit shots against the drafts
 
-Revit run 3 of 5a, 29 Oct 2026, Revit 2024 on the laptop at 125 percent scale (RAN in the lead session, not in a run file: Screen.PrimaryScreen.Bounds gave 1536 wide in a process not DPI aware, and the Revit window of the run is 1938 px wide with a border of 9 each side, 1920 device px, READ the shots of testhost_SA5A_addinrun.json). The run files stay outside the repo in C:\Users\p003653k\Documents\SiteAdaptation\lane_b_5a_run3\run_outputs. The two PNGs here hash the same as those the run wrote (RAN sha256). The canvas itself is not in the repo, so each shot is held against its draft above and docs/design/12-ui-spec.md, and every difference is listed.
+Revit run 3 of 5a, 29 Oct 2026, Revit 2024 on the laptop at 125 percent scale (RAN in the lead session, not in a run file: Screen.PrimaryScreen.Bounds gave 1536 wide in a process not DPI aware, and the Revit window of the run is 1938 px wide with a border of 9 each side, 1920 device px, READ the shots of testhost_SA5A_addinrun.json). The run files stay outside the repo in <work root>\lane_b_5a_run3\run_outputs. The two PNGs here hash the same as those the run wrote (RAN sha256). The canvas itself is not in the repo, so each shot is held against its draft above and docs/design/12-ui-spec.md, and every difference is listed.
 
 Ribbon, revit-ribbon.png against ribbon-icons.png and 7.1 of 12-ui-spec.md:
 
@@ -348,7 +348,7 @@ Lane B ran its DEMO run on main 691e1fc on 1 Nov 2026 at 04:02 (RAN by Lane B):
 - the NBH 012 demo copies, buttons 1 to 9 with no click
 - each window drawn in Revit 2024 by WindowShots
 
-The PNGs show real file names, coordinates and values, so they stay outside the repo in C:\Users\p003653k\Documents\SiteAdaptation\addin_run\SAD2_20261101-040247\shots. Lane C read them there. Every difference from the offscreen drafts here and from the boards:
+The PNGs show real file names, coordinates and values, so they stay outside the repo in <work root>\addin_run\SAD2_20261101-040247\shots. Lane C read them there. Every difference from the offscreen drafts here and from the boards:
 
 1. Set up site (button1-setup-site.png):
    - The section Current files lists the seven files of the demo setup, none ticked, so Apply is grey as R441 sets.
