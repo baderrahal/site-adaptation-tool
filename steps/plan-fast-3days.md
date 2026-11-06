@@ -29,7 +29,7 @@ The one live file of the three days, Bader's order of 6 Nov. Lead keeps it true 
 
 ## At 16:50
 
-- PR 229 and PR 230 merged. PR 228 updated with main by Lead twice, in CI. Lead merges main into every open task branch that no lane has checked out, the same hour as each merge. A lane's working branch is merged by its lane, Lead tells it.
+- PR 229 and PR 230 merged. PR 228 merged as 389af4c after Lead merged main into it twice. CadScan.cs went to FAST-4. FAST-2 makes its tests accept the floor lines both ways before FAST-1 removes them. Lead merges main into every open task branch that no lane has checked out, the same hour as each merge. A lane's working branch is merged by its lane, Lead tells it.
 
 ## revit-test, FAST-3-revit-test, the one test on Sun 8 Nov
 
