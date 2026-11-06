@@ -187,6 +187,9 @@ namespace CadReader
                 ChainMirrored = Mirrored(chain) ? (bool?)true : null,
                 Note = note,
             };
+            var whole = new List<Transform>(chain) { insert.GetTransform() };
+            entry.AxisX = Axis(whole, XYZ.AxisX);
+            entry.AxisY = Axis(whole, XYZ.AxisY);
             if (block != null && (block.Flags & BlockTypeFlags.XRef) == 0)
             {
                 var hull = LocalHull(block);
@@ -803,6 +806,14 @@ namespace CadReader
                 point = chain[index].ApplyTransform(point);
             }
             return point;
+        }
+
+        // R731. A unit direction in world X and Y of an axis of the block, null when the inserts squash it to nothing
+        private static double[] Axis(List<Transform> chain, XYZ axis)
+        {
+            XYZ along = World(chain, axis) - World(chain, XYZ.Zero);
+            double length = Math.Sqrt(along.X * along.X + along.Y * along.Y);
+            return length < 1e-12 ? null : new[] { along.X / length, along.Y / length };
         }
 
         private static bool Mirrored(List<Transform> chain)
