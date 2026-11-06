@@ -569,3 +569,5 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 
 - R700 Shared parameters from the parameter sheet.
 - R701 No free memory floor.
+- R702 No past share on a new project.
+- R703 Each value sheet names the source of its values.

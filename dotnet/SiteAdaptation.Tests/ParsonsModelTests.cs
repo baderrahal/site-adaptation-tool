@@ -357,7 +357,8 @@ namespace SiteAdaptation.Tests
             Assert.True(script.IndexOf("if ($due.sample) {", StringComparison.Ordinal) > loop);
             Assert.Contains("$sample = Get-WindowSample -Process $process", script);
             Assert.Contains("Add-Content -Path $samplesPath", script);
-            Assert.Contains("$peaks = Get-WindowPeaks -Samples $samples -FloorGB ([double]$config.siteBuild.minFreeGB)", script);
+            // R701, item 6 of FAST-2: the floor of free memory leaves the script in a later PR of FAST-1, so the line holds with it or without it
+            Assert.Matches(@"\$peaks = Get-WindowPeaks -Samples \$samples( -FloorGB \(\[double\]\$config\.siteBuild\.minFreeGB\))? -Exit \$exitPeaks", script);
             Assert.Contains("$sampleFailures.Add(", script);
             Assert.Contains("$peaks.sampleFailures = @($sampleFailures)", script);
             Assert.Contains("$exitPeaks = Get-ExitPeaks -Process $process", script);
