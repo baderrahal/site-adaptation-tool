@@ -301,3 +301,9 @@ def test_r704_on_a_new_project_a_plot_with_no_entry_is_saved_as_a_new_entry_with
     assert [item["plot"] for item in found["changes"] if item["newEntry"]] == ["102", "102"]
     made = [entry for entry in found["entries"] if entry["plot"] == "102"]
     assert made and all(entry["key"] is None and entry["model"].endswith(".xlsx") for entry in made)
+    # Review 1 of PR 3: the list Apply wrote still passes the check of R330 every reader runs, an entry with no hand mark does not
+    import override_source
+    groups = {"parsons": ["imc"], "native": ["u11"]}
+    override_source.check_entries(made, groups)
+    with pytest.raises(Exception):
+        override_source.check_entries([{name: value for name, value in made[0].items() if name != "byHand"}], groups)

@@ -192,6 +192,12 @@ namespace SiteAdaptation.Common
             }
             JToken named = item["key"];
             string job = named != null && named.Type == JTokenType.String && jobs.TryGetValue((string)named, out string found) ? found : null;
+            // R704. An entry Update from report saved by hand on a new project names no past key, its job is its source
+            if (job == null && (named == null || named.Type == JTokenType.Null) && ByHand(item) && item.Property("model") != null
+                && item["source"]?.Type == JTokenType.String && groups[(string)item["source"]] != null)
+            {
+                job = (string)item["source"];
+            }
             if (job == null)
             {
                 throw new InvalidDataException("override of plot " + Text(item["plot"]) + " field " + Text(item["field"]) + " names key " + Text(named) + ", which no group of majority.groups holds (R330)");
