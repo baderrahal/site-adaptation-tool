@@ -44,11 +44,14 @@ namespace SiteAdaptation.UiShots
         public const string HelpBox = "help-box";
         public const string SetUpNoSource = "setup-site-no-source";
         public const string ConfirmProfile = "confirm-profile";
+        public const string PaneStage1 = "pane-stage-1";
+        public const string PaneStage2 = "pane-stage-2";
+        public const string PaneStage3 = "pane-stage-3";
         public static readonly string[] Windows = { RibbonIcons, Pane, PaneFirstOpen, SetUpSite, ReviewData, Rules, CheckTable, UpdateFromReport, NewProject, HowItWorks, ScanResults };
 
         // R492. Drawn by the command line and Render, not in Windows: UiShotTests counts 11 windows and holds each of them to the sizes of the spec,
         // so the window Road surfaces joins Windows once Bader approves its draft and that test follows
-        public static readonly string[] Drafts = { RoadSurfaces, HelpBox, SetUpNoSource, ConfirmProfile };
+        public static readonly string[] Drafts = { RoadSurfaces, HelpBox, SetUpNoSource, ConfirmProfile, PaneStage1, PaneStage2, PaneStage3 };
 
         private const double Dpi = 96.0;
 
@@ -71,6 +74,9 @@ namespace SiteAdaptation.UiShots
                 case HelpBox: return HelpBoxPage();
                 case ConfirmProfile: return ConfirmProfilePage();
                 case SetUpNoSource: return SetUpNoSourcePage();
+                case PaneStage1: return StageCardShot(1);
+                case PaneStage2: return StageCardShot(2);
+                case PaneStage3: return StageCardShot(3);
                 default: throw new ArgumentException("no window " + window + ", only " + string.Join(", ", Windows), nameof(window));
             }
         }

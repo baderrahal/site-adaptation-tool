@@ -196,9 +196,13 @@ namespace SiteAdaptation.TestHost
             return Read("PaneHost.PaneId", () => Member(TypeOf(AddinRunNames.PaneHost), AddinRunNames.PaneId, null));
         }
 
+        // R680. Revit docks the pane in 3 stages since FAST-1, and the pane of version 1 sits closed under its Advanced, so the gate and the
+        // pane shot find the docked page. AddinRunNames.Page of Common still names the old page, a seam line for Lead
+        public const string DockedPage = "SiteAdaptation.AddIn.Pane.StagesPage";
+
         public Type PageType()
         {
-            return Read("SitePanePage", () => TypeOf(AddinRunNames.Page)) as Type;
+            return Read("StagesPage", () => TypeOf(DockedPage)) as Type;
         }
 
         private Type TypeOf(string name)

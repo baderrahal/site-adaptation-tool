@@ -766,6 +766,14 @@ namespace SiteAdaptation.AddIn.Pane
                 step.Show(shown ? statuses[step.Number - 1] : new StepStatus(StepKind.None), step.Number == next && shown);
             }
             FoldedStep.Show(shown ? statuses[FoldFrom - 1] : new StepStatus(StepKind.None), false);
+            // R680. The stage cards follow the steps
+            Changed(nameof(Statuses));
+        }
+
+        // R680. A main button of a stage card asks for the run of a step of version 1, as a click on its row does
+        public void RequestRun(int number)
+        {
+            RunRequested?.Invoke(number);
         }
 
         private void RefreshBox()
