@@ -45,7 +45,7 @@ namespace SiteAdaptation.Tests
         // The measured peak of plots.csv by its name and size, the roles of a large read plotsCsv and curbs, and a curbs drawing
         // measured at another size than the one of a run, so the curbs file of a run takes the largest known peak
         // The shortest time limit of the made up config is under the 1 s the kill tests run to
-        private string Config(double peakMiB = 100, double floorGiB = 2.0, double largestMiB = 0, double minimumS = 0.5)
+        private string Config(double peakMiB = 100, double largestMiB = 0, double minimumS = 0.5)
         {
             var files = new JArray { new JObject { ["name"] = "plots.csv", ["bytes"] = PlotsText.Length, ["peakMiB"] = peakMiB } };
             if (largestMiB > 0)
@@ -54,7 +54,6 @@ namespace SiteAdaptation.Tests
             }
             var config = new JObject
             {
-                ["siteBuild"] = new JObject { ["minFreeGB"] = floorGiB },
                 ["addin"] = new JObject
                 {
                     ["workerPeakMiB"] = new JObject { ["roles"] = new JArray("plotsCsv", "curbs"), ["files"] = files },
@@ -139,13 +138,16 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R347_the_memory_check_needs_the_measured_peak_plus_the_floor()
+        public void R701_the_memory_check_needs_the_measured_peak_and_no_floor()
         {
-            Assert.Equal("free memory 1.42 GiB, the Road Layout read needs 2.55 GiB and the floor 2.00 GiB",
-                WorkerMemory.Refusal("Road Layout", 1.42 * 1024, 2612, 2.0));
-            Assert.Null(WorkerMemory.Refusal("Road Layout", 2612 + 2048, 2612, 2.0));
-            Assert.NotNull(WorkerMemory.Refusal("Road Layout", 2612 + 2047.9, 2612, 2.0));
-            Assert.Equal("free memory could not be read, the baseplan read needs 0.10 GiB and the floor 2.00 GiB", WorkerMemory.Refusal("baseplan", null, 100, 2.0));
+            Assert.Equal("free memory 1.42 GiB, the Road Layout read needs 2.55 GiB",
+                WorkerMemory.Refusal("Road Layout", 1.42 * 1024, 2612));
+            Assert.Null(WorkerMemory.Refusal("Road Layout", 2612, 2612));
+            Assert.NotNull(WorkerMemory.Refusal("Road Layout", 2611.9, 2612));
+            Assert.Equal("free memory could not be read, the baseplan read needs 0.10 GiB", WorkerMemory.Refusal("baseplan", null, 100));
+            Assert.Null(WorkerMemory.CommandRefusal("read", 3891, 3891, null));
+            Assert.Equal("free memory 1.00 GiB, the rest of the whole read needs 2.80 GiB, its peak 3.80 GiB less the 1.00 GiB the worker holds (Q083)",
+                WorkerMemory.CommandRefusal("read", 1024, 3891, 1024));
             double? free = WorkerMemory.FreeMiB();
             Assert.True(free.HasValue && free.Value > 0);
         }
@@ -265,7 +267,7 @@ namespace SiteAdaptation.Tests
             WorkerAnswer answer = Answer(WorkerFiles.AnswerPath(folder, "r1"));
             Assert.False(ran);
             Assert.Equal("refused", answer.Status);
-            Assert.Equal("free memory 1.42 GiB, the plots.csv read needs 2.55 GiB and the floor 2.00 GiB", answer.Message);
+            Assert.Equal("free memory 1.42 GiB, the plots.csv read needs 2.55 GiB", answer.Message);
         }
 
         [Fact]
@@ -586,7 +588,7 @@ namespace SiteAdaptation.Tests
                 {
                     File.ReadAllText(run.Input("plotsCsv"));
                     // Revit took memory while the worker ran, the next read is checked against what is free now
-                    free = 4000;
+                    free = 2000;
                     File.ReadAllText(run.Input("curbs"));
                     run.WriteJson(run.Request.OutputFolder, "plan_r6.json", new JObject());
                 },
@@ -594,14 +596,14 @@ namespace SiteAdaptation.Tests
             Assert.Equal(3, WorkerRunner.Run(Save(request), reading, () => free));
             WorkerAnswer answer = Answer(WorkerFiles.AnswerPath(folder, "r6"));
             Assert.Equal("refused", answer.Status);
-            Assert.Equal("free memory 3.91 GiB, the Road.dwg read needs 2.55 GiB and the floor 2.00 GiB", answer.Message);
+            Assert.Equal("free memory 1.95 GiB, the Road.dwg read needs 2.55 GiB", answer.Message);
             Assert.False(File.Exists(Path.Combine(folder, "plan_r6.json")));
 
             // Before any read each large input is checked as well, so a run short of memory for one of them reads nothing
-            free = 4000;
+            free = 2000;
             bool ran = false;
             Assert.Equal(0, WorkerRunner.Run(Save(Request("r7", Config(peakMiB: 100, largestMiB: 2612))), Writing(_ => ran = true), () => free));
-            Assert.True(ran, "plots.csv needs 0.10 GiB and the floor, 4,000 MiB is enough");
+            Assert.True(ran, "plots.csv needs 0.10 GiB, 2,000 MiB is enough");
             WorkerRequest both = Request("r8", Config(peakMiB: 100, largestMiB: 2612));
             both.Inputs.Add(new WorkerFile { Role = "curbs", Path = road, Sha256 = FileHash.Sha256(road) });
             ran = false;
@@ -648,7 +650,7 @@ namespace SiteAdaptation.Tests
                 new JObject { ["name"] = "a.dwg", ["bytes"] = 10000000, ["peakMiB"] = 500 }, new JObject { ["name"] = "b.dwg", ["bytes"] = 100000000, ["peakMiB"] = 2000 },
                 new JObject { ["name"] = "c.dwg", ["bytes"] = 20000000, ["peakMiB"] = 400 },
             };
-            var config = new JObject { ["siteBuild"] = new JObject { ["minFreeGB"] = 2.0 }, ["addin"] = new JObject { ["workerPeakMiB"] = new JObject { ["roles"] = new JArray("curbs"), ["files"] = files } } };
+            var config = new JObject { ["addin"] = new JObject { ["workerPeakMiB"] = new JObject { ["roles"] = new JArray("curbs"), ["files"] = files } } };
             AddinConfig addin = AddinConfig.Load(Write("scaled.json", config.ToString()));
             Assert.Equal(500.0, addin.WorkerPeakMiB("curbs", "a.dwg", 10000000).Value);
             Assert.Equal(400.0, addin.WorkerPeakMiB("curbs", "c.dwg", 20000000).Value);
@@ -677,7 +679,8 @@ namespace SiteAdaptation.Tests
             // An input of no large read is not checked
             Assert.Null(config.WorkerPeakMiB("plotsCsv", "plots.csv", 100));
             Assert.Null(config.WorkerPeakMiB("config", "project.json", 100));
-            Assert.Equal(2.0, config.MinFreeGiB);
+            // R701. The config holds no floor of free memory
+            Assert.Null(JObject.Parse(File.ReadAllText(RepoConfig()))["siteBuild"]?["minFreeGB"]);
             foreach (string command in WorkerRequest.Commands)
             {
                 Assert.True(config.WorkerTimeLimitS(command) > 0, command);

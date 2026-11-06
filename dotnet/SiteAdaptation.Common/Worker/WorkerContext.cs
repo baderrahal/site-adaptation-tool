@@ -20,7 +20,7 @@ namespace SiteAdaptation.Common
     }
 
     // R347. What a command of the worker gets: the request, its issues and counts, each input by its role with the free memory
-    // checked against the measured peak of that file plus the floor right before the read, and against the rest of the whole peak of
+    // checked against the measured peak of that file right before the read, and against the rest of the whole peak of
     // the command when config names one (Q083), and each output written by its
     // temporary name with the run stamp. The runner moves the outputs onto their names only once every check of the run passed,
     // and deletes them under their temporary names when it did not
@@ -53,8 +53,8 @@ namespace SiteAdaptation.Common
         internal IReadOnlyList<KeyValuePair<string, string>> Written => written;
 
         // The path of the input of a role, which the command reads next. For a large read the free memory is read now and the read
-        // refused with exit 3 when it is under the measured peak of that file plus the floor, and for a command with a whole peak when
-        // it is under the rest of that peak plus the floor, so memory Revit took since the start of the run counts
+        // refused with exit 3 when it is under the measured peak of that file, and for a command with a whole peak when
+        // it is under the rest of that peak, so memory Revit took since the start of the run counts
         public string Input(string role)
         {
             WorkerFile input = Request.Inputs.FirstOrDefault(item => item.Role == role);
@@ -72,7 +72,7 @@ namespace SiteAdaptation.Common
             double? whole = config.WorkerCommandPeakMiB(Request.Command);
             if (whole.HasValue)
             {
-                refusal = WorkerMemory.CommandRefusal(Request.Command, freeMiB(), whole.Value, privateMiB(), config.MinFreeGiB);
+                refusal = WorkerMemory.CommandRefusal(Request.Command, freeMiB(), whole.Value, privateMiB());
                 if (refusal != null)
                 {
                     throw new WorkerStop(WorkerExit.Memory, refusal);
@@ -85,13 +85,13 @@ namespace SiteAdaptation.Common
         // memory is held against the measured peak of the file as for an input, its name, size, write time and SHA-256 are recorded in the
         // answer before the read and again after the command, so the guard of D19 holds per file. Gives null and the mark taken now, or the
         // reason the file is not read, which the command records and carries on. peakMiB is the private memory the read of this file needs,
-        // which the command takes from its own settings, the free memory must hold it and the floor. When it is null the peak of the role in
+        // which the command takes from its own settings, the free memory must hold it. When it is null the peak of the role in
         // addin.workerPeakMiB is used, as for an input of the request
         public string OpenFile(string role, string path, out InputMark before, double? peakMiB = null)
         {
             before = null;
             string refusal = peakMiB.HasValue
-                ? WorkerMemory.Refusal(Path.GetFileName(path), freeMiB(), peakMiB.Value, config.MinFreeGiB)
+                ? WorkerMemory.Refusal(Path.GetFileName(path), freeMiB(), peakMiB.Value)
                 : WorkerRunner.MemoryRefusal(new WorkerFile { Role = role, Path = path }, config, freeMiB);
             if (refusal != null)
             {
