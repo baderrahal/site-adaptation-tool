@@ -291,7 +291,7 @@ def build_rows(results):
     for name in sorted(SCENARIOS):
         count = (results.get(name) or {}).get("build")
         if not count:
-            out.append("| %s | not run | | | | | | | |" % name)
+            out.append("| %s | no build made | | | | | | | |" % name)
         else:
             seconds = "UNKNOWN" if count["seconds"] is None else count["seconds"]
             out.append("| %s | %d | %d | %d | %d | %d | %d | %d | %s |" % (name, count["plots"], count["built"], count["missing"], count["marked"], count["blocking"], count["issues"], count["past"], seconds))

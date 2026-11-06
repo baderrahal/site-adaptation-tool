@@ -37,10 +37,10 @@ siteBuild on the plot table of each run above (scripts/scenarios/run_build.py). 
 | Scenario | Plots planned | Built | Missing | Plots marked | Blocking | Issues | Copied from the past | Seconds |
 |---|---|---|---|---|---|---|---|---|
 | S1 | 2964 | 9474 | 26094 | 2964 | 0 | 1 | 0 | 2.0 |
-| S2 | not run | | | | | | | |
-| S3 | not run | | | | | | | |
-| S4 | not run | | | | | | | |
-| S5 | not run | | | | | | | |
+| S2 | no build made | | | | | | | |
+| S3 | no build made | | | | | | | |
+| S4 | no build made | | | | | | | |
+| S5 | no build made | | | | | | | |
 
 ## With a confirmed profile
 
