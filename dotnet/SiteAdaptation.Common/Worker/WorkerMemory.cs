@@ -8,21 +8,21 @@ using System.Runtime.InteropServices;
 
 namespace SiteAdaptation.Common
 {
-    // R347, R200. Free physical memory against the measured peak of an input plus the floor of siteBuild.minFreeGB, in GiB as
-    // window_lock.py reads it, before each large read of the worker
+    // R347. Free physical memory against the measured peak of an input, in GiB as window_lock.py reads it, before each large read of the
+    // worker. R701 took the floor of siteBuild.minFreeGB out, the peak alone is held
     public static class WorkerMemory
     {
         public const double MiBPerGiB = 1024.0;
 
         // Null when the worker may read, else the refusal with both numbers named
-        public static string Refusal(string input, double? freeMiB, double peakMiB, double floorGiB)
+        public static string Refusal(string input, double? freeMiB, double peakMiB)
         {
-            string need = string.Format(CultureInfo.InvariantCulture, "the {0} read needs {1:0.00} GiB and the floor {2:0.00} GiB", input, peakMiB / MiBPerGiB, floorGiB);
+            string need = string.Format(CultureInfo.InvariantCulture, "the {0} read needs {1:0.00} GiB", input, peakMiB / MiBPerGiB);
             if (!freeMiB.HasValue)
             {
                 return "free memory could not be read, " + need;
             }
-            if (freeMiB.Value >= peakMiB + floorGiB * MiBPerGiB)
+            if (freeMiB.Value >= peakMiB)
             {
                 return null;
             }
@@ -30,20 +30,20 @@ namespace SiteAdaptation.Common
         }
 
         // R347, Q083. Null when a command whose whole peak config names may read on, else the refusal with the numbers named. Before the
-        // first read the free memory is held against the whole peak plus the floor, before each later read against the rest of it, the
-        // peak less the private memory the worker holds now, plus the floor, since what the worker holds is no longer free
-        public static string CommandRefusal(string command, double? freeMiB, double peakMiB, double? heldMiB, double floorGiB)
+        // first read the free memory is held against the whole peak, before each later read against the rest of it, the peak less the
+        // private memory the worker holds now, since what the worker holds is no longer free
+        public static string CommandRefusal(string command, double? freeMiB, double peakMiB, double? heldMiB)
         {
             double rest = heldMiB.HasValue ? Math.Max(0, peakMiB - heldMiB.Value) : peakMiB;
             string need = heldMiB.HasValue
-                ? string.Format(CultureInfo.InvariantCulture, "the rest of the whole {0} needs {1:0.00} GiB, its peak {2:0.00} GiB less the {3:0.00} GiB the worker holds, and the floor {4:0.00} GiB (Q083)",
-                    command, rest / MiBPerGiB, peakMiB / MiBPerGiB, heldMiB.Value / MiBPerGiB, floorGiB)
-                : string.Format(CultureInfo.InvariantCulture, "the whole {0} needs {1:0.00} GiB and the floor {2:0.00} GiB (Q083)", command, peakMiB / MiBPerGiB, floorGiB);
+                ? string.Format(CultureInfo.InvariantCulture, "the rest of the whole {0} needs {1:0.00} GiB, its peak {2:0.00} GiB less the {3:0.00} GiB the worker holds (Q083)",
+                    command, rest / MiBPerGiB, peakMiB / MiBPerGiB, heldMiB.Value / MiBPerGiB)
+                : string.Format(CultureInfo.InvariantCulture, "the whole {0} needs {1:0.00} GiB (Q083)", command, peakMiB / MiBPerGiB);
             if (!freeMiB.HasValue)
             {
                 return "free memory could not be read, " + need;
             }
-            if (freeMiB.Value >= rest + floorGiB * MiBPerGiB)
+            if (freeMiB.Value >= rest)
             {
                 return null;
             }

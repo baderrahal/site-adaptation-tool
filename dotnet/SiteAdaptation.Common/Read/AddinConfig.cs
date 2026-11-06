@@ -6,7 +6,7 @@ using Newtonsoft.Json.Linq;
 namespace SiteAdaptation.Common
 {
     // R345, R347. The addin block of config/project.json (docs/design/06-settings.md) that the worker and the tests read: the
-    // measured peak of each large input, the time limit of each command and the parity tolerances, and the floor siteBuild.minFreeGB
+    // measured peak of each large input, the time limit of each command and the parity tolerances
     public sealed class AddinConfig
     {
         private readonly JObject root;
@@ -97,20 +97,6 @@ namespace SiteAdaptation.Common
                 throw new InvalidDataException("addin.workerPeakMiB.commands." + command + " is " + value.ToString(Newtonsoft.Json.Formatting.None) + ", a peak is a number of MiB above 0 (R347)");
             }
             return peak;
-        }
-
-        // R200. The floor of free memory in GiB, siteBuild.minFreeGB
-        public double MinFreeGiB
-        {
-            get
-            {
-                JToken value = (root["siteBuild"] as JObject)?["minFreeGB"];
-                if (value == null)
-                {
-                    throw new InvalidDataException("the config holds no siteBuild.minFreeGB, the floor of free memory (R200)");
-                }
-                return value.Value<double>();
-            }
         }
 
         public double WorkerTimeLimitS(string command)

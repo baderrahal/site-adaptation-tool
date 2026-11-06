@@ -131,7 +131,7 @@ def test_r347_q107_the_peak_of_a_whole_build_is_the_highest_of_six_plus_the_larg
     swing = max(max(net48) - min(net48), max(net8) - min(net8), 3899 - 2752)
     assert peaks["commands"]["build"] == math.ceil((max(net48 + net8) + swing) / 100) * 100 == 2200
     note = peaks["commandsNote"]
-    assert "build 2,200" in note and "974.8" in note and "1,147" in note and "4,248" in note and "p4g2_peaks2.txt" in note and chr(59) not in note
+    assert "build 2,200" in note and "974.8" in note and "1,147" in note and "a build asks its peak free, no floor since R701" in note and "p4g2_peaks2.txt" in note and chr(59) not in note
 
 
 def test_r347_the_peak_of_a_whole_read_is_the_highest_measured_with_the_read_order_plus_the_largest_swing_measured_rounded_up():
@@ -143,7 +143,7 @@ def test_r347_the_peak_of_a_whole_read_is_the_highest_measured_with_the_read_ord
     measured = [2692, 2702, 2550, 2554, 2464, 2480, 2493, 2559]
     swing = 3899 - 2752
     assert peaks["commands"]["read"] == -(-(max(measured) + swing) // 100) * 100 == 3900
-    assert "Q084" in note and "2,702" in note and "1,147" in note and "ReadOrder" in note and "5,948" in note
+    assert "Q084" in note and "2,702" in note and "1,147" in note and "ReadOrder" in note and "a read asks 3,900 MiB free, no floor since R701" in note
     assert "scaled by its file size" in project_profile.load_settings().get("addin.workerPeakNote")
 
 

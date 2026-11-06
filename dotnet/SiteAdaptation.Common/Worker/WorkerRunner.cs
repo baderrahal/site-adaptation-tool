@@ -8,7 +8,7 @@ using System.Reflection;
 namespace SiteAdaptation.Common
 {
     // R347. One run of the worker on one request: the checks that refuse a request before any read, the free memory against the
-    // measured peak of each large input plus the floor before any read and again before each read, the hash of every input before
+    // measured peak of each large input before any read and again before each read, the hash of every input before
     // and after, the command, the outputs moved onto their names once every check passed, then the answer as its last act, every
     // file by a temporary name and a rename. CadReader.exe --request <file> runs it, the tests run it in process
     public static class WorkerRunner
@@ -194,12 +194,12 @@ namespace SiteAdaptation.Common
         }
 
         // R347. Null when the read of an input may go on, else the refusal with both numbers named: for an input of a large read the
-        // free memory now against the measured peak of its file, or the largest known, plus the floor of siteBuild.minFreeGB
+        // free memory now against the measured peak of its file, or the largest known, no floor since R701
         internal static string MemoryRefusal(WorkerFile input, AddinConfig config, Func<double?> freeMiB)
         {
             var file = new FileInfo(input.Path);
             double? peak = config.WorkerPeakMiB(input.Role, file.Name, file.Exists ? file.Length : -1);
-            return peak.HasValue ? WorkerMemory.Refusal(file.Name, freeMiB(), peak.Value, config.MinFreeGiB) : null;
+            return peak.HasValue ? WorkerMemory.Refusal(file.Name, freeMiB(), peak.Value) : null;
         }
 
         private static int Execute(WorkerRequest request, IDictionary<string, WorkerCommand> commands, Func<double?> freeMiB, Func<double?> privateMiB, WorkerAnswer answer, List<WorkerContext> made)
@@ -252,7 +252,7 @@ namespace SiteAdaptation.Common
             {
                 throw new WorkerStop(WorkerExit.Refused, "the request names no config, the settings file of the pane");
             }
-            // The config is small and read first, it names the measured peak of each large input and the floor, and its design values
+            // The config is small and read first, it names the measured peak of each large input, and its design values
             // round the answer of any later refusal. Before any read each large input is checked against the free memory now, so a run
             // that cannot read all of them reads none
             Usable(configInput);
@@ -279,11 +279,11 @@ namespace SiteAdaptation.Common
                 }
             }
             // Q083. A whole read of button 2 peaked at 3,891 MiB where the Road Layout alone took 2,612, so a command whose whole peak
-            // config names is held against all of it and the floor before its first read
+            // config names is held against all of it before its first read
             double? whole = config.WorkerCommandPeakMiB(request.Command);
             if (whole.HasValue)
             {
-                string refusal = WorkerMemory.CommandRefusal(request.Command, freeMiB(), whole.Value, null, config.MinFreeGiB);
+                string refusal = WorkerMemory.CommandRefusal(request.Command, freeMiB(), whole.Value, null);
                 if (refusal != null)
                 {
                     throw new WorkerStop(WorkerExit.Memory, refusal);
