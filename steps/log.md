@@ -2,6 +2,30 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## ReadEdgeTests.cs to FAST-2, rules R686 and R687, 6 Nov 2026
+
+Goal:
+- Let build-2 finish item 6, no RAM floor, and enter the rule lines of FAST-1 PR 3.
+
+Done:
+- dotnet/SiteAdaptation.Tests/ReadEdgeTests.cs on FAST-2 by exact path, for its two R347 floor tests. Seam line given.
+- R686 and R687 in docs/rules/18-fast-pane-r680-up.md and index.md, from the body of PR 234.
+
+Checked:
+- No path of FAST-1, FAST-2 and FAST-4 lies in or holds another but steps/seam.md and steps/log.md, by check_common.inside.
+
+Remains:
+- R688 once PR 238 is on main.
+
+Known bugs:
+- R310, R347 and R444 fail at random under load, FAST-2 item 9 measures it.
+
+Next:
+- PR 235, 237, 238 merge on green.
+
+Your turn:
+- None.
+
 ## FAST-1-build-1 PR 3, the plan behind Build and the 2D preview, 6 Nov 2026
 
 Goal:

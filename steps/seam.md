@@ -13,3 +13,4 @@ A lane that needs a function or a value of the other lane, or a change not in it
 - 6 Nov 16:50 Lead, given: build-2's parameterSheet line to build-1, FAST-1 item 2b.
 - 6 Nov 16:50 Lead, given: build-1's AddinRunNames.Page line to build-2, FAST-2 item 10. build-1's InstallScriptTests.cs line, on FAST-1 by exact path. Its R682 to R684 lines go in docs/rules by Lead when their tests are on main.
 - 6 Nov 18:45 Lead, given: build-1's line on the listener floor, Q570 CHOSEN. FAST-2 drops RevitListenerSetting.Refusal of dotnet/SiteAdaptation.Common/RevitListener.cs:78-80 and the check near :702, then FAST-1 takes SITEADAPT_LISTENER_MIN_FREE_GB out of Start-RevitListener.ps1. StopBelowGB of Run-Parallel.ps1 stays.
+- 6 Nov 19:30 Lead, given: build-2's ReadEdgeTests.cs line. dotnet/SiteAdaptation.Tests/ReadEdgeTests.cs on FAST-2 by exact path, for its two R347 floor tests, item 6.
