@@ -166,7 +166,7 @@ namespace SiteAdaptation.Common.Update
             }
         }
 
-        public static UpdateList Compare(IList<UpdateBook> books, JObject plan, string planSha256, JObject rules, string profile, JObject overrides = null)
+        public static UpdateList Compare(IList<UpdateBook> books, JObject plan, string planSha256, JObject rules, string profile, JObject overrides = null, bool newProject = false)
         {
             var list = new UpdateList { Refusal = SecondOfAKind(books) };
             if (list.Refusal != null)
@@ -208,7 +208,7 @@ namespace SiteAdaptation.Common.Update
                     return list;
                 }
             }
-            NotSavable(made, overrides, Text(levelProfile["job"]));
+            NotSavable(made, overrides, Text(levelProfile["job"]), newProject);
             CheckLevels(made, rules, levelProfile);
             CheckTypes(made, rules);
             CheckMirrors(made);
@@ -692,7 +692,7 @@ namespace SiteAdaptation.Common.Update
         // Apply takes the key and model of an entry of the job on the plot (Q169), so a change of a plot with none can not be saved and is
         // marked here, before the checks and before the window offers it. The rebuild keeps the cell of the model for it, so the level
         // checks take it as no edit and a piece reads its FFL against it. An override list not given marks none
-        private static void NotSavable(Context made, JObject overrides, string job)
+        private static void NotSavable(Context made, JObject overrides, string job, bool newProject)
         {
             if (overrides == null || job == null)
             {
@@ -702,6 +702,12 @@ namespace SiteAdaptation.Common.Update
             string why = Fill(UpdateText.NotSavable, job);
             foreach (UpdateChange change in made.List.Changes.Where(change => change.Invalid == null && !held.Contains(change.Plot)))
             {
+                // R704. A new project has no past entry to take a key and a model from, the change is saved as a new entry
+                if (newProject)
+                {
+                    change.NewEntry = true;
+                    continue;
+                }
                 change.NotSavable = why;
                 if (made.Levels.TryGetValue(change.Plot, out LevelEdit edit) && edit.Changes.Contains(change))
                 {
@@ -805,6 +811,11 @@ namespace SiteAdaptation.Common.Update
                 List<JObject> mine = entries.OfType<JObject>().Where(item => Text(item["plot"]) == change.Plot).ToList();
                 List<JObject> same = mine.Where(item => Text(item["source"]) == job && Text(item["field"]) == field).ToList();
                 JObject origin = same.FirstOrDefault() ?? mine.FirstOrDefault(item => Text(item["source"]) == job);
+                if (origin == null && change.NewEntry)
+                {
+                    // R704. The report the value came from stands for the model, the entry names no key, as the past entries do
+                    origin = new JObject { ["model"] = change.FileName, ["key"] = JValue.CreateNull() };
+                }
                 if (origin == null)
                 {
                     applied.NotApplied.Add(where(Fill(UpdateText.NoOrigin, job)));
@@ -831,7 +842,7 @@ namespace SiteAdaptation.Common.Update
                 }
                 else
                 {
-                    place = entries.IndexOf(mine[mine.Count - 1]) + 1;
+                    place = mine.Count == 0 ? entries.Count : entries.IndexOf(mine[mine.Count - 1]) + 1;
                 }
                 entries.Insert(place, entry);
                 applied.Entries.Add(entry);
@@ -858,7 +869,7 @@ namespace SiteAdaptation.Common.Update
                 ["changes"] = new JArray(list.Changes.Select(change => new JObject
                 {
                     ["file"] = change.FileName, ["sheet"] = change.Sheet, ["row"] = change.Row, ["plot"] = change.Plot, ["field"] = change.Field, ["inModel"] = Value(change.InModel), ["inExcel"] = Value(change.InExcel),
-                    ["invalid"] = Value(change.Invalid), ["notSavable"] = Value(change.NotSavable), ["checks"] = new JArray(change.Checks), ["breaks"] = new JArray(change.Breaks), ["manualRules"] = new JArray(change.ManualRules), ["ruleCheck"] = change.RuleCheck, ["ticked"] = change.Ticked,
+                    ["invalid"] = Value(change.Invalid), ["notSavable"] = Value(change.NotSavable), ["newEntry"] = change.NewEntry, ["checks"] = new JArray(change.Checks), ["breaks"] = new JArray(change.Breaks), ["manualRules"] = new JArray(change.ManualRules), ["ruleCheck"] = change.RuleCheck, ["ticked"] = change.Ticked,
                 })),
                 ["ignored"] = new JArray(list.Ignored.Select(cell => new JObject
                 {

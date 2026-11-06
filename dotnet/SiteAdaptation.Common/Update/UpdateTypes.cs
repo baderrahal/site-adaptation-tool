@@ -43,6 +43,9 @@ namespace SiteAdaptation.Common.Update
         // Why Apply can not save a valid change, the plot holds no override entry of the job (Q169), null when it can. Kept apart from
         // Invalid, as such a change breaks no rule and the checks take it as no edit, the rebuild keeps the cell of the model
         public string NotSavable { get; set; }
+        // R704, Q394 CHOSEN. On a new project a change of a plot with no override entry of the job is saved as a new entry, the report it came
+        // from its model and no key, where the past job marks it NotSavable
+        public bool NewEntry { get; set; }
         // The Apply tick the window starts with
         public bool Ticked { get; set; }
 
