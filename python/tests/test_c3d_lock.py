@@ -10,7 +10,7 @@ def test_r197_runner_opens_civil_3d_only_under_the_lock_and_passes_own_only(tmp_
     config = book_config(tmp_path)
     (tmp_path / "book" / "work" / "Base Plans" / "cut.dwg").write_bytes(b"dwg")
     config["dataBook"]["windowLock"] = {"lock": str(tmp_path / "window.lock"), "round": "DATA-3", "windowProcesses": ["acad", "Revit"],
-                                        "waitMinutes": 5, "staleHours": 2, "minFreeGB": 2, "maxWaitMinutes": 60, "log": "logs/window_lock.jsonl"}
+                                        "waitMinutes": 5, "staleHours": 2, "maxWaitMinutes": 60, "log": "logs/window_lock.jsonl"}
     config["dataBook"]["watcherOwnOnly"] = True
     seen = []
 
@@ -30,7 +30,7 @@ def test_r197_runner_gives_the_lock_back_when_the_run_fails(tmp_path):
     config = book_config(tmp_path)
     (tmp_path / "book" / "work" / "Base Plans" / "cut.dwg").write_bytes(b"dwg")
     config["dataBook"]["windowLock"] = {"lock": str(tmp_path / "window.lock"), "round": "DATA-3", "windowProcesses": ["acad"],
-                                        "waitMinutes": 5, "staleHours": 2, "minFreeGB": 2, "maxWaitMinutes": 60, "log": "logs/window_lock.jsonl"}
+                                        "waitMinutes": 5, "staleHours": 2, "maxWaitMinutes": 60, "log": "logs/window_lock.jsonl"}
 
     def launch(args, environment):
         raise OSError("acad.exe missing")
@@ -48,7 +48,7 @@ def test_r197_runner_waits_while_another_round_holds_the_lock(tmp_path):
     lock = tmp_path / "window.lock"
     lock.write_text(json.dumps({"round": "Z4", "utc": datetime.now(timezone.utc).isoformat(timespec="seconds")}), encoding="utf-8")
     config["dataBook"]["windowLock"] = {"lock": str(lock), "round": "DATA-3", "windowProcesses": ["acad"], "waitMinutes": 5, "staleHours": 2,
-                                        "minFreeGB": 2, "maxWaitMinutes": 60, "log": "logs/window_lock.jsonl"}
+                                        "maxWaitMinutes": 60, "log": "logs/window_lock.jsonl"}
     waits = []
 
     def sleep(seconds):

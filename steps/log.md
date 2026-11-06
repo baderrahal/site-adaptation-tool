@@ -27,6 +27,53 @@ Next:
 Your turn:
 - FAST-3-revit-test opens the pane in Revit, label revit-later.
 
+## Plot on floors and the seam of 16:20, 6 Nov 2026
+
+Goal:
+- Record Bader's answer on Plot on floors and give the seam lines of the hour.
+
+Done:
+- Q560 closed, Bader's answer A: Plot stays on floors as the tool's own tag, every other shared parameter on villa links only. FAST-2 gains item 10, AddinRunNames.Page of Common names StagesPage, the seam of build-1, and item 11, Q560. steps/plan-fast-3days.md holds the list of questions Lead closes with its own answer.
+
+Checked:
+- Q560 free by git grep. PR 229 merged, PR 228 fixed and in CI.
+
+Remains:
+- FAST-1 items 3 to 7, FAST-2 items 2 to 11.
+
+Known bugs:
+- R310 at random until FAST-2 item 9.
+
+Next:
+- The 17:00 slip line for Sat 7 Nov.
+
+Your turn:
+- None, Bader's order: Lead does not wait on him.
+
+## FAST-2-build-2 PR 1, 6 Nov 2026, shared parameters and the Python side of no RAM floor
+
+Goal:
+- Items 1 and 6 of FAST-2: the data check marks shared parameters from the Excel sheet, no free memory floor.
+
+Done:
+- R700: the worker reads the parameter sheet the dataCheck request names as input parameterSheet, the need sharedParameters is strong when every villa link row has a GUID and says in plain words what is missing when not.
+- R701: python/window_lock.py, c3d_window.py and place_codes.py no longer wait, skip or stop on free memory.
+
+Checked:
+- S1 by this build, run outside git: sharedParameters strong, 10 parameters for the villa links, the sheet unchanged before and after. R700 and R600 tests 41 of 41 on net8.0.
+
+Remains:
+- Items 2, 3, 4, 5, 7, 8, 9. Item 6 worker and config part. Item 1 floors part.
+
+Known bugs:
+- Floors still carry the Plot parameter, steps/seam.md.
+
+Next:
+- Item 2, the source mark per value.
+
+Your turn:
+- Lead: the two seam lines of build-2, the item 6 test files and the floor Plot parameter.
+
 ## FAST-1 seam given, 6 Nov 2026
 
 Goal:

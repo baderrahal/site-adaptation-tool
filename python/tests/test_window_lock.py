@@ -20,7 +20,7 @@ class Clock:
 
 def make(tmp_path, free=5.0, processes=None, clock=None):
     clock = clock or Clock()
-    block = {"lock": str(tmp_path / "window.lock"), "waitMinutes": 5, "staleHours": 2, "minFreeGB": 2.0, "windowProcesses": ["acad", "Revit"]}
+    block = {"lock": str(tmp_path / "window.lock"), "waitMinutes": 5, "staleHours": 2, "windowProcesses": ["acad", "Revit"]}
     state = {"free": free, "processes": list(processes or [])}
     lock = wl.Lock(block, "Z4", tmp_path / "logs" / "windows.jsonl", now=clock.now, sleep=clock.sleep,
                    free=lambda: state["free"], processes=lambda names: list(state["processes"]))
@@ -72,13 +72,12 @@ def test_r200_a_running_window_process_makes_it_wait_even_with_no_lock(tmp_path,
     assert [event["event"] for event in events(lock)].count("wait") == 3
 
 
-def test_r200_free_memory_under_the_floor_makes_it_wait(tmp_path):
-    lock, state, _ = make(tmp_path, free=1.9)
+def test_r701_low_free_memory_holds_no_window_back_and_is_logged(tmp_path):
+    lock, state, _ = make(tmp_path, free=0.3)
 
-    with pytest.raises(wl.LockError, match="under the floor"):
-        lock.acquire("newSite", 6)
+    lock.acquire("newSite", 6)
 
-    assert not lock.path.exists()
+    assert lock.path.exists() and events(lock)[-1]["freeGB"] == 0.3
 
 
 def test_r200_a_lock_older_than_two_hours_with_no_window_process_is_logged_and_deleted(tmp_path):
@@ -131,7 +130,7 @@ def test_r200_a_lock_that_is_not_ours_is_never_deleted_on_release(tmp_path):
 
 def slots(tmp_path, total=64.0, processes=None, free=5.0, block=None):
     clock = Clock()
-    settings = {"lock": str(tmp_path / "window.lock"), "waitMinutes": 5, "staleHours": 2, "minFreeGB": 2.0, "windowProcesses": ["acad", "Revit"],
+    settings = {"lock": str(tmp_path / "window.lock"), "waitMinutes": 5, "staleHours": 2, "windowProcesses": ["acad", "Revit"],
                 "revitSlots": 2, "revitSlotsMinTotalGB": 32, "maxWindows": 3, **(block or {})}
     state = {"free": free, "processes": list(processes or [])}
     lock = wl.Lock(settings, "S", tmp_path / "logs" / "windows.jsonl", now=clock.now, sleep=clock.sleep,
@@ -181,10 +180,10 @@ def test_r449_under_the_memory_limit_the_machine_keeps_one_slot(tmp_path):
     assert slots(tmp_path, total=31.9)[0].look()[0].startswith("the lock is held by")
 
 
-def test_r449_the_memory_floor_holds_for_slot_two(tmp_path):
+def test_r701_slot_two_opens_with_low_free_memory(tmp_path):
     slots(tmp_path)[0].acquire("a", 1)
-    lock, _ = slots(tmp_path, free=1.5)
-    assert "under the floor" in lock.look()[0]
+    lock, _ = slots(tmp_path, free=0.2)
+    assert lock.look()[0] is None
 
 
 def test_r449_a_block_with_no_slot_keys_keeps_one_slot(tmp_path):
@@ -203,7 +202,7 @@ def test_r449_release_deletes_only_its_own_slot(tmp_path):
 
 def test_r449_a_stale_slot_two_is_deleted_with_no_window(tmp_path):
     clock = Clock()
-    settings = {"lock": str(tmp_path / "window.lock"), "waitMinutes": 5, "staleHours": 2, "minFreeGB": 2.0, "windowProcesses": ["Revit"],
+    settings = {"lock": str(tmp_path / "window.lock"), "waitMinutes": 5, "staleHours": 2, "windowProcesses": ["Revit"],
                 "revitSlots": 2, "revitSlotsMinTotalGB": 32, "maxWindows": 3}
     (tmp_path / "window-2.lock").write_text(json.dumps({"round": "old", "utc": (clock.at - timedelta(hours=3)).isoformat()}), encoding="utf-8")
     lock = wl.Lock(settings, "S", tmp_path / "logs" / "windows.jsonl", now=clock.now, sleep=clock.sleep, free=lambda: 5.0, processes=lambda names: [], total=lambda: 64.0)
@@ -228,7 +227,7 @@ def stale(tmp_path, name="window.lock", **fields):
 
 
 def stale_lock(tmp_path, clock, alive=lambda pid: False):
-    settings = {"lock": str(tmp_path / "window.lock"), "waitMinutes": 5, "staleHours": 2, "minFreeGB": 2.0, "windowProcesses": ["Revit"],
+    settings = {"lock": str(tmp_path / "window.lock"), "waitMinutes": 5, "staleHours": 2, "windowProcesses": ["Revit"],
                 "revitSlots": 2, "revitSlotsMinTotalGB": 32, "maxWindows": 3}
     return wl.Lock(settings, "S", tmp_path / "logs" / "windows.jsonl", now=clock.now, sleep=clock.sleep, free=lambda: 5.0, processes=lambda names: [],
                    total=lambda: 64.0, alive=alive)
