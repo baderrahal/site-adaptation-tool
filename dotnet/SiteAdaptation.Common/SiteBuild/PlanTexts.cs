@@ -99,9 +99,9 @@ namespace SiteAdaptation.Common.SiteBuild
             return "Toposolid: " + areas + " neighbourhoods are cut to their own boundary, " + Square(cutM2) + " m2 in all, where a hull of the plots would hold " + Square(hullM2) + " m2.";
         }
 
-        public static string CutNoArea(string plot)
+        public static string CutNoArea(System.Collections.Generic.IList<string> plots)
         {
-            return "Plot " + plot + " has no neighbourhood, so the toposolid cut leaves it out.";
+            return plots.Count == 1 ? "Plot " + plots[0] + " has no neighbourhood, so the toposolid cut leaves it out." : plots.Count + " plots have no neighbourhood, so the toposolid cut leaves them out.";
         }
 
         public static string RoadEdgeLine(int checkedCount, int over, double limitMm)

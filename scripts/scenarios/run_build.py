@@ -28,9 +28,9 @@ def request_for(name, stage1, out, config=None):
     }
 
 
-def run_one(name, worker, root, config=None):
-    stage1 = root / "runs" / name
-    out = root / "runs" / (name + tools.BUILD_RUN)
+def run_one(name, worker, root, config=None, confirmed=False):
+    stage1 = root / "runs" / (name + tools.CONFIRMED_RUN if confirmed else name)
+    out = root / "runs" / ((name + tools.CONFIRMED_RUN if confirmed else name) + tools.BUILD_RUN)
     if not (stage1 / "plots.json").is_file():
         print("%s has no stage 1 run, run run_stage1.py first" % name)
         return
@@ -51,10 +51,11 @@ def main(argv=None):
     parser.add_argument("--worker", required=True)
     parser.add_argument("--only", nargs="*")
     parser.add_argument("--config", help="a copy of config/project.json kept outside the repo")
+    parser.add_argument("--confirmed", action="store_true", help="build from the plot table of the confirmed run of the scenario")
     args = parser.parse_args(argv)
     root = tools.work_root() / "scenarios"
     for name in args.only or sorted(tools.SCENARIOS):
-        run_one(name, args.worker, root, args.config)
+        run_one(name, args.worker, root, args.config, args.confirmed)
     return 0
 
 

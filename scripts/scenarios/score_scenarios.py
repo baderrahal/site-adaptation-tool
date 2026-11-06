@@ -24,9 +24,9 @@ def result_of(name, root, run=None):
     table = read_json(out / "read_plotTable.json") or {"plots": []}
     second = read_json(out / "second_check.json") or {}
     manifest = read_json(root / (name + "_manifest.json")) or {}
-    # The build plan belongs to the first run of a scenario, a confirmed run has none of its own
-    built = root / "runs" / (name + tools.BUILD_RUN)
-    plan = None if run else read_json(built / "build_plan.json")
+    # The build plan of a run is made from the plot table of that same run, so the confirmed run has its own
+    built = root / "runs" / ((run or name) + tools.BUILD_RUN)
+    plan = read_json(built / "build_plan.json")
     seconds = (read_json(built / "build_time.json") or {}).get("seconds")
     return {
         "build": tools.build_counts(plan, seconds) if plan else None,

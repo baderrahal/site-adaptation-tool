@@ -36,7 +36,7 @@ siteBuild on the plot table of each run above (scripts/scenarios/run_build.py). 
 
 | Scenario | Plots planned | Built | Missing | Plots marked | Blocking | Issues | Copied from the past | Seconds |
 |---|---|---|---|---|---|---|---|---|
-| S1 | 2964 | 9474 | 26094 | 2964 | 0 | 1 | 0 | 2.0 |
+| S1 | 2964 | 9474 | 26094 | 2964 | 0 | 3 | 0 | 1.6 |
 | S2 | no build made | | | | | | | |
 | S3 | no build made | | | | | | | |
 | S4 | no build made | | | | | | | |
@@ -71,3 +71,13 @@ Files not read: S1 0, S2 0, S3 0, S4 0, S5 0.
 | prototypes | strong | strong | strong | strong | strong |
 | rules | missing | missing | missing | missing | missing |
 | sharedParameters | missing | missing | missing | missing | missing |
+
+## Build plan with a confirmed profile, what was built and what was missing
+
+| Scenario | Plots planned | Built | Missing | Plots marked | Blocking | Issues | Copied from the past | Seconds |
+|---|---|---|---|---|---|---|---|---|
+| S1 | 2964 | 12738 | 22830 | 2964 | 0 | 3 | 0 | 1.7 |
+| S2 | no build made | | | | | | | |
+| S3 | no build made | | | | | | | |
+| S4 | no build made | | | | | | | |
+| S5 | no build made | | | | | | | |

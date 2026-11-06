@@ -312,4 +312,6 @@ def table(results, confirmed=None):
     if confirmed and any(confirmed.values()):
         out += ["", "## With a confirmed profile", "", "Each scenario again on what its own first run proposed, as a person pressing Confirm on all of it (scripts/scenarios/confirmed_profile.py). Nothing comes from a past file or an answer, a proposal that is wrong stays wrong and scores so.", ""]
         out += score_rows(confirmed) + ["", not_read_line(confirmed), "", "## Mark of each need with a confirmed profile", ""] + mark_rows(confirmed)
+        if any((result or {}).get("build") for result in confirmed.values()):
+            out += ["", "## Build plan with a confirmed profile, what was built and what was missing", ""] + build_rows(confirmed)
     return "\n".join(out) + "\n"

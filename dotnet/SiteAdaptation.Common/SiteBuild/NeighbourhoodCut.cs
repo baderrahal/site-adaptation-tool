@@ -15,6 +15,7 @@ namespace SiteAdaptation.Common.SiteBuild
             var boundaries = new JArray();
             var byArea = new Dictionary<string, List<List<double[]>>>(StringComparer.Ordinal);
             var boundaryRings = new Dictionary<string, List<Rings.Boundary>>(StringComparer.Ordinal);
+            var nameless = new List<string>();
             foreach (PlanPlot plot in plots)
             {
                 if (plot.In.Outline == null)
@@ -25,7 +26,7 @@ namespace SiteAdaptation.Common.SiteBuild
                 string area = plot.In.Area;
                 if (area == null)
                 {
-                    issues.Add(new PlanIssue { Plot = plot.Number, Line = PlanTexts.CutNoArea(plot.Number) });
+                    nameless.Add(plot.Number);
                     continue;
                 }
                 List<List<double[]>> list;
@@ -35,6 +36,11 @@ namespace SiteAdaptation.Common.SiteBuild
                     byArea[area] = list;
                 }
                 list.Add(plot.In.Outline);
+            }
+            // One issue with the count, a site of thousands of plots with no neighbourhood must not bury the other issues
+            if (nameless.Count > 0)
+            {
+                issues.Add(new PlanIssue { Plot = nameless.Count == 1 ? nameless[0] : null, Line = PlanTexts.CutNoArea(nameless) });
             }
             double cutM2 = 0, hullM2 = 0;
             foreach (KeyValuePair<string, List<List<double[]>>> area in byArea.OrderBy(item => item.Key, StringComparer.Ordinal))
