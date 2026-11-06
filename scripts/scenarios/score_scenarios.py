@@ -24,7 +24,12 @@ def result_of(name, root, run=None):
     table = read_json(out / "read_plotTable.json") or {"plots": []}
     second = read_json(out / "second_check.json") or {}
     manifest = read_json(root / (name + "_manifest.json")) or {}
+    # The build plan of a run is made from the plot table of that same run, so the confirmed run has its own
+    built = root / "runs" / ((run or name) + tools.BUILD_RUN)
+    plan = read_json(built / "build_plan.json")
+    seconds = (read_json(built / "build_time.json") or {}).get("seconds")
     return {
+        "build": tools.build_counts(plan, seconds) if plan else None,
         "ran": str(worker.get("status", "UNKNOWN")), "needs": check["needs"], "areas": tools.areas_read(table["plots"]), "sheetAreas": second.get("neighbourhoodsInSheet") or "not found", "notRead": sum(1 for row in check.get("files", []) if row.get("status") != "read"), "score": tools.score(answer, plots["plots"]),
         "faults": tools.manifest_faults(root / name, manifest), "levels": profile["levels"], "built": str((read_json(out / "built_from.json") or {}).get("commit", "UNKNOWN"))[:7],
     }

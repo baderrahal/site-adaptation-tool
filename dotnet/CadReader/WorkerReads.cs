@@ -39,6 +39,8 @@ namespace CadReader
             commands[SiteAdaptation.Common.SetUp.CoordinateRequest.Command] = CoordinateSystemRead.Command;
             // R660. The rules per project add their own commands, so that lane needs no line here
             SiteAdaptation.Common.ProjectRules.ProjectRulesCommands.Add(commands);
+            // R640. The logic behind the one Build button and the 2D preview, from the plot table of stage 1
+            SiteAdaptation.Common.SiteBuild.SiteBuildCommands.Add(commands);
             return commands;
         }
 

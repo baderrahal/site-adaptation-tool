@@ -60,6 +60,14 @@ namespace CadReader
                     output = DataCheckLogic.Stopped(settings, input, "The check stopped before it finished, the reason is in the stopped note.");
                 }
             }
+            if (settings != null && input.Stopped == null)
+            {
+                // R645. The build draws the plots, so the table carries each ring stage 1 chose. A plot without one is said in an issue of the run
+                foreach (string note in SiteAdaptation.Common.SiteBuild.PlotOutlines.Add(output))
+                {
+                    run.Issues.Add(note);
+                }
+            }
             run.WriteJson(request.OutputFolder, SiteAdaptation.Common.ReadData.ReadDataRun.DataCheckFile, output.Check);
             run.WriteJson(request.OutputFolder, "project_profile.json", output.Profile);
             run.WriteJson(request.OutputFolder, "plots.json", output.Plots);
