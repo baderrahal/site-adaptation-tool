@@ -189,6 +189,39 @@ namespace SiteAdaptation.AddIn
             }
         }
 
+        // R686. What the plan of the one Build reads, null with no saved model or no settings
+        private SiteBuildPlace BuildPlace(StagesViewModel stages)
+        {
+            PaneSettings settings = model.Settings;
+            DocumentSession document = model.Document;
+            string work = WorkFolderNow();
+            if (settings == null || document == null || work == null)
+            {
+                return null;
+            }
+            RulesWindow.ProjectRulesPlace rules = RulesPlace();
+            return new SiteBuildPlace
+            {
+                ConfigFile = settings.ConfigFile, ReadFolder = StageRead.Latest(work), RulesFile = rules?.RulesFile, WorkFolder = work, ProjectMode = settings.Project.ProjectMode,
+                PositionFile = SiteBuildPlan.PositionFileOf(settings.Project.PositionFile, settings.ConfigFile),
+                Document = new Common.WorkerDocument { Path = document.Path, SessionId = document.SessionId },
+            };
+        }
+
+        // R687. The 2D preview over the main window of Revit, true to go on
+        private bool ShowPreview(SiteBuildResult plan)
+        {
+            var window = new SiteBuildPreviewWindow(plan);
+            new System.Windows.Interop.WindowInteropHelper(window).Owner = owner;
+            return window.ShowDialog() == true;
+        }
+
+        // Point 3 of R2-C3, the one ask of the first Build with no rules chosen. A WPF box, as a TaskDialog needs the API context of Revit
+        private static bool AskRules(string text)
+        {
+            return System.Windows.MessageBox.Show(text, RibbonLayout.Tab, System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Question) == System.Windows.MessageBoxResult.Yes;
+        }
+
         // R682. Where the rules table of the active project reads and writes, null with no project
         private RulesWindow.ProjectRulesPlace RulesPlace()
         {
@@ -336,6 +369,18 @@ namespace SiteAdaptation.AddIn
             stages.FixItemsRequested += FixItems;
             stages.RulesRequested += () => OpenRules(stages);
             stages.RulesLineNow = RulesLineNow;
+            var build = new SiteBuildFlow
+            {
+                Place = () => BuildPlace(stages), AskRules = AskRules, UseManual = () => RulesPlace() == null ? null : RulesWindow.ProjectRulesTable.UseManual(RulesPlace()),
+                ShowPreview = ShowPreview,
+            };
+            stages.BuildRequested += () =>
+            {
+                build.Run(stages.PreviewFirst, out string line);
+                stages.ShowBuild(line);
+                rulesStamp = null;
+                stages.Refresh();
+            };
             var page = new StagesPage(stages, new SitePanePage(model));
             probe.Post = action => page.Dispatcher.BeginInvoke(action);
             data.FrameworkElement = page;

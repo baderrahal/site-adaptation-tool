@@ -124,9 +124,9 @@ def number_cell(value, model, decimals):
     return shown is None or read != shown, shown, read, None
 
 
-def changes_of(books, plan, sha, rules, profile, overrides=None):
+def changes_of(books, plan, sha, rules, profile, overrides=None, new=False):
     """The changes, the ignored cells and the lacks, or the refusal, of the edited books against the plan, a change of a plot with no entry
-    of the job in the override list marked as one Apply can not save."""
+    of the job in the override list marked as one Apply can not save, or on a new project as a new entry (R704)."""
     found = {"refusal": None, "changes": [], "ignored": [], "lacks": []}
     for sheet, kind in ((LEVELS, "level Excels"), (PLACED, "report Excels")):
         named = [book["file"] for book in books if sheet in book["sheets"]]
@@ -155,7 +155,7 @@ def changes_of(books, plan, sha, rules, profile, overrides=None):
 
     def change(book, sheet, index, plot, field, model, excel, invalid):
         made = {"file": book["file"], "sheet": sheet, "row": index + 1, "plot": plot, "field": field, "inModel": model, "inExcel": excel, "invalid": invalid,
-                "notSavable": None, "checks": [], "breaks": [], "manualRules": []}
+                "notSavable": None, "newEntry": False, "checks": [], "breaks": [], "manualRules": []}
         found["changes"].append(made)
         return made
 
@@ -251,7 +251,9 @@ def changes_of(books, plan, sha, rules, profile, overrides=None):
     if overrides is not None and isinstance(job, str):
         held = {entry.get("plot") for entry in overrides.get("overrides") or [] if entry.get("source") == job}
         for item in found["changes"]:
-            if item["invalid"] is None and item["plot"] not in held:
+            if item["invalid"] is None and item["plot"] not in held and new:
+                item["newEntry"] = True
+            elif item["invalid"] is None and item["plot"] not in held:
                 item["notSavable"] = NOT_SAVABLE % job
                 key = {"El @ Entry": "entry", "FFL": "ffl", "Steps": "steps"}.get(item["field"])
                 if key and item["plot"] in edits and any(change is item for change in edits[item["plot"]]["changes"]):
@@ -492,6 +494,9 @@ def apply(ticked, plan, overrides, rules, profile, run_id):
         mine = [entry for entry in entries if entry.get("plot") == item["plot"]]
         same = [entry for entry in mine if entry.get("source") == job and entry.get("field") == field]
         origin = same[0] if same else next((entry for entry in mine if entry.get("source") == job), None)
+        if origin is None and item.get("newEntry"):
+            # R704: the report the value came from stands for the model, no key
+            origin = {"model": item["file"], "key": None}
         if origin is None:
             done["notApplied"].append(where + "no entry of source %s of the plot names its key and model (R402)" % job)
             continue
@@ -505,7 +510,7 @@ def apply(ticked, plan, overrides, rules, profile, run_id):
                 done["entries"] = [entry for entry in done["entries"] if entry is not old]
             entries[:] = [entry for entry in entries if not any(entry is old for old in same)]
         else:
-            place = next(index for index, entry in enumerate(entries) if entry is mine[-1]) + 1
+            place = next(index for index, entry in enumerate(entries) if entry is mine[-1]) + 1 if mine else len(entries)
         entries.insert(place, made)
         done["entries"].append(made)
         if item["plot"] not in done["plots"]:
@@ -525,8 +530,8 @@ def list_text(listing):
     return text + "\n}\n"
 
 
-def result(books, plan, sha, rules, profile, overrides, run_id, tick="default"):
-    found = changes_of(books, plan, sha, rules, profile, overrides)
+def result(books, plan, sha, rules, profile, overrides, run_id, tick="default", new=False):
+    found = changes_of(books, plan, sha, rules, profile, overrides, new)
     tiles, chips = tiles_of(found)
     found.update(tiles=tiles, chips=chips)
     if found["refusal"] is None and overrides is not None:
@@ -556,7 +561,7 @@ def compare(python, sharp):
             tally["conflicts"].append(where)
 
     held("refusal", python.get("refusal"), sharp.get("refusal"))
-    for name, keys in (("changes", ("file", "sheet", "row", "plot", "field", "inModel", "inExcel", "invalid", "notSavable", "checks", "breaks", "manualRules", "ruleCheck", "ticked")),
+    for name, keys in (("changes", ("file", "sheet", "row", "plot", "field", "inModel", "inExcel", "invalid", "notSavable", "newEntry", "checks", "breaks", "manualRules", "ruleCheck", "ticked")),
                        ("ignored", ("file", "sheet", "row", "plot", "column", "inModel", "inExcel", "why")),
                        ("entries", ("plot", "field", "value", "rule", "source", "model", "key", "decision", "reason", "byHand")),
                        ("replaced", ("plot", "field", "value", "source", "key"))):
@@ -593,6 +598,7 @@ def main(argv=None):
     parser.add_argument("--rules", required=True)
     parser.add_argument("--profile", default="parsons2024Rev6")
     parser.add_argument("--run-id", required=True)
+    parser.add_argument("--new-project", action="store_true", help="the run is of a new project, as ReportSheets.NewProject tells it, R704")
     parser.add_argument("--tick", choices=("default", "all"), default="default")
     parser.add_argument("--cs", help="the result JSON the C# route wrote of the same inputs")
     parser.add_argument("--out", required=True, help="a folder outside the repo for the counts")
@@ -602,7 +608,7 @@ def main(argv=None):
     plan = json.loads(plan_bytes)
     rules = json.loads(Path(args.rules).read_text(encoding="utf-8"))
     overrides = json.loads(Path(args.overrides).read_text(encoding="utf-8"))
-    found = result([read_book(path) for path in args.excel], plan, hashlib.sha256(plan_bytes).hexdigest(), rules, args.profile, overrides, args.run_id, args.tick)
+    found = result([read_book(path) for path in args.excel], plan, hashlib.sha256(plan_bytes).hexdigest(), rules, args.profile, overrides, args.run_id, args.tick, args.new_project)
     report = {"refusal": found["refusal"], "tiles": found["tiles"], "chips": found["chips"], "lacks": found["lacks"], "ignored": len(found["ignored"]),
               "entries": len(found.get("entries") or []), "plots": len(found.get("plots") or []), "notApplied": len(found.get("notApplied") or [])}
     if args.cs:

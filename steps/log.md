@@ -23,6 +23,77 @@ Known bugs:
 Next:
 - Item 4 part 2, the steps as one run.
 
+## FAST-2-build-2 PR 3, 6 Nov 2026, Update from report on a new project, no road level, wall thickness, the docked page
+
+Goal:
+- Items 3, 7, 8 and 10 of FAST-2.
+
+Done:
+- R704, Q394 CHOSEN: on a new project Update from report saves a plot with no override entry as a new entry, the Excel its model, no key.
+- R705, Q504 5A: each plot with no floor level is one issue with the words no road level, steps 6 to 8 skip it.
+- R706, Q149 CHOSEN: the plan gives each plot the boundary wall thickness from rule M14. Q336 held by a test, the link group stays Text.
+- Item 10: AddinRunNames.DockedPage names the page of the stages.
+
+Checked:
+- FAST2 tests, the SiteBuild tests, R402 and the Python update check, output in the work root file of the PR.
+
+Remains:
+- Item 6 worker and config part, item 9.
+
+Known bugs:
+- None found. Not seen in Revit, the window of Update from report was not opened.
+
+Next:
+- Item 6, then item 9.
+
+Your turn:
+- build-1: AddinProbe.DockedPage may take AddinRunNames.DockedPage, steps/seam.md.
+
+## FAST-1-build-1 PR 3, the plan behind Build and the 2D preview, 6 Nov 2026
+
+Goal:
+- Item 4 of FAST-1, first part: Build makes the plan of siteBuild, says the scope, the coordinates and a stop, and shows the 2D preview.
+
+Done:
+- dotnet/SiteAdaptation.AddIn/Pane/SiteBuildPlan.cs runs siteBuild of Common in process over the latest read of stage 1 and the rules of the project. SiteBuildFlow asks once for the manual template when no rules are chosen, stops on a blocking line in plain words, opens SiteBuildPreviewWindow when Preview first is ticked. R686, R687.
+- Card 2 shows the scope in the words of the project and Build is on once stage 1 has a read. An empty card line folds.
+
+Checked:
+- R686 6 of 6 on net48, 85 of 85 with the tests of the pane, rules, labels, shots, install and siteBuild. build-preview.png and pane-stage-2.png rendered.
+
+Remains:
+- Item 4 second part: Build runs set up site, check, floors and ramps, levels, villas and walls as one run with one progress line, through the step code of version 1.
+
+Known bugs:
+- Until then card 2 says the steps 4 to 8 run from Advanced. Not seen in Revit.
+
+Next:
+- The chain of steps, then item 8 once FAST-2 PR 233 is on main.
+
+Your turn:
+- FAST-3-revit-test opens Build and the preview in Revit, label revit-later.
+
+## Rules R682 to R685 and three CHOSEN answers, 6 Nov 2026
+
+Goal:
+- Enter the rule lines of FAST-1 PR 2 and record the answers the lanes took by Bader's order of 6 Nov.
+
+Done:
+- R682 to R685 in docs/rules/18-fast-pane-r680-up.md and index.md, from the body of PR 232. The R680 and R681 bridge line of R640_WorkerSeamTests.cs removed, R680_StagePaneTests.cs names both on main.
+- Q394 and Q149 CHOSEN by build-2 in PR 235, Q570 CHOSEN by Lead for the listener floor, in questions-closed.md and the plan. Q394 out of questions-open.md. The seam line to build-1 and build-2 marked given.
+
+Checked:
+- pytest scripts/checks -k "r12 or rules or index": 22 passed.
+
+Remains:
+- PR 234 of build-1 and PR 235 of build-2, review and merge on green.
+
+Known bugs:
+- R310 and R347 fail at random, FAST-2 item 9.
+
+Next:
+- FAST-2 drops RevitListenerSetting.Refusal, then FAST-1 item 8 on Start-RevitListener.ps1.
+
 Your turn:
 - None.
 
@@ -51,6 +122,8 @@ Next:
 Your turn:
 - build-1: the floor lines of Run-TestHost.ps1, Start-RevitListener.ps1 and Run-Parallel.ps1 can go, the tests take both.
 
+
+
 ## FAST-1-build-1 PR 2, the rules of a project and the parameter sheet, 6 Nov 2026
 
 Goal:
@@ -74,7 +147,6 @@ Next:
 
 Your turn:
 - FAST-3-revit-test opens the rules table in Revit, label revit-later.
-
 ## A third builder and the seam of 16:50, 6 Nov 2026
 
 Goal:

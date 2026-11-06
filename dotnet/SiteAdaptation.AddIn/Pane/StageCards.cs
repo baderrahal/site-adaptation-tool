@@ -172,6 +172,8 @@ namespace SiteAdaptation.AddIn.Pane
         public const int ReportStep = 9;
         private bool settingsOpen;
         private string rulesLine;
+        private string buildLine;
+        private bool previewFirst = true;
         private string readFolder;
         private string fixFolder;
         private DateTime readStamp;
@@ -184,7 +186,7 @@ namespace SiteAdaptation.AddIn.Pane
             Cards = new ReadOnlyCollection<StageCard>(new[]
             {
                 new StageCard(1, StageText.Stage1, StageText.Stage1Help, StageText.ChooseFolder, new PaneCommand(() => ChooseFolderRequested?.Invoke(), () => model.InUse)),
-                new StageCard(2, StageText.Stage2, StageText.Stage2Help, StageText.Build, new PaneCommand(() => { }, () => false)),
+                new StageCard(2, StageText.Stage2, StageText.Stage2Help, StageText.Build, new PaneCommand(() => BuildRequested?.Invoke(), () => model.InUse && readFolder != null)),
                 new StageCard(3, StageText.Stage3, StageText.Stage3Help, StageText.Report, new PaneCommand(() => model.RequestRun(ReportStep), () => model.InUse)),
             });
             FixItemsCommand = new PaneCommand(() => FixItemsRequested?.Invoke(fixFolder), () => fixFolder != null);
@@ -206,6 +208,17 @@ namespace SiteAdaptation.AddIn.Pane
         public bool SettingsOpen { get { return settingsOpen; } set { Set(ref settingsOpen, value); } }
         public PaneCommand RulesCommand { get; }
 
+        // R686. The scope of the build in the words of the project, and the Preview tick, on by default (CHOSEN)
+        public string ScopeLine { get { return SiteBuildPlan.ScopeLine(Model.Settings?.Scope); } }
+        public bool PreviewFirst { get { return previewFirst; } set { Set(ref previewFirst, value); } }
+
+        // R686. What the last press of Build said, the plan, its stop or its coordinates
+        public void ShowBuild(string line)
+        {
+            buildLine = line;
+            Card2.Line = line ?? string.Empty;
+        }
+
         // R683. The one amber line of the pane until every rule of the project is confirmed, null when they all are
         public string RulesLine { get { return rulesLine; } private set { Set(ref rulesLine, value); Changed(nameof(HasRulesLine)); } }
         public bool HasRulesLine { get { return !string.IsNullOrEmpty(rulesLine); } }
@@ -214,6 +227,7 @@ namespace SiteAdaptation.AddIn.Pane
         public event Action ChooseFolderRequested;
         public event Action<string> FixItemsRequested;
         public event Action RulesRequested;
+        public event Action BuildRequested;
 
         // The work folder of the active document, null with none
         public Func<string> WorkFolderNow { get; set; }
@@ -236,7 +250,8 @@ namespace SiteAdaptation.AddIn.Pane
                 Cards[stage - 1].Good = Cards[stage - 1].Status == StageText.Done;
                 Cards[stage - 1].Command.Refresh();
             }
-            Card2.Line = StageText.BuildNotWired;
+            Card2.Line = buildLine ?? string.Empty;
+            Changed(nameof(ScopeLine));
             Card3.Line = StageText.ReportLine;
             RulesCommand.Refresh();
             RulesLine = Model.HasDocument && Model.InUse ? RulesLineNow?.Invoke() : null;
@@ -265,6 +280,7 @@ namespace SiteAdaptation.AddIn.Pane
             Card1.Line = latest == null ? StageText.NoRead : check.Stopped != null ? TextTemplate.Fill(StageText.ReadStopped, check.Stopped) : string.Empty;
             Changed(nameof(HasRows));
             FixItemsCommand.Refresh();
+            Card2.Command.Refresh();
         }
     }
 }
