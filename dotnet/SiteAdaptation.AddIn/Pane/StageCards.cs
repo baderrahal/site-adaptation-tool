@@ -214,7 +214,6 @@ namespace SiteAdaptation.AddIn.Pane
         private StageResults results = new StageResults();
         public PaneCommand UpdateCommand { get; private set; }
         public Func<StageResults> ResultsNow { get; set; }
-        public StageResults Results { get { return results; } }
         public string IssuesLine { get { return results.HasPlan || results.Issues.Count > 0 ? TextTemplate.Fill(StageResultsText.IssuesCount, results.Issues.Count) : StageResultsText.NoBuild; } }
         public string MixLine { get { return results.HasPlan ? results.Mix.Line : string.Empty; } }
         public bool RuleIssue { get { return results.RuleIssue; } }
@@ -279,7 +278,6 @@ namespace SiteAdaptation.AddIn.Pane
             Card3.Line = StageResultsText.ReportLine;
             UpdateCommand.Refresh();
             results = (Model.HasDocument ? ResultsNow?.Invoke() : null) ?? new StageResults();
-            Changed(nameof(Results));
             Changed(nameof(IssuesLine));
             Changed(nameof(MixLine));
             Changed(nameof(RuleIssue));
