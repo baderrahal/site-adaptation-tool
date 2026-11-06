@@ -564,8 +564,14 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 
 - R680 The pane in 3 stages.
 - R681 Stage 1, folder and data check.
+- R682 The rules table of a project.
+- R683 One amber line of the rules.
+- R684 The manual template in the install.
+- R685 Stage 1 sends the parameter sheet.
 
 ## 19-fast2-r700-up.md
 
 - R700 Shared parameters from the parameter sheet.
 - R701 No free memory floor.
+- R702 No past share, new project.
+- R703 Source column on value sheets.

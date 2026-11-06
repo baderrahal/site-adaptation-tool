@@ -56,11 +56,11 @@ namespace SiteAdaptation.Common
         public static readonly string[] ScheduleColumns =
         {
             "Plot & Unit", PlotNumber, "Unit", "FFL (m)", "SSL (m)", "El @ Entry, door level (m)", "Height (m)", "Site Steps Needed", "Steps Needed",
-            OldPlotNumber, "Prototype", Mirror, "Rotation (deg)", "Ramp corner 1 (m)", "Ramp corner 2 (m)", "Ramp corner 3 (m)", "Ramp corner 4 (m)",
+            OldPlotNumber, "Prototype", Mirror, "Rotation (deg)", "Ramp corner 1 (m)", "Ramp corner 2 (m)", "Ramp corner 3 (m)", "Ramp corner 4 (m)", SourceColumn,
             "Villa ID", "Generic floor ID", "Yard floor ID", "Ramp ID", "Wall IDs",
         };
-        public static readonly string[] FloorColumns = { Plot, Kind, Type, "Level", "Level elevation (m)", "Z (m)", "Height offset (m)", "Slope (%)", ElementId };
-        public static readonly string[] WallColumns = { Plot, "Edge", "Other plot", "Base (m)", "Top (m)", "Length (m)", ElementId };
+        public static readonly string[] FloorColumns = { Plot, Kind, Type, "Level", "Level elevation (m)", "Z (m)", "Height offset (m)", "Slope (%)", SourceColumn, ElementId };
+        public static readonly string[] WallColumns = { Plot, "Edge", "Other plot", "Base (m)", "Top (m)", "Length (m)", SourceColumn, ElementId };
 
         public const string Step = "Step";
         public const string Done = "Done";
@@ -104,6 +104,12 @@ namespace SiteAdaptation.Common
         public const string Strong = "strong";
         public const string Weak = "weak";
         public const string NotMeasured = "not measured";
+
+        // R703. The column of the sources of the plan values of a row, before the element ids so the ids stay last
+        public const string SourceColumn = "Source";
+
+        // R702. What a share cell and a strength cell say on a new project
+        public const string NoPastShare = "not measured on this project";
         public const string ShareFormat = "0.000";
 
         public const string Plot = "Plot";
@@ -359,13 +365,19 @@ namespace SiteAdaptation.Common
         // The Q ID, the share or the source of one entry of a detail: its question, else the rule with its share, else what CheckRows.RuleName names
         public static string Basis(JObject entry)
         {
+            return Basis(entry, false);
+        }
+
+        // R702. On a new project the past share is left out and the rule alone names the basis
+        private static string Basis(JObject entry, bool newProject)
+        {
             string question = Text(entry["question"]);
             if (!string.IsNullOrEmpty(question))
             {
                 return question;
             }
             JToken share = entry["share"];
-            if (share != null && (share.Type == JTokenType.Float || share.Type == JTokenType.Integer))
+            if (!newProject && share != null && (share.Type == JTokenType.Float || share.Type == JTokenType.Integer))
             {
                 return Fill(ReportExcelText.ShareOf, "rule", CheckRows.RuleName(entry), "share", Number((double)share));
             }
@@ -374,6 +386,8 @@ namespace SiteAdaptation.Common
 
         private sealed class Made
         {
+            // R702. A run of a new project, which prints no past share
+            public bool NewProject;
             public Dictionary<JObject, string> Parts { get; set; }
             public JObject Plan;
             public JObject Details;
@@ -404,6 +418,7 @@ namespace SiteAdaptation.Common
             var models = new HashSet<string>((rules["overrideModel"] as JArray ?? new JArray()).Select(item => (string)item));
             var made = new Made
             {
+                NewProject = NewProject(inputs.Config),
                 Plan = plan,
                 Details = plan["statusFrom"] as JObject ?? new JObject(),
                 Written = (plan["plots"] as JArray ?? new JArray()).OfType<JObject>().ToList(),
@@ -486,7 +501,8 @@ namespace SiteAdaptation.Common
                 IsList = false,
             };
             JObject keyRules = inputs.Rules["levelProfiles"][inputs.Profile]["keyRules"] as JObject ?? new JObject();
-            List<string> weak = WeakWalls(made, keyRules);
+            // R702. Weak is a past measure, a new project lists no weak rule
+            List<string> weak = made.NewProject ? new List<string>() : WeakWalls(made, keyRules);
             summary.Tables.Add(StepTable(inputs, made, nbh, weak.Count, order, written, walls, placed, skipped, overrides, issues, result));
             // Q125: one row per weak wall decision after the rows of 7.4, as 8 Walls counts them
             string file = Text(inputs.Config["profile"]) ?? "";
@@ -705,7 +721,7 @@ namespace SiteAdaptation.Common
                         continue;
                     }
                     List<JObject> entries = (detail?["entries"] as JArray)?.OfType<JObject>().ToList() ?? new List<JObject>();
-                    string basis = string.Join(ReportExcelText.BasisJoin, ValueStatus.WorstEntries(entries, made.Worst).Select(Basis).Distinct());
+                    string basis = string.Join(ReportExcelText.BasisJoin, ValueStatus.WorstEntries(entries, made.Worst).Select(entry => Basis(entry, made.NewProject)).Distinct());
                     table.Rows.Add(new[] { (string)plot["plot"], field.Key, Cell(field.Value["value"]), label, basis });
                 }
             }
@@ -761,7 +777,7 @@ namespace SiteAdaptation.Common
                     string key = rule + "\n" + label;
                     if (!grouped.TryGetValue(key, out Tuple<string, string, string, HashSet<string>, int[]> item))
                     {
-                        grouped[key] = item = Tuple.Create(rule, label, Basis(entry), new HashSet<string>(StringComparer.Ordinal), new int[1]);
+                        grouped[key] = item = Tuple.Create(rule, label, Basis(entry, made.NewProject), new HashSet<string>(StringComparer.Ordinal), new int[1]);
                     }
                     item.Item4.Add(value.Item1);
                     item.Item5[0]++;
@@ -894,13 +910,14 @@ namespace SiteAdaptation.Common
             foreach (JProperty decision in keyRules.Properties().Where(item => item.Value is JObject rule && rule["rule"]?.Type == JTokenType.String))
             {
                 JToken share = decision.Value["share"];
-                bool measured = share != null && (share.Type == JTokenType.Float || share.Type == JTokenType.Integer);
+                bool measured = share != null && (share.Type == JTokenType.Float || share.Type == JTokenType.Integer) && !made.NewProject;
                 JToken strong = decision.Value["strong"];
-                string strength = strong?.Type == JTokenType.Boolean ? ((bool)strong ? ReportExcelText.Strong : ReportExcelText.Weak) : ReportExcelText.NotMeasured;
+                string strength = made.NewProject ? ReportExcelText.NoPastShare
+                    : strong?.Type == JTokenType.Boolean ? ((bool)strong ? ReportExcelText.Strong : ReportExcelText.Weak) : ReportExcelText.NotMeasured;
                 byEntry.TryGetValue(file + " levelProfiles." + inputs.Profile + ".keyRules." + decision.Name + ".rule", out HashSet<string> took);
                 table.Rows.Add(new object[]
                 {
-                    decision.Name, (string)decision.Value["rule"], measured ? (object)(double)share : ReportExcelText.NotMeasured, strength,
+                    decision.Name, (string)decision.Value["rule"], measured ? (object)(double)share : made.NewProject ? ReportExcelText.NoPastShare : ReportExcelText.NotMeasured, strength,
                     Fill(ReportExcelText.PlotCount, "n", (took?.Count ?? 0).ToString(CultureInfo.InvariantCulture)),
                 });
             }

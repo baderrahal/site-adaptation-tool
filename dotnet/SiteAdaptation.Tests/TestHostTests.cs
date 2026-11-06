@@ -389,12 +389,14 @@ namespace SiteAdaptation.Tests
         {
             string launcher = RepoText("dotnet", "SiteAdaptation.TestHost", "Run-Parallel.ps1");
 
-            Assert.Contains("[double]$MinFreeGB = 8", launcher);
+            // R701, item 6 of FAST-2: the floor of free memory leaves the launcher in a later PR of FAST-1, a launcher that still holds it keeps 8 GB
+            bool floor = launcher.Contains("$MinFreeGB");
+            Assert.True(!floor || launcher.Contains("[double]$MinFreeGB = 8"));
             Assert.Contains("[int]$MaxWindows = 3", launcher);
             Assert.Contains("if ($MaxWindows -lt 1 -or $MaxWindows -gt 3)", launcher);
             Assert.Contains("Get-CimInstance Win32_OperatingSystem", launcher);
             Assert.True(launcher.IndexOf("\"Memory: total", StringComparison.Ordinal) < launcher.IndexOf("while ($queue.Count", StringComparison.Ordinal));
-            Assert.Contains("if ($free -gt $MinFreeGB)", launcher);
+            Assert.True(!floor || launcher.Contains("if ($free -gt $MinFreeGB)"));
             Assert.Contains("$running.Count -lt $MaxWindows", launcher);
             Assert.Contains("Sort-Object WorkingSetSize -Descending | Select-Object -First 1", launcher);
             Assert.Contains("$shells -contains $_.ParentProcessId", launcher);

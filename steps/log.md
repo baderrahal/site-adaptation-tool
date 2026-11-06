@@ -25,6 +25,79 @@ Next:
 Your turn:
 - None.
 
+## FAST-1-build-1 PR 3, the plan behind Build and the 2D preview, 6 Nov 2026
+
+Goal:
+- Item 4 of FAST-1, first part: Build makes the plan of siteBuild, says the scope, the coordinates and a stop, and shows the 2D preview.
+
+Done:
+- dotnet/SiteAdaptation.AddIn/Pane/SiteBuildPlan.cs runs siteBuild of Common in process over the latest read of stage 1 and the rules of the project. SiteBuildFlow asks once for the manual template when no rules are chosen, stops on a blocking line in plain words, opens SiteBuildPreviewWindow when Preview first is ticked. R686, R687.
+- Card 2 shows the scope in the words of the project and Build is on once stage 1 has a read. An empty card line folds.
+
+Checked:
+- R686 6 of 6 on net48, 85 of 85 with the tests of the pane, rules, labels, shots, install and siteBuild. build-preview.png and pane-stage-2.png rendered.
+
+Remains:
+- Item 4 second part: Build runs set up site, check, floors and ramps, levels, villas and walls as one run with one progress line, through the step code of version 1.
+
+Known bugs:
+- Until then card 2 says the steps 4 to 8 run from Advanced. Not seen in Revit.
+
+Next:
+- The chain of steps, then item 8 once FAST-2 PR 233 is on main.
+
+Your turn:
+- FAST-3-revit-test opens Build and the preview in Revit, label revit-later.
+
+## Rules R682 to R685 and three CHOSEN answers, 6 Nov 2026
+
+Goal:
+- Enter the rule lines of FAST-1 PR 2 and record the answers the lanes took by Bader's order of 6 Nov.
+
+Done:
+- R682 to R685 in docs/rules/18-fast-pane-r680-up.md and index.md, from the body of PR 232. The R680 and R681 bridge line of R640_WorkerSeamTests.cs removed, R680_StagePaneTests.cs names both on main.
+- Q394 and Q149 CHOSEN by build-2 in PR 235, Q570 CHOSEN by Lead for the listener floor, in questions-closed.md and the plan. Q394 out of questions-open.md. The seam line to build-1 and build-2 marked given.
+
+Checked:
+- pytest scripts/checks -k "r12 or rules or index": 22 passed.
+
+Remains:
+- PR 234 of build-1 and PR 235 of build-2, review and merge on green.
+
+Known bugs:
+- R310 and R347 fail at random, FAST-2 item 9.
+
+Next:
+- FAST-2 drops RevitListenerSetting.Refusal, then FAST-1 item 8 on Start-RevitListener.ps1.
+
+Your turn:
+- None.
+
+## FAST-2-build-2 PR 2, 6 Nov 2026, the source of each value in the report, no past share on a new project
+
+Goal:
+- Item 2 of FAST-2, and the small items 6 step 1 and 12.
+
+Done:
+- R702: a report of a new project prints no past share or strength, and lists no weak rule.
+- R703: Plot schedule, Floors and Walls each have a column Source with the sources of the row.
+- The Python second check report_excel_check.py does the same. ParsonsModelTests.cs takes the script line with or without the floor. The Plot row of the parameter sheet has its note.
+
+Checked:
+- ReportExcelTests, R402_UpdateFromReportTests, FAST2 and ParsonsModelTests on net8.0: 93 of 94 passed, the one failure was the new regex of ParsonsModelTests.cs, fixed, then it and FAST2 passed 10 of 10. The Python report check tests pass.
+
+Remains:
+- Items 3, 6, 7, 8, 9, 10.
+
+Known bugs:
+- The check table keeps from and use as its source words, not the words computed, rule, person entered.
+
+Next:
+- Item 3, Q394.
+
+Your turn:
+- build-1: the floor lines of Run-TestHost.ps1, Start-RevitListener.ps1 and Run-Parallel.ps1 can go, the tests take both.
+
 ## FAST-1-build-1 PR 2, the rules of a project and the parameter sheet, 6 Nov 2026
 
 Goal:

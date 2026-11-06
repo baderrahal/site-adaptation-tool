@@ -132,6 +132,8 @@ namespace SiteAdaptation.Common
                 {
                     cells.Add(corners != null && index < corners.Count ? Cell((corners[index] as JArray)?.ElementAtOrDefault(2)) : null);
                 }
+                cells.Add(SourcesOf(plot["unit"], levels["ffl"], levels["ssl"], levels["entry"], levels["height"], levels["steps"], plot["prototypeFile"], plot["mirrored"], plot["rotationDeg"],
+                    plot["floors"]?["ramp"]?["corners"]));
                 cells.Add(RevitCounts.ElementId(inputs.RevitCounts, number, PlacedKinds.Link));
                 cells.Add(RevitCounts.ElementId(inputs.RevitCounts, number, PlacedKinds.Generic));
                 cells.Add(RevitCounts.ElementId(inputs.RevitCounts, number, PlacedKinds.Yard));
@@ -155,6 +157,7 @@ namespace SiteAdaptation.Common
                     {
                         number, floor.Name, Cell(floor.Value["type"]?["value"]), Cell(floor.Value["level"]?["value"]), Cell(floor.Value["levelElevation"]?["value"]),
                         Cell(floor.Value["z"]?["value"]), Cell(floor.Value["heightOffset"]?["value"]), Cell(floor.Value["slopePercent"]?["value"]),
+                        SourcesOf(floor.Value["type"], floor.Value["level"], floor.Value["levelElevation"], floor.Value["z"], floor.Value["heightOffset"], floor.Value["slopePercent"]),
                         RevitCounts.ElementId(inputs.RevitCounts, number, floor.Name),
                     });
                 }
@@ -174,6 +177,7 @@ namespace SiteAdaptation.Common
                 table.Rows.Add(new object[]
                 {
                     number, Cell(wall["edge"]), other.Length == 0 ? null : other, Cell(wall["base"]?["value"]), Cell(wall["top"]?["value"]), WallLength(wall),
+                    SourcesOf(wall["plots"], wall["base"], wall["top"], wall["ends"]),
                     ids.Count == 0 ? null : ids.Count == 1 ? (object)ids[0] : string.Join(ReportExcelText.ListJoin, ids),
                 });
             }

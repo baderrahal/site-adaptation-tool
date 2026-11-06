@@ -581,21 +581,21 @@ def test_r552_plot_schedule_has_every_column_from_the_plan(made):
     paths, mock, want = made
     lines = want["books"]["012"]["sheets"]["Plot schedule"]
     assert [line[1] for line in lines] == [101, 102, 103]
-    assert lines[0] == ["101-VD4", 101, "VD4", 11.6, 11.55, 10.5, 0.2, 3, 2, 5101, "VD4_v2.1", False, 90.5, 10.2, 10.3, 10.4, 10.5, None, None, None, None, None]
+    assert lines[0] == ["101-VD4", 101, "VD4", 11.6, 11.55, 10.5, 0.2, 3, 2, 5101, "VD4_v2.1", False, 90.5, 10.2, 10.3, 10.4, 10.5, "computed, override, estimate, locationPlan, plan", None, None, None, None, None]
     # The leading zero of 0102 stays text, 102 has no ramp and no height
     assert lines[1][:2] == ["102-DP1", 102] and lines[1][6] is None and lines[1][9] == "0102" and lines[1][13:17] == [None] * 4
     assert want["books"]["013"]["sheets"]["Plot schedule"][0][9] == ("blank",)
     # The plot the plan could not write keeps its row after the written ones, its number as text, its old number and nothing else
-    assert lines[2] == ["103", 103] + [None] * 7 + [5103] + [None] * 12
+    assert lines[2] == ["103", 103] + [None] * 7 + [5103] + [None] * 13
 
 
 def test_r552_floors_and_walls_read_the_plan_and_the_length_from_the_ends(made):
     paths, mock, want = made
     book = want["books"]["012"]
-    assert book["sheets"]["Floors"][0] == [101, "generic", "Generic 150mm", "Level generic", 10.1, 10.35, 0.25, None, None]
-    assert book["sheets"]["Floors"][1] == [101, "ramp", "Ramps 2%", "Level ramp", 10.1, 10.35, 0.25, 2.0, None]
+    assert book["sheets"]["Floors"][0] == [101, "generic", "Generic 150mm", "Level generic", 10.1, 10.35, 0.25, None, "computed, plan", None]
+    assert book["sheets"]["Floors"][1] == [101, "ramp", "Ramps 2%", "Level ramp", 10.1, 10.35, 0.25, 2.0, "computed, plan", None]
     assert len(book["sheets"]["Floors"]) == 4
-    assert book["sheets"]["Walls"] == [[101, 1, "102", 10.1, 10.4, ("near", 5.0), None]]
+    assert book["sheets"]["Walls"] == [[101, 1, "102", 10.1, 10.4, ("near", 5.0), "rule, locationPlan, plan", None]]
 
 
 COUNTED = {"format": "siteAdaptationRevitCounts", "formatVersion": 1, "levelRun": None,
@@ -647,10 +647,10 @@ def test_r552_the_ids_of_the_model_fill_the_id_columns_a_single_id_a_number(tmp_
     paths, mock, want = build(tmp_path, revit=COUNTED, plan=WALLED)
     book = want["books"]["012"]
     first, second, unwritten = book["sheets"]["Plot schedule"]
-    assert first[17:] == [5001, 5002, None, "5003, 5004", "7001, 7002, 7003"]
+    assert first[17:] == ["computed, override, estimate, locationPlan, plan", 5001, 5002, None, "5003, 5004", "7001, 7002, 7003"]
     # 102 holds the two pieces of 101 on their shared edge, by their ids under the owner 101
-    assert second[17:] == [6001, None, None, None, "7001, 7002, 7003"]
-    assert unwritten[17:] == [None] * 5
+    assert second[17:] == ["computed, estimate, locationPlan, plan", 6001, None, None, None, "7001, 7002, 7003"]
+    assert unwritten[17:] == [None] * 6
     assert want["books"]["013"]["sheets"]["Plot schedule"][0][-1] == 8001
     assert [row[-1] for row in book["sheets"]["Walls"]] == [7001, None, "7002, 7003"]
     assert [row[-1] for row in book["sheets"]["Floors"]][:2] == [5002, "5003, 5004"]
@@ -674,8 +674,8 @@ def test_r552_wall_ids_read_all_walls_of_the_plan_in_plan_order_also_those_of_an
 
 @pytest.mark.parametrize("fault, caught", [
     # R552: the id of a wall shared with 101 left off the row of 102
-    (lambda book: book["Plot schedule"].cell(row=3, column=22, value="7001, 7002"), "Plot schedule row 3 Wall IDs"),
-    (lambda book: setattr(book["Plot schedule"].cell(row=3, column=22), "value", None), "Plot schedule row 3 Wall IDs"),
+    (lambda book: book["Plot schedule"].cell(row=3, column=23, value="7001, 7002"), "Plot schedule row 3 Wall IDs"),
+    (lambda book: setattr(book["Plot schedule"].cell(row=3, column=23), "value", None), "Plot schedule row 3 Wall IDs"),
     # R552: the row of the plot the plan could not write
     (lambda book: book["Plot schedule"].delete_rows(4), "Plot schedule max_row"),
     (lambda book: book["Plot schedule"].cell(row=4, column=1, value="103-"), "Plot schedule row 4 Plot & Unit"),

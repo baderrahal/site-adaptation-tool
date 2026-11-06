@@ -7,7 +7,6 @@ using Xunit;
 
 namespace SiteAdaptation.Tests
 {
-    // R680 and R681 are tested in FAST1/R680_StagePaneTests.cs of FAST-1-build-1, which merges after its rule lines. This names them for test_r12 until then
     // What the lanes of R2-C2 and R2-C3 share, set by Lead before either starts, so neither lane edits an existing file of Common
     public sealed class R640_WorkerSeamTests : IDisposable
     {
