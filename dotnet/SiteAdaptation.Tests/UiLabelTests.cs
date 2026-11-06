@@ -198,7 +198,8 @@ namespace SiteAdaptation.Tests
             // R639 added 17: 14 of 2 Read data and 3 of a row of Review data
             // FAST-1-build-1 added 24 of the pane in 3 stages (R680, R681), review 1 of PR 228 2 more, a stopped read and Fix items not opened.
             // Item 3 took out the line that the rules table is not wired and added 25 of the rules table of a project (R682, R683)
-            Assert.Equal(490, chosen);
+            // Item 4 took out the line that Build is not wired and added 17 of card 2 and the 2D preview, its review 1 more, a position file that did not read
+            Assert.Equal(507, chosen);
             Assert.True(matched > 100, matched.ToString());
         }
 
