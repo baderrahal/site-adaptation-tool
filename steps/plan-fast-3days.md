@@ -23,6 +23,14 @@ The one live file of the three days, Bader's order of 6 Nov. Lead keeps it true 
 
 - PR 229 merged 16:20 as 7568d40: item 1, shared parameters, R700, and the Python side of item 6, R701. The config and worker side of item 6 waits on the exact test paths. Next item 2, the source mark per value.
 
+## build-3, FAST-4-build-3, the plot read and the mirror
+
+- 16:50: opened by Bader's order of 16:25, items 4 and 5 moved from FAST-2. Owns Common/DataCheck/, four files of CadReader, the scenario scripts and steps/scenarios.md. Started hidden by Lead once this PR is merged.
+
+## At 16:50
+
+- PR 229 and PR 230 merged. PR 228 merged as 389af4c after Lead merged main into it twice. CadScan.cs went to FAST-4. FAST-2 makes its tests accept the floor lines both ways before FAST-1 removes them. Lead merges main into every open task branch that no lane has checked out, the same hour as each merge. A lane's working branch is merged by its lane, Lead tells it.
+
 ## revit-test, FAST-3-revit-test, the one test on Sun 8 Nov
 
 - Waiting: opens when FAST-1 and FAST-2 are merged.
