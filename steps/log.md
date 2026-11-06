@@ -2,6 +2,30 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## FAST-1-build-1 PR 4, no RAM floor in two test host scripts, 6 Nov 2026
+
+Goal:
+- Item 8 of FAST-1, Bader's order of 6 Nov, FAST-2 item 6: the free memory floor goes from the test host scripts.
+
+Done:
+- Run-TestHost.ps1 calls Get-WindowPeaks with no -FloorGB, its memory line drops the floor words and keeps the least free memory.
+- Run-Parallel.ps1 has no -MinFreeGB and no start gate on free memory. StopBelowGB stays, a stop and not a start floor, Q570.
+
+Checked:
+- Both scripts parse with no error. net8.0 TestHostTests, ParsonsModelTests and R448: 213 of 213.
+
+Remains:
+- The SITEADAPT_LISTENER_MIN_FREE_GB line of Start-RevitListener.ps1 goes once FAST-2 drops RevitListenerSetting.Refusal, Q570.
+
+Known bugs:
+- None seen. Not run in Revit, this lane may not open it.
+
+Next:
+- Item 4 part 2, the steps as one run.
+
+Your turn:
+- None.
+
 ## FAST-2-build-2 PR 2, 6 Nov 2026, the source of each value in the report, no past share on a new project
 
 Goal:
