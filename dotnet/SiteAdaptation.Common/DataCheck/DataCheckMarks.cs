@@ -155,6 +155,12 @@ namespace SiteAdaptation.Common
                 {
                     said += ". A tie of candidates was broken";
                 }
+                // R730. The plots no villa goes on leave the plot table and are listed apart under otherPlots with their reason
+                int other = plots.Any(VillaGoesOn) ? plots.Count(plot => !VillaGoesOn(plot)) : 0;
+                if (other > 0)
+                {
+                    said += ". " + Count(other, "plot", "plots") + " with no villa sign listed apart with the reason";
+                }
                 needs.Add(Need("plotOutlines", mark, said + "." + unread));
             }
 
@@ -376,9 +382,20 @@ namespace SiteAdaptation.Common
             var profile = new JObject { ["levels"] = ProfileOf(f) };
             AddProposals(profile, f);
             var plotRows = new JArray();
+            var otherRows = new JArray();
+            // R730. The plot table holds the plots a villa goes on, every other plot is listed apart with its reason. A read that finds no
+            // villa sign on any plot cannot tell them apart, so then every plot stays in the table
+            bool parted = plots.Any(VillaGoesOn);
             foreach (Plot plot in plots)
             {
-                plotRows.Add(PlotRow(f, plot));
+                if (!parted || VillaGoesOn(plot))
+                {
+                    plotRows.Add(PlotRow(f, plot));
+                }
+                else
+                {
+                    otherRows.Add(OtherRow(f, plot));
+                }
             }
             JObject check = Wrap(new JArray(needs), input, scanChecks, values);
             check["proposalSources"] = ProposalSources(f);
@@ -386,7 +403,7 @@ namespace SiteAdaptation.Common
             {
                 Check = check,
                 Profile = profile,
-                Plots = new JObject { ["areaFrom"] = input.Confirmed?.AreaColumn != null && f.AreaGone == null ? AreaFromColumn : AreaFromDistance, ["plots"] = plotRows },
+                Plots = new JObject { ["areaFrom"] = input.Confirmed?.AreaColumn != null && f.AreaGone == null ? AreaFromColumn : AreaFromDistance, ["plots"] = plotRows, ["otherPlots"] = otherRows },
             };
         }
 
@@ -404,6 +421,24 @@ namespace SiteAdaptation.Common
                 rows.Add(row);
             }
             return rows;
+        }
+
+        // R730. A villa goes on a plot that has a villa type, a villa code from any source, also two that disagree, or a villa block on it
+        private static bool VillaGoesOn(Plot plot)
+        {
+            return plot.Villa != null || plot.CodeSeen || plot.HasBlock || plot.BlockCodes.Count > 0;
+        }
+
+        // R730. A plot no villa goes on: its number, its area and why, so nothing read is dropped in silence
+        private static JObject OtherRow(Findings f, Plot plot)
+        {
+            return new JObject
+            {
+                ["number"] = plot.NumberFlag != null ? null : plot.Number,
+                ["areaM2"] = f.MetersPerUnit == null ? (double?)null : Rounding.Fixed(plot.Area * f.MetersPerUnit.Value * f.MetersPerUnit.Value, 3),
+                ["why"] = "no villa goes on it: " + (plot.VillaWhy ?? "no villa type, villa code or villa block was found in the plot"),
+                ["source"] = new JObject { ["number"] = plot.NumberFlag != null ? Missing : Computed, ["why"] = Computed },
+            };
         }
 
         private static JObject PlotRow(Findings f, Plot plot)
@@ -427,6 +462,12 @@ namespace SiteAdaptation.Common
             else if (plot.BlockOfOtherType)
             {
                 weak["mirror"] = "the block in this plot is not of the plot's own type, so its scale says little about the prototype";
+            }
+            if (plot.Mirror != null && plot.BlockSpan > 1)
+            {
+                // R731. The block stands on several plots and the hand of each is taken to turn at each house along it
+                string row = "one of the " + plot.BlockSpan + " houses of one block, the hand taken to turn at each house along the block";
+                weak["mirror"] = weak["mirror"] == null ? row : (string)weak["mirror"] + ", " + row;
             }
             var typeDoubts = new List<string>();
             if (plot.MapDoubt != null)

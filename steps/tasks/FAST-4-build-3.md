@@ -2,7 +2,7 @@
 id: FAST-4-build-3
 lane: build-3
 stage: 1
-status: open
+status: done
 allowed:
   - dotnet/SiteAdaptation.Common/DataCheck/
   - dotnet/CadReader/CadExtractor.cs
