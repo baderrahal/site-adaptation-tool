@@ -2,6 +2,30 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## FAST-1-build-1 PR 5, the one Build runs the steps, 6 Nov 2026
+
+Goal:
+- Item 4 of FAST-1, second part: one Build runs set up site, check, floors and ramps, levels, villas and walls as one run with one progress line.
+
+Done:
+- dotnet/SiteAdaptation.AddIn/Pane/BuildChain.cs runs the steps 1, 4, 5, 6, 7 and 8 one after another, each by RequestRun as a press of its row, through the step code of version 1. R688.
+- Buttons.ChainEnded hands the end of each step to the build, card 2 says Step <n> of 6, the build stops only on a step that did not end well and says where and why, the message of a step that ended well goes to the issues.
+
+Checked:
+- R688 4 of 4, with R686, R680 and the labels 24 of 24 on net48.
+
+Remains:
+- Item 5 stage 3, item 6 Q504.
+
+Known bugs:
+- The windows and confirm boxes each step of version 1 opens still open during the build. Not seen in Revit.
+
+Next:
+- Item 5, card 3.
+
+Your turn:
+- FAST-3-revit-test runs Build in Revit on a copy, label revit-later.
+
 ## FAST-1-build-1 PR 3, the plan behind Build and the 2D preview, 6 Nov 2026
 
 Goal:
