@@ -119,10 +119,14 @@ namespace SiteAdaptation.Tests
         [Fact]
         public void R691_the_plots_with_no_road_level_are_counted_on_card_3()
         {
-            var results = StageResults.Read(null, new[] { "12: No road level at the front, so no floor level", "13: no road level", "14: Made up fault" });
+            // The words of R705 of FAST-2's plan, in any case
+            var results = new StageResults { HasPlan = true };
+            results.Issues.AddRange(new[] { "12: Plot 12 has no road level, so it has no floor level and steps 6 Levels, 7 Place villas and 8 Walls skip it.", "13: No road level", "14: Made up fault" });
             Assert.Equal(2, results.NoRoadLevelCount);
             // Broken on purpose: other words are no such plot
-            Assert.Equal(0, StageResults.Read(null, new[] { "12: road levels differ" }).NoRoadLevelCount);
+            var other = new StageResults();
+            other.Issues.Add("12: road levels differ");
+            Assert.Equal(0, other.NoRoadLevelCount);
             Exception failure = null;
             var thread = new Thread(() =>
             {
