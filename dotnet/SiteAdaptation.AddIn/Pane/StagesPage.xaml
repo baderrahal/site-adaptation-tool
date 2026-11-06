@@ -39,14 +39,20 @@
         </StackPanel>
       </DataTemplate>
 
-      <!-- R681. One row of the data check: the need, its mark and the plain line of the worker -->
+      <!-- R681. One row of the data check: the need and its mark, the plain line of the worker under them -->
       <DataTemplate x:Key="CheckRow" DataType="{x:Type scan:DataCheckRow}">
-        <Grid Margin="{StaticResource SA.Gap.Row}" ToolTip="{Binding Line}">
+        <Grid Margin="{StaticResource SA.Gap.Row}">
           <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*" />
             <ColumnDefinition Width="Auto" />
           </Grid.ColumnDefinitions>
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+          </Grid.RowDefinitions>
           <TextBlock Style="{StaticResource SA.Type.Body}" TextTrimming="CharacterEllipsis" Text="{Binding Name}" />
+          <!-- The plain line of the need under its name and mark, R681 -->
+          <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Style="{StaticResource SA.Pane.Help}" TextWrapping="Wrap" Text="{Binding Line}" />
           <TextBlock Grid.Column="1" Text="{Binding Mark}">
             <TextBlock.Style>
               <Style TargetType="TextBlock" BasedOn="{StaticResource SA.Pane.Chip}">

@@ -174,6 +174,8 @@ namespace SiteAdaptation.AddIn.Pane
         private string readFolder;
         private string fixFolder;
         private DateTime readStamp;
+        // A fresh pane has no read to compare with, so the first look always fills card 1
+        private bool readSeen;
 
         public StagesViewModel(PaneViewModel model)
         {
@@ -233,12 +235,13 @@ namespace SiteAdaptation.AddIn.Pane
         {
             string latest = Model.HasDocument ? StageRead.Latest(WorkFolderNow?.Invoke()) : null;
             DateTime stamp = latest == null ? DateTime.MinValue : File.GetLastWriteTimeUtc(Path.Combine(latest, DataCheckRows.FileName));
-            if (latest == readFolder && stamp == readStamp)
+            if (readSeen && latest == readFolder && stamp == readStamp)
             {
                 return;
             }
             readFolder = latest;
             readStamp = stamp;
+            readSeen = true;
             CheckRows.Clear();
             DataCheckResult check = StageRead.Read(latest);
             foreach (DataCheckRow row in check.Rows)

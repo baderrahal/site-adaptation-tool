@@ -11,7 +11,8 @@
 - dotnet/SiteAdaptation.AddIn/App/PaneHost.cs: SetupDockablePane docks StagesPage, WorkFolderNow, ChooseProjectFolder, FixItems.
 - dotnet/SiteAdaptation.UiShots/ShotsStages.cs: pane-stage-1, -2, -3 in steps/ui-shots/.
 - dotnet/SiteAdaptation.Tests/FAST1/R680_StagePaneTests.cs, net48 only.
-- docs/design/14-ui-labels.md: 24 Pane entries, CHOSEN. UiLabelTests count 440 to 464.
+- docs/design/14-ui-labels.md: 26 Pane entries, CHOSEN. UiLabelTests count 440 to 466.
+- dotnet/SiteAdaptation.TestHost/AddinProbe.cs: PageType finds StagesPage by DockedPage, the docked page since FAST-1.
 
 ## What calls what
 
@@ -19,8 +20,10 @@ PaneHost.SetupDockablePane makes StagesViewModel and StagesPage. Card 1 Choose p
 
 ## Fixed this session
 
-- StagesPage.OldPage keeps the old page in a field, Frame.Content is null until it navigates.
-- StageRead.Rows catches FormatException of a data check with no needs.
+- StagesPage has no accessor a test alone reads, the test reads the Frame after the dispatcher runs its navigation.
+- StageRead.Read gives the reason of a stopped or unreadable data check, card 1 says it and Fix items stays off.
+- A fresh pane with no read shows No data check yet. Each need shows its plain line under it.
+- R680_StagePaneTests 7 of 7 on net48.
 
 ## Next, in order
 
@@ -30,3 +33,5 @@ Item 3 Settings and the rules per project (R2-C3 points), item 4 the one Build w
 
 - Opening each window in Revit is FAST-3-revit-test's.
 - The comment naming R680 and R681 in R640_WorkerSeamTests.cs can go once PR 1 merges.
+- AddinRunNames.Page of dotnet/SiteAdaptation.Common/AddinRun.cs:140 still names SitePanePage, seam line.
+- Item 3 work in progress on branch task/FAST-1-build-1-rules, the rules table of a project.
