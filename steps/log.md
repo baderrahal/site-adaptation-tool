@@ -13,7 +13,7 @@ Done:
 - The Python second check report_excel_check.py does the same. ParsonsModelTests.cs takes the script line with or without the floor. The Plot row of the parameter sheet has its note.
 
 Checked:
-- ReportExcelTests, R402_UpdateFromReportTests, FAST2 and ParsonsModelTests on net8.0, all pass but the known random R310, which passed on its rerun. The Python report check tests pass.
+- ReportExcelTests, R402_UpdateFromReportTests, FAST2 and ParsonsModelTests on net8.0: 93 of 94 passed, the one failure was the new regex of ParsonsModelTests.cs, fixed, then it and FAST2 passed 10 of 10. The Python report check tests pass.
 
 Remains:
 - Items 3, 6, 7, 8, 9, 10.
