@@ -18,6 +18,16 @@ namespace SiteAdaptation.UiShots
             "{\"need\":\"villaType\",\"mark\":\"weak\",\"line\":\"Two sources differ on some plots.\"}," +
             "{\"need\":\"rules\",\"mark\":\"missing\",\"line\":\"No rules file in the folder.\"}]}";
 
+        // R689. Card 3 after a made up build: 3 issues, one of them about rules, and the source mix of 40 made up values
+        private static StageResults SampleResults()
+        {
+            var results = new StageResults { HasPlan = true, Mix = new SourceMix { ComputedCount = 20, RuleCount = 10, PersonCount = 4, MissingCount = 6 } };
+            results.Issues.Add("1: Made up fault");
+            results.Issues.Add("2 of 15 rules are not confirmed");
+            results.Issues.Add("Walls: made up message");
+            return results;
+        }
+
         // The stages page laid out at the start width of the pane, so a test reads its parts. withRows gives card 1 a made up read in a
         // folder of the temp folder, read as the pane reads the work folder of a model, so the shot shows what a person sees after a read
         public static StagesPage LaidOutStages(bool withRows)
@@ -38,6 +48,7 @@ namespace SiteAdaptation.UiShots
                     File.WriteAllText(Path.Combine(read, DataCheckRows.FileName), SampleCheck);
                     File.WriteAllText(Path.Combine(read, ConfirmProfileStep.ProfileFile), "{}");
                     stages.WorkFolderNow = () => work;
+                    stages.ResultsNow = SampleResults;
                     stages.Refresh();
                 }
                 finally
