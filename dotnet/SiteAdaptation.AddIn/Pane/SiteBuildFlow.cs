@@ -15,7 +15,8 @@ namespace SiteAdaptation.AddIn.Pane
     // the preview when ticked. The windows are given by the Revit side, so a test runs the flow with none
     public sealed class SiteBuildFlow
     {
-        private bool askedRules;
+        // Rules are per project, so the one ask is once per config of a project in this session of Revit
+        private readonly HashSet<string> askedRules = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         // The place of the plan of the active project, null with none
         public Func<SiteBuildPlace> Place { get; set; }
@@ -29,9 +30,6 @@ namespace SiteAdaptation.AddIn.Pane
         // Shows the preview, true to go on
         public Func<SiteBuildResult, bool> ShowPreview { get; set; }
 
-        // The plan of the last press, null before one
-        public SiteBuildResult Last { get; private set; }
-
         // The lines card 2 shows after a press, and false when the build stops there
         public bool Run(bool preview, out string line)
         {
@@ -43,9 +41,8 @@ namespace SiteAdaptation.AddIn.Pane
             }
             SiteBuildResult plan = SiteBuildPlan.Make(place);
             // Point 3 of R2-C3: the first Build with no rules chosen asks once, a yes sets them up and the plan is made again on them
-            if (plan.RulesChoice != null && !askedRules && AskRules != null)
+            if (plan.RulesChoice != null && AskRules != null && askedRules.Add(place.ConfigFile ?? string.Empty))
             {
-                askedRules = true;
                 if (AskRules(TextTemplate.Fill(SiteBuildText.AskRules, plan.RulesChoice)))
                 {
                     string refused = UseManual?.Invoke();
@@ -60,7 +57,6 @@ namespace SiteAdaptation.AddIn.Pane
                     }
                 }
             }
-            Last = plan;
             if (plan.StopLine != null)
             {
                 line = plan.StopLine;

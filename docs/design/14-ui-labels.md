@@ -152,9 +152,9 @@ The five panels and their buttons of 7.1 of docs/design/12-ui-spec.md, Bader's c
 - `Build` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
 - `The last read stopped and holds nothing to fix: <name>. Fix the cause and choose the folder again.` CHOSEN, review 1 of PR 228, a stopped data check says why in card 1 and Fix items stays off, as the Confirm window of R2-C1 refuses it (R681)
 - `Fix items could not open the last read: <name>` CHOSEN, review 1 of PR 228, a locked or damaged proposal (R681)
-- `Builds the whole project.` CHOSEN, card 2 Build site and the 2D preview of FAST-1-build-1, item 4
-- `Builds the neighbourhood <name>.` CHOSEN, card 2 Build site and the 2D preview of FAST-1-build-1, item 4
-- `Builds the plots <name>.` CHOSEN, card 2 Build site and the 2D preview of FAST-1-build-1, item 4
+- `Scope: the whole project.` CHOSEN, card 2 Build site and the 2D preview of FAST-1-build-1, item 4
+- `Scope: the neighbourhood <name>. The plan and its preview show every plot of stage 1.` CHOSEN, card 2 Build site and the 2D preview of FAST-1-build-1, item 4
+- `Scope: the plots <name>. The plan and its preview show every plot of stage 1.` CHOSEN, card 2 Build site and the 2D preview of FAST-1-build-1, item 4
 - `Preview first` CHOSEN, card 2 Build site and the 2D preview of FAST-1-build-1, item 4
 - `Read the project data in stage 1 first, Build takes the plots it found.` CHOSEN, card 2 Build site and the 2D preview of FAST-1-build-1, item 4
 - `Build stopped: <name>` CHOSEN, card 2 Build site and the 2D preview of FAST-1-build-1, item 4
@@ -162,6 +162,7 @@ The five panels and their buttons of 7.1 of docs/design/12-ui-spec.md, Bader's c
 - `Coordinates from the drawing: east <n> m, north <n> m.` CHOSEN, card 2 Build site and the 2D preview of FAST-1-build-1, item 4
 - `Coordinates from the drawing: east <n> m, north <n> m, <n> mm from the position file.` CHOSEN, card 2 Build site and the 2D preview of FAST-1-build-1, item 4
 - `No coordinates from the drawing: <name>` CHOSEN, card 2 Build site and the 2D preview of FAST-1-build-1, item 4
+- `The position file did not read: <name>` CHOSEN, card 2 Build site and the 2D preview of FAST-1-build-1, item 4
 - `<n> issues go to the issues list.` CHOSEN, card 2 Build site and the 2D preview of FAST-1-build-1, item 4
 - `<name> Use the manual template for this project now?` CHOSEN, card 2 Build site and the 2D preview of FAST-1-build-1, item 4
 - `The plan is made. The steps 4 to 8 still run from Advanced until the one Build runs them.` CHOSEN, card 2 Build site and the 2D preview of FAST-1-build-1, item 4

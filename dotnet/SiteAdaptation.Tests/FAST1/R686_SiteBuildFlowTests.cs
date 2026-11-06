@@ -57,8 +57,9 @@ namespace SiteAdaptation.Tests
         {
             Assert.Equal(SiteBuildText.ScopeProject, SiteBuildPlan.ScopeLine(null));
             Assert.Equal(SiteBuildText.ScopeProject, SiteBuildPlan.ScopeLine(new SettingsScope()));
-            Assert.Equal("Builds the neighbourhood N1.", SiteBuildPlan.ScopeLine(new SettingsScope { Kind = ScopeKinds.Nbh, Nbh = "N1" }));
-            Assert.Equal("Builds the plots 1, 2.", SiteBuildPlan.ScopeLine(new SettingsScope { Kind = ScopeKinds.Plots, Plots = "1, 2" }));
+            // Review of PR 234: siteBuild plans every plot, so a narrower scope says so
+            Assert.Equal("Scope: the neighbourhood N1. The plan and its preview show every plot of stage 1.", SiteBuildPlan.ScopeLine(new SettingsScope { Kind = ScopeKinds.Nbh, Nbh = "N1" }));
+            Assert.Equal("Scope: the plots 1, 2. The plan and its preview show every plot of stage 1.", SiteBuildPlan.ScopeLine(new SettingsScope { Kind = ScopeKinds.Plots, Plots = "1, 2" }));
             // A neighbourhood scope with no name is the whole project
             Assert.Equal(SiteBuildText.ScopeProject, SiteBuildPlan.ScopeLine(new SettingsScope { Kind = ScopeKinds.Nbh }));
         }
@@ -69,6 +70,26 @@ namespace SiteAdaptation.Tests
             Assert.Equal("Coordinates from the drawing: east 400005 m, north 1000010 m.", SiteBuildPlan.CoordinatesLine(new JObject { ["eastM"] = 400005.0, ["northM"] = 1000010.0, ["differenceMm"] = null }));
             Assert.Equal("Coordinates from the drawing: east 400005 m, north 1000010 m, 12.5 mm from the position file.", SiteBuildPlan.CoordinatesLine(new JObject { ["eastM"] = 400005.0, ["northM"] = 1000010.0, ["differenceMm"] = 12.5 }));
             Assert.Equal("No coordinates from the drawing: no outline", SiteBuildPlan.CoordinatesLine(new JObject { ["source"] = "missing", ["eastM"] = null, ["why"] = "no outline" }));
+            Assert.EndsWith(" The position file did not read: made up fault", SiteBuildPlan.CoordinatesLine(new JObject { ["eastM"] = 1.0, ["northM"] = 2.0, ["positionFile"] = new JObject { ["error"] = "made up fault" } }));
+        }
+
+        // Review of PR 234: the position file picked in Set up site goes to siteBuild, so the difference in mm shows
+        [Fact]
+        public void R686_the_position_file_of_the_settings_or_of_config_goes_to_the_plan_and_its_difference_shows()
+        {
+            SiteBuildPlace place = Place(TwoPlots);
+            Assert.Equal("picked.json", SiteBuildPlan.PositionFileOf("picked.json", place.ConfigFile));
+            Assert.Null(SiteBuildPlan.PositionFileOf(null, place.ConfigFile));
+            JObject config = JObject.Parse(File.ReadAllText(place.ConfigFile));
+            ((JObject)config["addin"])["position"] = new JObject { ["file"] = "position/site.json" };
+            File.WriteAllText(place.ConfigFile, config.ToString());
+            Assert.Equal(Path.GetFullPath(Path.Combine(Path.GetDirectoryName(root), "position", "site.json")), SiteBuildPlan.PositionFileOf(null, place.ConfigFile));
+            string file = Path.Combine(root, "position.json");
+            File.WriteAllText(file, "{\"eastM\":400010.5,\"northM\":1000020.0}");
+            place.PositionFile = file;
+            var flow = new SiteBuildFlow { Place = () => place };
+            Assert.True(flow.Run(false, out string line), line);
+            Assert.Contains(" mm from the position file.", line);
         }
 
         [Fact]
@@ -77,16 +98,17 @@ namespace SiteAdaptation.Tests
             SiteBuildPlace place = Place(TwoPlots);
             var asked = new List<string>();
             int previews = 0;
-            var flow = new SiteBuildFlow { Place = () => place, AskRules = text => { asked.Add(text); return false; }, ShowPreview = plan => { previews++; return true; } };
+            SiteBuildResult shown = null;
+            var flow = new SiteBuildFlow { Place = () => place, AskRules = text => { asked.Add(text); return false; }, ShowPreview = plan => { previews++; shown = plan; return true; } };
             Assert.True(flow.Run(true, out string line), line);
             Assert.Single(asked);
             Assert.EndsWith(" Use the manual template for this project now?", asked[0]);
             Assert.Equal(1, previews);
             Assert.Contains("Coordinates from the drawing: east ", line);
             Assert.EndsWith(SiteBuildText.PlanReady, line);
-            Assert.Equal(2, flow.Last.PlotsWithOutline);
-            Assert.True(File.Exists(flow.Last.Preview));
-            Assert.Equal(2, SiteBuildPreview.Outlines(flow.Last.Preview).Count);
+            Assert.Equal(2, shown.PlotsWithOutline);
+            Assert.True(File.Exists(shown.Preview));
+            Assert.Equal(2, SiteBuildPreview.Outlines(shown.Preview).Count);
             // Asked once only, and no preview with the tick off
             Assert.True(flow.Run(false, out line), line);
             Assert.Single(asked);
@@ -95,6 +117,14 @@ namespace SiteAdaptation.Tests
             flow.ShowPreview = plan => false;
             Assert.False(flow.Run(true, out line));
             Assert.DoesNotContain(SiteBuildText.PlanReady, line);
+            // Review of PR 234: rules are per project, so another project asks once too
+            SiteBuildPlace other = Place(TwoPlots);
+            other.ConfigFile = Path.Combine(root, "other.json");
+            File.Copy(place.ConfigFile, other.ConfigFile);
+            flow.Place = () => other;
+            flow.ShowPreview = plan => true;
+            Assert.True(flow.Run(false, out line), line);
+            Assert.Equal(2, asked.Count);
         }
 
         [Fact]
@@ -106,9 +136,10 @@ namespace SiteAdaptation.Tests
             Assert.True(flow.Run(false, out string line), line);
             Assert.Equal(1, setUps);
             // A setup that is refused says why among the issues and the build goes on
-            var refusing = new SiteBuildFlow { Place = () => place, AskRules = text => true, UseManual = () => "Made up refusal" };
-            Assert.True(refusing.Run(false, out line), line);
-            Assert.Equal("Made up refusal", refusing.Last.Issues[0]);
+            SiteBuildResult shown = null;
+            var refusing = new SiteBuildFlow { Place = () => place, AskRules = text => true, UseManual = () => "Made up refusal", ShowPreview = plan => { shown = plan; return true; } };
+            Assert.True(refusing.Run(true, out line), line);
+            Assert.Equal("Made up refusal", shown.Issues[0]);
         }
 
         [Fact]

@@ -203,6 +203,7 @@ namespace SiteAdaptation.AddIn
             return new SiteBuildPlace
             {
                 ConfigFile = settings.ConfigFile, ReadFolder = StageRead.Latest(work), RulesFile = rules?.RulesFile, WorkFolder = work, ProjectMode = settings.Project.ProjectMode,
+                PositionFile = SiteBuildPlan.PositionFileOf(settings.Project.PositionFile, settings.ConfigFile),
                 Document = new Common.WorkerDocument { Path = document.Path, SessionId = document.SessionId },
             };
         }

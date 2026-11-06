@@ -18,6 +18,7 @@ namespace SiteAdaptation.AddIn.Pane
         public string ConfigFile { get; set; }
         public string ReadFolder { get; set; }
         public string RulesFile { get; set; }
+        public string PositionFile { get; set; }
         public string WorkFolder { get; set; }
         public string ProjectMode { get; set; }
         public WorkerDocument Document { get; set; }
@@ -93,6 +94,11 @@ namespace SiteAdaptation.AddIn.Pane
             {
                 inputs.Add(Input("rules", place.RulesFile));
             }
+            // R642. The position file is only a check, its difference to the drawing in mm is said, it sets no coordinate
+            if (!string.IsNullOrEmpty(place.PositionFile) && File.Exists(place.PositionFile))
+            {
+                inputs.Add(Input("positionFile", place.PositionFile));
+            }
             try
             {
                 Directory.CreateDirectory(place.WorkFolder);
@@ -136,8 +142,38 @@ namespace SiteAdaptation.AddIn.Pane
             result.Coordinates = CoordinatesLine(plan["coordinates"] as JObject);
         }
 
-        // R642. The point of the drawing, and the difference to the position file in millimetres when the plan holds one
+        // The position file the person picked in Set up site, else addin.position.file of config beside the config folder as the parameter sheet is. Null with none
+        public static string PositionFileOf(string picked, string configFile)
+        {
+            if (!string.IsNullOrEmpty(picked))
+            {
+                return picked;
+            }
+            try
+            {
+                JToken named = ((JObject.Parse(WorkFiles.ReadText(configFile))["addin"] as JObject)?["position"] as JObject)?["file"];
+                if (named == null || named.Type != JTokenType.String || string.IsNullOrWhiteSpace((string)named))
+                {
+                    return null;
+                }
+                string path = (string)named;
+                return Path.IsPathRooted(path) ? path : Path.GetFullPath(Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(Path.GetFullPath(configFile))) ?? "", path));
+            }
+            catch (Exception failure) when (failure is IOException || failure is UnauthorizedAccessException || failure is JsonException || failure is ArgumentException)
+            {
+                return null;
+            }
+        }
+
+        // R642. The point of the drawing, and the difference to the position file in millimetres when the plan holds one, or why the file did not read
         public static string CoordinatesLine(JObject coordinates)
+        {
+            string line = PointLine(coordinates);
+            string fileError = (string)(coordinates?["positionFile"] as JObject)?["error"];
+            return fileError == null ? line : line + " " + TextTemplate.Fill(SiteBuildText.PositionNotRead, fileError);
+        }
+
+        private static string PointLine(JObject coordinates)
         {
             double? east = (double?)coordinates?["eastM"];
             double? north = (double?)coordinates?["northM"];
