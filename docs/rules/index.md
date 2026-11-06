@@ -583,7 +583,6 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R706 Boundary wall thickness from M14.
 - R707 CIM limit of the R310 tests.
 
-
 ## 20-fast4-r730-up.md
 
 - R730 Plot table holds villa plots.
