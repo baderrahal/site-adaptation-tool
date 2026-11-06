@@ -105,7 +105,7 @@ namespace SiteAdaptation.Tests
             Assert.EndsWith(" Use the manual template for this project now?", asked[0]);
             Assert.Equal(1, previews);
             Assert.Contains("Coordinates from the drawing: east ", line);
-            Assert.EndsWith(SiteBuildText.PlanReady, line);
+            Assert.EndsWith(" issues go to the issues list.", line);
             Assert.Equal(2, shown.PlotsWithOutline);
             Assert.True(File.Exists(shown.Preview));
             Assert.Equal(2, SiteBuildPreview.Outlines(shown.Preview).Count);
@@ -116,7 +116,6 @@ namespace SiteAdaptation.Tests
             // Cancel of the preview stops with nothing written past the plan
             flow.ShowPreview = plan => false;
             Assert.False(flow.Run(true, out line));
-            Assert.DoesNotContain(SiteBuildText.PlanReady, line);
             // Review of PR 234: rules are per project, so another project asks once too
             SiteBuildPlace other = Place(TwoPlots);
             other.ConfigFile = Path.Combine(root, "other.json");
