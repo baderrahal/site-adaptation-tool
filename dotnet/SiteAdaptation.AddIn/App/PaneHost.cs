@@ -374,12 +374,38 @@ namespace SiteAdaptation.AddIn
                 Place = () => BuildPlace(stages), AskRules = AskRules, UseManual = () => RulesPlace() == null ? null : RulesWindow.ProjectRulesTable.UseManual(RulesPlace()),
                 ShowPreview = ShowPreview,
             };
+            // R688. The steps of version 1 one after another, each by RequestRun as a press of its row, and each end back here through Buttons.ChainEnded
+            var chain = new BuildChain(number => model.Steps.FirstOrDefault(step => step.Number == number)?.Name ?? number.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            string planLine = null;
             stages.BuildRequested += () =>
             {
-                build.Run(stages.PreviewFirst, out string line);
-                stages.ShowBuild(line);
+                if (chain.Running)
+                {
+                    return;
+                }
+                bool goOn = build.Run(stages.PreviewFirst, out string line);
+                planLine = line;
+                int? first = goOn ? chain.Start() : null;
+                stages.ShowBuild(first.HasValue ? line + " " + chain.Progress : line);
                 rulesStamp = null;
                 stages.Refresh();
+                if (first.HasValue)
+                {
+                    model.RequestRun(first.Value);
+                }
+            };
+            Buttons.ChainEnded = (number, outcome) =>
+            {
+                if (!chain.Ended(number, outcome.End, outcome.Message, out int? next, out string line))
+                {
+                    return false;
+                }
+                stages.ShowBuild(planLine + " " + line);
+                if (next.HasValue)
+                {
+                    model.RequestRun(next.Value);
+                }
+                return true;
             };
             var page = new StagesPage(stages, new SitePanePage(model));
             probe.Post = action => page.Dispatcher.BeginInvoke(action);
@@ -559,7 +585,16 @@ namespace SiteAdaptation.AddIn
 
         public void Execute(UIApplication app)
         {
-            Buttons.Run(Number, app);
+            try
+            {
+                Buttons.Run(Number, app);
+            }
+            catch (Exception failure)
+            {
+                // R688. A step of the one Build that throws stops the build at that step, then the throw goes on as before
+                Buttons.ChainEnded?.Invoke(Number, new Common.Flow.RunOutcome(Common.Flow.RunEnd.Stopped, failure.Message, null));
+                throw;
+            }
         }
 
         public string GetName()

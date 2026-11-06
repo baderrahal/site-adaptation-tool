@@ -165,7 +165,11 @@ The five panels and their buttons of 7.1 of docs/design/12-ui-spec.md, Bader's c
 - `The position file did not read: <name>` CHOSEN, card 2 Build site and the 2D preview of FAST-1-build-1, item 4
 - `<n> issues go to the issues list.` CHOSEN, card 2 Build site and the 2D preview of FAST-1-build-1, item 4
 - `<name> Use the manual template for this project now?` CHOSEN, card 2 Build site and the 2D preview of FAST-1-build-1, item 4
-- `The plan is made. The steps 4 to 8 still run from Advanced until the one Build runs them.` CHOSEN, card 2 Build site and the 2D preview of FAST-1-build-1, item 4
+- `Step <n> of <n>: <name>.` CHOSEN, the one Build runs the steps of FAST-1-build-1, item 4
+- `Build stopped at <name>, cancelled.` CHOSEN, the one Build runs the steps of FAST-1-build-1, item 4
+- `Build stopped at <name>: <name>` CHOSEN, the one Build runs the steps of FAST-1-build-1, item 4
+- `the step changed nothing and gave no reason.` CHOSEN, the one Build runs the steps of FAST-1-build-1, item 4
+- `Build done: <n> steps, <n> issues.` CHOSEN, the one Build runs the steps of FAST-1-build-1, item 4
 - `Preview of the build` CHOSEN, card 2 Build site and the 2D preview of FAST-1-build-1, item 4
 - `<n> plots with an outline, <n> issues. Nothing is written to the model yet.` CHOSEN, card 2 Build site and the 2D preview of FAST-1-build-1, item 4
 - `Go on` CHOSEN, card 2 Build site and the 2D preview of FAST-1-build-1, item 4

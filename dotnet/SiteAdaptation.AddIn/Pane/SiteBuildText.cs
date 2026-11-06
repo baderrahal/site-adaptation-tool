@@ -1,6 +1,6 @@
 namespace SiteAdaptation.AddIn.Pane
 {
-    // R686, R687. The words of card 2 Build site and of the 2D preview, in docs/design/14-ui-labels.md under Pane
+    // R686, R687, R688. The words of card 2 Build site and of the 2D preview, in docs/design/14-ui-labels.md under Pane
     public static class SiteBuildText
     {
         public const string ScopeProject = "Scope: the whole project.";
@@ -16,7 +16,11 @@ namespace SiteAdaptation.AddIn.Pane
         public const string PositionNotRead = "The position file did not read: <name>";
         public const string Issues = "<n> issues go to the issues list.";
         public const string AskRules = "<name> Use the manual template for this project now?";
-        public const string PlanReady = "The plan is made. The steps 4 to 8 still run from Advanced until the one Build runs them.";
+        public const string StepOf = "Step <n> of <n>: <name>.";
+        public const string StepCancelled = "Build stopped at <name>, cancelled.";
+        public const string StepStopped = "Build stopped at <name>: <name>";
+        public const string NoReason = "the step changed nothing and gave no reason.";
+        public const string BuildDone = "Build done: <n> steps, <n> issues.";
 
         public const string PreviewTitle = "Preview of the build";
         public const string PreviewLine = "<n> plots with an outline, <n> issues. Nothing is written to the model yet.";
