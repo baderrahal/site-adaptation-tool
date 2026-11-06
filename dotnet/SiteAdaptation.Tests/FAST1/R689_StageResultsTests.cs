@@ -115,6 +115,41 @@ namespace SiteAdaptation.Tests
             Assert.True(failure == null, failure?.ToString());
         }
 
+        // R691, Q504 5A: the plots the plan lists with the words no road level are counted on card 3, any case of the words
+        [Fact]
+        public void R691_the_plots_with_no_road_level_are_counted_on_card_3()
+        {
+            // The words of R705 of FAST-2's plan, in any case
+            var results = new StageResults { HasPlan = true };
+            // Review of PR 7: the line is the one FAST-2's plan makes, so a change of its words fails here and card 3 never goes silent
+            results.Issues.AddRange(new[] { "12: " + Common.SiteBuild.PlanTexts.NoRoadLevel("12"), "13: No road level", "14: Made up fault" });
+            Assert.Equal(2, results.NoRoadLevelCount);
+            // Broken on purpose: other words are no such plot
+            var other = new StageResults();
+            other.Issues.Add("12: road levels differ");
+            Assert.Equal(0, other.NoRoadLevelCount);
+            Exception failure = null;
+            var thread = new Thread(() =>
+            {
+                try
+                {
+                    var stages = (StagesViewModel)Shots.LaidOutStages(false).DataContext;
+                    Assert.Equal(string.Empty, stages.NoRoadLevelLine);
+                    stages.ResultsNow = () => results;
+                    stages.Refresh();
+                    Assert.Equal("2 plots have no road level, so no floor level, and steps 6 to 8 leave them out.", stages.NoRoadLevelLine);
+                }
+                catch (Exception caught)
+                {
+                    failure = caught;
+                }
+            });
+            thread.SetApartmentState(ApartmentState.STA);
+            thread.Start();
+            thread.Join();
+            Assert.True(failure == null, failure?.ToString());
+        }
+
         [Fact]
         public void R690_update_from_report_runs_the_command_of_its_ribbon_button()
         {

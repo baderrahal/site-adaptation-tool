@@ -1,27 +1,31 @@
 # build-1 heads-up, FAST-1-build-1
 
-6 Nov 2026. PR 228 (items 1 and 2) merged as 389af4c, PR 232 (item 3 and 2b) as 4c11b72. PR 3 holds item 4 part 1, the plan behind Build and the 2D preview, label revit-later.
+6 Nov 2026, 21:40. Stopped by Bader's order of 21:10, everything pushed. Task status stays open, one line of item 8 is left.
+
+## Final statement
+
+- Merged: PR 228 (items 1, 2, the pane in 3 stages, stage 1 wired), PR 232 (item 3 and 2b, the rules table of a project, the parameter sheet), PR 234 (item 4 part 1, the plan behind Build, the 2D preview, the coordinates), PR 237 (item 8, no free memory floor in Run-TestHost.ps1 and Run-Parallel.ps1), PR 238 (item 4 part 2, the one Build runs the steps).
+- Open, for Lead to merge on green: PR 243 (item 5, card 3) and the Q504 PR (item 6).
+- Left: the SITEADAPT_LISTENER_MIN_FREE_GB line of Start-RevitListener.ps1, ready on branch task/FAST-1-build-1-listener, opens once FAST-2 PR 242 is on main (Q570), Saturday. Item 7, a shot of each window in Revit, moved to FAST-3. The draft renders of every new window are in steps/ui-shots/: pane-stage-1 to 3, project-rules, build-preview.
+- Not seen in Revit: all of it. This lane may not open Revit, every PR carries revit-later.
+- Done when, "a person goes from an empty model through the 3 cards on the S1 folder with no JSON edit": UNKNOWN until FAST-3 runs it in Revit.
 
 ## What changed, where
 
 - dotnet/SiteAdaptation.AddIn/Pane/: the pane in 3 stages (R680, R681). StageCards.cs holds StageCard, StageStatus, StageRead, ProjectFolderPick, StagesViewModel. StagesPage.xaml docks it, Advanced holds the pane of version 1.
-- dotnet/SiteAdaptation.AddIn/RulesWindow/ProjectRulesTable.cs: RulesFileNames (the names of the internal ProjectRulesFile of Common, a test holds them equal), ProjectRulesPlace (config, rules profile, work root, work folder, mode, templates, who), ProjectRulesTable (Refusal, Read, AmberLine, Parse, UseManual, Change, Run by WorkerRunner.Run in process). R682, R683.
-- dotnet/SiteAdaptation.AddIn/RulesWindow/ProjectRulesViewModel.cs, ProjectRulesWindow.xaml: the rules table window. ProjectRulesText.cs its words.
-- dotnet/SiteAdaptation.AddIn/Install-SiteAdaptation.ps1: ships rules/templates/manual.json in ShippedSet, R684.
-- dotnet/SiteAdaptation.AddIn/ScanResults/DataCheckStep.cs: SheetInput sends the parameter sheet with dataCheck, R685.
-- dotnet/SiteAdaptation.AddIn/Pane/SiteBuildPlan.cs: SiteBuildPlace, SiteBuildResult, SiteBuildPlan (ScopeLine, Make runs siteBuild in process, Read, CoordinatesLine). SiteBuildFlow.cs: SiteBuildFlow (the press, one ask for rules, the stop, the preview), SiteBuildPreview (Outlines, Fit, Line). SiteBuildPreviewWindow.xaml the 2D preview. SiteBuildText.cs its words. R686, R687.
-- dotnet/SiteAdaptation.TestHost/AddinProbe.cs: PageType finds StagesPage.
-- Tests in dotnet/SiteAdaptation.Tests/FAST1/: R680_StagePaneTests, R682_ProjectRulesTests, R685_SheetInputTests, R686_SiteBuildFlowTests, net48 only.
+- RulesWindow/ProjectRulesTable.cs, ProjectRulesViewModel.cs, ProjectRulesWindow.xaml: the rules table of a project (R682, R683). Install-SiteAdaptation.ps1 ships manual.json (R684). ScanResults/DataCheckStep.cs SheetInput (R685).
+- Pane/SiteBuildPlan.cs, SiteBuildFlow.cs, SiteBuildPreviewWindow.xaml: the plan of siteBuild behind Build, the scope, the coordinates, the one ask for rules, the 2D preview (R686, R687).
+- Pane/BuildChain.cs and Commands/Buttons.cs ChainEnded: the steps 1 (only when not run), 4 to 8 as one run, a waited on step first (R688).
+- Pane/StageResults.cs: card 3, the issues of the newest build_plan.json, the source mix of its values, Open rules from a rule issue, Update from report (R689, R690), the count of plots with no road level (R691, Q504).
+- TestHost: AddinProbe finds StagesPage, two scripts lose the floor.
+- Tests in dotnet/SiteAdaptation.Tests/FAST1/, net48 only: R680, R682, R685, R686, R688, R689.
 
 ## What calls what
 
-PaneHost.SetupDockablePane makes StagesViewModel and StagesPage. Card 1 Choose project folder, PaneHost.ChooseProjectFolder, then RequestRun(2). Fix items, PaneHost.FixItems, the Confirm window. Settings, Rules, Open raises RulesRequested, PaneHost.OpenRules opens ProjectRulesWindow over PaneHost.RulesPlace. StagesViewModel.Refresh asks RulesLineNow, PaneHost.RulesLineNow reads ProjectRulesTable.AmberLine when the config, rules or log changed. DataCheckStep.Start adds SheetInput. Card 2 Build raises BuildRequested, PaneHost runs SiteBuildFlow over BuildPlace with AskRules, UseManual and ShowPreview, then StagesViewModel.ShowBuild.
-
-## Next, in order
-
-Item 4 part 2, Build runs the steps 1 and 4 to 8 of version 1 as one run with one progress line. Item 5 stage 3, issues count, source mix, Update from report, and open the rules table from a rule issue (point 1). Item 6 Q504. Item 7 a shot of each window. Item 8 the RAM floor lines of three TestHost scripts, after FAST-2 makes its tests take either.
+PaneHost.SetupDockablePane makes StagesViewModel and StagesPage. Card 1: ChooseProjectFolder then RequestRun(2), FixItems opens the Confirm window. Settings, Rules, Open: OpenRules, RulesLineNow gives the amber line. Card 2 Build: SiteBuildFlow.Run over BuildPlace, then BuildChain.Start and RequestRun per step, each end back by Buttons.ChainEnded. Card 3: ResultsNow reads StageResults, Update from report runs the ribbon command through RunButtonHandler.Command.
 
 ## Open for Lead
 
-- R682 to R685 for docs/rules, lines in the body of PR 232. R686 and R687 in the body of PR 3.
-- Opening each window in Revit is FAST-3-revit-test's.
+- Rule lines R689 and R690 in the body of PR 243, R691 in the body of the Q504 PR. R688 in the body of PR 238.
+- ParsonsModelTests R310 failed at random in quick tests on this PC 6 times today, FAST-2's R707 takes its CIM limit.
+- Latent, not fixed: the run handler of the pane holds one step number, so a row press under Advanced in the instant between two steps of a Build replaces the next step and the build waits. Update from report is on while a build runs.

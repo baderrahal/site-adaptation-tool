@@ -151,6 +151,7 @@ The five panels and their buttons of 7.1 of docs/design/12-ui-spec.md, Bader's c
 - `Open rules` CHOSEN, card 3 Review and deliver of FAST-1-build-1, item 5
 - `Update from report` CHOSEN, card 3 Review and deliver of FAST-1-build-1, item 5
 - `Report runs step 9 of version 1, Update from report reads the Excel back.` CHOSEN, card 3 Review and deliver of FAST-1-build-1, item 5
+- `<n> plots have no road level, so no floor level, and steps 6 to 8 leave them out.` CHOSEN, card 3, Q504 of FAST-1-build-1, item 6
 - `This project uses the shipped settings, so the tool cannot set its folder. Start a new project in Settings, Project setup, then choose the folder.` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
 - `The work folder of this model lies inside that folder, and the tool never writes into a project folder. Choose another folder or save the model elsewhere.` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
 - `The project folder was not saved: <name>` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)

@@ -217,6 +217,9 @@ namespace SiteAdaptation.AddIn.Pane
         public string IssuesLine { get { return results.HasPlan || results.Issues.Count > 0 ? TextTemplate.Fill(StageResultsText.IssuesCount, results.Issues.Count) : StageResultsText.NoBuild; } }
         public string MixLine { get { return results.HasPlan ? results.Mix.Line : string.Empty; } }
         public bool RuleIssue { get { return results.RuleIssue; } }
+        // R691. Q504: the plots the plan lists with no road level
+        public string NoRoadLevelLine { get { return results.NoRoadLevelCount > 0 ? TextTemplate.Fill(StageResultsText.NoRoadLevel, results.NoRoadLevelCount) : string.Empty; } }
+
         public bool HasMix { get { return results.HasPlan && results.Mix.Total > 0; } }
 
         // The widths of the bar, one share per source, a source with no value takes no room
@@ -282,6 +285,7 @@ namespace SiteAdaptation.AddIn.Pane
             Changed(nameof(MixLine));
             Changed(nameof(RuleIssue));
             Changed(nameof(HasMix));
+            Changed(nameof(NoRoadLevelLine));
             Changed(nameof(MixComputed));
             Changed(nameof(MixRule));
             Changed(nameof(MixPerson));
