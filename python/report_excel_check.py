@@ -43,6 +43,7 @@ from pathlib import Path, PureWindowsPath
 
 import area_key
 import check_rows
+import design_basis
 import project_profile
 import value_status
 from level_excel_check import NO_BUILD_ID, listed, section, short
@@ -98,11 +99,11 @@ COVER_DATE = "Date"
 WALLS_ITEM = "Walls"
 ID_JOIN = ", "
 SCHEDULE_COLUMNS = ("Plot & Unit", "Plot No.", "Unit", "FFL (m)", "SSL (m)", "El @ Entry, door level (m)", "Height (m)", "Site Steps Needed", "Steps Needed",
-                    "Old Plot No.", "Prototype", "Mirror", "Rotation (deg)", "Ramp corner 1 (m)", "Ramp corner 2 (m)", "Ramp corner 3 (m)", "Ramp corner 4 (m)",
+                    "Old Plot No.", "Prototype", "Mirror", "Rotation (deg)", "Ramp corner 1 (m)", "Ramp corner 2 (m)", "Ramp corner 3 (m)", "Ramp corner 4 (m)", "Source",
                     "Villa ID", "Generic floor ID", "Yard floor ID", "Ramp ID", "Wall IDs")
 RAMP_CORNERS = 4
-FLOOR_COLUMNS = ("Plot", "Kind", "Type", "Level", "Level elevation (m)", "Z (m)", "Height offset (m)", "Slope (%)", "Element id")
-WALL_COLUMNS = ("Plot", "Edge", "Other plot", "Base (m)", "Top (m)", "Length (m)", "Element id")
+FLOOR_COLUMNS = ("Plot", "Kind", "Type", "Level", "Level elevation (m)", "Z (m)", "Height offset (m)", "Slope (%)", "Source", "Element id")
+WALL_COLUMNS = ("Plot", "Edge", "Other plot", "Base (m)", "Top (m)", "Length (m)", "Source", "Element id")
 CHANGED = "Changed"
 # A length here comes by another formula than the one of the worker, so the two may part in the last bit of the double
 LENGTH_SLACK = 1e-9
@@ -187,12 +188,43 @@ def is_number(value):
     return isinstance(value, (int, float)) and not isinstance(value, bool)
 
 
-def basis(entry):
-    """The Q ID, the share or the source of one entry: its question, else its rule with its share, else the rule check_rows.rule_name names."""
+# R703. The tags a row names first, in this order, the plan's own words for past, rule and person entered mapped to them
+SOURCE_ORDER = ("computed", "rule", "person entered", "default", "override", "past", "missing")
+SOURCE_WORDS = {"pastJob": "past", "keyRules": "rule", "user pick": "person entered", "confirmed": "person entered"}
+NO_PAST_SHARE = "not measured on this project"
+
+
+def new_project(config):
+    """R702. A run of a new project, the config names projectRules.pastJobMode and designBasis.mode is another, prints no past share."""
+    past = (config.get("projectRules") or {}).get("pastJobMode")
+    mode = (config.get("designBasis") or {}).get("mode")
+    return isinstance(past, str) and isinstance(mode, str) and mode != past
+
+
+def sources_of(*values):
+    """R703. The sources of the plan values of one row, each once, a value with no source and no value missing, None with no plan value."""
+    found = set()
+    for value in values:
+        if not isinstance(value, dict):
+            continue
+        source = value.get("source")
+        if isinstance(source, str) and source.strip():
+            found.add(SOURCE_WORDS.get(source.strip(), source.strip()))
+        elif value.get("value") is None:
+            found.add("missing")
+    if not found:
+        return None
+    rank = lambda tag: (SOURCE_ORDER.index(tag) if tag in SOURCE_ORDER else len(SOURCE_ORDER), tag)
+    return ID_JOIN.join(sorted(found, key=rank))
+
+
+def basis(entry, new=False):
+    """The Q ID, the share or the source of one entry: its question, else its rule with its share, else the rule check_rows.rule_name names.
+    R702: a new project names no past share."""
     question = entry.get("question")
     if isinstance(question, str) and question:
         return question
-    if is_number(entry.get("share")):
+    if not new and is_number(entry.get("share")):
         return "%s share %s" % (check_rows.rule_name(entry), short(entry["share"]))
     return check_rows.rule_name(entry)
 
@@ -403,6 +435,8 @@ def schedule_row(plot, old_number, plots, ids_of_walls):
     return ["%s-%s" % (number, unit or ""), number, unit, level("ffl"), level("ssl"), level("entry"), level("height"), cell((plot.get("levelRule") or {}).get("steps")),
             level("steps"), old_number, None if prototype is None else PureWindowsPath(prototype).stem, cell(mirrored.get("value")),
             cell((plot.get("rotationDeg") or {}).get("value"))] + heights \
+        + [sources_of(plot.get("unit"), levels.get("ffl"), levels.get("ssl"), levels.get("entry"), levels.get("height"), levels.get("steps"), plot.get("prototypeFile"),
+                      plot.get("mirrored"), plot.get("rotationDeg"), ((plot.get("floors") or {}).get("ramp") or {}).get("corners"))] \
         + [element_id(plots, number, kind) for kind in (LINK,) + FLOOR_KINDS] + [id_cell(ids_of_walls)]
 
 
@@ -420,6 +454,7 @@ def floor_rows(plot, plots):
     for kind, floor in (plot.get("floors") or {}).items():
         field = lambda name: cell(((floor or {}).get(name) or {}).get("value"))
         rows.append([plot["plot"], kind, field("type"), field("level"), field("levelElevation"), field("z"), field("heightOffset"), field("slopePercent"),
+                     sources_of(*((floor or {}).get(name) for name in ("type", "level", "levelElevation", "z", "heightOffset", "slopePercent"))),
                      element_id(plots, plot["plot"], kind)])
     return rows
 
@@ -436,7 +471,7 @@ def wall_row(wall, ids):
     """R552. One row of Walls, the other plots it stands on as text, base and top as the plan writes them."""
     others = [item for item in (wall.get("plots") or {}).get("value") or [] if item != wall["plot"]]
     return [wall["plot"], cell(wall.get("edge")), ID_JOIN.join(others) or None, cell((wall.get("base") or {}).get("value")), cell((wall.get("top") or {}).get("value")),
-            wall_length(wall), id_cell(ids)]
+            wall_length(wall), sources_of(wall.get("plots"), wall.get("base"), wall.get("top"), wall.get("ends")), id_cell(ids)]
 
 
 def as_numbers(rows, header):
@@ -475,6 +510,7 @@ def counts_box(placed, written, mock, revit=None, manual=NO_MANUAL_BLOCK, level_
 def expected(inputs, profile_name, mock):
     """The workbooks of the plan by NBH, each with every cell it must hold worked out here, and the gaps found on the way."""
     plan, rows, config, gaps = inputs["plan"], inputs["rows"], inputs["config"], Counter()
+    new = new_project(config)
     rules = (plan.get("summary") or {}).get("rules") or {}
     sources, models = set(rules.get("overrideSource") or []), set(rules.get("overrideModel") or [])
     entries = [item for item in inputs["overrides"].get("overrides") or [] if item.get("source") in sources and (not models or item.get("model") in models)]
@@ -563,7 +599,7 @@ def expected(inputs, profile_name, mock):
                 values.append((plot["plot"], detail))
                 name = value_status.status_label(value.get("status"), detail)
                 if name in assumed:
-                    shown = list(dict.fromkeys(basis(entry) for entry in value_status.worst_entries(detail.get("entries") or [], ranked)))
+                    shown = list(dict.fromkeys(basis(entry, new) for entry in value_status.worst_entries(detail.get("entries") or [], ranked)))
                     assumed_rows.append([plot["plot"], path, cell(value.get("value")), name, " | ".join(shown)])
         for wall in walls:
             values.extend((wall["plot"], details.get(value.get("statusFrom")) or {}) for value in wall.values() if isinstance(value, dict) and "value" in value and "source" in value)
@@ -577,7 +613,7 @@ def expected(inputs, profile_name, mock):
         for number, detail in values:
             for entry in detail.get("entries") or []:
                 key = (check_rows.rule_name(entry) or "", value_status.entry_label(entry))
-                group = grouped.setdefault(key, [basis(entry), set(), 0])
+                group = grouped.setdefault(key, [basis(entry, new), set(), 0])
                 group[1].add(number)
                 group[2] += 1
             # Review 1 of PR 96: a value whose detail names an override took the value of the override, never that of a keyRules entry
@@ -591,8 +627,8 @@ def expected(inputs, profile_name, mock):
             if not isinstance(item, dict) or not isinstance(item.get("rule"), str):
                 continue
             share, strong = item.get("share"), item.get("strong")
-            box.append([decision, item["rule"], share if is_number(share) else NOT_MEASURED,
-                        NOT_MEASURED if not isinstance(strong, bool) else "strong" if strong else "weak",
+            box.append([decision, item["rule"], NO_PAST_SHARE if new else share if is_number(share) else NOT_MEASURED,
+                        NO_PAST_SHARE if new else NOT_MEASURED if not isinstance(strong, bool) else "strong" if strong else "weak",
                         mock["plotCount"].replace("[n]", str(len(took.get(prefix + decision + ".rule", ())))) ])
         totals = None
         if revit is not None:
@@ -613,7 +649,7 @@ def expected(inputs, profile_name, mock):
         faces = [row for row in inputs["table"] if row.get("nbhId") == nbh and (whole or row.get("locationPlanNumber") in scope)]
         with_unit = sum(1 for row in faces if row.get("typologyRev9"))
         gaps["plots of the plan not in the step summary"] += sum(1 for number in order if number not in scope)
-        weak = [name for name in block["wallDecisions"] if isinstance(key_rules.get(name), dict) and key_rules[name].get("strong") is False]
+        weak = [] if new else [name for name in block["wallDecisions"] if isinstance(key_rules.get(name), dict) and key_rules[name].get("strong") is False]
         checked = len(issues)
         for name in weak:
             share = key_rules[name].get("share")
@@ -801,6 +837,7 @@ def check_folder(folder, want, mock, run_id=None):
 def run(args):
     mock = mock_labels()
     inputs = load_inputs(args.plan, args.overrides, args.check_rows, args.summary, args.plots_csv, args.rules, args.config, args.revit_counts, args.accepted_warnings, args.report_facts)
+    design_basis.take_mode(inputs["config"], getattr(args, "mode", None))
     want = expected(inputs, args.profile, mock)
     books = want["books"]
     report = {"plan": Path(args.plan).name, "workbooks": sorted(book["file"] for book in books.values()),
@@ -828,6 +865,7 @@ def main(argv=None):
     parser.add_argument("--revit-counts", help="the counts the add-in read from the model, the input revitCounts of the request when it gives one (R381)")
     parser.add_argument("--accepted-warnings", help="the input acceptedWarnings of the request, when it gives one, the pairs of step 5 whose floors stood at report time (R459)")
     parser.add_argument("--report-facts", help="the input reportFacts of the request, report_facts_<run id>_<nbh>.json the add-in wrote, when it gives one (R554)")
+    parser.add_argument("--mode", help="the project mode of the reportExcel request, laid over designBasis.mode as the worker does (R484, R702)")
     parser.add_argument("--run-id", help="the run id of the reportExcel request, held against Settings when given")
     parser.add_argument("--xlsx-folder", help="the folder of the report Excel files the worker wrote of this plan, left out to check the plan side alone")
     parser.add_argument("--out", required=True, help="the report, outside the repo")
