@@ -20,7 +20,7 @@ Remains:
 - Item 6 worker and config part, item 9.
 
 Known bugs:
-- The add-in has no window line for a new entry, the list shows it as savable as any other change.
+- None found. Not seen in Revit, the window of Update from report was not opened.
 
 Next:
 - Item 6, then item 9.
