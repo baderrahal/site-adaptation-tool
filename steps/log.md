@@ -20,7 +20,7 @@ Known bugs:
 - Not seen in Revit.
 
 Next:
-- The final statement of FAST-1.
+- Stopped by Bader's order of 21:10. The listener line on Saturday, item 7 moved to FAST-3. Final statement in steps/heads-up/build-1.md.
 
 Your turn:
 - None.
