@@ -573,3 +573,4 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R703 Source column on value sheets.
 - R704 Update from report, new project.
 - R705 No road level, plot skipped.
+- R706 Boundary wall thickness from M14.
