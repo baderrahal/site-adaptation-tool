@@ -2,7 +2,7 @@
 id: FAST-2-build-2
 lane: build-2
 stage: 2
-status: open
+status: done
 allowed:
   - dotnet/SiteAdaptation.Common/AddinRun.cs
   - dotnet/SiteAdaptation.Common/AddinRunGate.cs
