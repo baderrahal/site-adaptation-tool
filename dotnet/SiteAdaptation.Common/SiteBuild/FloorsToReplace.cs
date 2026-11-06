@@ -18,19 +18,36 @@ namespace SiteAdaptation.Common.SiteBuild
             {
                 return new JObject { ["checked"] = 0, ["replace"] = replace, ["line"] = PlanTexts.NoPlacedFloors };
             }
-            Dictionary<string, PlanPlot> byNumber = plots.ToDictionary(plot => plot.Number, StringComparer.Ordinal);
-            foreach (JObject floor in (placed["floors"] as JArray ?? new JArray()).OfType<JObject>())
+            if (!(placed["floors"] is JArray))
             {
-                string number = (string)floor["plot"];
+                issues.Add(new PlanIssue { Line = PlanTexts.FileUnderstood("placedFloors", "list of floors") });
+                return new JObject { ["checked"] = 0, ["replace"] = replace, ["line"] = PlanTexts.NoPlacedFloors };
+            }
+            Dictionary<string, PlanPlot> byNumber = plots.ToDictionary(plot => plot.Number, StringComparer.Ordinal);
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            foreach (JObject floor in ((JArray)placed["floors"]).OfType<JObject>())
+            {
+                string number = floor["plot"]?.Type == JTokenType.String ? ((string)floor["plot"]).Trim() : null;
                 PlanPlot plot;
                 if (number == null || !byNumber.TryGetValue(number, out plot))
                 {
                     issues.Add(new PlanIssue { Plot = number, Line = PlanTexts.FloorWithoutPlot(number ?? "?") });
                     continue;
                 }
+                if (!seen.Add(number))
+                {
+                    issues.Add(new PlanIssue { Plot = number, Line = PlanTexts.ItemLeftOut("placedFloors", "a second floor of plot " + number) });
+                    continue;
+                }
+                if (plot.In.Outline == null)
+                {
+                    // Nothing to replace the floor with, the plot is already marked for its missing outline
+                    issues.Add(new PlanIssue { Plot = number, Line = PlanTexts.ItemLeftOut("placedFloors", "the floor of plot " + number + ", which has no outline now,") });
+                    continue;
+                }
                 count++;
                 List<double[]> outline = Ring(floor["outline"]);
-                if (plot.In.Outline == null || outline == null || !SameOutline(outline, plot.In.Outline, sameMm / 1000.0))
+                if (outline == null || !SameOutline(outline, plot.In.Outline, sameMm / 1000.0))
                 {
                     replace.Add(number);
                     issues.Add(new PlanIssue { Plot = number, Line = PlanTexts.FloorChanged(number) });

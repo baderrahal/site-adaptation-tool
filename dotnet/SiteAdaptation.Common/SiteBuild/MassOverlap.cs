@@ -23,7 +23,7 @@ namespace SiteAdaptation.Common.SiteBuild
         public static JObject Check(IReadOnlyList<PlanPlot> plots, JObject masses, double limitMm, double[] origin, List<PlanIssue> issues)
         {
             List<Item> outlines = plots.Where(plot => plot.In.Outline != null).Select(plot => Make(plot.Number, plot.In.Outline)).ToList();
-            List<Item> bodies = Masses(masses);
+            List<Item> bodies = Masses(masses, issues);
             JObject plotResult = Pairs(outlines, limitMm, origin, "plots", issues);
             JObject massResult = masses == null ? null : Pairs(bodies, limitMm, origin, "masses", issues);
             return new JObject
@@ -34,12 +34,23 @@ namespace SiteAdaptation.Common.SiteBuild
             };
         }
 
-        private static List<Item> Masses(JObject masses)
+        private static List<Item> Masses(JObject masses, List<PlanIssue> issues)
         {
             var found = new List<Item>();
-            foreach (JObject row in (masses?["masses"] as JArray ?? new JArray()).OfType<JObject>())
+            if (masses == null)
             {
+                return found;
+            }
+            if (!(masses["masses"] is JArray))
+            {
+                issues.Add(new PlanIssue { Line = PlanTexts.FileUnderstood("masses", "list of masses") });
+                return found;
+            }
+            foreach (JObject row in ((JArray)masses["masses"]).OfType<JObject>())
+            {
+                string plot = row["plot"]?.Type == JTokenType.String ? ((string)row["plot"]).Trim() : "?";
                 var ring = new List<double[]>();
+                bool whole = row["ring"] is JArray;
                 foreach (JToken point in row["ring"] as JArray ?? new JArray())
                 {
                     var pair = point as JArray;
@@ -47,10 +58,19 @@ namespace SiteAdaptation.Common.SiteBuild
                     {
                         ring.Add(new[] { (double)pair[0], (double)pair[1] });
                     }
+                    else
+                    {
+                        whole = false;
+                    }
                 }
-                if (ring.Count >= 3)
+                // A ring with a point that is no pair of numbers is left out whole, a ring made of what is left would be a different mass
+                if (whole && ring.Count >= 3)
                 {
-                    found.Add(Make((string)row["plot"] ?? "?", ring));
+                    found.Add(Make(plot, ring));
+                }
+                else
+                {
+                    issues.Add(new PlanIssue { Plot = plot, Line = PlanTexts.ItemLeftOut("masses", "the mass of plot " + plot + ", which has no usable ring,") });
                 }
             }
             return found;

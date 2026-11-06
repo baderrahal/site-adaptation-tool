@@ -25,15 +25,17 @@ namespace SiteAdaptation.Common.SiteBuild
                 issues.Add(new PlanIssue { Line = PlanTexts.CoordinatesNoSettings(refused.Message) });
                 return Missing(PlanTexts.CoordinatesNoSettings(refused.Message));
             }
-            List<double[]> vertices = plots.Where(plot => plot.In.Outline != null).SelectMany(plot => plot.In.Outline).ToList();
-            if (vertices.Count == 0)
+            var cad = plots.Where(plot => plot.In.Outline != null).Select(plot => new CadPlot { Plot = plot.Number, Vertices = plot.In.Outline }).ToList();
+            if (cad.Count == 0)
             {
                 issues.Add(new PlanIssue { Line = PlanTexts.CoordinatesNoOutline });
                 return Missing(PlanTexts.CoordinatesNoOutline);
             }
-            double[] box = Rings.Box(vertices);
-            double east = Round((box[0] + box[1]) / 2, settings.OriginRoundM);
-            double north = Round((box[2] + box[3]) / 2, settings.OriginRoundM);
+            // The one rule of R455 that button 1 uses, so the build and the set up never disagree on the origin
+            CadSite site = SiteFromCad.FromCad(cad, settings, settings.ExpectedEpsg);
+            double[] box = site.PlotBox;
+            double east = site.Position.EastM.Value;
+            double north = site.Position.NorthM.Value;
             var json = new JObject
             {
                 ["source"] = CoordinateSettings.FromCadSource,
@@ -48,7 +50,6 @@ namespace SiteAdaptation.Common.SiteBuild
                 ["warning"] = JValue.CreateNull(),
             };
             // Held to the range of a UTM zone as button 1 holds it, a local drawing is said and still used as it is
-            var cad = plots.Where(plot => plot.In.Outline != null).Select(plot => new CadPlot { Plot = plot.Number, Vertices = plot.In.Outline }).ToList();
             string outside = CoordinateSystems.OutsideZone(cad, settings, settings.ExpectedEpsg);
             if (outside != null)
             {
@@ -117,9 +118,5 @@ namespace SiteAdaptation.Common.SiteBuild
             return token != null && (token.Type == JTokenType.Float || token.Type == JTokenType.Integer) ? (double?)token : null;
         }
 
-        private static double Round(double value, double step)
-        {
-            return Math.Round(value / step, MidpointRounding.AwayFromZero) * step;
-        }
     }
 }

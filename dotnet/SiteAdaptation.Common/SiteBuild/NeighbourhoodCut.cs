@@ -21,7 +21,8 @@ namespace SiteAdaptation.Common.SiteBuild
                 {
                     continue;
                 }
-                string area = plot.In.Area ?? plot.In.Groups.FirstOrDefault();
+                // The area of the plan value and nothing else, a group name is a level word and never a neighbourhood
+                string area = plot.In.Area;
                 if (area == null)
                 {
                     issues.Add(new PlanIssue { Plot = plot.Number, Line = PlanTexts.CutNoArea(plot.Number) });
@@ -70,13 +71,20 @@ namespace SiteAdaptation.Common.SiteBuild
             {
                 return new JObject { ["limitMm"] = limitMm, ["checked"] = 0, ["over"] = over, ["line"] = PlanTexts.NoRoadEdgePoints };
             }
-            foreach (JObject point in (file["points"] as JArray ?? new JArray()).OfType<JObject>())
+            if (!(file["points"] is JArray))
             {
-                string area = (string)point["area"];
+                issues.Add(new PlanIssue { Line = PlanTexts.FileUnderstood("roadEdge", "list of points") });
+                return new JObject { ["limitMm"] = limitMm, ["checked"] = 0, ["over"] = over, ["line"] = PlanTexts.NoRoadEdgePoints };
+            }
+            foreach (JObject point in ((JArray)file["points"]).OfType<JObject>())
+            {
+                string area = point["area"]?.Type == JTokenType.String ? ((string)point["area"]).Trim() : null;
                 JToken east = point["east"], north = point["north"];
                 List<Rings.Boundary> rings;
-                if (area == null || east == null || north == null || !boundaries.TryGetValue(area, out rings))
+                bool numbers = east != null && north != null && (east.Type == JTokenType.Float || east.Type == JTokenType.Integer) && (north.Type == JTokenType.Float || north.Type == JTokenType.Integer);
+                if (area == null || !numbers || !boundaries.TryGetValue(area, out rings) || rings.Count == 0)
                 {
+                    issues.Add(new PlanIssue { Line = PlanTexts.ItemLeftOut("roadEdge", "a road edge point with no usable neighbourhood or position") });
                     continue;
                 }
                 count++;

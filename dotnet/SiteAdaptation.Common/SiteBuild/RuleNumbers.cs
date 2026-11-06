@@ -35,6 +35,9 @@ namespace SiteAdaptation.Common.SiteBuild
         // Rule id to the status of the rule, for the value that takes a number from it
         public Dictionary<string, string> Status { get; } = new Dictionary<string, string>(StringComparer.Ordinal);
 
+        // Rule id to the source the rules file gave it: rule, person entered, default or past. A number keeps that source and is never turned into rule
+        public Dictionary<string, string> Sources { get; } = new Dictionary<string, string>(StringComparer.Ordinal);
+
         // Rules the template holds that the build reads no number from, said once in an issue so a person knows which rules are not used yet
         public List<string> NotUsed { get; } = new List<string>();
 
@@ -44,6 +47,7 @@ namespace SiteAdaptation.Common.SiteBuild
             foreach (RuleForBuild rule in rules)
             {
                 numbers.Status[rule.Id] = rule.Status;
+                numbers.Sources[rule.Id] = rule.Source;
                 string text = rule.Value?.Type == JTokenType.String ? (string)rule.Value : null;
                 bool given = rule.Source != ProjectRulesFile.Missing && text != null;
                 switch (rule.Id)
@@ -78,6 +82,10 @@ namespace SiteAdaptation.Common.SiteBuild
                         numbers.NotUsed.Add(rule.Id);
                         break;
                 }
+            }
+            if (numbers.NotUsed.Count > 0)
+            {
+                issues.Add(new PlanIssue { Line = PlanTexts.RulesNotUsed(numbers.NotUsed) });
             }
             return numbers;
         }

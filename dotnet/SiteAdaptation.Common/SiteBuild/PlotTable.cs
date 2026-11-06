@@ -70,7 +70,9 @@ namespace SiteAdaptation.Common.SiteBuild
                 return ((double)token).ToString("R", CultureInfo.InvariantCulture);
             }
             var value = token as JValue;
-            return value == null ? null : Convert.ToString(value.Value, CultureInfo.InvariantCulture);
+            // Trimmed, so "101" and "101 " are one plot and a blank is no number
+            string text = value == null ? null : Convert.ToString(value.Value, CultureInfo.InvariantCulture)?.Trim();
+            return string.IsNullOrEmpty(text) ? null : text;
         }
 
         // Null for a ring of under 3 points or a point that is no pair of numbers, never a ring made of what is left

@@ -34,9 +34,25 @@ namespace SiteAdaptation.Common.SiteBuild
                 plot.Add("frontSetbackM", FromRule(numbers, RuleNumbers.SetbackRule, Pick(numbers.SetbackByType, row.VillaType, numbers.Setback), "the front setback"));
                 plot.Add("boundaryWallAboveFflM", FromRule(numbers, RuleNumbers.BoundaryWallRule, numbers.BoundaryWallTopM, "the top of the boundary wall"));
                 plot.Add("gardenWallAboveFflM", FromRule(numbers, RuleNumbers.GardenWallRule, numbers.GardenWallTopM, "the top of the garden wall"));
+                MarkDoubts(plot);
                 plots.Add(plot);
             }
             return plots;
+        }
+
+        // A value stage 1 marked disputed or weak is not ready, the plot is marked with the words stage 1 gave, the value itself stays as read
+        private static void MarkDoubts(PlanPlot plot)
+        {
+            foreach (KeyValuePair<string, JObject> kind in new[] { new KeyValuePair<string, JObject>("disputed", plot.In.Disputed), new KeyValuePair<string, JObject>("weak", plot.In.Weak) })
+            {
+                foreach (JProperty doubt in kind.Value.Properties())
+                {
+                    if (plot.Get(doubt.Name) != null && doubt.Value.Type == JTokenType.String)
+                    {
+                        plot.Marked.Add(doubt.Name + ": " + kind.Key + ", " + (string)doubt.Value);
+                    }
+                }
+            }
         }
 
         // A value of the plot table keeps the source of stage 1. A value a person confirmed there is person entered, every other read is computed
@@ -58,9 +74,15 @@ namespace SiteAdaptation.Common.SiteBuild
             {
                 return PlanValue.Missing(PlanTexts.NoRuleWhy(what));
             }
-            string status;
+            string status, source;
             numbers.Status.TryGetValue(rule, out status);
-            return PlanValue.FromRule(new JValue(value.Value), rule, status);
+            numbers.Sources.TryGetValue(rule, out source);
+            if (source == null || source == ProjectRulesFile.FromRule)
+            {
+                return PlanValue.FromRule(new JValue(value.Value), rule, status);
+            }
+            // A person entered, default or past number keeps its own tag, with the rule it came from
+            return new PlanValue { Value = new JValue(value.Value), Source = source, Rule = rule, Status = status };
         }
 
         private static double? Pick(Dictionary<string, double> byType, string type, double? otherwise)

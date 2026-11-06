@@ -151,6 +151,39 @@ namespace SiteAdaptation.Tests
         }
     }
 
+    public sealed class R641_SourceKeptTests
+    {
+        [Fact]
+        public void A_number_a_person_entered_or_a_past_row_gave_keeps_that_source()
+        {
+            var issues = new List<PlanIssue>();
+            RuleNumbers numbers = RuleNumbers.From(new[] { SiteBuildSamples.Rule("M10", "T1 always have 2 steps", "person entered", "confirmed"), SiteBuildSamples.Rule("M13", "Front setback 5 m", "past") }, issues);
+            var plots = PlanPlots.Make(new[] { new PlotIn { Number = "1", VillaType = "T1" } }, numbers, issues);
+            Assert.Equal("person entered", plots[0].Get("steps").Source);
+            Assert.Equal("M10", plots[0].Get("steps").Rule);
+            Assert.Equal("past", plots[0].Get("frontSetbackM").Source);
+        }
+
+        [Fact]
+        public void Rules_the_build_reads_no_number_from_are_said_once()
+        {
+            var issues = new List<PlanIssue>();
+            RuleNumbers.From(new[] { SiteBuildSamples.Rule("M01", "text"), SiteBuildSamples.Rule("M02", "text") }, issues);
+            Assert.Single(issues);
+            Assert.Contains("M01, M02", issues[0].Line);
+        }
+
+        [Fact]
+        public void A_value_stage_1_marked_disputed_or_weak_marks_the_plot()
+        {
+            var row = new PlotIn { Number = "1", VillaType = "T1", Mirror = true, Disputed = new JObject { ["villaType"] = "two sources differ" }, Weak = new JObject { ["mirror"] = "hand not known" } };
+            var plots = PlanPlots.Make(new[] { row }, RuleNumbers.From(new RuleForBuild[0], new List<PlanIssue>()), new List<PlanIssue>());
+            Assert.Contains(plots[0].Marked, line => line == "villaType: disputed, two sources differ");
+            Assert.Contains(plots[0].Marked, line => line == "mirror: weak, hand not known");
+            Assert.Equal("T1", (string)plots[0].Get("villaType").Value);
+        }
+    }
+
     public sealed class R642_CoordinatesTests : IDisposable
     {
         private readonly string folder = Path.Combine(Path.GetTempPath(), "R642_" + Guid.NewGuid().ToString("N"));
@@ -279,6 +312,19 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
+        public void A_mass_with_a_bad_point_is_left_out_whole_with_an_issue_and_a_wrong_file_is_said()
+        {
+            var issues = new List<PlanIssue>();
+            var masses = new JObject { ["masses"] = new JArray(new JObject { ["plot"] = "1", ["ring"] = new JArray(new JArray(0, 0), new JArray(5, 0), new JArray("x", 5), new JArray(0, 5)) }) };
+            JObject result = MassOverlap.Check(new PlanPlot[0], masses, 1.0, new[] { 0.0, 0.0 }, issues);
+            Assert.Equal(0, (int)result["masses"]["checked"]);
+            Assert.Single(issues);
+            var wrong = new List<PlanIssue>();
+            MassOverlap.Check(new PlanPlot[0], new JObject { ["foo"] = 1 }, 1.0, new[] { 0.0, 0.0 }, wrong);
+            Assert.Single(wrong);
+        }
+
+        [Fact]
         public void Masses_are_checked_when_they_are_given_and_say_so_when_not()
         {
             var issues = new List<PlanIssue>();
@@ -321,6 +367,33 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
+        public void A_group_name_never_stands_in_for_a_neighbourhood()
+        {
+            var issues = new List<PlanIssue>();
+            PlanPlot grouped = SiteBuildSamples.Plot("9", SiteBuildSamples.Square(0, 0, 10), null);
+            grouped.In.Groups.Add("L1-3");
+            JObject cut = NeighbourhoodCut.Build(new[] { grouped }, null, 5.0, 5.0, new[] { 0.0, 0.0 }, issues);
+            Assert.Empty((JArray)cut["boundaries"]);
+        }
+
+        [Fact]
+        public void A_road_edge_point_with_no_usable_area_or_position_is_said_and_never_crashes()
+        {
+            var plots = new[] { SiteBuildSamples.Plot("1", SiteBuildSamples.Square(0, 0, 10)) };
+            var issues = new List<PlanIssue>();
+            var edge = new JObject { ["points"] = new JArray(
+                new JObject { ["area"] = "N9", ["east"] = 1.0, ["north"] = 1.0 },
+                new JObject { ["area"] = "N1", ["east"] = JValue.CreateNull(), ["north"] = 1.0 },
+                new JObject { ["area"] = "N1 ", ["east"] = 10.0, ["north"] = 5.0 }) };
+            JObject cut = NeighbourhoodCut.Build(plots, edge, 0.0, 5.0, new[] { 0.0, 0.0 }, issues);
+            Assert.Equal(1, (int)cut["roadEdge"]["checked"]);
+            Assert.Equal(2, issues.Count);
+            var wrong = new List<PlanIssue>();
+            NeighbourhoodCut.Build(plots, new JObject { ["foo"] = 1 }, 0.0, 5.0, new[] { 0.0, 0.0 }, wrong);
+            Assert.Single(wrong);
+        }
+
+        [Fact]
         public void A_plot_with_no_neighbourhood_is_left_out_with_an_issue()
         {
             var issues = new List<PlanIssue>();
@@ -356,6 +429,27 @@ namespace SiteAdaptation.Tests
             Assert.Single(issues);
             FloorsToReplace.Check(new[] { SiteBuildSamples.Plot("1", SiteBuildSamples.Square(0, 0, 10)) }, Placed("77", SiteBuildSamples.Square(0, 0, 10)), 0.5, issues);
             Assert.Equal(2, issues.Count);
+        }
+
+        [Fact]
+        public void A_wrong_file_a_second_floor_and_a_plot_with_no_outline_are_said_and_not_replaced()
+        {
+            var plot = SiteBuildSamples.Plot("1", SiteBuildSamples.Square(0, 0, 10));
+            var issues = new List<PlanIssue>();
+            FloorsToReplace.Check(new[] { plot }, new JObject { ["foo"] = 1 }, 0.5, issues);
+            Assert.Single(issues);
+            var both = new JObject { ["floors"] = new JArray(
+                new JObject { ["plot"] = "1", ["outline"] = JArray.FromObject(SiteBuildSamples.Square(0, 0, 10)) },
+                new JObject { ["plot"] = "1", ["outline"] = JArray.FromObject(SiteBuildSamples.Square(0, 0, 11)) }) };
+            var twice = new List<PlanIssue>();
+            JObject result = FloorsToReplace.Check(new[] { plot }, both, 0.5, twice);
+            Assert.Equal(1, (int)result["checked"]);
+            Assert.Empty((JArray)result["replace"]);
+            Assert.Single(twice);
+            var open = new List<PlanIssue>();
+            JObject none = FloorsToReplace.Check(new[] { SiteBuildSamples.Plot("2", null) }, new JObject { ["floors"] = new JArray(new JObject { ["plot"] = "2", ["outline"] = JArray.FromObject(SiteBuildSamples.Square(0, 0, 10)) }) }, 0.5, open);
+            Assert.Empty((JArray)none["replace"]);
+            Assert.Single(open);
         }
 
         [Fact]

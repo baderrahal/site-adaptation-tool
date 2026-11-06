@@ -125,7 +125,7 @@ namespace SiteAdaptation.Common.SiteBuild
             }
             catch (Exception failure) when (failure is Newtonsoft.Json.JsonException || failure is IOException)
             {
-                issues.Add(new PlanIssue { Line = "The file " + role + " cannot be read, so it is not used: " + failure.Message.Replace("{", "(").Replace("}", ")") });
+                issues.Add(new PlanIssue { Line = PlanTexts.FileUnreadable(role, failure.Message) });
                 return null;
             }
         }
@@ -148,7 +148,15 @@ namespace SiteAdaptation.Common.SiteBuild
             double? same = Number(config, "designValues", "samePoint", "sameMm");
             double? margin = Number(config, "floors", "roadTopography", "marginM");
             double? edge = Number(config, "floors", "roadTopography", "limitMm");
-            double overlap = Number(config, "siteBuild", "massOverlapMm") ?? DefaultOverlapMm;
+            double? given = Number(config, "siteBuild", "massOverlapMm");
+            // A limit below 0 would grow the outlines and flag every shared edge, so it counts as not given
+            bool fromConfig = given.HasValue && given.Value >= 0;
+            double overlap = fromConfig ? given.Value : DefaultOverlapMm;
+            if (!fromConfig)
+            {
+                // Source default, said in a line and in the plan, never a quiet guess
+                issues.Add(new PlanIssue { Line = given.HasValue ? "The overlap limit of the config is below 0, so the default of " + PlanTexts.Mm(DefaultOverlapMm) + " mm is used." : "The config holds no overlap limit, so the default of " + PlanTexts.Mm(DefaultOverlapMm) + " mm is used." });
+            }
             if (same.HasValue)
             {
                 found["floorsToReplace"] = FloorsToReplace.Check(plots, OptionalJson(run, "placedFloors", issues), same.Value, issues);
@@ -166,6 +174,7 @@ namespace SiteAdaptation.Common.SiteBuild
                 issues.Add(new PlanIssue { Line = "The config holds no margin or no limit for the toposolid cut, so the cut to the neighbourhood is not made." });
             }
             found["overlap"] = MassOverlap.Check(plots, OptionalJson(run, "masses", issues), overlap, origin, issues);
+            found["overlap"]["limitSource"] = fromConfig ? "config" : "default";
             return found;
         }
 

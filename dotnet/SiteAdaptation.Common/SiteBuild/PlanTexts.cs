@@ -33,6 +33,26 @@ namespace SiteAdaptation.Common.SiteBuild
             return "The text of rule " + id + " is not in a form the build can read a number from, so that number stays empty and marked: " + Plain(text);
         }
 
+        public static string RulesNotUsed(System.Collections.Generic.IEnumerable<string> ids)
+        {
+            return "The build takes no number from these rules yet, so they change nothing in the plan: " + string.Join(", ", ids) + ".";
+        }
+
+        public static string FileUnreadable(string role, string reason)
+        {
+            return "The file " + role + " cannot be read, so it is not used: " + Plain(reason);
+        }
+
+        public static string FileUnderstood(string role, string expected)
+        {
+            return "The file " + role + " holds no " + expected + ", so it is not used.";
+        }
+
+        public static string ItemLeftOut(string role, string what)
+        {
+            return "In the file " + role + " " + what + " is left out.";
+        }
+
         public static string CoordinatesNoSettings(string message)
         {
             return "The coordinate settings of the config cannot be used, so the coordinates stay empty: " + Plain(message);
