@@ -63,10 +63,13 @@ namespace CadReader
             if (settings != null && input.Stopped == null)
             {
                 // R645. The build draws the plots, so the table carries each ring. A plot without one is said in an issue of the run
+                var clock = System.Diagnostics.Stopwatch.StartNew();
                 foreach (string note in SiteAdaptation.Common.SiteBuild.PlotOutlines.Add(output.Plots, settings, input))
                 {
                     run.Issues.Add(note);
                 }
+                // The second scan costs time, so the run says how much, in milliseconds
+                run.Counts["data check plot outline ms"] = (int)clock.ElapsedMilliseconds;
             }
             run.WriteJson(request.OutputFolder, SiteAdaptation.Common.ReadData.ReadDataRun.DataCheckFile, output.Check);
             run.WriteJson(request.OutputFolder, "project_profile.json", output.Profile);
