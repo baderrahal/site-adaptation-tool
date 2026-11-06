@@ -71,9 +71,43 @@ namespace SiteAdaptation.Tests
             File.SetLastWriteTimeUtc(Path.Combine(newer, "data_check.json"), new DateTime(2026, 1, 2, 0, 0, 0, DateTimeKind.Utc));
             File.SetLastWriteTimeUtc(Path.Combine(half, "data_check.json"), new DateTime(2026, 1, 3, 0, 0, 0, DateTimeKind.Utc));
             Assert.Equal(newer, StageRead.Latest(folder));
-            Assert.Empty(StageRead.Rows(null));
-            // A data check that does not read gives no row and no throw
-            Assert.Empty(StageRead.Rows(older));
+            Assert.Empty(StageRead.Read(null).Rows);
+            Assert.Null(StageRead.Read(null).Stopped);
+            // A data check that does not read gives no row, no throw and the reason
+            Assert.Empty(StageRead.Read(older).Rows);
+            Assert.Equal(AddIn.ScanResults.DataCheckRows.NoNeeds, StageRead.Read(older).Stopped);
+            File.WriteAllText(Path.Combine(newer, "data_check.json"), StoppedCheck);
+            Assert.Equal("Made up reason", StageRead.Read(newer).Stopped);
+            Assert.Single(StageRead.Read(newer).Rows);
+        }
+
+        private const string StoppedCheck = "{\"stopped\":\"Made up reason\",\"needs\":[{\"need\":\"plotOutlines\",\"mark\":\"weak\",\"line\":\"Made up\"}]}";
+
+        // Review 1 of PR 228: the worker writes data_check.json when the check stops too. The card says why and Fix items stays off,
+        // as the Confirm window of R2-C1 refuses a stopped check. Broken on purpose against a check that finished
+        [Fact]
+        public void R681_a_stopped_read_says_why_in_card_1_and_fix_items_stays_off()
+        {
+            string work = Path.Combine(folder, "work");
+            string read = Path.Combine(work, "read-a");
+            Directory.CreateDirectory(read);
+            File.WriteAllText(Path.Combine(read, "project_profile.json"), "{}");
+            File.WriteAllText(Path.Combine(read, "data_check.json"), StoppedCheck);
+            OnSta(() =>
+            {
+                StagesPage page = Shots.LaidOutStages(false);
+                var stages = (StagesViewModel)page.DataContext;
+                stages.WorkFolderNow = () => work;
+                stages.Refresh();
+                Assert.Equal(TextTemplate.Fill(StageText.ReadStopped, "Made up reason"), stages.Card1.Line);
+                Assert.False(stages.FixItemsCommand.CanExecute(null));
+                Assert.True(stages.HasRows);
+                File.WriteAllText(Path.Combine(read, "data_check.json"), StoppedCheck.Replace("\"stopped\":\"Made up reason\",", ""));
+                File.SetLastWriteTimeUtc(Path.Combine(read, "data_check.json"), DateTime.UtcNow.AddMinutes(1));
+                stages.Refresh();
+                Assert.Equal(string.Empty, stages.Card1.Line);
+                Assert.True(stages.FixItemsCommand.CanExecute(null));
+            });
         }
 
         [Fact]
@@ -106,6 +140,7 @@ namespace SiteAdaptation.Tests
             OnSta(() =>
             {
                 StagesPage page = Shots.LaidOutStages(false);
+                var stages = (StagesViewModel)page.DataContext;
                 var titles = Visuals(page).OfType<TextBlock>().Select(text => text.Text).ToList();
                 int one = titles.IndexOf(StageText.Stage1);
                 int two = titles.IndexOf(StageText.Stage2);
@@ -114,17 +149,20 @@ namespace SiteAdaptation.Tests
                 Expander advanced = Visuals(page).OfType<Expander>().Single();
                 Assert.Equal(StageText.Advanced, advanced.Header);
                 Assert.False(advanced.IsExpanded);
-                Assert.IsType<SitePanePage>(page.OldPage);
-                Assert.Equal(9, page.OldPage.DataContext is PaneViewModel model ? model.Steps.Count : 0);
-                Assert.False(page.Model.SettingsOpen);
-                page.Model.SettingsCommand.Execute(null);
-                Assert.True(page.Model.SettingsOpen);
+                // A Frame gives back its page once it navigates, which the dispatcher runs
+                var frame = (Frame)page.FindName("OldPane");
+                System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+                Assert.IsType<SitePanePage>(frame.Content);
+                Assert.Equal(9, ((SitePanePage)frame.Content).DataContext is PaneViewModel model ? model.Steps.Count : 0);
+                Assert.False(stages.SettingsOpen);
+                stages.SettingsCommand.Execute(null);
+                Assert.True(stages.SettingsOpen);
                 // Build is not wired yet, so its button cannot run and the card says so
-                Assert.False(page.Model.Card2.Command.CanExecute(null));
-                Assert.Equal(StageText.BuildNotWired, page.Model.Card2.Line);
-                Assert.Equal(new[] { StageText.ChooseFolder, StageText.Build, StageText.Report }, page.Model.Cards.Select(card => card.Button).ToArray());
-                Assert.False(page.Model.HasRows);
-                Assert.False(page.Model.FixItemsCommand.CanExecute(null));
+                Assert.False(stages.Card2.Command.CanExecute(null));
+                Assert.Equal(StageText.BuildNotWired, stages.Card2.Line);
+                Assert.Equal(new[] { StageText.ChooseFolder, StageText.Build, StageText.Report }, stages.Cards.Select(card => card.Button).ToArray());
+                Assert.False(stages.HasRows);
+                Assert.False(stages.FixItemsCommand.CanExecute(null));
             });
         }
 
@@ -134,15 +172,16 @@ namespace SiteAdaptation.Tests
             OnSta(() =>
             {
                 StagesPage page = Shots.LaidOutStages(true);
+                var stages = (StagesViewModel)page.DataContext;
                 var asked = new List<int>();
-                page.Model.Model.RunRequested += asked.Add;
+                stages.Model.RunRequested += asked.Add;
                 bool chose = false;
-                page.Model.ChooseFolderRequested += () => chose = true;
-                page.Model.Card3.Command.Execute(null);
-                page.Model.Card1.Command.Execute(null);
+                stages.ChooseFolderRequested += () => chose = true;
+                stages.Card3.Command.Execute(null);
+                stages.Card1.Command.Execute(null);
                 Assert.Equal(new[] { 9 }, asked);
                 Assert.True(chose);
-                Assert.True(page.Model.HasRows);
+                Assert.True(stages.HasRows);
                 Assert.Equal(3, Visuals(page).OfType<ContentPresenter>().Count(presenter => presenter.Content is AddIn.ScanResults.DataCheckRow));
             });
         }

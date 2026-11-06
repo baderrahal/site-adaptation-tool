@@ -196,8 +196,8 @@ namespace SiteAdaptation.Tests
             // band and foot lines and the Close of a check alone, the files not read, the stopped note and 7 lines of button 2 when the check stops
             // R636 and R635 added 52: 50 of the window Confirm what was found and of its end, filed under What the tool read since its files lie in the folder ScanResults, and 2 of the pane, Input folder and Confirmed values
             // R639 added 17: 14 of 2 Read data and 3 of a row of Review data
-            // FAST-1-build-1 added 24 of the pane in 3 stages (R680, R681)
-            Assert.Equal(464, chosen);
+            // FAST-1-build-1 added 24 of the pane in 3 stages (R680, R681), review 1 of PR 228 2 more, a stopped read and Fix items not opened
+            Assert.Equal(466, chosen);
             Assert.True(matched > 100, matched.ToString());
         }
 

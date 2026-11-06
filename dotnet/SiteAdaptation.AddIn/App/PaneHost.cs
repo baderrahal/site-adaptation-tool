@@ -170,11 +170,21 @@ namespace SiteAdaptation.AddIn
                 return;
             }
             string profile = System.IO.Path.Combine(readFolder, ConfirmProfile.ConfirmProfileStep.ProfileFile);
-            var session = new ConfirmProfile.ConfirmProfileSession(ConfirmProfile.ConfirmProfileModel.Read(Common.WorkFiles.ReadText(profile)), work, "fix-" + DateTime.UtcNow.ToString("yyyyMMddHHmmss", System.Globalization.CultureInfo.InvariantCulture));
-            ConfirmProfile.ConfirmProfileStep.ShowConfirm(owner, session);
-            if (session.Result != null)
+            // A locked or damaged proposal is said, as the end of a read of version 1 says it, and never reaches the UI thread of Revit
+            string said;
+            try
             {
-                teller.Text = session.Result;
+                var session = new ConfirmProfile.ConfirmProfileSession(ConfirmProfile.ConfirmProfileModel.Read(Common.WorkFiles.ReadText(profile)), work, "fix-" + DateTime.UtcNow.ToString("yyyyMMddHHmmss", System.Globalization.CultureInfo.InvariantCulture));
+                ConfirmProfile.ConfirmProfileStep.ShowConfirm(owner, session);
+                said = session.Result;
+            }
+            catch (Exception failure)
+            {
+                said = TextTemplate.Fill(StageText.FixNotOpened, failure.Message);
+            }
+            if (said != null)
+            {
+                teller.Text = said;
                 tellEvent.Raise();
             }
         }

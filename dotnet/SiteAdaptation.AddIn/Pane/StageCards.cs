@@ -103,21 +103,22 @@ namespace SiteAdaptation.AddIn.Pane
             }
         }
 
-        // The rows of a read folder, none when it holds no data check that reads
-        public static IReadOnlyList<DataCheckRow> Rows(string readFolder)
+        // The data check of a read folder. The worker writes it when the check stops too, so a stopped check and one that does not read
+        // both come back with Stopped set, the reason the card shows, as the window of version 1 refuses to confirm a stopped check
+        public static DataCheckResult Read(string readFolder)
         {
             if (readFolder == null)
             {
-                return new DataCheckRow[0];
+                return new DataCheckResult();
             }
             try
             {
                 string plots = Path.Combine(readFolder, DataCheckRows.PlotsFileName);
-                return DataCheckRows.ReadResult(WorkFiles.ReadText(Path.Combine(readFolder, DataCheckRows.FileName)), File.Exists(plots) ? WorkFiles.ReadText(plots) : null).Rows;
+                return DataCheckRows.ReadResult(WorkFiles.ReadText(Path.Combine(readFolder, DataCheckRows.FileName)), File.Exists(plots) ? WorkFiles.ReadText(plots) : null);
             }
             catch (Exception failure) when (failure is IOException || failure is UnauthorizedAccessException || failure is Newtonsoft.Json.JsonException || failure is InvalidDataException || failure is FormatException)
             {
-                return new DataCheckRow[0];
+                return new DataCheckResult { Stopped = failure.Message };
             }
         }
     }
@@ -171,6 +172,7 @@ namespace SiteAdaptation.AddIn.Pane
         public const int ReportStep = 9;
         private bool settingsOpen;
         private string readFolder;
+        private string fixFolder;
         private DateTime readStamp;
 
         public StagesViewModel(PaneViewModel model)
@@ -182,7 +184,7 @@ namespace SiteAdaptation.AddIn.Pane
                 new StageCard(2, StageText.Stage2, StageText.Stage2Help, StageText.Build, new PaneCommand(() => { }, () => false)),
                 new StageCard(3, StageText.Stage3, StageText.Stage3Help, StageText.Report, new PaneCommand(() => model.RequestRun(ReportStep), () => model.InUse)),
             });
-            FixItemsCommand = new PaneCommand(() => FixItemsRequested?.Invoke(readFolder), () => readFolder != null);
+            FixItemsCommand = new PaneCommand(() => FixItemsRequested?.Invoke(fixFolder), () => fixFolder != null);
             SettingsCommand = new PaneCommand(() => SettingsOpen = !SettingsOpen, () => true);
             model.PropertyChanged += OnModelChanged;
             Refresh();
@@ -238,11 +240,13 @@ namespace SiteAdaptation.AddIn.Pane
             readFolder = latest;
             readStamp = stamp;
             CheckRows.Clear();
-            foreach (DataCheckRow row in StageRead.Rows(latest))
+            DataCheckResult check = StageRead.Read(latest);
+            foreach (DataCheckRow row in check.Rows)
             {
                 CheckRows.Add(row);
             }
-            Card1.Line = latest == null ? StageText.NoRead : string.Empty;
+            fixFolder = latest != null && check.Stopped == null ? latest : null;
+            Card1.Line = latest == null ? StageText.NoRead : check.Stopped != null ? TextTemplate.Fill(StageText.ReadStopped, check.Stopped) : string.Empty;
             Changed(nameof(HasRows));
             FixItemsCommand.Refresh();
         }
