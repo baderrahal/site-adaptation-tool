@@ -23,7 +23,7 @@ The record is steps/revit-results/FAST-3-revit-test.md. The acceptance tests of 
 
 It shares steps/revit-results/ and steps/ui-shots/ with FAST-1-build-1, which stops at 23:00 on 6 Nov, before this task starts, so the two never run at once.
 
-The driver in Revit: a person may be at this PC. Send a click, a key or a shot only with Revit in front, after 5 minutes idle and with no meeting window, and stop when another input comes (CLAUDE.md). When Revit shows the box "Security - Unsigned Add-In" for Site Adaptation, the driver presses Always Load itself, once, and writes the time in steps/revit-results. This is the one box it may press on sight, Bader's order of 6 Nov 23:37. Every other box keeps the driver rule, and a box of any other maker stays untouched.
+The driver in Revit: a person may be at this PC. Send a click, a key or a shot only with Revit in front, after 5 minutes idle and with no meeting window, and stop when another input comes (CLAUDE.md). When Revit shows the box "Security - Unsigned Add-In" for Site Adaptation, the driver presses Always Load itself, once, and writes the time in steps/revit-results. This is the one box it may press on sight, Bader's order of 6 Nov 23:37. Every other box keeps the driver rule, and a box of any other maker stays untouched. Bader's order of 7 Nov 00:16: the Teams window "Meeting compact view" stays open on purpose, Teams keeps the laptop awake, so the driver does not count it as a meeting window. Revit in front, 5 minutes idle and the stop on other input stay.
 
 Rule ids: R720 to R729. Question ids: Q550 to Q559. Take no other id.
 
