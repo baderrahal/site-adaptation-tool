@@ -139,6 +139,12 @@ namespace SiteAdaptation.Common.SiteBuild
             get { return "No road surface is given, so the road level at the front is empty."; }
         }
 
+        // R705. The words no road level are what a card counts the plots by
+        public static string NoRoadLevel(string number)
+        {
+            return "Plot " + number + " has no road level, so it has no floor level and steps 6 Levels, 7 Place villas and 8 Walls skip it.";
+        }
+
         public static string FflWhy
         {
             get { return "The floor level needs the road level at the front and a rule for its height above the road, and neither is there."; }

@@ -27,6 +27,32 @@ Next:
 Your turn:
 - FAST-3-revit-test runs Build in Revit on a copy, label revit-later.
 
+## FAST-2-build-2 PR 3, 6 Nov 2026, Update from report on a new project, no road level, wall thickness, the docked page
+
+Goal:
+- Items 3, 7, 8 and 10 of FAST-2.
+
+Done:
+- R704, Q394 CHOSEN: on a new project Update from report saves a plot with no override entry as a new entry, the Excel its model, no key.
+- R705, Q504 5A: each plot with no floor level is one issue with the words no road level, steps 6 to 8 skip it.
+- R706, Q149 CHOSEN: the plan gives each plot the boundary wall thickness from rule M14. Q336 held by a test, the link group stays Text.
+- Item 10: AddinRunNames.DockedPage names the page of the stages.
+
+Checked:
+- FAST2 tests, the SiteBuild tests, R402 and the Python update check, output in the work root file of the PR.
+
+Remains:
+- Item 6 worker and config part, item 9.
+
+Known bugs:
+- None found. Not seen in Revit, the window of Update from report was not opened.
+
+Next:
+- Item 6, then item 9.
+
+Your turn:
+- build-1: AddinProbe.DockedPage may take AddinRunNames.DockedPage, steps/seam.md.
+
 ## FAST-1-build-1 PR 3, the plan behind Build and the 2D preview, 6 Nov 2026
 
 Goal:
@@ -100,6 +126,8 @@ Next:
 Your turn:
 - build-1: the floor lines of Run-TestHost.ps1, Start-RevitListener.ps1 and Run-Parallel.ps1 can go, the tests take both.
 
+
+
 ## FAST-1-build-1 PR 2, the rules of a project and the parameter sheet, 6 Nov 2026
 
 Goal:
@@ -123,7 +151,6 @@ Next:
 
 Your turn:
 - FAST-3-revit-test opens the rules table in Revit, label revit-later.
-
 ## A third builder and the seam of 16:50, 6 Nov 2026
 
 Goal:
