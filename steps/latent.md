@@ -404,3 +404,11 @@ RAMP-3NOV-A, review and breaker, no real input reaches these:
 ## Gate, R310 at idle as well, 6 Nov 2026
 
 - The line of 5 Nov above says under load. On 6 Nov at 01:00, an idle PC, CPU 17 percent, 39 of 64 GB free, no worker or Revit, the R310 tests of ParsonsModelTests run alone twice: run 1 failed R310_helpers_running_before_the_window_are_listed_by_name_and_private_memory_and_never_counted_as_its_children at ParsonsModelTests.cs:204, run 2 passed all 12. The stop hook at 00:55 failed R310_a_sample_keeps_the_process_memory_when_a_cim_call_fails at :126 and R310_a_sample_counts_the_processes_the_window_started_and_their_memory. A sample that passes takes 21 to 31 s. So three R310 tests fail at random on this PC, load makes it likelier. steps/history/latent-older-2026-11-05.md:159 says they pass on an idle machine, that no longer holds.
+
+## PR 221, R2-C2-build-1, reviews, 6 Nov 2026
+
+- A placedFloors entry whose outline cannot be read is marked to replace with the line that it differs from the plot (nothing writes placedFloors yet, Q503).
+- DefaultOverlapMm 1.0 in SiteBuildRun is a second copy of the config value, said by an issue and limitSource default and used on an old config copy only.
+- R645 now has 4 tests (the scale to metres, the tie, an unknown unit, a plot with no ring, an empty table).
+- The R643 line that no plot has an outline and the R642 issue outside the UTM zone are still untested by a unit test.
+- M11 gives 1.70 and drops the clause on the kept level while FFL steps stay under 0.50 m, with no issue, and no wall is built from it yet.
