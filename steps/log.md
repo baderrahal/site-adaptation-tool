@@ -2,6 +2,30 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## ReadEdgeTests.cs to FAST-2, rules R686 and R687, 6 Nov 2026
+
+Goal:
+- Let build-2 finish item 6, no RAM floor, and enter the rule lines of FAST-1 PR 3.
+
+Done:
+- dotnet/SiteAdaptation.Tests/ReadEdgeTests.cs on FAST-2 by exact path, for its two R347 floor tests. Seam line given.
+- R686 and R687 in docs/rules/18-fast-pane-r680-up.md and index.md, from the body of PR 234.
+
+Checked:
+- No path of FAST-1, FAST-2 and FAST-4 lies in or holds another but steps/seam.md and steps/log.md, by check_common.inside.
+
+Remains:
+- R688 once PR 238 is on main.
+
+Known bugs:
+- R310, R347 and R444 fail at random under load, FAST-2 item 9 measures it.
+
+Next:
+- PR 235, 237, 238 merge on green.
+
+Your turn:
+- None.
+
 ## FAST-4-build-3, the plot read and the mirror, 6 Nov 2026
 
 Goal:
@@ -124,8 +148,6 @@ Next:
 Your turn:
 - build-1: the floor lines of Run-TestHost.ps1, Start-RevitListener.ps1 and Run-Parallel.ps1 can go, the tests take both.
 
-
-
 ## FAST-1-build-1 PR 2, the rules of a project and the parameter sheet, 6 Nov 2026
 
 Goal:
@@ -149,6 +171,7 @@ Next:
 
 Your turn:
 - FAST-3-revit-test opens the rules table in Revit, label revit-later.
+
 ## A third builder and the seam of 16:50, 6 Nov 2026
 
 Goal:
@@ -564,6 +587,7 @@ Next:
 Your turn:
 - Opened Q420 Moving a model with placed content. Closed none.
 - 180 open, steps/questions-open.md
+
 ## Lane C TEXTS-3NOV-C, 2026-11-04, the pane texts of the other lanes
 
 Goal:
@@ -666,6 +690,7 @@ Next:
 
 Your turn:
 - Opened Q450 Report defaults of old number, revision, status. Q451 Report Issues column against its sheets. Closed Q307 What the report Summary shows after a run. See steps/questions-open.md
+
 ## Lane D PARAM-3NOV-D, 2026-11-03, shared parameters shown right, on links only
 
 Goal:
@@ -691,6 +716,7 @@ Next:
 
 Your turn:
 - Closed: Q411 Floor parameters bound but never filled. 180 open, steps/questions-open.md
+
 ## Lane A KNOWN-3NOV-A, 2026-11-03, the known issues with a clear answer
 
 Goal:
@@ -740,6 +766,7 @@ Next:
 Your turn:
 - Opened none. Closed none.
 - 184 open, steps/questions-open.md
+
 ## Lane B FIX-3NOV-B end, 2026-11-03, undo in Revit
 
 Goal:
@@ -1047,4 +1074,3 @@ Your turn:
 - Closed Q265, Q299, Q303, Q304. Opened Q375 Ramp type after a rampFrontM gap, Q376 Plain words for the front edge override. 162 open, steps/questions-open.md
 
 Older rounds stand in steps/history/log-older-2026-11-02.md, cut byte for byte to keep this file under the cap of the records.
-
