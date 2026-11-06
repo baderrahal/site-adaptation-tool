@@ -62,8 +62,7 @@ $info.Environment['SITEADAPTATION_TESTHOST_TOKEN'] = $token
 $info.Environment['SITEADAPT_LISTENER_ROOT'] = $folders.root
 $info.Environment['SITEADAPT_LISTENER_SLOT'] = $folders.slot
 $info.Environment['SITEADAPT_LISTENER_INPUT_ROOTS'] = $inputRoots -join '|'
-# L5. The floor of R200, looked at before each job, since this script takes the lock once for many jobs
-$info.Environment['SITEADAPT_LISTENER_MIN_FREE_GB'] = ([double]$config.siteBuild.minFreeGB).ToString([Globalization.CultureInfo]::InvariantCulture)
+# No free memory floor before a job, Bader's order of 6 Nov 2026 (FAST-2 item 6, Q570)
 # A job file names one job of a Revit of its own, this one takes its jobs from the folder
 $info.Environment.Remove('SITEADAPT_JOB') | Out-Null
 
