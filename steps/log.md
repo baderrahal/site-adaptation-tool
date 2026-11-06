@@ -2,6 +2,29 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Rules R730 to R732 of FAST-4, 6 Nov 2026
+
+Goal:
+- Enter the rule lines of FAST-4, which is done, and keep the plan true.
+
+Done:
+- docs/rules/20-fast4-r730-up.md with R730 to R732 from the seam line of build-3, index.md. Seam line given. Plan: FAST-4 done by PR 240.
+
+Checked:
+- pytest scripts/checks -k "r12 or rules or index or r26": 22 passed. rules_docs.py PASS.
+
+Remains:
+- R688 to R691 of FAST-1 once their PRs are on main.
+
+Known bugs:
+- R310, R347 and R444 fail at random under load, FAST-2 item 9 measures it.
+
+Next:
+- PR 237, 238, 239 merge on green.
+
+Your turn:
+- None.
+
 ## FAST-4-build-3, the plot read and the mirror, 6 Nov 2026
 
 Goal:

@@ -578,3 +578,9 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R704 Update from report, new project.
 - R705 No road level, plot skipped.
 - R706 Boundary wall thickness from M14.
+
+## 20-fast4-r730-up.md
+
+- R730 Plot table holds villa plots.
+- R731 Mirror from block and footprint.
+- R732 Pair trace.

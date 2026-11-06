@@ -25,6 +25,7 @@ The one live file of the three days, Bader's order of 6 Nov. Lead keeps it true 
 
 ## build-3, FAST-4-build-3, the plot read and the mirror
 
+- 20:00: FAST-4 done, PR 240 merged. S1 plots read 2964 to 2618, 346 listed apart with a reason, numbers right 1873, mirror right 448 to 735 of 1891. 745 plots with a villa sign lie in areas the answer leaves out, the tool cannot tell them. build-3 stops, Lead gives it no new task without Bader.
 - 16:50: opened by Bader's order of 16:25, items 4 and 5 moved from FAST-2. Owns Common/DataCheck/, four files of CadReader, the scenario scripts and steps/scenarios.md. Started hidden by Lead once this PR is merged.
 
 ## At 16:50
