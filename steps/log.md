@@ -27,6 +27,29 @@ Next:
 Your turn:
 - FAST-3-revit-test runs Build in Revit on a copy, label revit-later.
 
+## FAST-4-build-3, the plot read and the mirror, 6 Nov 2026
+
+Goal:
+- Items 1 and 2 of FAST-4: the plot table holds the villa plots and lists the rest with the reason, the mirror from the block scale, its footprint and the pair trace.
+
+Done:
+- R730 plots.json plots holds the plots a villa goes on, the rest in otherPlots with the reason. R731 a block goes to every plot its outline covers, the hand turns at each house along it, CadScan writes the outline and axes of each insert. R732 a pair with no block is traced and said, its hand left missing.
+
+Checked:
+- S1 on main 4c11b72 then on f153f14: plots read 2964 to 2618, 346 listed apart, numbers right 1873 of 1891 kept, mirror right 448 to 735 of 1891. S2: 2964 to 2632, 332 apart, mirror 0 to 0, 802 plots traced into pairs. A shapely route on the plain blocks.json gives the same hand on 2079 of 2079 plots. FAST4 tests 7 of 7, quick tests and tests/acceptance pass.
+
+Remains:
+- 2618 is not 1891: 745 plots read with a villa sign are not in the answer, which leaves the hold-out areas out, and 18 plots of the answer are not read, as before. The tool cannot tell a hold-out area. 499 plots under blocks of two layers the scan does not pick as villa block layers get no block hand.
+
+Known bugs:
+- Not seen in Revit, no Revit file touched. ParsonsModelTests R310 failed once under the 24 GB scenario run and passed alone on this branch and on main.
+
+Next:
+- Lead takes the rule lines R730 to R732 from steps/seam.md into docs/rules.
+
+Your turn:
+- None.
+
 ## FAST-2-build-2 PR 3, 6 Nov 2026, Update from report on a new project, no road level, wall thickness, the docked page
 
 Goal:
@@ -126,8 +149,6 @@ Next:
 Your turn:
 - build-1: the floor lines of Run-TestHost.ps1, Start-RevitListener.ps1 and Run-Parallel.ps1 can go, the tests take both.
 
-
-
 ## FAST-1-build-1 PR 2, the rules of a project and the parameter sheet, 6 Nov 2026
 
 Goal:
@@ -151,6 +172,7 @@ Next:
 
 Your turn:
 - FAST-3-revit-test opens the rules table in Revit, label revit-later.
+
 ## A third builder and the seam of 16:50, 6 Nov 2026
 
 Goal:
@@ -566,6 +588,7 @@ Next:
 Your turn:
 - Opened Q420 Moving a model with placed content. Closed none.
 - 180 open, steps/questions-open.md
+
 ## Lane C TEXTS-3NOV-C, 2026-11-04, the pane texts of the other lanes
 
 Goal:
@@ -668,6 +691,7 @@ Next:
 
 Your turn:
 - Opened Q450 Report defaults of old number, revision, status. Q451 Report Issues column against its sheets. Closed Q307 What the report Summary shows after a run. See steps/questions-open.md
+
 ## Lane D PARAM-3NOV-D, 2026-11-03, shared parameters shown right, on links only
 
 Goal:
@@ -693,6 +717,7 @@ Next:
 
 Your turn:
 - Closed: Q411 Floor parameters bound but never filled. 180 open, steps/questions-open.md
+
 ## Lane A KNOWN-3NOV-A, 2026-11-03, the known issues with a clear answer
 
 Goal:
@@ -742,6 +767,7 @@ Next:
 Your turn:
 - Opened none. Closed none.
 - 184 open, steps/questions-open.md
+
 ## Lane B FIX-3NOV-B end, 2026-11-03, undo in Revit
 
 Goal:
@@ -1049,4 +1075,3 @@ Your turn:
 - Closed Q265, Q299, Q303, Q304. Opened Q375 Ramp type after a rampFrontM gap, Q376 Plain words for the front edge override. 162 open, steps/questions-open.md
 
 Older rounds stand in steps/history/log-older-2026-11-02.md, cut byte for byte to keep this file under the cap of the records.
-

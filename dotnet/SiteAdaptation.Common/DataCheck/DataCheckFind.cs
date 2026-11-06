@@ -435,8 +435,9 @@ namespace SiteAdaptation.Common
                 : null;
         }
 
-        // The hand of the villa block inside each plot: the insert is drawn mirrored or not, the plots that hold inserts of both hands none. An
-        // insert belongs to the smallest outline that holds it, so what lies in a hole is not given to the plot around it
+        // The hand of the villa block on each plot: the insert is drawn mirrored or not, the plots that take blocks of both hands none. R731:
+        // an insert with an outline goes to every plot it covers (BlockCover), the hand turning at each step along the block. One with none
+        // belongs to the smallest outline that holds its point, so what lies in a hole is not given to the plot around it
         private static void FindMirror(List<Plot> plots, DataCheckInput input, HashSet<string> blockSources, DataCheckSettings settings, HashSet<string> codes, Dictionary<string, HandCount> counts)
         {
             if (blockSources.Count == 0)
@@ -445,6 +446,7 @@ namespace SiteAdaptation.Common
                 {
                     plot.MirrorWhy = "no layer of villa blocks was found in the plots";
                 }
+                PairTrace(plots);
                 return;
             }
             var hands = new Dictionary<Plot, HashSet<bool>>();
@@ -454,27 +456,55 @@ namespace SiteAdaptation.Common
                 string file = Str(read["source"]);
                 foreach (JObject insert in ((JArray)read["inserts"]).OfType<JObject>().Where(item => item["mirrored"] != null && blockSources.Contains(file + "|" + Str(item["layer"]))))
                 {
-                    double x = (double)insert["x"], y = (double)insert["y"];
-                    Plot own = grid.Holding(x, y).Where(at => ScanLogic.Contains(plots[at].Ring, x, y)).Select(at => plots[at]).OrderBy(plot => plot.Area).FirstOrDefault();
-                    if (own == null || own.Holes.Any(hole => ScanLogic.Contains(hole, x, y)))
+                    bool mirrored = (bool)insert["mirrored"];
+                    var given = new List<KeyValuePair<Plot, bool>>();
+                    List<double[]> outline = Points(insert["outline"]);
+                    if (outline != null && outline.Count >= 3)
+                    {
+                        double[] box = { outline.Min(point => point[0]), outline.Min(point => point[1]), outline.Max(point => point[0]), outline.Max(point => point[1]) };
+                        var shapes = Enumerable.Range(0, plots.Count).Where(at => BoxGap(plots[at].Box, box) <= 0)
+                            .Select(at => new KeyValuePair<int, List<List<double[]>>>(at, new List<List<double[]>> { plots[at].Ring }.Concat(plots[at].Holes).ToList())).ToList();
+                        List<BlockCover.Covered> covered = BlockCover.Of(shapes, outline, Pair(insert["axisX"]), Pair(insert["axisY"]));
+                        foreach (BlockCover.Covered item in covered)
+                        {
+                            given.Add(new KeyValuePair<Plot, bool>(plots[item.Plot], BlockCover.Hand(mirrored, item.Rank)));
+                            plots[item.Plot].BlockSpan = Math.Max(plots[item.Plot].BlockSpan, covered.Count);
+                        }
+                    }
+                    else
+                    {
+                        double x = (double)insert["x"], y = (double)insert["y"];
+                        Plot own = grid.Holding(x, y).Where(at => ScanLogic.Contains(plots[at].Ring, x, y)).Select(at => plots[at]).OrderBy(plot => plot.Area).FirstOrDefault();
+                        if (own != null && !own.Holes.Any(hole => ScanLogic.Contains(hole, x, y)))
+                        {
+                            given.Add(new KeyValuePair<Plot, bool>(own, mirrored));
+                        }
+                    }
+                    if (given.Count == 0)
                     {
                         continue;
                     }
-                    if (!hands.TryGetValue(own, out HashSet<bool> set))
-                    {
-                        hands[own] = set = new HashSet<bool>();
-                    }
-                    set.Add((bool)insert["mirrored"]);
-                    // R633. The code of the block is what says which prototype's hand this insert speaks for
+                    // R633. The code of the block is what says which prototype's hand this insert speaks for, counted once per insert
                     List<string> named = ScanLogic.ValueCodes(Str(insert["block"]), codes, settings.Scan.TokenSplit);
+                    foreach (KeyValuePair<Plot, bool> item in given)
+                    {
+                        if (!hands.TryGetValue(item.Key, out HashSet<bool> set))
+                        {
+                            hands[item.Key] = set = new HashSet<bool>();
+                        }
+                        set.Add(item.Value);
+                        if (named.Count == 1)
+                        {
+                            item.Key.BlockCodes.Add(named[0]);
+                        }
+                    }
                     if (named.Count == 1)
                     {
-                        own.BlockCodes.Add(named[0]);
                         if (!counts.TryGetValue(named[0], out HandCount count))
                         {
                             counts[named[0]] = count = new HandCount();
                         }
-                        if ((bool)insert["mirrored"])
+                        if (mirrored)
                         {
                             count.Mirrored++;
                         }
@@ -502,6 +532,66 @@ namespace SiteAdaptation.Common
                     plot.Mirror = set.First();
                 }
             }
+            PairTrace(plots);
+        }
+
+        // R732. With no villa block on it, a plot whose outline shares an edge with exactly one plot of its own villa type, and that plot with
+        // exactly one too, is half of a pair, and the halves of a pair are opposite hands. Which half is the mirrored one the outlines do not
+        // say, so the mirror stays missing and the reason names the other half, never a guess. Two plots share an edge when two corners of
+        // one are corners of the other, as the faces of one traced layer meet
+        private static void PairTrace(List<Plot> plots)
+        {
+            var corners = new Dictionary<string, List<Plot>>(StringComparer.Ordinal);
+            foreach (Plot plot in plots.Where(plot => plot.Mirror == null && !plot.HasBlock && plot.Villa != null))
+            {
+                foreach (string key in plot.Ring.Select(Corner).Distinct(StringComparer.Ordinal))
+                {
+                    if (!corners.TryGetValue(key, out List<Plot> list))
+                    {
+                        corners[key] = list = new List<Plot>();
+                    }
+                    list.Add(plot);
+                }
+            }
+            var near = new Dictionary<Plot, List<Plot>>();
+            foreach (List<Plot> list in corners.Values.Where(list => list.Count > 1))
+            {
+                foreach (Plot plot in list)
+                {
+                    if (!near.TryGetValue(plot, out List<Plot> found))
+                    {
+                        near[plot] = found = new List<Plot>();
+                    }
+                    found.AddRange(list.Where(other => other != plot));
+                }
+            }
+            var edges = near.ToDictionary(item => item.Key, item => item.Value.GroupBy(other => other).Where(group => group.Count() >= 2 && group.Key.Villa == item.Key.Villa).Select(group => group.Key).ToList());
+            foreach (KeyValuePair<Plot, List<Plot>> item in edges.Where(item => item.Value.Count == 1))
+            {
+                Plot other = item.Value[0];
+                if (edges.TryGetValue(other, out List<Plot> back) && back.Count == 1 && back[0] == item.Key && other.NumberFlag == null)
+                {
+                    item.Key.MirrorWhy = "no villa block on the plot, it pairs with plot " + other.Number + " by a shared edge and the two take opposite hands, which one is mirrored needs a villa block or a confirmed hand";
+                }
+            }
+        }
+
+        // A corner of an outline as a key, at the millimetre of the drawing
+        private static string Corner(double[] point)
+        {
+            return Math.Round(point[0], 3).ToString("F3", CultureInfo.InvariantCulture) + "," + Math.Round(point[1], 3).ToString("F3", CultureInfo.InvariantCulture);
+        }
+
+        private static List<double[]> Points(JToken token)
+        {
+            var array = token as JArray;
+            return array?.OfType<JArray>().Where(point => point.Count >= 2).Select(point => new[] { (double)point[0], (double)point[1] }).ToList();
+        }
+
+        private static double[] Pair(JToken token)
+        {
+            var array = token as JArray;
+            return array == null || array.Count < 2 ? null : new[] { (double)array[0], (double)array[1] };
         }
 
         // R603. The words a group level could carry, found in the texts of the plot drawing. A text of two or more words that lies outside every
