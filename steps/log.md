@@ -26,6 +26,29 @@ Next:
 Your turn:
 - FAST-3-revit-test opens the rules table in Revit, label revit-later.
 
+## A third builder and the seam of 16:50, 6 Nov 2026
+
+Goal:
+- Bader's order of 16:25: go faster, a third builder, the seam answered, main merged into open branches.
+
+Done:
+- FAST-4-build-3 open on lane build-3: plots read and mirror, items 4 and 5 of FAST-2, with Common/DataCheck/, four CadReader files, the scenario scripts. FAST-2 lists its Common and CadReader files by name without them, plus three test files for item 6, and item 12, the Plot note. FAST-1 gains item 2b parameterSheet, item 8 the floor lines of the TestHost scripts, InstallScriptTests.cs. Seam lines marked given.
+
+Checked:
+- No path of FAST-1, FAST-2 and FAST-4 lies in or holds another but steps/seam.md and steps/log.md, by check_common.inside.
+
+Remains:
+- build-3 starts hidden once this merges.
+
+Known bugs:
+- R310 at random until FAST-2 item 9.
+
+Next:
+- START build-3 FAST-4-build-3.
+
+Your turn:
+- None.
+
 ## FAST-1-build-1 PR 1, the pane in 3 stages and stage 1 wired, 6 Nov 2026
 
 Goal:
