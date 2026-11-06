@@ -8,13 +8,13 @@ Goal:
 - Bader's order of 00:16: the Teams window that keeps the laptop awake does not stop the Revit driver.
 
 Done:
-- The line in FAST-3-revit-test and .claude/rules/revit.md. The plan holds the wait from 23:43 to 00:16. revit-test told by message at 00:16.
+- The line in FAST-3-revit-test and .claude/rules/revit.md. The plan holds the wait from 23:43 to 00:16, revit-test told at 00:16, and the refused driver launch of 00:44.
 
 Checked:
 - pytest python/tests -k "r26 or r400 or log": 50 passed.
 
 Remains:
-- The first run of FAST-3, its fix list by 08:00 Sat.
+- The first run of FAST-3: blocked since 00:44 on the permission check of the revit-test session, Bader to allow the driver launch.
 
 Known bugs:
 - None new.
@@ -37,7 +37,7 @@ Checked:
 - CLAUDE.md 10,217 bytes, under 10,240. pytest python/tests scripts/checks -k "r26 or r400 or log or claude or task or harness": 161 passed.
 
 Remains:
-- The first run of FAST-3, its fix list by 08:00 Sat.
+- The first run of FAST-3: blocked since 00:44 on the permission check of the revit-test session, Bader to allow the driver launch.
 
 Known bugs:
 - None new.

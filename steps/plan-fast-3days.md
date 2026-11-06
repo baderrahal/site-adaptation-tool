@@ -55,6 +55,7 @@ At 23:10:
 - Bader opens Revit once and presses Always Load.
 - revit-test: its folder is on task/FAST-3-revit-test from main 14044dd, started hidden at 23:30.
 - 23:43 to 00:16: revit-test waited, a Teams window "Meeting compact view" stood. Bader at 00:16: it keeps the laptop awake, ignore it. revit-test told at 00:16.
+- 00:46: run 1 not started. At 00:44 the PC was 5 minutes idle, then the permission check of the revit-test session (auto mode) refused the launch of the Revit driver under python/window_lock.py, with no reason given. Revit not opened, no input sent. BLOCKED until Bader allows that launch in the revit-test session, or runs the lane where it is allowed. Lead does not launch it for the lane.
 - 23:37: Bader's order, the driver presses Always Load on our own Unsigned Add-In box, PR 246.
 
 ## revit-test, FAST-3-revit-test, the one test on Sun 8 Nov
