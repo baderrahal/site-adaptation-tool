@@ -99,6 +99,7 @@ allowed:
   - dotnet/SiteAdaptation.Tests/WorkerRunTests.cs
   - dotnet/SiteAdaptation.Tests/R448_RevitListenerTests.cs
   - dotnet/SiteAdaptation.Tests/TestHostTests.cs
+  - dotnet/SiteAdaptation.Tests/ReadEdgeTests.cs
   - python/
   - config/
   - rules/
@@ -117,7 +118,7 @@ The logic behind the face, for any project. Bader's order of 6 Nov, fast build, 
 3. Update from report on a new project, Q394.
 4. Moved to FAST-4-build-3 on 6 Nov, Bader's order.
 5. Moved to FAST-4-build-3 on 6 Nov, Bader's order.
-6. No RAM floor: remove siteBuild.minFreeGB from config/project.json and every reader, python/window_lock.py, python/c3d_window.py and the worker checks. Bader's order of 6 Nov: WorkerRunTests.cs, R448_RevitListenerTests.cs and TestHostTests.cs are on this list by exact path, AddinConfig.cs, WorkerMemory.cs and RevitListener.cs of Common are in its Common entries. The floor lines of Run-TestHost.ps1, Start-RevitListener.ps1 and Run-Parallel.ps1 in dotnet/SiteAdaptation.TestHost/ are FAST-1's item 8. The order, so the gate stays green: first FAST-2 makes ParsonsModelTests.cs:360 and TestHostTests.cs:392 and :397 accept the script lines with or without the floor, then FAST-1 removes the floor lines from the scripts, then FAST-2 asserts the lines without the floor.
+6. No RAM floor: remove siteBuild.minFreeGB from config/project.json and every reader, python/window_lock.py, python/c3d_window.py and the worker checks. Bader's order of 6 Nov: WorkerRunTests.cs, R448_RevitListenerTests.cs and TestHostTests.cs are on this list by exact path, and ReadEdgeTests.cs since 6 Nov evening for its two R347 floor tests, AddinConfig.cs, WorkerMemory.cs and RevitListener.cs of Common are in its Common entries. The floor lines of Run-TestHost.ps1, Start-RevitListener.ps1 and Run-Parallel.ps1 in dotnet/SiteAdaptation.TestHost/ are FAST-1's item 8. The order, so the gate stays green: first FAST-2 makes ParsonsModelTests.cs:360 and TestHostTests.cs:392 and :397 accept the script lines with or without the floor, then FAST-1 removes the floor lines from the scripts, then FAST-2 asserts the lines without the floor.
 7. Boundary wall thickness from the rules file, Q149. The link parameter group, Q336.
 8. Q504, Bader's answer 5A of 6 Nov: a plot whose ffl is missing is marked, steps 6 to 8 skip it, and the plan lists every such plot in the issues list with the words no road level, so the card shows the count.
 9. Bader's answer 4A of 6 Nov: the R310 tests of ParsonsModelTests.cs fail at random on this PC. Measure the time of a CIM call on this PC and take the limit of the tests from it. dotnet/SiteAdaptation.TestHost/WindowSamples.ps1 is FAST-1's, a change there is a line in steps/seam.md.

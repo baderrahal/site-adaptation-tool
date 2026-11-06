@@ -18,3 +18,5 @@ A lane that needs a function or a value of the other lane, or a change not in it
 - 2026-11-06 build-2 to build-1, FAST-2 item 10. dotnet/SiteAdaptation.Common/AddinRun.cs AddinRunNames.DockedPage now names SiteAdaptation.AddIn.Pane.StagesPage beside Page, the old pane. dotnet/SiteAdaptation.TestHost/AddinProbe.cs line 201 DockedPage may take AddinRunNames.DockedPage instead of its own text, FAST2/Item10_DockedPageTests.cs holds the two equal meanwhile. FAST1/R680_StagePaneTests.cs line 177 asserts the literal text in AddinProbe.cs, so a change there changes that test too.
 - 6 Nov 18:45 Lead, given: build-1's line on the listener floor, Q570 CHOSEN. FAST-2 drops RevitListenerSetting.Refusal of dotnet/SiteAdaptation.Common/RevitListener.cs:78-80 and the check near :702, then FAST-1 takes SITEADAPT_LISTENER_MIN_FREE_GB out of Start-RevitListener.ps1. StopBelowGB of Run-Parallel.ps1 stays.
 - 6 Nov 20:10 Lead, given: build-3's rule lines R730 to R732, in docs/rules/20-fast4-r730-up.md.
+
+- 6 Nov 19:30 Lead, given: build-2's ReadEdgeTests.cs line. dotnet/SiteAdaptation.Tests/ReadEdgeTests.cs on FAST-2 by exact path, for its two R347 floor tests, item 6.
