@@ -27,6 +27,30 @@ Next:
 Your turn:
 - FAST-3-revit-test runs Build in Revit on a copy, label revit-later.
 
+## ReadEdgeTests.cs to FAST-2, rules R686 and R687, 6 Nov 2026
+
+Goal:
+- Let build-2 finish item 6, no RAM floor, and enter the rule lines of FAST-1 PR 3.
+
+Done:
+- dotnet/SiteAdaptation.Tests/ReadEdgeTests.cs on FAST-2 by exact path, for its two R347 floor tests. Seam line given.
+- R686 and R687 in docs/rules/18-fast-pane-r680-up.md and index.md, from the body of PR 234.
+
+Checked:
+- No path of FAST-1, FAST-2 and FAST-4 lies in or holds another but steps/seam.md and steps/log.md, by check_common.inside.
+
+Remains:
+- R688 once PR 238 is on main.
+
+Known bugs:
+- R310, R347 and R444 fail at random under load, FAST-2 item 9 measures it.
+
+Next:
+- PR 235, 237, 238 merge on green.
+
+Your turn:
+- None.
+
 ## FAST-4-build-3, the plot read and the mirror, 6 Nov 2026
 
 Goal:
