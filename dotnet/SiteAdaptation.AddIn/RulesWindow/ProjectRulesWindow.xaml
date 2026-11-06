@@ -21,7 +21,7 @@
     </ResourceDictionary>
   </Window.Resources>
 
-  <DockPanel>
+  <DockPanel Background="{StaticResource SA.Surface}">
     <Border DockPanel.Dock="Top" Background="{StaticResource SA.Band}" Padding="{StaticResource SA.Pad.Box}">
       <StackPanel>
         <TextBlock Style="{StaticResource SA.Type.Title}" Foreground="{StaticResource SA.Surface}" Text="{x:Static rw:ProjectRulesText.Title}" />
@@ -67,7 +67,9 @@
         <RowDefinition Height="Auto" />
         <RowDefinition Height="*" />
       </Grid.RowDefinitions>
-      <Grid Margin="{StaticResource SA.Gap.Bottom8}">
+      <!-- The padding of a row, so each heading stands over its column -->
+      <Border Padding="{StaticResource SA.Pad.Cell}">
+      <Grid>
         <Grid.ColumnDefinitions>
           <ColumnDefinition Width="3*" />
           <ColumnDefinition Width="4*" />
@@ -77,9 +79,12 @@
         </Grid.ColumnDefinitions>
         <TextBlock Style="{StaticResource HeadText}" Text="{x:Static rw:ProjectRulesText.Rule}" />
         <TextBlock Grid.Column="1" Style="{StaticResource HeadText}" Text="{x:Static rw:ProjectRulesText.Value}" />
-        <TextBlock Grid.Column="2" Style="{StaticResource HeadText}" Text="{x:Static rw:ProjectRulesText.Source}" />
-        <TextBlock Grid.Column="3" Style="{StaticResource HeadText}" Text="{x:Static rw:ProjectRulesText.Status}" />
+        <TextBlock Grid.Column="2" Style="{StaticResource HeadText}" Margin="{StaticResource SA.Gap.Left8}" Text="{x:Static rw:ProjectRulesText.Source}" />
+        <TextBlock Grid.Column="3" Style="{StaticResource HeadText}" Margin="{StaticResource SA.Gap.Left8}" Text="{x:Static rw:ProjectRulesText.Status}" />
+        <!-- Takes the width of the button of a row, so the star columns of the headings match those of the rows -->
+        <Button Grid.Column="4" Style="{StaticResource SA.Button.Base}" Margin="{StaticResource SA.Gap.Left8}" Content="{x:Static rw:ProjectRulesText.Confirm}" Visibility="Hidden" Focusable="False" />
       </Grid>
+      </Border>
       <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
         <ItemsControl x:Name="RuleRows" ItemsSource="{Binding Rows}">
           <ItemsControl.ItemTemplate>

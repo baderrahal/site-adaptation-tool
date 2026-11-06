@@ -377,6 +377,31 @@ Built in Lane B 5c. The title, band line, buttons, chips, columns and side box a
 - `The manual PDF did not open: <n>` CHOSEN, when the shell refuses the file
 - `No rules file is chosen yet. Choose it in Set up site first.` CHOSEN, the line of the ribbon command Site Adaptation Rules when the pane holds no rules file, shown in place of the window
 - `The rules file was not found: <n>` CHOSEN, the line of that command when the chosen rules file is gone, with its path
+- `Rules of this project` CHOSEN, the rules table of a project of FAST-1-build-1, item 3 (R682, R683)
+- `Each rule this project builds by. Confirm a value as it stands, or type another one and save it.` CHOSEN, the rules table of a project of FAST-1-build-1, item 3 (R682, R683)
+- `Value` CHOSEN, the rules table of a project of FAST-1-build-1, item 3 (R682, R683)
+- `Source` CHOSEN, the rules table of a project of FAST-1-build-1, item 3 (R682, R683)
+- `Status` CHOSEN, the rules table of a project of FAST-1-build-1, item 3 (R682, R683)
+- `Confirm` CHOSEN, the rules table of a project of FAST-1-build-1, item 3 (R682, R683)
+- `Save` CHOSEN, the rules table of a project of FAST-1-build-1, item 3 (R682, R683)
+- `Close` CHOSEN, the rules table of a project of FAST-1-build-1, item 3 (R682, R683)
+- `Before Build` CHOSEN, the rules table of a project of FAST-1-build-1, item 3 (R682, R683)
+- `Warn and build` CHOSEN, the rules table of a project of FAST-1-build-1, item 3 (R682, R683)
+- `Stop the build` CHOSEN, the rules table of a project of FAST-1-build-1, item 3 (R682, R683)
+- `What a Build does while a rule is not confirmed.` CHOSEN, the rules table of a project of FAST-1-build-1, item 3 (R682, R683)
+- `Use the manual template` CHOSEN, the rules table of a project of FAST-1-build-1, item 3 (R682, R683)
+- `No rules chosen for this project yet.` CHOSEN, the rules table of a project of FAST-1-build-1, item 3 (R682, R683)
+- `No rules chosen for this project yet. Open Rules in Settings.` CHOSEN, the rules table of a project of FAST-1-build-1, item 3 (R682, R683)
+- `<n> of <n> rules are not confirmed. Open Rules in Settings.` CHOSEN, the rules table of a project of FAST-1-build-1, item 3 (R682, R683)
+- `Rules` CHOSEN, the rules table of a project of FAST-1-build-1, item 3 (R682, R683)
+- `Open` CHOSEN, the rules table of a project of FAST-1-build-1, item 3 (R682, R683)
+- `This project uses the shipped settings, so its rules cannot be set here. Start a new project in Settings, Project setup, then choose its rules.` CHOSEN, the rules table of a project of FAST-1-build-1, item 3 (R682, R683)
+- `The rules templates are not installed with the add-in. Install the add-in again.` CHOSEN, the rules table of a project of FAST-1-build-1, item 3 (R682, R683)
+- `Save the model first, the rules table keeps its record beside the work of the model.` CHOSEN, the rules table of a project of FAST-1-build-1, item 3 (R682, R683)
+- `The value of <name> is not a list or a set the tool can read: <name>` CHOSEN, the rules table of a project of FAST-1-build-1, item 3 (R682, R683)
+- `Nothing changed: <name>` CHOSEN, the rules table of a project of FAST-1-build-1, item 3 (R682, R683)
+- `Saved <name>.` CHOSEN, the rules table of a project of FAST-1-build-1, item 3 (R682, R683)
+- `The rules of the manual template are now the rules of this project. Each is not confirmed until a person confirms it.` CHOSEN, the rules table of a project of FAST-1-build-1, item 3 (R682, R683)
 
 ### Check table
 

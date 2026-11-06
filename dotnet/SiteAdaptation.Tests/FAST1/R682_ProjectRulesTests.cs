@@ -150,6 +150,43 @@ namespace SiteAdaptation.Tests
             Assert.Equal(4, File.ReadAllLines(Path.Combine(place.Folder, RulesFileNames.LogName)).Length);
         }
 
+        // The draft shot of the window: a set up project shows each rule with its value and the line of the last change
+        [Fact]
+        public void R682_the_window_lays_out_the_rules_of_a_set_up_project()
+        {
+            OnSta(() =>
+            {
+                ProjectRulesWindow window = Shots.LaidOutProjectRules();
+                var model = (ProjectRulesViewModel)window.DataContext;
+                Assert.True(model.HasRules);
+                Assert.Equal(4, model.Rows.Count);
+                Assert.Equal(RulesFileNames.Confirmed, model.Rows[0].Status);
+                Assert.Equal(TextTemplate.Fill(ProjectRulesText.Saved, model.Rows[0].Name), model.Line);
+                Assert.Equal(4, ((System.Windows.Controls.ItemsControl)window.FindName("RuleRows")).Items.Count);
+                window.Close();
+            });
+        }
+
+        private static void OnSta(Action action)
+        {
+            Exception failure = null;
+            var thread = new Thread(() =>
+            {
+                try
+                {
+                    action();
+                }
+                catch (Exception caught)
+                {
+                    failure = caught;
+                }
+            });
+            thread.SetApartmentState(ApartmentState.STA);
+            thread.Start();
+            thread.Join();
+            Assert.True(failure == null, failure?.ToString());
+        }
+
         [Fact]
         public void R683_the_pane_shows_one_amber_line_while_rules_are_not_confirmed()
         {
