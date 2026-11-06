@@ -14,16 +14,19 @@ namespace SiteAdaptation.Common.SiteBuild
     //   M10  "<unit types> always have <n> step(s)"
     //   M13  "Front setback <n> m" and zero or more ", <unit type> <n> m" for a unit type with a setback of its own
     //   M11, M12  "FFL + <n> m"
+    //   M14  "boundary wall <n> mm inside the plot limit", R706: the thickness of the wall, its outer face on the plot limit (Q149, CHOSEN)
     internal sealed class RuleNumbers
     {
         public const string StepsRule = "M10";
         public const string SetbackRule = "M13";
         public const string BoundaryWallRule = "M11";
         public const string GardenWallRule = "M12";
+        public const string BoundaryWallThicknessRule = "M14";
 
         private static readonly Regex StepsForm = new Regex(@"^(?<types>.+?)\s+always have\s+(?<n>\d+)\s+steps?\b", RegexOptions.CultureInvariant);
         private static readonly Regex SetbackDefault = new Regex(@"Front setback\s+(?<n>\d+(?:\.\d+)?)\s*m\b", RegexOptions.CultureInvariant);
         private static readonly Regex SetbackOwn = new Regex(@",\s*(?<type>[A-Z]{1,3}\d{1,2})\s+(?<n>\d+(?:\.\d+)?)\s*m\b", RegexOptions.CultureInvariant);
+        private static readonly Regex InsideLimit = new Regex(@"boundary wall\s+(?<n>\d+(?:\.\d+)?)\s*mm\s+inside the plot limit", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
         private static readonly Regex AboveFfl = new Regex(@"FFL\s*\+\s*(?<n>\d+(?:\.\d+)?)\s*m\b", RegexOptions.CultureInvariant);
 
         public Dictionary<string, double> StepsByType { get; } = new Dictionary<string, double>(StringComparer.Ordinal);
@@ -31,6 +34,9 @@ namespace SiteAdaptation.Common.SiteBuild
         public Dictionary<string, double> SetbackByType { get; } = new Dictionary<string, double>(StringComparer.Ordinal);
         public double? BoundaryWallTopM { get; private set; }
         public double? GardenWallTopM { get; private set; }
+
+        // R706. The thickness of the boundary wall in metres, inside the plot from its limit
+        public double? BoundaryWallThicknessM { get; private set; }
 
         // Rule id to the status of the rule, for the value that takes a number from it
         public Dictionary<string, string> Status { get; } = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -74,6 +80,13 @@ namespace SiteAdaptation.Common.SiteBuild
                     case GardenWallRule:
                         numbers.GardenWallTopM = given ? Above(text) : null;
                         if (given && !numbers.GardenWallTopM.HasValue)
+                        {
+                            issues.Add(new PlanIssue { Line = PlanTexts.RuleTextUnreadable(rule.Id, text) });
+                        }
+                        break;
+                    case BoundaryWallThicknessRule:
+                        numbers.BoundaryWallThicknessM = given ? Inside(text) : null;
+                        if (given && !numbers.BoundaryWallThicknessM.HasValue)
                         {
                             issues.Add(new PlanIssue { Line = PlanTexts.RuleTextUnreadable(rule.Id, text) });
                         }
@@ -123,6 +136,13 @@ namespace SiteAdaptation.Common.SiteBuild
                 SetbackByType[own.Groups["type"].Value] = double.Parse(own.Groups["n"].Value, CultureInfo.InvariantCulture);
             }
             return true;
+        }
+
+        // R706. The manual gives the wall in mm, the plan holds metres
+        private static double? Inside(string text)
+        {
+            Match found = InsideLimit.Match(text);
+            return found.Success ? double.Parse(found.Groups["n"].Value, CultureInfo.InvariantCulture) / 1000.0 : (double?)null;
         }
 
         private static double? Above(string text)

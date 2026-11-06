@@ -36,6 +36,9 @@ def migrate_entry(item, groups):
     model file in source. A key of no group, or a source that names a job other than the group of its key, is refused."""
     jobs = job_of_key(groups)
     job = jobs.get(item.get("key"))
+    # R704: an entry Update from report saved by hand on a new project names no past key, its job is its source
+    if job is None and item.get("key") is None and item.get(BY_HAND) is True and "model" in item and item.get("source") in groups:
+        job = item["source"]
     if job is None:
         raise project_profile.ProfileError("override of plot %s field %s names key %s, which no group of majority.groups holds (R330)"
                                            % (item.get("plot"), item.get("field"), item.get("key")))
