@@ -335,7 +335,7 @@ namespace SiteAdaptation.Common
             return (request.Command == "dataCheck" && input.Role == "scanFolder") || (request.Command == "rulesSetup" && input.Role == "projectFolder");
         }
 
-        // R600, R632. Of the older commands only dataCheck, and only for its config, its folder and the file a person confirmed, takes an empty SHA-256 as no comparison. The files it finds in the
+        // R600, R632, R700. Of the older commands only dataCheck, and only for its config, its folder, the file a person confirmed and the parameter sheet, takes an empty SHA-256 as no comparison. The files it finds in the
         // folder are marked before and after by WorkerContext.OpenFile. Every other older command and role still refuses an input whose SHA-256
         // is not the one of the request
         private static bool NoShaGiven(WorkerRequest request, WorkerFile input)
@@ -345,7 +345,8 @@ namespace SiteAdaptation.Common
             {
                 return true;
             }
-            return request.Command == "dataCheck" && (input.Role == "config" || input.Role == "scanFolder" || input.Role == ConfirmedProfile.Role) && string.IsNullOrEmpty(input.Sha256);
+            return request.Command == "dataCheck" && (input.Role == "config" || input.Role == "scanFolder" || input.Role == ConfirmedProfile.Role || input.Role == Settings.InputNames.ParameterSheet)
+                && string.IsNullOrEmpty(input.Sha256);
         }
 
         private static readonly string[] OwnFileCommands = { "siteBuild", "rulesSetup", "rulesChange" };

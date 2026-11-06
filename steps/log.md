@@ -27,6 +27,30 @@ Next:
 Your turn:
 - FAST-3-revit-test opens the pane in Revit, label revit-later.
 
+## FAST-2-build-2 PR 1, 6 Nov 2026, shared parameters and the Python side of no RAM floor
+
+Goal:
+- Items 1 and 6 of FAST-2: the data check marks shared parameters from the Excel sheet, no free memory floor.
+
+Done:
+- R700: the worker reads the parameter sheet the dataCheck request names as input parameterSheet, the need sharedParameters is strong when every villa link row has a GUID and says in plain words what is missing when not.
+- R701: python/window_lock.py, c3d_window.py and place_codes.py no longer wait, skip or stop on free memory.
+
+Checked:
+- S1 by this build, run outside git: sharedParameters strong, 10 parameters for the villa links, the sheet unchanged before and after. R700 and R600 tests 41 of 41 on net8.0.
+
+Remains:
+- Items 2, 3, 4, 5, 7, 8, 9. Item 6 worker and config part. Item 1 floors part.
+
+Known bugs:
+- Floors still carry the Plot parameter, steps/seam.md.
+
+Next:
+- Item 2, the source mark per value.
+
+Your turn:
+- Lead: the two seam lines of build-2, the item 6 test files and the floor Plot parameter.
+
 ## FAST-1 seam given, 6 Nov 2026
 
 Goal:

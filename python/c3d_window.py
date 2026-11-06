@@ -3,7 +3,7 @@
 Bader decided for round DATA that the full window runs the probe the way the Revit test host runs: acad.exe starts with
 the Civil 3D product switch on a copy and a script that NETLOADs the probe, runs C3DDATA and C3DQUIT, and the watcher of
 R161 answers the dialogs. The runner refuses a drawing outside the data book work folder, hashes the copy before and after,
-stops the run when free memory falls under minFreeGB or the time runs out, and only ever stops the processes it started.
+stops the run when the time runs out, and only ever stops the processes it started. Free memory is recorded, R701 took its floor out.
 SECURELOAD, TRUSTEDPATHS and the registry are never touched. With dataBook.windowLock the window opens only under the shared
 window lock of R200 (R197), and with watcherOwnOnly the watcher clicks only the security dialog that names the probe DLL.
 """
@@ -126,9 +126,6 @@ def _run(config, role, launcher, memory, sleep, clock, dxf=None):
                 "C3DPROBE_LANDXML": str(root / "landxml"), "C3DPROBE_KNOWN": "|".join(known_surfaces(book, role))})
     start_free = memory()
     record = {"role": role, "drawing": str(drawing), "freeGbAtStart": round(start_free, 2), "pids": []}
-    if start_free < book["minFreeGB"]:
-        record["skipped"] = "free memory under %s GB" % book["minFreeGB"]
-        return record
     hash_before = c3d_run.sha256(drawing)
     folder_before = sorted(p.name for p in drawing.parent.iterdir())
     launch = launcher or (lambda args, environment: subprocess.Popen(args, env=environment, cwd=str(logs)))
@@ -142,10 +139,6 @@ def _run(config, role, launcher, memory, sleep, clock, dxf=None):
     while window.poll() is None:
         free = memory()
         lowest = min(lowest, free)
-        if free < book["minFreeGB"]:
-            record["stopped"] = "free memory %.2f GB under %s GB" % (free, book["minFreeGB"])
-            c3d_run.stop_own(window)
-            break
         if clock() - started > book["timeoutMinutes"] * 60:
             record["stopped"] = "timeout after %s minutes" % book["timeoutMinutes"]
             c3d_run.stop_own(window)

@@ -53,3 +53,7 @@ The S1 folder scans with sharedParameters strong, the plan carries a source on e
 - Keep steps/heads-up/<lane>.md current: what changed, where, what calls what, what is next. One page.
 
 At the end, put your final statement in the PR body and in steps/heads-up/<lane>.md, then push.
+
+# Rules for Lead
+
+The rules of this task are in docs/rules/19-fast2-r700-up.md, written by build-2 at Lead's answer of 6 Nov.

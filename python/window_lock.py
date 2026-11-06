@@ -1,7 +1,7 @@
 """R200. One CAD or Revit window at a time on this machine, shared with the other session by one lock file.
 
 Before a window opens, the lock named by siteBuild.lock in config/project.json must be absent, no process of
-siteBuild.windowProcesses may run and free memory must be at least siteBuild.minFreeGB. While one of them is not so, the
+siteBuild.windowProcesses may run. Free memory is logged and never holds a window back, R701 took the floor out. While one is not so, the
 round waits siteBuild.waitMinutes and looks again, and every wait is logged. A lock older than siteBuild.staleHours with no
 window process is logged and deleted. The lock holds the round name and the time, it is made only when nothing holds it, and
 it is deleted as soon as the window command ends, also when that command fails.
@@ -93,7 +93,6 @@ class Lock:
         self.round = round_name
         self.wait = float(block["waitMinutes"])
         self.stale = float(block["staleHours"])
-        self.floor = float(block["minFreeGB"])
         self.names = list(block["windowProcesses"])
         self.log_path = Path(log_path)
         self.now, self.sleep, self.free, self.processes = now, sleep, free, processes
@@ -177,8 +176,6 @@ class Lock:
         # A slot just taken may not show its window yet, so a window and its slot both count and the limit is never passed
         if len(seen["processes"]) + len(held) >= self.max_windows:
             return "a window process runs: " + ", ".join(sorted({item["name"] for item in seen["processes"]})), seen
-        if seen["freeGB"] < self.floor:
-            return "free memory %.2f GB is under the floor of %.2f GB" % (seen["freeGB"], self.floor), seen
         seen["slot"] = free_slots[0]
         return None, seen
 
