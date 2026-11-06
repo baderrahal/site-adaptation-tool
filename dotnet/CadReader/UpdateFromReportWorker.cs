@@ -45,7 +45,9 @@ namespace CadReader
             {
                 books.Add(UpdateWorkbook.Read(run.Input(role)));
             }
-            UpdateList list = UpdateFromReport.Compare(books, plan, FileHash.Sha256(planPath), rules, request.LevelProfile, overrides);
+            // R704, Q394. The project mode of the request over designBasis.mode, as the report takes it, tells a new project
+            JObject config = SiteAdaptation.Common.Settings.ProjectModes.Apply(PyJson.Parse(WorkFiles.ReadText(run.Input("config"))) as JObject, request.ProjectMode);
+            UpdateList list = UpdateFromReport.Compare(books, plan, FileHash.Sha256(planPath), rules, request.LevelProfile, overrides, ReportSheets.NewProject(config));
             run.Counts["changes"] = list.Changes.Count;
             run.Counts["ignored"] = list.Ignored.Count;
             run.WriteJson(request.OutputFolder, OutputName, UpdateFromReport.ResultJson(list, null));

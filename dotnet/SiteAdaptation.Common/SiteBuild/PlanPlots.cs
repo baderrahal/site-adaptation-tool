@@ -33,8 +33,14 @@ namespace SiteAdaptation.Common.SiteBuild
                 plot.Add("steps", FromRule(numbers, RuleNumbers.StepsRule, Pick(numbers.StepsByType, row.VillaType, null), "the number of steps"));
                 plot.Add("frontSetbackM", FromRule(numbers, RuleNumbers.SetbackRule, Pick(numbers.SetbackByType, row.VillaType, numbers.Setback), "the front setback"));
                 plot.Add("boundaryWallAboveFflM", FromRule(numbers, RuleNumbers.BoundaryWallRule, numbers.BoundaryWallTopM, "the top of the boundary wall"));
+                plot.Add("boundaryWallThicknessM", FromRule(numbers, RuleNumbers.BoundaryWallThicknessRule, numbers.BoundaryWallThicknessM, "the thickness of the boundary wall"));
                 plot.Add("gardenWallAboveFflM", FromRule(numbers, RuleNumbers.GardenWallRule, numbers.GardenWallTopM, "the top of the garden wall"));
                 MarkDoubts(plot);
+                // R705, Q504 answer 5A. A plot with no floor level is marked by its missing value and named in the issues, so the card counts them
+                if (plot.Get("ffl").IsMissing)
+                {
+                    issues.Add(new PlanIssue { Plot = row.Number, Line = PlanTexts.NoRoadLevel(row.Number) });
+                }
                 plots.Add(plot);
             }
             return plots;
@@ -107,7 +113,7 @@ namespace SiteAdaptation.Common.SiteBuild
             int outlined = plots.Count(plot => plot.In.Outline != null);
             int leveled = plots.Count(plot => !plot.Get("ffl").IsMissing);
             int typed = plots.Count(plot => !plot.Get("ffl").IsMissing && !plot.Get("villaType").IsMissing);
-            int walled = plots.Count(plot => !plot.Get("ffl").IsMissing && !plot.Get("boundaryWallAboveFflM").IsMissing);
+            int walled = plots.Count(plot => !plot.Get("ffl").IsMissing && !plot.Get("boundaryWallAboveFflM").IsMissing && !plot.Get("boundaryWallThicknessM").IsMissing);
             var steps = new JArray();
             Add(steps, 4, "Check", plots.Count(plot => !plot.Get("villaType").IsMissing && plot.In.Outline != null), total);
             Add(steps, 5, "Floors and ramps", outlined, total);
