@@ -6,7 +6,8 @@ The one live file of the three days, Bader's order of 6 Nov. Lead keeps it true 
 
 - Built: on main from R2, the Confirm window of R2-C1, Read data on a raw folder, Review data.
 - Next: the pane in 3 stages, then stage 1 wired, then Settings and the rules, then the one Build button, then stage 3, then no road level per Q504 5A.
-- 14:15: started hidden by Lead with scripts/lanes/run_lane.py, opus, effort high. Branch task/FAST-1-build-1 on origin. Reading the pane code, no PR yet.
+- 14:15 started hidden by Lead, while a session Bader opened ran in the same folder. The hidden one saw the other's work and stopped with no edit. Bader stopped his at a safe point, pushed as ebb346e: the 3 cards, Choose project folder, the data check rows, Fix items, Report. 4 tests fail, the handover is steps/heads-up/build-1.md.
+- 15:10 Lead gave its seam line: UiLabelTests.cs on its list, R680 and R681 in docs/rules/18-fast-pane-r680-up.md, Revit opening to FAST-3. Restarted hidden from ebb346e, one session only.
 - Blocks: none.
 
 ## build-2, FAST-2-build-2, the logic for any project

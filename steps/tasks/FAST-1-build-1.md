@@ -8,6 +8,7 @@ allowed:
   - dotnet/SiteAdaptation.UiShots/
   - dotnet/SiteAdaptation.TestHost/
   - dotnet/SiteAdaptation.Tests/FAST1/
+  - dotnet/SiteAdaptation.Tests/UiLabelTests.cs
   - docs/design/14-ui-labels.md
   - steps/ui-shots/
   - steps/revit-results/
@@ -26,7 +27,7 @@ The face of the tool in Revit. Bader's order of 6 Nov, fast build, 6 to 8 Nov. I
 4. Stage 2 Build site wired: the scope list in the project's words, a Preview tick that opens the 2D preview, one Build button that runs set up site, check, floors and ramps, levels, villas and walls as one run with one progress line, through the existing step code of version 1. It stops only on a blocking issue and says why in plain words. Everything else goes to the issues list. Coordinates from CAD shown with the file difference in mm.
 5. Stage 3 Review and deliver: the issues count, the source mix bar (computed, rule, person entered, missing) read from what build-2 writes, Report and Update from report on the existing version 1 code.
 6. Q504, Bader's answer 5A of 6 Nov: the Build skips steps 6 to 8 for a plot with no ffl, and the card shows the count of the issues no road level that the plan of FAST-2 lists.
-7. Each window opened once in Revit on a copy by this lane, one screenshot each in steps/ui-shots/ with no real value. No scoring, no second method, no counts against the plan.
+7. Each window rendered once by SiteAdaptation.UiShots, one screenshot each in steps/ui-shots/ with no real value, and the PR labelled revit-later. Opening the windows in Revit is FAST-3-revit-test's, as .claude/rules/revit.md lets the revit-test lane alone open Revit. CHOSEN by Lead on the seam line of 6 Nov. No scoring, no second method, no counts against the plan.
 
 Tests in dotnet/SiteAdaptation.Tests/FAST1/, a folder as the lane guard and the folder check take a path, not a file name pattern. CHOSEN by Lead.
 

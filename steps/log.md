@@ -8,7 +8,7 @@ Goal:
 - Items 1 and 6 of FAST-2: the data check marks shared parameters from the Excel sheet, no free memory floor.
 
 Done:
-- R700: the worker reads the parameter sheet the project settings name, the need sharedParameters is strong when every villa link row has a GUID and says in plain words what is missing when not.
+- R700: the worker reads the parameter sheet the dataCheck request names as input parameterSheet, the need sharedParameters is strong when every villa link row has a GUID and says in plain words what is missing when not.
 - R701: python/window_lock.py, c3d_window.py and place_codes.py no longer wait, skip or stop on free memory.
 
 Checked:
@@ -25,6 +25,29 @@ Next:
 
 Your turn:
 - Lead: the two seam lines of build-2, the item 6 test files and the floor Plot parameter.
+
+## FAST-1 seam given, 6 Nov 2026
+
+Goal:
+- Give build-1 its seam line and restart it as one session.
+
+Done:
+- dotnet/SiteAdaptation.Tests/UiLabelTests.cs on the list of FAST-1. R680 and R681 in docs/rules/18-fast-pane-r680-up.md. Opening the windows in Revit moves to FAST-3, the Revit guard holds. A comment names R680 and R681 for test_r12 until their tests merge.
+
+Checked:
+- No other open task holds UiLabelTests.cs. rules_docs passes.
+
+Remains:
+- FAST-1 fixes its 4 failing tests and opens PR 1, label revit-later.
+
+Known bugs:
+- Two sessions ran in build-1 at once from 14:15, no work lost, the hidden one made no edit.
+
+Next:
+- build-1 restarted from ebb346e.
+
+Your turn:
+- Open no session in a lane folder Lead runs hidden, say so to Lead instead.
 
 ## Lanes started hidden, 6 Nov 2026
 
