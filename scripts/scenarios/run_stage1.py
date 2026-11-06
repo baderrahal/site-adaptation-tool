@@ -48,9 +48,9 @@ def with_sheet(request, config):
     return request
 
 
-def run_one(name, worker, root, config=None, confirm=False):
+def run_one(name, worker, root, config=None, confirm=False, suffix=""):
     folder = root / name
-    out = root / "runs" / (name + tools.CONFIRMED_RUN if confirm else name)
+    out = root / "runs" / ((name + tools.CONFIRMED_RUN if confirm else name) + suffix)
     if out.exists():
         shutil.rmtree(out)
     out.mkdir(parents=True)
@@ -73,10 +73,11 @@ def main(argv=None):
     parser.add_argument("--only", nargs="*")
     parser.add_argument("--config", help="a copy of config/project.json kept outside the repo, so an edit of the repo file never changes an input in the middle of a run")
     parser.add_argument("--confirmed", action="store_true", help="run on what the first run of the scenario proposed, which must be there")
+    parser.add_argument("--suffix", default="", help="FAST-4. A run folder of its own, as _before for the run of main before a change, which score_scenarios.py shows apart")
     args = parser.parse_args(argv)
     root = tools.work_root() / "scenarios"
     for name in args.only or sorted(tools.SCENARIOS):
-        run_one(name, args.worker, root, args.config, args.confirmed)
+        run_one(name, args.worker, root, args.config, args.confirmed, args.suffix)
     return 0
 
 
