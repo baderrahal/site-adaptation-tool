@@ -1,6 +1,6 @@
-STATE WAITING, 2026-11-06 03:28
+STATE RUNNING, task/R2-C2-build-1, 2026-11-06 04:24
 # Progress
-Written by scripts/status.ps1 -Progress at 2026-11-06 03:28 from git, PRs and checks, never by hand. Main is at dbb86f5.
+Written by scripts/status.ps1 -Progress at 2026-11-06 04:24 from git, PRs and checks, never by hand. Main is at eb94802.
 
 ## State
 
@@ -19,6 +19,7 @@ Written by scripts/status.ps1 -Progress at 2026-11-06 03:28 from git, PRs and ch
 
 ## Done
 
+- PR 220, merged 2026-11-06: Rules for Lead of R2-C2-build-1: R640 to R648, a config key, Q501 to Q508
 - PR 219, merged 2026-11-05: R2-C4: the pane in 3 stages for revit-test
 - PR 217, merged 2026-11-05: R2-C2-build-1 opens, the R639 comment goes
 - PR 216, merged 2026-11-05: R2-C1-fix-build-1: stage 1 says what it did, R639
@@ -26,7 +27,6 @@ Written by scripts/status.ps1 -Progress at 2026-11-06 03:28 from git, PRs and ch
 - PR 214, merged 2026-11-05: Records of the recovery of 5 Nov, latent lines of PR 211 and 213, R2-C3-revit-test opens
 - PR 213, merged 2026-11-05: R639 rule line from R2-C1-fix-build-1
 - PR 212, merged 2026-11-05: Records of PR 209 and PR 211, a rule for a Revit driver, the rule test reads the lane test folders
-- PR 211, merged 2026-11-05: R2-C3-build-1: rules per project, rulesSetup, rulesChange, RulesForBuild.Check and the templates
 
 ## Open bugs
 
@@ -42,4 +42,4 @@ Written by scripts/status.ps1 -Progress at 2026-11-06 03:28 from git, PRs and ch
 - Task R2-C2-build-1 in lane build-1, open
 - Task R2-C2-revit-test in lane revit-test, waiting
 - Task R2-C3-revit-test in lane revit-test, open
-Hash of the lines above, a hand edit fails a test: 97ae2ca90d3e30ad328cb12997453563ff13ce6c81745bd579c4b6e14a37e8a4
+Hash of the lines above, a hand edit fails a test: 4ae83e82c803468826fd4408c4d5efaaa9a282ecfb2efff844d37d292ba15969

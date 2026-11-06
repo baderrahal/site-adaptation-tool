@@ -5,6 +5,8 @@ stage: 2
 status: done
 allowed:
   - dotnet/SiteAdaptation.Common/SiteBuild/
+  - dotnet/SiteAdaptation.Common/DataCheck/DataCheckLogic.cs
+  - dotnet/SiteAdaptation.Common/DataCheck/DataCheckFind.cs
   - dotnet/SiteAdaptation.Tests/SiteBuild/
   - dotnet/CadReader/
   - docs/design/01-option-b.md
@@ -43,6 +45,7 @@ Side by side with R2-C3-build-1 on build-2, Bader's order of 5 Nov 2026, so:
 - A change to an existing file of Common is asked of Lead with the reason. Lead adds that exact path to this list by a PR, or says do it another way. Do not edit it first.
 - Measure siteBuild on S1 and give Lead the time limit, 600 s in config is chosen and not measured. Rule lines R640 to R654 and any new key of config/project.json go through Lead, as docs/rules/ and config/project.json are build-2's. Write them in this task file under a heading Rules for Lead and tell Lead in the last reply. Lead enters them by a Lead PR before the code PR.
 - docs/design/14-ui-labels.md is R2-C3-revit-test's, Bader's answer of 5 Nov. A label C2 needs goes through Lead.
+- DataCheckLogic.cs and DataCheckFind.cs, by exact path, Lead's PR after the second review of PR 221: hand the rings of the stage 1 scan out of DataCheckLogic.Run so PlotOutlines takes them and runs no second scan. Change nothing else there, and no value stage 1 writes.
 - Do not touch rules/. A missing rule value stays missing and marked.
 - The rules reach the build by SiteAdaptation.Common.ProjectRules.RulesForBuild.Check(string rulesPath, JObject config, string projectMode) of R2-C3-build-1, which answers RulesChoiceLine and BlockingLine and the rules. projectMode is the mode of the request, never the word in config. Merge main for it once C3 is merged, and call it from siteBuild. The plan wants blocking as a list of line and issues as a list of plot and line, so wrap what it gives. Finding project_rules.json beside the profile is yours, a null path asks even when the project has rules. So C3 merges first, then this task.
 - Tests of the rules through siteBuild, marked for this task in tests/acceptance/test_r2_build.py, are this task's.
