@@ -50,7 +50,7 @@ namespace CadReader
             else
             {
                 Gather(run, folder, settings, input);
-                ReadParameterSheet(run, config, input);
+                ReadParameterSheet(run, input);
                 try
                 {
                     output = DataCheckLogic.Run(settings, input);
@@ -272,19 +272,16 @@ namespace CadReader
             }
         }
 
-        // R700. The parameter sheet of the project settings, read in place and marked before and after like every input. A sheet that is
-        // not there or does not read is said by the need sharedParameters, the run carries on
-        private static void ReadParameterSheet(WorkerContext run, JObject config, DataCheckInput input)
+        // R700. The parameter sheet of the project, the input of the request that the add-in or the scenario run takes from the project
+        // settings, so the folder alone says nothing of it. The runner guards it as every input. A request that names none, or a sheet that
+        // is not there or does not read, is said by the need sharedParameters and the run carries on
+        private static void ReadParameterSheet(WorkerContext run, DataCheckInput input)
         {
-            string path;
-            try
-            {
-                path = SiteAdaptation.Common.SetUp.ParameterSheet.PathOf(run.Input("config"), config);
-            }
-            catch (InvalidDataException)
+            if (!run.Request.Inputs.Any(item => item.Role == SiteAdaptation.Common.Settings.InputNames.ParameterSheet))
             {
                 return;
             }
+            string path = run.Input(SiteAdaptation.Common.Settings.InputNames.ParameterSheet);
             input.SheetName = Path.GetFileName(path);
             input.SheetFound = File.Exists(path);
             if (!input.SheetFound)
@@ -293,13 +290,6 @@ namespace CadReader
             }
             try
             {
-                InputMark before;
-                string refusal = run.OpenFile("parameter sheet", path, out before);
-                if (refusal != null)
-                {
-                    input.SheetProblem = refusal;
-                    return;
-                }
                 input.Sheet = SiteAdaptation.Common.SetUp.ParameterSheet.FromFile(path);
             }
             catch (Exception failure)

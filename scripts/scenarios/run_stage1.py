@@ -37,6 +37,17 @@ def request_for(name, folder, out, config=None, profile=None):
     }
 
 
+def with_sheet(request, config):
+    """R700. The parameter sheet the config names in addin.parameterSheet, relative to the folder above the config, as the add-in gives it
+    from the project settings. A config that names none, or a sheet not on disk, adds nothing, the data check then says it is missing."""
+    path = Path(config)
+    named = (json.loads(path.read_text(encoding="utf-8")).get("addin") or {}).get("parameterSheet")
+    sheet = Path(named) if named and Path(named).is_absolute() else path.resolve().parent.parent / named if named else None
+    if sheet is not None and sheet.is_file():
+        request["inputs"].append({"role": "parameterSheet", "path": str(sheet)})
+    return request
+
+
 def run_one(name, worker, root, config=None, confirm=False):
     folder = root / name
     out = root / "runs" / (name + tools.CONFIRMED_RUN if confirm else name)
@@ -49,7 +60,7 @@ def run_one(name, worker, root, config=None, confirm=False):
         profile = out / "confirmed_profile.json"
         profile.write_text(json.dumps(confirmed_profile.confirmed(proposed), indent=1), encoding="utf-8")
     path = out / "request_stage1.json"
-    path.write_text(json.dumps(request_for(name, folder, out, config, profile)), encoding="utf-8")
+    path.write_text(json.dumps(with_sheet(request_for(name, folder, out, config, profile), config or ROOT / "config" / "project.json")), encoding="utf-8")
     done = subprocess.run([str(worker), "--request", str(path)], capture_output=True, text=True, encoding="utf-8", errors="replace")
     (out / "built_from.json").write_text(json.dumps({"commit": built_commit(worker)}), encoding="utf-8")
     (out / "worker_output.txt").write_text(done.stdout[-20000:] + done.stderr[-20000:], encoding="utf-8")
