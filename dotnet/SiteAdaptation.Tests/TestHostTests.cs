@@ -385,18 +385,16 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R110_the_launcher_reads_memory_first_keeps_8_gb_free_runs_at_most_3_and_stops_one_window_only()
+        public void R110_the_launcher_reads_memory_first_runs_at_most_3_and_stops_one_window_only()
         {
             string launcher = RepoText("dotnet", "SiteAdaptation.TestHost", "Run-Parallel.ps1");
 
-            // R701, item 6 of FAST-2: the floor of free memory leaves the launcher in a later PR of FAST-1, a launcher that still holds it keeps 8 GB
-            bool floor = launcher.Contains("$MinFreeGB");
-            Assert.True(!floor || launcher.Contains("[double]$MinFreeGB = 8"));
+            // R701, item 6 of FAST-2: no floor of free memory holds a start back, PR 237 of FAST-1 took it out
+            Assert.DoesNotContain("$MinFreeGB", launcher);
             Assert.Contains("[int]$MaxWindows = 3", launcher);
             Assert.Contains("if ($MaxWindows -lt 1 -or $MaxWindows -gt 3)", launcher);
             Assert.Contains("Get-CimInstance Win32_OperatingSystem", launcher);
             Assert.True(launcher.IndexOf("\"Memory: total", StringComparison.Ordinal) < launcher.IndexOf("while ($queue.Count", StringComparison.Ordinal));
-            Assert.True(!floor || launcher.Contains("if ($free -gt $MinFreeGB)"));
             Assert.Contains("$running.Count -lt $MaxWindows", launcher);
             Assert.Contains("Sort-Object WorkingSetSize -Descending | Select-Object -First 1", launcher);
             Assert.Contains("$shells -contains $_.ParentProcessId", launcher);

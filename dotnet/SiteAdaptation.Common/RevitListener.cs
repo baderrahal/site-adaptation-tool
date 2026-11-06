@@ -19,20 +19,16 @@ namespace SiteAdaptation.Common
         public const string RootVariable = "SITEADAPT_LISTENER_ROOT";
         public const string SlotVariable = "SITEADAPT_LISTENER_SLOT";
         public const string InputRootsVariable = "SITEADAPT_LISTENER_INPUT_ROOTS";
-        public const string MinFreeVariable = "SITEADAPT_LISTENER_MIN_FREE_GB";
         private const char RootSeparator = '|';
         private static readonly Regex SlotText = new Regex(@"\A[1-9][0-9]?\z", RegexOptions.CultureInvariant);
 
-        private RevitListenerSetting(string root, string slot, IReadOnlyList<string> inputRoots, double? minFreeGb)
+        // R701. The floor of free memory before a job is gone, a variable of it the start script still sets is not read
+        private RevitListenerSetting(string root, string slot, IReadOnlyList<string> inputRoots)
         {
             Root = root;
             Slot = slot;
             InputRoots = inputRoots;
-            MinFreeGb = minFreeGb;
         }
-
-        // siteBuild.minFreeGB of the config as the start script gives it, the floor of R200 before each job
-        public double? MinFreeGb { get; }
 
         public string Root { get; }
 
@@ -65,8 +61,7 @@ namespace SiteAdaptation.Common
                 return null;
             }
             string[] inputRoots = (variable(InputRootsVariable) ?? "").Split(new[] { RootSeparator }, StringSplitOptions.RemoveEmptyEntries);
-            double? minFree = double.TryParse(variable(MinFreeVariable), NumberStyles.Float, CultureInfo.InvariantCulture, out double floor) ? floor : (double?)null;
-            return new RevitListenerSetting(root, slot, inputRoots, minFree);
+            return new RevitListenerSetting(root, slot, inputRoots);
         }
 
         public string Refusal()
@@ -74,10 +69,6 @@ namespace SiteAdaptation.Common
             if (!SlotText.IsMatch(Slot))
             {
                 return "the slot of the listener is not a number from 1 to 99: " + Slot;
-            }
-            if (!MinFreeGb.HasValue)
-            {
-                return "the listener has no memory floor in " + MinFreeVariable;
             }
             return InsideRoot(Root, InputRoots);
         }
@@ -697,13 +688,8 @@ namespace SiteAdaptation.Common
                         marking = null;
                     }
                 }
-                // L5. The floor of R200 is looked at last, nearest the start of the job, and only here since a window lock looks once
+                // L5. Free memory is taken nearest the start of the job and kept with the run, R701 holds no job back on it
                 double? free = freeGb?.Invoke();
-                if (free.HasValue && queue.Setting.MinFreeGb.HasValue && free.Value < queue.Setting.MinFreeGb.Value)
-                {
-                    WriteRefusal(claim, "free memory " + free.Value.ToString("0.0", CultureInfo.InvariantCulture) + " GB is under siteBuild.minFreeGB " + queue.Setting.MinFreeGb.Value.ToString("0.0", CultureInfo.InvariantCulture) + " GB, the job did not start");
-                    continue;
-                }
                 run.FreeGb = free;
                 lock (gate)
                 {
