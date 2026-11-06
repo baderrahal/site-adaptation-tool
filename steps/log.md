@@ -2,6 +2,29 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## The listener script sets no floor, 7 Nov 2026
+
+Goal:
+- Lead's order of 01:30, FAST-1-build-1 item 8 last line: take SITEADAPT_LISTENER_MIN_FREE_GB out of Start-RevitListener.ps1 now that FAST-2 PR 242 is on main (Q570).
+
+Done:
+- The line was out on branch task/FAST-1-build-1-listener since 1411919, origin/main merged in with no conflict. A test, FAST1/R701_ListenerScriptTests.cs, keeps it out.
+
+Checked:
+- dotnet test of R448_RevitListenerTests, TestHostTests, InstallScriptTests, ParsonsModelTests and the new test: 231 passed on net48 and 231 on net8.0. pwsh scripts/quick-tests.ps1: 154 pytest and 2733 dotnet passed. git grep: the script at 1411919^ holds the floor string once, the TestHost scripts at HEAD hold none.
+
+Remains:
+- docs/rules R448 text still names SITEADAPT_LISTENER_MIN_FREE_GB as an input, a docs line for Lead.
+
+Known bugs:
+- None new.
+
+Next:
+- Lead merges on green. Not seen in Revit, this lane opens no Revit.
+
+Your turn:
+- None.
+
 ## The Teams window is no meeting, 7 Nov 2026
 
 Goal:
