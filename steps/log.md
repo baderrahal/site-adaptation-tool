@@ -2,6 +2,30 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Rules R682 to R685 and three CHOSEN answers, 6 Nov 2026
+
+Goal:
+- Enter the rule lines of FAST-1 PR 2 and record the answers the lanes took by Bader's order of 6 Nov.
+
+Done:
+- R682 to R685 in docs/rules/18-fast-pane-r680-up.md and index.md, from the body of PR 232. The R680 and R681 bridge line of R640_WorkerSeamTests.cs removed, R680_StagePaneTests.cs names both on main.
+- Q394 and Q149 CHOSEN by build-2 in PR 235, Q570 CHOSEN by Lead for the listener floor, in questions-closed.md and the plan. Q394 out of questions-open.md. The seam line to build-1 and build-2 marked given.
+
+Checked:
+- pytest scripts/checks -k "r12 or rules or index": 22 passed.
+
+Remains:
+- PR 234 of build-1 and PR 235 of build-2, review and merge on green.
+
+Known bugs:
+- R310 and R347 fail at random, FAST-2 item 9.
+
+Next:
+- FAST-2 drops RevitListenerSetting.Refusal, then FAST-1 item 8 on Start-RevitListener.ps1.
+
+Your turn:
+- None.
+
 ## FAST-2-build-2 PR 2, 6 Nov 2026, the source of each value in the report, no past share on a new project
 
 Goal:

@@ -29,7 +29,7 @@ The one live file of the three days, Bader's order of 6 Nov. Lead keeps it true 
 
 ## At 16:50
 
-- PR 229 and PR 230 merged. PR 228 merged as 389af4c after Lead merged main into it twice. CadScan.cs went to FAST-4. FAST-2 makes its tests accept the floor lines both ways before FAST-1 removes them. Lead merges main into every open task branch that no lane has checked out, the same hour as each merge. A lane's working branch is merged by its lane, Lead tells it.
+- PR 229 and PR 230 merged. PR 228 merged as 389af4c, PR 231 as 1292714, PR 232 as 4c11b72, PR 233 as 12430f0 after Lead merged main into it twice. CadScan.cs went to FAST-4. FAST-2 makes its tests accept the floor lines both ways before FAST-1 removes them. Lead merges main into every open task branch that no lane has checked out, the same hour as each merge. A lane's working branch is merged by its lane, Lead tells it.
 
 ## revit-test, FAST-3-revit-test, the one test on Sun 8 Nov
 
@@ -43,4 +43,7 @@ steps/seam.md, read by Lead every 30 minutes.
 
 Bader's order of 6 Nov: a new question that blocks a lane takes Lead's recommended answer, marked CHOSEN, recorded in steps/questions-closed.md, and listed here for Bader.
 
-- None yet. Q560, Plot on floors, Bader answered A himself.
+- Q394 CHOSEN: on a new project Apply saves a change of the edited Excel as a new entry, the Excel as its model, no key. build-2, PR 235.
+- Q149 CHOSEN: the outer face of a boundary wall on the plot limit, the 200 mm of M14 inside the plot. Q507 stays open. build-2, PR 235.
+- Q570 CHOSEN: the listener floor goes in two steps, FAST-2 drops RevitListenerSetting.Refusal, then FAST-1 takes SITEADAPT_LISTENER_MIN_FREE_GB out of Start-RevitListener.ps1. StopBelowGB of Run-Parallel.ps1 stays, it is a stop and no start floor.
+- Q560, Plot on floors, Bader answered A himself.
