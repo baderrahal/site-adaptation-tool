@@ -50,6 +50,7 @@ namespace CadReader
             else
             {
                 Gather(run, folder, settings, input);
+                ReadParameterSheet(run, config, input);
                 try
                 {
                     output = DataCheckLogic.Run(settings, input);
@@ -268,6 +269,42 @@ namespace CadReader
             if (file["typologies"] is JObject)
             {
                 input.RuleFiles++;
+            }
+        }
+
+        // R700. The parameter sheet of the project settings, read in place and marked before and after like every input. A sheet that is
+        // not there or does not read is said by the need sharedParameters, the run carries on
+        private static void ReadParameterSheet(WorkerContext run, JObject config, DataCheckInput input)
+        {
+            string path;
+            try
+            {
+                path = SiteAdaptation.Common.SetUp.ParameterSheet.PathOf(run.Input("config"), config);
+            }
+            catch (InvalidDataException)
+            {
+                return;
+            }
+            input.SheetName = Path.GetFileName(path);
+            input.SheetFound = File.Exists(path);
+            if (!input.SheetFound)
+            {
+                return;
+            }
+            try
+            {
+                InputMark before;
+                string refusal = run.OpenFile("parameter sheet", path, out before);
+                if (refusal != null)
+                {
+                    input.SheetProblem = refusal;
+                    return;
+                }
+                input.Sheet = SiteAdaptation.Common.SetUp.ParameterSheet.FromFile(path);
+            }
+            catch (Exception failure)
+            {
+                input.SheetProblem = failure.Message;
             }
         }
 
