@@ -11,7 +11,7 @@ The task is open, it ships in several PRs. Updated 6 Nov 2026.
 - Item 2, R702: ReportSheets.NewProject(config) in dotnet/SiteAdaptation.Common/Fast2/ReportSources.cs. Build in Plan/ReportExcel.cs sets Made.NewProject, then RulesBox, Basis and the weak rule rows print no past share.
 - Item 2, R703: ReportSheets.SourcesOf(values) in Fast2/ReportSources.cs, called by ScheduleTable, FloorsTable and WallsTable in Plan/ReportSchedule.cs. A column Source sits before the element ids.
 - python/report_excel_check.py, the second check, holds both: new_project, sources_of, --mode.
-- Item 6 step 1: ParsonsModelTests.cs line 360 takes the script line with or without the floor. TestHostTests.cs waits on PR 231.
+- Item 6 step 1: ParsonsModelTests.cs line 361 and TestHostTests.cs R110 take the script lines with or without the floor. Next FAST-1 takes the floor lines out, then build-2 tightens the tests.
 - Item 12: the Plot row of config/shared_parameters.xlsx has the note tool tag, floors, Q560.
 
 ## What calls what

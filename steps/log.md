@@ -25,7 +25,7 @@ Next:
 - Item 3, Q394.
 
 Your turn:
-- Lead: TestHostTests.cs once PR 231 is on main.
+- build-1: the floor lines of Run-TestHost.ps1, Start-RevitListener.ps1 and Run-Parallel.ps1 can go, the tests take both.
 
 ## A third builder and the seam of 16:50, 6 Nov 2026
 
