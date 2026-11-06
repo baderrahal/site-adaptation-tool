@@ -121,7 +121,8 @@ namespace SiteAdaptation.Tests
         {
             // The words of R705 of FAST-2's plan, in any case
             var results = new StageResults { HasPlan = true };
-            results.Issues.AddRange(new[] { "12: Plot 12 has no road level, so it has no floor level and steps 6 Levels, 7 Place villas and 8 Walls skip it.", "13: No road level", "14: Made up fault" });
+            // Review of PR 7: the line is the one FAST-2's plan makes, so a change of its words fails here and card 3 never goes silent
+            results.Issues.AddRange(new[] { "12: " + Common.SiteBuild.PlanTexts.NoRoadLevel("12"), "13: No road level", "14: Made up fault" });
             Assert.Equal(2, results.NoRoadLevelCount);
             // Broken on purpose: other words are no such plot
             var other = new StageResults();
