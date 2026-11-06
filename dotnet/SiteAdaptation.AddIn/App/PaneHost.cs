@@ -28,6 +28,7 @@ namespace SiteAdaptation.AddIn
         private ExternalEvent answerEvent;
         private ExternalEvent tellEvent;
         private ExternalEvent newProjectEvent;
+        private TellHandler teller;
         private IntPtr owner;
 
         public static PaneHost Current { get; private set; }
@@ -94,11 +95,11 @@ namespace SiteAdaptation.AddIn
             };
             // R446. Open folder of the box, on the UI thread of Revit, no API context needed
             host.model.OpenFolderRequested += folder => System.Diagnostics.Process.Start("explorer.exe", "\"" + folder + "\"");
-            var teller = new TellHandler();
-            host.tellEvent = ExternalEvent.Create(teller);
+            host.teller = new TellHandler();
+            host.tellEvent = ExternalEvent.Create(host.teller);
             host.model.Told += text =>
             {
-                teller.Text = text;
+                host.teller.Text = text;
                 host.tellEvent.Raise();
             };
             // R445. New project opens in the API context of Revit through an external event, as a run of a button does, so Save setup
@@ -126,6 +127,66 @@ namespace SiteAdaptation.AddIn
             application.ControlledApplication.DocumentChanged += host.OnChanged;
             application.ViewActivated += host.OnViewActivated;
             Current = host;
+        }
+
+        // R680. The work folder of the document the pane shows, null with none or with no saved path
+        private string WorkFolderNow()
+        {
+            DocumentSession document = model.Document;
+            return document == null || !document.HasPath ? null : WorkFolder.For(WorkRoot(), document.Path);
+        }
+
+        // R681. Choose project folder: the folder goes into the config copy of this new project, then 2 Read data runs on it as a press of its row does.
+        // A refusal is said and nothing runs
+        private void ChooseProjectFolder()
+        {
+            PaneSettings settings = model.Settings;
+            if (settings == null)
+            {
+                return;
+            }
+            string chosen = new DialogPicker().Folder();
+            if (string.IsNullOrEmpty(chosen))
+            {
+                return;
+            }
+            string refused = ProjectFolderPick.Write(settings.ConfigFile, WorkRoot(), chosen, WorkFolderNow());
+            if (refused != null)
+            {
+                teller.Text = refused;
+                tellEvent.Raise();
+                return;
+            }
+            model.PickConfig(settings.ConfigFile);
+            model.RequestRun(StagesViewModel.ReadDataStep);
+        }
+
+        // R681. Fix items: the Confirm window of R2-C1 over the latest read, as the end of a read opens it
+        private void FixItems(string readFolder)
+        {
+            string work = WorkFolderNow();
+            if (readFolder == null || work == null)
+            {
+                return;
+            }
+            string profile = System.IO.Path.Combine(readFolder, ConfirmProfile.ConfirmProfileStep.ProfileFile);
+            // A locked or damaged proposal is said, as the end of a read of version 1 says it, and never reaches the UI thread of Revit
+            string said;
+            try
+            {
+                var session = new ConfirmProfile.ConfirmProfileSession(ConfirmProfile.ConfirmProfileModel.Read(Common.WorkFiles.ReadText(profile)), work, "fix-" + DateTime.UtcNow.ToString("yyyyMMddHHmmss", System.Globalization.CultureInfo.InvariantCulture));
+                ConfirmProfile.ConfirmProfileStep.ShowConfirm(owner, session);
+                said = session.Result;
+            }
+            catch (Exception failure)
+            {
+                said = TextTemplate.Fill(StageText.FixNotOpened, failure.Message);
+            }
+            if (said != null)
+            {
+                teller.Text = said;
+                tellEvent.Raise();
+            }
         }
 
         private static string WorkRoot()
@@ -216,7 +277,11 @@ namespace SiteAdaptation.AddIn
 
         public void SetupDockablePane(DockablePaneProviderData data)
         {
-            var page = new SitePanePage(model);
+            // R680. The pane in 3 stages docks, the pane of version 1 stays whole under its Advanced
+            var stages = new StagesViewModel(model) { WorkFolderNow = WorkFolderNow };
+            stages.ChooseFolderRequested += ChooseProjectFolder;
+            stages.FixItemsRequested += FixItems;
+            var page = new StagesPage(stages, new SitePanePage(model));
             probe.Post = action => page.Dispatcher.BeginInvoke(action);
             data.FrameworkElement = page;
             data.VisibleByDefault = true;

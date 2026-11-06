@@ -128,6 +128,32 @@ The five panels and their buttons of 7.1 of docs/design/12-ui-spec.md, Bader's c
 - `Input folder` CHOSEN, R635, the name of the folder among the inputs of a read of a folder with no past file, in the line that says an input changed since the dry run
 - `Confirmed values` CHOSEN, R636, the name of the confirmed file among the same inputs
 - `These files are Revit <n> and upgrade on each use, use the <n> copies. A remake from them takes 20 to 41 minutes.` CHOSEN, by Bader, the line under the row Prototypes when the oldest file is older than the running Revit, the first <n> is the format read, the second the running Revit (R496)
+- `Project data` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
+- `Build site` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
+- `Review and deliver` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
+- `Choose the folder of the project. The tool reads every drawing and sheet in it and says what it found.` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
+- `Builds the site model from the data of stage 1: floors and ramps, levels, villas and walls.` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
+- `The report of the build, written to Excel by step 9 of version 1.` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
+- `Choose project folder` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
+- `Fix items` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
+- `Report` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
+- `Advanced` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
+- `Project setup` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
+- `Open a project first.` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
+- `Set up this project first, in Settings.` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
+- `Done, <n> issues` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
+- `Not started` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
+- `Waits for stage <n>` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
+- `No data check yet. Choose the project folder.` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
+- `The one Build button is not wired yet. Until then run steps 4 to 8 under Advanced.` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
+- `Report runs step 9 of version 1. The issues count, where each value came from and Update from report are not wired here yet. Update from report stays on the ribbon.` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
+- `The rules table of this project is not wired yet.` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
+- `This project uses the shipped settings, so the tool cannot set its folder. Start a new project in Settings, Project setup, then choose the folder.` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
+- `The work folder of this model lies inside that folder, and the tool never writes into a project folder. Choose another folder or save the model elsewhere.` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
+- `The project folder was not saved: <name>` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
+- `Build` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
+- `The last read stopped and holds nothing to fix: <name>. Fix the cause and choose the folder again.` CHOSEN, review 1 of PR 228, a stopped data check says why in card 1 and Fix items stays off, as the Confirm window of R2-C1 refuses it (R681)
+- `Fix items could not open the last read: <name>` CHOSEN, review 1 of PR 228, a locked or damaged proposal (R681)
 
 ### Button messages
 

@@ -2,6 +2,31 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## FAST-1-build-1 PR 1, the pane in 3 stages and stage 1 wired, 6 Nov 2026
+
+Goal:
+- Items 1 and 2 of FAST-1: the pane in 3 stages, Choose project folder, the data check rows, Fix items.
+
+Done:
+- dotnet/SiteAdaptation.AddIn/Pane/StagesPage.xaml docks 3 cards, each with status, i icon and one button, a Settings gear and Advanced closed over the pane of version 1. Choose project folder writes inputRoot of a new project's config copy then runs 2 Read data, Fix items opens the Confirm window of R2-C1. R680, R681.
+- The 4 failing tests of the handover fixed. pane-stage-1, -2 and -3 rendered by SiteAdaptation.UiShots into steps/ui-shots/.
+
+Checked:
+- pwsh scripts/quick-tests.ps1: pytest 154 passed, dotnet 2706 of 2706 on net8.0 before review 1. R680 7 of 7 on net48 after the review of Lead. UiLabelTests count 466.
+- Review 1 and the review of Lead fixed: a stopped read says why, card 3 words, Fix items says a failure, the fresh pane line, the plain line of each need, the Revit test host finds StagesPage.
+
+Remains:
+- Items 3 to 7: Settings and the rules, the one Build, stage 3, Q504, the shots of each window.
+
+Known bugs:
+- Card 2 Build is grey and says so until item 4. Not seen in Revit.
+
+Next:
+- Item 3, Settings and the rules per project.
+
+Your turn:
+- FAST-3-revit-test opens the pane in Revit, label revit-later.
+
 ## Plot on floors and the seam of 16:20, 6 Nov 2026
 
 Goal:
