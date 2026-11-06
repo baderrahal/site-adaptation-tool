@@ -570,6 +570,7 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R685 Stage 1 sends the parameter sheet.
 - R686 The plan behind Build.
 - R687 The 2D preview.
+- R688 The one Build runs the steps.
 
 ## 19-fast2-r700-up.md
 
