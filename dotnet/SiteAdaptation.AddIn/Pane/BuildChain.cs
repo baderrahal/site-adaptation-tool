@@ -31,6 +31,9 @@ namespace SiteAdaptation.AddIn.Pane
 
         public bool Running { get { return at >= 0; } }
 
+        // R689. The messages of the steps of the last build, which card 3 counts among the issues
+        public IReadOnlyList<string> Issues { get { return issues; } }
+
         // The first step, null when a build runs already. Set up site runs only when it has not run yet, as a run of it again makes the read and the review
         // of stage 1 out of date and asks to confirm nothing new
         public int? Start()
