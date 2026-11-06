@@ -2,6 +2,29 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Always Load on our own box, 6 Nov 2026
+
+Goal:
+- Bader's order of 23:37: the Revit driver presses Always Load on the Unsigned Add-In box of Site Adaptation.
+
+Done:
+- The rule in FAST-3-revit-test, .claude/rules/revit.md and CLAUDE.md, one press, the time to steps/revit-results, every other box keeps the driver rule, a box of another maker untouched. SETUP-sign-2 item 1: a new build of the DLL brings the Load Once box back. Sent to the running revit-test session as a message, not restarted.
+
+Checked:
+- CLAUDE.md 10,217 bytes, under 10,240. pytest python/tests scripts/checks -k "r26 or r400 or log or claude or task or harness": 161 passed.
+
+Remains:
+- The first run of FAST-3, its fix list by 08:00 Sat.
+
+Known bugs:
+- None new.
+
+Next:
+- Lead reads steps/seam.md every 15 minutes.
+
+Your turn:
+- None.
+
 ## The night of 6 Nov: lanes stopped, add-in installed, 6 Nov 2026
 
 Goal:

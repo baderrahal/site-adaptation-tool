@@ -60,7 +60,7 @@ Traps moved here from memory, 5 Nov 2026:
 - A new Python file naming the mode rev6 must join the modes list of test_r62.
 - TaskStop does not end the children of a background shell. Stop by your own process id, never a whole tree.
 - A commit of a run that may stall takes `git -c gc.auto=0`. A status script stays under the tool's time limit, and is never piped into head.
-- A person may be at this PC. A Revit driver sends a click, a key or a shot only with Revit in front, after 5 minutes idle and with no meeting window, and stops when another input comes. On 5 Nov one click landed in a live meeting.
+- A person may be at this PC. A Revit driver sends a click, a key or a shot only with Revit in front, after 5 minutes idle and with no meeting window, and stops when another input comes. Our own Unsigned Add-In box is the one exception, .claude/rules/revit.md.
 - guard-main judges a command before it runs. Split a branch switch and a commit into two calls.
 
 ## The tool must work for any project
