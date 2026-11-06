@@ -1,6 +1,6 @@
 # Runs several test host jobs of R110 side by side, each in its own Revit window through Run-TestHost.ps1.
-# It reads the total and free memory first, starts a new window only while free memory stays above -MinFreeGB,
-# never runs more than -MaxWindows at once and starts them in the order given.
+# It reads the total and free memory first, never runs more than -MaxWindows at once and starts them in the order given.
+# No free memory floor holds a start back, the laptop has enough memory (Bader's order of 6 Nov 2026, FAST-2 item 6).
 # A window that hangs past its limit is stopped by its own Run-TestHost.ps1. When free memory falls under -StopBelowGB
 # the largest Revit of this run is stopped, that one only. Nothing in the registry is read or written.
 param(
@@ -8,7 +8,6 @@ param(
     [string[]]$Codes,
     [switch]$Upgrade,
     [int]$MaxWindows = 3,
-    [double]$MinFreeGB = 8,
     [double]$StopBelowGB = 1,
     [int]$StartGapSeconds = 45,
     [int]$TimeoutMinutes = 30
@@ -29,7 +28,7 @@ function Get-FreeGB {
 }
 
 $os = Get-CimInstance Win32_OperatingSystem
-"Memory: total {0:0.0} GB, free {1:0.0} GB. A window starts only while free memory is above {2} GB, at most {3} at once." -f ($os.TotalVisibleMemorySize / 1MB), ($os.FreePhysicalMemory / 1MB), $MinFreeGB, $MaxWindows
+"Memory: total {0:0.0} GB, free {1:0.0} GB. At most {2} windows at once." -f ($os.TotalVisibleMemorySize / 1MB), ($os.FreePhysicalMemory / 1MB), $MaxWindows
 
 $queue = [System.Collections.Generic.Queue[string]]::new([string[]]$Codes)
 $running = @{}
@@ -56,22 +55,16 @@ while ($queue.Count -gt 0 -or $running.Count -gt 0) {
     }
     $gapPassed = ((Get-Date) - $lastStart).TotalSeconds -ge $StartGapSeconds
     if ($queue.Count -gt 0 -and $running.Count -lt $MaxWindows -and $gapPassed) {
-        if ($free -gt $MinFreeGB) {
-            $code = $queue.Dequeue()
-            $name = if ($Upgrade) { $code + '_upgrade' } else { $code }
-            $console = Join-Path $docs ('testhost_' + $name + '_console.txt')
-            $arguments = @('-NoProfile', '-File', $run, '-Code', $code, '-TimeoutMinutes', $TimeoutMinutes)
-            if ($Upgrade) {
-                $arguments += '-Upgrade'
-            }
-            $running[$code] = Start-Process -FilePath $shell -ArgumentList $arguments -PassThru -WindowStyle Hidden -RedirectStandardOutput $console -RedirectStandardError ($console + '.err')
-            $lastStart = Get-Date
-            "{0} started at {1} with free memory {2:0.0} GB, windows now {3}" -f $code, (Get-Date -Format HH:mm:ss), $free, $running.Count
+        $code = $queue.Dequeue()
+        $name = if ($Upgrade) { $code + '_upgrade' } else { $code }
+        $console = Join-Path $docs ('testhost_' + $name + '_console.txt')
+        $arguments = @('-NoProfile', '-File', $run, '-Code', $code, '-TimeoutMinutes', $TimeoutMinutes)
+        if ($Upgrade) {
+            $arguments += '-Upgrade'
         }
-        elseif ($running.Count -eq 0) {
-            "Free memory {0:0.0} GB is not above {1} GB and no window runs, nothing more is started. Left: {2}" -f $free, $MinFreeGB, ($queue -join ', ')
-            break
-        }
+        $running[$code] = Start-Process -FilePath $shell -ArgumentList $arguments -PassThru -WindowStyle Hidden -RedirectStandardOutput $console -RedirectStandardError ($console + '.err')
+        $lastStart = Get-Date
+        "{0} started at {1} with free memory {2:0.0} GB, windows now {3}" -f $code, (Get-Date -Format HH:mm:ss), $free, $running.Count
     }
     Start-Sleep -Seconds 5
 }
