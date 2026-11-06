@@ -264,6 +264,8 @@
     "folders": ["{workRoot}\\data_book\\work\\00_Revit Models\\Zone 02\\ARC\\Prototypes_2024"]
   },
   "siteBuild": {
+    "massOverlapMm": 1.0,
+    "massOverlapMmNote": "R646. Plot outlines and masses that overlap by more than this many mm on the whole site are an issue. CHOSEN by Code from the 1 mm of Bader's order of 5 Nov for R2 C2, a check for overlap over 1 mm.",
     "folder": "{workRoot}\\round_addin",
     "template": "C:\\ProgramData\\Autodesk\\RVT 2024\\Templates\\English\\DefaultMetric.rte",
     "newFile": null,
