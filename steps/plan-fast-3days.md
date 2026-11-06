@@ -45,6 +45,16 @@ The one test runs tonight, Sunday is the second run.
 - Through the night: Lead reviews its PR, merges on green, reads steps/seam.md every 15 minutes.
 - By 08:00 Sat: what the run showed, the fix list by lane, the Saturday order of work, here.
 
+At 23:10:
+
+- Merged tonight: PR 237, 238, 243, 244 of build-1, PR 240 of build-3, PR 242 of build-2, PR 241 of Lead. Main is at 14044dd.
+- build-1 stopped: its hidden session ended at 22:40 with its folder clean, task FAST-1 open. Left for Saturday: the listener line on task/FAST-1-build-1-listener, as PR 242 landed at 22:33, after 22:30.
+- build-2 done: FAST-2 status done by PR 242, its hidden session ended at 22:34, no process left.
+- build-3 done: FAST-4 status done by PR 240, its hidden session ended after the PR.
+- 23:00: Lead built main 14044dd and installed the add-in with Install-SiteAdaptation.ps1, SiteAdaptation.AddIn.dll written 23:00:40 under the add-ins root of Revit 2024. INSTALLED.
+- Bader opens Revit once and presses Always Load.
+- revit-test: its folder is on task/FAST-3-revit-test from main 14044dd, started hidden at 23:30.
+
 ## revit-test, FAST-3-revit-test, the one test on Sun 8 Nov
 
 - Waiting: opens when FAST-1 and FAST-2 are merged.
