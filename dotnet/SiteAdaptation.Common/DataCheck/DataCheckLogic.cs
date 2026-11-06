@@ -40,6 +40,11 @@ namespace SiteAdaptation.Common
         public JObject Check { get; set; }
         public JObject Profile { get; set; }
         public JObject Plots { get; set; }
+
+        // R645. The ring of each plot by its number as stage 1 chose it, in drawing units, and the metres one drawing unit is. Empty and null when no plot was read
+        public List<KeyValuePair<string, List<double[]>>> Rings { get; set; } = new List<KeyValuePair<string, List<double[]>>>();
+
+        public double? MetersPerUnit { get; set; }
     }
 
     // R600 to R605. Stage 1 from the raw files of a folder: the plots with their number, villa type, mirror and groups, the project's own

@@ -180,7 +180,11 @@ namespace SiteAdaptation.Common
                     f.WordCandidates[level].Clear();
                 }
             }
-            return Build(f);
+            DataCheckOutput made = Build(f);
+            // R645. The rings the plots were found from, after BreakTies, so a later reader draws the outlines stage 1 chose and scans nothing again
+            made.Rings = rings;
+            made.MetersPerUnit = f.MetersPerUnit;
+            return made;
         }
 
         // R632. What a person confirmed, in the order that keeps each change on what the one before it left: the column gives the code, the

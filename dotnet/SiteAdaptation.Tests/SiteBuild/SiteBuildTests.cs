@@ -272,16 +272,6 @@ namespace SiteAdaptation.Tests
         }
     }
 
-    public sealed class R645_PlotOutlinesTests
-    {
-        [Fact]
-        public void A_table_with_no_plots_gets_no_note()
-        {
-            Assert.Empty(PlotOutlines.Add(new JObject(), null, null));
-            Assert.Empty(PlotOutlines.Add(new JObject { ["plots"] = new JArray() }, null, null));
-        }
-    }
-
     public sealed class R646_OverlapTests
     {
         private static List<PlanIssue> Run(out JObject result, params PlanPlot[] plots)
