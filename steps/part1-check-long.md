@@ -38,7 +38,7 @@ The 4 masses questions Q390 to Q393 are about the wall ring, they change no step
 
 1. Close Revit 2024. The install refuses while it runs.
 2. Open VS Code.
-3. File, Open Folder, pick C:\Users\p003653k\OneDrive - Parsons Corp\Documents\GitHub\site-adaptation-tool, then Select Folder.
+3. File, Open Folder, pick C:\Users\<user>\OneDrive - Parsons Corp\Documents\GitHub\site-adaptation-tool, then Select Folder.
 4. Terminal, New Terminal.
 5. Run each line below on its own and wait for the prompt after each.
 
@@ -46,8 +46,8 @@ The 4 masses questions Q390 to Q393 are about the wall ring, they change no step
 git switch main
 git pull
 dotnet build dotnet\SiteAdaptation.sln -c Release
-C:\Users\p003653k\Tools\pwsh\pwsh.exe -File dotnet\SiteAdaptation.AddIn\Install-SiteAdaptation.ps1 -NoBuild
-.venv\Scripts\python C:\Users\p003653k\Documents\SiteAdaptation\check_6c\make_cfg.py .
+C:\Users\<user>\Tools\pwsh\pwsh.exe -File dotnet\SiteAdaptation.AddIn\Install-SiteAdaptation.ps1 -NoBuild
+.venv\Scripts\python <work root>\check_6c\make_cfg.py .
 ```
 
 The last line copies the config and rules of what you just pulled to Documents\SiteAdaptation\check_6c, keeps the demo input paths and writes the saved project SA-6c. It writes nothing under C:\SA-demo or the repo. Do not use ROSHN Makkah (saved) for this check: its config C:\SA-demo\config\project.json is older than PR 153 and button 7 stops on addin.lightMode.wallRingOutsideM (seen in this round).
@@ -59,7 +59,7 @@ Look for: the build ends with "0 Error(s)". The install shows no red line. make_
 1. In the terminal run:
 
 ```
-copy C:\SA-demo\SA-demo-start.rvt C:\Users\p003653k\Documents\SiteAdaptation\check_6c\SA-part1-check.rvt
+copy C:\SA-demo\SA-demo-start.rvt <work root>\check_6c\SA-part1-check.rvt
 ```
 
 2. Start Revit 2024 and open that copy. If Revit asks about an unsigned add-in, press Always Load for each one.
@@ -91,7 +91,7 @@ Lane A says the Empty project and Pick surfaces steps are not seen in Revit yet.
 11. At Plot fronts (curb lines) press Browse and pick C:\SA-demo\inputs\Makkah Phase 1_Road Layout.dwg.
 12. At DLUS and sales press Browse. In the dialog DLUS schedule pick C:\SA-demo\inputs\TBD-PSN-ZZZ-XXX-SCH-TM-000201- DLUS Schedule_Rev9.0.xlsx. A second dialog Sales schedule follows: pick the Plot list file of step 6.
 13. At Plot numbers press Browse and pick C:\SA-demo\inputs\01101-PSN-ZZZ-XXX-DWG-TU-005000.pdf.
-14. At Prototypes press Browse and pick the folder C:\Users\p003653k\Documents\SiteAdaptation\prototypes_2024. Never the Revit 2021 folder: those files upgrade on each use, 20 to 41 minutes.
+14. At Prototypes press Browse and pick the folder <work root>\prototypes_2024. Never the Revit 2021 folder: those files upgrade on each use, 20 to 41 minutes.
 
 Look for (this round): Input files reads 7 of 8 found, only Shared parameters Not chosen, leave it. No warning line under Prototypes (PR 151). Scope stays on Whole project. Leave Dry run first as it is.
 
