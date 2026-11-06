@@ -6,13 +6,15 @@ Written by scripts/scenarios/score_scenarios.py, never by hand. Stage 1 on each 
 
 | Scenario | What it is | Ran | Built from | Plots read | Numbers right | Villa type right | Mirror right | Group words right | Marks: strong, usable, weak, missing | Copies unchanged | Areas read | Areas on the sheet, second check |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| S1 | raw inputs only, every past output removed | done | aae9916 | 2964 of 1891 | 1873 of 1891 | 233 of 1891 | 448 of 1891 | not scored | 3, 1, 5, 2 | yes | 2 | 13 |
-| S2 | as S1, footprint drawing removed | done | 773c095 | 2964 of 1891 | 1873 of 1891 | 233 of 1891 | 0 of 1891 | not scored | 3, 1, 5, 2 | yes | 2 | 13 |
+| S1 | raw inputs only, every past output removed | done | f153f14 | 2618 of 1891 | 1873 of 1891 | 233 of 1891 | 735 of 1891 | not scored | 3, 2, 4, 2 | yes | 1 | 13 |
+| S2 | as S1, footprint drawing removed | done | f153f14 | 2632 of 1891 | 1873 of 1891 | 233 of 1891 | 0 of 1891 | not scored | 3, 1, 5, 2 | yes | 1 | 13 |
 | S3 | as S1, zone and neighbourhood words changed to Phase and Block | done | 773c095 | 2964 of 1891 | 1873 of 1891 | 231 of 1891 | 448 of 1891 | 0 of 2 | 3, 1, 5, 2 | yes | 2 | not found |
 | S4 | as S1, no LandXML and no Civil 3D surfaces, 2D CAD only | done | 773c095 | 2964 of 1891 | 1873 of 1891 | 233 of 1891 | 448 of 1891 | not scored | 3, 0, 5, 3 | yes | 2 | 13 |
 | S5 | as S1, plot numbers in another style | done | 773c095 | 2964 of 1891 | 1873 of 1891 | 125 of 1891 | 448 of 1891 | not scored | 3, 1, 5, 2 | yes | 2 | 13 |
 
 Files not read: S1 0, S2 0, S3 0, S4 0, S5 0.
+
+Plots listed apart, no villa goes on them: S1 346, S2 332, S3 not listed by this worker, S4 not listed by this worker, S5 not listed by this worker.
 
 ## Mark of each need
 
@@ -22,7 +24,7 @@ Files not read: S1 0, S2 0, S3 0, S4 0, S5 0.
 | plotNumbers | strong | strong | strong | strong | strong |
 | groupLevels | weak | weak | weak | weak | weak |
 | villaType | weak | weak | weak | weak | weak |
-| villaBlocks | weak | weak | weak | weak | weak |
+| villaBlocks | usable | weak | weak | weak | weak |
 | roadEdges | weak | weak | weak | weak | weak |
 | roadLevels | usable | usable | usable | missing | usable |
 | coordinates | weak | weak | weak | weak | weak |
@@ -81,3 +83,14 @@ Files not read: S1 0, S2 0, S3 0, S4 0, S5 0.
 | S3 | no build made | | | | | | | |
 | S4 | no build made | | | | | | | |
 | S5 | no build made | | | | | | | |
+
+## Before the change, the same folders on main
+
+Each run named _before under the work root, made with a worker built from the commit in Built from. Only the scenarios with such a run are shown: S1, S2.
+
+| Scenario | What it is | Ran | Built from | Plots read | Numbers right | Villa type right | Mirror right | Group words right | Marks: strong, usable, weak, missing | Copies unchanged | Areas read | Areas on the sheet, second check |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| S1 | raw inputs only, every past output removed | done | 4c11b72 | 2964 of 1891 | 1873 of 1891 | 233 of 1891 | 448 of 1891 | not scored | 3, 1, 5, 2 | yes | 2 | not found |
+| S2 | as S1, footprint drawing removed | done | 4c11b72 | 2964 of 1891 | 1873 of 1891 | 233 of 1891 | 0 of 1891 | not scored | 3, 1, 5, 2 | yes | 2 | not found |
+
+Plots listed apart, no villa goes on them: S1 not listed by this worker, S2 not listed by this worker.

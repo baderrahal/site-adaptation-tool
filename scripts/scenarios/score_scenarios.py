@@ -29,7 +29,7 @@ def result_of(name, root, run=None):
     plan = read_json(built / "build_plan.json")
     seconds = (read_json(built / "build_time.json") or {}).get("seconds")
     return {
-        "build": tools.build_counts(plan, seconds) if plan else None, "listedApart": len(plots.get("otherPlots", [])),
+        "build": tools.build_counts(plan, seconds) if plan else None, "listedApart": len(plots["otherPlots"]) if "otherPlots" in plots else "not listed by this worker",
         "ran": str(worker.get("status", "UNKNOWN")), "needs": check["needs"], "areas": tools.areas_read(table["plots"]), "sheetAreas": second.get("neighbourhoodsInSheet") or "not found", "notRead": sum(1 for row in check.get("files", []) if row.get("status") != "read"), "score": tools.score(answer, plots["plots"]),
         "faults": tools.manifest_faults(root / name, manifest), "levels": profile["levels"], "built": str((read_json(out / "built_from.json") or {}).get("commit", "UNKNOWN"))[:7],
     }
@@ -38,17 +38,21 @@ def result_of(name, root, run=None):
 BEFORE_RUN = "_before"
 
 
-def apart_line(results):
+def apart_line(results, names=None):
     """R730. How many plots each run listed apart as no villa goes on them, each with its reason in plots.json under otherPlots."""
-    return "Plots listed apart, no villa goes on them: " + ", ".join("%s %s" % (name, (results.get(name) or {}).get("listedApart", "UNKNOWN")) for name in sorted(tools.SCENARIOS)) + "."
+    return "Plots listed apart, no villa goes on them: " + ", ".join("%s %s" % (name, (results.get(name) or {}).get("listedApart", "UNKNOWN")) for name in (names or sorted(tools.SCENARIOS))) + "."
 
 
 def before_section(before):
-    """FAST-4. The runs of main before the change of a task, made by run_stage1.py --suffix _before, beside the runs above."""
-    if not any(before.values()):
+    """FAST-4. The runs of main before the change of a task, made by run_stage1.py --suffix _before, beside the runs above. Only the
+    scenarios that have such a run are shown."""
+    names = [name for name in sorted(tools.SCENARIOS) if before.get(name)]
+    if not names:
         return ""
-    return "\n".join(["", "## Before the change, the same folders on main", "", "Each run named _before under the work root, made with a worker built from the commit in Built from. A scenario not run before shows not run.", ""]
-                     + tools.score_rows(before) + ["", apart_line(before)]) + "\n"
+    rows = tools.score_rows(before)
+    kept = rows[:2] + [row for row in rows[2:] if row.split(" | ")[0].strip("| ") in names]
+    return "\n".join(["", "## Before the change, the same folders on main", "", "Each run named _before under the work root, made with a worker built from the commit in Built from. Only the scenarios with such a run are shown: " + ", ".join(names) + ".", ""]
+                     + kept + ["", apart_line(before, names)]) + "\n"
 
 
 def main(argv=None):
