@@ -913,11 +913,12 @@ if ($process -and $process.HasExited) {
         $sampleFailures.Add((Get-Date).ToUniversalTime().ToString('o') + ' exit peaks: ' + $_.Exception.Message)
     }
 }
-$peaks = Get-WindowPeaks -Samples $samples -FloorGB ([double]$config.siteBuild.minFreeGB) -Exit $exitPeaks
+# No free memory floor, Bader's order of 6 Nov 2026 (FAST-2 item 6). The least free memory is still said
+$peaks = Get-WindowPeaks -Samples $samples -Exit $exitPeaks
 $peaks.sampleFailures = @($sampleFailures)
 $peaks.helpersAtStart = @($helpersAtStart)
 "Run time {0:0.0} minutes, exit code {1}, Revit process {2}" -f ($end - $start).TotalMinutes, $(if ($exited) { $process.ExitCode } else { 'stopped' }), $process.Id
-"Memory of {0} samples every {1} s: peak private {2} MiB and peak working set {3} MiB with the peaks Windows keeps{4}, sampled {5} and {6} MiB, least free {7} GiB, under the floor of {8} GiB in {9}, not responding in {10}, samples failed {11}" -f $peaks.samples, $sampleSeconds, $peaks.peakPrivateMib, $peaks.peakWorkingSetMib, $(if ($peaks.throughExit) { ' to the exit' } else { ' to the last sample' }), $peaks.sampledPrivateMib, $peaks.sampledWorkingSetMib, $peaks.minFreeGib, $peaks.floorGib, $peaks.samplesUnderFloor, $peaks.notResponding, $sampleFailures.Count
+"Memory of {0} samples every {1} s: peak private {2} MiB and peak working set {3} MiB with the peaks Windows keeps{4}, sampled {5} and {6} MiB, least free {7} GiB, not responding in {8}, samples failed {9}" -f $peaks.samples, $sampleSeconds, $peaks.peakPrivateMib, $peaks.peakWorkingSetMib, $(if ($peaks.throughExit) { ' to the exit' } else { ' to the last sample' }), $peaks.sampledPrivateMib, $peaks.sampledWorkingSetMib, $peaks.minFreeGib, $peaks.notResponding, $sampleFailures.Count
 "Processes Revit started: at most {0} in a sample ({1}), sampled private {2} MiB and working set {3} MiB, Revit and them together {4} MiB private, samples with no free memory {5} and no child list {6}" -f $peaks.childProcessesMax, (@($samples | ForEach-Object { $_.childNames } | Where-Object { $_ } | ForEach-Object { $_ -split ', ' } | Sort-Object -Unique) -join ', '), $peaks.sampledChildPrivateMib, $peaks.sampledChildWorkingSetMib, $peaks.sampledTotalPrivateMib, $peaks.freeMissing, $peaks.childMissing
 "Helpers running before Revit started, not counted in the figures of this window: {0}" -f $(if ($helpersAtStart.Count) { (@($helpersAtStart | ForEach-Object { '{0} {1} ({2} MiB private)' -f $_.name, $_.id, $_.privateMib }) -join ', ') } else { 'none' })
 # R110. One line per job for the parallel report

@@ -94,6 +94,10 @@ namespace SiteAdaptation.Common
             public bool? Mirror;
             public bool HasBlock;
             public string MirrorWhy;
+            // R731. How many plots the block on this plot stands on, 0 with none
+            public int BlockSpan;
+            // R730. A villa code any kind of source gave in the plot, also when two of a kind disagree
+            public bool CodeSeen;
             public int[] Group;
         }
 
@@ -220,6 +224,7 @@ namespace SiteAdaptation.Common
                     continue;
                 }
                 var every = new SortedSet<string>(((JObject)row["villaType"]).Properties().Where(item => plot.NumberFlag == null || KindOf(item.Name) < 2).Select(item => Str(item.Value)), StringComparer.Ordinal);
+                plot.CodeSeen = every.Count > 0;
                 // A plot whose label holds two numbers was joined to a sheet or a page by the last of them, so only blocks and texts count for it
                 int kinds = plot.NumberFlag != null ? 2 : KindWords.Length;
                 for (int kind = 0; kind < kinds && plot.Villa == null; kind++)
