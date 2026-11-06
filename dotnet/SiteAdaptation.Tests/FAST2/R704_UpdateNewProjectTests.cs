@@ -60,6 +60,15 @@ namespace SiteAdaptation.Tests.FAST2
             Assert.Equal("parsons", (string)entry["source"]);
             // A plot with no entry at all goes after the last entry of the list
             Assert.Same(entry, ((JArray)applied.List["overrides"]).Last);
+            // Review 1 of PR 3: every reader of the list runs the check of R330 first, it takes the entry by its source and its hand mark
+            var groups = new JObject { ["parsons"] = new JArray("imc"), ["native"] = new JArray("u11") };
+            PlanOverrides.CheckEntries(new JArray(entry.DeepClone()), groups);
+            JObject unmarked = (JObject)entry.DeepClone();
+            unmarked.Remove("byHand");
+            Assert.Throws<System.IO.InvalidDataException>(() => PlanOverrides.CheckEntries(new JArray(unmarked), groups));
+            JObject otherJob = (JObject)entry.DeepClone();
+            otherJob["source"] = "nobody";
+            Assert.Throws<System.IO.InvalidDataException>(() => PlanOverrides.CheckEntries(new JArray(otherJob), groups));
 
             var list = new UpdateList();
             list.Changes.Add(change);

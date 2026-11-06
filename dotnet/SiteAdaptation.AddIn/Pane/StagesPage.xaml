@@ -3,7 +3,8 @@
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:pane="clr-namespace:SiteAdaptation.AddIn.Pane"
       xmlns:scan="clr-namespace:SiteAdaptation.AddIn.ScanResults"
-      xmlns:help="clr-namespace:SiteAdaptation.AddIn.Help">
+      xmlns:help="clr-namespace:SiteAdaptation.AddIn.Help"
+      xmlns:rw="clr-namespace:SiteAdaptation.AddIn.RulesWindow">
   <!-- R680. The pane in 3 stages, Bader's order of 6 Nov 2026: three cards each with a status, an i icon and one main button, Settings and Advanced.
        Every colour, size and font by StaticResource of Theme.xaml, every text in docs/design/14-ui-labels.md -->
   <Page.Resources>
@@ -98,8 +99,22 @@
           <TextBlock Style="{StaticResource SA.Type.Body}" VerticalAlignment="Center" Text="{x:Static pane:StageText.ProjectSetup}" />
           <Button Grid.Column="1" Style="{StaticResource SA.Button.Base}" VerticalAlignment="Center" Content="{x:Static pane:StageText.Edit}" Command="{Binding Model.NewProjectCommand}" />
         </Grid>
-        <TextBlock Style="{StaticResource SA.Pane.Help}" TextWrapping="Wrap" Text="{x:Static pane:StageText.RulesLater}" />
+        <!-- R682. The rules table of this project -->
+        <Grid Height="{StaticResource SA.Size.Row}">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <TextBlock Style="{StaticResource SA.Type.Body}" VerticalAlignment="Center" Text="{x:Static rw:ProjectRulesText.OpenRules}" />
+          <Button Grid.Column="1" Style="{StaticResource SA.Button.Base}" VerticalAlignment="Center" Content="{x:Static rw:ProjectRulesText.Open}" Command="{Binding RulesCommand}" />
+        </Grid>
       </StackPanel>
+    </Border>
+
+    <!-- R683. One amber line until the rules of the project are confirmed -->
+    <Border x:Name="RulesLineBox" DockPanel.Dock="Top" Background="{StaticResource SA.WarnGround}" BorderBrush="{StaticResource SA.WarnBorder}" BorderThickness="{StaticResource SA.Line.Under}"
+            Padding="{StaticResource SA.Pad.SectionBox}" Visibility="{Binding HasRulesLine, Converter={StaticResource Shown}}">
+      <TextBlock Style="{StaticResource SA.Type.Body}" Foreground="{StaticResource SA.Warn}" TextWrapping="Wrap" Text="{Binding RulesLine}" />
     </Border>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
