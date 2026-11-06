@@ -35,6 +35,11 @@ namespace SiteAdaptation.Common.SiteBuild
                 plot.Add("boundaryWallAboveFflM", FromRule(numbers, RuleNumbers.BoundaryWallRule, numbers.BoundaryWallTopM, "the top of the boundary wall"));
                 plot.Add("gardenWallAboveFflM", FromRule(numbers, RuleNumbers.GardenWallRule, numbers.GardenWallTopM, "the top of the garden wall"));
                 MarkDoubts(plot);
+                // R705, Q504 answer 5A. A plot with no floor level is marked by its missing value and named in the issues, so the card counts them
+                if (plot.Get("ffl").IsMissing)
+                {
+                    issues.Add(new PlanIssue { Plot = row.Number, Line = PlanTexts.NoRoadLevel(row.Number) });
+                }
                 plots.Add(plot);
             }
             return plots;

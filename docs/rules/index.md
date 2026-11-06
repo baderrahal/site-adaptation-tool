@@ -572,3 +572,4 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R702 No past share, new project.
 - R703 Source column on value sheets.
 - R704 Update from report, new project.
+- R705 No road level, plot skipped.
