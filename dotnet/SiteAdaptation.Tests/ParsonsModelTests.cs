@@ -24,6 +24,15 @@ namespace SiteAdaptation.Tests
             return Path.Combine(new[] { folder }.Concat(parts).ToArray());
         }
 
+        // FAST-2 item 9. The limit of a CIM call in a test that needs the call to end, testHost.cimTestTimeoutSeconds, from what this PC
+        // measured. A run keeps the shorter cimTimeoutSeconds
+        private static int CimTestSeconds()
+        {
+            JToken limit = JObject.Parse(File.ReadAllText(RepoPath("config", "project.json")))["testHost"]?["cimTestTimeoutSeconds"];
+            Assert.True(limit != null && limit.Type == JTokenType.Integer && (int)limit >= 1 && (int)limit <= 60, "config holds no testHost.cimTestTimeoutSeconds from 1 to 60");
+            return (int)limit;
+        }
+
         // Runs one command in PowerShell 7 with the sample functions loaded and gives what it printed
         private static string Pwsh(string command)
         {
@@ -41,7 +50,9 @@ namespace SiteAdaptation.Tests
             {
                 string output = process.StandardOutput.ReadToEnd();
                 string error = process.StandardError.ReadToEnd();
-                Assert.True(process.WaitForExit(60000), "pwsh did not end in 60 s");
+                // Two CIM calls at their test limit and the 30 s a test may wait on a process it started
+                int seconds = 30 + 2 * CimTestSeconds();
+                Assert.True(process.WaitForExit(seconds * 1000), "pwsh did not end in " + seconds + " s");
                 Assert.True(process.ExitCode == 0, "pwsh failed: " + error);
                 return output;
             }
@@ -116,7 +127,7 @@ namespace SiteAdaptation.Tests
             {
                 JObject sample = JObject.Parse(Pwsh(
                     "function Get-CimInstance { [CmdletBinding()] param([string]$ClassName, [string]$Filter, [string[]]$Property, [int]$OperationTimeoutSec) if ($ClassName -eq '" + failing + "') { throw 'no CIM' } CimCmdlets\\Get-CimInstance @PSBoundParameters }\n"
-                    + "Get-WindowSample -Process (Get-Process -Id $PID) -TimeoutSeconds 2 | ConvertTo-Json -Compress"));
+                    + "Get-WindowSample -Process (Get-Process -Id $PID) -TimeoutSeconds " + CimTestSeconds() + " | ConvertTo-Json -Compress"));
 
                 Assert.True((long)sample["privateBytes"] > 0, failing);
                 Assert.True((long)sample["peakPrivateBytes"] > 0, failing);
@@ -189,7 +200,7 @@ namespace SiteAdaptation.Tests
                 + "$windowInfo.CreateNoWindow = $true\n"
                 + "$window = [Diagnostics.Process]::Start($windowInfo)\n"
                 + "Start-Sleep 2\n"
-                + "$sample = Get-WindowSample -Process $window -TimeoutSeconds 2\n"
+                + "$sample = Get-WindowSample -Process $window -TimeoutSeconds " + CimTestSeconds() + "\n"
                 + "$helper.Kill()\n"
                 + "$window.Kill()\n"
                 + "[ordered]@{ helperId = $helper.Id; helpers = $helpers; sample = $sample; none = @(Get-RunningHelpers -Names @()).Count } | ConvertTo-Json -Compress -Depth 5"));
@@ -243,7 +254,7 @@ namespace SiteAdaptation.Tests
                 + "$info.UseShellExecute = $false\n"
                 + "$child = [Diagnostics.Process]::Start($info)\n"
                 + "for ($i = 0; $i -lt 60 -and (Get-Process -Id $child.Id).PrivateMemorySize64 -lt 200MB; $i++) { Start-Sleep -Milliseconds 500 }\n"
-                + "$sample = Get-WindowSample -Process (Get-Process -Id $PID) -TimeoutSeconds 2\n"
+                + "$sample = Get-WindowSample -Process (Get-Process -Id $PID) -TimeoutSeconds " + CimTestSeconds() + "\n"
                 + "$child.Kill()\n"
                 + "$sample | ConvertTo-Json -Compress"));
 
@@ -323,7 +334,7 @@ namespace SiteAdaptation.Tests
                 Assert.Equal(0, (int)none["notResponding"]);
             }
 
-            JObject sample = JObject.Parse(Pwsh("Get-WindowSample -Process (Get-Process -Id $PID) -TimeoutSeconds 2 | ConvertTo-Json -Compress"));
+            JObject sample = JObject.Parse(Pwsh("Get-WindowSample -Process (Get-Process -Id $PID) -TimeoutSeconds " + CimTestSeconds() + " | ConvertTo-Json -Compress"));
             foreach (string field in new[] { "privateBytes", "peakPrivateBytes", "workingSetBytes", "peakWorkingSetBytes", "freeBytes" })
             {
                 Assert.True((long)sample[field] > 0, field);

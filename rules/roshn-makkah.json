@@ -745,6 +745,7 @@
       "testHost.imageMarginMinutes": {"status": "CHOSEN by Bader", "question": "Q104", "where": "steps/investigations/status-review.md table 1 row 1"},
       "testHost.sampleSeconds": {"status": "CHOSEN by Bader", "question": "Q104", "where": "steps/investigations/status-review.md table 1 row 2"},
       "testHost.cimTimeoutSeconds": {"status": "CHOSEN by Bader", "question": "Q104", "where": "steps/investigations/status-review.md table 1 row 3"},
+      "testHost.cimTestTimeoutSeconds": {"status": "CHOSEN by Code", "where": "note"},
       "testHost.helperProcesses": {"status": "UNKNOWN", "why": "no Q, no share, no Bader line and no CHOSEN mark"},
       "keyPlans.wallEdgeM": {"status": "CHOSEN by Bader", "question": "Q104", "where": "steps/investigations/status-review.md table 1 row 4"},
       "keyPlans.entryHeightM.min": {"status": "UNKNOWN", "why": "no Q, no share, no Bader line and no CHOSEN mark"},
