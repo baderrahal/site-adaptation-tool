@@ -158,8 +158,11 @@ namespace SiteAdaptation.Tests
                 stages.SettingsCommand.Execute(null);
                 Assert.True(stages.SettingsOpen);
                 // Build is not wired yet, so its button cannot run and the card says so
+                // Build needs a read of stage 1, and its line is empty until a press
                 Assert.False(stages.Card2.Command.CanExecute(null));
-                Assert.Equal(StageText.BuildNotWired, stages.Card2.Line);
+                Assert.Equal(string.Empty, stages.Card2.Line);
+                Assert.Equal(SiteBuildPlan.ScopeLine(stages.Model.Settings.Scope), stages.ScopeLine);
+                Assert.True(stages.PreviewFirst);
                 Assert.Equal(new[] { StageText.ChooseFolder, StageText.Build, StageText.Report }, stages.Cards.Select(card => card.Button).ToArray());
                 Assert.False(stages.HasRows);
                 Assert.False(stages.FixItemsCommand.CanExecute(null));

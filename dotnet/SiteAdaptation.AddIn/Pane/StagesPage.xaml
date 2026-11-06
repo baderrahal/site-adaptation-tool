@@ -14,6 +14,16 @@
       </ResourceDictionary.MergedDictionaries>
       <BooleanToVisibilityConverter x:Key="Shown" />
 
+      <!-- The line of a card, folded while it says nothing so no empty gap stands under the status -->
+      <Style x:Key="CardLine" TargetType="TextBlock" BasedOn="{StaticResource SA.Pane.Help}">
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Style.Triggers>
+          <Trigger Property="Text" Value="">
+            <Setter Property="Visibility" Value="Collapsed" />
+          </Trigger>
+        </Style.Triggers>
+      </Style>
+
       <!-- The head of a card: title, i icon, status -->
       <DataTemplate x:Key="CardHead" DataType="{x:Type pane:StageCard}">
         <StackPanel>
@@ -124,7 +134,7 @@
                 CornerRadius="{StaticResource SA.Radius.Control}" Padding="{StaticResource SA.Pad.Panel}">
           <StackPanel>
             <ContentControl Content="{Binding Card1}" ContentTemplate="{StaticResource CardHead}" />
-            <TextBlock Style="{StaticResource SA.Pane.Help}" TextWrapping="Wrap" Text="{Binding Card1.Line}" />
+            <TextBlock Style="{StaticResource CardLine}" Text="{Binding Card1.Line}" />
             <ItemsControl Margin="{StaticResource SA.Gap.Top8}" ItemsSource="{Binding CheckRows}" ItemTemplate="{StaticResource CheckRow}" />
             <StackPanel Orientation="Horizontal" Margin="{StaticResource SA.Gap.Top8}">
               <Button Style="{StaticResource SA.Button.Primary}" Margin="{StaticResource SA.Gap.Right8}" Content="{Binding Card1.Button}" Command="{Binding Card1.Command}" />
@@ -138,8 +148,13 @@
                 CornerRadius="{StaticResource SA.Radius.Control}" Padding="{StaticResource SA.Pad.Panel}">
           <StackPanel>
             <ContentControl Content="{Binding Card2}" ContentTemplate="{StaticResource CardHead}" />
-            <TextBlock Style="{StaticResource SA.Pane.Help}" TextWrapping="Wrap" Text="{Binding Card2.Line}" />
-            <Button Style="{StaticResource SA.Button.Primary}" Margin="{StaticResource SA.Gap.Top8}" HorizontalAlignment="Left" Content="{Binding Card2.Button}" Command="{Binding Card2.Command}" />
+            <!-- R686. The scope in the words of the project, the Preview tick and the line of the last press -->
+            <TextBlock Style="{StaticResource SA.Type.Body}" TextWrapping="Wrap" Margin="{StaticResource SA.Gap.Top4}" Text="{Binding ScopeLine}" />
+            <TextBlock Style="{StaticResource CardLine}" Text="{Binding Card2.Line}" />
+            <StackPanel Orientation="Horizontal" Margin="{StaticResource SA.Gap.Top8}">
+              <Button Style="{StaticResource SA.Button.Primary}" Margin="{StaticResource SA.Gap.Right8}" Content="{Binding Card2.Button}" Command="{Binding Card2.Command}" />
+              <CheckBox x:Name="PreviewTick" Style="{StaticResource SA.Pane.Check}" VerticalAlignment="Center" Content="{x:Static pane:SiteBuildText.Preview}" IsChecked="{Binding PreviewFirst, Mode=TwoWay}" />
+            </StackPanel>
           </StackPanel>
         </Border>
 
@@ -148,7 +163,7 @@
                 CornerRadius="{StaticResource SA.Radius.Control}" Padding="{StaticResource SA.Pad.Panel}">
           <StackPanel>
             <ContentControl Content="{Binding Card3}" ContentTemplate="{StaticResource CardHead}" />
-            <TextBlock Style="{StaticResource SA.Pane.Help}" TextWrapping="Wrap" Text="{Binding Card3.Line}" />
+            <TextBlock Style="{StaticResource CardLine}" Text="{Binding Card3.Line}" />
             <Button Style="{StaticResource SA.Button.Primary}" Margin="{StaticResource SA.Gap.Top8}" HorizontalAlignment="Left" Content="{Binding Card3.Button}" Command="{Binding Card3.Command}" />
           </StackPanel>
         </Border>
