@@ -377,7 +377,8 @@ namespace SiteAdaptation.AddIn
                 ShowPreview = ShowPreview,
             };
             // R688. The steps of version 1 one after another, each by RequestRun as a press of its row, and each end back here through Buttons.ChainEnded
-            var chain = new BuildChain(number => model.Steps.FirstOrDefault(step => step.Number == number)?.Name ?? number.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            var chain = new BuildChain(number => model.Steps.FirstOrDefault(step => step.Number == number)?.Name ?? number.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                number => number <= model.Statuses.Count ? model.Statuses[number - 1] : new StepStatus(StepKind.None));
             string planLine = null;
             stages.BuildRequested += () =>
             {
