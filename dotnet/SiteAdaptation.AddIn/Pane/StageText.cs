@@ -30,7 +30,6 @@ namespace SiteAdaptation.AddIn.Pane
 
         public const string NoRead = "No data check yet. Choose the project folder.";
         public const string ReadStopped = "The last read stopped and holds nothing to fix: <name>. Fix the cause and choose the folder again.";
-        public const string BuildNotWired = "The one Build button is not wired yet. Until then run steps 4 to 8 under Advanced.";
         public const string ReportLine = "Report runs step 9 of version 1. The issues count, where each value came from and Update from report are not wired here yet. Update from report stays on the ribbon.";
 
         // Choose project folder, R681

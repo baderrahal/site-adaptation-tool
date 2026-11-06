@@ -2,6 +2,30 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## FAST-1-build-1 PR 3, the plan behind Build and the 2D preview, 6 Nov 2026
+
+Goal:
+- Item 4 of FAST-1, first part: Build makes the plan of siteBuild, says the scope, the coordinates and a stop, and shows the 2D preview.
+
+Done:
+- dotnet/SiteAdaptation.AddIn/Pane/SiteBuildPlan.cs runs siteBuild of Common in process over the latest read of stage 1 and the rules of the project. SiteBuildFlow asks once for the manual template when no rules are chosen, stops on a blocking line in plain words, opens SiteBuildPreviewWindow when Preview first is ticked. R686, R687.
+- Card 2 shows the scope in the words of the project and Build is on once stage 1 has a read. An empty card line folds.
+
+Checked:
+- R686 6 of 6 on net48, 85 of 85 with the tests of the pane, rules, labels, shots, install and siteBuild. build-preview.png and pane-stage-2.png rendered.
+
+Remains:
+- Item 4 second part: Build runs set up site, check, floors and ramps, levels, villas and walls as one run with one progress line, through the step code of version 1.
+
+Known bugs:
+- Until then card 2 says the steps 4 to 8 run from Advanced. Not seen in Revit.
+
+Next:
+- The chain of steps, then item 8 once FAST-2 PR 233 is on main.
+
+Your turn:
+- FAST-3-revit-test opens Build and the preview in Revit, label revit-later.
+
 ## Rules R682 to R685 and three CHOSEN answers, 6 Nov 2026
 
 Goal:

@@ -1,0 +1,44 @@
+<Window x:Class="SiteAdaptation.AddIn.Pane.SiteBuildPreviewWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:pane="clr-namespace:SiteAdaptation.AddIn.Pane"
+        Title="{x:Static pane:SiteBuildText.PreviewTitle}" SizeToContent="WidthAndHeight" ResizeMode="NoResize" ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner" Background="{DynamicResource SA.Surface}">
+  <!-- R687. The 2D preview of the plan before anything is written, the plot outlines of preview.json north up. CHOSEN: the smallest picture,
+       outlines only, no sketch covers it. Every colour by Theme.xaml, every text in docs/design/14-ui-labels.md under Pane -->
+  <Window.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="/SiteAdaptation.AddIn;component/Theme/Theme.xaml" />
+      </ResourceDictionary.MergedDictionaries>
+    </ResourceDictionary>
+  </Window.Resources>
+  <DockPanel Background="{StaticResource SA.Surface}">
+    <Border DockPanel.Dock="Top" Background="{StaticResource SA.Band}" Padding="{StaticResource SA.Pad.Box}">
+      <StackPanel>
+        <TextBlock Style="{StaticResource SA.Type.Title}" Foreground="{StaticResource SA.Surface}" Text="{x:Static pane:SiteBuildText.PreviewTitle}" />
+        <TextBlock x:Name="LineText" Style="{StaticResource SA.Type.Body}" Foreground="{StaticResource SA.BandAccent}" Margin="{StaticResource SA.Gap.Top4}" />
+      </StackPanel>
+    </Border>
+    <Border DockPanel.Dock="Bottom" BorderBrush="{StaticResource SA.Border}" BorderThickness="{StaticResource SA.Line.Over}" Padding="{StaticResource SA.Pad.Foot}">
+      <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+        <Button Style="{StaticResource SA.Button.Base}" Margin="{StaticResource SA.Gap.Right8}" Content="{x:Static pane:SiteBuildText.Cancel}" IsCancel="True" Click="OnCancel" />
+        <Button Style="{StaticResource SA.Button.Primary}" Content="{x:Static pane:SiteBuildText.GoOn}" IsDefault="True" Click="OnGoOn" />
+      </StackPanel>
+    </Border>
+    <Border Margin="{StaticResource SA.Pad.Section}" Background="{StaticResource SA.Panel}" BorderBrush="{StaticResource SA.Border}" BorderThickness="{StaticResource SA.Line.All}">
+      <ItemsControl x:Name="Plots" Width="{x:Static pane:SiteBuildPreview.Width}" Height="{x:Static pane:SiteBuildPreview.Height}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <Canvas />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <Polygon Points="{Binding}" Stroke="{StaticResource SA.Accent}" Fill="{StaticResource SA.Surface}" StrokeThickness="{StaticResource SA.Size.Line}" />
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </Border>
+  </DockPanel>
+</Window>
