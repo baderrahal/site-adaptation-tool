@@ -1,0 +1,6 @@
+## Fast build FAST-1 of build-1, the pane in 3 stages, 6 to 8 Nov 2026
+
+Bader's order of 6 Nov. Written by Lead from steps/heads-up/build-1.md and the branch task/FAST-1-build-1 at ebb346e, as docs/rules/ is on the list of FAST-2. A new part, so the two lanes write no rule file in common.
+
+- **R680 The pane in 3 stages.** Input: the state of the 9 steps of the pane and the settings of the project. Output: a docked page with three cards in order, Project data for steps 1 to 3, Build site for 4 to 8, Review and deliver for 9, each with its status, an i icon and one main button, a Settings gear, and Advanced, closed by default, holding the version 1 pane whole. A card whose work is not built says so in plain words. Test: dotnet/SiteAdaptation.Tests/FAST1/R680_StagePaneTests.cs.
+- **R681 Stage 1, folder and data check.** Input: the folder a person picks, the latest read folder of the work folder and its data_check.json. Output: Choose project folder writes that folder into the config copy of a new project under the work root only, never into a file a person edits, then runs 2 Read data. The card lists each need with strong, usable, weak or missing and its plain line. Fix items opens the Confirm window of R2-C1. Test: dotnet/SiteAdaptation.Tests/FAST1/R680_StagePaneTests.cs.

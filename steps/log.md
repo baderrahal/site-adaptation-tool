@@ -2,6 +2,29 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## FAST-1 seam given, 6 Nov 2026
+
+Goal:
+- Give build-1 its seam line and restart it as one session.
+
+Done:
+- dotnet/SiteAdaptation.Tests/UiLabelTests.cs on the list of FAST-1. R680 and R681 in docs/rules/18-fast-pane-r680-up.md. Opening the windows in Revit moves to FAST-3, the Revit guard holds. A comment names R680 and R681 for test_r12 until their tests merge.
+
+Checked:
+- No other open task holds UiLabelTests.cs. rules_docs passes.
+
+Remains:
+- FAST-1 fixes its 4 failing tests and opens PR 1, label revit-later.
+
+Known bugs:
+- Two sessions ran in build-1 at once from 14:15, no work lost, the hidden one made no edit.
+
+Next:
+- build-1 restarted from ebb346e.
+
+Your turn:
+- Open no session in a lane folder Lead runs hidden, say so to Lead instead.
+
 ## Lanes started hidden, 6 Nov 2026
 
 Goal:

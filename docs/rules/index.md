@@ -559,3 +559,8 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R646 Overlap on the whole site.
 - R647 Toposolid cut per neighbourhood.
 - R648 Floors placed with another outline.
+
+## 18-fast-pane-r680-up.md
+
+- R680 The pane in 3 stages.
+- R681 Stage 1, folder and data check.
