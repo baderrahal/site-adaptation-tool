@@ -2,6 +2,29 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Plot on floors and the seam of 16:20, 6 Nov 2026
+
+Goal:
+- Record Bader's answer on Plot on floors and give the seam lines of the hour.
+
+Done:
+- Q560 closed, Bader's answer A: Plot stays on floors as the tool's own tag, every other shared parameter on villa links only. FAST-2 gains item 10, AddinRunNames.Page of Common names StagesPage, the seam of build-1, and item 11, Q560. steps/plan-fast-3days.md holds the list of questions Lead closes with its own answer.
+
+Checked:
+- Q560 free by git grep. PR 229 merged, PR 228 fixed and in CI.
+
+Remains:
+- FAST-1 items 3 to 7, FAST-2 items 2 to 11.
+
+Known bugs:
+- R310 at random until FAST-2 item 9.
+
+Next:
+- The 17:00 slip line for Sat 7 Nov.
+
+Your turn:
+- None, Bader's order: Lead does not wait on him.
+
 ## FAST-2-build-2 PR 1, 6 Nov 2026, shared parameters and the Python side of no RAM floor
 
 Goal:

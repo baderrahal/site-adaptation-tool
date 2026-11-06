@@ -32,6 +32,8 @@ The logic behind the face, for any project. Bader's order of 6 Nov, fast build, 
 7. Boundary wall thickness from the rules file, Q149. The link parameter group, Q336.
 8. Q504, Bader's answer 5A of 6 Nov: a plot whose ffl is missing is marked, steps 6 to 8 skip it, and the plan lists every such plot in the issues list with the words no road level, so the card shows the count.
 9. Bader's answer 4A of 6 Nov: the R310 tests of ParsonsModelTests.cs fail at random on this PC. Measure the time of a CIM call on this PC and take the limit of the tests from it. dotnet/SiteAdaptation.TestHost/WindowSamples.ps1 is FAST-1's, a change there is a line in steps/seam.md.
+10. The seam of build-1, 6 Nov: AddinRunNames.Page in dotnet/SiteAdaptation.Common still names SitePanePage, the page the Revit test host looks for. The docked page is now StagesPage of FAST-1, with SitePanePage folded under Advanced, so name StagesPage, or both, and keep the tests of the host green.
+11. Q560, Bader's answer A of 6 Nov: Plot stays on floors as the tool's own tag, every other shared parameter on villa links only.
 
 Tests in dotnet/SiteAdaptation.Tests/FAST2/ and python/tests/. tests/acceptance/ stays Lead's, the required check fails a lane that changes it, and scripts/ is held to scripts/scenarios/, as scripts/checks/ is the gate and scripts/lanes/ the lane starter. CHOSEN by Lead.
 

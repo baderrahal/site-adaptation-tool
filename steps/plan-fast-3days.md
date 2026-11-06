@@ -17,6 +17,12 @@ The one live file of the three days, Bader's order of 6 Nov. Lead keeps it true 
 - 14:15: started hidden by Lead with scripts/lanes/run_lane.py, opus, effort high, after the session Bader opened from the sidebar found no bash. Branch task/FAST-2-build-2 on origin. Reading the parameter code, no PR yet.
 - Blocks: none.
 
+- 16:20: PR 228, the 3 cards and stage 1, reviewed, its 4 fixes pushed as d256226, merges on green. Next item 3, the rules table, on task/FAST-1-build-1-rules.
+
+## build-2 at 16:20
+
+- PR 229 merged 16:20 as 7568d40: item 1, shared parameters, R700, and the Python side of item 6, R701. The config and worker side of item 6 waits on the exact test paths. Next item 2, the source mark per value.
+
 ## revit-test, FAST-3-revit-test, the one test on Sun 8 Nov
 
 - Waiting: opens when FAST-1 and FAST-2 are merged.
@@ -24,3 +30,9 @@ The one live file of the three days, Bader's order of 6 Nov. Lead keeps it true 
 ## Asks between lanes
 
 steps/seam.md, read by Lead every 30 minutes.
+
+## Questions Lead closed with its recommended answer, Bader's order of 6 Nov
+
+Bader's order of 6 Nov: a new question that blocks a lane takes Lead's recommended answer, marked CHOSEN, recorded in steps/questions-closed.md, and listed here for Bader.
+
+- None yet. Q560, Plot on floors, Bader answered A himself.

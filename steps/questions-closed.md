@@ -400,3 +400,4 @@ Lane B numbered its questions QL1 upward from 28 Oct 2026. At the fold in of Rou
 | D-46 | The Confirm window, steps/ui-shots/confirm-profile.png | Bader 1A: approved as it is | 2026-11-06 |
 | Q520 | The Windows account name in public files | Bader 2A: <work root> or <user> in its place, and a check in scripts/checks/test_harness_v5.py that fails a new one by its hash | 2026-11-06 |
 | Q504 | Floor level with no road surface | Bader 5A: steps 6 to 8 skip a plot whose ffl is missing, the plan says how many and lists every such plot as an issue with the words no road level | 2026-11-06 |
+| Q560 | Plot on floors against shared parameters on villa links only, FAST-2 item 1 | Bader 6 Nov, answer A: Plot stays on floors as the tool's own tag, it also finds the floors the tool placed, Q331. Every other shared parameter goes on villa links only | 2026-11-06 |
