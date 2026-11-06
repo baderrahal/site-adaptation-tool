@@ -219,10 +219,6 @@ Q379. A new project on another PC (R486, breaker 2 of FIX-3NOV-A). The shipped s
 - Recommended: a round of its own: New project gains rows for the schedule folder and the position source, the position from CAD by R454 where no file is given, each path in the settings and none in config.
 - Other: a settings template each new project fills once, a JSON edit by the BIM lead.
 
-Q394. Update from report on a new project (R487, breaker 2 of FIX-3NOV-A). An empty list holds no entry for any plot, so every change of an edited Excel gets NotSavable, "the plot has no override entry of the job parsons" (READ, UpdateFromReport.cs:687, :794). Each row says so, nothing is lost silently, and no Apply can save on a new project.
-- Recommended: under rev6 Apply writes a new entry of the job with the plot, field and value, the source file being the report, once Bader says what model an entry with no key names.
-- Other: leave it, on a new project values change by Save overrides of 4 Check alone.
-
 Q395. A mode in memory lost on reopen (R484, Q372, breaker 1 of FIX-3NOV-A). R498 writes the settings with each real run of buttons 2 to 9, so this is narrower than Q384 was. Use saved over a project with a mode, or Save setup on a read only model, once button 1 is done, holds the new mode in memory until the next run. Closed with no run after it, a reopen brings the old mode back and the next 4 Check builds under it with no word (READ, SettingsStore.cs, not run).
 - Recommended: decide it with Q372, the same class: the settings entity is written whenever the settings change.
 - Other: a line in the pane while the settings in memory differ from the model.
