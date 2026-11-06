@@ -58,6 +58,7 @@ namespace SiteAdaptation.Tests.FAST2
 
             JObject none = Run(null);
             Assert.Equal("missing", (string)none["mark"]);
+            Assert.Equal("No parameter sheet was given to the data check.", (string)none["line"]);
         }
 
         [Fact]

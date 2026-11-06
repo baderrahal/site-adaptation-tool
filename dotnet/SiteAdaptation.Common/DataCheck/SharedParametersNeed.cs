@@ -13,7 +13,7 @@ namespace SiteAdaptation.Common
         {
             if (input.Sheet == null)
             {
-                string why = input.SheetName == null ? "The project settings name no parameter sheet, choose one in Set up site."
+                string why = input.SheetName == null ? "No parameter sheet was given to the data check."
                     : input.SheetFound ? "The parameter sheet " + input.SheetName + " could not be read: " + input.SheetProblem
                     : "The parameter sheet " + input.SheetName + " is not there, so no shared parameter can go on the villa links.";
                 // A Revit shared parameter file of the folder holds the names and GUIDs, a person can copy them into the sheet

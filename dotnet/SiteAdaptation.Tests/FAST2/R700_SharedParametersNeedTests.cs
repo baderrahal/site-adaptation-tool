@@ -60,7 +60,7 @@ namespace SiteAdaptation.Tests.FAST2
             Assert.Equal("The parameter sheet sheet.xlsx could not be read: the sheet has no column GUID", (string)broken["line"]);
             JObject none = DataCheckLogic.SharedParametersNeed(new DataCheckInput());
             Assert.Equal("missing", (string)none["mark"]);
-            Assert.Contains("name no parameter sheet", (string)none["line"]);
+            Assert.Equal("No parameter sheet was given to the data check.", (string)none["line"]);
         }
 
         [Fact]
