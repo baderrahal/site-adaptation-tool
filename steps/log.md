@@ -12,7 +12,8 @@ Done:
 - The 4 failing tests of the handover fixed. pane-stage-1, -2 and -3 rendered by SiteAdaptation.UiShots into steps/ui-shots/.
 
 Checked:
-- pwsh scripts/quick-tests.ps1: PASS, pytest 154 passed, dotnet 2706 passed on net8.0. R680 and UiLabelTests 11 of 11 on net48.
+- pwsh scripts/quick-tests.ps1: pytest 154 passed, dotnet 2706 of 2706 on net8.0 before review 1. R680 7 of 7 on net48 after the review of Lead. UiLabelTests count 466.
+- Review 1 and the review of Lead fixed: a stopped read says why, card 3 words, Fix items says a failure, the fresh pane line, the plain line of each need, the Revit test host finds StagesPage.
 
 Remains:
 - Items 3 to 7: Settings and the rules, the one Build, stage 3, Q504, the shots of each window.

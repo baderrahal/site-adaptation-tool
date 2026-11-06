@@ -1,8 +1,10 @@
 using System;
+using System.IO;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using SiteAdaptation.AddIn.Pane;
+using SiteAdaptation.AddIn.ConfirmProfile;
 using SiteAdaptation.AddIn.ScanResults;
 
 namespace SiteAdaptation.UiShots
@@ -10,15 +12,14 @@ namespace SiteAdaptation.UiShots
     // R680. The pane in 3 stages with the sample data and made up data check rows, no real value, one shot per card
     public static partial class Shots
     {
-        // The rows of a data check as the worker words them, made up
-        private static readonly DataCheckRow[] SampleRows =
-        {
-            new DataCheckRow { Need = "plotOutlines", Name = "Plot outlines", Mark = "strong", Line = "The plots of the sample drawing." },
-            new DataCheckRow { Need = "villaType", Name = "Villa type", Mark = "weak", Line = "Two sources differ on some plots." },
-            new DataCheckRow { Need = "rules", Name = "Rules", Mark = "missing", Line = "No rules file in the folder." },
-        };
+        // The needs of a data check as the worker writes them, made up
+        private const string SampleCheck = "{\"needs\":[" +
+            "{\"need\":\"plotOutlines\",\"mark\":\"strong\",\"line\":\"The plots of the sample drawing.\"}," +
+            "{\"need\":\"villaType\",\"mark\":\"weak\",\"line\":\"Two sources differ on some plots.\"}," +
+            "{\"need\":\"rules\",\"mark\":\"missing\",\"line\":\"No rules file in the folder.\"}]}";
 
-        // The stages page laid out at the start width of the pane, so a test reads its parts. withRows puts the made up rows into card 1
+        // The stages page laid out at the start width of the pane, so a test reads its parts. withRows gives card 1 a made up read in a
+        // folder of the temp folder, read as the pane reads the work folder of a model, so the shot shows what a person sees after a read
         public static StagesPage LaidOutStages(bool withRows)
         {
             var model = new PaneViewModel(new SampleProbe()) { ReadText = Sample.ConfigText };
@@ -29,9 +30,19 @@ namespace SiteAdaptation.UiShots
             var stages = new StagesViewModel(model);
             if (withRows)
             {
-                foreach (DataCheckRow row in SampleRows)
+                string work = Path.Combine(Path.GetTempPath(), "SiteAdaptation.UiShots." + Guid.NewGuid().ToString("N"));
+                string read = Path.Combine(work, "read-sample");
+                Directory.CreateDirectory(read);
+                try
                 {
-                    stages.CheckRows.Add(row);
+                    File.WriteAllText(Path.Combine(read, DataCheckRows.FileName), SampleCheck);
+                    File.WriteAllText(Path.Combine(read, ConfirmProfileStep.ProfileFile), "{}");
+                    stages.WorkFolderNow = () => work;
+                    stages.Refresh();
+                }
+                finally
+                {
+                    Directory.Delete(work, true);
                 }
             }
             var page = new StagesPage(stages, new SitePanePage(model));

@@ -163,7 +163,19 @@ namespace SiteAdaptation.Tests
                 Assert.Equal(new[] { StageText.ChooseFolder, StageText.Build, StageText.Report }, stages.Cards.Select(card => card.Button).ToArray());
                 Assert.False(stages.HasRows);
                 Assert.False(stages.FixItemsCommand.CanExecute(null));
+                // Review of Lead on PR 228: a fresh pane with no read says so in card 1 and the line is drawn
+                Assert.Equal(StageText.NoRead, stages.Card1.Line);
+                Assert.Contains(StageText.NoRead, Visuals(page).OfType<TextBlock>().Select(text => text.Text));
             });
+        }
+
+        // Review of Lead on PR 228: the Revit test host finds the docked page, which is the pane in 3 stages since FAST-1
+        [Fact]
+        public void R680_the_revit_test_host_looks_for_the_stages_page()
+        {
+            string probe = File.ReadAllText(Path.Combine(ThemeGateTests.RepoRoot(), "dotnet", "SiteAdaptation.TestHost", "AddinProbe.cs"));
+            Assert.Contains("DockedPage = \"" + typeof(StagesPage).FullName + "\"", probe);
+            Assert.Contains("TypeOf(DockedPage)", probe);
         }
 
         [Fact]
@@ -183,6 +195,12 @@ namespace SiteAdaptation.Tests
                 Assert.True(chose);
                 Assert.True(stages.HasRows);
                 Assert.Equal(3, Visuals(page).OfType<ContentPresenter>().Count(presenter => presenter.Content is AddIn.ScanResults.DataCheckRow));
+                // Review of Lead on PR 228: the plain line of each need is drawn under it, not a tooltip alone
+                List<string> drawn = Visuals(page).OfType<TextBlock>().Select(text => text.Text).ToList();
+                foreach (AddIn.ScanResults.DataCheckRow row in stages.CheckRows)
+                {
+                    Assert.Contains(row.Line, drawn);
+                }
             });
         }
 
