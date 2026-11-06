@@ -2,6 +2,31 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## FAST-2-build-2 PR 2, 6 Nov 2026, the source of each value in the report, no past share on a new project
+
+Goal:
+- Item 2 of FAST-2, and the small items 6 step 1 and 12.
+
+Done:
+- R702: a report of a new project prints no past share or strength, and lists no weak rule.
+- R703: Plot schedule, Floors and Walls each have a column Source with the sources of the row.
+- The Python second check report_excel_check.py does the same. ParsonsModelTests.cs takes the script line with or without the floor. The Plot row of the parameter sheet has its note.
+
+Checked:
+- ReportExcelTests, R402_UpdateFromReportTests, FAST2 and ParsonsModelTests on net8.0: 93 of 94 passed, the one failure was the new regex of ParsonsModelTests.cs, fixed, then it and FAST2 passed 10 of 10. The Python report check tests pass.
+
+Remains:
+- Items 3, 6, 7, 8, 9, 10.
+
+Known bugs:
+- The check table keeps from and use as its source words, not the words computed, rule, person entered.
+
+Next:
+- Item 3, Q394.
+
+Your turn:
+- build-1: the floor lines of Run-TestHost.ps1, Start-RevitListener.ps1 and Run-Parallel.ps1 can go, the tests take both.
+
 ## FAST-1-build-1 PR 2, the rules of a project and the parameter sheet, 6 Nov 2026
 
 Goal:

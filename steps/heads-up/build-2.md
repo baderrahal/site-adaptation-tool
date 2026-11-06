@@ -2,21 +2,23 @@
 
 The task is open, it ships in several PRs. Updated 6 Nov 2026.
 
-## What changed, PR 1
+## Merged
 
-- Item 1, R700. dotnet/CadReader/DataCheckCommand.cs ReadParameterSheet reads the parameter sheet the request names as input role parameterSheet after Gather and puts it on DataCheckInput (SheetName, SheetFound, Sheet, SheetProblem in dotnet/SiteAdaptation.Common/DataCheck/DataCheckLogic.cs). DataCheckLogic.SharedParametersNeed in DataCheck/SharedParametersNeed.cs gives the mark and line, called from DataCheckMarks.cs. On S1: sharedParameters strong, 10 parameters for the villa links in shared_parameters.xlsx, each with a GUID.
-- Item 6, Python side, R701. python/window_lock.py, c3d_window.py and place_codes.py hold no floor of free memory, c3d_probe.json names none. place_codes.settle is gone.
+- PR 229, item 1, R700: dataCheck reads the parameter sheet the request names as input role parameterSheet, need sharedParameters strong on S1. Item 6 Python side, R701.
+
+## This PR, PR 2 of FAST-2
+
+- Item 2, R702: ReportSheets.NewProject(config) in dotnet/SiteAdaptation.Common/Fast2/ReportSources.cs. Build in Plan/ReportExcel.cs sets Made.NewProject, then RulesBox, Basis and the weak rule rows print no past share.
+- Item 2, R703: ReportSheets.SourcesOf(values) in Fast2/ReportSources.cs, called by ScheduleTable, FloorsTable and WallsTable in Plan/ReportSchedule.cs. A column Source sits before the element ids.
+- python/report_excel_check.py, the second check, holds both: new_project, sources_of, --mode.
+- Item 6 step 1: ParsonsModelTests.cs line 361 and TestHostTests.cs R110 take the script lines with or without the floor. Next FAST-1 takes the floor lines out, then build-2 tightens the tests.
+- Item 12: the Plot row of config/shared_parameters.xlsx has the note tool tag, floors, Q560.
 
 ## What calls what
 
-- DataCheckCommand.Run calls Gather, then ReadParameterSheet, then DataCheckLogic.Run, whose needs list calls SharedParametersNeed.
-- The add-in, FAST-1, has to add the input role parameterSheet with the sheet of the project settings to its dataCheck request, a line in steps/seam.md. Until then the pane shows sharedParameters missing. scripts/scenarios/run_stage1.py with_sheet adds it for the scenario runs. WorkerRunner.NoShaGiven takes it with an empty SHA-256.
-
-## Not done, and why
-
-- Item 1, parameters never on floors: floors still carry the Plot parameter, floors.plotParameter, written by FloorsRun.cs. It is how a re-run tells an untagged placed floor (R114). Taking it out changes the floor write, the setup planner and tests outside FAST2. A line for Lead is in steps/seam.md.
-- Item 6, the worker, the listener and siteBuild.minFreeGB of config wait on the test files listed in steps/seam.md.
+- ReportWorkbook.Command, the worker, calls ProjectModes.Apply, then ReportSheets.Build. Build calls NewProject and the three tables call SourcesOf.
+- The check table already names the source of each row in from and use. Not changed, a CHOSEN line in the PR.
 
 ## Next
 
-Items 2, 3, 4, 5, 7, 8 and 9 in that order, one PR each.
+Item 3, Update from report on a new project, Q394, with the recommended answer, CHOSEN. Then items 6, 7, 8, 9, 10. Items 4 and 5 moved to build-3.
