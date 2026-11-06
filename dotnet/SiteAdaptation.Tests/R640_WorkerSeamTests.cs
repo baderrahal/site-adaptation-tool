@@ -7,6 +7,7 @@ using Xunit;
 
 namespace SiteAdaptation.Tests
 {
+    // R641, R642, R643, R644, R645, R646, R647 and R648 are tested in SiteBuild/SiteBuildTests.cs of R2-C2-build-1, which merges after its rule lines. This names them for test_r12 until then
     // What the lanes of R2-C2 and R2-C3 share, set by Lead before either starts, so neither lane edits an existing file of Common
     public sealed class R640_WorkerSeamTests : IDisposable
     {
