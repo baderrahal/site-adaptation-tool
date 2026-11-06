@@ -1,15 +1,15 @@
-"""Round R2 C4, the pane in 3 stages, Bader's order of 6 Nov 2026. All made up. Owed until R2-C4-revit-test is done."""
+"""Round R2 C4, the pane in 3 stages, Bader's order of 6 Nov 2026. All made up. Owed until FAST-3-revit-test is done, R2-C4 was folded into FAST-1-build-1 on 6 Nov."""
 from pathlib import Path
 
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
-TASK = pytest.mark.task("R2-C4-revit-test")
+TASK = pytest.mark.task("FAST-3-revit-test")
 
 
 @TASK
 def test_the_three_stage_pane_is_recorded_in_revit():
-    text = (ROOT / "steps" / "revit-results" / "R2-C4-revit-test.md").read_text(encoding="utf-8")
+    text = (ROOT / "steps" / "revit-results" / "FAST-3-revit-test.md").read_text(encoding="utf-8")
     for word in ("Project data", "Build site", "Review and deliver", "Choose project folder", "Fix items", "Preview", "source mix", "Advanced", "gear", "S1", "empty model", "screenshot"):
         assert word in text, word
 

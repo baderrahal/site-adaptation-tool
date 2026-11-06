@@ -1,5 +1,7 @@
 # Plan, Fri 6 Nov 2026
 
+Replaced at 12:30 by steps/plan-fast-3days.md, Bader's order of 6 Nov.
+
 Read on Thu 5 Nov at about 23:15 from main at 9af6803. Bader's order, item 4 of P-33. steps/STATUS.md stays written by scripts/status.ps1 and out of git, a line there points here.
 
 ## Lanes

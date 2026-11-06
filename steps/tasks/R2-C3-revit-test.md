@@ -2,7 +2,7 @@
 id: R2-C3-revit-test
 lane: revit-test
 stage: rules
-status: open
+status: done
 allowed:
   - dotnet/SiteAdaptation.AddIn/
   - dotnet/SiteAdaptation.UiShots/
@@ -11,6 +11,8 @@ allowed:
   - steps/ui-shots/
   - steps/revit-results/
 ---
+
+Folded into FAST-1-build-1.
 
 # Scope
 

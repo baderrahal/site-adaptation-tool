@@ -2,6 +2,29 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Fast build set up, 6 Nov 2026
+
+Goal:
+- Bader's order of 6 Nov 12:30: three days build the product first, test at the end, the managers see it on Mon 9 Nov.
+
+Done:
+- CLAUDE.md has the section Fast build, 6 to 8 Nov. R2-C3, R2-C4 and R2-C2 revit-test folded into FAST-1-build-1. Tasks FAST-1-build-1, FAST-2-build-2 open, FAST-3-revit-test waiting. steps/plan-fast-3days.md, steps/seam.md, steps/heads-up/, steps/bader-form-6nov.md.
+
+Checked:
+- No path of FAST-1 lies in or holds a path of FAST-2 but steps/seam.md and steps/log.md, which both lanes write. Rule and question ids free on main by git grep.
+
+Remains:
+- FAST-1 and FAST-2 build. FAST-3 on Sun 8 Nov.
+
+Known bugs:
+- R310 tests fail at random on this PC, the stop hook blocks, form item 4.
+
+Next:
+- START build-1 FAST-1-build-1, START build-2 FAST-2-build-2.
+
+Your turn:
+- steps/bader-form-6nov.md, five items.
+
 ## Recovery, 5 Nov 2026, after the PC shut down by mistake that evening
 
 Goal:
