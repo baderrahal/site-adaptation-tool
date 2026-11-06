@@ -145,7 +145,13 @@ The five panels and their buttons of 7.1 of docs/design/12-ui-spec.md, Bader's c
 - `Not started` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
 - `Waits for stage <n>` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
 - `No data check yet. Choose the project folder.` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
-- `Report runs step 9 of version 1. The issues count, where each value came from and Update from report are not wired here yet. Update from report stays on the ribbon.` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
+- `No build yet. Build site in stage 2 first.` CHOSEN, card 3 Review and deliver of FAST-1-build-1, item 5
+- `<n> issues from the last build.` CHOSEN, card 3 Review and deliver of FAST-1-build-1, item 5
+- `Values: computed <n>, rule <n>, person entered <n>, missing <n>, other <n>.` CHOSEN, card 3 Review and deliver of FAST-1-build-1, item 5
+- `Open rules` CHOSEN, card 3 Review and deliver of FAST-1-build-1, item 5
+- `Update from report` CHOSEN, card 3 Review and deliver of FAST-1-build-1, item 5
+- `Report runs step 9 of version 1, Update from report reads the Excel back.` CHOSEN, card 3 Review and deliver of FAST-1-build-1, item 5
+- `<n> plots have no road level, so no floor level, and steps 6 to 8 leave them out.` CHOSEN, card 3, Q504 of FAST-1-build-1, item 6
 - `This project uses the shipped settings, so the tool cannot set its folder. Start a new project in Settings, Project setup, then choose the folder.` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
 - `The work folder of this model lies inside that folder, and the tool never writes into a project folder. Choose another folder or save the model elsewhere.` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
 - `The project folder was not saved: <name>` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
@@ -165,7 +171,11 @@ The five panels and their buttons of 7.1 of docs/design/12-ui-spec.md, Bader's c
 - `The position file did not read: <name>` CHOSEN, card 2 Build site and the 2D preview of FAST-1-build-1, item 4
 - `<n> issues go to the issues list.` CHOSEN, card 2 Build site and the 2D preview of FAST-1-build-1, item 4
 - `<name> Use the manual template for this project now?` CHOSEN, card 2 Build site and the 2D preview of FAST-1-build-1, item 4
-- `The plan is made. The steps 4 to 8 still run from Advanced until the one Build runs them.` CHOSEN, card 2 Build site and the 2D preview of FAST-1-build-1, item 4
+- `Step <n> of <n>: <name>.` CHOSEN, the one Build runs the steps of FAST-1-build-1, item 4
+- `Build stopped at <name>, cancelled.` CHOSEN, the one Build runs the steps of FAST-1-build-1, item 4
+- `Build stopped at <name>: <name>` CHOSEN, the one Build runs the steps of FAST-1-build-1, item 4
+- `the step changed nothing and gave no reason.` CHOSEN, the one Build runs the steps of FAST-1-build-1, item 4
+- `Build done: <n> steps.` CHOSEN, the one Build runs the steps of FAST-1-build-1, item 4
 - `Preview of the build` CHOSEN, card 2 Build site and the 2D preview of FAST-1-build-1, item 4
 - `<n> plots with an outline, <n> issues. Nothing is written to the model yet.` CHOSEN, card 2 Build site and the 2D preview of FAST-1-build-1, item 4
 - `Go on` CHOSEN, card 2 Build site and the 2D preview of FAST-1-build-1, item 4

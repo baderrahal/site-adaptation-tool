@@ -192,6 +192,7 @@ namespace SiteAdaptation.AddIn.Pane
             FixItemsCommand = new PaneCommand(() => FixItemsRequested?.Invoke(fixFolder), () => fixFolder != null);
             SettingsCommand = new PaneCommand(() => SettingsOpen = !SettingsOpen, () => true);
             RulesCommand = new PaneCommand(() => RulesRequested?.Invoke(), () => model.InUse);
+            UpdateCommand = new PaneCommand(() => UpdateRequested?.Invoke(), () => model.InUse);
             model.PropertyChanged += OnModelChanged;
             Refresh();
         }
@@ -209,6 +210,30 @@ namespace SiteAdaptation.AddIn.Pane
         public PaneCommand RulesCommand { get; }
 
         // R686. The scope of the build in the words of the project, and the Preview tick, on by default (CHOSEN)
+        // R689. Card 3: the issues of the last build, the source mix of its values and Update from report
+        private StageResults results = new StageResults();
+        public PaneCommand UpdateCommand { get; private set; }
+        public Func<StageResults> ResultsNow { get; set; }
+        public string IssuesLine { get { return results.HasPlan || results.Issues.Count > 0 ? TextTemplate.Fill(StageResultsText.IssuesCount, results.Issues.Count) : StageResultsText.NoBuild; } }
+        public string MixLine { get { return results.HasPlan ? results.Mix.Line : string.Empty; } }
+        public bool RuleIssue { get { return results.RuleIssue; } }
+        // R691. Q504: the plots the plan lists with no road level
+        public string NoRoadLevelLine { get { return results.NoRoadLevelCount > 0 ? TextTemplate.Fill(StageResultsText.NoRoadLevel, results.NoRoadLevelCount) : string.Empty; } }
+
+        public bool HasMix { get { return results.HasPlan && results.Mix.Total > 0; } }
+
+        // The widths of the bar, one share per source, a source with no value takes no room
+        public System.Windows.GridLength MixComputed { get { return Share(results.Mix.ComputedCount); } }
+        public System.Windows.GridLength MixRule { get { return Share(results.Mix.RuleCount); } }
+        public System.Windows.GridLength MixPerson { get { return Share(results.Mix.PersonCount); } }
+        public System.Windows.GridLength MixMissing { get { return Share(results.Mix.MissingCount); } }
+        public System.Windows.GridLength MixOther { get { return Share(results.Mix.OtherCount); } }
+
+        private static System.Windows.GridLength Share(int count)
+        {
+            return new System.Windows.GridLength(count, System.Windows.GridUnitType.Star);
+        }
+
         public string ScopeLine { get { return SiteBuildPlan.ScopeLine(Model.Settings?.Scope); } }
         public bool PreviewFirst { get { return previewFirst; } set { Set(ref previewFirst, value); } }
 
@@ -228,6 +253,7 @@ namespace SiteAdaptation.AddIn.Pane
         public event Action<string> FixItemsRequested;
         public event Action RulesRequested;
         public event Action BuildRequested;
+        public event Action UpdateRequested;
 
         // The work folder of the active document, null with none
         public Func<string> WorkFolderNow { get; set; }
@@ -252,7 +278,19 @@ namespace SiteAdaptation.AddIn.Pane
             }
             Card2.Line = buildLine ?? string.Empty;
             Changed(nameof(ScopeLine));
-            Card3.Line = StageText.ReportLine;
+            Card3.Line = StageResultsText.ReportLine;
+            UpdateCommand.Refresh();
+            results = (Model.HasDocument ? ResultsNow?.Invoke() : null) ?? new StageResults();
+            Changed(nameof(IssuesLine));
+            Changed(nameof(MixLine));
+            Changed(nameof(RuleIssue));
+            Changed(nameof(HasMix));
+            Changed(nameof(NoRoadLevelLine));
+            Changed(nameof(MixComputed));
+            Changed(nameof(MixRule));
+            Changed(nameof(MixPerson));
+            Changed(nameof(MixMissing));
+            Changed(nameof(MixOther));
             RulesCommand.Refresh();
             RulesLine = Model.HasDocument && Model.InUse ? RulesLineNow?.Invoke() : null;
             RefreshRead();

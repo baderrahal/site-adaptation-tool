@@ -125,7 +125,9 @@ namespace SiteAdaptation.AddIn
             {
                 PaneHost.Current.Sessions.Find(document)?.LoadFrom(new SettingsEntity(document));
             }
-            if (outcome.Message != null)
+            // R688. A step of the one Build hands its end to the build, which says it on card 2 and runs the next step, so no dialog waits between steps
+            bool taken = outcome.End != RunEnd.Started && ChainEnded != null && ChainEnded(button.Number, outcome);
+            if (outcome.Message != null && !taken)
             {
                 TaskDialog.Show(RibbonLayout.Tab, outcome.Message);
             }
@@ -170,10 +172,15 @@ namespace SiteAdaptation.AddIn
 
         // R375. The end of a worker, in the API context of Revit, goes to the document of its run, the active one or not, and to
         // none once that document closed
+        // R688. Set by the pane while the one Build runs. True when the end of the step was the build's to take
+        public static Func<int, RunOutcome, bool> ChainEnded { get; set; }
+
         private static void Ended(UIApplication application, Document document, int number, RunOutcome later)
         {
             if (document == null || !document.IsValidObject)
             {
+                // A build whose model closed stops at this step and says so
+                ChainEnded?.Invoke(number, new RunOutcome(RunEnd.Stopped, later.Message, null));
                 return;
             }
             Document active = application.ActiveUIDocument == null ? null : application.ActiveUIDocument.Document;
@@ -188,7 +195,8 @@ namespace SiteAdaptation.AddIn
                     Pane.PaneRunState.Record(PaneHost.Current.Sessions.Find(document), number, later.Record);
                 }
             }
-            if (later.Message != null)
+            bool taken = ChainEnded != null && ChainEnded(number, later);
+            if (later.Message != null && !taken)
             {
                 TaskDialog.Show(RibbonLayout.Tab, later.Message);
             }

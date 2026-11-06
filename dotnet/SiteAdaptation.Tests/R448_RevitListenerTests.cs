@@ -46,7 +46,6 @@ namespace SiteAdaptation.Tests
                 { RevitListenerSetting.RootVariable, folder },
                 { RevitListenerSetting.SlotVariable, slot },
                 { RevitListenerSetting.InputRootsVariable, inputRoots },
-                { RevitListenerSetting.MinFreeVariable, "2" },
             };
             return RevitListenerSetting.Read(name => values.TryGetValue(name, out string value) ? value : null);
         }
@@ -859,31 +858,24 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R448_under_the_memory_floor_a_job_is_refused_with_its_reason_and_the_queue_goes_on()
+        public void R701_low_free_memory_refuses_no_job_and_the_job_keeps_the_free_memory_it_started_with()
         {
-            double free = 1.5;
+            double free = 0.3;
             var low = new RevitListenerLoop(queue, RevitListenerCheck.Read, () => now, () => free);
             Drop("low", arrival: now);
-            Drop("high", arrival: now.AddSeconds(1));
             low.Look();
-            Assert.Null(low.Take());
-            Assert.Equal("refused", (string)Result("low")["result"]);
-            Assert.Contains("minFreeGB", (string)Result("low")["error"]);
-            Assert.Equal("refused", (string)Result("high")["result"]);
-
-            free = 3;
-            Drop("after");
-            low.Look();
-            Assert.Equal("after", low.Take().Job.RunId);
+            RevitListenerRun taken = low.Take();
+            Assert.Equal("low", taken.Job.RunId);
+            Assert.Equal(0.3, taken.FreeGb);
         }
 
         [Fact]
-        public void R448_the_floor_is_a_value_of_the_setting_and_a_setting_with_none_is_refused()
+        public void R701_a_setting_with_no_floor_is_whole_and_a_floor_the_start_script_still_gives_is_not_read()
         {
-            Assert.Equal(2, setting.MinFreeGb);
-            var values = new Dictionary<string, string> { { RevitListenerSetting.RootVariable, root }, { RevitListenerSetting.SlotVariable, "1" } };
-            Assert.Contains("floor", RevitListenerSetting.Read(name => values.TryGetValue(name, out string value) ? value : null).Refusal());
-            Assert.Contains("SITEADAPT_LISTENER_MIN_FREE_GB", File.ReadAllText(HostFile("Start-RevitListener.ps1")));
+            var values = new Dictionary<string, string> { { RevitListenerSetting.RootVariable, root }, { RevitListenerSetting.SlotVariable, "1" }, { "SITEADAPT_LISTENER_MIN_FREE_GB", "64" } };
+            Assert.Null(RevitListenerSetting.Read(name => values.TryGetValue(name, out string value) ? value : null).Refusal());
+            values.Remove("SITEADAPT_LISTENER_MIN_FREE_GB");
+            Assert.Null(RevitListenerSetting.Read(name => values.TryGetValue(name, out string value) ? value : null).Refusal());
         }
 
         [Fact]

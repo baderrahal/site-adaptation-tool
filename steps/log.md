@@ -2,6 +2,195 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## The Teams window is no meeting, 7 Nov 2026
+
+Goal:
+- Bader's order of 00:16: the Teams window that keeps the laptop awake does not stop the Revit driver.
+
+Done:
+- The line in FAST-3-revit-test and .claude/rules/revit.md. The plan holds the wait from 23:43 to 00:16, revit-test told at 00:16, and the refused driver launch of 00:44.
+
+Checked:
+- pytest python/tests -k "r26 or r400 or log": 50 passed.
+
+Remains:
+- The first run of FAST-3: blocked since 00:44 on the permission check of the revit-test session, Bader to allow the driver launch.
+
+Known bugs:
+- None new.
+
+Next:
+- Lead reads steps/seam.md every 15 minutes.
+
+Your turn:
+- None.
+
+## Always Load on our own box, 6 Nov 2026
+
+Goal:
+- Bader's order of 23:37: the Revit driver presses Always Load on the Unsigned Add-In box of Site Adaptation.
+
+Done:
+- The rule in FAST-3-revit-test, .claude/rules/revit.md and CLAUDE.md, one press, the time to steps/revit-results, every other box keeps the driver rule, a box of another maker untouched. SETUP-sign-2 item 1: a new build of the DLL brings the Load Once box back. Sent to the running revit-test session as a message, not restarted.
+
+Checked:
+- CLAUDE.md 10,217 bytes, under 10,240. pytest python/tests scripts/checks -k "r26 or r400 or log or claude or task or harness": 161 passed.
+
+Remains:
+- The first run of FAST-3: blocked since 00:44 on the permission check of the revit-test session, Bader to allow the driver launch.
+
+Known bugs:
+- None new.
+
+Next:
+- Lead reads steps/seam.md every 15 minutes.
+
+Your turn:
+- None.
+
+## The night of 6 Nov: lanes stopped, add-in installed, 6 Nov 2026
+
+Goal:
+- Bader's order of 21:10: the one test runs tonight. Merge what is open, stop the builders, install, start revit-test.
+
+Done:
+- Merged PR 237, 238, 240, 241, 242, 243, 244. FAST-2 and FAST-4 done, build-1 stopped with FAST-1 open. Add-in built from main 14044dd and installed at 23:00. revit-test folder on task/FAST-3-revit-test.
+
+Checked:
+- Every PR green on the tests job before its merge. The installed SiteAdaptation.AddIn.dll is the 23:00:40 build of 14044dd. No process of the hidden builder sessions left.
+
+Remains:
+- The first run of FAST-3 from 23:30, and its fix list by 08:00 Sat.
+
+Known bugs:
+- R310 and R347 failed at random under load until PR 242. R444 failed once on CI.
+
+Next:
+- revit-test starts 23:30.
+
+Your turn:
+- Open Revit 2024 once, press Always Load, close it.
+
+## FAST-1-build-1 PR 7, Q504 on card 3, 6 Nov 2026
+
+Goal:
+- Item 6 of FAST-1, Q504, Bader's answer 5A of 6 Nov: the card shows the count of the plots with no road level that the plan lists.
+
+Done:
+- StageResults.NoRoadLevelCount counts the issues of the plan with the words no road level, those of R705 of FAST-2. Card 3 says "<n> plots have no road level, so no floor level, and steps 6 to 8 leave them out." R691.
+
+Checked:
+- R691 with R689, R688 and the labels 16 of 16 on net48.
+
+Remains:
+- The listener floor line, once FAST-2 drops its refusal, Q570.
+
+Known bugs:
+- Not seen in Revit.
+
+Next:
+- Stopped by Bader's order of 21:10. The listener line on Saturday, item 7 moved to FAST-3. Final statement in steps/heads-up/build-1.md.
+
+Your turn:
+- None.
+
+## FAST-2-build-2 PR 4, 6 Nov 2026, no RAM floor in the worker and the listener, the CIM limit of the R310 tests
+
+Goal:
+- Items 6 and 9 of FAST-2.
+
+Done:
+- R701: the worker, AddinConfig and the Revit listener hold no floor of free memory, Q570 CHOSEN. siteBuild.minFreeGB and placeSettleMinutes are out of config, the status block written again.
+- R707: the R310 tests take testHost.cimTestTimeoutSeconds, 50 s CHOSEN, from the CIM times this PC measured. A run keeps cimTimeoutSeconds 2.
+
+Checked:
+- The CIM calls timed on this PC, two runs of 30, the raw numbers in the work root. The tests of the head in the work root file of the PR.
+
+Remains:
+- The variable of Start-RevitListener.ps1 is build-1's, the listener no longer reads it. The tests of Run-TestHost.ps1 and Run-Parallel.ps1 assert the lines without the floor since PR 237.
+
+Known bugs:
+- Listing the processes takes 11 to 36 s on this PC, so a run's sample of the children of Revit is often written as not read.
+
+Next:
+- The last PR sets the task done.
+
+Your turn:
+- build-1: the floor variable of Start-RevitListener.ps1.
+
+## FAST-1-build-1 PR 6, card 3 Review and deliver, 6 Nov 2026
+
+Goal:
+- Item 5 of FAST-1: the issues count, the source mix bar, Report and Update from report, and point 1 of R2-C3, the rules table from a rule issue.
+
+Done:
+- dotnet/SiteAdaptation.AddIn/Pane/StageResults.cs reads build_plan.json of the newest build folder of the work folder: its issues, and the source of each plot value, the tags of R703, counted as computed, rule, person entered, missing and other. The closing messages of the steps are no issues, card 2 says them. R689.
+- Card 3 shows the count, Open rules when an issue names a rule, the bar and its line, Report and Update from report, which runs the command of its ribbon button. R690.
+
+Checked:
+- R689 3 of 3, with R680, R686, R688, the labels and the shots 39 of 39 on net48 after review 1. pane-stage-3.png rendered.
+
+Remains:
+- Item 6 Q504, item 7 a shot of each window.
+
+Known bugs:
+- Not seen in Revit.
+
+Next:
+- Item 6, Q504.
+
+Your turn:
+- FAST-3-revit-test opens card 3 in Revit after a build, label revit-later.
+
+## Rules R730 to R732 and R688, FAST-3 opens tonight, 6 Nov 2026
+
+Goal:
+- Enter the rule lines of FAST-4, which is done, and keep the plan true.
+
+Done:
+- docs/rules/20-fast4-r730-up.md with R730 to R732 from the seam line of build-3, index.md. Seam line given. Plan: FAST-4 done by PR 240.
+- R688 of PR 238 in docs/rules/18-fast-pane-r680-up.md. FAST-3-revit-test open, Bader's order of 21:10: a first run tonight, a second on Sun 8 Nov, the window shots of FAST-1 item 7 moved to it. The plan holds the night.
+
+Checked:
+- pytest scripts/checks -k "r12 or rules or index or r26": 22 passed. rules_docs.py PASS.
+
+Remains:
+- R689 to R691 of FAST-1 once their PRs are on main. The install at 23:00 and the start of revit-test at 23:30.
+
+Known bugs:
+- R310, R347 and R444 fail at random under load, FAST-2 item 9 measures it.
+
+Next:
+- PR 237, 238, 239 merge on green.
+
+Your turn:
+- None.
+
+## FAST-1-build-1 PR 5, the one Build runs the steps, 6 Nov 2026
+
+Goal:
+- Item 4 of FAST-1, second part: one Build runs set up site, check, floors and ramps, levels, villas and walls as one run with one progress line.
+
+Done:
+- dotnet/SiteAdaptation.AddIn/Pane/BuildChain.cs runs the steps 1, 4, 5, 6, 7 and 8 one after another, each by RequestRun as a press of its row, through the step code of version 1. R688.
+- Buttons.ChainEnded hands the end of each step to the build, card 2 says Step <n> of <n>, the build stops only on a step that did not end well and says where and why, the messages of the steps that ended well are said at the end.
+- Review 1: set up site runs only when it has not run, and a step that waits on an earlier one runs that one first, so a build after set up site reads and reviews again before check.
+
+Checked:
+- R688 6 of 6, with R686, R680 and the labels 26 of 26 on net48.
+
+Remains:
+- Item 5 stage 3, item 6 Q504.
+
+Known bugs:
+- The windows and confirm boxes each step of version 1 opens still open during the build. Not seen in Revit.
+
+Next:
+- Item 5, card 3.
+
+Your turn:
+- FAST-3-revit-test runs Build in Revit on a copy, label revit-later.
+
 ## FAST-1-build-1 PR 4, no RAM floor in two test host scripts, 6 Nov 2026
 
 Goal:

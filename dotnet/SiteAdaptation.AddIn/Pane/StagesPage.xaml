@@ -163,8 +163,39 @@
                 CornerRadius="{StaticResource SA.Radius.Control}" Padding="{StaticResource SA.Pad.Panel}">
           <StackPanel>
             <ContentControl Content="{Binding Card3}" ContentTemplate="{StaticResource CardHead}" />
+            <!-- R689. The issues of the last build, the rules table from a rule issue, and where each value came from -->
+            <Grid Margin="{StaticResource SA.Gap.Top4}">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <TextBlock Style="{StaticResource SA.Type.Body}" VerticalAlignment="Center" TextWrapping="Wrap" Text="{Binding IssuesLine}" />
+              <Button Grid.Column="1" Style="{StaticResource SA.Button.Base}" Content="{x:Static pane:StageResultsText.OpenRules}" Command="{Binding RulesCommand}"
+                      Visibility="{Binding RuleIssue, Converter={StaticResource Shown}}" />
+            </Grid>
+            <TextBlock Style="{StaticResource CardLine}" Foreground="{StaticResource SA.Warn}" Text="{Binding NoRoadLevelLine}" />
+            <StackPanel x:Name="MixBox" Margin="{StaticResource SA.Gap.Top8}" Visibility="{Binding HasMix, Converter={StaticResource Shown}}">
+              <Grid Height="{StaticResource SA.Size.StatusMark}">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="{Binding MixComputed}" />
+                  <ColumnDefinition Width="{Binding MixRule}" />
+                  <ColumnDefinition Width="{Binding MixPerson}" />
+                  <ColumnDefinition Width="{Binding MixMissing}" />
+                  <ColumnDefinition Width="{Binding MixOther}" />
+                </Grid.ColumnDefinitions>
+                <Border Grid.Column="0" Background="{StaticResource SA.Ok}" />
+                <Border Grid.Column="1" Background="{StaticResource SA.Accent}" />
+                <Border Grid.Column="2" Background="{StaticResource SA.Info}" />
+                <Border Grid.Column="3" Background="{StaticResource SA.Warn}" />
+                <Border Grid.Column="4" Background="{StaticResource SA.Wait}" />
+              </Grid>
+              <TextBlock Style="{StaticResource SA.Pane.Help}" TextWrapping="Wrap" Margin="{StaticResource SA.Gap.Top4}" Text="{Binding MixLine}" />
+            </StackPanel>
             <TextBlock Style="{StaticResource CardLine}" Text="{Binding Card3.Line}" />
-            <Button Style="{StaticResource SA.Button.Primary}" Margin="{StaticResource SA.Gap.Top8}" HorizontalAlignment="Left" Content="{Binding Card3.Button}" Command="{Binding Card3.Command}" />
+            <StackPanel Orientation="Horizontal" Margin="{StaticResource SA.Gap.Top8}">
+              <Button Style="{StaticResource SA.Button.Primary}" Margin="{StaticResource SA.Gap.Right8}" Content="{Binding Card3.Button}" Command="{Binding Card3.Command}" />
+              <Button Style="{StaticResource SA.Button.Base}" Content="{x:Static pane:StageResultsText.UpdateFromReport}" Command="{Binding UpdateCommand}" />
+            </StackPanel>
           </StackPanel>
         </Border>
 

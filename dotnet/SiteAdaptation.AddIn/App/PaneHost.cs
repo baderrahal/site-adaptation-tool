@@ -25,6 +25,7 @@ namespace SiteAdaptation.AddIn
         private readonly DiskProbe probe;
         private readonly PaneViewModel model;
         private ExternalEvent runEvent;
+        private RunButtonHandler runner;
         private ExternalEvent answerEvent;
         private ExternalEvent tellEvent;
         private ExternalEvent newProjectEvent;
@@ -55,6 +56,7 @@ namespace SiteAdaptation.AddIn
         {
             var host = new PaneHost();
             var runner = new RunButtonHandler();
+            host.runner = runner;
             // R496. The row Prototypes warns for files older than this Revit, the look runs off the UI thread. A version text that is no
             // number gives no warning
             host.model.FormatLook = host.probe.LookFormat;
@@ -374,12 +376,60 @@ namespace SiteAdaptation.AddIn
                 Place = () => BuildPlace(stages), AskRules = AskRules, UseManual = () => RulesPlace() == null ? null : RulesWindow.ProjectRulesTable.UseManual(RulesPlace()),
                 ShowPreview = ShowPreview,
             };
+            // R688. The steps of version 1 one after another, each by RequestRun as a press of its row, and each end back here through Buttons.ChainEnded
+            var chain = new BuildChain(number => model.Steps.FirstOrDefault(step => step.Number == number)?.Name ?? number.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                number => number <= model.Statuses.Count ? model.Statuses[number - 1] : new StepStatus(StepKind.None));
+            string planLine = null;
             stages.BuildRequested += () =>
             {
-                build.Run(stages.PreviewFirst, out string line);
-                stages.ShowBuild(line);
+                if (chain.Running)
+                {
+                    return;
+                }
+                bool goOn = build.Run(stages.PreviewFirst, out string line);
+                planLine = line;
+                int? first = goOn ? chain.Start() : null;
+                stages.ShowBuild(first.HasValue ? line + " " + chain.Progress : line);
                 rulesStamp = null;
                 stages.Refresh();
+                if (first.HasValue)
+                {
+                    model.RequestRun(first.Value);
+                }
+            };
+            // R689. Card 3 reads the newest plan of the work folder again only when it changed
+            string resultsStamp = null;
+            StageResults results = null;
+            stages.ResultsNow = () =>
+            {
+                string plan = StageResults.LatestPlan(WorkFolderNow());
+                string stamp = plan == null ? "none" : plan + "@" + System.IO.File.GetLastWriteTimeUtc(plan).Ticks;
+                if (stamp != resultsStamp)
+                {
+                    resultsStamp = stamp;
+                    results = StageResults.Read(plan);
+                }
+                return results;
+            };
+            // R690. Update from report of version 1 from card 3, the command of its ribbon button
+            stages.UpdateRequested += () =>
+            {
+                runner.Command = nameof(Commands.UpdateFromReportCommand);
+                runEvent.Raise();
+            };
+            Buttons.ChainEnded = (number, outcome) =>
+            {
+                if (!chain.Ended(number, outcome.End, outcome.Message, out int? next, out string line))
+                {
+                    return false;
+                }
+                stages.ShowBuild(planLine + " " + line);
+                stages.Refresh();
+                if (next.HasValue)
+                {
+                    model.RequestRun(next.Value);
+                }
+                return true;
             };
             var page = new StagesPage(stages, new SitePanePage(model));
             probe.Post = action => page.Dispatcher.BeginInvoke(action);
@@ -557,9 +607,28 @@ namespace SiteAdaptation.AddIn
     {
         public int Number { get; set; }
 
+        // R690. A button with no number, run by its command once, as Update from report of card 3
+        public string Command { get; set; }
+
         public void Execute(UIApplication app)
         {
-            Buttons.Run(Number, app);
+            string command = Command;
+            Command = null;
+            if (command != null)
+            {
+                Buttons.Run(command, app);
+                return;
+            }
+            try
+            {
+                Buttons.Run(Number, app);
+            }
+            catch (Exception failure)
+            {
+                // R688. A step of the one Build that throws stops the build at that step, then the throw goes on as before
+                Buttons.ChainEnded?.Invoke(Number, new Common.Flow.RunOutcome(Common.Flow.RunEnd.Stopped, failure.Message, null));
+                throw;
+            }
         }
 
         public string GetName()

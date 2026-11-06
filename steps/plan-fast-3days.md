@@ -25,11 +25,38 @@ The one live file of the three days, Bader's order of 6 Nov. Lead keeps it true 
 
 ## build-3, FAST-4-build-3, the plot read and the mirror
 
+- 20:00: FAST-4 done, PR 240 merged. S1 plots read 2964 to 2618, 346 listed apart with a reason, numbers right 1873, mirror right 448 to 735 of 1891. 745 plots with a villa sign lie in areas the answer leaves out, the tool cannot tell them. build-3 stops, Lead gives it no new task without Bader.
 - 16:50: opened by Bader's order of 16:25, items 4 and 5 moved from FAST-2. Owns Common/DataCheck/, four files of CadReader, the scenario scripts and steps/scenarios.md. Started hidden by Lead once this PR is merged.
 
 ## At 16:50
 
 - PR 229 and PR 230 merged. PR 228 merged as 389af4c, PR 231 as 1292714, PR 232 as 4c11b72, PR 233 as 12430f0 after Lead merged main into it twice. CadScan.cs went to FAST-4. FAST-2 makes its tests accept the floor lines both ways before FAST-1 removes them. Lead merges main into every open task branch that no lane has checked out, the same hour as each merge. A lane's working branch is merged by its lane, Lead tells it.
+
+## The night of Fri 6 Nov, Bader's order of 21:10
+
+The one test runs tonight, Sunday is the second run.
+
+- 21:25: PR 237 and PR 238 of build-1 merged. PR 242 of build-2, items 6 and 9, fails test_r12 on R707, build-2 fixing. This PR enters R688 and opens FAST-3.
+- build-3: done, FAST-4 merged by PR 240. Its hidden session ended after the PR.
+- build-2: done once PR 242 merges, then Lead stops its hidden session by its own process id.
+- build-1: opens the stage 3 PR and the Q504 PR by 22:55 with what works, stops at 23:00. Item 7, the window shots, moved to FAST-3.
+- 23:00: Lead builds main and installs the add-in with Install-SiteAdaptation.ps1. Bader opens Revit once and presses Always Load.
+- 23:30: Lead starts revit-test hidden on FAST-3-revit-test. It opens Revit itself. A Load Once box stops it, written here.
+- Through the night: Lead reviews its PR, merges on green, reads steps/seam.md every 15 minutes.
+- By 08:00 Sat: what the run showed, the fix list by lane, the Saturday order of work, here.
+
+At 23:10:
+
+- Merged tonight: PR 237, 238, 243, 244 of build-1, PR 240 of build-3, PR 242 of build-2, PR 241 of Lead. Main is at 14044dd.
+- build-1 stopped: its hidden session ended at 22:40 with its folder clean, task FAST-1 open. Left for Saturday: the listener line on task/FAST-1-build-1-listener, as PR 242 landed at 22:33, after 22:30.
+- build-2 done: FAST-2 status done by PR 242, its hidden session ended at 22:34, no process left.
+- build-3 done: FAST-4 status done by PR 240, its hidden session ended after the PR.
+- 23:00: Lead built main 14044dd and installed the add-in with Install-SiteAdaptation.ps1, SiteAdaptation.AddIn.dll written 23:00:40 under the add-ins root of Revit 2024. INSTALLED.
+- Bader opens Revit once and presses Always Load.
+- revit-test: its folder is on task/FAST-3-revit-test from main 14044dd, started hidden at 23:30.
+- 23:43 to 00:16: revit-test waited, a Teams window "Meeting compact view" stood. Bader at 00:16: it keeps the laptop awake, ignore it. revit-test told at 00:16.
+- 00:46: run 1 not started. At 00:44 the PC was 5 minutes idle, then the permission check of the revit-test session (auto mode) refused the launch of the Revit driver under python/window_lock.py, with no reason given. Revit not opened, no input sent. BLOCKED until Bader allows that launch in the revit-test session, or runs the lane where it is allowed. Lead does not launch it for the lane.
+- 23:37: Bader's order, the driver presses Always Load on our own Unsigned Add-In box, PR 246.
 
 ## revit-test, FAST-3-revit-test, the one test on Sun 8 Nov
 

@@ -67,7 +67,7 @@ namespace SiteAdaptation.AddIn.Pane
                 line = string.Join(" ", new[] { plan.Progress, plan.Coordinates }.Where(part => !string.IsNullOrEmpty(part)));
                 return false;
             }
-            line = string.Join(" ", new[] { plan.Progress, plan.Coordinates, plan.Issues.Count > 0 ? TextTemplate.Fill(SiteBuildText.Issues, plan.Issues.Count) : null, SiteBuildText.PlanReady }
+            line = string.Join(" ", new[] { plan.Progress, plan.Coordinates, plan.Issues.Count > 0 ? TextTemplate.Fill(SiteBuildText.Issues, plan.Issues.Count) : null }
                 .Where(part => !string.IsNullOrEmpty(part)));
             return true;
         }
