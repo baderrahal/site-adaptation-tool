@@ -78,7 +78,6 @@ allowed:
   - dotnet/SiteAdaptation.Common/Worker/
   - dotnet/SiteAdaptation.Common/Fast2/
   - dotnet/CadReader/CadReader.csproj
-  - dotnet/CadReader/CadScan.cs
   - dotnet/CadReader/CoordinateSystemRead.cs
   - dotnet/CadReader/LayerConfig.cs
   - dotnet/CadReader/LevelWorkbook.cs
@@ -118,7 +117,7 @@ The logic behind the face, for any project. Bader's order of 6 Nov, fast build, 
 3. Update from report on a new project, Q394.
 4. Moved to FAST-4-build-3 on 6 Nov, Bader's order.
 5. Moved to FAST-4-build-3 on 6 Nov, Bader's order.
-6. No RAM floor: remove siteBuild.minFreeGB from config/project.json and every reader, python/window_lock.py, python/c3d_window.py and the worker checks. Bader's order of 6 Nov: WorkerRunTests.cs, R448_RevitListenerTests.cs and TestHostTests.cs are on this list by exact path, AddinConfig.cs, WorkerMemory.cs and RevitListener.cs of Common are in its Common entries. The floor lines of Run-TestHost.ps1, Start-RevitListener.ps1 and Run-Parallel.ps1 in dotnet/SiteAdaptation.TestHost/ are FAST-1's item 8.
+6. No RAM floor: remove siteBuild.minFreeGB from config/project.json and every reader, python/window_lock.py, python/c3d_window.py and the worker checks. Bader's order of 6 Nov: WorkerRunTests.cs, R448_RevitListenerTests.cs and TestHostTests.cs are on this list by exact path, AddinConfig.cs, WorkerMemory.cs and RevitListener.cs of Common are in its Common entries. The floor lines of Run-TestHost.ps1, Start-RevitListener.ps1 and Run-Parallel.ps1 in dotnet/SiteAdaptation.TestHost/ are FAST-1's item 8. The order, so the gate stays green: first FAST-2 makes ParsonsModelTests.cs:360 and TestHostTests.cs:392 and :397 accept the script lines with or without the floor, then FAST-1 removes the floor lines from the scripts, then FAST-2 asserts the lines without the floor.
 7. Boundary wall thickness from the rules file, Q149. The link parameter group, Q336.
 8. Q504, Bader's answer 5A of 6 Nov: a plot whose ffl is missing is marked, steps 6 to 8 skip it, and the plan lists every such plot in the issues list with the words no road level, so the card shows the count.
 9. Bader's answer 4A of 6 Nov: the R310 tests of ParsonsModelTests.cs fail at random on this PC. Measure the time of a CIM call on this PC and take the limit of the tests from it. dotnet/SiteAdaptation.TestHost/WindowSamples.ps1 is FAST-1's, a change there is a line in steps/seam.md.
@@ -126,13 +125,13 @@ The logic behind the face, for any project. Bader's order of 6 Nov, fast build, 
 11. Q560, Bader's answer A of 6 Nov: Plot stays on floors as the tool's own tag, every other shared parameter on villa links only.
 12. Bader's order of 6 Nov: the Plot row of config/shared_parameters.xlsx gets the note tool tag, floors, so a new project understands it. Item 1 is complete on Plot: it stays on floors as the tool's own tag, Q411 and Q560, the RRE_ZZ_SP_ set and CASE are links only.
 
-Tests in dotnet/SiteAdaptation.Tests/FAST2/ and python/tests/. Common/DataCheck/, CadExtractor.cs, CadModels.cs, Exploder.cs, DataCheckCommand.cs, scripts/scenarios/ and steps/scenarios.md are FAST-4-build-3's since 6 Nov, a new file of FAST-2 goes in Common/Fast2/ or CadReader/Fast2/ or a folder of its list. tests/acceptance/ stays Lead's, the required check fails a lane that changes it, and scripts/ is held to scripts/scenarios/, as scripts/checks/ is the gate and scripts/lanes/ the lane starter. CHOSEN by Lead.
+Tests in dotnet/SiteAdaptation.Tests/FAST2/ and python/tests/. Common/DataCheck/, CadExtractor.cs, CadModels.cs, Exploder.cs, DataCheckCommand.cs, CadScan.cs, scripts/scenarios/ and steps/scenarios.md are FAST-4-build-3's since 6 Nov, a new file of FAST-2 goes in Common/Fast2/ or CadReader/Fast2/ or a folder of its list. tests/acceptance/ stays Lead's, the required check fails a lane that changes it, and scripts/ is held to scripts/scenarios/, as scripts/checks/ is the gate and scripts/lanes/ the lane starter. CHOSEN by Lead.
 
 Rule ids: R700 to R719. Question ids: Q540 to Q549. Take no other id.
 
 # Done when
 
-The S1 folder scans with sharedParameters strong, the plan carries a source on every value, the report says it, and the villa plot count is 1891 or the difference is listed with reasons.
+The S1 folder scans with sharedParameters strong, the plan carries a source on every value, the report says it. The villa plot count is FAST-4-build-3's since 6 Nov.
 
 # Build rules
 

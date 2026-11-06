@@ -9,6 +9,7 @@ allowed:
   - dotnet/CadReader/CadModels.cs
   - dotnet/CadReader/Exploder.cs
   - dotnet/CadReader/DataCheckCommand.cs
+  - dotnet/CadReader/CadScan.cs
   - dotnet/SiteAdaptation.Tests/FAST4/
   - scripts/scenarios/
   - steps/scenarios.md
@@ -24,7 +25,7 @@ The plot read and the mirror, for any project. Bader's order of 6 Nov 16:25, ite
 1. Plots read: S1 reads 2964 plots where the answer holds 1891. The plot table holds the plots a villa goes on, every other plot is listed with its reason, never dropped in silence. Numbers right stays at 1873 or more.
 2. Mirror from what CAD gives: block Scale X, the footprint when it exists, the pair trace when it does not. Mirror right before and after on S1 and S2 in steps/scenarios.md, one run each.
 
-The files are the plot read and the mirror: dotnet/SiteAdaptation.Common/DataCheck/, CadExtractor.cs, CadModels.cs, Exploder.cs and DataCheckCommand.cs of dotnet/CadReader/, the scenario scripts and steps/scenarios.md. Tests in dotnet/SiteAdaptation.Tests/FAST4/. A scenario run is one at a time, and the scenario folders are shared with the other lanes: say in steps/seam.md before a run and after it.
+The files are the plot read and the mirror: dotnet/SiteAdaptation.Common/DataCheck/, CadExtractor.cs, CadModels.cs, Exploder.cs, DataCheckCommand.cs and CadScan.cs of dotnet/CadReader/, CadScan.cs as it writes the mirror and the outline of each insert the data check reads. The plot faces of Common/Scan/ScanLogic.cs and PlotShapes.cs stay FAST-2's, a change there is a line in steps/seam.md, the scenario scripts and steps/scenarios.md. Tests in dotnet/SiteAdaptation.Tests/FAST4/. A scenario run is one at a time, and the scenario folders are shared with the other lanes: say in steps/seam.md before a run and after it.
 
 Rule ids: R730 to R739. Question ids: Q561 to Q569, as Q560 was taken on 6 Nov by Bader's answer on Plot on floors. Take no other id.
 
