@@ -2,6 +2,32 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## FAST-8-build-1, Check reads no past file, the toposolid surface, no overlap box, 7 Nov 2026
+
+Goal:
+- F26 and F27 of the short check of 01A, Bader's order of 14:40.
+
+Done:
+- R780: under rev6 a plots.csv or labels.csv of the data book of the work root the read named is never a Check input, the plot table of the read stands in for it, written to plots_<read> of the work folder. No plot table stops Check as missing.
+- R781: Floors and ramps takes, of the road surfaces the build read, the one with the most ramp road edge points, and says which.
+- R782: a warning of known words on floors the list does not pair, Highlighted floors overlap of two plots, is taken with no box and listed with its floors in the issues.
+
+Checked:
+- FAST8 tests 13 on net48 and net8.0, the full dotnet suite 0 failed, quick tests PASS, tests/acceptance passed.
+- A script that shares no code: Check took both data book files before, the plot table gives 278 plots of 01A. No road surface of S1 covers 01A, 6 ground and grading surfaces do.
+
+Remains:
+- Q600 for Bader, the toposolid of an NBH no road surface covers. F28 line. Not seen in Revit, label revit-later.
+
+Known bugs:
+- Done when of FAST-8 on 01A: toposolid UNKNOWN, cannot pass on S1 without Q600. Yard floors 0 by R410.
+
+Next:
+- The second short check by revit-test, on 012 if Bader answers Q600 as recommended.
+
+Your turn:
+- Answer Q600 in steps/seam.md.
+
 ## FAST-7 PR 6, the Build goes on after Check, F25, 7 Nov 2026
 
 Goal:
