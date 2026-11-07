@@ -58,6 +58,22 @@ At 23:10:
 - 00:46: run 1 not started. At 00:44 the PC was 5 minutes idle, then the permission check of the revit-test session (auto mode) refused the launch of the Revit driver under python/window_lock.py, with no reason given. Revit not opened, no input sent. BLOCKED until Bader allows that launch in the revit-test session, or runs the lane where it is allowed. Lead does not launch it for the lane.
 - 23:37: Bader's order, the driver presses Always Load on our own Unsigned Add-In box, PR 246.
 
+## Sat 7 Nov 15:00, the demo moves to Sun 8 Nov 17:00 Riyadh
+
+Bader's orders of 14:40 and 14:50: the managers see the tool on Sun 8 Nov at 17:00, on a new project, a neighbourhood not used for tuning.
+
+Merged since 10:05, each on green: PR 251 the Saturday lanes, 252 the stop box F12, 253 and 255 file lists of FAST-7, 254 FAST-6 part 1 (F4 fixed, F10 half), 257 FAST-7 card 1 (F1, F3, F7, F9, F17, F2 line), 258 run 1b of revit-test (01A from Advanced stops at Check, F16, F18 to F23), 256 FAST-5 F16 at 14:57, 89d1c69.
+
+Run 1b, 10:40 to 14:06 on the add-in of 6 Nov: steps 1 to 3 done on 01A, 4 Check stopped on the old step 2 outputs, F16. Nothing built.
+
+15:05: Lead built main 89d1c69 and installed it with Install-SiteAdaptation.ps1, nothing pressed. revit-test started on the short check: 01A, an empty model copy, Choose project folder, Build to the end. Pass means floors and ramps, levels, villa links and walls placed with no stop at Check, counts in steps/revit-results/FAST-3-revit-test.md. Pass: run 2 at 23:30, the full FAST-3 on 01A. Fail: the fault to steps/seam.md and to build-1 the same hour.
+
+Open: FAST-5 until the short check sees the Build to the end. FAST-6 until the F10 line, now on main by PR 256, is seen in the short check. FAST-7: F2 Baseplan, then F6 and F13 after the short check, when Lead moves PaneHost.cs and BuildChain.cs to it.
+
+F15, the villa type on a new neighbourhood: a read only check of S1 for 010, and a read only scan of C:- ROSHEN MECCA, cap 90 minutes, findings in steps/investigations/roshen-mecca-scan.md. If an untuned neighbourhood has 10 or more plots with a villa type, the demo folder S1-new in the work root takes S1 plus that file and revit-test runs that neighbourhood. If none, the 16 cells of 010 are filled from the CAD block names when they exist, else steps/bader-form-7nov.md asks the team to fill them.
+
+Sun 8 Nov: by 12:00 revit-test runs the new neighbourhood on S1-new from an empty model copy, Build to the end. By 13:00 Lead rewrites steps/demo-live.md in two parts, the new neighbourhood then 01A, used for tuning. Then F8, a task for build-3 if under one hour, else said in the room.
+
 ## Sat 7 Nov 10:05, Bader's answers and orders
 
 - F15: run 2 on neighbourhood 01A, marked tuned in the record. The demo of Mon 9 Nov uses 01A too, steps/demo-live.md says plainly 01A was used for tuning.
