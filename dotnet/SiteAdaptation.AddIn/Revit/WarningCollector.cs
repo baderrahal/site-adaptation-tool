@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Autodesk.Revit.DB;
 using SiteAdaptation.Common.Flow;
+using SiteAdaptation.Common.Floors;
 
 namespace SiteAdaptation.AddIn.Revit
 {
@@ -28,15 +29,22 @@ namespace SiteAdaptation.AddIn.Revit
             {
                 if (message.GetSeverity() == FailureSeverity.Warning)
                 {
-                    AcceptedWarning accepted = Decide(accessor, message);
-                    if (accepted == null)
-                    {
-                        Warnings.Add(message.GetDescriptionText());
-                    }
-                    else
+                    AcceptedWarning accepted = Decide(accessor, message, out List<WarningElement> elements);
+                    string text = message.GetDescriptionText();
+                    if (accepted != null)
                     {
                         accessor.DeleteWarning(message);
                         Accepted.Add(accepted);
+                    }
+                    else if (KnownWordsWarning.TakeAndList(Known, text, accepted))
+                    {
+                        // R782. Known words on floors the list does not pair: no box of Revit holds an unwatched run, the issue lists the floors
+                        accessor.DeleteWarning(message);
+                        Warnings.Add(KnownWordsWarning.Line(text, elements));
+                    }
+                    else
+                    {
+                        Warnings.Add(text);
                     }
                 }
                 else
@@ -48,8 +56,9 @@ namespace SiteAdaptation.AddIn.Revit
             return error ? FailureProcessingResult.ProceedWithRollBack : FailureProcessingResult.Continue;
         }
 
-        private AcceptedWarning Decide(FailuresAccessor accessor, FailureMessageAccessor message)
+        private AcceptedWarning Decide(FailuresAccessor accessor, FailureMessageAccessor message, out List<WarningElement> elements)
         {
+            elements = null;
             string text = message.GetDescriptionText();
             if (Known == null || !Known.Knows(text))
             {
@@ -57,7 +66,7 @@ namespace SiteAdaptation.AddIn.Revit
             }
             // The API parts failing from additional elements, and which of them an overlap names is unknown, so both are read
             Document document = accessor.GetDocument();
-            List<WarningElement> elements = message.GetFailingElementIds().Concat(message.GetAdditionalElementIds()).Distinct()
+            elements = message.GetFailingElementIds().Concat(message.GetAdditionalElementIds()).Distinct()
                 .Select(id => Read(document, id)).ToList();
             return Known.Decide(text, elements);
         }
