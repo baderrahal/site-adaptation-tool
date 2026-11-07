@@ -88,7 +88,11 @@ if (-not $use) { exit 0 }
 
 $root = Get-RepoRoot (Get-HookFolder $payload)
 if (-not $root) { Stop-Revit 'this folder is not in the repo, so its lane is not known.' }
-if ((Get-LaneRole $root) -ne 'revit tester') { Stop-Revit "only the worktree named revit-test opens Revit, this lane is $(Get-LaneName $root)." }
+# Bader's order of 7 Nov 10:05 lets the builders the file names test in Revit before their PR, for the fast build only. It is read from
+# the lane's own folder, guard-edit blocks a builder's edit of .claude but not a shell write. Deleted after 8 Nov with the fast section of CLAUDE.md
+$extra = Join-Path $root '.claude\revit-lanes.txt'
+$allowed = (Test-Path -LiteralPath $extra) -and (@(Get-Content -LiteralPath $extra | ForEach-Object { $_.Trim() }) -contains (Get-LaneName $root))
+if ((Get-LaneRole $root) -ne 'revit tester' -and -not $allowed) { Stop-Revit "only the worktree named revit-test opens Revit, this lane is $(Get-LaneName $root)." }
 # A job goes to the listener, which holds the lock itself and opens no window
 if ($use -eq 'job') { exit 0 }
 

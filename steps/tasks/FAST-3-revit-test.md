@@ -25,6 +25,10 @@ It shares steps/revit-results/ and steps/ui-shots/ with FAST-1-build-1, which st
 
 The driver in Revit: a person may be at this PC. Send a click, a key or a shot only with Revit in front, after 5 minutes idle and with no meeting window, and stop when another input comes (CLAUDE.md). When Revit shows the box "Security - Unsigned Add-In" for Site Adaptation, the driver presses Always Load itself, once, and writes the time in steps/revit-results. This is the one box it may press on sight, Bader's order of 6 Nov 23:37. Every other box keeps the driver rule, and a box of any other maker stays untouched. Bader's order of 7 Nov 00:16: the Teams window "Meeting compact view" stays open on purpose, Teams keeps the laptop awake, so the driver does not count it as a meeting window. Revit in front, 5 minutes idle and the stop on other input stay.
 
+Run 1b, Sat 7 Nov from 10:30, Bader's order of 10:05. Neighbourhood 01A, marked tuned in the record, Bader's answer to F15. On an empty model copy, run the old steps 1 to 9 from Advanced to the end, on the add-in installed on 6 Nov 23:00 and main of today. It proves that stages 2 and 3 still build on this neighbourhood. One shot per window. Every fault goes to steps/seam.md as F18 and up, by lane, not fixed here. The record is a run 1b section of steps/revit-results/FAST-3-revit-test.md. Keep each part under 110 minutes and save the copy at the end of each part. Before each part, look in the lanes folder of the work root: while a file revit-wanted-build-1.txt or revit-wanted-build-3.txt stands, a builder needs Revit for its own check, so end the part, save, close Revit with File, Exit and wait until the file is gone. Builders build-1 and build-3 open Revit today too, under the same window lock.
+
+Run 2, tonight Sat 7 Nov at 23:30 if Lead's short check after FAST-5 and FAST-6 passes, is the full run of this task on 01A, not on an untuned neighbourhood, Bader's answer to F15. Sun 8 Nov becomes the third run and the rehearsal of steps/demo-live.md.
+
 Rule ids: R720 to R729. Question ids: Q550 to Q559. Take no other id.
 
 # Build rules
