@@ -50,7 +50,7 @@ namespace SiteAdaptation.Tests.FAST8
             {
                 ["profile"] = "rules/made-up.json",
                 ["majority"] = JObject.Parse("{ 'groups': { 'native': ['n1'], 'parsons': ['kx'] }, 'overrideDefaultSources': ['parsons'], 'linkPlotParameter': 'Plot' }"),
-                ["addin"] = JObject.Parse("{ 'workerTimeLimitS': { 'build': 60 } }"),
+                ["addin"] = JObject.Parse("{ 'workerTimeLimitS': { 'build': 60 }, 'readData': { 'dataBookFolder': 'data_book' } }"),
                 ["designBasis"] = new JObject { ["mode"] = mode, ["modes"] = new JArray("rev6", "pastMade"), ["roadLevel"] = new JObject { ["surfaces"] = new JArray() } },
             };
             Write(config, settings.ToString());
@@ -133,6 +133,21 @@ namespace SiteAdaptation.Tests.FAST8
             Assert.Contains(plan.Stops, stop => stop.StartsWith("the plots of the project are missing", StringComparison.Ordinal) && stop.Contains(ReadDataRun.PlotTableFile));
             Assert.Null(PathOf(plan, "plotsCsv"));
             Assert.Null(PathOf(plan, "labels"));
+        }
+
+        [Fact]
+        public void R780_a_plots_file_of_the_project_outside_the_data_book_stays_and_one_inside_it_is_known_by_its_folder()
+        {
+            string config = Site("rev6");
+            JObject settings = JObject.Parse(File.ReadAllText(config));
+            settings["addin"]["readData"]["dataBookFolder"] = "other_book";
+            File.WriteAllText(config, settings.ToString());
+            CheckRun.CheckPlan plan = Plan(config, "rev6");
+            Assert.Equal(Path.GetFullPath(Path.Combine(Book, "plots.csv")), Path.GetFullPath(PathOf(plan, "plotsCsv")));
+            Assert.True(ProjectPlots.InDataBook(Path.Combine(Book, "location_plan", "labels.csv"), JObject.Parse("{ 'addin': { 'readData': { 'dataBookFolder': 'data_book' } } }"), Work));
+            Assert.False(ProjectPlots.InDataBook(Path.Combine(root, "data_book_two", "plots.csv"), JObject.Parse("{ 'addin': { 'readData': { 'dataBookFolder': 'data_book' } } }"), Work));
+            Assert.True(ProjectPlots.InDataBook(Path.Combine(Book, "plots.csv"), new JObject { ["addin"] = new JObject { ["readData"] = new JObject { ["dataBookFolder"] = Book } } }, Path.Combine(root, "elsewhere", "w")));
+            Assert.False(ProjectPlots.InDataBook(Path.Combine(Book, "plots.csv"), new JObject(), Work));
         }
 
         [Fact]

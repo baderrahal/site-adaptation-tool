@@ -34,6 +34,20 @@ namespace SiteAdaptation.Common.CheckTable
             public string Missing { get; set; }
         }
 
+        // R780. True for a file inside the data book of the work root, addin.readData.dataBookFolder of config beside the work folder as the read
+        // for the build takes it (ReadInputs.DataBook). False when config names none
+        public static bool InDataBook(string path, JObject config, string workFolder)
+        {
+            JToken named = config?.SelectToken("addin.readData.dataBookFolder");
+            string folder = named != null && named.Type == JTokenType.String ? ((string)named).Trim() : "";
+            if (string.IsNullOrEmpty(path) || folder.Length == 0 || string.IsNullOrEmpty(workFolder))
+            {
+                return false;
+            }
+            string book = Path.GetFullPath(Path.IsPathRooted(folder) ? folder : Path.Combine(Path.GetDirectoryName(Path.GetFullPath(workFolder)), folder)).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
+            return Path.GetFullPath(path).StartsWith(book, StringComparison.OrdinalIgnoreCase);
+        }
+
         // The two files of the plot table of the read folder, or Missing with why when the read holds no plot table. Never a file of the data book
         public static Written Write(string readFolder, string workFolder)
         {
