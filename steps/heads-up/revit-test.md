@@ -23,4 +23,4 @@
 ## Next
 
 - Lead decides run 2, moved to Sun 06:00 by Lead. The copy FAST3-short2-01A.rvt holds the built 01A.
-- Main now holds PR 272 (F22) and PR 273 (FAST-10), merged after the install of 22:01. Not seen in Revit, run 2 needs Lead's new install.
+- Main now holds PR 272 (F22), merged after the install of 22:01, and PR 273 of build-3 (FAST-10) is open. Not seen in Revit, run 2 needs Lead's new install.
