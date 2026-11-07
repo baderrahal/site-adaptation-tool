@@ -94,6 +94,21 @@ namespace SiteAdaptation.Common.ReadData
         // parent is the work root of R372 the data book folder lies in. picked gives the road surfaces picked in Set up, read under rev6 alone (R492)
         public static ReadPlan Make(IReadOnlyList<RunInput> pane, IReadOnlyDictionary<string, string> roles, string workFolder, IReadOnlyList<string> picked = null, string mode = null)
         {
+            return Make(pane, roles, workFolder, picked, mode, false);
+        }
+
+        // R740. The steps of the location plan and the plot table, which the read for the build leaves out: the plot table comes from the data check
+        public static readonly IReadOnlyList<string> PlotTableSteps = new[] { LocationPlan.LabelStepName, LocationPlan.FitStepName, LocationPlan.CheckStepName, LocationPlan.FacesStepName, PlotTable.StepName };
+
+        // R740. The read 4 Check needs on a project whose stage 1 read the folder: the drawings, the road surfaces, the workbooks and the data book of
+        // the old read, with no schedule and no plot number file, as the plot table of the data check stands for the location plan
+        public static ReadPlan ForBuild(IReadOnlyList<RunInput> pane, IReadOnlyDictionary<string, string> roles, string workFolder, IReadOnlyList<string> picked = null, string mode = null)
+        {
+            return Make(pane, roles, workFolder, picked, mode, true);
+        }
+
+        private static ReadPlan Make(IReadOnlyList<RunInput> pane, IReadOnlyDictionary<string, string> roles, string workFolder, IReadOnlyList<string> picked, string mode, bool forBuild)
+        {
             var stops = new List<string>();
             var found = new List<KeyValuePair<string, string>>();
             RunInput configInput = pane.FirstOrDefault(input => roles.TryGetValue(input.Name, out string role) && role == Config);
@@ -154,6 +169,10 @@ namespace SiteAdaptation.Common.ReadData
                     stops.Add(input.Name + ": " + Path.GetFileName(input.Path) + " is kept for reference only (drawings.referenceOnly) and is never read (R300)");
                     continue;
                 }
+                if (forBuild && role == LocationPlan.PlotNumbersRole)
+                {
+                    continue;
+                }
                 Add(found, stops, role, input.Path, input.Name + " is not on disk: " + input.Path);
             }
             JObject read = config.SelectToken("addin.readData") as JObject;
@@ -171,9 +190,13 @@ namespace SiteAdaptation.Common.ReadData
             {
                 Add(found, stops, CadLayers, Path.Combine(Path.GetDirectoryName(configPath), layers), "the layer list " + layers + " of addin.readData.cadLayers is not on disk beside config");
             }
-            Schedules(config, read, found, stops);
+            if (!forBuild)
+            {
+                Schedules(config, read, found, stops);
+            }
             DataBook(read, workFolder, found, stops);
-            return Plan(found, stops, configPath, order);
+            ReadPlan plan = Plan(found, stops, configPath, order);
+            return forBuild ? new ReadPlan(plan.Inputs, plan.Steps.Where(step => !PlotTableSteps.Contains(step)).ToList(), plan.Stops, plan.ConfigPath, plan.RoadOrder) : plan;
         }
 
         // R351. The fit schedule must be named, and every schedule named must be on disk, as the worker refuses the read without them
