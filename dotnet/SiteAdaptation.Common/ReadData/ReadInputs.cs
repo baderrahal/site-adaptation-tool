@@ -144,7 +144,7 @@ namespace SiteAdaptation.Common.ReadData
                     {
                         stops.Add(input.Name + ": config names no road surface and Set up picked none (R490)");
                     }
-                    foreach (string name in rev6 ? RoadSurfaceChoices.Named(config, picked) : Strings(config.SelectToken("siteBuild.roadSurfaces")))
+                    foreach (string name in RoadNames(config, picked))
                     {
                         // R492. A surface siteBuild.roadFolder.notTaken names covers corners with the wrong level, so it is refused with its reason
                         string why = rev6 ? RoadSurfaceChoices.NotTakenWhy(config, name) : null;
@@ -304,10 +304,15 @@ namespace SiteAdaptation.Common.ReadData
             }
         }
 
-        private static ReadInput FolderInput(string folder, HashSet<string> skip)
+        // R492. The road surfaces the old read takes: those named or picked under rev6, those of siteBuild.roadSurfaces under the past job
+        public static IEnumerable<string> RoadNames(JObject config, IReadOnlyList<string> picked)
         {
-            long bytes = 0;
-            var lines = new List<string>();
+            return RoadSurfaceChoices.IsRev6(config) ? RoadSurfaceChoices.Named(config, picked) : Strings(config.SelectToken("siteBuild.roadSurfaces"));
+        }
+
+        // R635. Every file of the folder as a raw read walks it: a folder of skip at any depth and, as the worker walks it, a link or junction are never followed
+        public static IEnumerable<string> FilesOf(string folder, HashSet<string> skip)
+        {
             var pending = new Stack<string>();
             pending.Push(folder);
             while (pending.Count > 0)
@@ -315,15 +320,24 @@ namespace SiteAdaptation.Common.ReadData
                 string here = pending.Pop();
                 foreach (string file in Directory.GetFiles(here))
                 {
-                    var info = new FileInfo(file);
-                    bytes += info.Length;
-                    lines.Add(file.Substring(folder.Length) + "|" + info.Length + "|" + info.LastWriteTimeUtc.Ticks);
+                    yield return file;
                 }
-                // As the worker walks it, a link or junction is never followed
                 foreach (string child in Directory.GetDirectories(here).Where(child => !skip.Contains(Path.GetFileName(child)) && (File.GetAttributes(child) & FileAttributes.ReparsePoint) == 0))
                 {
                     pending.Push(child);
                 }
+            }
+        }
+
+        private static ReadInput FolderInput(string folder, HashSet<string> skip)
+        {
+            long bytes = 0;
+            var lines = new List<string>();
+            foreach (string file in FilesOf(folder, skip))
+            {
+                var info = new FileInfo(file);
+                bytes += info.Length;
+                lines.Add(file.Substring(folder.Length) + "|" + info.Length + "|" + info.LastWriteTimeUtc.Ticks);
             }
             lines.Sort(StringComparer.Ordinal);
             using (SHA256 hash = SHA256.Create())

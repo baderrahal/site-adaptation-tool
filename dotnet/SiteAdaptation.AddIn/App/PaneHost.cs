@@ -377,8 +377,10 @@ namespace SiteAdaptation.AddIn
                 ShowPreview = ShowPreview,
             };
             // R688. The steps of version 1 one after another, each by RequestRun as a press of its row, and each end back here through Buttons.ChainEnded
-            var chain = new BuildChain(number => number == BuildChain.ReadForCheck ? Fast5.BuildRead.Name
-                    : model.Steps.FirstOrDefault(step => step.Number == number)?.Name ?? number.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            // R741. The read for the build is a read of step 2, so it goes by the name of that step
+            Func<int, string> stepName = number => model.Steps.FirstOrDefault(step => step.Number == (number == BuildChain.ReadForCheck ? StagesViewModel.ReadDataStep : number))?.Name
+                ?? number.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            var chain = new BuildChain(stepName,
                 number => number <= model.Statuses.Count ? model.Statuses[number - 1] : new StepStatus(StepKind.None))
             {
                 ReadFirst = () => Fast5.BuildRead.Needed(WorkFolderNow()),
@@ -401,7 +403,7 @@ namespace SiteAdaptation.AddIn
                     endOf(number, Common.Flow.RunEnd.Stopped, SiteBuildText.NoRead);
                     return;
                 }
-                Fast5.BuildRead.Start(settings, work, new Common.WorkerDocument { Path = document.Path, SessionId = document.SessionId }, ReadDataBody.Worker,
+                Fast5.BuildRead.Start(settings, work, new Common.WorkerDocument { Path = document.Path, SessionId = document.SessionId }, ReadDataBody.Worker, stepName(number),
                     (done, message) => endOf(number, done ? Common.Flow.RunEnd.Committed : Common.Flow.RunEnd.Stopped, message));
             };
             stages.BuildRequested += () =>

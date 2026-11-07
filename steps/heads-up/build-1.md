@@ -25,4 +25,4 @@ Build press: PaneHost BuildRequested, BuildRead.FillRows(model.Settings, model.P
 ## Next
 
 - PR 2: in ReadDataRun.DataCheckRequest the parameter sheet input of DataCheckSheet.Input once PR 254 is on main, with a FAST5 test. Then status done once the Build to the end is seen in Revit.
-- Open for Lead in steps/seam.md: the three words of the read for the build in docs/design/14-ui-labels.md, and the data book debt.
+- Open for Lead in steps/seam.md: the data book debt. The read for the build adds no pane word, it speaks as step 2.

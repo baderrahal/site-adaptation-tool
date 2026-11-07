@@ -223,7 +223,7 @@ namespace SiteAdaptation.Common.ReadData
         }
 
         // R474. sources names per value kind the source read and from where, and each conflict pick applied
-        private static JObject Recorded(string runId, ReadPlan plan, IReadOnlyDictionary<string, string> outputs, JObject counts, IReadOnlyList<string> issues, JObject picks)
+        public static JObject Recorded(string runId, ReadPlan plan, IReadOnlyDictionary<string, string> outputs, JObject counts, IReadOnlyList<string> issues, JObject picks)
         {
             var record = new JObject
             {

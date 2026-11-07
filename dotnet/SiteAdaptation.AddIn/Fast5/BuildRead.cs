@@ -21,13 +21,9 @@ namespace SiteAdaptation.AddIn.Fast5
     // keeps its own run and stays done. No Revit type, so a test runs it with a worker of its own
     public static class BuildRead
     {
-        public const string Name = "Read for the build";
+        // It says its lines in the words of a read of step 2 under the name of that step, words the pane has already
         public const string RunSuffix = "-build";
         public const string PlotTableRole = "plotTable";
-        public const string NoWorker = "the worker CadReader.exe is not set up, so the files of the folder cannot be read";
-        public const string NoTable = "the read of stage 1 holds no plot table, read the project data in stage 1 first";
-        public const string Done = "the folder read for Check, <n> files written.";
-        public const string Reused = "the folder read for Check is reused, nothing changed since.";
 
         // True when the latest read lacks a file 4 Check takes from the read, false with no read at all, where Check names its own stop
         public static bool Needed(string workFolder)
@@ -40,21 +36,7 @@ namespace SiteAdaptation.AddIn.Fast5
         public static IReadOnlyList<string> FillRows(PaneSettings settings, Action<string, string> pick)
         {
             var filled = new List<string>();
-            JObject config = ConfigOf(settings);
-            string root = config?["inputRoot"]?.Type == JTokenType.String ? (string)config["inputRoot"] : null;
-            if (config == null || string.IsNullOrEmpty(root))
-            {
-                return filled;
-            }
-            FolderRoles.Found found;
-            try
-            {
-                found = FolderRoles.Of(config, root, settings.Project.RoadSurfaces);
-            }
-            catch (Exception failure) when (failure is IOException || failure is UnauthorizedAccessException)
-            {
-                return filled;
-            }
+            FolderRoles.Found found = Found(settings);
             foreach (KeyValuePair<string, string> role in found.Paths.OrderBy(pair => pair.Key, StringComparer.Ordinal))
             {
                 string now = settings.InputPath(role.Key);
@@ -68,11 +50,11 @@ namespace SiteAdaptation.AddIn.Fast5
         }
 
         // R741. The read for the build. ended gets true and the line of its end, or false and why, once, maybe before Start returns
-        public static void Start(PaneSettings settings, string workFolder, WorkerDocument document, IWorkerStart worker, Action<bool, string> ended)
+        public static void Start(PaneSettings settings, string workFolder, WorkerDocument document, IWorkerStart worker, string label, Action<bool, string> ended)
         {
             try
             {
-                Run(settings, workFolder, document, worker, ended);
+                Run(settings, workFolder, document, worker, label, ended);
             }
             catch (Exception failure) when (failure is IOException || failure is UnauthorizedAccessException || failure is JsonException || failure is InvalidDataException
                 || failure is InvalidOperationException || failure is ArgumentException)
@@ -81,25 +63,26 @@ namespace SiteAdaptation.AddIn.Fast5
             }
         }
 
-        private static void Run(PaneSettings settings, string workFolder, WorkerDocument document, IWorkerStart worker, Action<bool, string> ended)
+        private static void Run(PaneSettings settings, string workFolder, WorkerDocument document, IWorkerStart worker, string label, Action<bool, string> ended)
         {
             if (worker == null)
             {
-                ended(false, NoWorker);
+                ended(false, RunTexts.NotBuilt(label));
                 return;
             }
             var pane = new List<RunInput>(ReadDataBody.Inputs(settings)) { new RunInput(PaneText.Settings, settings.ConfigFile, false) };
             ReadPlan files = ReadInputs.ForBuild(pane, ReadDataBody.Roles, workFolder, settings.Project.RoadSurfaces, settings.Project.ProjectMode);
             if (files.Stops.Count > 0)
             {
-                ended(false, string.Join(". ", files.Stops));
+                // R740. Why the folder did not give a row, beside the row the read stops on
+                ended(false, string.Join(". ", files.Stops.Concat(Found(settings).Left)));
                 return;
             }
             string source = ReviewLoad.LatestReadFolder(workFolder);
             string table = source == null ? null : Path.Combine(source, ReadDataRun.PlotTableFile);
             if (table == null || !File.Exists(table))
             {
-                ended(false, NoTable);
+                ended(false, SiteBuildText.NoRead);
                 return;
             }
             // The plot table is an input of the record and of the hash, not of the worker: a new read of stage 1 is a new read for the build
@@ -111,8 +94,8 @@ namespace SiteAdaptation.AddIn.Fast5
             if (reusable != null)
             {
                 // The record takes the new run id, so this folder is the latest read again after a read of stage 1 made another one latest
-                Write(folder, runId, plan, Outputs(reusable), reusable["counts"] as JObject ?? new JObject(), reusable["issues"] as JArray ?? new JArray());
-                ended(true, Reused);
+                Write(folder, runId, plan, Outputs(reusable), reusable["counts"] as JObject ?? new JObject(), Strings(reusable["issues"]));
+                ended(true, RunTexts.ReadReused(label, (string)reusable["runId"]));
                 return;
             }
             string work = Path.GetFullPath(workFolder);
@@ -126,11 +109,11 @@ namespace SiteAdaptation.AddIn.Fast5
                 ProjectMode = settings.Project.ProjectMode,
             };
             Directory.CreateDirectory(work);
-            worker.Start(request.Write(work), work, request, answer => ended.Invoke(Answered(folder, runId, plan, table, answer, out string line), line));
+            worker.Start(request.Write(work), work, request, answer => ended.Invoke(Answered(folder, runId, plan, table, label, answer, out string line), line));
         }
 
         // The answer of the worker, the plot table copied beside its outputs and the record written last, so the folder is a read only when whole
-        public static bool Answered(string folder, string runId, ReadPlan plan, string table, WorkerAnswer answer, out string line)
+        public static bool Answered(string folder, string runId, ReadPlan plan, string table, string label, WorkerAnswer answer, out string line)
         {
             if (answer == null || answer.Status != WorkerExit.Status(WorkerExit.Done))
             {
@@ -143,8 +126,9 @@ namespace SiteAdaptation.AddIn.Fast5
                 string copy = Path.Combine(folder, ReadDataRun.PlotTableFile);
                 File.Copy(table, copy, true);
                 outputs[copy] = FileHash.Sha256(copy);
-                Write(folder, runId, plan, outputs, JObject.FromObject(answer.Counts ?? new Dictionary<string, int>()), new JArray(answer.Issues ?? new List<string>()));
-                line = TextTemplate.Fill(Done, outputs.Count.ToString(CultureInfo.InvariantCulture));
+                var issues = answer.Issues ?? new List<string>();
+                Write(folder, runId, plan, outputs, JObject.FromObject(answer.Counts ?? new Dictionary<string, int>()), issues);
+                line = RunTexts.ReadDone(label, outputs.Count, issues.Count);
                 return true;
             }
             catch (Exception failure) when (failure is IOException || failure is UnauthorizedAccessException)
@@ -154,23 +138,33 @@ namespace SiteAdaptation.AddIn.Fast5
             }
         }
 
-        // The record in the form of a read of step 2, so 4 Check and the later steps take this folder as any read
-        private static void Write(string folder, string runId, ReadPlan plan, IReadOnlyDictionary<string, string> outputs, JObject counts, JArray issues)
+        // The record of a read of step 2, by the code of ReadDataRun, so 4 Check and the later steps take this folder as any read. It has no picks
+        private static void Write(string folder, string runId, ReadPlan plan, IReadOnlyDictionary<string, string> outputs, JObject counts, IReadOnlyList<string> issues)
         {
-            var record = new JObject
-            {
-                ["format"] = ReadDataRun.RecordFormat, ["runId"] = runId,
-                ["inputs"] = new JArray(plan.Inputs.Select(input => new JObject { ["role"] = input.Role, ["path"] = input.Path, ["bytes"] = input.Bytes, ["sha256"] = input.Sha256 })),
-                ["steps"] = new JArray(plan.Steps),
-                ["outputs"] = new JArray(outputs.Select(output => new JObject { ["path"] = output.Key, ["sha256"] = output.Value })),
-                ["counts"] = counts.DeepClone(),
-                ["issues"] = issues.DeepClone(),
-            };
-            if (plan.RoadOrder != null)
-            {
-                record["roadOrder"] = plan.RoadOrder;
-            }
+            JObject record = ReadDataRun.Recorded(runId, plan, outputs, counts, issues, new JObject());
             WorkFiles.WriteText(Path.Combine(folder, ReadDataRun.RecordFile), runId, record.ToString(Formatting.Indented));
+        }
+
+        private static IReadOnlyList<string> Strings(JToken token)
+        {
+            return token is JArray list ? list.Select(item => (string)item).ToList() : new List<string>();
+        }
+
+        // The rows the folder of the project gives, none when the config names no folder or the folder does not read, with why
+        private static FolderRoles.Found Found(PaneSettings settings)
+        {
+            JObject config = ConfigOf(settings);
+            string root = config?["inputRoot"]?.Type == JTokenType.String ? (string)config["inputRoot"] : null;
+            try
+            {
+                return FolderRoles.Of(config, root, settings.Project.RoadSurfaces);
+            }
+            catch (Exception failure) when (failure is IOException || failure is UnauthorizedAccessException)
+            {
+                var found = new FolderRoles.Found();
+                found.Left.Add(failure.Message);
+                return found;
+            }
         }
 
         private static IReadOnlyDictionary<string, string> Outputs(JObject record)

@@ -36,7 +36,7 @@ namespace SiteAdaptation.Common.ReadData
                 found.Left.Add(refused.Message);
                 return found;
             }
-            List<string> files = Walk(Path.GetFullPath(folder), skip);
+            List<string> files = ReadInputs.FilesOf(Path.GetFullPath(folder), skip).OrderBy(file => file, StringComparer.Ordinal).ToList();
             JObject drawings = config["drawings"] as JObject;
             string curbDrawing = Text(config.SelectToken("dataBook.join.curb"), "drawing");
             Take(found, files, InputNames.Baseplan, Text(drawings, "baseplan"), "drawings.baseplan");
@@ -49,10 +49,7 @@ namespace SiteAdaptation.Common.ReadData
                 string key = workbookRoles?.Properties().Where(pair => pair.Value.Type == JTokenType.String && (string)pair.Value == role).Select(pair => pair.Name).FirstOrDefault();
                 Take(found, files, role, key == null ? null : Text(workbooks, key), "dataBook.rev9.workbooks by addin.workbookRoles");
             }
-            // As the old read names them: the surfaces named or picked under rev6, those of siteBuild.roadSurfaces under the past job
-            IEnumerable<string> named = RoadSurfaceChoices.IsRev6(config) ? RoadSurfaceChoices.Named(config, picked)
-                : ((config.SelectToken("siteBuild.roadSurfaces") as JArray) ?? new JArray()).Where(name => name.Type == JTokenType.String).Select(name => (string)name);
-            var surfaces = new HashSet<string>(named.Select(name => name + ".xml"), StringComparer.OrdinalIgnoreCase);
+            var surfaces = new HashSet<string>(ReadInputs.RoadNames(config, picked).Select(name => name + ".xml"), StringComparer.OrdinalIgnoreCase);
             Most(found, files, InputNames.RoadSurface, file => surfaces.Contains(Path.GetFileName(file)), "no folder holds a road surface named in config or picked");
             Most(found, files, InputNames.Prototypes, file => string.Equals(Path.GetExtension(file), ".rvt", StringComparison.OrdinalIgnoreCase), "no folder holds a prototype file");
             return found;
@@ -92,25 +89,6 @@ namespace SiteAdaptation.Common.ReadData
                 return;
             }
             found.Paths[role] = folders[0].Key;
-        }
-
-        // As the data check walks the folder, a skipped folder at any depth and a link or junction are never followed
-        private static List<string> Walk(string folder, HashSet<string> skip)
-        {
-            var files = new List<string>();
-            var pending = new Stack<string>();
-            pending.Push(folder);
-            while (pending.Count > 0)
-            {
-                string here = pending.Pop();
-                files.AddRange(Directory.GetFiles(here));
-                foreach (string child in Directory.GetDirectories(here).Where(child => !skip.Contains(Path.GetFileName(child)) && (File.GetAttributes(child) & FileAttributes.ReparsePoint) == 0))
-                {
-                    pending.Push(child);
-                }
-            }
-            files.Sort(StringComparer.Ordinal);
-            return files;
         }
 
         private static string Text(JToken parent, string name)

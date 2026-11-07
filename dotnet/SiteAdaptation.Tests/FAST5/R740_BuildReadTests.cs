@@ -186,6 +186,8 @@ namespace SiteAdaptation.Tests
             return folder;
         }
 
+        private const string Label = "2 Made up read";
+
         private PaneSettings Settings(string folder)
         {
             var settings = new PaneSettings { ConfigFile = ConfigFile(Config(folder)) };
@@ -221,7 +223,7 @@ namespace SiteAdaptation.Tests
             var worker = new MadeWorker();
             bool? ok = null;
             string line = null;
-            BuildRead.Start(settings, work, new WorkerDocument { Path = Path.Combine(work, "a.rvt"), SessionId = "s1" }, worker, (done, said) => { ok = done; line = said; });
+            BuildRead.Start(settings, work, new WorkerDocument { Path = Path.Combine(work, "a.rvt"), SessionId = "s1" }, worker, Label, (done, said) => { ok = done; line = said; });
             Assert.True(ok, line);
             WorkerRequest request = worker.Requests.Single();
             Assert.Equal(ReadDataRun.Command, request.Command);
@@ -258,17 +260,18 @@ namespace SiteAdaptation.Tests
             var worker = new MadeWorker();
             var lines = new List<string>();
             var document = new WorkerDocument { Path = Path.Combine(work, "a.rvt"), SessionId = "s1" };
-            BuildRead.Start(settings, work, document, worker, (done, said) => lines.Add(done + " " + said));
+            BuildRead.Start(settings, work, document, worker, Label, (done, said) => lines.Add(done + " " + said));
             string first = ReviewLoad.LatestReadFolder(work);
             System.Threading.Thread.Sleep(5);
-            BuildRead.Start(settings, work, document, worker, (done, said) => lines.Add(done + " " + said));
+            BuildRead.Start(settings, work, document, worker, Label, (done, said) => lines.Add(done + " " + said));
             Assert.Single(worker.Requests);
-            Assert.Equal("True " + BuildRead.Reused, lines[1]);
+            Assert.StartsWith("True " + RunTexts.ReadReused(Label, "x").Split('x')[0], lines[1]);
+            Assert.StartsWith("True " + RunTexts.ReadDone(Label, 0, 0).Split('0')[0], lines[0]);
             Assert.Equal(first, ReviewLoad.LatestReadFolder(work));
             // Another plot table, so another read
             StageOneRead(work, "2_29991231-000000-000", "{\"plots\":[{\"plot\":\"1\"}]}");
             Assert.True(BuildRead.Needed(work));
-            BuildRead.Start(settings, work, document, worker, (done, said) => lines.Add(done + " " + said));
+            BuildRead.Start(settings, work, document, worker, Label, (done, said) => lines.Add(done + " " + said));
             Assert.Equal(2, worker.Requests.Count);
             Assert.NotEqual(first, ReviewLoad.LatestReadFolder(work));
         }
@@ -286,13 +289,22 @@ namespace SiteAdaptation.Tests
             settings.Pick(InputKeys.Baseplan, Path.Combine(folder, "gone.dwg"));
             string line = null;
             bool? ok = null;
-            BuildRead.Start(settings, work, document, new MadeWorker(), (done, said) => { ok = done; line = said; });
+            BuildRead.Start(settings, work, document, new MadeWorker(), Label, (done, said) => { ok = done; line = said; });
             Assert.False(ok);
             Assert.Contains("Baseplan is not on disk", line);
-            BuildRead.Start(settings, work, document, null, (done, said) => { ok = done; line = said; });
-            Assert.Equal(BuildRead.NoWorker, line);
+            // A name config gives that the folder does not hold: the row stays empty and the stop says why the folder gave none
+            JObject config = JObject.Parse(File.ReadAllText(settings.ConfigFile));
+            config["drawings"]["villaBlocks"] = "Not There.dwg";
+            File.WriteAllText(settings.ConfigFile, config.ToString());
+            settings.Pick(InputKeys.VillaBlocks, null);
+            BuildRead.FillRows(settings, settings.Pick);
+            BuildRead.Start(settings, work, document, new MadeWorker(), Label, (done, said) => { ok = done; line = said; });
+            Assert.False(ok);
+            Assert.Contains("villaBlocks: Not There.dwg is not in the folder", line);
+            BuildRead.Start(settings, work, document, null, Label, (done, said) => { ok = done; line = said; });
+            Assert.Equal(RunTexts.NotBuilt(Label), line);
             var plan = new ReadPlan(new ReadInput[0], new string[0], new string[0], settings.ConfigFile);
-            Assert.False(BuildRead.Answered(Path.Combine(work, "read_x"), "2_x-build", plan, Path.Combine(work, "none.json"), new WorkerAnswer { Status = "failed", Message = "made up stop" }, out line));
+            Assert.False(BuildRead.Answered(Path.Combine(work, "read_x"), "2_x-build", plan, Path.Combine(work, "none.json"), Label, new WorkerAnswer { Status = "failed", Message = "made up stop" }, out line));
             Assert.Contains("made up stop", line);
             Assert.False(File.Exists(Path.Combine(work, "read_x", ReadDataRun.RecordFile)));
         }
@@ -313,7 +325,7 @@ namespace SiteAdaptation.Tests
             Assert.True(chain.Ended(3, RunEnd.Committed, null, out int? next, out _));
             Assert.Equal(BuildChain.ReadForCheck, next);
             Assert.Equal(1, asked);
-            Assert.True(chain.Ended(BuildChain.ReadForCheck, RunEnd.Committed, BuildRead.Reused, out next, out _));
+            Assert.True(chain.Ended(BuildChain.ReadForCheck, RunEnd.Committed, null, out next, out _));
             Assert.Equal(4, next);
             var ran = new List<int>();
             while (next.HasValue)
@@ -325,11 +337,11 @@ namespace SiteAdaptation.Tests
             Assert.Equal(1, asked);
 
             // A read that stops ends the build at it with why, and no Check runs
-            var stopping = new BuildChain(number => number == BuildChain.ReadForCheck ? BuildRead.Name : "Step" + number, number => new StepStatus(StepKind.Done)) { ReadFirst = () => true };
+            var stopping = new BuildChain(number => number == BuildChain.ReadForCheck ? Label : "Step" + number, number => new StepStatus(StepKind.Done)) { ReadFirst = () => true };
             Assert.Equal(BuildChain.ReadForCheck, stopping.Start());
             Assert.True(stopping.Ended(BuildChain.ReadForCheck, RunEnd.Stopped, "made up stop", out next, out string line));
             Assert.Null(next);
-            Assert.Equal("Build stopped at " + BuildRead.Name + ": made up stop", line);
+            Assert.Equal("Build stopped at " + Label + ": made up stop", line);
             // Not needed, the chain is as before
             var plain = new BuildChain(number => "Step" + number, number => new StepStatus(StepKind.Done)) { ReadFirst = () => false };
             Assert.Equal(4, plain.Start());
