@@ -2,6 +2,32 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Lead, FAST-11 and FAST-12 for F29 to F31 of short check 2, 8 Nov 2026
+
+Goal:
+- Send the faults of short check 2 to a lane the same hour, Bader's order of 7 Nov 14:40.
+
+Done:
+- steps/tasks/FAST-11-build-1.md: F29, the plan builds a plot with no hand or no parameter source, tagged missing, and F30, card 3 counts the plots of the scope.
+- steps/tasks/FAST-12-build-3.md: F31, step 7 closes the upgrade box of an older Revit prototype.
+- steps/plan-fast-3days.md: section Sun 8 Nov 00:45.
+
+Checked:
+- The faults come from PR 275 of revit-test, plan_01A.json written 62, not written 216.
+- Every allowed path exists on main, R800 and Q620 are free.
+
+Remains:
+- Run 2 at 06:00 on 01A.
+
+Known bugs:
+- F29, F30, F31 until FAST-11 and FAST-12 merge.
+
+Next:
+- Install main before 06:00.
+
+Your turn:
+- Sun 8 Nov: the folder path of the new project by 10:00.
+
 ## FAST-3-revit-test, short check 2 of 01A, 7 and 8 Nov 2026
 
 Goal:
