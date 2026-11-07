@@ -227,8 +227,9 @@ namespace SiteAdaptation.Common.ReadData
         // R791, F22 of FAST-9. After a Confirm that saved, the check runs again with the confirmed profile on the files the read just made gathered,
         // in Revit and with no worker, so the plot table, plots.json and the Scope list take the confirmed columns at once. The read folder then
         // moves to the folder its inputs now name, with the confirmed profile among them, and its record lists them: the next press of 2, and the
-        // step 2 the Build puts back, reuse it and read nothing. Failed with the plain reason when it cannot, the read then stays as it was and the
-        // confirmed values count from the next read, as before this rule. It writes in the work folder only
+        // step 2 the Build puts back, reuse it and read nothing. The inputs are those the record of the read holds from its start, with only the
+        // profile new, so a folder that changed during the read names another read. Failed with the plain reason when it cannot: before the move
+        // nothing of the read changed, after it the folder holds no record and the next press reads again (R792). It writes in the work folder only
         public RunLater ApplyConfirmed(RunContext context, RunLater read)
         {
             string check = read?.Outputs?.Keys.FirstOrDefault(path => string.Equals(Path.GetFileName(path), DataCheckFile, StringComparison.OrdinalIgnoreCase));
@@ -242,13 +243,27 @@ namespace SiteAdaptation.Common.ReadData
             {
                 return RunLater.Failed(ApplyNoInput);
             }
-            ReadPlan plan = Plan(context);
-            ReadInput profile = plan.FromDataCheck ? plan.Inputs.FirstOrDefault(input => input.Role == ConfirmedProfile.Role) : null;
-            if (profile == null)
+            JObject before = Record(Path.Combine(from, RecordFile));
+            List<ReadInput> inputs = (before?["inputs"] as JArray ?? new JArray()).OfType<JObject>().Where(item => (string)item["role"] != ConfirmedProfile.Role)
+                .Select(item => new ReadInput((string)item["role"], (string)item["path"], (long?)item["bytes"] ?? 0, (string)item["sha256"])).ToList();
+            ReadInput config = inputs.FirstOrDefault(item => item.Role == ReadInputs.Config);
+            if (config == null || !inputs.Any(item => item.Role == ReadInputs.ScanFolder))
+            {
+                return RunLater.Failed(ApplyNoRecord);
+            }
+            if (!File.Exists(config.Path) || !string.Equals(FileHash.Sha256(config.Path), config.Sha256, StringComparison.OrdinalIgnoreCase))
+            {
+                return RunLater.Failed(ApplyConfigChanged);
+            }
+            string profilePath = Path.Combine(Path.GetFullPath(context.WorkFolder), ConfirmedProfile.FileName);
+            if (!File.Exists(profilePath))
             {
                 return RunLater.Failed(ApplyNoProfile);
             }
-            DataCheckSettings settings = DataCheckSettings.From(JObject.Parse(WorkFiles.ReadText(plan.ConfigPath)));
+            var profile = new ReadInput(ConfirmedProfile.Role, profilePath, new FileInfo(profilePath).Length, FileHash.Sha256(profilePath));
+            inputs.Add(profile);
+            var plan = new ReadPlan(inputs, Strings(before["steps"]), new string[0], config.Path, null, true);
+            DataCheckSettings settings = DataCheckSettings.From(JObject.Parse(WorkFiles.ReadText(config.Path)));
             DataCheckInput input = DataCheckApply.Load(WorkFiles.ReadText(saved));
             input.Confirmed = ConfirmedProfile.From(JObject.Parse(WorkFiles.ReadText(profile.Path)), settings.GroupGapsM.Count);
             DataCheckOutput output = DataCheckApply.Check(settings, input, new List<string>());
@@ -256,7 +271,6 @@ namespace SiteAdaptation.Common.ReadData
             {
                 return RunLater.Failed(ApplyStopped.Replace("<why>", input.Stopped));
             }
-            JObject before = Record(Path.Combine(from, RecordFile)) ?? new JObject();
             var stamps = new Dictionary<string, JToken>(StringComparer.OrdinalIgnoreCase);
             var written = new Dictionary<string, JObject>(StringComparer.OrdinalIgnoreCase)
             {
@@ -303,6 +317,9 @@ namespace SiteAdaptation.Common.ReadData
         public const string ApplyNoCheck = "the read named no data check";
         public const string ApplyNoInput = "the read holds no gathered files, it was made before R790";
         public const string ApplyNoProfile = "no confirmed profile is in the work folder";
+        public const string ApplyNoRecord = "the read holds no record of a folder read";
+        public const string ApplyConfigChanged = "the settings file changed since the read started";
+        public const string ApplyNoResult = "the check gave no result";
         public const string ApplyStopped = "the check on the confirmed values stopped: <why>";
 
         // R474. sources names per value kind the source read and from where, and each conflict pick applied

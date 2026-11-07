@@ -299,6 +299,53 @@ namespace SiteAdaptation.Tests
             }
         }
 
+        // A file added to the folder while the read ran is no part of the read: the applied read keeps the inputs of its start, so the next press
+        // reads the folder again and never reuses a read that did not see the file
+        [Fact]
+        public void R791_a_folder_changed_during_the_read_is_read_again_at_the_next_press()
+        {
+            string configPath = Project();
+            Sheet();
+            string work = Work();
+            var worker = new Worker();
+            ConfirmProfileStep.ShowConfirm = (owner, session) =>
+            {
+                File.WriteAllText(Path.Combine(Folder, "added.txt"), "made up");
+                ConfirmWithColumns(session);
+            };
+
+            RunOutcome first = Press(configPath, work, worker);
+            Assert.True(first.End == RunEnd.Committed, first.Message);
+            Assert.Contains(ConfirmProfileStep.AppliedLine, first.Message);
+            Assert.Equal(new[] { "N1", "N2" }, Areas(work));
+
+            ConfirmProfileStep.ShowConfirm = (owner, session) => session.Cancel();
+            RunOutcome again = Press(configPath, work, worker);
+            Assert.True(again.End == RunEnd.Committed, again.Message);
+            Assert.Equal(2, worker.Requests.Count);
+            Assert.DoesNotContain("is reused", again.Message);
+        }
+
+        // The check runs on the settings of the read: a settings file changed since the read started refuses the apply with its reason
+        [Fact]
+        public void R792_a_settings_file_changed_since_the_read_refuses_the_apply()
+        {
+            string configPath = Project();
+            Sheet();
+            string work = Work();
+            var worker = new Worker();
+            ConfirmProfileStep.ShowConfirm = (owner, session) =>
+            {
+                File.AppendAllText(configPath, "\n");
+                ConfirmWithColumns(session);
+            };
+
+            RunOutcome first = Press(configPath, work, worker);
+            Assert.True(first.End == RunEnd.Committed, first.Message);
+            Assert.Contains(ConfirmProfileStep.NotAppliedLine.Replace("<why>", ReadDataRun.ApplyConfigChanged), first.Message);
+            Assert.NotEqual(new[] { "N1", "N2" }, Areas(work));
+        }
+
         // A read from before R790 holds no gathered files: the Confirm saves, the read stays done as it was and the line says the values wait
         [Fact]
         public void R792_a_read_with_no_gathered_files_keeps_the_read_and_says_the_values_count_from_the_next_read()

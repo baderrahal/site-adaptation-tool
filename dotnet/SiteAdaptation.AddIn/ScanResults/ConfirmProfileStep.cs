@@ -171,7 +171,7 @@ namespace SiteAdaptation.AddIn.ConfirmProfile
         {
             try
             {
-                return apply(context, later) ?? RunLater.Failed(ReadDataRun.ApplyNoCheck);
+                return apply(context, later) ?? RunLater.Failed(ReadDataRun.ApplyNoResult);
             }
             catch (Exception failure)
             {
