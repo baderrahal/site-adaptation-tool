@@ -18,13 +18,21 @@ Control 3 of docs/design/12-ui-spec.md, UI controls. Each PNG is a render of a w
 | new-project.png | The New project window of Lane C NEWPROJ-UI, the site drawing and the plot list found, road levels and the parameter sheet missing as on the board, sample counts 337 plots and 14 villa types, the content of the window at 1080 wide with no title bar of Windows | Draft (Q286) |
 | road-surfaces.png | The window Road surfaces of Lane D FIX-2NOV-D, R492, two surfaces ticked in order, sample names made up, no board holds it | Draft (Q370) |
 | how-it-works.png | The How it works page of Lane C NEWPROJ-UI, the 9 steps, the content of the window at 1080 wide with no title bar of Windows | Draft (Q286) |
-| pane-stage-1.png | Card 1 Project data of the pane in 3 stages of FAST-1-build-1 (R680, R681), a made up read with 3 needs, strong, weak and missing, each with its plain line, drawn from the Drafts list of Shots | Draft, not seen in Revit |
-| pane-stage-2.png | Card 2 Build site of the same pane, the scope in the words of the project, Build and the Preview tick | Draft, not seen in Revit |
+| pane-stage-1.png | Card 1 Project data of the pane in 3 stages, taken in Revit in FAST-3-revit-test run 1 on 7 Nov 2026, the rows of the first read of S1, counts and the layer names of config only | Taken in Revit, for Bader's check |
+| pane-stage-2.png | Card 2 Build site, taken in Revit in FAST-3-revit-test run 1, scope NBH 010, the line of the plan and where the Build stopped, the coordinates of the drawing blanked | Taken in Revit, for Bader's check |
 | build-preview.png | The 2D preview of a plan of FAST-1-build-1 item 4, 7 made up plot outlines north up and the line of plots and issues, Cancel and Go on | Draft, not seen in Revit |
-| pane-stage-3.png | Card 3 Review and deliver of the same pane after a made up build: 3 issues with Open rules, the bar of 40 made up values by source, Report and Update from report | Draft, not seen in Revit |
+| pane-stage-3.png | Card 3 Review and deliver, taken in Revit in FAST-3-revit-test run 1: the issues count with Open rules, the road level line, the source mix bar and its line, Report and Update from report | Taken in Revit, for Bader's check |
 | project-rules.png | The rules table of a project of FAST-1-build-1 item 3 (R682), a made up template of 4 rules set up and one confirmed by the commands of Common, one rule with no value and its mark, drawn from the Drafts list of Shots | Draft, not seen in Revit |
 | revit-ribbon.png | The Site Adaptation tab in Revit 2024, cut from the window by PrintWindow in Revit run 3 of 5a, 29 Oct 2026 | Taken in Revit, for Bader's check |
 | revit-pane.png | The live pane page in Revit run 3 of 5a by RenderTargetBitmap at 96 DPI, first open state, the detached document of the run active | Taken in Revit, for Bader's check |
+| revit-new-project.png | The New project window from Settings, Project setup, Edit, in FAST-3-revit-test run 1 | Taken in Revit |
+| revit-project-rules.png | The rules table of the project from Settings, Rules, Open, no rules chosen, 15 rules not confirmed | Taken in Revit |
+| revit-setup-site.png | Set up site on the empty model after Use CAD and a dry run, the check point tables blanked | Taken in Revit |
+| revit-scan-results.png | The window What the tool read after the first read of S1, counts and the layer names of config only | Taken in Revit |
+| revit-confirm-profile.png | The window Confirm what was found, the code map blanked | Taken in Revit |
+| revit-ask-rules.png | The one ask of the first Build with no rules chosen | Taken in Revit |
+| revit-build-preview.png | The Preview of the build, the drawing of the real plot outlines blanked | Taken in Revit |
+| revit-review-data.png | 3 Review data on NBH 010 as the Build opens it, plot numbers, areas and the folder path blanked | Taken in Revit |
 
 Bader's changes of 28 Oct 2026 (docs/design/13-workflow-changes.md) were rendered into all three in Lane B 5a PR 8, his UI answers Q135, Q139 and Q140 of 29 Oct 2026 in Lane B 5a run 3 (fixed items 12 to 14). Set up site is built in 5b (W1 of steps/lane-b.md), its PNG is setup-site.png and its lists are at the end of this file. Review data is built in 5c (W5), its PNG is review-data.png and its list is at the end of this file. Site Adaptation Rules is built in 5c (W3), its PNG is rules.png and its list is at the end of this file. The check table is built in 5c (W11), its PNG is check-table.png and its notes are at the end of this file. Update from report is built in 5f (W8), its PNG is update-from-report.png and its differences are at the end of this file.
 
