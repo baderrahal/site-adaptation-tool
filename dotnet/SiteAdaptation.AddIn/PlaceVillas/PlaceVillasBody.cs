@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Autodesk.Revit.UI;
 using SiteAdaptation.AddIn.Pane;
 using SiteAdaptation.AddIn.Revit;
@@ -25,10 +26,22 @@ namespace SiteAdaptation.AddIn.PlaceVillas
 
         public static ButtonBody For(UIApplication application)
         {
-            var run = new PlaceVillasRun(new RevitVillaDocument(application.ActiveUIDocument.Document), Load,
+            var document = new UpgradingVillaDocument(new RevitVillaDocument(application.ActiveUIDocument.Document), application);
+            var run = new PlaceVillasRun(document, Load,
                 context => new ShapeCache(context.WorkFolder, new RevitBaseShapeReader(application, context.WorkFolder), Hash), Hash, LinkLoadDialog.Ask,
                 context => new MassFileSet(new RevitMassFileMaker(application, context.WorkFolder), Hash, Root));
-            return run.Body();
+            return Upgrades(run.Body(), document);
+        }
+
+        // R806, R807, F31. The box of step 7 counts the link types new to the model and names each file of an older Revit, and the
+        // issues of the step list each file Revit upgraded as it loaded and the upgrade boxes the tool closed
+        private static ButtonBody Upgrades(ButtonBody body, UpgradingVillaDocument document)
+        {
+            Func<RunContext, RunSummary> preview = body.Preview;
+            Func<RunContext, IReadOnlyList<string>> apply = body.Apply;
+            body.Preview = context => LinkUpgrade.Add(preview(context), LinkUpgrade.NewFiles(Load(context), document.LinkTypes()), UpgradingVillaDocument.VersionOf, document.Current);
+            body.Apply = context => apply(context).Concat(document.TakeIssues()).ToList();
+            return body;
         }
 
         // R450. The work root the {workRoot} mark of massFolder stands for, as the pane takes it
