@@ -174,3 +174,53 @@ Where the Build stopped: step 7 of 11, Check, "Build stopped at Check, cancelled
 S1 after the two parts: 37 files, SHA-256, size and write time equal to s1_before_short.json, 0 changed, 0 new, 0 gone (s1_after_short.json, compared by a script).
 
 Second check by another method: the count of floors is read twice, from the dry run box of Revit by UI Automation at 18:25 ("place 538, listed 269") and from floors_01A.json on disk after the run (538 placed, 269 distinct plots, by a script). Not seen in Revit: a count of the floor elements in the model itself, Revit was closed before it.
+
+# Short check 2, Sat 7 Nov 2026, NBH 01A from card 1
+
+Lead's order of 7 Nov, Bader's order of 14:40: the second short check, not a full run. NBH 01A, marked tuned (steps/truth-audit.md section 6), Bader's answer to F15. The add-in Lead built from main with F16, F4, F24, F6, F13, F25, F26 and F27 and installed with Install-SiteAdaptation.ps1, the .addin file written 22:01. Same driver, drive3.ps1 of the work root under python/window_lock.py, -MaxMinutes 110. Shots under the work root, folder `fast3-revit-test/shots/short2`, never in git, they show real values.
+
+## Model and folder, short check 2
+
+- Model: `FAST3-short2-01A.rvt` in fast3-revit-test of the work root, copied from `FAST3-empty-model-pristine.rvt` at 22:13, `cmp` equal bytes. A new name, not the run 1b copy and not the short check copy.
+- Inputs: S1 of the scenarios, 37 files, SHA-256, size and write time taken at 22:13 into s1_before_short2.json of fast3-revit-test, equal to s1_after_short.json (0 changed, 0 new, 0 gone).
+- revit-wanted-build-1.txt and revit-wanted-build-3.txt: none in the lanes folder at 22:13. Idle 3987 s, only the keep awake Teams window.
+
+## Part 1, from 22:16
+
+- 22:16:36 Revit opened on the copy, process 218024. 22:18:18 the box "Security - Unsigned Add-In" of Site Adaptation came and the driver pressed Always Load, Bader's order of 6 Nov 23:37 (always_load.txt of the shots folder holds the time).
+1. The pane said "Set up this project first, in Settings." on the 3 cards (s01-start.png). Settings, Project setup Edit, the New project window, Save setup (s02-new-project.png). Card 1 then said "Ready, Choose the project folder: 1 Set up site runs first and places the site from its Baseplan. Then choose the folder again to read the data." with Choose project folder enabled (s03-after-save.png).
+2. 22:27 Choose project folder, the Select Folder box, S1 typed in its address bar (folder-S1.png), Select Folder: the window 1 Set up site opened by itself with the Baseplan of S1, "Empty project found", Use CAD, 5 of 5 check points pass (s05-after-select.png). F2 and F24 not seen: no Baseplan row of Advanced was needed and no "needs step 1" box came. Each Current ticked, Dry run, Apply on, Apply at 22:31, the window closed in 7 s (s06-setup-dry.png, s07-after-setup.png). Card 1: "No data check yet. Choose the project folder."
+3. 22:33 Choose project folder again, S1: the box "2 Read data, Dry run done, nothing was changed ... Files in the folder: 37, 1317.4 MiB" came at once (s08-folder2-box.png). Apply 22:33:57.
+4. 22:47, after 806 s, What the tool read: 7 files read, 2,618 of 2,964 villa plots of all plots, Shared parameters Strong, Group levels Weak "Areas found by distance only: 2" (s09-read-end.png). Close, Confirm what was found with Typology_Rev8.1 (2570 plots) and Neighbourhood_ID (2955 plots), both proposed (s10-confirm.png), Confirm: "2 Read data done: 4 files written, 0 issues ... Your values are saved. Press Read data again to read with them." (s11-after-confirm.png). F22 stands.
+5. 22:52:02 a driver fault: card 1 now lists the data check, so Choose project folder stood below the screen at y 1434. The driver clicked there, the cursor stopped on the taskbar edge and opened the GlobalProtect panel of the tray. Nothing was pressed in it. Revit came back to front by its window handle at 22:55, and from then each click scrolls the pane first and refuses a point outside the visible pane.
+6. 23:00 Choose project folder a third time, S1: the box "Reads the folder, the settings file and the values a person confirmed" (s12-read2-box.png). Apply 23:01:31.
+7. 23:14 What the tool read, after 710 s: 7 files read, 2,615 of 2,964 villa plots, Group levels Usable "Areas from the confirmed column: 13" (s13-read2-end.png). Close, Cancel on Confirm (values stay), the box "2 Read data done ... The read stays as it is." Close. Build enabled.
+8. 23:19 Advanced, Scope Neighbourhood, 01A of the list -, 010, 012, 013, 01A, 01B, 02, 021, 022, 023, 03, Villa mode Links. Card 2: "Scope: the neighbourhood 01A." (s14-scope.png). Steps 1 and 2 Done, step 3 Ready.
+9. 23:28 Build on card 2, Preview first ticked. The box "No rules are chosen for this project. Use the rules template of site adaptation manual ... Rev 06?" Yes (s15-rules-box.png). Preview of the build: "2615 plots with an outline, 2619 issues", Go on (s16-preview.png). 2 Read data "Reuses the read of run 2_20261107-230031-608", Apply (s17-read-reuse.png), with no What the tool read and no Confirm window this time. "3 Review data, NBH 01A, 278 plots", Save review, Close (s18-review.png).
+10. 23:33 4 Check box "builds NBH 01A on the read ... from 30 inputs", Apply (s19-check-box.png). "4 Check, NBH 01A, 278 plots": profile parsons2024Rev6, 0 overrides, All 744, Floor 68, Hand 212, Unit code 3, Position 2, Level 11, Parameter 448, Assumed 15, "32 plots follow every rule", a Close button (s20-check.png). Close: the Build went on at once. F25 fixed. Check and Review now both say 278 plots, F28 fixed for those two.
+11. 23:36 5 Floors and ramps "place 124, move 0, already placed 0, skip 0, listed 62", Apply (s21-floors-box.png). No Revit overlap box came, F27 box part fixed.
+12. 23:37 6 Levels "move 0, at the plan 124, listed 216", Apply (s22-levels-box.png).
+13. 23:38 7 Place villas "Links: place 62, swap 0, move 0, already placed 0, skip 0, listed 0, link types to load 0, to reload 0, over the footprint limit 0", Apply (s23-villas-box.png). Revit then upgraded each linked model, "Load Link, The linked model is being upgraded, From Autodesk Revit 2021 To Autodesk Revit 2024", and stopped 4 times on its own box "Structural Analytical Model Upgrade" with one button Close, which the driver pressed each time, Revit in front and no other input. 12 minutes, 23:39 to 23:51. F31.
+14. 23:51 8 Walls "place 178, change 0, already placed 0, skip 0, listed 179", Apply (s24-walls-box.png). No window after it.
+15. 23:58 Card 2 "Done, 462 issues", "Build done: 8 steps", the Build line ends "Check: 4 Check, NBH 01A, 278 plots, 744 rows, 32 plots follow every rule". Card 3 Ready, "2615 plots have no road level, so no floor level, and steps 6 to 8 leave them out." (s25-card-end.png), F30.
+16. 00:00:08 the copy saved by the Save button of the quick access bar, 8,790,016 bytes. 00:01:32 File, Exit Revit. 00:02:01 "Revit exited", "revit left open: False", no lock, no Revit process.
+
+## Result of short check 2
+
+PASS by the pass of Lead's order: the Build of card 2 ran to its end, 8 steps, with no stop at Check, and placed floors and ramps, levels, villa links and walls. But it built 62 of the 278 plots of 01A, F29.
+
+| Part | Placed | How |
+|---|---|---|
+| Floors and ramps | 124 floors on 62 plots: 62 generic, 62 ramp, 0 yard | floors_01A.json of the project work folder, counts place 124, move 0, keep 0, skip 0 |
+| Road toposolid | made, 1 | toposolid_01A.json "made" true, surface Compiled West_MM of the 6 read, 87 warnings taken |
+| Levels | 124 at the plan on 62 plots, 0 moved | run_6_*.json committed true, levelPlots 62, atPlan 124, moved 0 |
+| Villa links | 62, of 4 prototype files of S1/Prototypes | place_01A.json, counts place 62, swap 0, move 0, keep 0, skip 0 |
+| Walls | 178 | walls_01A.json, counts place 178, change 0, keep 0, skip 0 |
+
+Where the Build stopped: it did not stop. The person still answers 1 rules box, Preview, the reuse box of step 2, Review, the boxes of steps 4 to 8 and 4 Revit upgrade boxes.
+
+Why 62 plots: plan_01A.json of the check holds 278 plots, written 62, not written 216. Missing by key: mirrored 211, parameters CASE 213, Prototype Foundation Type 213, levels.ffl 11, Number of Steps 11, Prototype FFL 11, transform 2, unit 2. 11 plots have no road level. Read by a script from the plan file.
+
+S1 after the part: 37 files, SHA-256, size and write time equal to s1_before_short2.json, 0 changed, 0 new, 0 gone (s1_after_short2.json, compared by a script).
+
+Second check by another method: each count is read twice, from the dry run box of Revit by UI Automation (place 124 listed 62, at the plan 124, place 62, place 178) and from floors_01A.json, run_6_*.json, place_01A.json and walls_01A.json on disk after the run, by a script that shares no code with the add-in. The two agree. Not seen in Revit: a count of the elements in the model itself, Revit was closed before it. Not seen: F21 (save and reopen), the copy was not reopened.

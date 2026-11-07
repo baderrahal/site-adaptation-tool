@@ -2,6 +2,30 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## FAST-3-revit-test, short check 2 of 01A, 7 and 8 Nov 2026
+
+Goal:
+- Lead's order, Bader's of 14:40: the second short check on 01A from card 1, on the add-in of main installed at 22:01. Pass is floors and ramps, levels, villa links and walls placed with no stop at Check.
+
+Done:
+- One part in Revit, 22:16 to 00:02, on FAST3-short2-01A.rvt, a fresh copy of the empty model. Always Load pressed 22:18:18. Choose project folder S1 ran step 1 itself, two reads of S1 (806 s and 710 s, F22), Scope 01A, then Build to its end: 8 steps, card 2 "Done, 462 issues".
+- Placed: 124 floors and ramps on 62 plots, the road toposolid, 124 levels at the plan, 62 villa links, 178 walls. Copy saved 00:00:08.
+
+Checked:
+- Each count twice, from the dry run box of each step by UI Automation and from the step files on disk by a script. S1 37 files unchanged by SHA-256, size and write time.
+
+Remains:
+- F29 the plan builds 62 of 278 plots, F30 card 3 counts 2615 plots with no road level, F31 Revit 2021 links upgrade with 4 boxes that wait for a person. In steps/seam.md.
+
+Known bugs:
+- A driver click at 22:52 aimed at a button below the screen and opened the GlobalProtect tray panel. Nothing was pressed in it, Revit was brought back by its window handle, and from then each click scrolls the pane first and refuses a point outside it.
+
+Next:
+- Lead decides run 2, now Sun 06:00 by Lead's message during the check.
+
+Your turn:
+- Nothing for Bader from this check.
+
 ## FAST-9-build-2, Confirm applies to the read just made, F22, 7 Nov 2026
 
 Goal:
