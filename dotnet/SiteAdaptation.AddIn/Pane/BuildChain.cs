@@ -29,6 +29,9 @@ namespace SiteAdaptation.AddIn.Pane
         private bool readAsked;
         // R771, F6 of run 1. The steps this build put back already, so none is put back twice in one build
         private readonly HashSet<int> putBack = new HashSet<int>();
+        // R772, F25 of the short check. The steps that committed in this build. The statuses of the pane come after the end of a step that runs
+        // in Revit, so right after 4 Check committed step 5 still says it needs step 4. A step that committed is never put back, the build goes on
+        private readonly HashSet<int> committed = new HashSet<int>();
 
         public BuildChain(Func<int, string> stepName, Func<int, StepStatus> stepStatus)
         {
@@ -58,6 +61,7 @@ namespace SiteAdaptation.AddIn.Pane
             added = 0;
             readAsked = false;
             putBack.Clear();
+            committed.Clear();
             steps.AddRange(Order.Where(step => step != 1 || !Ran(step)));
             at = 0;
             return Before(steps[at]);
@@ -101,6 +105,7 @@ namespace SiteAdaptation.AddIn.Pane
             {
                 messages.Add(step + ": " + message.Trim());
             }
+            committed.Add(number);
             at++;
             if (at >= steps.Count)
             {
@@ -123,7 +128,7 @@ namespace SiteAdaptation.AddIn.Pane
         private int Before(int step)
         {
             StepStatus now = status(step);
-            while (now.Kind == StepKind.NeedsStep && now.Value >= 1 && now.Value < step && added < MostAdded && putBack.Add(now.Value))
+            while (now.Kind == StepKind.NeedsStep && now.Value >= 1 && now.Value < step && added < MostAdded && !committed.Contains(now.Value) && putBack.Add(now.Value))
             {
                 added++;
                 steps.Insert(at, now.Value);

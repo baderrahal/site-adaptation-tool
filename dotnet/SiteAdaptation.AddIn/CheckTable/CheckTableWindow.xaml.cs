@@ -31,6 +31,12 @@ namespace SiteAdaptation.AddIn.CheckTable
             session.Save();
         }
 
+        // R772. Close as the frame closes it, the session keeps what Save overrides saved
+        private void OnClose(object sender, RoutedEventArgs e)
+        {
+            Close();
+        }
+
         private void OnOpenRule(object sender, RoutedEventArgs e)
         {
             session.OpenRule();

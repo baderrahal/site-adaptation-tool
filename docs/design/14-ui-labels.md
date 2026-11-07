@@ -444,6 +444,7 @@ Built in Lane B 5c. The title, band, buttons, chips, columns and side box are th
 - `Zoom to plot`
 - `Export to Excel`
 - `Save overrides`
+- `Close` CHOSEN, F25 of the short check of 7 Nov, FAST-7-build-3: the window closes by a button of its own, the Build goes on from there (R772)
 - `Each row is a plot where the tool and the past job differ. Pick a row to see why, then choose Rule, Past or Skip. Save overrides keeps your choices.`
 - `All`
 - `Plot cut`
