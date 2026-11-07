@@ -2,6 +2,29 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## FAST-3-revit-test run 1, the one test in Revit, 7 Nov 2026
+
+Goal:
+- Bader's order of 6 Nov 21:10: one run from an empty model through the 3 cards on S1, a neighbourhood not used for tuning, real villa links, the fix list by lane, a shot per card and per window, the demo script.
+
+Done:
+- Revit opened 01:11, three parts of at most 2 hours, the model copy saved at the end of each. Stage 1 read S1 four times. Card 2 Build ran the one rules ask, the preview and the chain to 4 Check on NBH 010. The fix list F1 to F17 in steps/seam.md. 13 shots in steps/ui-shots with real values blanked. steps/demo-live.md.
+
+Checked:
+- S1 by SHA-256, size and write time before and after: 37 files, 0 changed. The plot counts of the windows against plots.json by a script. The read inputs by its read.json.
+
+Remains:
+- The site was not built: every Build stopped at 4 Check, F16. Floors, levels, villas, walls and Report not seen. The run of Sun 8 Nov.
+
+Known bugs:
+- F16, step 4 needs the outputs of the old step 2 that the read of card 1 never writes. F4, R405 on the first Build of a session. F15, the untuned NBHs hold no villa type.
+
+Next:
+- Lead's plan of 08:00 on F16, F4, F1 and F5. The second run on Sun 8 Nov.
+
+Your turn:
+- None.
+
 ## The listener script sets no floor, 7 Nov 2026
 
 Goal:
