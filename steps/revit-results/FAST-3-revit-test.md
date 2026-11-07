@@ -50,3 +50,13 @@ The scope: Neighbourhood 010 under Advanced Scope. CHOSEN by Code: the task asks
 16. Build again 04:58 with the Prototypes row set: preview, Go on, then 3 Review data. Closed with no Save review, the Build said "Build stopped at Review data, cancelled." (d-end.png). In step 11 Save review came before Close and the chain went on. So each Build asks the review again, fault F13.
 
 Seen on the pane at 05:07 (d-end.png): the amber line "15 of 15 rules are not confirmed. Open Rules in Settings." once the manual template was taken. Card 3: "2619 issues from the last build." with Open rules, the line "2615 plots have no road level, so no floor level, and steps 6 to 8 leave them out.", the source mix bar and its line "Values: computed 9879, rule 10907, person entered 2614, missing 10595, other 0.", Report and Update from report.
+
+## Part 3, from 05:11
+
+- 05:11:37 relaunch, part 3, on the saved model copy. No Unsigned Add-In box this time. The project, the input rows, the scope 010 and the rules stayed, the amber line said "15 of 15 rules are not confirmed. Open Rules in Settings." (p3-start.png).
+17. 05:20 Build: "The plan could not be made ... (R405)" again on the first Build of the session, F4 seen twice.
+18. 05:47 Fix items opened Confirm what was found. CHOSEN by Code: the word "Block" typed for group level 2, so the read cannot be reused, then Confirm: "Your values are saved. Press Read data again to read with them." Choose project folder, S1: "Reads the folder, the settings file and the values a person confirmed", Apply. The read ran 05:49 to 06:01, 721 s. Group levels "words Neighbourhood_ID, Block".
+19. Its read.json, by a script that prints keys and counts: inputs config, scanFolder and projectProfile, no road surface, files data_check.json, plots.json, project_profile.json, read.json, read_plotTable.json.
+20. 06:09 Build, preview, Go on, Review data with Save review then Close: stopped at Check, F16 (g-end.png).
+
+The tool did not build the site in run 1. Floors and ramps, Levels, Place villas and Walls never ran. Villa links: none, NBH 010 holds no villa type (F15), and every NBH stops at Check (F16).
