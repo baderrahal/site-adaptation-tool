@@ -11,6 +11,8 @@ namespace SiteAdaptation.AddIn.CheckTable
         public const string ZoomToPlot = "Zoom to plot";
         public const string ExportToExcel = "Export to Excel";
         public const string SaveOverrides = "Save overrides";
+        // R772, F25 of the short check
+        public const string Close = "Close";
         public const string HowTo = "Each row is a plot where the tool and the past job differ. Pick a row to see why, then choose Rule, Past or Skip. Save overrides keeps your choices.";
         public const string FollowLine = "<n> plots follow every rule";
         public const string FieldLabel = "Field";

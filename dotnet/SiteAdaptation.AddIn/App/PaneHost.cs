@@ -196,6 +196,30 @@ namespace SiteAdaptation.AddIn
             }
         }
 
+        // R772, F25 of the short check. The pane hashes the outputs of a step that ran in Revit a moment after its end, so the next step of a build
+        // that still waits on it runs once it no longer does, looked at every quarter second, and at most 10 seconds later, when the flow then
+        // says why it cannot run
+        private static void RunWhenHashed(Func<bool> waits, Action run)
+        {
+            if (!waits())
+            {
+                run();
+                return;
+            }
+            DateTime until = DateTime.UtcNow.AddSeconds(10);
+            var timer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
+            timer.Tick += (sender, e) =>
+            {
+                if (waits() && DateTime.UtcNow < until)
+                {
+                    return;
+                }
+                timer.Stop();
+                run();
+            };
+            timer.Start();
+        }
+
         // R686. What the plan of the one Build reads, null with no saved model or no settings
         private SiteBuildPlace BuildPlace(StagesViewModel stages)
         {
@@ -467,7 +491,8 @@ namespace SiteAdaptation.AddIn
                 stages.Refresh();
                 if (next.HasValue)
                 {
-                    runStep(next.Value);
+                    int step = next.Value;
+                    RunWhenHashed(() => chain.WaitsOnCommitted(step), () => runStep(step));
                 }
                 return true;
             };

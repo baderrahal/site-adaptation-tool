@@ -202,7 +202,8 @@ namespace SiteAdaptation.Tests
             // FAST-7-build-3 added 7: card 1 waits for step 1, the setup not saved, the dry run first and the tick of the site drawing in Set up site,
             // the villa plots of all plots, and How it works on the 3 cards, its line now CHOSEN and the head of each card (R761 to R767)
             // and 1 of R771, the line of a step 2 the Build put back
-            Assert.Equal(525, chosen);
+            // and 1 of R772, the Close of the check table
+            Assert.Equal(526, chosen);
             Assert.True(matched > 100, matched.ToString());
         }
 

@@ -2,6 +2,30 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## FAST-7 PR 6, the Build goes on after Check, F25, 7 Nov 2026
+
+Goal:
+- Item 10, F25 of the short check: the Build looped on 4 Check, 5 runs, and the Check window had no Close.
+
+Done:
+- R772: BuildChain keeps the steps that committed in this Build and never puts one back, so after Check commits the Build goes on to step 5, which PaneHost runs once the pane hashed Check again, at most 10 seconds later, as the gate of the flow reads the same statuses. The Check window has a Close beside Save overrides.
+- Shot steps/ui-shots/check-table.png with the Close, made up values. steps/tasks/FAST-7-build-3.md status done, the last PR of FAST-7.
+
+Checked:
+- R772_CheckGoesOnTests: Check committed while step 5 still waits on it goes on to 5, a step not committed is still put back once, the window shows its Close. Not seen in Revit.
+
+Remains:
+- The Revit check of FAST-7, every PR carries revit-later.
+
+Known bugs:
+- F23, a scope change alone makes step 2 stale, in Common.
+
+Next:
+- Lead's run 2 and the demo of Sun 8 Nov.
+
+Your turn:
+- Nothing.
+
 ## FAST-7 PR 5, the Build reads and reviews without stopping, F6 and F13, 7 Nov 2026
 
 Goal:

@@ -187,6 +187,8 @@
                   Visibility="{Binding ExportAllowed, Converter={StaticResource Shown}}" />
           <Button Style="{StaticResource SA.Button.Primary}" Content="{x:Static chk:CheckTableText.SaveOverrides}" Click="OnSave"
                   IsEnabled="{Binding SaveAllowed}" />
+          <!-- R772, F25 of the short check. The window closes by a button of its own, the Build goes on from there -->
+          <Button x:Name="CloseButton" Style="{StaticResource SA.Button.Base}" Margin="{StaticResource SA.Gap.Left8}" Content="{x:Static chk:CheckTableText.Close}" Click="OnClose" />
         </StackPanel>
       </Grid>
     </Border>

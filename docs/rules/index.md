@@ -613,3 +613,4 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R769 Folder keeps step 1.
 - R770 Review close counts as saved.
 - R771 Quiet read in the Build.
+- R772 Check commits, Build goes on.
