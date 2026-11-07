@@ -29,6 +29,8 @@ namespace SiteAdaptation.AddIn.Pane
         public const string Waits = "Waits for stage <n>";
 
         public const string NoRead = "No data check yet. Choose the project folder.";
+        // R761, F1 of run 1
+        public const string SetUpBeforeFolder = "Run 1 Set up site first, it places the site. Then choose the project folder.";
         public const string ReadStopped = "The last read stopped and holds nothing to fix: <name>. Fix the cause and choose the folder again.";
 
         // Choose project folder, R681

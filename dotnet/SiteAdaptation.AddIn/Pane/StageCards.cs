@@ -169,13 +169,16 @@ namespace SiteAdaptation.AddIn.Pane
     // R680. The pane in 3 stages over the view model of the pane of version 1, which stays whole under Advanced
     public sealed class StagesViewModel : Bindable
     {
+        public const int SetUpStep = 1;
         public const int ReadDataStep = 2;
+        public const int ReviewStep = 3;
         public const int ReportStep = 9;
         private bool settingsOpen;
         private string rulesLine;
         private string buildLine;
         private bool previewFirst = true;
         private string stopLine;
+        private string readLine = StageText.NoRead;
         private string readFolder;
         private string fixFolder;
         private DateTime readStamp;
@@ -187,7 +190,7 @@ namespace SiteAdaptation.AddIn.Pane
             Model = model;
             Cards = new ReadOnlyCollection<StageCard>(new[]
             {
-                new StageCard(1, StageText.Stage1, StageText.Stage1Help, StageText.ChooseFolder, new PaneCommand(() => ChooseFolderRequested?.Invoke(), () => model.InUse)),
+                new StageCard(1, StageText.Stage1, StageText.Stage1Help, StageText.ChooseFolder, new PaneCommand(() => ChooseFolderRequested?.Invoke(), () => model.InUse && Ran(SetUpStep))),
                 new StageCard(2, StageText.Stage2, StageText.Stage2Help, StageText.Build, new PaneCommand(PressBuild, () => model.InUse && readFolder != null)),
                 new StageCard(3, StageText.Stage3, StageText.Stage3Help, StageText.Report, new PaneCommand(() => model.RequestRun(ReportStep), () => model.InUse)),
             });
@@ -195,6 +198,8 @@ namespace SiteAdaptation.AddIn.Pane
             SettingsCommand = new PaneCommand(() => SettingsOpen = !SettingsOpen, () => true);
             RulesCommand = new PaneCommand(() => RulesRequested?.Invoke(), () => model.InUse);
             UpdateCommand = new PaneCommand(() => UpdateRequested?.Invoke(), () => model.InUse);
+            SetUpCommand = new PaneCommand(() => model.RequestRun(SetUpStep), () => model.InUse);
+            ReviewCommand = new PaneCommand(() => model.RequestRun(ReviewStep), () => model.InUse && Waits(ReviewStep) == 0);
             model.PropertyChanged += OnModelChanged;
             Refresh();
         }
@@ -210,6 +215,37 @@ namespace SiteAdaptation.AddIn.Pane
         public PaneCommand SettingsCommand { get; }
         public bool SettingsOpen { get { return settingsOpen; } set { Set(ref settingsOpen, value); } }
         public PaneCommand RulesCommand { get; }
+
+        // R761, F1 of run 1. Card 1 holds step 1 Set up site, and Choose project folder waits for it, so an empty model never meets the box
+        // "2 Read data needs step 1". The button says the label of the ribbon button, so it reads as the step row of Advanced
+        public PaneCommand SetUpCommand { get; }
+        public string SetUpButton { get { return RibbonLayout.Button(SetUpStep).Label; } }
+
+        // R762, F3 of run 1. Card 1 holds step 3 Review data, so a read is reviewed from card 1 and stage 1 can end there
+        public PaneCommand ReviewCommand { get; }
+        public string ReviewButton { get { return RibbonLayout.Button(ReviewStep).Label; } }
+
+        // A step ran when it is done, with or without issues
+        private bool Ran(int step)
+        {
+            if (step > Model.Statuses.Count)
+            {
+                return false;
+            }
+            StepKind kind = Model.Statuses[step - 1].Kind;
+            return kind == StepKind.Done || kind == StepKind.Issues;
+        }
+
+        // The step a step waits on, 0 when it may run
+        private int Waits(int step)
+        {
+            if (step > Model.Statuses.Count)
+            {
+                return step - 1;
+            }
+            StepStatus status = Model.Statuses[step - 1];
+            return status.Kind == StepKind.NeedsStep ? status.Value : status.Kind == StepKind.NeedsSettings ? step : 0;
+        }
 
         // R686. The scope of the build in the words of the project, and the Preview tick, on by default (CHOSEN)
         // R689. Card 3: the issues of the last build, the source mix of its values and Update from report
@@ -303,6 +339,8 @@ namespace SiteAdaptation.AddIn.Pane
             Changed(nameof(ScopeLine));
             Card3.Line = StageResultsText.ReportLine;
             UpdateCommand.Refresh();
+            SetUpCommand.Refresh();
+            ReviewCommand.Refresh();
             results = (Model.HasDocument ? ResultsNow?.Invoke() : null) ?? new StageResults();
             Changed(nameof(IssuesLine));
             Changed(nameof(MixLine));
@@ -317,6 +355,7 @@ namespace SiteAdaptation.AddIn.Pane
             RulesCommand.Refresh();
             RulesLine = Model.HasDocument && Model.InUse ? RulesLineNow?.Invoke() : null;
             RefreshRead();
+            Card1.Line = Model.InUse && !Ran(SetUpStep) ? StageText.SetUpBeforeFolder : readLine;
         }
 
         // The rows of the latest read, read again only when its data check changed
@@ -338,7 +377,7 @@ namespace SiteAdaptation.AddIn.Pane
                 CheckRows.Add(row);
             }
             fixFolder = latest != null && check.Stopped == null ? latest : null;
-            Card1.Line = latest == null ? StageText.NoRead : check.Stopped != null ? TextTemplate.Fill(StageText.ReadStopped, check.Stopped) : string.Empty;
+            readLine = latest == null ? StageText.NoRead : check.Stopped != null ? TextTemplate.Fill(StageText.ReadStopped, check.Stopped) : string.Empty;
             Changed(nameof(HasRows));
             FixItemsCommand.Refresh();
             Card2.Command.Refresh();

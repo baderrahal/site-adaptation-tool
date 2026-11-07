@@ -136,9 +136,15 @@
             <ContentControl Content="{Binding Card1}" ContentTemplate="{StaticResource CardHead}" />
             <TextBlock Style="{StaticResource CardLine}" Text="{Binding Card1.Line}" />
             <ItemsControl Margin="{StaticResource SA.Gap.Top8}" ItemsSource="{Binding CheckRows}" ItemTemplate="{StaticResource CheckRow}" />
+            <!-- R761, F1. Step 1 Set up site stands on card 1 before Choose project folder, which waits for it -->
             <StackPanel Orientation="Horizontal" Margin="{StaticResource SA.Gap.Top8}">
-              <Button Style="{StaticResource SA.Button.Primary}" Margin="{StaticResource SA.Gap.Right8}" Content="{Binding Card1.Button}" Command="{Binding Card1.Command}" />
-              <Button Style="{StaticResource SA.Button.Base}" Content="{x:Static pane:StageText.FixItems}" Command="{Binding FixItemsCommand}" Visibility="{Binding HasRows, Converter={StaticResource Shown}}" />
+              <Button x:Name="SetUpButton" Style="{StaticResource SA.Button.Base}" Margin="{StaticResource SA.Gap.Right8}" Content="{Binding SetUpButton}" Command="{Binding SetUpCommand}" />
+              <Button Style="{StaticResource SA.Button.Primary}" Content="{Binding Card1.Button}" Command="{Binding Card1.Command}" />
+            </StackPanel>
+            <!-- R762, F3. Fix items and step 3 Review data end stage 1 on its own card -->
+            <StackPanel Orientation="Horizontal" Margin="{StaticResource SA.Gap.Top8}">
+              <Button Style="{StaticResource SA.Button.Base}" Margin="{StaticResource SA.Gap.Right8}" Content="{x:Static pane:StageText.FixItems}" Command="{Binding FixItemsCommand}" Visibility="{Binding HasRows, Converter={StaticResource Shown}}" />
+              <Button x:Name="ReviewButton" Style="{StaticResource SA.Button.Base}" Content="{Binding ReviewButton}" Command="{Binding ReviewCommand}" />
             </StackPanel>
           </StackPanel>
         </Border>

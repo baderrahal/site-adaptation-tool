@@ -145,6 +145,7 @@ The five panels and their buttons of 7.1 of docs/design/12-ui-spec.md, Bader's c
 - `Not started` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
 - `Waits for stage <n>` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
 - `No data check yet. Choose the project folder.` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
+- `Run 1 Set up site first, it places the site. Then choose the project folder.` CHOSEN, F1 of run 1 of FAST-3, FAST-7-build-3: card 1 holds step 1 and Choose project folder waits for it (R761)
 - `No build yet. Build site in stage 2 first.` CHOSEN, card 3 Review and deliver of FAST-1-build-1, item 5
 - `<n> issues from the last build.` CHOSEN, card 3 Review and deliver of FAST-1-build-1, item 5
 - `Values: computed <n>, rule <n>, person entered <n>, missing <n>, other <n>.` CHOSEN, card 3 Review and deliver of FAST-1-build-1, item 5
