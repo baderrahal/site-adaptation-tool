@@ -453,6 +453,8 @@ namespace SiteAdaptation.AddIn
                     return false;
                 }
                 stages.ShowBuild(planLine + " " + line);
+                // F12, R760 of FAST-7: a step that stopped says so in a box, the read for the build too
+                stages.ShowStop(end, line);
                 stages.Refresh();
                 if (next.HasValue)
                 {

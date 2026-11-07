@@ -15,7 +15,7 @@
 - dotnet/SiteAdaptation.Common/ReadData/ReadInputs.cs: ReadInputs.ForBuild and PlotTableSteps, the old read with no schedule, plot numbers, border or location plan steps.
 - dotnet/SiteAdaptation.AddIn/Fast5/BuildRead.cs: Needed, FillRows, Start, Answered. The read folder holds a copy of read_plotTable.json of stage 1 and a record of a read whose run id ends -build.
 - dotnet/SiteAdaptation.AddIn/Pane/BuildChain.cs: ReadFirst and the step ReadForCheck, 10, put in right before 4 once per Build, after the steps 4 waits on.
-- dotnet/SiteAdaptation.AddIn/App/PaneHost.cs: FillRows at each Build press, runStep runs the read for the build or RequestRun, endOf is the one end of every step of the Build, Buttons.ChainEnded calls it.
+- dotnet/SiteAdaptation.AddIn/App/PaneHost.cs: FillRows at each Build press, runStep runs the read for the build or RequestRun, endOf is the one end of every step of the Build, Buttons.ChainEnded calls it. endOf calls stages.ShowStop(end, line) after ShowBuild, F12 of FAST-7, PR 252.
 - docs/rules/21-fast5-r740-up.md, R740 and R741.
 
 ## What calls what
@@ -24,5 +24,5 @@ Build press: PaneHost BuildRequested, BuildRead.FillRows(model.Settings, model.P
 
 ## Next
 
-- PR 2: in PaneHost endOf after ShowBuild, `stages.ShowStop(end, line);` once PR 252 is on main. In ReadDataRun.DataCheckRequest the parameter sheet input of DataCheckSheet.Input once PR 254 is on main, with a FAST5 test. Then status done once the Build to the end is seen in Revit.
+- PR 2: in ReadDataRun.DataCheckRequest the parameter sheet input of DataCheckSheet.Input once PR 254 is on main, with a FAST5 test. Then status done once the Build to the end is seen in Revit.
 - Open for Lead in steps/seam.md: the three words of the read for the build in docs/design/14-ui-labels.md, and the data book debt.

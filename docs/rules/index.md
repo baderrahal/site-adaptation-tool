@@ -589,7 +589,13 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R731 Mirror from block and footprint.
 - R732 Pair trace.
 
+<<<<<<< HEAD
 ## 21-fast5-r740-up.md
 
 - R740 Rows from the project folder.
 - R741 Read for the build before Check.
+=======
+## 23-fast7-r760-up.md
+
+- R760 Stop box of Build.
+>>>>>>> origin/main

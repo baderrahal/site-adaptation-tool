@@ -2,6 +2,29 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## FAST-7 item 1, the stop box of Build, 7 Nov 2026
+
+Goal:
+- F12 of run 1: a Build that stops says the step and the reason in a box, not only at the end of the long line of card 2.
+
+Done:
+- R760: StagesViewModel.ShowStop and the box StopBox at the top of card 2, cleared by the next press of Build. The words of SiteBuildText, no new word. Shot steps/ui-shots/pane-stage-2-stopped.png, made up values.
+
+Checked:
+- dotnet/SiteAdaptation.Tests/FAST7/R760_StopBoxTests.cs, a stop, a roll back and a cancel show the box, a step that ended well does not, Build clears it. Not seen in Revit.
+
+Remains:
+- The one call in PaneHost.cs is FAST-5's, its exact text in steps/seam.md for build-1. Items F1, F2, F3, F7, F9, F17, then F6 and F13.
+
+Known bugs:
+- Until build-1 adds the call, the box never shows in Revit.
+
+Next:
+- F1, card 1 holds Set up site, now that the label list is on FAST-7.
+
+Your turn:
+- Nothing.
+
 ## FAST-7 takes the label list, 7 Nov 2026
 
 Goal:
@@ -39,7 +62,7 @@ Checked:
 - The real worker on S1 with a request a Python script made by its own file search: first refused on the data book border, fixed, then done with 0 issues and the four reads Check takes. quick-tests PASS, net8.0 2736 passed, net48 217 of the read and chain passed, tests/acceptance 45 passed 5 xpassed.
 
 Remains:
-- PR 2: the ShowStop line of F12 once PR 252 is on main, the parameter sheet line of F10 once PR 254 is on main. The Build to the end on 01A in Revit.
+- PR 2: the parameter sheet line of F10 once PR 254 is on main. The ShowStop line of F12 is in this PR, PR 252 landed first. The Build to the end on 01A in Revit.
 
 Known bugs:
 - A project with no data book stops at the read for the build, as every build step of version 1 takes plots.csv and labels.csv.

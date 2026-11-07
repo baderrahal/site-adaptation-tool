@@ -30,7 +30,7 @@ namespace SiteAdaptation.UiShots
 
         // The stages page laid out at the start width of the pane, so a test reads its parts. withRows gives card 1 a made up read in a
         // folder of the temp folder, read as the pane reads the work folder of a model, so the shot shows what a person sees after a read
-        public static StagesPage LaidOutStages(bool withRows)
+        public static StagesPage LaidOutStages(bool withRows, Action<StagesViewModel> before = null)
         {
             var model = new PaneViewModel(new SampleProbe()) { ReadText = Sample.ConfigText };
             model.Load(Sample.Document());
@@ -56,6 +56,7 @@ namespace SiteAdaptation.UiShots
                     Directory.Delete(work, true);
                 }
             }
+            before?.Invoke(stages);
             var page = new StagesPage(stages, new SitePanePage(model));
             double width = (double)page.FindResource("SA.Size.Pane");
             double height = 0;
@@ -74,9 +75,17 @@ namespace SiteAdaptation.UiShots
             return page;
         }
 
-        private static BitmapSource StageCardShot(int card)
+        // R760, F12. Card 2 after a made up Build stopped at a step, the box with the step and the reason
+        public const string SampleStop = "Build stopped at 4 Check: Made up reason the step gave.";
+
+        private static BitmapSource StoppedCardShot()
         {
-            StagesPage page = LaidOutStages(true);
+            return StageCardShot(2, stages => stages.ShowStop(Common.Flow.RunEnd.Stopped, SampleStop));
+        }
+
+        private static BitmapSource StageCardShot(int card, Action<StagesViewModel> before = null)
+        {
+            StagesPage page = LaidOutStages(true, before);
             var box = (FrameworkElement)page.FindName("Card" + card + "Box");
             var bitmap = new RenderTargetBitmap((int)Math.Ceiling(box.ActualWidth), (int)Math.Ceiling(box.ActualHeight), Dpi, Dpi, PixelFormats.Pbgra32);
             var visual = new DrawingVisual();

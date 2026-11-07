@@ -7,6 +7,7 @@ using System.Linq;
 using Newtonsoft.Json.Linq;
 using SiteAdaptation.AddIn.ScanResults;
 using SiteAdaptation.Common;
+using SiteAdaptation.Common.Flow;
 
 namespace SiteAdaptation.AddIn.Pane
 {
@@ -174,6 +175,7 @@ namespace SiteAdaptation.AddIn.Pane
         private string rulesLine;
         private string buildLine;
         private bool previewFirst = true;
+        private string stopLine;
         private string readFolder;
         private string fixFolder;
         private DateTime readStamp;
@@ -186,7 +188,7 @@ namespace SiteAdaptation.AddIn.Pane
             Cards = new ReadOnlyCollection<StageCard>(new[]
             {
                 new StageCard(1, StageText.Stage1, StageText.Stage1Help, StageText.ChooseFolder, new PaneCommand(() => ChooseFolderRequested?.Invoke(), () => model.InUse)),
-                new StageCard(2, StageText.Stage2, StageText.Stage2Help, StageText.Build, new PaneCommand(() => BuildRequested?.Invoke(), () => model.InUse && readFolder != null)),
+                new StageCard(2, StageText.Stage2, StageText.Stage2Help, StageText.Build, new PaneCommand(PressBuild, () => model.InUse && readFolder != null)),
                 new StageCard(3, StageText.Stage3, StageText.Stage3Help, StageText.Report, new PaneCommand(() => model.RequestRun(ReportStep), () => model.InUse)),
             });
             FixItemsCommand = new PaneCommand(() => FixItemsRequested?.Invoke(fixFolder), () => fixFolder != null);
@@ -236,6 +238,27 @@ namespace SiteAdaptation.AddIn.Pane
 
         public string ScopeLine { get { return SiteBuildPlan.ScopeLine(Model.Settings?.Scope); } }
         public bool PreviewFirst { get { return previewFirst; } set { Set(ref previewFirst, value); } }
+
+        // R760, F12 of run 1. The box of a Build that stopped: the step and the reason as BuildChain.Ended words them, so the person
+        // need not find them at the end of the long line of card 2. It stays until the next press of Build
+        public string StopLine { get { return stopLine; } private set { Set(ref stopLine, value); Changed(nameof(HasStop)); } }
+        public bool HasStop { get { return !string.IsNullOrEmpty(stopLine); } }
+
+        // R760. A step of the Build ended with the line chain.Ended gave. A stop, a roll back or a cancel shows the box, a step that
+        // ended well or goes on outside Revit leaves it as it is
+        public void ShowStop(RunEnd end, string line)
+        {
+            if (end == RunEnd.Stopped || end == RunEnd.RolledBack || end == RunEnd.Cancelled)
+            {
+                StopLine = line;
+            }
+        }
+
+        private void PressBuild()
+        {
+            StopLine = null;
+            BuildRequested?.Invoke();
+        }
 
         // R686. What the last press of Build said, the plan, its stop or its coordinates
         public void ShowBuild(string line)
