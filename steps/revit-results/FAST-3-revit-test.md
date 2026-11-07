@@ -174,3 +174,23 @@ Where the Build stopped: step 7 of 11, Check, "Build stopped at Check, cancelled
 S1 after the two parts: 37 files, SHA-256, size and write time equal to s1_before_short.json, 0 changed, 0 new, 0 gone (s1_after_short.json, compared by a script).
 
 Second check by another method: the count of floors is read twice, from the dry run box of Revit by UI Automation at 18:25 ("place 538, listed 269") and from floors_01A.json on disk after the run (538 placed, 269 distinct plots, by a script). Not seen in Revit: a count of the floor elements in the model itself, Revit was closed before it.
+
+# Short check 2, Sat 7 Nov 2026, NBH 01A from card 1
+
+Lead's order of 7 Nov, Bader's order of 14:40: the second short check, not a full run. NBH 01A, marked tuned (steps/truth-audit.md section 6), Bader's answer to F15. The add-in Lead built from main with F16, F4, F24, F6, F13, F25, F26 and F27 and installed with Install-SiteAdaptation.ps1, the .addin file written 22:01. Same driver, drive3.ps1 of the work root under python/window_lock.py, -MaxMinutes 110. Shots under the work root, folder `fast3-revit-test/shots/short2`, never in git, they show real values.
+
+## Model and folder, short check 2
+
+- Model: `FAST3-short2-01A.rvt` in fast3-revit-test of the work root, copied from `FAST3-empty-model-pristine.rvt` at 22:13, `cmp` equal bytes. A new name, not the run 1b copy and not the short check copy.
+- Inputs: S1 of the scenarios, 37 files, SHA-256, size and write time taken at 22:13 into s1_before_short2.json of fast3-revit-test, equal to s1_after_short.json (0 changed, 0 new, 0 gone).
+- revit-wanted-build-1.txt and revit-wanted-build-3.txt: none in the lanes folder at 22:13. Idle 3987 s, only the keep awake Teams window.
+
+## Part 1, from 22:16
+
+- 22:16:36 Revit opened on the copy, process 218024. 22:18:18 the box "Security - Unsigned Add-In" of Site Adaptation came and the driver pressed Always Load, Bader's order of 6 Nov 23:37 (always_load.txt of the shots folder holds the time).
+1. The pane said "Set up this project first, in Settings." on the 3 cards (s01-start.png). Settings, Project setup Edit, the New project window, Save setup (s02-new-project.png). Card 1 then said "Ready, Choose the project folder: 1 Set up site runs first and places the site from its Baseplan. Then choose the folder again to read the data." with Choose project folder enabled (s03-after-save.png).
+2. 22:27 Choose project folder, the Select Folder box, S1 typed in its address bar (folder-S1.png), Select Folder: the window 1 Set up site opened by itself with the Baseplan of S1, "Empty project found", Use CAD, 5 of 5 check points pass (s05-after-select.png). F2 and F24 not seen: no Baseplan row of Advanced was needed and no "needs step 1" box came. Each Current ticked, Dry run, Apply on, Apply at 22:31, the window closed in 7 s (s06-setup-dry.png, s07-after-setup.png). Card 1: "No data check yet. Choose the project folder."
+3. 22:33 Choose project folder again, S1: the box "2 Read data, Dry run done, nothing was changed ... Files in the folder: 37, 1317.4 MiB" came at once (s08-folder2-box.png). Apply 22:33:57.
+4. 22:47, after 806 s, What the tool read: 7 files read, 2,618 of 2,964 villa plots of all plots, Shared parameters Strong, Group levels Weak "Areas found by distance only: 2" (s09-read-end.png). Close, Confirm what was found with Typology_Rev8.1 (2570 plots) and Neighbourhood_ID (2955 plots), both proposed (s10-confirm.png), Confirm: "2 Read data done: 4 files written, 0 issues ... Your values are saved. Press Read data again to read with them." (s11-after-confirm.png). F22 stands.
+5. 22:52:02 a driver fault: card 1 now lists the data check, so Choose project folder stood below the screen at y 1434. The driver clicked there, the cursor stopped on the taskbar edge and opened the GlobalProtect panel of the tray. Nothing was pressed in it. Revit came back to front by its window handle at 22:55, and from then each click scrolls the pane first and refuses a point outside the visible pane.
+6. 23:00 Choose project folder a third time, S1: the box "Reads the folder, the settings file and the values a person confirmed" (s12-read2-box.png). Apply 23:01:31.
