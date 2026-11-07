@@ -6,11 +6,11 @@ using Xunit;
 
 namespace SiteAdaptation.Tests
 {
-    // RULE_F13, F13 of run 1 of FAST-3. A Close of 3 Review data with nothing changed counts as saved, so the Build goes on. Made up values only
-    public sealed class F13_ReviewCloseTests
+    // R770, F13 of run 1 of FAST-3. A Close of 3 Review data with nothing changed counts as saved, so the Build goes on. Made up values only
+    public sealed class R770_ReviewCloseTests
     {
         [Fact]
-        public void F13_a_close_with_nothing_changed_saves_once_and_counts_as_saved()
+        public void R770_a_close_with_nothing_changed_saves_once_and_counts_as_saved()
         {
             int saves = 0;
             var session = new ReviewDataSession(Shots.SampleReviewView(true), new ReviewCallbacks { Save = checks => { saves++; return "made up review"; } });
@@ -24,7 +24,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void F13_a_close_over_marks_not_saved_stays_not_saved()
+        public void R770_a_close_over_marks_not_saved_stays_not_saved()
         {
             int saves = 0;
             var session = new ReviewDataSession(Shots.SampleReviewView(true), new ReviewCallbacks { Save = checks => { saves++; return "made up review"; } });
