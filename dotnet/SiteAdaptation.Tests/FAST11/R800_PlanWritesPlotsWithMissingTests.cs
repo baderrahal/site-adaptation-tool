@@ -132,6 +132,20 @@ namespace SiteAdaptation.Tests.FAST11
             Assert.Equal("no rule gives the mirror flag of DT1 in no cluster", (string)listed["missing"][0]["why"]);
         }
 
+        // Found on the rerun of the check of 01A: 8 plots with no hand and no FFL were counted under no hand, though the FFL leaves them out
+        [Fact]
+        public void R801_a_plot_left_out_is_counted_under_the_key_that_stops_it_not_the_missing_hand()
+        {
+            var missing = JArray.Parse("[{\"plot\":\"1\",\"written\":false,\"missing\":[{\"key\":\"mirrored\"},{\"key\":\"levels.ffl\"},{\"key\":\"parameters.CASE\"}]},"
+                + "{\"plot\":\"2\",\"written\":false,\"missing\":[{\"key\":\"mirrored\"},{\"key\":\"insert\"}]},"
+                + "{\"plot\":\"3\",\"written\":false,\"missing\":[{\"key\":\"mirrored\"}]},"
+                + "{\"plot\":\"4\",\"written\":true,\"missing\":[{\"key\":\"mirrored\"},{\"key\":\"parameters.CASE\"}]}]");
+            JObject summary = BuildPlan.LeftOut(new JObject(), missing);
+            // Plot 3 of a past job build, the hand its only lack, stays under mirrored
+            Assert.Equal("{\"insert\":1,\"levels.ffl\":1,\"mirrored\":1}", summary[BuildPlan.NotWrittenByKey].ToString(Newtonsoft.Json.Formatting.None));
+            Assert.Equal(1, (int)summary[BuildPlan.WrittenWithMissingKey]);
+        }
+
         [Fact]
         public void R801_the_line_says_all_plots_are_built_when_none_is_left_out()
         {

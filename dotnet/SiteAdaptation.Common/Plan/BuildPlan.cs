@@ -638,7 +638,9 @@ namespace SiteAdaptation.Common
                     withMissing++;
                     continue;
                 }
-                string first = (string)(item["missing"] as JArray)?.OfType<JObject>().FirstOrDefault()?["key"];
+                // Under rev6 a missing hand stops no plot, so a plot with no hand and no FFL is counted under the FFL
+                List<string> keys = (item["missing"] as JArray ?? new JArray()).OfType<JObject>().Select(lack => (string)lack["key"]).ToList();
+                string first = keys.FirstOrDefault(Stops.Contains) ?? keys.FirstOrDefault();
                 if (first != null)
                 {
                     by[first] = by.TryGetValue(first, out int count) ? count + 1 : 1;
@@ -648,6 +650,9 @@ namespace SiteAdaptation.Common
             summary[WrittenWithMissingKey] = withMissing;
             return summary;
         }
+
+        // R801. The keys whose lack leaves a plot out of the plan, as PlanOverrides writes a plot with a file, an insert and an FFL
+        private static readonly HashSet<string> Stops = new HashSet<string>(StringComparer.Ordinal) { "skip", "unit", "prototypeFile", "transform", "insert", "levels.ffl" };
 
         public const string NotWrittenByKey = "notWrittenByFirstKey";
         public const string WrittenWithMissingKey = "writtenWithMissing";
