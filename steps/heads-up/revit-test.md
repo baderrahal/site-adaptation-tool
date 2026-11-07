@@ -22,4 +22,5 @@
 ## Next
 
 - Lead decides run 2. The copy FAST3-short-01A.rvt holds steps 1 to 5 on 01A, step 6 Levels Ready, so it can go on from step 6 in Advanced.
+- Main now holds PR 264, R769 of build-3, the fix of F24, and PR 260, R768, merged after this check began. Not seen in Revit, run 2 needs Lead's new install.
 - IT maintenance at 19:30: no Revit part starts after 19:00.
