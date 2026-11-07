@@ -67,7 +67,7 @@ namespace SiteAdaptation.Tests
             config["addin"]["parameterSheet"] = "config/edited.xlsx";
             config["designBasis"]["newProjectMode"] = "pastMade";
             File.WriteAllText(copy, config.ToString());
-            File.WriteAllText(ProjectFile("rules made up", "made-up.json"), "{ \"levelProfiles\": { \"default\": \"editedProfile\" } }");
+            File.WriteAllText(ProjectFile("rules made up", NewProjectValues.RulesName), "{ \"levelProfiles\": { \"default\": \"editedProfile\" } }");
             ProjectSet preview = Set().Preview(File.ReadAllText), taken = Set().Take(File.ReadAllText);
             Assert.Equal(taken.ParameterSheet, preview.ParameterSheet);
             Assert.EndsWith("edited.xlsx", preview.ParameterSheet);
@@ -102,7 +102,7 @@ namespace SiteAdaptation.Tests
         {
             ProjectSet set = Set().Take(File.ReadAllText);
             Assert.Equal(ProjectFile("config", "project.json"), set.ConfigFile);
-            Assert.Equal(Path.GetFullPath(ProjectFile("rules made up", "made-up.json")), set.RulesFile);
+            Assert.Equal(Path.GetFullPath(ProjectFile("rules made up", NewProjectValues.RulesName)), set.RulesFile);
             Assert.Equal("madeProfile", set.LevelProfile);
             Assert.True(File.Exists(ProjectFile("config", "floor_outlines.json")));
             Assert.Empty(Directory.GetDirectories(Path.Combine(work, ShippedSet.ProjectsFolder)).Where(path => path.Contains(".tmp-")));
@@ -115,7 +115,7 @@ namespace SiteAdaptation.Tests
             JObject edited = JObject.Parse(File.ReadAllText(first.ConfigFile));
             edited["handEdit"] = "stays";
             File.WriteAllText(first.ConfigFile, edited.ToString());
-            string list = ProjectFile("config", "overrides", "made-up.json");
+            string list = ProjectFile("config", "overrides", NewProjectValues.RulesName);
             File.WriteAllText(list, "{ \"overrides\": [ { \"plot\": \"3\" } ] }");
 
             Set().Take(File.ReadAllText);
@@ -129,7 +129,7 @@ namespace SiteAdaptation.Tests
             ProjectSet set = Set().Take(File.ReadAllText);
             JObject config = ProjectModes.Apply(JObject.Parse(File.ReadAllText(set.ConfigFile)), DesignBasis.Rev6);
             string list = Common.CheckTable.CheckRun.OverridesPath(config, set.ConfigFile, set.RulesFile);
-            Assert.Equal(ProjectFile("config", "overrides", "made-up.json"), list);
+            Assert.Equal(ProjectFile("config", "overrides", NewProjectValues.RulesName), list);
             Assert.Empty((JArray)JObject.Parse(File.ReadAllText(list))["overrides"]);
             JObject level = (JObject)JObject.Parse(File.ReadAllText(set.RulesFile))["levelProfiles"]["madeProfile"];
             OverrideList loaded = PlanOverrides.Load(list, config, level, "madeProfile", "project.json");
@@ -142,7 +142,7 @@ namespace SiteAdaptation.Tests
             ProjectSet set = Set().Take(File.ReadAllText);
             JObject config = JObject.Parse(File.ReadAllText(set.ConfigFile));
             config["majority"]["groups"]["native"] = new JArray("n1");
-            string list = ProjectFile("config", "overrides", "made-up.json");
+            string list = ProjectFile("config", "overrides", NewProjectValues.RulesName);
             File.WriteAllText(list, new JObject { ["overrides"] = new JArray(JObject.Parse("{ 'plot': '5', 'field': 'mirrored', 'value': true, 'source': 'native', 'model': 'a.rvt', 'key': 'n1' }")) }.ToString());
             JObject level = (JObject)JObject.Parse(File.ReadAllText(set.RulesFile))["levelProfiles"]["madeProfile"];
             Assert.Contains("holds no override of parsons", Assert.Throws<InvalidDataException>(() => PlanOverrides.Load(list, config, level, "madeProfile", "project.json")).Message);
@@ -199,7 +199,7 @@ namespace SiteAdaptation.Tests
         public void R487_the_list_of_take_has_the_two_line_form_of_majority_overrides_text()
         {
             ProjectSet set = Set().Take(File.ReadAllText);
-            string text = File.ReadAllText(ProjectFile("config", "overrides", "made-up.json"));
+            string text = File.ReadAllText(ProjectFile("config", "overrides", NewProjectValues.RulesName));
             Assert.Equal("{\n  \"note\": " + Newtonsoft.Json.JsonConvert.ToString(JObject.Parse(text)["note"].ToString()) + ",\n  \"overrides\": [\n  ]\n}\n", text);
             Assert.NotNull(set);
         }
@@ -208,7 +208,7 @@ namespace SiteAdaptation.Tests
         public void R487_save_overrides_writes_skip_on_a_rule_row_and_past_on_a_key_row_into_the_list_of_take_and_the_build_reads_them()
         {
             ProjectSet set = Set().Take(File.ReadAllText);
-            string list = ProjectFile("config", "overrides", "made-up.json");
+            string list = ProjectFile("config", "overrides", NewProjectValues.RulesName);
             var rows = new List<Common.CheckTable.CheckRow>
             {
                 new Common.CheckTable.CheckRow { Index = 0, Plot = "3", Check = "Team check", From = "team", OpenUse = Common.CheckTable.CheckUse.Rule, PastWhy = "the team marked it" },
@@ -295,7 +295,7 @@ namespace SiteAdaptation.Tests
         public void R487_a_first_past_on_a_plot_only_a_native_key_holds_leaves_the_list_of_a_new_project_loading()
         {
             ProjectSet set = Set().Take(File.ReadAllText);
-            string list = ProjectFile("config", "overrides", "made-up.json");
+            string list = ProjectFile("config", "overrides", NewProjectValues.RulesName);
             var rows = new List<Common.CheckTable.CheckRow>
             {
                 new Common.CheckTable.CheckRow { Index = 0, Plot = "2", Check = "Hand", Field = "mirrored", From = "missing", OpenUse = Common.CheckTable.CheckUse.Rule, PastForm = "trueOrFalse", PastValue = true, PastOffered = true, Key = "n1", Model = "n1-site.rvt" },
@@ -497,8 +497,8 @@ namespace SiteAdaptation.Tests
             Assert.NotEqual(first.ConfigFile, second.ConfigFile);
             Assert.Equal(Path.Combine(work, ShippedSet.ProjectsFolder, Path.GetFileName(one), "config", "project.json"), first.ConfigFile);
 
-            string listOne = Path.Combine(Path.GetDirectoryName(first.ConfigFile), "overrides", "made-up.json");
-            string listTwo = Path.Combine(Path.GetDirectoryName(second.ConfigFile), "overrides", "made-up.json");
+            string listOne = Path.Combine(Path.GetDirectoryName(first.ConfigFile), "overrides", NewProjectValues.RulesName);
+            string listTwo = Path.Combine(Path.GetDirectoryName(second.ConfigFile), "overrides", NewProjectValues.RulesName);
             File.WriteAllText(listOne, "{ \"overrides\": [ {\"plot\": \"3\"} ] }");
             Assert.DoesNotContain("\"plot\"", File.ReadAllText(listTwo));
 

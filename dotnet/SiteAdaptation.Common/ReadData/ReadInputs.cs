@@ -82,6 +82,9 @@ namespace SiteAdaptation.Common.ReadData
         public const string CadLayers = "cadLayers";
         public const string ScanFolder = "scanFolder";
 
+        // R798. The line of a project whose config names no neighbourhood schedule, the plot table then comes from the folder
+        public const string NoSchedule = "the project names no neighbourhood schedule (R798)";
+
         private static readonly string[] Drawings = { "baseplan", "villaBlocks", "curbs" };
 
         // Every step of the command read in name order, the location plan and the plot table among them
@@ -205,6 +208,12 @@ namespace SiteAdaptation.Common.ReadData
             string fit = config.SelectToken("dataBook.locationPlan.fitNeighbourhood")?.Type == JTokenType.String ? (string)config.SelectToken("dataBook.locationPlan.fitNeighbourhood") : null;
             JObject hoods = config.SelectToken("connect.neighbourhoods") as JObject;
             string fitSchedule = fit == null || hoods == null ? null : hoods[fit]?.Type == JTokenType.Object ? Text((JObject)hoods[fit], "schedule") : null;
+            // R798. A new project names no schedule, so the read says that once and names no fit neighbourhood of a past job
+            if (hoods == null || hoods.Properties().All(hood => hood.Value.Type != JTokenType.Object || Text((JObject)hood.Value, "schedule") == null))
+            {
+                stops.Add(NoSchedule);
+                return;
+            }
             if (fitSchedule == null)
             {
                 stops.Add("the fit schedule of " + (fit ?? "dataBook.locationPlan.fitNeighbourhood") + " is not named in connect.neighbourhoods of config (R351)");

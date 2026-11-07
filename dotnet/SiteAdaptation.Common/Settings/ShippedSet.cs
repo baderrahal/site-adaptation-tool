@@ -144,6 +144,81 @@ namespace SiteAdaptation.Common.Settings
             return new ProjectSet { ConfigFile = configPath, RulesFile = rulesPath, LevelProfile = (string)level, ParameterSheet = SetUp.ParameterSheet.PathOf(configPath, config) };
         }
 
+        // R797. What the New project window reads before Save: the shipped config and its rules profile as the copy will hold them, so the window
+        // proposes no road surface or other value of the past job. Every other file and a copy already made read as they are
+        public Func<string, string> Seen(Func<string, string> readText)
+        {
+            return path =>
+            {
+                if (ReadRoot() != shipped || string.IsNullOrEmpty(path) || readText == null)
+                {
+                    return readText?.Invoke(path);
+                }
+                string full = Path.GetFullPath(path);
+                if (SamePath(full, ShippedConfig))
+                {
+                    return AsNew(readText(path), text => NewProjectValues.Config(text, name));
+                }
+                string profile = ShippedProfile(readText);
+                if (profile != null && SamePath(full, Path.Combine(shipped, profile)))
+                {
+                    return AsNew(readText(path), text => NewProjectValues.Rules(text, name, profile));
+                }
+                return readText(path);
+            };
+        }
+
+        // A file that does not read as an object is given as it is, so the window says it as before
+        private static string AsNew(string text, Func<JObject, JObject> make)
+        {
+            try
+            {
+                return text == null ? null : make(JObject.Parse(text)).ToString();
+            }
+            catch (Exception failure) when (failure is Newtonsoft.Json.JsonException || failure is InvalidCastException || failure is ArgumentException || failure is InvalidOperationException)
+            {
+                return text;
+            }
+        }
+
+        private string ShippedProfile(Func<string, string> readText)
+        {
+            try
+            {
+                string text = readText(ShippedConfig);
+                JToken profile = text == null ? null : JObject.Parse(text)["profile"];
+                return profile?.Type == JTokenType.String ? (string)profile : null;
+            }
+            catch (Exception failure) when (failure is IOException || failure is UnauthorizedAccessException || failure is Newtonsoft.Json.JsonException)
+            {
+                return null;
+            }
+        }
+
+        private static bool SamePath(string one, string other)
+        {
+            return string.Equals(Path.GetFullPath(one), Path.GetFullPath(other), StringComparison.OrdinalIgnoreCase);
+        }
+
+        // R795, R796. The copy holds the config and the rules profile of a new project, the profile under its own name, never the file of the past job
+        private void MakeNew(string folder)
+        {
+            string configPath = Path.Combine(folder, ConfigFolder, ConfigName);
+            JObject config = JObject.Parse(File.ReadAllText(configPath));
+            if (config["profile"]?.Type == JTokenType.String)
+            {
+                string from = Path.GetFullPath(Path.Combine(folder, (string)config["profile"]));
+                string to = Path.GetFullPath(Path.Combine(folder, NewProjectValues.RulesPath((string)config["profile"])));
+                if (File.Exists(from))
+                {
+                    string rules = NewProjectValues.Rules(JObject.Parse(File.ReadAllText(from)), name, (string)config["profile"]).ToString();
+                    File.Delete(from);
+                    File.WriteAllText(to, rules);
+                }
+            }
+            File.WriteAllText(configPath, NewProjectValues.Config(config, name).ToString());
+        }
+
         private void CopyOnce()
         {
             if (Directory.Exists(ProjectFolder))
@@ -154,6 +229,7 @@ namespace SiteAdaptation.Common.Settings
             try
             {
                 CopyTree(shipped, staging);
+                MakeNew(staging);
                 Directory.Move(staging, ProjectFolder);
             }
             catch

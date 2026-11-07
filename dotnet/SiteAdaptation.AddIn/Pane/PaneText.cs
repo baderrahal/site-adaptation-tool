@@ -83,7 +83,7 @@ namespace SiteAdaptation.AddIn.Pane
         public const string StepLine1Typed = "Coordinates typed by the user, levels and units from the rules, types from config";
         public const string StepLine2 = "Reads the drawings and schedules";
         public const string StepLine3 = "The team checks what was read";
-        public const string StepLine4 = "Compares the rules with the past job";
+        public const string StepLine4 = "Checks each plot against the rules";
         public const string StepLine5 = "Generic, yard and ramp floors";
         public const string RoadTopography = "Road topography";
         public const string RoadTopographyTip = "Makes one toposolid for the NBH from the road surface and reports the level at each ramp road edge. Off leaves one that stands.";

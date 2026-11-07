@@ -107,7 +107,7 @@ The five panels and their buttons of 7.1 of docs/design/12-ui-spec.md, Bader's c
 - `Coordinates typed by the user, levels and units from the rules, types from config` CHOSEN, R543
 - `Reads the drawings and schedules`
 - `The team checks what was read`
-- `Compares the rules with the past job`
+- `Checks each plot against the rules`
 - `Generic, yard and ramp floors`
 - `Sets FFL and entry levels`
 - `Places a villa on each plot at its FFL`

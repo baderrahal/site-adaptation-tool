@@ -170,8 +170,9 @@ namespace SiteAdaptation.Common
 
         // design_basis.basis_of: under the past job the mode alone, under rev6 also the back yard floor held false (R410), the door level source
         // with what it reads (R408), the road surfaces in order (R490) and the limit of plots with no road level (R493). civilPath gives the path of the
-        // input of the civil file, asked only for civilFile
-        public static DesignBasis Of(JObject settings, Func<string> civilPath)
+        // input of the civil file, asked only for civilFile. R795: picked is the pick of Set up the request carries, a new project names no road surface
+        // in config, so under rev6 with a pick an empty designBasis.roadLevel.surfaces is no refusal, TakePick then gives the surfaces
+        public static DesignBasis Of(JObject settings, Func<string> civilPath, IReadOnlyList<string> picked = null)
         {
             JObject block = Block(settings);
             var basis = new DesignBasis { Mode = ModeOf(settings), read = settings };
@@ -218,7 +219,7 @@ namespace SiteAdaptation.Common
                 basis.Slopes = table;
             }
             JObject road = block["roadLevel"] as JObject ?? new JObject();
-            basis.Surfaces = SurfacesOf(road);
+            basis.Surfaces = picked != null && road["surfaces"] is JArray none && none.Count == 0 && road.Property("surface") == null ? new List<string>() : SurfacesOf(road);
             JToken notRoad = road["notRoad"];
             if (notRoad != null && !(notRoad is JObject listed && listed.Properties().All(item => item.Name.Length > 0 && item.Value.Type == JTokenType.String && ((string)item.Value).Length > 0)))
             {
