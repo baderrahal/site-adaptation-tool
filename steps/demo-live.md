@@ -2,6 +2,10 @@
 
 The script for the managers, in plain words. Nothing is run before the room sits down. Nothing comes from the past job, no past model, no override list, no past Excel. Written by revit-test from run 1 of FAST-3 on 7 Nov, steps/revit-results/FAST-3-revit-test.md. Where run 1 hit a fault of the fix list in steps/seam.md, the step says what to do until it is fixed. Lead takes out those notes as the fixes land.
 
+## The neighbourhood, 01A, used for tuning
+
+The demo and run 2 of FAST-3 use neighbourhood 01A, Bader's order of 7 Nov 10:05. 01A was used for tuning the rules of the past job, so this demo shows the tool on a neighbourhood it was tuned on, not on new ground. Say so in the room. The untuned neighbourhoods of this folder hold no villa type, so no villa link is placed there (F15 of steps/seam.md).
+
 ## Before the room, 10 minutes
 
 1. Close every Revit. Copy the empty model to a new name in the work folder, never open the one of the last demo.
@@ -28,7 +32,7 @@ The script for the managers, in plain words. Nothing is run before the room sits
 ## 3. Build site, 15 minutes
 
 1. Until F5 is fixed: in Advanced set the Prototypes and Road surface rows to the folders of the project before the read of step 2.4, else the Build stops at Check.
-2. Advanced, Scope, Neighbourhood, pick one. Villa mode Links.
+2. Advanced, Scope, Neighbourhood, pick 01A. Say it was used for tuning. Villa mode Links.
 3. Card 2, Build, Preview first ticked. The one ask: use the rules of the manual for this project. Yes. The amber line now counts the rules not yet confirmed.
 4. Until F4 is fixed: if card 2 says "The plan could not be made ... (R405)", run Set up site once from Advanced, Dry run, Cancel, then Build again.
 5. The preview draws every plot outline north up, with the count of plots and issues. Nothing is written to the model yet. Go on.

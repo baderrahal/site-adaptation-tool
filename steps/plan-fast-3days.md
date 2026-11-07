@@ -58,6 +58,15 @@ At 23:10:
 - 00:46: run 1 not started. At 00:44 the PC was 5 minutes idle, then the permission check of the revit-test session (auto mode) refused the launch of the Revit driver under python/window_lock.py, with no reason given. Revit not opened, no input sent. BLOCKED until Bader allows that launch in the revit-test session, or runs the lane where it is allowed. Lead does not launch it for the lane.
 - 23:37: Bader's order, the driver presses Always Load on our own Unsigned Add-In box, PR 246.
 
+## Sat 7 Nov 10:05, Bader's answers and orders
+
+- F15: run 2 on neighbourhood 01A, marked tuned in the record. The demo of Mon 9 Nov uses 01A too, steps/demo-live.md says plainly 01A was used for tuning.
+- Three lanes hidden, opus, effort high: FAST-5-build-1 (F16, then F4, nothing else), FAST-6-build-2 (F10 and the Common side of F4), FAST-7-build-3 (the polish F12 first, then F1, F2, F3, F7, F9, F17, then F6 and F13 once FAST-5 is done). Files split by exact path in each task.
+- revit-test now, run 1b of FAST-3: 01A, empty model copy, the old steps 1 to 9 from Advanced, faults to steps/seam.md as F18 and up. It ends a part when a builder writes its revit-wanted file in the lanes folder of the work root.
+- Builders test in Revit before the PR: build-1 and build-3 may use the test host and the listener on a copy of the 01A model, one at a time by the window lock. The hook guard-revit.ps1 reads .claude/revit-lanes.txt, deleted after 8 Nov with the fast section of CLAUDE.md.
+- F8, the new project from any project defaults, is a Lead task after these, not today.
+- Then: one review pass per PR, merge on green, main into every open branch the same hour. When FAST-5 and FAST-6 are on main, Lead builds and installs, presses nothing, and starts revit-test for a short check: 01A from an empty model, Build to the end. If it passes, run 2 tonight at 23:30 as the full FAST-3 on 01A. Sun 8 Nov becomes the third run and the demo rehearsal.
+
 ## Sat 7 Nov 08:00, what run 1 showed
 
 Run 1 of FAST-3, 01:11 to 06:37, three parts of under 2 hours each, on an empty model copy, folder S1, scope neighbourhood 010 (16 plots, not tuned). Record steps/revit-results/FAST-3-revit-test.md, fix list F1 to F17 in steps/seam.md, PR 249.

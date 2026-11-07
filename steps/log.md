@@ -2,6 +2,31 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Saturday lanes, 7 Nov 2026
+
+Goal:
+- Bader's order of 10:05: three build lanes and run 1b of revit-test on 01A, builders test in Revit before the PR.
+
+Done:
+- Tasks FAST-5-build-1, FAST-6-build-2 and FAST-7-build-3, files split by exact path. Run 1b and run 2 on 01A added to FAST-3-revit-test.
+- guard-revit.ps1 lets the lanes of .claude/revit-lanes.txt open Revit, build-1 and build-3, a test in scripts/checks/test_hooks.py. The line in the fast section of CLAUDE.md and in .claude/rules/revit.md.
+- steps/demo-live.md says 01A was used for tuning.
+
+Checked:
+- scripts/checks/test_hooks.py, the Revit tests, 56 passed. CLAUDE.md at 10,228 bytes.
+
+Remains:
+- The lanes, then the short check and run 2 at 23:30.
+
+Known bugs:
+- F16, F4, F10 and the polish list of steps/seam.md, now in the three tasks.
+
+Next:
+- Lead starts the four sessions and reviews each PR.
+
+Your turn:
+- Nothing.
+
 ## Run 1 of FAST-3 and the Saturday plan, 7 Nov 2026
 
 Goal:

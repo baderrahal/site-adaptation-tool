@@ -8,7 +8,7 @@ paths:
 
 # Revit add-in files
 
-- Only the revit-test lane opens Revit. A hook blocks every other lane.
+- Only the revit-test lane opens Revit. A hook blocks every other lane. For the fast build, until 8 Nov, the lanes .claude/revit-lanes.txt names also open it for their own check before the PR, Bader's order of 7 Nov 10:05.
 - Use the shared lock file, siteBuild.lock of config/project.json, through python/window_lock.py.
 - At most 3 Revit or Civil 3D windows on the machine. No RAM floor rule, the laptop has enough memory.
 - A PR that touches these files holds a file in steps/revit-results/, or the label revit-later if the check is still owed.

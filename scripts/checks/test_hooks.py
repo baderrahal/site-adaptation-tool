@@ -183,6 +183,15 @@ def test_starting_revit_is_blocked_for_other_lanes(lanes, command):
         assert code == 2 and "only the worktree named revit-test" in err
 
 
+def test_a_builder_named_in_the_revit_lanes_file_may_start_revit(lanes):
+    # Bader's order of 7 Nov 10:05, the fast build only: a builder the file names tests in Revit before its PR
+    (lanes["build-1"] / ".claude").mkdir(exist_ok=True)
+    (lanes["build-1"] / ".claude" / "revit-lanes.txt").write_text("build-1\nbuild-3\n", encoding="utf-8")
+    assert bash(lanes["build-1"], "Revit.exe")[0] == 0
+    code, _, err = bash(lanes["agent-x"], "Revit.exe")
+    assert code == 2 and "only the worktree named revit-test" in err
+
+
 @pytest.mark.parametrize("command", STARTS)
 def test_starting_revit_passes_for_the_tester_when_free(lanes, command):
     assert bash(lanes["revit-test"], command)[0] == 0

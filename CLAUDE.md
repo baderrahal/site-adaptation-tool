@@ -9,6 +9,7 @@ Bader's order of 6 Nov, it overrides the lines below until it is deleted after 8
 - No records PR. Each PR carries its own top entry of steps/log.md under the seven headings.
 - A task may ship in several PRs, one card or one function each, pushed at least every 2 hours. Its last PR sets done.
 - No design work, the design is the 3-stage sketch of 4 Nov and the task text. Live plan steps/plan-fast-3days.md, asks between lanes steps/seam.md.
+- 7 Nov: build-1 and build-3 test in Revit before the PR, on a model copy, window lock, .claude/revit-lanes.txt.
 
 ## The 3 stages and the rules
 
@@ -52,7 +53,7 @@ Trust an answer only if it names proof you can check in the repo.
 - Lead starts a lane with scripts/lanes/run_lane.py, a fresh session in the lane's folder. A message cannot clear a session.
 - A PR body starts with the exact line `Task: <id>` or `Lead: <reason>`, nothing after the id. Every new function goes under Callers, private ones too.
 
-Traps moved here from memory, 5 Nov 2026:
+Traps, 5 Nov:
 
 - Run gh merges from the lane's own folder, never chain gh pr merge after a watch, delete the remote branch on its own.
 - Never run git worktree prune without Bader. Never build a lane's folder while a runner runs from it, a worker run takes a copy of its build.
@@ -60,7 +61,7 @@ Traps moved here from memory, 5 Nov 2026:
 - A new Python file naming the mode rev6 must join the modes list of test_r62.
 - TaskStop does not end the children of a background shell. Stop by your own process id, never a whole tree.
 - A commit of a run that may stall takes `git -c gc.auto=0`. A status script stays under the tool's time limit, and is never piped into head.
-- A person may be at this PC. A Revit driver sends a click, a key or a shot only with Revit in front, after 5 minutes idle and with no meeting window, and stops when another input comes. Our own Unsigned Add-In box is the one exception, .claude/rules/revit.md.
+- A person may be at this PC. A Revit driver clicks, types or shoots only with Revit in front, after 5 minutes idle, no meeting window, and stops on other input. Exceptions in .claude/rules/revit.md.
 - guard-main judges a command before it runs. Split a branch switch and a commit into two calls.
 
 ## The tool must work for any project
@@ -74,7 +75,7 @@ Traps moved here from memory, 5 Nov 2026:
 ## Past job mode
 
 - The 7 Rev 6 site models and the override list belong to the past job. They are for compare, never a source for a new project (steps/truth-audit.md).
-- Majority rule, Bader's standing rule since Round 17, for past job mode only until Bader says otherwise: code the logic most past plots follow, put each plot it misses in config/overrides/roshn-makkah.json, mark a rule weak under majority.strongShare. CHOSEN by Code: it no longer rules a new project, by the lessons below. Full text: steps/history/CLAUDE-until-setup-lanes.md.
+- Majority rule, Bader's rule since Round 17, past job mode only until Bader says otherwise: code the logic most past plots follow, put each plot it misses in config/overrides/roshn-makkah.json, mark a rule weak under majority.strongShare. CHOSEN by Code: it no longer rules a new project, by the lessons below. Full text: steps/history/CLAUDE-until-setup-lanes.md.
 - The area key is the Neighbourhood_ID, never an IM letter.
 
 ## Writing
