@@ -138,9 +138,9 @@ namespace SiteAdaptation.AddIn
             return document == null || !document.HasPath ? null : WorkFolder.For(WorkRoot(), document.Path);
         }
 
-        // R681. Choose project folder: the folder goes into the config copy of this new project, then 2 Read data runs on it as a press of its row does.
-        // A refusal is said and nothing runs
-        private void ChooseProjectFolder()
+        // R681. Choose project folder: the folder goes into the config copy of this new project, then StagesViewModel.FolderChosen runs the read on it
+        // as a press of its row does, or step 1 first when the folder changed the config, R769. A refusal is said and nothing runs
+        private void ChooseProjectFolder(StagesViewModel stages)
         {
             PaneSettings settings = model.Settings;
             if (settings == null)
@@ -152,6 +152,7 @@ namespace SiteAdaptation.AddIn
             {
                 return;
             }
+            string before = ProjectFolderPick.Chosen(settings.ConfigFile);
             string refused = ProjectFolderPick.Write(settings.ConfigFile, WorkRoot(), chosen, WorkFolderNow());
             if (refused != null)
             {
@@ -159,8 +160,7 @@ namespace SiteAdaptation.AddIn
                 tellEvent.Raise();
                 return;
             }
-            model.PickConfig(settings.ConfigFile);
-            model.RequestRun(StagesViewModel.ReadDataStep);
+            stages.FolderChosen(before, chosen);
         }
 
         // R681. Fix items: the Confirm window of R2-C1 over the latest read, as the end of a read opens it
@@ -367,7 +367,7 @@ namespace SiteAdaptation.AddIn
         {
             // R680. The pane in 3 stages docks, the pane of version 1 stays whole under its Advanced
             var stages = new StagesViewModel(model) { WorkFolderNow = WorkFolderNow };
-            stages.ChooseFolderRequested += ChooseProjectFolder;
+            stages.ChooseFolderRequested += () => ChooseProjectFolder(stages);
             stages.FixItemsRequested += FixItems;
             stages.RulesRequested += () => OpenRules(stages);
             stages.RulesLineNow = RulesLineNow;

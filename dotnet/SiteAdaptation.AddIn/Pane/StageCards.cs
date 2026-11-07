@@ -371,17 +371,29 @@ namespace SiteAdaptation.AddIn.Pane
             pickLine = ProjectFolderPick.Write(Model.Settings.ConfigFile, WorkRootNow?.Invoke(), chosen, WorkFolderNow?.Invoke());
             if (pickLine == null)
             {
-                // Review 1 of PR 3: a Baseplan the folder chosen before gave goes with that folder, so a second choice takes its own
-                string row = Model.Settings.InputPath(InputKeys.Baseplan);
-                if (WorkFolder.Inside(row, before) && !WorkFolder.Inside(row, chosen))
-                {
-                    Model.PickInput(InputKeys.Baseplan, null);
-                }
-                Model.PickConfig(Model.Settings.ConfigFile);
-                Fast7.SetUpBaseplan.Fill(Model.Settings, Model.PickInput);
-                Model.RequestRun(SetUpStep);
+                FolderChosen(before, chosen);
             }
             Card1.Line = Card1Line();
+        }
+
+        // R768, R769, F24 of the short check. After a folder is written into the config, by card 1 before step 1 or by PaneHost.ChooseProjectFolder
+        // after it: a Baseplan the folder chosen before gave goes with it, an empty Baseplan row takes the one of the new folder, and the read runs
+        // only when step 1 still holds on the config, else step 1 runs first, never the box "2 Read data needs step 1". before is the folder the
+        // config named before the write
+        public void FolderChosen(string before, string chosen)
+        {
+            if (Model.Settings == null)
+            {
+                return;
+            }
+            string row = Model.Settings.InputPath(InputKeys.Baseplan);
+            if (WorkFolder.Inside(row, before) && !WorkFolder.Inside(row, chosen))
+            {
+                Model.PickInput(InputKeys.Baseplan, null);
+            }
+            Model.PickConfig(Model.Settings.ConfigFile);
+            Fast7.SetUpBaseplan.Fill(Model.Settings, Model.PickInput);
+            Model.RequestRun(StepAfterFolder(Model.Statuses, before, chosen));
         }
 
         // The line of card 1: a refused folder, else the ask for step 1, else the line of the read
