@@ -2,6 +2,32 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## The demo moves to Sunday, 7 Nov 2026
+
+Goal:
+- Bader's orders of 14:40 and 14:50: the demo on Sun 8 Nov 17:00 on a new neighbourhood, F16 merged, the short check in Revit, F15.
+
+Done:
+- PR 256 merged at 14:57 after Lead merged main into it, the gate failure of 10:43 was the caller check of Take, Most and Text of FolderRoles.cs. PRs 257 and 258 merged.
+- Main 89d1c69 built and installed with Install-SiteAdaptation.ps1. revit-test started on the short check of 01A.
+- steps/plan-fast-3days.md holds the Sunday order.
+- steps/investigations/roshen-mecca-scan.md: the second input folder read, read only, 560 files hashed before and after, 0 changed. 01B holds 105 plots with a villa type in PH_1-DLUS, but the S1 baseplan draws 2 of them, so no untuned neighbourhood of S1 can be built with villa links from real data. C:\02-Site Adaptation 528 of 837 rows, the 309 of 28 Oct still missing.
+
+Checked:
+- gh pr checks 256: tests pass on 2ac352c. The install printed one SiteAdaptation.Common.dll in 5 folders of the tool.
+
+Remains:
+- The short check, the scan of the second input folder, S1-new, the Sunday run and demo script.
+
+Known bugs:
+- F18 to F23 of run 1b in steps/seam.md, F15.
+
+Next:
+- Lead reads the short check and the scan.
+
+Your turn:
+- Nothing yet.
+
 ## FAST-5-build-1 PR 1, F16, the Build reads for Check itself, 7 Nov 2026
 
 Goal:
