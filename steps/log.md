@@ -20,7 +20,30 @@ Known bugs:
 - Until build-1 adds the call, the box never shows in Revit.
 
 Next:
-- F1, card 1 holds Set up site, once Lead puts the label list on FAST-7.
+- F1, card 1 holds Set up site, now that the label list is on FAST-7.
+
+Your turn:
+- Nothing.
+
+## FAST-7 takes the label list, 7 Nov 2026
+
+Goal:
+- build-3 asked in steps/seam.md for docs/design/14-ui-labels.md, the new words of F1, F2, F3, F7, F9 and F17.
+
+Done:
+- docs/design/14-ui-labels.md added to the list of FAST-7-build-3. FAST-5-build-1 does not hold it, so no lane shares it.
+
+Checked:
+- grep of steps/tasks: of the open tasks only FAST-1-build-1 also names it, and build-1 works on FAST-5 today.
+
+Remains:
+- Nothing for this change.
+
+Known bugs:
+- None.
+
+Next:
+- build-3 goes on with F1.
 
 Your turn:
 - Nothing.
