@@ -22,6 +22,8 @@ namespace SiteAdaptation.AddIn.Pane
 
         public const string NoDocument = "Open a project first.";
         public const string SetUpFirst = "Set up this project first, in Settings.";
+        // R765, F7 of run 1
+        public const string SetupNotSaved = "The setup of this project was not saved with the model, so the project, the input rows and the scope are gone. The reads stay in the work folder. Set up the project again in Settings, then save the model.";
         public const string Done = "Done";
         public const string DoneIssues = "Done, <n> issues";
         public const string Ready = "Ready";

@@ -141,6 +141,7 @@ The five panels and their buttons of 7.1 of docs/design/12-ui-spec.md, Bader's c
 - `Project setup` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
 - `Open a project first.` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
 - `Set up this project first, in Settings.` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
+- `The setup of this project was not saved with the model, so the project, the input rows and the scope are gone. The reads stay in the work folder. Set up the project again in Settings, then save the model.` CHOSEN, F7 of run 1 of FAST-3, FAST-7-build-3: a model closed without save after Save setup, with a read in its work folder (R765)
 - `Done, <n> issues` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
 - `Not started` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
 - `Waits for stage <n>` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)

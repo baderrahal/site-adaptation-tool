@@ -44,7 +44,9 @@ namespace SiteAdaptation.AddIn.Pane
     {
         public static readonly int[][] Steps = { new[] { 1, 2, 3 }, new[] { 4, 5, 6, 7, 8 }, new[] { 9 } };
 
-        public static string Of(int stage, IReadOnlyList<StepStatus> statuses, bool hasDocument, bool settingsChosen)
+        // R765, F7 of run 1. readThere: the work folder of the model holds a read. A model with a read and no setup was closed without save
+        // after Save setup, as the setup lives in the model and the reads in the work folder, so the card says that plainly
+        public static string Of(int stage, IReadOnlyList<StepStatus> statuses, bool hasDocument, bool settingsChosen, bool readThere = false)
         {
             if (!hasDocument)
             {
@@ -52,7 +54,7 @@ namespace SiteAdaptation.AddIn.Pane
             }
             if (!settingsChosen)
             {
-                return StageText.SetUpFirst;
+                return readThere ? StageText.SetupNotSaved : StageText.SetUpFirst;
             }
             List<StepStatus> own = Steps[stage - 1].Where(step => step <= statuses.Count).Select(step => statuses[step - 1]).ToList();
             if (own.Count > 0 && own.All(step => step.Kind == StepKind.Done || step.Kind == StepKind.Issues))
@@ -355,9 +357,10 @@ namespace SiteAdaptation.AddIn.Pane
         {
             bool open = Model.HasDocument;
             bool chosen = Model.InUse;
+            RefreshRead();
             for (int stage = 1; stage <= Cards.Count; stage++)
             {
-                Cards[stage - 1].Status = StageStatus.Of(stage, Model.Statuses, open, chosen);
+                Cards[stage - 1].Status = StageStatus.Of(stage, Model.Statuses, open, chosen, readFolder != null);
                 Cards[stage - 1].Good = Cards[stage - 1].Status == StageText.Done;
                 Cards[stage - 1].Command.Refresh();
             }
@@ -380,7 +383,6 @@ namespace SiteAdaptation.AddIn.Pane
             Changed(nameof(MixOther));
             RulesCommand.Refresh();
             RulesLine = Model.HasDocument && Model.InUse ? RulesLineNow?.Invoke() : null;
-            RefreshRead();
             Card1.Line = Model.InUse && !Ran(SetUpStep) ? StageText.SetUpBeforeFolder : readLine;
         }
 
