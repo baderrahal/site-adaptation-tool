@@ -2,6 +2,30 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## FAST-7 PR 4, the folder keeps step 1, F24, 7 Nov 2026
+
+Goal:
+- F24 of the short check: after step 1, Choose project folder made step 1 Ready again and the box "2 Read data needs step 1" came.
+
+Done:
+- R769: ProjectFolderPick.Write leaves the config byte for byte when the folder is the same, so step 1 stays done. StagesViewModel.StepAfterFolder gives the step to run after the folder, the read only when step 1 still holds, else step 1.
+- The heads-up of build-3 with the final statement so far.
+
+Checked:
+- R769_FolderKeepsStepOneTests, the same folder with another case and a trailing separator, another folder, no folder before. Not seen in Revit.
+
+Remains:
+- The call in PaneHost.ChooseProjectFolder for another folder, build-1's, line in steps/seam.md. F6 and F13 once PaneHost.cs and BuildChain.cs move to FAST-7.
+
+Known bugs:
+- Until build-1 adds the call, another folder after step 1 still meets the box.
+
+Next:
+- F6 and F13.
+
+Your turn:
+- Nothing.
+
 ## FAST-7 PR 3, Set up site takes the Baseplan of the folder, 7 Nov 2026
 
 Goal:
