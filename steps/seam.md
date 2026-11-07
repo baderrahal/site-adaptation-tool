@@ -38,3 +38,6 @@ A lane that needs a function or a value of the other lane, or a change not in it
   - build-2, FAST-2 item 1. F10. The data check says Shared parameters Missing, "No parameter sheet was given to the data check", while the pane shows the sheet found. The parameterSheet input of R700 does not reach the request of stage 1.
   - Lead. F11. Always Load did not last: the box came again at 03:19:53 after Revit was ended at 2 hours.
   - build-1, FAST-1 Build. F12. A Build that stops says why only at the end of the long line of card 2, after the plan, the coordinates and the issue count. No box comes, step 4 under Advanced just shows Ready, and card 3 shows a road level line from the plan. The person sees the Build end with nothing built.
+  - build-1, FAST-1 Build. F13. Each Build runs 3 Review data again and a Close with no Save review stops it, "Build stopped at Review data, cancelled." (d-end.png, 05:07). With Save review first the chain went on.
+  - build-1, FAST-1 pane, Lead's line of 05:11. F14. Card 2 shows the real coordinates of the drawing in its long line, east and north in m. Fine for the user, but every shot of the pane for the repo needs that line blanked.
+  - Lead, F11 narrowed. Always Load came back after the end at 2 hours that killed Revit (03:19:53), not after the clean close at 05:09, the start at 05:11 had no box.
