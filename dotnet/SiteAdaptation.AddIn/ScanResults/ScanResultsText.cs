@@ -10,6 +10,9 @@ namespace SiteAdaptation.AddIn.ScanResults
         public const string Line = "The tool read your files and proposes where each value comes from. If a pick is wrong, change it from the list. Nothing changes in the model.";
         public const string FilesRead = "files read";
         public const string PlotsFound = "plots found";
+
+        // R771, F6 of run 1. The line of a step 2 the Build put back, which shows no window
+        public const string QuietKept = "The Build kept the picks and values you confirmed before and showed no window.";
         public const string Conflicts = "conflicts";
 
         public const string DataCheckTitle = "Data check";

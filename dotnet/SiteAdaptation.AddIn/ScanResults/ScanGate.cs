@@ -39,6 +39,11 @@ namespace SiteAdaptation.AddIn.ScanResults
             {
                 return new ScanGateAnswer { GoOn = true, Line = string.Format(CultureInfo.InvariantCulture, ScanStep.ClearLine, view.FilesRead, view.PlotsFound) };
             }
+            // R771, F6. A step 2 the Build put back opens no window: the picks of the settings stay as the person made them and the read goes on
+            if (Fast7.QuietRead.On)
+            {
+                return new ScanGateAnswer { GoOn = true, Line = ScanResultsText.QuietKept };
+            }
             ProjectSettings next;
             CheckShown = check;
             try

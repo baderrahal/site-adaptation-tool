@@ -29,6 +29,15 @@ namespace SiteAdaptation.Tests
             Assert.Null(chain.Current);
             Assert.Equal(2, chain.Start());
         }
+
+        [Fact]
+        public void R771_paneHost_makes_the_read_quiet_only_while_the_chain_runs_step_2()
+        {
+            string host = System.IO.File.ReadAllText(System.IO.Path.Combine(ThemeGateTests.RepoRoot(), "dotnet", "SiteAdaptation.AddIn", "App", "PaneHost.cs"));
+            Assert.Contains("Fast7.QuietRead.Now = () => chain.Current == StagesViewModel.ReadDataStep;", host);
+            // Step 2 is no step of the order of a build, so a step 2 the chain runs is one it put back
+            Assert.DoesNotContain(StagesViewModel.ReadDataStep, BuildChain.Order);
+        }
     }
 }
 #endif

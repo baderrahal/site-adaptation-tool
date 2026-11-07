@@ -823,6 +823,7 @@ The window What the tool read of Lane C SCAN-UI, word for word from docs/design/
 - `files read`
 - `plots found`
 - `villa plots of all plots` CHOSEN, F9 of run 1 of FAST-3, FAST-7-build-3: the head count of a data check that listed plots apart, its count "<n> of <n>" (R767)
+- `The Build kept the picks and values you confirmed before and showed no window.` CHOSEN, F6 of run 1 of FAST-3, FAST-7-build-3: the line of a step 2 the Build put back, Lead's version of 7 Nov 17:15 (R771)
 - `conflicts`
 - `Where each value comes from`
 - `The tool picks the source that covers the most plots. The others stay as checks.`
