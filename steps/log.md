@@ -27,6 +27,55 @@ Next:
 
 Your turn:
 - Answer the seam line on reads that are not whole, before the demo.
+## The intake of a new project folder, 7 Nov 2026
+
+Goal:
+- Bader's order of 21:06 item 3: a script that reads a new project folder outside Revit and writes what the form of 8 Nov needs.
+
+Done:
+- scripts/new-project-intake.ps1: the stage 1 read by the worker of the installed add-in, the raw read then the read with the proposed columns confirmed, <work root>\intake\intake.md with the needs, files by kind, proposed columns, neighbourhoods with villa types, LandXML files, run time, and the folder check.
+
+Checked:
+- Run on S1: 23 min, 0 of 37 files changed. The first run was refused on a level with no word and wrote under the Documents folder of OneDrive, both fixed, that output removed.
+
+Remains:
+- The cover of each road surface per neighbourhood, UNKNOWN until a plan of 4 Check.
+
+Known bugs:
+- None in the script.
+
+Next:
+- Short check 2, then the run on the new project of Sunday.
+
+Your turn:
+- Sun 8 Nov: name the folder of the new project.
+
+## FAST-8-build-1, Check reads no past file, the toposolid surface, no overlap box, 7 Nov 2026
+
+Goal:
+- F26 and F27 of the short check of 01A, Bader's order of 14:40.
+
+Done:
+- R780: under rev6 a plots.csv or labels.csv of the data book of the work root the read named is never a Check input, the plot table of the read stands in for it, written to plots_<read> of the work folder. No plot table stops Check as missing.
+- R781: Floors and ramps takes, of the road surfaces the build read, the one with the most ramp road edge points, and says which.
+- R782: a warning of known words on floors the list does not pair, Highlighted floors overlap of two plots, is taken with no box and listed with its floors in the issues.
+
+Checked:
+- FAST8 tests 16 on net48 and net8.0, the full dotnet suite 0 failed, quick tests PASS, tests/acceptance 45 passed 5 xpassed.
+- Review 1 FAIL with 4 REAL, all fixed: a stand-in for a named surface not read is said, the record lists each surface read, InDataBook takes the folder text as ReadInputs does, status back to open.
+- A script that shares no code: Check took both data book files before, the plot table gives 278 plots of 01A. No road surface of S1 covers 01A, 6 ground and grading surfaces do.
+
+Remains:
+- Q600 for Bader, the toposolid of an NBH no road surface covers. F28 line. Not seen in Revit, label revit-later. Task status stays open.
+
+Known bugs:
+- Done when of FAST-8 on 01A: toposolid UNKNOWN, cannot pass on S1 without Q600. Yard floors 0 by R410.
+
+Next:
+- The second short check by revit-test, on 012 if Bader answers Q600 as recommended.
+
+Your turn:
+- Answer Q600 in steps/seam.md.
 
 ## The new project path, 7 Nov 2026
 

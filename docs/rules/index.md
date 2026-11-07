@@ -615,6 +615,12 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R771 Quiet read in the Build.
 - R772 Check commits, Build goes on.
 
+## 24-fast8-r780-up.md
+
+- R780 Check takes the project plots.
+- R781 Road surface that covers ramps.
+- R782 Known words, no box.
+
 ## 25-fast9-r790-up.md
 
 - R790 The read keeps its gathered files.
