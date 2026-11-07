@@ -121,3 +121,23 @@ Bader's order of 10:05 by Lead: on an empty model copy, the old steps 1 to 9 fro
 S1 after the two parts: 37 files, SHA-256, size and write time equal to s1_before_run1b.json, 0 changed, 0 new (s1_after_run1b.json, compared by a script).
 
 Second check of the stop at Check, by another method: the read folder of the project work folder holds data_check.json, plots.json, project_profile.json, read.json and read_plotTable.json, no read_baseplan.json, read_villaBlocks.json, read_curbs.json or read_workbooks.json (ls).
+
+# Short check, Sat 7 Nov 2026, NBH 01A from card 1
+
+Lead's order of 14:40, Bader's: the short check after PR 256 (F16) and PR 254 (F4), not a full run. NBH 01A, marked tuned (steps/truth-audit.md section 6), Bader's answer to F15. The add-in Lead built from main 89d1c69 and installed with Install-SiteAdaptation.ps1, the .addin file written 14:59. Same driver, drive3.ps1 of the work root under python/window_lock.py, -MaxMinutes 110. Shots under the work root, folder `fast3-revit-test/shots/short`, never in git, they show real values.
+
+## Model and folder, short check
+
+- Model: `FAST3-short-01A.rvt` in fast3-revit-test of the work root, copied from `FAST3-empty-model-pristine.rvt` at 15:14, `cmp` equal bytes. A new name, not the run 1b copy.
+- Inputs: S1 of the scenarios, 37 files, SHA-256, size and write time taken at 15:14 into s1_before_short.json of fast3-revit-test.
+- revit-wanted-build-1.txt and revit-wanted-build-3.txt: none in the lanes folder at 15:13.
+
+## Part 1, 15:15 to 17:05
+
+- 15:15:24 Revit opened on the copy, process 29776. 15:16:17 the box "Security - Unsigned Add-In" of Site Adaptation came and the driver pressed Always Load, Bader's order of 6 Nov 23:37 (always_load.txt of the shots folder holds the time).
+1. The pane said "Set up this project first, in Settings." on the 3 cards (s01-start.png). Settings, Project setup Edit, the New project window, Save setup (s02-new-project.png, s03-after-save.png). Card 1 then said "Ready, Run 1 Set up site first, it places the site. Then choose the project folder.", the card holds 1 Set up site, Choose project folder and 3 Review data (PR 257).
+2. 1 Set up site of card 1: "Empty project found", "The pane names no baseplan drawing, so the tool has no coordinates from CAD", 0 of 0 check points (s04-setup-site.png), F2 seen again. Cancel. The Baseplan row of Advanced set to the Baseplan of S1, "2 of 8 found" (s05-baseplan-row.png).
+3. 1 Set up site again: Use CAD, check points from CAD 5 of 5 pass, each Current ticked, Dry run, Apply enabled, Apply at 15:42 (s07-setup-dry.png). Step 1 Done, card 1 "No data check yet. Choose the project folder." (s08-after-setup.png). site.json of the project work folder written 15:42, positionSource cad.
+4. Choose project folder opened the new Windows box Select Folder, not the old folder tree. S1 typed in its address bar (folder-S1.png), Select Folder at 15:50: the box "2 Read data needs step 1" (s10-after-select.png), and step 1 back to Ready in the Advanced list. F24 in steps/seam.md.
+5. 15:56:10 the driver stopped on its guard: the Teams window had turned from "Meeting compact view | Meeting with ..." to "Meeting with ... | Microsoft Teams", which Bader's order of 00:16 does not name. Nothing was sent from 15:56. The gate cleared at 16:46:59 (idle 3332 s, no meeting window), and at 16:49 the meeting window stood again with input of a person (idle 1 s), so no save was sent either.
+- Not reached in part 1: the read of S1, Build of card 2. Nothing was built.
