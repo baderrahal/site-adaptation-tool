@@ -4,8 +4,6 @@ lane: build-1
 stage: 2
 status: open
 allowed:
-  - dotnet/SiteAdaptation.AddIn/App/PaneHost.cs
-  - dotnet/SiteAdaptation.AddIn/Pane/BuildChain.cs
   - dotnet/SiteAdaptation.AddIn/Pane/SiteBuildFlow.cs
   - dotnet/SiteAdaptation.AddIn/Pane/SiteBuildPlan.cs
   - dotnet/SiteAdaptation.AddIn/Pane/SiteBuildText.cs
@@ -46,6 +44,8 @@ The polish items F1, F2, F3, F6, F7, F9, F12, F13 and F17 are FAST-7-build-3's. 
 Revit: you may open Revit for your own check, Bader's order of 7 Nov 10:05. The test host and the listener on a copy of the 01A model, never on the real one, under python/window_lock.py, one lane at a time. Keep the driver rule of .claude/rules/revit.md. Write what you opened in steps/revit-results/FAST-5-build-1.md and in the PR body. revit-test runs run 1b in Revit at the same time and stops at the end of its next part, saving its copy, while the file revit-wanted-build-1.txt stands in the lanes folder of the work root. Write it when you need Revit, delete it when you are done. The window lock decides who goes, wait for it, never end another lane's Revit.
 
 Rule ids: R740 to R749. Question ids: Q571 to Q579. Take no other id.
+
+PaneHost.cs and BuildChain.cs moved to FAST-7-build-3 on 7 Nov 16:40, CHOSEN by Lead: build-1 stopped after PR 256, and build-3 needs PaneHost.cs for F24 and both for F6 and F13. A fault of the short check in those two files goes to build-3.
 
 # Done when
 
