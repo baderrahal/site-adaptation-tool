@@ -621,6 +621,12 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R781 Road surface that covers ramps.
 - R782 Known words, no box.
 
+## 25-fast9-r790-up.md
+
+- R790 The read keeps its gathered files.
+- R791 Confirm applies to the last read.
+- R792 A Confirm that cannot apply.
+
 ## 26-fast10-r795-up.md
 
 - R795 New project config.

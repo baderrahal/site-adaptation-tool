@@ -10,7 +10,7 @@ namespace CadReader
 {
     // R600 to R606. The worker command dataCheck, stage 1 from the raw files of a folder as a team hands it over. It finds the drawings,
     // workbooks, PDF files, surface files and prototype files in the folder and its sub folders, reads each in place and never writes
-    // there, and writes data_check.json, project_profile.json and plots.json into the output folder. A file that fails is recorded with
+    // there, and writes data_check.json, project_profile.json, plots.json and the gathered files of R790 into the output folder. A file that fails is recorded with
     // its exact error and the run carries on. Every file it opens is marked in the answer before and after (D19)
     public static class DataCheckCommand
     {
@@ -50,24 +50,10 @@ namespace CadReader
             else
             {
                 Gather(run, folder, settings, input);
-                ReadParameterSheet(run, input);
-                try
-                {
-                    output = DataCheckLogic.Run(settings, input);
-                }
-                catch (Exception failure)
-                {
-                    input.Stopped = failure.GetType().Name + ": " + failure.Message;
-                    output = DataCheckLogic.Stopped(settings, input, "The check stopped before it finished, the reason is in the stopped note.");
-                }
-            }
-            if (settings != null && input.Stopped == null)
-            {
-                // R645. The build draws the plots, so the table carries each ring stage 1 chose. A plot without one is said in an issue of the run
-                foreach (string note in SiteAdaptation.Common.SiteBuild.PlotOutlines.Add(output))
-                {
-                    run.Issues.Add(note);
-                }
+                string sheetPath = ReadParameterSheet(run, input);
+                // R790. The gathered files before the check, so a Confirm runs the check again on this read and reads no drawing twice
+                run.WriteJson(request.OutputFolder, DataCheckApply.InputFile, (writer, exact) => DataCheckApply.Write(writer, exact, input, sheetPath));
+                output = DataCheckApply.Check(settings, input, run.Issues);
             }
             run.WriteJson(request.OutputFolder, SiteAdaptation.Common.ReadData.ReadDataRun.DataCheckFile, output.Check);
             run.WriteJson(request.OutputFolder, "project_profile.json", output.Profile);
@@ -275,18 +261,18 @@ namespace CadReader
         // R700. The parameter sheet of the project, the input of the request that the add-in or the scenario run takes from the project
         // settings, so the folder alone says nothing of it. The runner guards it as every input. A request that names none, or a sheet that
         // is not there or does not read, is said by the need sharedParameters and the run carries on
-        private static void ReadParameterSheet(WorkerContext run, DataCheckInput input)
+        private static string ReadParameterSheet(WorkerContext run, DataCheckInput input)
         {
             if (!run.Request.Inputs.Any(item => item.Role == SiteAdaptation.Common.Settings.InputNames.ParameterSheet))
             {
-                return;
+                return null;
             }
             string path = run.Input(SiteAdaptation.Common.Settings.InputNames.ParameterSheet);
             input.SheetName = Path.GetFileName(path);
             input.SheetFound = File.Exists(path);
             if (!input.SheetFound)
             {
-                return;
+                return path;
             }
             try
             {
@@ -296,6 +282,7 @@ namespace CadReader
             {
                 input.SheetProblem = failure.Message;
             }
+            return path;
         }
 
         // A shared parameter file of Revit starts with its own comment line and holds a META line

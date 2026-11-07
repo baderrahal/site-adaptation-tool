@@ -54,7 +54,8 @@ namespace SiteAdaptation.AddIn
             Func<SettingsScope> scope = () => new SettingsScope { Kind = session.Settings.Scope.Kind, Nbh = session.Settings.Scope.Nbh, Plots = session.Settings.Scope.Plots };
             var document = new WorkerDocument { Path = session.Path, SessionId = session.SessionId };
             // R492. The road surfaces picked in Set up, null while none was picked
-            ButtonBody read = new ReadDataRun(Roles, worker, document, scope, () => session.Settings.Project) { RoadPick = () => session.Settings.Project.RoadSurfaces, ModePick = () => session.Settings.Project.ProjectMode }.Body();
+            var run = new ReadDataRun(Roles, worker, document, scope, () => session.Settings.Project) { RoadPick = () => session.Settings.Project.RoadSurfaces, ModePick = () => session.Settings.Project.ProjectMode };
+            ButtonBody read = run.Body();
             // A run of the test host has no one to pick in the window and runs its read as before, so the runs of Lane B keep their
             // time and never wait on a window (CHOSEN, SCAN-UI)
             if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable(TestHostGuard.JobVariable)))
@@ -67,8 +68,9 @@ namespace SiteAdaptation.AddIn
                 () => new[] { session.Settings.RulesFile, LaunchedWorker.BesideAddIn() }, () => session.Settings.Project.ProjectMode),
                 worker, document, session.Settings, owner);
             // R635. A rev6 project with no past file: the read runs the data check itself, so no scan and no second check, then the window
-            // Confirm what was found over the read folder. Decided at the press, by the work folder of the run
-            return Choose(session.Settings, past, ConfirmProfile.ConfirmProfileStep.Wrap(read, session.Settings, owner));
+            // Confirm what was found over the read folder. Decided at the press, by the work folder of the run. R791: a Confirm that saved runs the
+            // check again on the read just made
+            return Choose(session.Settings, past, ConfirmProfile.ConfirmProfileStep.Wrap(read, session.Settings, owner, run.ApplyConfirmed));
         }
 
         // R635. The body of the press: raw for a folder with no past file, else the old read with the scan before it
