@@ -1,26 +1,24 @@
-# build-3, FAST-10-build-3
+# build-3, FAST-12-build-3
 
-F8, a project made with Empty project shows no past job value. Updated 7 Nov 2026 23:00.
+F31, step 7 links prototypes of an older Revit. Updated 8 Nov 2026 02:10.
 
 ## What changed
 
-- R795, R796. dotnet/SiteAdaptation.Common/Settings/NewProjectValues.cs. Config(shipped, projectFolder) empties the past values of the config copy: profile to profile.json, schedules, road surface lists and connect.neighbourhoods empty, inputRoot, fitNeighbourhood and pastJob.schedule null, floors.roadTopography.surface "not chosen yet", own position file. Rules(shipped, projectName, shippedProfile): project is the folder of the model, manualRules say Not measured, R401 status entries keyed by the new profile, keyRules candidates left out.
-- dotnet/SiteAdaptation.Common/Settings/ShippedSet.cs. MakeNew writes the new config and rules into the staging copy, CopyOnce calls it. Seen(readText) gives the window the shipped config and profile as the copy will hold them (R797).
-- dotnet/SiteAdaptation.AddIn/NewProject/NewProjectViewModel.cs. readText is shipped.Seen of the reader, readFiles the plain reader for Preview, Take and NewMode.
-- R798. ReadInputs.Schedules says ReadInputs.NoSchedule once when no neighbourhood names a schedule. PaneText.StepLine4 "Checks each plot against the rules".
-- R799. The position file of the copy is {workRoot}/New projects/<folder>/position/position.json.
-- DesignBasis.Of(settings, civilPath, picked), BuildSteps passes request.RoadSurfaces, so an empty surface list with a pick builds.
+- R805. dotnet/SiteAdaptation.AddIn/PlaceVillas/UpgradingVillaDocument.cs, an IVillaDocument around RevitVillaDocument. LoadType, ReloadType and CreateType turn on a DialogBoxShowing handler for the load alone. It closes the box TaskDialog_Views_Related_To_Analytical_Changed, "Structural Analytical Model Upgrade", with Close (8) and counts it. Any other box stays for the person.
+- R806. Before each load it reads the Revit version of the file with BasicFileInfo. TakeIssues gives a line per file of an older Revit and one for the boxes closed.
+- R807. dotnet/SiteAdaptation.AddIn/PlaceVillas/LinkUpgrade.cs, no Revit type. NewFiles gives the prototype files of the plan in filter and scope with no usable loaded type, Links mode only. Add puts "link types new to the model N, of an older Revit M" on the counts of the box and a line per older file first.
+- docs/rules/28-fast12-r805-up.md, dotnet/SiteAdaptation.Tests/FAST12/LinkUpgradeTests.cs.
 
 ## What calls what
 
-- NewProjectViewModel.Save calls ShippedSet.Take, which calls CopyOnce, MakeNew, NewProjectValues.Config and Rules.
-- NewProjectViewModel constructor calls ShippedSet.Seen, Seen calls NewProjectValues.Config and Rules.
-- BuildSteps calls DesignBasis.Of with the pick, then TakePick as before.
+- Buttons.cs calls PlaceVillasBody.For, which builds UpgradingVillaDocument and hands it to PlaceVillasRun, then calls Upgrades on the body.
+- Upgrades wraps Preview with LinkUpgrade.NewFiles and LinkUpgrade.Add, and Apply with UpgradingVillaDocument.TakeIssues, which calls LinkUpgrade.IssueLines.
+- PlaceVillasRun calls LoadType and ReloadType in Outside, CreateType in Apply through TypeKey. Each calls Watch, which calls VersionOf, LinkUpgrade.Older and, in OnDialog, LinkUpgrade.Knows.
 
 ## Next
 
-- Window shots and the Revit check on a model copy, after short check 2 of revit-test, under the window lock.
+- The Revit check is owed by run 2 of revit-test: step 7 on 2021 prototypes, no stop on the upgrade box, the issue lines and the box count (steps/revit-results/FAST-12-build-3.md).
 
 ## Final statement
 
-FAST-10 is done in one PR, R795 to R799, F8. A project made with Empty project now holds no rules name, road surface, schedule, rules profile or position file of the past job in its config, its rules profile, the New project window before and after Save, the rules window, the Rules row and the read. The rules profile of the copy is profile.json, named by the folder of the model, every manual rule says Not measured, step 4 says "Checks each plot against the rules", the read says once that the project names no neighbourhood schedule, and the position file is the project's own. The road surfaces come from the pick of Set up alone, and a build takes that pick over the empty list of the copy, which needed a small change in DesignBasis.Of outside the allowed list, said in steps/seam.md. The past job mode and its files are unchanged. Proof: NewProjectNoPastJobTests, the real worker test of the installed set, quick tests PASS after the last commit, acceptance 45 passed 5 xpassed, and a Python scan of a copy the built DLL made, 0 of 11 past values found. Reviewer: no real fault in the code, minor latent points left as they are. Not seen in Revit: short check 2 of revit-test had not run, so the Revit check and the window shots are owed, label revit-later. Left for others in steps/seam.md: the toposolid line says "not chosen yet" was not read (build-1), and the past values outside the four kinds of F8.
+FAST-12 is built in one PR, R805 to R807, F31, and the task stays open, status open, until the Revit check of its done when is written. While step 7 loads, reloads or makes a link type, the tool closes Revit's box "Structural Analytical Model Upgrade" by its id, TaskDialog_Views_Related_To_Analytical_Changed, with Close, so an unwatched Build no longer waits on it. Any other box still stops as before. The issues of the step name each file of an older Revit that was upgraded and how many boxes were closed. The box of step 7 now says "link types new to the model N, of an older Revit M" and names each older file, "Revit upgrades it to 2024 as it loads, which takes minutes". The id is measured, not guessed: the buttons run LB6E logged it in step 7 with Close taken, and the driver of short check 2 pressed Close on that title 4 times. Proof: 8 tests in FAST12/LinkUpgradeTests.cs, a mutation of Close and the year compare failed 3 of them, quick tests PASS, net48 3307 passed, acceptance 45 passed 5 xpassed, and a Python check over the run logs and a Revit file header that shares no code with the C#. Not seen in Revit: Revit was not opened by this lane, since step 7 needs the plan of a real 4 Check on prototype copies, about 1 hour 20 of driving, and a new install would change the add-in build-1 and the 06:00 run use. Label revit-later, owed by run 2 of revit-test, whose result sets the task done. Reviewer: one real fault, the task was set done before its Revit check, now open. Two latent points left as they are: a file whose only type is unusable is counted as new in the box, and VersionOf catches only the Revit ApplicationException. Left in steps/seam.md: "link types to load" of PlaceVillasRun still counts only unloaded types, Common is outside this task.

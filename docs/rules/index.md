@@ -634,3 +634,9 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R797 Window reads the new copy.
 - R798 Read and step 4 neutral.
 - R799 Own position file.
+
+## 28-fast12-r805-up.md
+
+- R805 Upgrade box closed.
+- R806 Upgraded files listed.
+- R807 Box counts new link types.
