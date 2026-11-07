@@ -58,6 +58,16 @@ At 23:10:
 - 00:46: run 1 not started. At 00:44 the PC was 5 minutes idle, then the permission check of the revit-test session (auto mode) refused the launch of the Revit driver under python/window_lock.py, with no reason given. Revit not opened, no input sent. BLOCKED until Bader allows that launch in the revit-test session, or runs the lane where it is allowed. Lead does not launch it for the lane.
 - 23:37: Bader's order, the driver presses Always Load on our own Unsigned Add-In box, PR 246.
 
+## Sat 7 Nov 19:10, the short check failed, run 2 waits
+
+The short check of 01A on the install of 89d1c69, PR 265 of revit-test: the Build passed Check for the first time, F16 fixed, then looped on Check 5 times and was cancelled, F25. Floors and ramps placed only by Run 5 of Advanced: 538 floors on 269 plots, 269 generic and 269 ramp, 0 yard, no road toposolid, F27. Levels, villa links and walls 0. F24 needed a work around, its fix is PR 264 on main. Check read the plots file of the past job data book, F26.
+
+The faults, given the same hour:
+- build-3, FAST-7 item 10: F25, the Build goes on after Check committed, the Check window gets a Close. First PR 5, F6 and F13.
+- build-1, FAST-8-build-1: F26, Check reads no file of the past job, and F27, Floors and ramps takes the surface that covers the scope and the overlap warning as known. F28 if time is left.
+
+Run 2 waits for a second short check: when F25, F26 and F27 are on main, Lead builds and installs, revit-test runs the short check of 01A again. Pass by 23:00: run 2 at 23:30 on 01A. Else run 2 moves to Sun 8 Nov 06:00 and the 010 run on S1-new stays by 12:00.
+
 ## Sat 7 Nov 17:05, IT maintenance at 19:30, how to start again
 
 Bader, 16:50: IT maintenance at 19:30 may shut the PC down without warning. If nothing happens after 19:30, work goes on.

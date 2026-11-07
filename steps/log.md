@@ -27,6 +27,30 @@ Next:
 Your turn:
 - Nothing.
 
+## The short check failed, the faults given, 7 Nov 2026
+
+Goal:
+- Bader's order of 14:40: a fault of the short check to steps/seam.md and to a lane the same hour.
+
+Done:
+- FAST-8-build-1 for F26 and F27. FAST-7 item 10 for F25, with AddIn/CheckTable/ on its list.
+- steps/plan-fast-3days.md: the short check result and when run 2 goes.
+
+Checked:
+- PR 265 of revit-test, the record of the short check: Check passed and looped, 538 floors on 269 plots by Run 5, levels, villas and walls 0.
+
+Remains:
+- F25, F26, F27, then the second short check, then run 2.
+
+Known bugs:
+- F24 to F28 in steps/seam.md.
+
+Next:
+- Lead starts build-1 and resumes build-3.
+
+Your turn:
+- Nothing.
+
 ## FAST-7 PR 4, the folder keeps step 1, F24, 7 Nov 2026
 
 Goal:
