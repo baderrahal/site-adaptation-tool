@@ -2,7 +2,7 @@
 id: FAST-7-build-3
 lane: build-3
 stage: 1
-status: done
+status: open
 allowed:
   - dotnet/SiteAdaptation.AddIn/App/PaneHost.cs
   - dotnet/SiteAdaptation.AddIn/Pane/BuildChain.cs
