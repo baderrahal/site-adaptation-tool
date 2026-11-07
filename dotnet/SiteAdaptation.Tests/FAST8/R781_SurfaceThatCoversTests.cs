@@ -85,6 +85,38 @@ namespace SiteAdaptation.Tests.FAST8
             Assert.Contains("Whole holds the most ramp road edge points, 12 of 12", chosen.Why);
         }
 
+        [Fact]
+        public void R781_a_stand_in_for_a_named_surface_the_build_did_not_read_is_said_even_when_it_covers()
+        {
+            RoadSurfaceRead first = Read("Top Surface-05", R570_RoadTopographyTests.Tin());
+            first.Named = "Top Surface-02";
+            RoadSurfaceRead chosen = RoadTopography.Covering(first, Edges());
+            Assert.Same(first, chosen);
+            Assert.Equal(RoadTopography.Line + "the toposolid takes Top Surface-05, 12 of 12 ramp road edge points on it, as Top Surface-02 of floors.roadTopography.surface was not read by the build", chosen.Why);
+            RoadSurfaceRead missing = Read("Top Surface-05", Elsewhere());
+            missing.Named = "Top Surface-02";
+            missing.Others = new Func<RoadSurfaceRead>[] { () => Read("Top Surface-07", R570_RoadTopographyTests.Tin()) };
+            Assert.EndsWith("so the toposolid takes it, Top Surface-02 of floors.roadTopography.surface was not read by the build", RoadTopography.Covering(missing, Edges()).Why);
+        }
+
+        [Fact]
+        public void R781_the_record_names_each_surface_read_by_its_mark_and_a_record_of_one_surface_keeps_its_shape()
+        {
+            RoadSurfaceRead first = Read("Top Surface-02", Elsewhere());
+            first.Mark = new InputMark { Name = "a.xml", Size = 1, WriteTimeUtc = "t1", Sha256 = "s1" };
+            RoadSurfaceRead other = Read("Top Surface-05", Elsewhere());
+            other.Mark = new InputMark { Name = "b.xml", Size = 2, WriteTimeUtc = "t2", Sha256 = "s2" };
+            RoadSurfaceRead covering = Read("Top Surface-07", R570_RoadTopographyTests.Tin());
+            covering.Mark = new InputMark { Name = "c.xml", Size = 3, WriteTimeUtc = "t3", Sha256 = "s3" };
+            first.Others = new Func<RoadSurfaceRead>[] { () => other, () => covering };
+            RoadSurfaceRead chosen = RoadTopography.Covering(first, Edges());
+            Newtonsoft.Json.Linq.JObject report = RoadTopography.Report("R5-1", "N1", chosen, null, null, false, null, null, null);
+            Assert.Equal(new[] { "a.xml|s1", "b.xml|s2", "c.xml|s3" }, report["surfacesRead"].Select(item => (string)item["file"] + "|" + (string)item["sha256"]));
+            Assert.Equal("Top Surface-07", (string)report["surface"]["name"]);
+            RoadSurfaceRead alone = Read("Top Surface-02", R570_RoadTopographyTests.Tin());
+            Assert.Null(RoadTopography.Report("R5-2", "N1", RoadTopography.Covering(alone, Edges()), null, null, false, null, null, null)["surfacesRead"]);
+        }
+
         private static KnownWarningList Floors()
         {
             var types = new Dictionary<string, IReadOnlyList<string>> { ["generic"] = new[] { "Generic 150mm" }, ["ramp"] = new[] { "Ramps 2%" } };

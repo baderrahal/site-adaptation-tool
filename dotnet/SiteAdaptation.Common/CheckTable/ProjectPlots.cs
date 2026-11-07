@@ -39,7 +39,8 @@ namespace SiteAdaptation.Common.CheckTable
         public static bool InDataBook(string path, JObject config, string workFolder)
         {
             JToken named = config?.SelectToken("addin.readData.dataBookFolder");
-            string folder = named != null && named.Type == JTokenType.String ? ((string)named).Trim() : "";
+            // As ReadInputs.Text takes it, a non empty text as it stands
+            string folder = named != null && named.Type == JTokenType.String ? (string)named : "";
             if (string.IsNullOrEmpty(path) || folder.Length == 0 || string.IsNullOrEmpty(workFolder))
             {
                 return false;
@@ -58,6 +59,10 @@ namespace SiteAdaptation.Common.CheckTable
             }
             JObject read = JObject.Parse(WorkFiles.ReadText(table));
             List<string[]> rows = Rows(read["plots"] as JArray ?? new JArray());
+            if (rows.Count == 0)
+            {
+                return new Written { Missing = "the plots of the project are missing: the plot table " + ReadDataRun.PlotTableFile + " of the read " + Path.GetFileName(readFolder) + " holds no plot with a number, run 2 Read data again (R780)" };
+            }
             string folder = Path.Combine(workFolder, FolderPrefix + Path.GetFileName(readFolder));
             Directory.CreateDirectory(folder);
             var written = new Written { Plots = Path.Combine(folder, PlotsFile), Labels = Path.Combine(folder, LabelsFile), Rows = rows.Count };

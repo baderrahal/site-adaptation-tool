@@ -10,6 +10,8 @@ F26 is fixed and F27 is fixed in code, but the FAST-8 done when cannot pass on 0
 - Measured with a script that shares no code with the C#: no road surface of S1 covers 01A. The 6 surfaces that cover its 807 points are ground or grading, and config excludes them. So no road toposolid of 01A can be made, Q600 in steps/seam.md for Bader. The recommended answer is to run the demo on 012.
 - Yard floors 0 is R410, not a fault.
 - Not seen in Revit, label revit-later.
+- The task stays open, its done when waits for Q600 and the Revit check.
+- Review 1 of PR 269 found 4 REAL faults, all fixed.
 
 ## What changed, where
 
@@ -20,7 +22,7 @@ F26 is fixed and F27 is fixed in code, but the FAST-8 done when cannot pass on 0
 - dotnet/SiteAdaptation.Common/Floors/FloorsRun.cs: PlanToposolid calls Covering. The preview and the after commit lines add Why.
 - dotnet/SiteAdaptation.Common/Floors/KnownWordsWarning.cs, new: TakeAndList and Line.
 - dotnet/SiteAdaptation.AddIn/Revit/WarningCollector.cs: a warning of known words that Decide refuses is deleted and its line goes to Warnings, so to the issues by ButtonFlow.
-- docs/rules/24-fast8-r780-up.md R780 to R782. Tests dotnet/SiteAdaptation.Tests/FAST8/, 13.
+- docs/rules/24-fast8-r780-up.md R780 to R782. Tests dotnet/SiteAdaptation.Tests/FAST8/, 16.
 
 ## What calls what
 

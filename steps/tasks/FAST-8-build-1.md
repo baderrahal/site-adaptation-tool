@@ -2,7 +2,7 @@
 id: FAST-8-build-1
 lane: build-1
 stage: 2
-status: done
+status: open
 allowed:
   - dotnet/SiteAdaptation.Common/CheckTable/
   - dotnet/SiteAdaptation.Common/Floors/

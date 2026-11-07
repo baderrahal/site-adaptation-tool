@@ -79,6 +79,12 @@ namespace SiteAdaptation.Common.Floors
 
         // R781. Why this surface and not the one of floors.roadTopography.surface, null when that one was taken
         public string Why { get; set; }
+
+        // R781. The surface floors.roadTopography.surface names, set where it differs from the surface of this read, as when the build did not read it
+        public string Named { get; set; }
+
+        // R781, D19. Every surface the choice read, this one first, each by its mark, so the record names each real file read
+        public IReadOnlyList<RoadSurfaceRead> Asked { get; set; } = new RoadSurfaceRead[0];
     }
 
     // R571. The road edge of one ramp in shared coordinates, its two front corners with their z
@@ -236,11 +242,13 @@ namespace SiteAdaptation.Common.Floors
             RoadSurfaceRead best = first;
             int bestOn = firstOn;
             IReadOnlyList<Func<RoadSurfaceRead>> others = first.Others ?? new Func<RoadSurfaceRead>[0];
+            var asked = new List<RoadSurfaceRead> { first };
             if (firstOn < total)
             {
                 foreach (Func<RoadSurfaceRead> other in others)
                 {
                     RoadSurfaceRead read = other();
+                    asked.Add(read);
                     int on = OnIt(read);
                     if (on > bestOn)
                     {
@@ -249,10 +257,22 @@ namespace SiteAdaptation.Common.Floors
                     }
                 }
             }
+            best.Asked = asked;
+            string named = first.Named ?? first.Settings.Surface;
+            string namedHolds = first.Named == null ? named + " of " + RoadTopographySettings.Block + "surface holds " + firstOn
+                : named + " of " + RoadTopographySettings.Block + "surface was not read by the build";
             if (!ReferenceEquals(best, first))
             {
                 best.Why = Line + "of " + (others.Count + 1) + " road surfaces the build read, " + best.Settings.Surface + " holds the most ramp road edge points, " + bestOn + " of " + total
-                    + ", so the toposolid takes it, " + first.Settings.Surface + " of " + RoadTopographySettings.Block + "surface holds " + firstOn;
+                    + ", so the toposolid takes it, " + namedHolds;
+            }
+            else if (first.Named != null)
+            {
+                best.Why = Line + "the toposolid takes " + best.Settings.Surface + ", " + bestOn + " of " + total + " ramp road edge points on it, as " + namedHolds;
+            }
+            else
+            {
+                best.Why = null;
             }
             return best;
         }
@@ -583,7 +603,7 @@ namespace SiteAdaptation.Common.Floors
             double limit = read?.Settings?.LimitMm ?? 0;
             List<double?> surface = counted.Select(edge => edge.DifferenceMm).ToList();
             List<double?> model = counted.Select(edge => readBack ? edge.ModelDifferenceMm : null).ToList();
-            return new JObject
+            var report = new JObject
             {
                 ["format"] = RecordFormat, ["runId"] = runId, ["nbh"] = nbh, ["made"] = element != null, ["action"] = action, ["element"] = element, ["problem"] = problem,
                 ["type"] = read?.Settings?.TypeName, ["typeDuplicatedFrom"] = typeDuplicatedFrom,
@@ -603,6 +623,15 @@ namespace SiteAdaptation.Common.Floors
                     ["differenceMm"] = Rounded(edge.DifferenceMm), ["modelDifferenceMm"] = Rounded(readBack ? edge.ModelDifferenceMm : null),
                 })),
             };
+            // R781, D19. Each surface the choice read, by name, size, write time and SHA-256, only when it read more than one, so a record of one surface keeps its shape
+            if (read != null && read.Asked.Count > 1)
+            {
+                report["surfacesRead"] = new JArray(read.Asked.Select(item => new JObject
+                {
+                    ["name"] = item.Settings.Surface, ["file"] = item.Mark?.Name, ["size"] = item.Mark?.Size, ["writeTimeUtc"] = item.Mark?.WriteTimeUtc, ["sha256"] = item.Mark?.Sha256,
+                }));
+            }
+            return report;
         }
 
         private static double? Level(double? value)

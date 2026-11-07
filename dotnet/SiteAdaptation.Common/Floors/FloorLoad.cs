@@ -49,6 +49,8 @@ namespace SiteAdaptation.Common.Floors
             WorkerFile input = named ?? roads.FirstOrDefault()
                 ?? throw new InvalidDataException("the run of 4 Check that built " + Path.GetFileName(planPath) + " read no road surface " + settings.Surface + ", pick it in Road surfaces and run 4 Check again");
             RoadSurfaceRead first = Surface(input, settings, planPath);
+            // R781. The line of the choice says when the surface config names was not read and another stands in
+            first.Named = named == null ? settings.Surface : null;
             // Each read once, a press plans twice
             first.Others = roads.Where(item => !ReferenceEquals(item, input)).Select(item => new Lazy<RoadSurfaceRead>(() => Surface(item, settings, planPath))).Select(read => (Func<RoadSurfaceRead>)(() => read.Value)).ToList();
             return first;

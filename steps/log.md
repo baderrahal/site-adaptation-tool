@@ -13,11 +13,12 @@ Done:
 - R782: a warning of known words on floors the list does not pair, Highlighted floors overlap of two plots, is taken with no box and listed with its floors in the issues.
 
 Checked:
-- FAST8 tests 13 on net48 and net8.0, the full dotnet suite 0 failed, quick tests PASS, tests/acceptance passed.
+- FAST8 tests 16 on net48 and net8.0, the full dotnet suite 0 failed, quick tests PASS, tests/acceptance 45 passed 5 xpassed.
+- Review 1 FAIL with 4 REAL, all fixed: a stand-in for a named surface not read is said, the record lists each surface read, InDataBook takes the folder text as ReadInputs does, status back to open.
 - A script that shares no code: Check took both data book files before, the plot table gives 278 plots of 01A. No road surface of S1 covers 01A, 6 ground and grading surfaces do.
 
 Remains:
-- Q600 for Bader, the toposolid of an NBH no road surface covers. F28 line. Not seen in Revit, label revit-later.
+- Q600 for Bader, the toposolid of an NBH no road surface covers. F28 line. Not seen in Revit, label revit-later. Task status stays open.
 
 Known bugs:
 - Done when of FAST-8 on 01A: toposolid UNKNOWN, cannot pass on S1 without Q600. Yard floors 0 by R410.

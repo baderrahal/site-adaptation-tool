@@ -136,6 +136,16 @@ namespace SiteAdaptation.Tests.FAST8
         }
 
         [Fact]
+        public void R780_a_plot_table_with_no_plot_of_a_number_says_the_plots_are_missing()
+        {
+            string config = Site("rev6");
+            File.WriteAllText(Path.Combine(ReadFolder, ReadDataRun.PlotTableFile), new JObject { ["plots"] = new JArray(new JObject { ["baseplanLabel"] = null }) }.ToString());
+            CheckRun.CheckPlan plan = Plan(config, "rev6");
+            Assert.Contains(plan.Stops, stop => stop.StartsWith("the plots of the project are missing: the plot table", StringComparison.Ordinal) && stop.Contains("holds no plot with a number"));
+            Assert.Null(PathOf(plan, "plotsCsv"));
+        }
+
+        [Fact]
         public void R780_a_plots_file_of_the_project_outside_the_data_book_stays_and_one_inside_it_is_known_by_its_folder()
         {
             string config = Site("rev6");
