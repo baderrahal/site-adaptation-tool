@@ -70,7 +70,7 @@ Run 1b, 10:40 to 14:06 on the add-in of 6 Nov: steps 1 to 3 done on 01A, 4 Check
 
 Open: FAST-5 until the short check sees the Build to the end. FAST-6 until the F10 line, now on main by PR 256, is seen in the short check. FAST-7: F2 Baseplan, then F6 and F13 after the short check, when Lead moves PaneHost.cs and BuildChain.cs to it.
 
-F15, the villa type on a new neighbourhood: a read only check of S1 for 010, and a read only scan of C:- ROSHEN MECCA, cap 90 minutes, findings in steps/investigations/roshen-mecca-scan.md. If an untuned neighbourhood has 10 or more plots with a villa type, the demo folder S1-new in the work root takes S1 plus that file and revit-test runs that neighbourhood. If none, the 16 cells of 010 are filled from the CAD block names when they exist, else steps/bader-form-7nov.md asks the team to fill them.
+F15, the villa type on a new neighbourhood: a read only check of S1 for 010, and a read only scan of C:\10- ROSHEN MECCA, cap 90 minutes, findings in steps/investigations/roshen-mecca-scan.md. If an untuned neighbourhood has 10 or more plots with a villa type, the demo folder S1-new in the work root takes S1 plus that file and revit-test runs that neighbourhood. If none, the 16 cells of 010 are filled from the CAD block names when they exist, else steps/bader-form-7nov.md asks the team to fill them.
 
 Sun 8 Nov: by 12:00 revit-test runs the new neighbourhood on S1-new from an empty model copy, Build to the end. By 13:00 Lead rewrites steps/demo-live.md in two parts, the new neighbourhood then 01A, used for tuning. Then F8, a task for build-3 if under one hour, else said in the room.
 
