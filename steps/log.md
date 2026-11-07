@@ -2,6 +2,29 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## The Build chain files move to FAST-7, 7 Nov 2026
+
+Goal:
+- F24 of the short check needs PaneHost.cs, F6 and F13 need PaneHost.cs and BuildChain.cs, build-1 stopped after PR 256.
+
+Done:
+- PaneHost.cs and BuildChain.cs taken off FAST-5-build-1 and put on FAST-7-build-3, with item 8, the part of F24 in PaneHost.cs. CHOSEN by Lead, a fresh build-1 session for one line costs more than build-3, which holds the cards.
+
+Checked:
+- grep of steps/tasks: no other open task lists the two files.
+
+Remains:
+- The short check, FAST-5 Done when.
+
+Known bugs:
+- F24 in steps/seam.md.
+
+Next:
+- build-3 does F24, F6, F13.
+
+Your turn:
+- Nothing.
+
 ## S1-new, the villa types of 010, 7 Nov 2026
 
 Goal:
