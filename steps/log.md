@@ -2,6 +2,29 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Run 1 of FAST-3 and the Saturday plan, 7 Nov 2026
+
+Goal:
+- Bader's order of 21:10: by 08:00, what the run showed, the fix list by lane, the Saturday order of work.
+
+Done:
+- Run 1 from 01:11 to 06:37 in three parts, PR 249 of revit-test. Stage 1 works from the pane, stage 2 built nothing, F16 the main fault. steps/plan-fast-3days.md holds the findings, the fix list by lane and the order of Saturday.
+
+Checked:
+- Every shot of PR 249 looked at by eye: the coordinates line, plot outlines, plot numbers and areas greyed, the names shown are in config.
+
+Remains:
+- FAST-5 and FAST-6 tasks at 08:30, then the lanes.
+
+Known bugs:
+- F16, F4, F10, F8 of steps/seam.md.
+
+Next:
+- Lead writes the tasks and starts build-1 and build-2.
+
+Your turn:
+- F15: the neighbourhood for the villa links of run 2, else 01A at 10:00.
+
 ## FAST-3-revit-test run 1, the one test in Revit, 7 Nov 2026
 
 Goal:

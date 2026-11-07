@@ -58,6 +58,39 @@ At 23:10:
 - 00:46: run 1 not started. At 00:44 the PC was 5 minutes idle, then the permission check of the revit-test session (auto mode) refused the launch of the Revit driver under python/window_lock.py, with no reason given. Revit not opened, no input sent. BLOCKED until Bader allows that launch in the revit-test session, or runs the lane where it is allowed. Lead does not launch it for the lane.
 - 23:37: Bader's order, the driver presses Always Load on our own Unsigned Add-In box, PR 246.
 
+## Sat 7 Nov 08:00, what run 1 showed
+
+Run 1 of FAST-3, 01:11 to 06:37, three parts of under 2 hours each, on an empty model copy, folder S1, scope neighbourhood 010 (16 plots, not tuned). Record steps/revit-results/FAST-3-revit-test.md, fix list F1 to F17 in steps/seam.md, PR 249.
+
+- Stage 1 works from the pane: Choose project folder, the worker read outside Revit, What the tool read, Confirm what was found, card 1 with its marks. The 37 input files of S1 unchanged by SHA-256.
+- Stage 2 builds nothing. No floor, level, villa link or wall was placed in run 1. Build makes the plan and the preview (2615 plots with an outline, 2619 issues), then stops at 4 Check every time.
+- The main fault, F16: the read of card 1 writes the data check files only, and step 4 of version 1 needs the outputs of the old step 2 (baseplan, villa blocks, curbs, workbooks, road surfaces). So no Build from card 1 can pass Check, for any neighbourhood. F5, F5b and F5c are its symptoms.
+- F4: the first Build of a fresh Revit session stops with R405, no config of the run gave the design values. Seen twice.
+- F15: the untuned neighbourhoods of S1 hold no villa type (0 of 16, 0 of 2, 0 of 1), so "not used for tuning" and "real villa links" cannot both hold on S1.
+- F8: a new project still starts on the past job's profile, rules name and road surface names. The any project debt of steps/backlog.md.
+- Always Load survives a clean close of Revit, it came back only after the forced end at 03:10 (F11 narrowed). A new build of the DLL brings it back, SETUP-sign-2 item 1.
+- Run limits: a background tool call ends its whole tree at 2 hours, so a Revit run is relaunched in parts under 110 minutes. A Revit run pauses on every input at the PC.
+
+## Fix list by lane, from steps/seam.md
+
+- build-1, FAST-1, first: F16, the Build chain on the read of card 1. Then F4 with build-2 if the fix is in Common, F13 and F6 (Build reruns Read data and Review data), F12 (a stop says why in a box), F1 to F3 (card 1 runs step 1, takes the baseplan of the folder, holds Review data), F7 (the setup lost when the model is not saved), F9 and F17 (small words and How it works of version 1).
+- build-2, FAST-2: F10, the parameter sheet does not reach the data check request (R685 sends it, the check still says Missing). F4 if DesignValues.cs:125-135 is the place.
+- build-3: no item of run 1 on its files.
+- Lead: F8, a new project with no past job value, a task. F14, shots for the repo with the coordinates line blank, in the revit rules. F15 for Bader below.
+- revit-test: run 2 on Sun 8 Nov once F16 and F4 are on main, from a fresh install.
+
+## Saturday order of work, CHOSEN by Lead
+
+1. 08:30 Lead writes FAST-5-build-1 (F16, F4, F13, F6, F12, then F1 to F3, F7, F9, F17) and FAST-6-build-2 (F10, the Common side of F16 and F4), the files split by exact path as on 6 Nov, and starts both lanes hidden.
+2. Lead writes the F8 task for build-3, the new project starts from the any project defaults, no past job value.
+3. Each PR one review pass, merge on green, main into every open branch the same hour.
+4. When F16 and F4 are on main: Lead builds and installs, revit-test runs a short check of stage 2 on neighbourhood 010, Build to the end with no stop at Check.
+5. Sun 8 Nov: run 2, the full run of FAST-3 from an empty model.
+
+## For Bader
+
+- F15: to see villa links placed, name a tuned neighbourhood for run 2, marked tuned in the record, or a folder with a typology column for an untuned one. Lead's pick if no answer by 10:00: 01A, marked tuned.
+
 ## revit-test, FAST-3-revit-test, the one test on Sun 8 Nov
 
 - Waiting: opens when FAST-1 and FAST-2 are merged.
