@@ -132,6 +132,29 @@ namespace SiteAdaptation.Tests.FAST11
             Assert.Equal("no rule gives the mirror flag of DT1 in no cluster", (string)listed["missing"][0]["why"]);
         }
 
+        // Review 1 of PR 277: a plot with no hand and no FFL gets the hand not mirrored and an insert, but the plan leaves it out, so its
+        // missing list never says it is built not mirrored
+        [Fact]
+        public void R800_a_plot_with_no_hand_left_out_for_its_ffl_is_not_said_to_be_built_not_mirrored()
+        {
+            Dictionary<string, JObject> steps = R80_PlanFileTests.Steps();
+            const string why = "no rule gives the mirror flag of DT1 in no cluster";
+            foreach (string side in new[] { "raw", "written" })
+            {
+                JObject two = (JObject)steps["overrides"]["plots"]["2"][side];
+                two[PlanOverrides.HandMissingKey] = true;
+                two["mirrored"] = false;
+                two["insert"] = new JArray(1.0, 2.0);
+                steps["linkFrame"]["plots"]["2"][side]["lacks"] = JArray.Parse("[{\"key\":\"mirrored\",\"why\":\"" + why + "\"}]");
+            }
+            JObject plan = BuildPlan.Assemble(steps, R80_PlanFileTests.Inputs());
+            JObject listed = ((JArray)plan["missing"]).OfType<JObject>().Single(item => (string)item["plot"] == "2");
+            Assert.False((bool)listed["written"]);
+            Assert.Equal("mirrored levels.ffl parameters.Steps", string.Join(" ", ((JArray)listed["missing"]).Select(lack => (string)lack["key"])));
+            Assert.Equal(why, (string)listed["missing"][0]["why"]);
+            Assert.Equal(1, (int)plan["summary"][BuildPlan.NotWrittenByKey]["levels.ffl"]);
+        }
+
         // Found on the rerun of the check of 01A: 8 plots with no hand and no FFL were counted under no hand, though the FFL leaves them out
         [Fact]
         public void R801_a_plot_left_out_is_counted_under_the_key_that_stops_it_not_the_missing_hand()

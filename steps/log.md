@@ -14,7 +14,7 @@ Done:
 
 Checked:
 - The worker of this branch on the request of the real Check of 01A: 265 of 278 plots written, 13 left out, no floor level 9, transform 2, unit 2, 203 built with the hand missing. Counted by a Python script from plan_01A.json. Inputs unchanged by SHA-256.
-- Tests: dotnet/SiteAdaptation.Tests/FAST11/, 8 on net48, 7 on net8.0.
+- Tests: dotnet/SiteAdaptation.Tests/FAST11/, 9 on net48, 8 on net8.0. Review 1 found 1 REAL fault, fixed with a test.
 
 Remains:
 - Not seen in Revit, label revit-later, run 2 of revit-test at 06:00.

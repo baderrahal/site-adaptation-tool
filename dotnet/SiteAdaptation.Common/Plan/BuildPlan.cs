@@ -309,8 +309,8 @@ namespace SiteAdaptation.Common
                 }
                 else if (handMissing)
                 {
-                    // R800. Built not mirrored, the hand still listed as missing
-                    found.Add(Lack("mirrored", (string)lack["why"] + HandMissingWhy));
+                    // R800. Built not mirrored, the hand still listed as missing. A plot left out for another key is built in no hand, review 1 of PR 277
+                    found.Add(written ? Lack("mirrored", (string)lack["why"] + HandMissingWhy) : (JObject)lack.DeepClone());
                 }
             }
             // R800. The step linkFrame stops at the missing hand, the fit of the unit is only tried on the hand the build gave

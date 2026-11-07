@@ -10,6 +10,8 @@ F29 and F30 are fixed in code and proven outside Revit. Not seen in Revit, label
 - CASE and Prototype Foundation Type no longer lack on any plot of 01A, the rule tables give them for the hand the plot is built with. CHOSEN by Code.
 - F29 line: card 2 adds after the Build line "13 of 278 plots are not built: no floor level 9, no outline or front 2, no unit 2. Built with a value missing: 203 plots, each value tagged missing in the plan." (R801).
 - F30: card 3 counts plotsWithNoRoadLevel of the plan of 4 Check, 11 on 01A, not the 2615 of the whole read (R802).
+- Review 1 of PR 277 found 1 REAL fault, fixed with a test: a plot with no hand left out for its FFL was said to be built not mirrored.
+- Two files outside the allowed list, needed by the gate: docs/design/14-ui-labels.md and UiLabelTests.cs, a line in steps/seam.md.
 - CHOSEN by Code: R800 under rev6 only, a build of the past job keeps the plan of plan_from_book, so the gate test of R360 stays as it is.
 
 ## What changed, where
