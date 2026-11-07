@@ -27,6 +27,7 @@ allowed:
   - dotnet/SiteAdaptation.AddIn/Help/
   - dotnet/SiteAdaptation.AddIn/Fast7/
   - dotnet/SiteAdaptation.UiShots/
+  - docs/design/14-ui-labels.md
   - dotnet/SiteAdaptation.Tests/FAST7/
   - docs/rules/23-fast7-r760-up.md
   - docs/rules/index.md
