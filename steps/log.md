@@ -2,6 +2,31 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## FAST-7 PR 5, the Build reads and reviews without stopping, F6 and F13, 7 Nov 2026
+
+Goal:
+- F6 and F13 of run 1 in Lead's version of 17:15 and 17:38: a step 2 the Build puts back runs once and quietly, a Review Close with nothing changed counts as saved.
+
+Done:
+- R770: ReviewDataSession.Closed saves once when nothing is left unsaved, called by ReviewDataDialog after the window closes.
+- R771: BuildChain puts a step back once per Build and names the step running (Current). PaneHost sets QuietRead from it. ScanGate opens no window then, ConfirmProfileStep shows no check window and skips the Confirm when a confirmed profile exists, else opens it.
+- steps/tasks/FAST-7-build-3.md status done, the last PR of FAST-7.
+
+Checked:
+- R770_ReviewCloseTests, R771_QuietReadTests, R771_QuietWindowsTests, each with a broken case. The chain tests R688 and R741 unchanged and green. Not seen in Revit.
+
+Remains:
+- The Revit check of FAST-7 is owed, every PR carries revit-later.
+
+Known bugs:
+- F23: a scope change alone makes step 2 stale, so a Build after a scope change runs step 2 once more, now quietly.
+
+Next:
+- Lead's run 2 and the demo of Sun 8 Nov.
+
+Your turn:
+- Nothing.
+
 ## FAST-7 PR 4, the folder keeps step 1, F24, 7 Nov 2026
 
 Goal:
