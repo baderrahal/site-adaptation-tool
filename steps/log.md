@@ -25,6 +25,31 @@ Next:
 Your turn:
 - Nothing.
 
+## FAST-5-build-1 PR 1, F16, the Build reads for Check itself, 7 Nov 2026
+
+Goal:
+- Bader's order of 10:05, F16: the Build from card 1 must pass 4 Check.
+
+Done:
+- R740: each Build press fills the empty input rows from the chosen folder by the names config gives (FolderRoles), so Check finds the Prototypes row, F5.
+- R741: right before 4 Check the Build runs the old read with no schedule, plot number file or border and none of the location plan steps (ReadInputs.ForBuild, Fast5.BuildRead), no box and no Confirm. Its folder holds the plot table of stage 1, so it is the latest read for Check and every later step.
+- F4 left to FAST-6 by Lead's word of 12:00, PR 254 fixes it in Common.
+
+Checked:
+- The real worker on S1 with a request a Python script made by its own file search: first refused on the data book border, fixed, then done with 0 issues and the four reads Check takes. quick-tests PASS, net8.0 2736 passed, net48 217 of the read and chain passed, tests/acceptance 45 passed 5 xpassed.
+
+Remains:
+- PR 2: the ShowStop line of F12 once PR 252 is on main, the parameter sheet line of F10 once PR 254 is on main. The Build to the end on 01A in Revit.
+
+Known bugs:
+- A project with no data book stops at the read for the build, as every build step of version 1 takes plots.csv and labels.csv.
+
+Next:
+- revit-test's short check on 01A from an empty model once FAST-5 and FAST-6 are on main.
+
+Your turn:
+- Nothing.
+
 ## Saturday lanes, 7 Nov 2026
 
 Goal:
