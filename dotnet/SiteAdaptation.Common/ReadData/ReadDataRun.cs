@@ -199,7 +199,9 @@ namespace SiteAdaptation.Common.ReadData
             return new WorkerRequest
             {
                 FormatVersion = WorkerRequest.CurrentFormatVersion, RunId = context.RunId, Document = document, Command = DataCheckCommand,
-                Inputs = plan.Inputs.Select(input => new WorkerFile { Role = input.Role, Path = input.Path, Sha256 = input.Role == ReadInputs.ScanFolder ? "" : input.Sha256 }).ToList(),
+                // F10, R750. The parameter sheet of the pane goes to the check of card 1 too, in the request only, so the hash and reuse of the read stay
+                Inputs = plan.Inputs.Select(input => new WorkerFile { Role = input.Role, Path = input.Path, Sha256 = input.Role == ReadInputs.ScanFolder ? "" : input.Sha256 })
+                    .Concat(new[] { DataCheckSheet.Input(settings?.Invoke(), plan.ConfigPath) }).Where(input => input != null).ToList(),
                 Scope = new WorkerScope { Kind = "project" }, OutputFolder = folder,
                 TimeLimitS = AddinConfig.Load(plan.ConfigPath).WorkerTimeLimitS(DataCheckCommand),
                 ProjectMode = ModePick?.Invoke(),

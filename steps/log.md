@@ -11,12 +11,13 @@ Done:
 - R740: each Build press fills the empty input rows from the chosen folder by the names config gives (FolderRoles), so Check finds the Prototypes row, F5.
 - R741: right before 4 Check the Build runs the old read with no schedule, plot number file or border and none of the location plan steps (ReadInputs.ForBuild, Fast5.BuildRead), no box and no Confirm. Its folder holds the plot table of stage 1, so it is the latest read for Check and every later step.
 - F4 left to FAST-6 by Lead's word of 12:00, PR 254 fixes it in Common.
+- F10: the raw read of card 1 hands the parameter sheet of the pane to the check, in its request only (ReadDataRun.DataCheckRequest, DataCheckSheet.Input of R750). F12: the stop box call after each Build step.
 
 Checked:
 - The real worker on S1 with a request a Python script made by its own file search: first refused on the data book border, fixed, then done with 0 issues and the four reads Check takes. quick-tests PASS, net8.0 2736 passed, net48 217 of the read and chain passed, tests/acceptance 45 passed 5 xpassed.
 
 Remains:
-- PR 2: the parameter sheet line of F10 once PR 254 is on main. The ShowStop line of F12 is in this PR, PR 252 landed first.
+- Task status: done once the Build to the end is seen in Revit on 01A.
 - Review 1: the rules index merge, the reasons of a row not found, three copies of code and three new pane words, fixed. The Build to the end on 01A in Revit.
 
 Known bugs:
@@ -24,6 +25,27 @@ Known bugs:
 
 Next:
 - revit-test's short check on 01A from an empty model once FAST-5 and FAST-6 are on main.
+
+## FAST-6-build-2 part 1, F10 and F4, 7 Nov 2026
+
+Goal:
+- Bader's order of 10:05: F10, the parameter sheet reaches the data check of stage 1, and the Common side of F4, the first Build of a fresh session makes its plan.
+
+Done:
+- F10 measured: card 1 on a project with no past file takes the raw read, which skips DataCheckStep, and ReadDataRun.DataCheckRequest builds the request with config, folder and profile only. R750 DataCheckSheet.Input in Common gives the sheet, DataCheckStep.SheetInput calls it, the one call in ReadDataRun is build-1's by steps/seam.md, as Common/ReadData is on FAST-5.
+- F4 measured: WorkerRequest.ToJson rounds by DesignValues.Current before WorkerRunner takes the config of the run. R751 writes a request unrounded while no value is known, as the answer does. SiteBuildPlan.Make needs no change.
+
+Checked:
+- FAST6 tests, R751 runs Make in Windows PowerShell 5.1 from a copy of the build outside the repo, a revert of the fix gives the R405 text of F4. Second check: PowerShell 7 with CadReader.exe, sharedParameters strong. Quick tests PASS, acceptance 45 passed 5 xpassed, net48 3215 of 3216, the one a launch timing test that passes 3 of 3 alone.
+
+Remains:
+- build-1 adds the call of R750 to ReadDataRun.DataCheckRequest with a FAST5 test, then the task is done. Not seen in Revit.
+
+Known bugs:
+- WorkerRunTests.R347_an_answer_that_does_not_read_or_a_hand_off_that_throws_never_ends_the_host failed once in a full net48 run, "the worker never ended".
+
+Next:
+- revit-test's short check after the merge: the first Build of a fresh session plans, and the data check of card 1 says Shared parameters strong once build-1's call is on main.
 
 Your turn:
 - Nothing.
