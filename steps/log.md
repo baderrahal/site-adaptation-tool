@@ -27,6 +27,154 @@ Next:
 Your turn:
 - Nothing.
 
+## FAST-7 PR 4, the folder keeps step 1, F24, 7 Nov 2026
+
+Goal:
+- F24 of the short check: after step 1, Choose project folder made step 1 Ready again and the box "2 Read data needs step 1" came.
+
+Done:
+- R769: ProjectFolderPick.Write leaves the config byte for byte when the folder is the same, so step 1 stays done. PaneHost.ChooseProjectFolder, on FAST-7 since PR 262, hands the folder to StagesViewModel.FolderChosen as card 1 does before step 1: a Baseplan of the folder before goes, the new folder fills it, and the read runs only when step 1 still holds, else step 1.
+- The heads-up of build-3 with the final statement so far.
+
+Checked:
+- R769_FolderKeepsStepOneTests and R768_SetUpBaseplanTests: the same folder with another case and a trailing separator, another folder with its own Baseplan, no folder before, and PaneHost calls FolderChosen. Not seen in Revit.
+
+Remains:
+- F6 and F13, item 9, next PR.
+
+Known bugs:
+- None new.
+
+Next:
+- F6 and F13.
+
+Your turn:
+- Nothing.
+
+## Ready for the maintenance of 19:30, 7 Nov 2026
+
+Goal:
+- Bader, 16:50: IT maintenance at 19:30 may shut the PC down. Every lane safe by 19:15, and a way to start again.
+
+Done:
+- steps/plan-fast-3days.md: where each lane stands at 17:05 and the order to start again after a shut down.
+- FAST-7 takes ScanGate.cs and ConfirmProfileStep.cs from FAST-5 for F6, the Confirm reuses the profile the person confirmed last, and rule ids R770 to R779.
+- The plan held a carriage return from a script, R343 failed, taken out.
+- FAST-7 takes R688_BuildChainTests.cs and R740_BuildReadTests.cs for F6 and F13, in their smaller version: no stop added to the Build, the read for the build of R741 kept.
+- The driver exemption for Teams widened to the full view of the same keep awake meeting, by Bader's words of 00:16, in .claude/rules/revit.md and FAST-3-revit-test.md. The driver paused from 15:56 on that view.
+
+Checked:
+- revit-test answered: part 2 ends by 19:10 saved, no part after 19:00. build-3 told to push by 19:15.
+
+Remains:
+- The short check, the F24 PR, run 2.
+
+Known bugs:
+- F24 in steps/seam.md.
+
+Next:
+- Lead merges on green and reads the short check.
+
+Your turn:
+- Nothing.
+
+## The Build chain files move to FAST-7, 7 Nov 2026
+
+Goal:
+- F24 of the short check needs PaneHost.cs, F6 and F13 need PaneHost.cs and BuildChain.cs, build-1 stopped after PR 256.
+
+Done:
+- PaneHost.cs and BuildChain.cs taken off FAST-5-build-1 and put on FAST-7-build-3, with item 8, the part of F24 in PaneHost.cs. CHOSEN by Lead, a fresh build-1 session for one line costs more than build-3, which holds the cards.
+
+Checked:
+- grep of steps/tasks: no other open task lists the two files.
+
+Remains:
+- The short check, FAST-5 Done when.
+
+Known bugs:
+- F24 in steps/seam.md.
+
+Next:
+- build-3 does F24, F6, F13.
+
+Your turn:
+- Nothing.
+
+## S1-new, the villa types of 010, 7 Nov 2026
+
+Goal:
+- Bader's order of 14:40 item 3: a demo folder where a neighbourhood not used for tuning gets villa types.
+
+Done:
+- S1-new in the work root, a copy of S1 with one workbook changed: 11 rows added to the sales sheet by an edit of the sheet XML, every other zip entry byte equal. The 11 plots of 010 whose footprint block holds one prototype code by the rule of R731.
+- steps/bader-form-7nov.md, one item, the 5 plots left. FAST-3-revit-test.md holds the Sunday run of 010 on S1-new.
+
+Checked:
+- The worker of the installed add-in on S1-new with the confirmed profile of run 1: 11 of the 16 plots of 010 with a villa type, the 2,599 plots outside 010 the same as the S1 read, status done, 0 issues. S1 37 files hashed before and after, 0 changed.
+
+Remains:
+- The short check of 01A, run 2 at 23:30, the Sunday run of 010.
+
+Known bugs:
+- PH_1-DLUS calls the 11 plots Multi Family, the drawing and the schedule disagree on 010.
+
+Next:
+- Lead reads the short check.
+
+Your turn:
+- Item 1 of steps/bader-form-7nov.md, by Sun 8 Nov 11:00, A by default.
+
+## FAST-7 PR 3, Set up site takes the Baseplan of the folder, 7 Nov 2026
+
+Goal:
+- F2 of run 1: Set up site takes the Baseplan of the chosen folder, with FolderRoles.Of of FAST-5 now on main.
+
+Done:
+- R768: SetUpBaseplan.Fill in dotnet/SiteAdaptation.AddIn/Fast7, called by StagesViewModel.ChooseFolder right after a person chose the folder, fills an empty Baseplan row only. A Baseplan of the folder chosen before goes with it. Before step 1, Choose project folder writes the folder and runs 1 Set up site, the read follows at the next press, so card 1 never asks for a folder it cannot take.
+- R761 changed with it: Choose project folder is on from the start, its line says step 1 runs first.
+
+Checked:
+- R768_SetUpBaseplanTests and R761_CardOneStepsTests, with a refused folder, a cancelled dialog and a row a person set. Not seen in Revit.
+
+Remains:
+- F6 and F13, once Lead moves PaneHost.cs and BuildChain.cs after the short check in Revit.
+
+Known bugs:
+- None new.
+
+Next:
+- F6 and F13.
+
+Your turn:
+- Nothing.
+
+## The demo moves to Sunday, 7 Nov 2026
+
+Goal:
+- Bader's orders of 14:40 and 14:50: the demo on Sun 8 Nov 17:00 on a new neighbourhood, F16 merged, the short check in Revit, F15.
+
+Done:
+- PR 256 merged at 14:57 after Lead merged main into it, the gate failure of 10:43 was the caller check of Take, Most and Text of FolderRoles.cs. PRs 257 and 258 merged.
+- Main 89d1c69 built and installed with Install-SiteAdaptation.ps1. revit-test started on the short check of 01A.
+- steps/plan-fast-3days.md holds the Sunday order.
+- steps/investigations/roshen-mecca-scan.md: the second input folder read, read only, 560 files hashed before and after, 0 changed. 01B holds 105 plots with a villa type in PH_1-DLUS, but the S1 baseplan draws 2 of them, so no untuned neighbourhood of S1 can be built with villa links from real data. C:\02-Site Adaptation 528 of 837 rows, the 309 of 28 Oct still missing.
+
+Checked:
+- gh pr checks 256: tests pass on 2ac352c. The install printed one SiteAdaptation.Common.dll in 5 folders of the tool.
+
+Remains:
+- The short check, the scan of the second input folder, S1-new, the Sunday run and demo script.
+
+Known bugs:
+- F18 to F23 of run 1b in steps/seam.md, F15.
+
+Next:
+- Lead reads the short check and the scan.
+
+Your turn:
+- Nothing yet.
+
 ## FAST-5-build-1 PR 1, F16, the Build reads for Check itself, 7 Nov 2026
 
 Goal:
