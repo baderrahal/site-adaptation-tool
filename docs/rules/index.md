@@ -588,3 +588,7 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R730 Plot table holds villa plots.
 - R731 Mirror from block and footprint.
 - R732 Pair trace.
+
+## 23-fast7-r760-up.md
+
+- R760 Stop box of Build.
