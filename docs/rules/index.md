@@ -589,6 +589,11 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R731 Mirror from block and footprint.
 - R732 Pair trace.
 
+## 22-fast6-r750-up.md
+
+- R750 Data check sheet from the pane.
+- R751 Request written with no design value.
+
 ## 23-fast7-r760-up.md
 
 - R760 Stop box of Build.
