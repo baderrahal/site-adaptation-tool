@@ -11,7 +11,7 @@ Done:
 - R805. dotnet/SiteAdaptation.AddIn/PlaceVillas/UpgradingVillaDocument.cs wraps the document of button 7. Around each load, reload and make of a link type it closes the box of id TaskDialog_Views_Related_To_Analytical_Changed with Close and counts it. Any other box stays as before.
 - R806. The issues of step 7 name each file of an older Revit, read with BasicFileInfo before the load, and the number of boxes closed.
 - R807. The box of step 7 adds "link types new to the model N, of an older Revit M" and a line per older file.
-- Rules docs/rules/28-fast12-r805-up.md, tests dotnet/SiteAdaptation.Tests/FAST12/LinkUpgradeTests.cs, 8 tests.
+- Rules docs/rules/28-fast12-r805-up.md, tests dotnet/SiteAdaptation.Tests/FAST12/LinkUpgradeTests.cs, 8 tests. The task stays open until the Revit check.
 
 Checked:
 - quick tests PASS, net48 3307 passed, acceptance 45 passed 5 xpassed. A mutation of Close and of the year compare failed 3 tests.
