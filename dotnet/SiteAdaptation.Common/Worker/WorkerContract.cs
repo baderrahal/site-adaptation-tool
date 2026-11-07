@@ -55,9 +55,12 @@ namespace SiteAdaptation.Common
         public string RuleId { get; set; }
         public JToken NewValue { get; set; }
 
+        // R751, F4 of run 1 of FAST-3. The first Build of a fresh Revit session wrote its request before any config gave the design values,
+        // and no config/project.json lies above Revit, so the write stopped on R405. A request holds no measured number, it goes out as it
+        // is until one is known, and the run then takes the design values of its own config (WorkerRunner, R405)
         public string ToJson()
         {
-            return JsonOut.ToJson(this);
+            return DesignValues.Known ? JsonOut.ToJson(this) : JsonOut.ToJsonUnrounded(this);
         }
 
         public static WorkerRequest Read(string path)
