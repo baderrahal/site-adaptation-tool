@@ -243,6 +243,10 @@ namespace SiteAdaptation.Common.ReadData
             {
                 return RunLater.Failed(ApplyNoInput);
             }
+            if (new FileInfo(saved).Length > DataCheckApply.MaxBytes)
+            {
+                return RunLater.Failed(ApplyTooLarge);
+            }
             JObject before = Record(Path.Combine(from, RecordFile));
             List<ReadInput> inputs = (before?["inputs"] as JArray ?? new JArray()).OfType<JObject>().Where(item => (string)item["role"] != ConfirmedProfile.Role)
                 .Select(item => new ReadInput((string)item["role"], (string)item["path"], (long?)item["bytes"] ?? 0, (string)item["sha256"])).ToList();
@@ -320,6 +324,7 @@ namespace SiteAdaptation.Common.ReadData
         public const string ApplyNoRecord = "the read holds no record of a folder read";
         public const string ApplyConfigChanged = "the settings file changed since the read started";
         public const string ApplyNoResult = "the check gave no result";
+        public const string ApplyTooLarge = "the gathered files of the read are too large to take in Revit";
         public const string ApplyStopped = "the check on the confirmed values stopped: <why>";
 
         // R474. sources names per value kind the source read and from where, and each conflict pick applied

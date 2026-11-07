@@ -14,14 +14,36 @@ namespace SiteAdaptation.Common
         public const string InputFile = "data_check_input.json";
         public const string Format = "site-adaptation-data-check-input";
 
-        // The gathered files as they are before the check: the confirmed profile is left out, the check of a Confirm sets its own, and the ties
-        // are left out, the check fills them. The parameter sheet is kept by its path, as the shape of its rows is the sheet reader's
-        public static JObject Save(DataCheckInput input, string sheetPath)
+        // R790. The longest file Load takes, in bytes: its text is one .NET string, which holds at most about 1.07 billion characters. A larger
+        // file is refused by the apply before it is read, the confirmed values then count from the next read (R792)
+        public const long MaxBytes = 1000000000;
+
+        // The gathered files as they are before the check, written to the output by the worker with no indent and the drawing reads streamed
+        // as they are, as on S1 they are about 600 MB with no indent and 1.7 GB with one. The confirmed profile is left out, the check of a
+        // Confirm sets its own, and the ties are left out, the check fills them
+        public static void Write(Newtonsoft.Json.JsonWriter writer, Newtonsoft.Json.JsonConverter exact, DataCheckInput input, string sheetPath)
+        {
+            writer.Formatting = Newtonsoft.Json.Formatting.None;
+            writer.WritePropertyName("format");
+            writer.WriteValue(Format);
+            writer.WritePropertyName("cadReads");
+            writer.WriteStartArray();
+            foreach (JObject read in input.CadReads)
+            {
+                read.WriteTo(writer, exact);
+            }
+            writer.WriteEndArray();
+            foreach (JProperty item in Rest(input, sheetPath).Properties())
+            {
+                item.WriteTo(writer, exact);
+            }
+        }
+
+        // The parameter sheet is kept by its path, as the shape of its rows is the sheet reader's
+        private static JObject Rest(DataCheckInput input, string sheetPath)
         {
             return new JObject
             {
-                ["format"] = Format,
-                ["cadReads"] = new JArray(input.CadReads.Select(read => read.DeepClone())),
                 ["excels"] = JArray.FromObject(input.Excels),
                 ["pdfs"] = JArray.FromObject(input.Pdfs),
                 ["prototypeNames"] = new JArray(input.PrototypeNames),

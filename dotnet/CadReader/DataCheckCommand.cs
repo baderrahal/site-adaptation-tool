@@ -52,7 +52,7 @@ namespace CadReader
                 Gather(run, folder, settings, input);
                 string sheetPath = ReadParameterSheet(run, input);
                 // R790. The gathered files before the check, so a Confirm runs the check again on this read and reads no drawing twice
-                run.WriteJson(request.OutputFolder, DataCheckApply.InputFile, DataCheckApply.Save(input, sheetPath));
+                run.WriteJson(request.OutputFolder, DataCheckApply.InputFile, (writer, exact) => DataCheckApply.Write(writer, exact, input, sheetPath));
                 output = DataCheckApply.Check(settings, input, run.Issues);
             }
             run.WriteJson(request.OutputFolder, SiteAdaptation.Common.ReadData.ReadDataRun.DataCheckFile, output.Check);
