@@ -35,15 +35,30 @@ namespace SiteAdaptation.Common.Floors
         }
 
         // R570, R572. The settings of the config the build read and the surface they name, from the file the build read it from, held against
-        // the SHA-256 it read and marked before and after as every read of a real input is (D19)
+        // the SHA-256 it read and marked before and after as every read of a real input is (D19). R781: every other road surface the build read
+        // goes with it, read only when asked, so the toposolid takes the one that covers the ramps. A surface named that the build did not read
+        // is no stop while it read another
         private static RoadSurfaceRead RoadSurface(WorkerRequest request, string planPath)
         {
             List<WorkerFile> inputs = request.Inputs ?? new List<WorkerFile>();
             WorkerFile configFile = inputs.FirstOrDefault(item => item.Role == "config")
                 ?? throw new InvalidDataException("the run of 4 Check that built " + Path.GetFileName(planPath) + " names no config");
             RoadTopographySettings settings = RoadTopographySettings.Of(JObject.Parse(WorkFiles.ReadText(configFile.Path)));
-            WorkerFile input = inputs.FirstOrDefault(item => item.Role == WorkerRunner.RoadSurfaceRole + settings.Surface)
+            List<WorkerFile> roads = inputs.Where(item => item.Role != null && item.Role.StartsWith(WorkerRunner.RoadSurfaceRole, StringComparison.Ordinal)).ToList();
+            WorkerFile named = roads.FirstOrDefault(item => item.Role == WorkerRunner.RoadSurfaceRole + settings.Surface);
+            WorkerFile input = named ?? roads.FirstOrDefault()
                 ?? throw new InvalidDataException("the run of 4 Check that built " + Path.GetFileName(planPath) + " read no road surface " + settings.Surface + ", pick it in Road surfaces and run 4 Check again");
+            RoadSurfaceRead first = Surface(input, settings, planPath);
+            // R781. The line of the choice says when the surface config names was not read and another stands in
+            first.Named = named == null ? settings.Surface : null;
+            // Each read once, a press plans twice
+            first.Others = roads.Where(item => !ReferenceEquals(item, input)).Select(item => new Lazy<RoadSurfaceRead>(() => Surface(item, settings, planPath))).Select(read => (Func<RoadSurfaceRead>)(() => read.Value)).ToList();
+            return first;
+        }
+
+        // R781. One road surface the build read, under its own name in the settings
+        private static RoadSurfaceRead Surface(WorkerFile input, RoadTopographySettings settings, string planPath)
+        {
             Held(input.Role, input.Path, input.Sha256, planPath);
             InputMark before = InputGuard.Mark(input.Path);
             LandXmlFile file = LandXmlReader.Read(input.Path);
@@ -56,7 +71,7 @@ namespace SiteAdaptation.Common.Floors
             {
                 throw new InvalidDataException(file.File + " holds no surface");
             }
-            return new RoadSurfaceRead { Settings = settings, Surface = file.Surfaces[0], Mark = before };
+            return new RoadSurfaceRead { Settings = settings.For(input.Role.Substring(WorkerRunner.RoadSurfaceRole.Length)), Surface = file.Surfaces[0], Mark = before };
         }
 
         // R459. From the config the build read. No config on disk is no list, so every warning shows as it did

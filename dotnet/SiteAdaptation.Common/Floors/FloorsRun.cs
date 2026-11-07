@@ -223,14 +223,15 @@ namespace SiteAdaptation.Common.Floors
             try
             {
                 surfaceRead = surfaceRead ?? decision.Inputs.RoadTopography();
-                step.Read = surfaceRead;
                 List<PlannedFloor> scoped = decision.View.Floors.Where(floor => floor.InScope).ToList();
                 IEnumerable<double[]> outlines = scoped.SelectMany(floor => floor.Candidate.Floor.Outline.Value.Loops).SelectMany(loop => loop.Points);
                 // R573. A ramp this press leaves as it stands does not hold the corners of the plan, so its rows say so
                 var skipped = new HashSet<string>(decision.Steps.Where(item => item.Act == Act.Skip && item.Floor.IsRamp).Select(item => item.Floor.Plot), StringComparer.Ordinal);
                 // R340. The plan writes the two front corners of a ramp first
                 IEnumerable<RampEdge> edges = scoped.Where(floor => floor.IsRamp && floor.Candidate.Floor.Corners?.Value?.Count >= 2)
-                    .Select(floor => new RampEdge { Plot = floor.Plot, Start = floor.Candidate.Floor.Corners.Value[0], End = floor.Candidate.Floor.Corners.Value[1], Skipped = skipped.Contains(floor.Plot) });
+                    .Select(floor => new RampEdge { Plot = floor.Plot, Start = floor.Candidate.Floor.Corners.Value[0], End = floor.Candidate.Floor.Corners.Value[1], Skipped = skipped.Contains(floor.Plot) }).ToList();
+                // R781. The surface the ramps stand on, of those the build read
+                step.Read = RoadTopography.Covering(surfaceRead, edges);
                 step.Plan = RoadTopography.Plan(step.Read, outlines, edges);
                 step.Problem = step.Plan.Refused;
                 if (step.Problem == null)
@@ -260,6 +261,10 @@ namespace SiteAdaptation.Common.Floors
             if (context.DryRun)
             {
                 WriteToposolid(context, decision, step);
+            }
+            if (step.Read?.Why != null)
+            {
+                lines.Add(step.Read.Why);
             }
             lines.Add(step.Problem != null ? RoadTopography.NoToposolid(step.Problem) : RoadTopography.PreviewLine(step.Plan, step.Read.Settings, step.Action, step.Own));
             return lines;
@@ -291,6 +296,10 @@ namespace SiteAdaptation.Common.Floors
             var lines = new List<string>();
             ToposolidStep step = PlanToposolid(decision);
             string nbh = decision.Inputs.Plan.Neighbourhood ?? "all";
+            if (step.Read?.Why != null)
+            {
+                lines.Add(step.Read.Why);
+            }
             if (step.Problem == null)
             {
                 if (step.Action == RoadTopography.Keep)
