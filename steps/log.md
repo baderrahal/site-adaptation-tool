@@ -29,6 +29,31 @@ Next:
 Your turn:
 - Answer Q600 in steps/seam.md.
 
+## The new project path, 7 Nov 2026
+
+Goal:
+- Bader's order of 21:06: a real new project on Sun 8 Nov, the path from its folder to a built neighbourhood made fast.
+
+Done:
+- FAST-9-build-2 for F22 and FAST-10-build-3 for F8, files split by exact path from FAST-8-build-1.
+- steps/bader-form-8nov.md, the template.
+- steps/plan-fast-3days.md, the order of tonight and Sunday.
+
+Checked:
+- grep of steps/tasks: the allowed lists of FAST-8, FAST-9 and FAST-10 share only steps/seam.md, steps/log.md and docs/rules/index.md. R790 to R799 and Q610 to Q619 are free.
+
+Remains:
+- The intake script and its run on S1, the two lanes, short check 2.
+
+Known bugs:
+- Q600, no road surface of S1 covers 01A.
+
+Next:
+- Lead starts build-2 and build-3, writes the intake script.
+
+Your turn:
+- Sun 8 Nov: name the folder of the new project.
+
 ## FAST-7 PR 6, the Build goes on after Check, F25, 7 Nov 2026
 
 Goal:
