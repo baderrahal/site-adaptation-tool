@@ -444,6 +444,7 @@ Built in Lane B 5c. The title, band, buttons, chips, columns and side box are th
 - `Zoom to plot`
 - `Export to Excel`
 - `Save overrides`
+- `Close` CHOSEN, F25 of the short check of 7 Nov, FAST-7-build-3: the window closes by a button of its own, the Build goes on from there (R772)
 - `Each row is a plot where the tool and the past job differ. Pick a row to see why, then choose Rule, Past or Skip. Save overrides keeps your choices.`
 - `All`
 - `Plot cut`
@@ -823,6 +824,7 @@ The window What the tool read of Lane C SCAN-UI, word for word from docs/design/
 - `files read`
 - `plots found`
 - `villa plots of all plots` CHOSEN, F9 of run 1 of FAST-3, FAST-7-build-3: the head count of a data check that listed plots apart, its count "<n> of <n>" (R767)
+- `The Build kept the picks and values you confirmed before and showed no window.` CHOSEN, F6 of run 1 of FAST-3, FAST-7-build-3: the line of a step 2 the Build put back, Lead's version of 7 Nov 17:15 (R771)
 - `conflicts`
 - `Where each value comes from`
 - `The tool picks the source that covers the most plots. The others stay as checks.`

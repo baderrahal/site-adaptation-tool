@@ -27,6 +27,11 @@ namespace SiteAdaptation.AddIn.Pane
         private int at = -1;
         private int added;
         private bool readAsked;
+        // R771, F6 of run 1. The steps this build put back already, so none is put back twice in one build
+        private readonly HashSet<int> putBack = new HashSet<int>();
+        // R772, F25 of the short check. The steps that committed in this build. The statuses of the pane come after the end of a step that runs
+        // in Revit, so right after 4 Check committed step 5 still says it needs step 4. A step that committed is never put back, the build goes on
+        private readonly HashSet<int> committed = new HashSet<int>();
 
         public BuildChain(Func<int, string> stepName, Func<int, StepStatus> stepStatus)
         {
@@ -35,6 +40,17 @@ namespace SiteAdaptation.AddIn.Pane
         }
 
         public bool Running { get { return at >= 0; } }
+
+        // R772. True while the step given still waits on a step this build committed, as the pane has not hashed that step again yet. The gate of
+        // the flow reads the same statuses, so the next step runs once this is false, or stops then with its own reason
+        public bool WaitsOnCommitted(int step)
+        {
+            StepStatus now = status(step);
+            return Running && now.Kind == StepKind.NeedsStep && committed.Contains(now.Value);
+        }
+
+        // R771. The step running now, null with no build. A step 2 the build put back reads quietly while it is the step running
+        public int? Current { get { return Running ? steps[at] : (int?)null; } }
 
         // R741. True when the read for the build must run before Check, asked once per build when Check is next. Null never runs it
         public Func<bool> ReadFirst { get; set; }
@@ -52,6 +68,8 @@ namespace SiteAdaptation.AddIn.Pane
             steps.Clear();
             added = 0;
             readAsked = false;
+            putBack.Clear();
+            committed.Clear();
             steps.AddRange(Order.Where(step => step != 1 || !Ran(step)));
             at = 0;
             return Before(steps[at]);
@@ -95,6 +113,7 @@ namespace SiteAdaptation.AddIn.Pane
             {
                 messages.Add(step + ": " + message.Trim());
             }
+            committed.Add(number);
             at++;
             if (at >= steps.Count)
             {
@@ -117,7 +136,7 @@ namespace SiteAdaptation.AddIn.Pane
         private int Before(int step)
         {
             StepStatus now = status(step);
-            while (now.Kind == StepKind.NeedsStep && now.Value >= 1 && now.Value < step && added < MostAdded)
+            while (now.Kind == StepKind.NeedsStep && now.Value >= 1 && now.Value < step && added < MostAdded && !committed.Contains(now.Value) && putBack.Add(now.Value))
             {
                 added++;
                 steps.Insert(at, now.Value);

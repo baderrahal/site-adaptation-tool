@@ -2,6 +2,80 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## FAST-7 PR 6, the Build goes on after Check, F25, 7 Nov 2026
+
+Goal:
+- Item 10, F25 of the short check: the Build looped on 4 Check, 5 runs, and the Check window had no Close.
+
+Done:
+- R772: BuildChain keeps the steps that committed in this Build and never puts one back, so after Check commits the Build goes on to step 5, which PaneHost runs once the pane hashed Check again, at most 10 seconds later, as the gate of the flow reads the same statuses. The Check window has a Close beside Save overrides.
+- Shot steps/ui-shots/check-table.png with the Close, made up values. steps/tasks/FAST-7-build-3.md status done, the last PR of FAST-7.
+
+Checked:
+- R772_CheckGoesOnTests: Check committed while step 5 still waits on it goes on to 5, a step not committed is still put back once, the window shows its Close. Not seen in Revit.
+
+Remains:
+- The Revit check of FAST-7, every PR carries revit-later.
+
+Known bugs:
+- F23, a scope change alone makes step 2 stale, in Common.
+
+Next:
+- Lead's run 2 and the demo of Sun 8 Nov.
+
+Your turn:
+- Nothing.
+
+## FAST-7 PR 5, the Build reads and reviews without stopping, F6 and F13, 7 Nov 2026
+
+Goal:
+- F6 and F13 of run 1 in Lead's version of 17:15 and 17:38: a step 2 the Build puts back runs once and quietly, a Review Close with nothing changed counts as saved.
+
+Done:
+- R770: ReviewDataSession.Closed saves once when nothing is left unsaved, called by ReviewDataDialog after the window closes.
+- R771: BuildChain puts a step back once per Build and names the step running (Current). PaneHost sets QuietRead from it. ScanGate opens no window then, ConfirmProfileStep shows no check window and skips the Confirm only when the profile was confirmed for the same scan folder, by confirmed_for.json that each saving Confirm writes (Lead's point of 18:20, the demo reads two folders), else opens it.
+- steps/tasks/FAST-7-build-3.md stays open, Lead's word of 19:15: item 10, F25 of the short check, comes first.
+
+Checked:
+- R770_ReviewCloseTests, R771_QuietReadTests, R771_QuietWindowsTests, each with a broken case. The chain tests R688 and R741 unchanged and green. Not seen in Revit.
+
+Remains:
+- Item 10, F25 of the short check, the Build loops on Check. The Revit check of FAST-7 is owed, every PR carries revit-later.
+
+Known bugs:
+- F23: a scope change alone makes step 2 stale, so a Build after a scope change runs step 2 once more, now quietly.
+
+Next:
+- Item 10, F25, once Lead's PR 266 puts CheckTable on FAST-7.
+
+Your turn:
+- Nothing.
+
+## FAST-3-revit-test short check, 01A from card 1, 7 Nov 2026
+
+Goal:
+- Lead's order of 14:40, Bader's: on a fresh empty copy, NBH 01A (tuned), Choose project folder on card 1 with S1, then Build on card 2 to the end, Preview first ticked. Pass: floors and ramps, levels, villa links and walls placed with no stop at Check.
+
+Done:
+- Two parts in Revit on FAST3-short-01A.rvt, 15:15 to 17:06 and 17:07 to 18:50, the add-in of main 89d1c69 installed 14:59, Always Load pressed at 15:16:17 and 17:08:16. The copy saved at the end of each part, closed by File, Exit, no lock left.
+- Card 1: Settings, 1 Set up site (5 of 5 check points), the read of S1 twice (694 s and 655 s), Confirm, Scope 01A. Build: rules template Yes, Preview Go on, review of 278 plots saved, 4 Check ran, F16 is past.
+- Faults F24 to F28 in steps/seam.md, the record in steps/revit-results/FAST-3-revit-test.md.
+
+Checked:
+- Floors: 538 by the dry run box in Revit and 538 in floors_01A.json on disk, 269 plots, by a script. S1 unchanged, 37 files by SHA-256.
+
+Remains:
+- FAIL of the pass: the Build loops on Check (F25) and never reached Floors. Floors and ramps placed from Advanced Run 5 only, 269 generic and 269 ramp, no yard, no toposolid (F27). Levels, villa links, walls: 0, never ran.
+
+Known bugs:
+- F24 choosing the folder undoes step 1, F25 the Build loops on Check, F26 Check reads the data book of the past job, F27 no toposolid and a Revit overlap box, F28 278, 297 and 269 plots for one area.
+
+Next:
+- Lead decides run 2 from this record. The copy holds steps 1 to 5 on 01A and can go on from step 6 in Advanced.
+
+Your turn:
+- Nothing.
+
 ## The short check failed, the faults given, 7 Nov 2026
 
 Goal:

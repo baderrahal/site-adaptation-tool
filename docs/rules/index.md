@@ -611,6 +611,9 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R767 Villa plots of all plots.
 - R768 Baseplan of the chosen folder.
 - R769 Folder keeps step 1.
+- R770 Review close counts as saved.
+- R771 Quiet read in the Build.
+- R772 Check commits, Build goes on.
 
 ## 24-fast8-r780-up.md
 

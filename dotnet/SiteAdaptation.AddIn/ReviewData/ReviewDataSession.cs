@@ -56,6 +56,16 @@ namespace SiteAdaptation.AddIn.ReviewData
             }
         }
 
+        // R770, F13 of run 1: a Close with nothing changed counts as saved, so a Build that runs 3 Review data goes on and is never stopped as
+        // cancelled. A Close after Don't save over marks not saved stays not saved, as before
+        public void Closed()
+        {
+            if (!Saved && !Model.NotSavedShown)
+            {
+                Save();
+            }
+        }
+
         // R446. Whether the window may close. With marks not saved it asks. Save closes only once the save ran, its reason stays shown
         // when it did not. Don't save closes, Cancel stays
         public bool CanClose(Func<ReviewCloseChoice> ask)
