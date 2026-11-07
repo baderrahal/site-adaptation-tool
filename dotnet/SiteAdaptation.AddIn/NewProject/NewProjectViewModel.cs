@@ -168,6 +168,9 @@ namespace SiteAdaptation.AddIn.NewProject
         private readonly Func<string, bool, bool> there;
         private readonly IPathPicker picker;
         private readonly Func<string, string> readText;
+
+        // R797. The reader of the files as they are, for the shipped set itself, readText reads the shipped config as a new project will hold it
+        private readonly Func<string, string> readFiles;
         private readonly Dictionary<string, string> picks = new Dictionary<string, string>(StringComparer.Ordinal);
         private StartChoice start;
 
@@ -217,7 +220,8 @@ namespace SiteAdaptation.AddIn.NewProject
             this.current = current ?? new ProjectSettings();
             this.there = there;
             this.picker = picker;
-            this.readText = readText;
+            readFiles = readText;
+            this.readText = shipped == null ? readText : shipped.Seen(readText);
             ProjectName = projectName ?? string.Empty;
             Starts = new[] { new StartChoice(NewProjectText.EmptyProject, null) }
                 .Concat((starts ?? new SavedStart[0]).Select(saved => new StartChoice(TextTemplate.Fill(NewProjectText.SavedName, saved.Name), saved))).ToList();
@@ -491,7 +495,7 @@ namespace SiteAdaptation.AddIn.NewProject
             }
             if (!previewRead)
             {
-                preview = shipped.Preview(readText);
+                preview = shipped.Preview(readFiles);
                 previewRead = true;
             }
             return preview;
@@ -508,7 +512,7 @@ namespace SiteAdaptation.AddIn.NewProject
             {
                 try
                 {
-                    taken = shipped.Take(readText);
+                    taken = shipped.Take(readFiles);
                 }
                 catch (Exception error) when (error is IOException || error is UnauthorizedAccessException || error is InvalidDataException || error is JsonException || error is ArgumentException || error is NotSupportedException || error is InvalidOperationException)
                 {
@@ -549,7 +553,7 @@ namespace SiteAdaptation.AddIn.NewProject
         private void ShowMode()
         {
             ProjectSettings next = Next();
-            string mode = next.ProjectMode ?? ProjectModes.OfConfig(ProjectModes.ReadConfig(next.ConfigFile, readText)) ?? (Takes ? shipped.NewMode(readText) : null);
+            string mode = next.ProjectMode ?? ProjectModes.OfConfig(ProjectModes.ReadConfig(next.ConfigFile, readText)) ?? (Takes ? shipped.NewMode(readFiles) : null);
             ModeLine = mode == null ? string.Empty : mode == Common.DesignBasis.Rev6 ? NewProjectText.ModeRev6 : NewProjectText.ModePast;
         }
 
