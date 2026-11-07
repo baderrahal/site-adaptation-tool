@@ -640,3 +640,9 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R800 Plot built with a value missing.
 - R801 Card 2 lists plots left out.
 - R802 Card 3 counts the scope.
+
+## 28-fast12-r805-up.md
+
+- R805 Upgrade box closed.
+- R806 Upgraded files listed.
+- R807 Box counts new link types.

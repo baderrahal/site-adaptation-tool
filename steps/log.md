@@ -24,6 +24,29 @@ Known bugs:
 
 Next:
 - Run 2 on 01A builds about 265 plots.
+## build-3, FAST-12, step 7 and prototypes of an older Revit, 8 Nov 2026
+
+Goal:
+- F31 of short check 2: an unwatched Build must not wait on the box "Structural Analytical Model Upgrade" of step 7, and the box of step 7 counts the link types it loads and says they upgrade.
+
+Done:
+- R805. dotnet/SiteAdaptation.AddIn/PlaceVillas/UpgradingVillaDocument.cs wraps the document of button 7. Around each load, reload and make of a link type it closes the box of id TaskDialog_Views_Related_To_Analytical_Changed with Close and counts it. Any other box stays as before.
+- R806. The issues of step 7 name each file of an older Revit, read with BasicFileInfo before the load, and the number of boxes closed.
+- R807. The box of step 7 adds "link types new to the model N, of an older Revit M" and a line per older file.
+- Rules docs/rules/28-fast12-r805-up.md, tests dotnet/SiteAdaptation.Tests/FAST12/LinkUpgradeTests.cs, 8 tests. The task stays open until the Revit check.
+
+Checked:
+- quick tests PASS, net48 3307 passed, acceptance 45 passed 5 xpassed. A mutation of Close and of the year compare failed 3 tests.
+- Second check in Python: the buttons run LB6E logged the id with Close 8 taken in step 7, the driver of short check 2 pressed Close on the title 4 times, a Revit file header gives Format as a bare year.
+
+Remains:
+- The Revit check, label revit-later, owed by run 2 of revit-test (steps/revit-results/FAST-12-build-3.md).
+
+Known bugs:
+- "link types to load" of PlaceVillasRun still counts only unloaded types, the new count stands beside it (steps/seam.md).
+
+Next:
+- Run 2 checks step 7 on 2021 prototypes.
 
 Your turn:
 - None.
