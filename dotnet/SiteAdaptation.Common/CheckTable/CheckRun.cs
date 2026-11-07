@@ -38,6 +38,9 @@ namespace SiteAdaptation.Common.CheckTable
         // The inputs of the read the build takes again, by the role the read named them
         private static readonly string[] ReadRoles = { "config", "plotsCsv", "labels" };
 
+        // R780. The roles of the read that name files of the data book of the work root, the past job, which a rev6 build never takes
+        public static readonly string[] DataBookRoles = { "plotsCsv", "labels" };
+
         // The files beside config the build reads by name (docs/design/06-settings.md section 6)
         private const string FloorFile = "floor_outlines.json";
         private static readonly string[] BesideConfig = { FloorFile, "prototype_offsets.json" };
@@ -165,6 +168,11 @@ namespace SiteAdaptation.Common.CheckTable
                 {
                     continue;
                 }
+                // R780. Under rev6 the plots come from the plot table of the read below, a file of the data book the read named is no input, so its change stops nothing
+                if (rev6 && DataBookRoles.Contains(role))
+                {
+                    continue;
+                }
                 if (path == null || !File.Exists(path) || !string.Equals(FileHash.Sha256(path), (string)input["sha256"], StringComparison.OrdinalIgnoreCase))
                 {
                     changed.Add(Path.GetFileName(path ?? role));
@@ -205,6 +213,20 @@ namespace SiteAdaptation.Common.CheckTable
             foreach (KeyValuePair<string, string> file in ReadFiles)
             {
                 Add(plan, file.Key, Path.Combine(plan.ReadFolder, file.Value), "the read " + Path.GetFileName(plan.ReadFolder) + " holds no " + file.Value + ", run 2 Read data again");
+            }
+            if (rev6)
+            {
+                // R780. The plots of the project from the plot table of the read, missing when it holds none, never the data book
+                ProjectPlots.Written plots = ProjectPlots.Write(plan.ReadFolder, context.WorkFolder);
+                if (plots.Missing != null)
+                {
+                    plan.Stops.Add(plots.Missing);
+                }
+                else
+                {
+                    Add(plan, DataBookRoles[0], plots.Plots, null);
+                    Add(plan, DataBookRoles[1], plots.Labels, null);
+                }
             }
             string root = Path.GetDirectoryName(Path.GetDirectoryName(plan.ConfigPath));
             string rulesPath = Path0(Rules);
