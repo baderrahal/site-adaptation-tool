@@ -1,26 +1,26 @@
 # revit-test heads-up, FAST-3-revit-test
 
-7 Nov 2026, 19:00. Short check done and closed. Revit closed by File, Exit at 18:49:25, exited 18:50:05, no Revit process, no lock. Task status stays open for run 2.
+8 Nov 2026, 00:20. Short check 2 done and closed. Revit closed by File, Exit at 00:01:32, exited 00:02:01, no Revit process, no lock. Task status stays open for run 2.
 
 ## Final statement
 
-- Short check on NBH 01A (tuned) from a fresh empty copy, FAST3-short-01A.rvt, on the add-in of main 89d1c69 installed 14:59, two parts under 110 minutes, 15:15 to 17:06 and 17:07 to 18:50, the copy saved at the end of each. Always Load pressed at 15:16:17 and 17:08:16.
-- Result: FAIL of the pass. The Build of card 2 passed Check for the first time (F16 is fixed) but loops on Check: each Check commits and opens its window, and on close the Build asks for Check again, 5 times, until a Cancel stopped it, "Build stopped at Check, cancelled." (F25). The Build placed nothing.
-- Counts placed: floors and ramps 538 on 269 plots (269 generic, 269 ramp, 0 yard) by Run 5 of Advanced, not by the Build. Toposolid none. Levels 0, villa links 0, walls 0, steps 6 to 8 never ran.
-- New faults F24 to F28 in steps/seam.md: F24 choosing the folder undoes step 1 (work around: Set up site, folder, Set up site, the same folder again), F25 the Check loop, F26 Check reads the data book of the past job, F27 no yard floors and no toposolid on 01A plus a Revit overlap box that waits for a person, F28 278, 297 and 269 plots for one area. F9 and F10 are fixed, F2, F21 and F22 seen again.
-- From 15:56 to 17:04 nothing was sent: the keep awake Teams meeting showed its full view. Lead's message of 17:00, Bader's words "ignore the teams": drive3.ps1 and the gate scripts now leave out both titles of that one meeting, the old driver kept as drive3.before-1700.ps1.
+- Short check 2 on NBH 01A (tuned) from a fresh empty copy, FAST3-short2-01A.rvt, on the add-in Lead installed at 22:01, one part 22:16 to 00:02, under 110 minutes, the copy saved at 00:00:08. Always Load pressed at 22:18:18.
+- Result: PASS of Lead's pass. The Build of card 2 ran its 8 steps to the end with no stop at Check, card 2 "Done, 462 issues".
+- Counts placed: floors and ramps 124 on 62 plots (62 generic, 62 ramp, 0 yard), road toposolid 1 (Compiled West_MM), levels 124 at the plan, 0 moved, villa links 62 of 4 prototype files, walls 178.
+- But only 62 of the 278 plots of 01A were built, F29: the plan leaves out 216, most with no hand and no CASE or Foundation Type. The short check of 7 Nov placed floors on 269.
+- New faults F29 to F31 in steps/seam.md: F29 62 of 278 plots, F30 card 3 says 2615 plots have no road level, F31 the Revit 2021 links upgrade on load with 4 Revit boxes that wait for a person. Fixed and seen in Revit: F2, F24, F25, F28 for Review and Check, the overlap box of F27, F6 and F13. F22 seen again, on the add-in before PR 272.
+- A driver fault of mine at 22:52: one click aimed below the screen opened the GlobalProtect tray panel. Nothing was pressed in it. From then each click scrolls the pane and refuses a point outside it.
 - S1 unchanged: 37 files, SHA-256 equal before and after.
-- No shot in git, they show real values. They stay in fast3-revit-test/shots/short of the work root, one per card: s01-start.png and s08-after-setup.png (card 1), s31-scope.png (card 2 before Build), s41-card-end.png (end).
+- No shot in git, they show real values. They stay in fast3-revit-test/shots/short2 of the work root, one per card: s03-after-save.png (card 1), s14-scope.png (card 2 before Build), s25-card-end.png (the 3 cards at the end).
 
 ## What changed, where
 
-- steps/revit-results/FAST-3-revit-test.md: the short check section, parts 1 and 2, the result table.
-- steps/seam.md: F24 to F28 and F2 seen again.
-- steps/log.md: the short check entry.
-- No code. Outside the repo: drive3.ps1 of the work root, the Teams exemption widened by Lead's message.
+- steps/revit-results/FAST-3-revit-test.md: the short check 2 section, part 1 and the result table.
+- steps/seam.md: F29 to F31 and the fixed list.
+- steps/log.md: the short check 2 entry.
+- No code. Outside the repo: the helpers of this check in the session scratch folder, drive3.ps1 unchanged.
 
 ## Next
 
-- Lead decides run 2. The copy FAST3-short-01A.rvt holds steps 1 to 5 on 01A, step 6 Levels Ready, so it can go on from step 6 in Advanced.
-- Main now holds PR 264, R769 of build-3, the fix of F24, and PR 260, R768, merged after this check began. Not seen in Revit, run 2 needs Lead's new install.
-- IT maintenance at 19:30: no Revit part starts after 19:00.
+- Lead decides run 2, moved to Sun 06:00 by Lead. The copy FAST3-short2-01A.rvt holds the built 01A.
+- Main now holds PR 272 (F22) and PR 273 (FAST-10), merged after the install of 22:01. Not seen in Revit, run 2 needs Lead's new install.
