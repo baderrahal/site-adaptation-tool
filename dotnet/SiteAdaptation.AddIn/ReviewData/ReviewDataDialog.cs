@@ -24,6 +24,7 @@ namespace SiteAdaptation.AddIn.ReviewData
                 new WindowInteropHelper(window).Owner = owner;
             }
             window.ShowDialog();
+            session.Closed();
             return new ReviewAnswer { Saved = session.Saved };
         }
     }
