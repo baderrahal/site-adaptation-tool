@@ -2,6 +2,54 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## FAST-7 takes UiLabelTests.cs, 7 Nov 2026
+
+Goal:
+- build-3 asked for dotnet/SiteAdaptation.Tests/UiLabelTests.cs, its line 203 holds the count of CHOSEN labels, 517, which each new word of FAST-7 moves.
+
+Done:
+- UiLabelTests.cs added to the list of FAST-7-build-3 by exact path.
+- ScanResultsWindow.xaml too, for F9, its header of the check window is a fixed text shared with the old scan view of step 2.
+
+Checked:
+- grep of steps/tasks: FAST-5 and FAST-6 hold neither file. A new label of build-1 goes to build-3 by steps/seam.md.
+
+Remains:
+- Nothing for this change.
+
+Known bugs:
+- None.
+
+Next:
+- build-3 goes on with F1.
+
+Your turn:
+- Nothing.
+
+## FAST-6-build-2 part 1, F10 and F4, 7 Nov 2026
+
+Goal:
+- Bader's order of 10:05: F10, the parameter sheet reaches the data check of stage 1, and the Common side of F4, the first Build of a fresh session makes its plan.
+
+Done:
+- F10 measured: card 1 on a project with no past file takes the raw read, which skips DataCheckStep, and ReadDataRun.DataCheckRequest builds the request with config, folder and profile only. R750 DataCheckSheet.Input in Common gives the sheet, DataCheckStep.SheetInput calls it, the one call in ReadDataRun is build-1's by steps/seam.md, as Common/ReadData is on FAST-5.
+- F4 measured: WorkerRequest.ToJson rounds by DesignValues.Current before WorkerRunner takes the config of the run. R751 writes a request unrounded while no value is known, as the answer does. SiteBuildPlan.Make needs no change.
+
+Checked:
+- FAST6 tests, R751 runs Make in Windows PowerShell 5.1 from a copy of the build outside the repo, a revert of the fix gives the R405 text of F4. Second check: PowerShell 7 with CadReader.exe, sharedParameters strong. Quick tests PASS, acceptance 45 passed 5 xpassed, net48 3215 of 3216, the one a launch timing test that passes 3 of 3 alone.
+
+Remains:
+- build-1 adds the call of R750 to ReadDataRun.DataCheckRequest with a FAST5 test, then the task is done. Not seen in Revit.
+
+Known bugs:
+- WorkerRunTests.R347_an_answer_that_does_not_read_or_a_hand_off_that_throws_never_ends_the_host failed once in a full net48 run, "the worker never ended".
+
+Next:
+- revit-test's short check after the merge: the first Build of a fresh session plans, and the data check of card 1 says Shared parameters strong once build-1's call is on main.
+
+Your turn:
+- Nothing.
+
 ## FAST-7 item 1, the stop box of Build, 7 Nov 2026
 
 Goal:
