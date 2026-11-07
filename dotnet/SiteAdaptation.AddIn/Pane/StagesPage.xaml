@@ -82,7 +82,7 @@
   </Page.Resources>
 
   <DockPanel Background="{StaticResource SA.Surface}">
-    <Border DockPanel.Dock="Top" Background="{StaticResource SA.Band}" Padding="{StaticResource SA.Pad.Box}">
+    <Border x:Name="HeadBox" DockPanel.Dock="Top" Background="{StaticResource SA.Band}" Padding="{StaticResource SA.Pad.Box}">
       <Grid>
         <Grid.ColumnDefinitions>
           <ColumnDefinition Width="*" />
