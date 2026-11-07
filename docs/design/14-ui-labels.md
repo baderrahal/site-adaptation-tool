@@ -287,6 +287,8 @@ An entry marked CHOSEN in 5a was worded in 5a PR 2 or PR 5, where docs/design/ g
 - `Position from` CHOSEN, R514, the first row of What the tool will set
 - `Position source` CHOSEN, R513, the section above What the project has now
 - `Use CAD, pick a position file or type Easting, Northing and Angle. Apply stays off until a source works.` CHOSEN, R513
+- `Press Dry run first. Apply turns on after it.` CHOSEN, F2 of run 1 of FAST-3, FAST-7-build-3: the line beside a grey Apply before the dry run (R766)
+- `Tick the site drawing Current under Current files. Apply turns on then.` CHOSEN, F2, the line beside a grey Apply after the dry run while the site drawing is not ticked (R766)
 - `Use CAD` CHOSEN, R513
 - `Pick position file` CHOSEN, R513
 - `Easting` CHOSEN, R513
