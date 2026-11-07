@@ -148,6 +148,11 @@
                 CornerRadius="{StaticResource SA.Radius.Control}" Padding="{StaticResource SA.Pad.Panel}">
           <StackPanel>
             <ContentControl Content="{Binding Card2}" ContentTemplate="{StaticResource CardHead}" />
+            <!-- R760, F12. A Build that stopped says the step and the reason in a box of its own, until the next press of Build -->
+            <Border x:Name="StopBox" Margin="{StaticResource SA.Gap.Top8}" Background="{StaticResource SA.WarnGround}" BorderBrush="{StaticResource SA.WarnBorder}" BorderThickness="{StaticResource SA.Line.All}"
+                    CornerRadius="{StaticResource SA.Radius.Control}" Padding="{StaticResource SA.Pad.SectionBox}" Visibility="{Binding HasStop, Converter={StaticResource Shown}}">
+              <TextBlock Style="{StaticResource SA.Type.Body}" Foreground="{StaticResource SA.Warn}" TextWrapping="Wrap" Text="{Binding StopLine}" />
+            </Border>
             <!-- R686. The scope in the words of the project, the Preview tick and the line of the last press -->
             <TextBlock Style="{StaticResource SA.Type.Body}" TextWrapping="Wrap" Margin="{StaticResource SA.Gap.Top4}" Text="{Binding ScopeLine}" />
             <TextBlock Style="{StaticResource CardLine}" Text="{Binding Card2.Line}" />
