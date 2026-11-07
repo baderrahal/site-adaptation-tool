@@ -112,6 +112,59 @@ namespace SiteAdaptation.Tests
             });
         }
 
+        // R769, F24 of the short check. After step 1, PaneHost writes the folder and calls FolderChosen: the same folder runs the read, another folder
+        // takes its own Baseplan and runs step 1 first, though step 1 still shows done until the pane hashes the config again
+        [Fact]
+        public void R769_after_step_1_the_same_folder_runs_the_read_and_another_folder_runs_step_1_with_its_own_baseplan()
+        {
+            PaneSettings made = Project("Made Plan.dwg");
+            string folderA = Path.Combine(root, "project");
+            string folderB = Path.Combine(root, "project B");
+            Directory.CreateDirectory(folderB);
+            File.WriteAllText(Path.Combine(folderB, "Made Plan.dwg"), "stand in");
+            Fast7Sta.Run(() =>
+            {
+                StagesPage page = SiteAdaptation.UiShots.Shots.LaidOutStages(false);
+                var stages = (StagesViewModel)page.DataContext;
+                var steps = new List<StepStatus> { new StepStatus(StepKind.Done), new StepStatus(StepKind.Ready) };
+                for (int before = 2; before <= 8; before++)
+                {
+                    steps.Add(new StepStatus(StepKind.NeedsStep, before));
+                }
+                stages.Model.SetSteps(steps);
+                stages.Model.Settings.ConfigFile = made.ConfigFile;
+                stages.Model.PickInput(InputKeys.Baseplan, Path.Combine(folderA, "Made Plan.dwg"));
+                var asked = new List<int>();
+                stages.Model.RunRequested += asked.Add;
+
+                stages.FolderChosen(folderA, folderA);
+                Assert.Equal(new[] { StagesViewModel.ReadDataStep }, asked);
+                Assert.Equal(Path.Combine(folderA, "Made Plan.dwg"), stages.Model.Settings.InputPath(InputKeys.Baseplan));
+
+                // Broken on purpose: another folder, as the config now names it
+                JObject config = JObject.Parse(File.ReadAllText(made.ConfigFile));
+                config["inputRoot"] = folderB;
+                File.WriteAllText(made.ConfigFile, config.ToString());
+                asked.Clear();
+                stages.FolderChosen(folderA, folderB);
+                Assert.Equal(new[] { StagesViewModel.SetUpStep }, asked);
+                Assert.Equal(Path.Combine(folderB, "Made Plan.dwg"), stages.Model.Settings.InputPath(InputKeys.Baseplan));
+            });
+        }
+
+        [Fact]
+        public void R769_paneHost_hands_the_folder_to_folderChosen_and_never_asks_for_the_read_alone()
+        {
+            string host = File.ReadAllText(Path.Combine(ThemeGateTests.RepoRoot(), "dotnet", "SiteAdaptation.AddIn", "App", "PaneHost.cs"));
+            int start = host.IndexOf("private void ChooseProjectFolder(StagesViewModel stages)", StringComparison.Ordinal);
+            Assert.True(start > 0);
+            string body = host.Substring(start, host.IndexOf("private void FixItems", start, StringComparison.Ordinal) - start);
+            Assert.Contains("string before = ProjectFolderPick.Chosen(settings.ConfigFile);", body);
+            Assert.Contains("stages.FolderChosen(before, chosen);", body);
+            Assert.DoesNotContain("RequestRun(StagesViewModel.ReadDataStep)", body);
+            Assert.True(body.IndexOf("ProjectFolderPick.Chosen", StringComparison.Ordinal) < body.IndexOf("ProjectFolderPick.Write", StringComparison.Ordinal));
+        }
+
         private static readonly string ShippedSetFolder = SiteAdaptation.Common.Settings.ShippedSet.ProjectsFolder;
 
         [Fact]
