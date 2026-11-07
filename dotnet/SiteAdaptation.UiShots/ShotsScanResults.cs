@@ -23,6 +23,17 @@ namespace SiteAdaptation.UiShots
             return window;
         }
 
+        // R767, F9. The window of a data check alone, 3 made up villa plots of 4 numbered plots, so the head says villa plots of all plots
+        public static ScanResultsWindow LaidOutCheckOnly()
+        {
+            DataCheckResult check = DataCheckRows.ReadResult(
+                "{\"needs\":[{\"need\":\"plotOutlines\",\"mark\":\"strong\",\"line\":\"The plots of the sample drawing.\"}],\"files\":[{\"name\":\"site.dwg\",\"kind\":\"drawing\",\"status\":\"read\"}]}",
+                "{\"plots\":[{\"number\":\"1\"},{\"number\":\"2\"},{\"number\":\"3\"}],\"otherPlots\":[{\"number\":\"4\",\"why\":\"made up\"}]}");
+            var window = new ScanResultsWindow(new ScanResultsSession(new ScanViewData(), new ProjectSettings(), null, check, true));
+            LayOut(window);
+            return window;
+        }
+
         public static ScanResultsSession SampleScanResults()
         {
             return new ScanResultsSession(ScanView.Read(SampleScanJson().ToString(), new ProjectSettings()), new ProjectSettings(), () => null);

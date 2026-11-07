@@ -199,7 +199,9 @@ namespace SiteAdaptation.Tests
             // FAST-1-build-1 added 24 of the pane in 3 stages (R680, R681), review 1 of PR 228 2 more, a stopped read and Fix items not opened.
             // Item 3 took out the line that the rules table is not wired and added 25 of the rules table of a project (R682, R683)
             // Item 4 took out the line that Build is not wired and added 17 of card 2 and the 2D preview, its review 1 more, a position file that did not read. The chain of steps took out the line that they still run from Advanced and added 5. Card 3 took out its old line and added 6, Q504 1
-            Assert.Equal(517, chosen);
+            // FAST-7-build-3 added 7: card 1 waits for step 1, the setup not saved, the dry run first and the tick of the site drawing in Set up site,
+            // the villa plots of all plots, and How it works on the 3 cards, its line now CHOSEN and the head of each card (R761 to R767)
+            Assert.Equal(524, chosen);
             Assert.True(matched > 100, matched.ToString());
         }
 

@@ -822,6 +822,7 @@ The window What the tool read of Lane C SCAN-UI, word for word from docs/design/
 - `The tool read your files and proposes where each value comes from. If a pick is wrong, change it from the list. Nothing changes in the model.`
 - `files read`
 - `plots found`
+- `villa plots of all plots` CHOSEN, F9 of run 1 of FAST-3, FAST-7-build-3: the head count of a data check that listed plots apart, its count "<n> of <n>" (R767)
 - `conflicts`
 - `Where each value comes from`
 - `The tool picks the source that covers the most plots. The others stay as checks.`

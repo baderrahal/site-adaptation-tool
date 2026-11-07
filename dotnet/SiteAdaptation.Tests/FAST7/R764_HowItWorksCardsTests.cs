@@ -41,8 +41,8 @@ namespace SiteAdaptation.Tests
         {
             Fast7Sta.Run(() =>
             {
-                var window = SiteAdaptation.UiShots.Shots.LaidOutHowItWorks();
-                var texts = Fast7Sta.Visuals(window).OfType<System.Windows.Controls.TextBlock>().Where(text => text.IsVisible || text.ActualHeight > 0).Select(text => text.Text).ToList();
+                var body = SiteAdaptation.UiShots.Shots.Body(SiteAdaptation.UiShots.Shots.LaidOutHowItWorks());
+                var texts = Fast7Sta.Visuals(body).OfType<System.Windows.Controls.TextBlock>().Where(text => text.ActualHeight > 0).Select(text => text.Text).ToList();
                 foreach (string head in new[] { 1, 4, 9 }.Select(HowItWorksViewModel.CardOf))
                 {
                     Assert.Contains(head, texts);

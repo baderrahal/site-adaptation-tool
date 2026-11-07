@@ -50,13 +50,14 @@ namespace SiteAdaptation.UiShots
         public const string PaneStage2Stopped = "pane-stage-2-stopped";
         public const string PaneStagesHead = "pane-stages-head";
         public const string SetUpDryRunFirst = "setup-site-dry-run-first";
+        public const string ScanResultsCheck = "scan-results-check";
         public const string ProjectRules = "project-rules";
         public const string BuildPreview = "build-preview";
         public static readonly string[] Windows = { RibbonIcons, Pane, PaneFirstOpen, SetUpSite, ReviewData, Rules, CheckTable, UpdateFromReport, NewProject, HowItWorks, ScanResults };
 
         // R492. Drawn by the command line and Render, not in Windows: UiShotTests counts 11 windows and holds each of them to the sizes of the spec,
         // so the window Road surfaces joins Windows once Bader approves its draft and that test follows
-        public static readonly string[] Drafts = { RoadSurfaces, HelpBox, SetUpNoSource, ConfirmProfile, PaneStage1, PaneStage2, PaneStage3, PaneStage2Stopped, PaneStagesHead, SetUpDryRunFirst, ProjectRules, BuildPreview };
+        public static readonly string[] Drafts = { RoadSurfaces, HelpBox, SetUpNoSource, ConfirmProfile, PaneStage1, PaneStage2, PaneStage3, PaneStage2Stopped, PaneStagesHead, SetUpDryRunFirst, ScanResultsCheck, ProjectRules, BuildPreview };
 
         private const double Dpi = 96.0;
 
@@ -85,6 +86,7 @@ namespace SiteAdaptation.UiShots
                 case PaneStage2Stopped: return StoppedCardShot();
                 case PaneStagesHead: return BoxShot(LaidOutStages(true), "HeadBox");
                 case SetUpDryRunFirst: return SetUpDryRunFirstPage();
+                case ScanResultsCheck: return Draw(Body(LaidOutCheckOnly()));
                 case ProjectRules: return ProjectRulesPage();
                 case BuildPreview: return BuildPreviewPage();
                 default: throw new ArgumentException("no window " + window + ", only " + string.Join(", ", Windows), nameof(window));
