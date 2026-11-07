@@ -58,6 +58,27 @@ At 23:10:
 - 00:46: run 1 not started. At 00:44 the PC was 5 minutes idle, then the permission check of the revit-test session (auto mode) refused the launch of the Revit driver under python/window_lock.py, with no reason given. Revit not opened, no input sent. BLOCKED until Bader allows that launch in the revit-test session, or runs the lane where it is allowed. Lead does not launch it for the lane.
 - 23:37: Bader's order, the driver presses Always Load on our own Unsigned Add-In box, PR 246.
 
+## Sat 7 Nov 17:05, IT maintenance at 19:30, how to start again
+
+Bader, 16:50: IT maintenance at 19:30 may shut the PC down without warning. If nothing happens after 19:30, work goes on.
+
+Before 19:15: revit-test ends its Revit part by 19:10, saves the copy, closes Revit with File, Exit and pushes task/FAST-3-revit-test-short with its record. build-3 pushes task/FAST-7-build-3-chain with steps/heads-up/build-3.md. No Revit part starts after 19:00.
+
+Where it stands at 17:05:
+- Main 1ef4ab7. The add-in installed is 89d1c69 of 14:59, without PR 260 and the F24 fix.
+- Short check of 01A, revit-test: part 1 reached step 1 Done on card 1, then F24 stopped Choose project folder. Part 2 tries the work around Lead gave: the folder first, then step 1, then Build. Nothing built yet. The driver paused from 15:56 on the full Teams view of the keep awake meeting, now exempt as the revit rules say.
+- build-3, FAST-7: item 8, F24 in PaneHost.cs with the held card 1 fix, then item 9, F6 and F13.
+- FAST-5 and FAST-6 open until the short check sees the Build to the end and the parameter sheet strong. build-1 and build-2 stopped.
+- S1-new ready for 010. steps/bader-form-7nov.md item 1, A by default at 11:00 Sun.
+
+After a shut down, Lead in the main folder, in this order:
+1. git fetch, gh pr list. Merge a green PR, merge main into a red one.
+2. Start build-3 again: .venv\Scripts\python scripts\lanesun_lane.py build-3 <prompt> --model opus --effort high --resume FAST-7-build-3, the prompt says go on from steps/heads-up/build-3.md.
+3. When the F24 PR of build-3 is on main and Revit is closed: build and install main with Install-SiteAdaptation.ps1, nothing pressed.
+4. Start revit-test again on the short check: run_lane.py revit-test <prompt> --model opus --effort high --resume FAST-3-short, a fresh empty copy of the model, 01A, Choose project folder, Build to the end.
+5. Pass: run 2 at 23:30, the full FAST-3 on 01A. Fail: the fault to steps/seam.md and to the lane that holds the file, the same hour.
+6. Sun 8 Nov by 12:00 the run of 010 on S1-new, by 13:00 steps/demo-live.md in two parts, demo 17:00.
+
 ## Sat 7 Nov 16:15, S1-new for 010
 
 The scan found no untuned neighbourhood that S1 can build with villa links from real data: 01B holds 105 plots with a villa type in PH_1-DLUS, but the S1 baseplan draws 2 of them (steps/investigations/roshen-mecca-scan.md). So the plan of 14:40 stands: the demo folder S1-new in the work root, a copy of S1, gives 11 of the 16 villa plots of 010 their type from the footprint blocks, rows added to the sales sheet of its DLUS workbook, proven by the worker of the installed add-in outside Revit, S1 unchanged by SHA-256. The 5 left and the clash with PH_1-DLUS are item 1 of steps/bader-form-7nov.md. revit-test runs 010 on S1-new on Sun 8 Nov by 12:00, the text is in FAST-3-revit-test.md.

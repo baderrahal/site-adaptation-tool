@@ -2,6 +2,30 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Ready for the maintenance of 19:30, 7 Nov 2026
+
+Goal:
+- Bader, 16:50: IT maintenance at 19:30 may shut the PC down. Every lane safe by 19:15, and a way to start again.
+
+Done:
+- steps/plan-fast-3days.md: where each lane stands at 17:05 and the order to start again after a shut down.
+- The driver exemption for Teams widened to the full view of the same keep awake meeting, by Bader's words of 00:16, in .claude/rules/revit.md and FAST-3-revit-test.md. The driver paused from 15:56 on that view.
+
+Checked:
+- revit-test answered: part 2 ends by 19:10 saved, no part after 19:00. build-3 told to push by 19:15.
+
+Remains:
+- The short check, the F24 PR, run 2.
+
+Known bugs:
+- F24 in steps/seam.md.
+
+Next:
+- Lead merges on green and reads the short check.
+
+Your turn:
+- Nothing.
+
 ## The Build chain files move to FAST-7, 7 Nov 2026
 
 Goal:
