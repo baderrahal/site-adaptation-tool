@@ -22,6 +22,10 @@ Known bugs:
 
 Next:
 - F6 and F13.
+
+Your turn:
+- Nothing.
+
 ## Ready for the maintenance of 19:30, 7 Nov 2026
 
 Goal:
