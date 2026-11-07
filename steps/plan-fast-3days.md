@@ -58,6 +58,10 @@ At 23:10:
 - 00:46: run 1 not started. At 00:44 the PC was 5 minutes idle, then the permission check of the revit-test session (auto mode) refused the launch of the Revit driver under python/window_lock.py, with no reason given. Revit not opened, no input sent. BLOCKED until Bader allows that launch in the revit-test session, or runs the lane where it is allowed. Lead does not launch it for the lane.
 - 23:37: Bader's order, the driver presses Always Load on our own Unsigned Add-In box, PR 246.
 
+## Sat 7 Nov 16:15, S1-new for 010
+
+The scan found no untuned neighbourhood that S1 can build with villa links from real data: 01B holds 105 plots with a villa type in PH_1-DLUS, but the S1 baseplan draws 2 of them (steps/investigations/roshen-mecca-scan.md). So the plan of 14:40 stands: the demo folder S1-new in the work root, a copy of S1, gives 11 of the 16 villa plots of 010 their type from the footprint blocks, rows added to the sales sheet of its DLUS workbook, proven by the worker of the installed add-in outside Revit, S1 unchanged by SHA-256. The 5 left and the clash with PH_1-DLUS are item 1 of steps/bader-form-7nov.md. revit-test runs 010 on S1-new on Sun 8 Nov by 12:00, the text is in FAST-3-revit-test.md.
+
 ## Sat 7 Nov 15:00, the demo moves to Sun 8 Nov 17:00 Riyadh
 
 Bader's orders of 14:40 and 14:50: the managers see the tool on Sun 8 Nov at 17:00, on a new project, a neighbourhood not used for tuning.
