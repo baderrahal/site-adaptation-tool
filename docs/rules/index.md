@@ -589,6 +589,11 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R731 Mirror from block and footprint.
 - R732 Pair trace.
 
+## 21-fast5-r740-up.md
+
+- R740 Rows from the project folder.
+- R741 Read for the build before Check.
+
 ## 22-fast6-r750-up.md
 
 - R750 Data check sheet from the pane.

@@ -377,14 +377,45 @@ namespace SiteAdaptation.AddIn
                 ShowPreview = ShowPreview,
             };
             // R688. The steps of version 1 one after another, each by RequestRun as a press of its row, and each end back here through Buttons.ChainEnded
-            var chain = new BuildChain(number => model.Steps.FirstOrDefault(step => step.Number == number)?.Name ?? number.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                number => number <= model.Statuses.Count ? model.Statuses[number - 1] : new StepStatus(StepKind.None));
+            // R741. The read for the build is a read of step 2, so it goes by the name of that step
+            Func<int, string> stepName = number => model.Steps.FirstOrDefault(step => step.Number == (number == BuildChain.ReadForCheck ? StagesViewModel.ReadDataStep : number))?.Name
+                ?? number.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            var chain = new BuildChain(stepName,
+                number => number <= model.Statuses.Count ? model.Statuses[number - 1] : new StepStatus(StepKind.None))
+            {
+                ReadFirst = () => Fast5.BuildRead.Needed(WorkFolderNow()),
+            };
             string planLine = null;
+            // R688, R741. Each end of a step of the build, from Buttons.ChainEnded or from the read for the build, shows its line and runs the next
+            Func<int, Common.Flow.RunEnd, string, bool> endOf = null;
+            Action<int> runStep = number =>
+            {
+                if (number != BuildChain.ReadForCheck)
+                {
+                    model.RequestRun(number);
+                    return;
+                }
+                PaneSettings settings = model.Settings;
+                DocumentSession document = model.Document;
+                string work = WorkFolderNow();
+                if (settings == null || document == null || work == null)
+                {
+                    endOf(number, Common.Flow.RunEnd.Stopped, SiteBuildText.NoRead);
+                    return;
+                }
+                Fast5.BuildRead.Start(settings, work, new Common.WorkerDocument { Path = document.Path, SessionId = document.SessionId }, ReadDataBody.Worker, stepName(number),
+                    (done, message) => endOf(number, done ? Common.Flow.RunEnd.Committed : Common.Flow.RunEnd.Stopped, message));
+            };
             stages.BuildRequested += () =>
             {
                 if (chain.Running)
                 {
                     return;
+                }
+                // R740, F5 of run 1. The rows the folder of stage 1 gives, before the plan and the steps that read them
+                if (model.Settings != null)
+                {
+                    Fast5.BuildRead.FillRows(model.Settings, model.PickInput);
                 }
                 bool goOn = build.Run(stages.PreviewFirst, out string line);
                 planLine = line;
@@ -394,7 +425,7 @@ namespace SiteAdaptation.AddIn
                 stages.Refresh();
                 if (first.HasValue)
                 {
-                    model.RequestRun(first.Value);
+                    runStep(first.Value);
                 }
             };
             // R689. Card 3 reads the newest plan of the work folder again only when it changed
@@ -417,20 +448,23 @@ namespace SiteAdaptation.AddIn
                 runner.Command = nameof(Commands.UpdateFromReportCommand);
                 runEvent.Raise();
             };
-            Buttons.ChainEnded = (number, outcome) =>
+            endOf = (number, end, message) =>
             {
-                if (!chain.Ended(number, outcome.End, outcome.Message, out int? next, out string line))
+                if (!chain.Ended(number, end, message, out int? next, out string line))
                 {
                     return false;
                 }
                 stages.ShowBuild(planLine + " " + line);
+                // F12, R760 of FAST-7: a step that stopped says so in a box, the read for the build too
+                stages.ShowStop(end, line);
                 stages.Refresh();
                 if (next.HasValue)
                 {
-                    model.RequestRun(next.Value);
+                    runStep(next.Value);
                 }
                 return true;
             };
+            Buttons.ChainEnded = (number, outcome) => endOf(number, outcome.End, outcome.Message);
             var page = new StagesPage(stages, new SitePanePage(model));
             probe.Post = action => page.Dispatcher.BeginInvoke(action);
             data.FrameworkElement = page;

@@ -94,6 +94,21 @@ namespace SiteAdaptation.Common.ReadData
         // parent is the work root of R372 the data book folder lies in. picked gives the road surfaces picked in Set up, read under rev6 alone (R492)
         public static ReadPlan Make(IReadOnlyList<RunInput> pane, IReadOnlyDictionary<string, string> roles, string workFolder, IReadOnlyList<string> picked = null, string mode = null)
         {
+            return Make(pane, roles, workFolder, picked, mode, false);
+        }
+
+        // R740. The steps of the location plan and the plot table, which the read for the build leaves out: the plot table comes from the data check
+        public static readonly IReadOnlyList<string> PlotTableSteps = new[] { LocationPlan.LabelStepName, LocationPlan.FitStepName, LocationPlan.CheckStepName, LocationPlan.FacesStepName, PlotTable.StepName };
+
+        // R740. The read 4 Check needs on a project whose stage 1 read the folder: the drawings, the road surfaces, the workbooks and the data book of
+        // the old read, with no schedule and no plot number file, as the plot table of the data check stands for the location plan
+        public static ReadPlan ForBuild(IReadOnlyList<RunInput> pane, IReadOnlyDictionary<string, string> roles, string workFolder, IReadOnlyList<string> picked = null, string mode = null)
+        {
+            return Make(pane, roles, workFolder, picked, mode, true);
+        }
+
+        private static ReadPlan Make(IReadOnlyList<RunInput> pane, IReadOnlyDictionary<string, string> roles, string workFolder, IReadOnlyList<string> picked, string mode, bool forBuild)
+        {
             var stops = new List<string>();
             var found = new List<KeyValuePair<string, string>>();
             RunInput configInput = pane.FirstOrDefault(input => roles.TryGetValue(input.Name, out string role) && role == Config);
@@ -129,7 +144,7 @@ namespace SiteAdaptation.Common.ReadData
                     {
                         stops.Add(input.Name + ": config names no road surface and Set up picked none (R490)");
                     }
-                    foreach (string name in rev6 ? RoadSurfaceChoices.Named(config, picked) : Strings(config.SelectToken("siteBuild.roadSurfaces")))
+                    foreach (string name in RoadNames(config, picked))
                     {
                         // R492. A surface siteBuild.roadFolder.notTaken names covers corners with the wrong level, so it is refused with its reason
                         string why = rev6 ? RoadSurfaceChoices.NotTakenWhy(config, name) : null;
@@ -154,6 +169,10 @@ namespace SiteAdaptation.Common.ReadData
                     stops.Add(input.Name + ": " + Path.GetFileName(input.Path) + " is kept for reference only (drawings.referenceOnly) and is never read (R300)");
                     continue;
                 }
+                if (forBuild && role == LocationPlan.PlotNumbersRole)
+                {
+                    continue;
+                }
                 Add(found, stops, role, input.Path, input.Name + " is not on disk: " + input.Path);
             }
             JObject read = config.SelectToken("addin.readData") as JObject;
@@ -171,9 +190,13 @@ namespace SiteAdaptation.Common.ReadData
             {
                 Add(found, stops, CadLayers, Path.Combine(Path.GetDirectoryName(configPath), layers), "the layer list " + layers + " of addin.readData.cadLayers is not on disk beside config");
             }
-            Schedules(config, read, found, stops);
-            DataBook(read, workFolder, found, stops);
-            return Plan(found, stops, configPath, order);
+            if (!forBuild)
+            {
+                Schedules(config, read, found, stops);
+            }
+            DataBook(read, workFolder, found, stops, forBuild);
+            ReadPlan plan = Plan(found, stops, configPath, order);
+            return forBuild ? new ReadPlan(plan.Inputs, plan.Steps.Where(step => !PlotTableSteps.Contains(step)).ToList(), plan.Stops, plan.ConfigPath, plan.RoadOrder) : plan;
         }
 
         // R351. The fit schedule must be named, and every schedule named must be on disk, as the worker refuses the read without them
@@ -271,7 +294,7 @@ namespace SiteAdaptation.Common.ReadData
                 if (read != null)
                 {
                     Schedules(config, read, found, lacks);
-                    DataBook(read, workFolder, found, lacks);
+                    DataBook(read, workFolder, found, lacks, false);
                 }
                 return read == null || lacks.Count > 0 ? config : null;
             }
@@ -281,10 +304,15 @@ namespace SiteAdaptation.Common.ReadData
             }
         }
 
-        private static ReadInput FolderInput(string folder, HashSet<string> skip)
+        // R492. The road surfaces the old read takes: those named or picked under rev6, those of siteBuild.roadSurfaces under the past job
+        public static IEnumerable<string> RoadNames(JObject config, IReadOnlyList<string> picked)
         {
-            long bytes = 0;
-            var lines = new List<string>();
+            return RoadSurfaceChoices.IsRev6(config) ? RoadSurfaceChoices.Named(config, picked) : Strings(config.SelectToken("siteBuild.roadSurfaces"));
+        }
+
+        // R635. Every file of the folder as a raw read walks it: a folder of skip at any depth and, as the worker walks it, a link or junction are never followed
+        public static IEnumerable<string> FilesOf(string folder, HashSet<string> skip)
+        {
             var pending = new Stack<string>();
             pending.Push(folder);
             while (pending.Count > 0)
@@ -292,15 +320,24 @@ namespace SiteAdaptation.Common.ReadData
                 string here = pending.Pop();
                 foreach (string file in Directory.GetFiles(here))
                 {
-                    var info = new FileInfo(file);
-                    bytes += info.Length;
-                    lines.Add(file.Substring(folder.Length) + "|" + info.Length + "|" + info.LastWriteTimeUtc.Ticks);
+                    yield return file;
                 }
-                // As the worker walks it, a link or junction is never followed
                 foreach (string child in Directory.GetDirectories(here).Where(child => !skip.Contains(Path.GetFileName(child)) && (File.GetAttributes(child) & FileAttributes.ReparsePoint) == 0))
                 {
                     pending.Push(child);
                 }
+            }
+        }
+
+        private static ReadInput FolderInput(string folder, HashSet<string> skip)
+        {
+            long bytes = 0;
+            var lines = new List<string>();
+            foreach (string file in FilesOf(folder, skip))
+            {
+                var info = new FileInfo(file);
+                bytes += info.Length;
+                lines.Add(file.Substring(folder.Length) + "|" + info.Length + "|" + info.LastWriteTimeUtc.Ticks);
             }
             lines.Sort(StringComparer.Ordinal);
             using (SHA256 hash = SHA256.Create())
@@ -311,7 +348,8 @@ namespace SiteAdaptation.Common.ReadData
         }
 
         // The road levels read plots.csv and labels.csv and the plot table the border of the data book, by addin.readData of config
-        private static void DataBook(JObject read, string workFolder, List<KeyValuePair<string, string>> found, List<string> stops)
+        // R740. The read for the build leaves out the border, which only the plot table takes, as the worker starts the plot table on a border
+        private static void DataBook(JObject read, string workFolder, List<KeyValuePair<string, string>> found, List<string> stops, bool forBuild)
         {
             string folder = Text(read, "dataBookFolder");
             JObject files = read["dataBookFiles"] as JObject;
@@ -321,7 +359,7 @@ namespace SiteAdaptation.Common.ReadData
                 return;
             }
             string book = Path.IsPathRooted(folder) ? folder : Path.Combine(Path.GetDirectoryName(Path.GetFullPath(workFolder)), folder);
-            foreach (JProperty file in files.Properties().OrderBy(item => item.Name, StringComparer.Ordinal))
+            foreach (JProperty file in files.Properties().Where(item => !forBuild || item.Name != PlotTable.BorderRole).OrderBy(item => item.Name, StringComparer.Ordinal))
             {
                 string name = file.Value.Type == JTokenType.String ? (string)file.Value : null;
                 if (name == null)

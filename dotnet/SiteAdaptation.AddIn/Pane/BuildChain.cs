@@ -16,12 +16,17 @@ namespace SiteAdaptation.AddIn.Pane
         // A step may wait on an earlier one more than once in a build, never on more than this many, so a build can never loop
         public const int MostAdded = 6;
 
+        // R741. The read for the build is no step of the pane, it runs right before 4 Check when the latest read lacks what Check takes
+        public const int CheckStep = 4;
+        public const int ReadForCheck = 10;
+
         private readonly Func<int, string> name;
         private readonly Func<int, StepStatus> status;
         private readonly List<int> steps = new List<int>();
         private readonly List<string> messages = new List<string>();
         private int at = -1;
         private int added;
+        private bool readAsked;
 
         public BuildChain(Func<int, string> stepName, Func<int, StepStatus> stepStatus)
         {
@@ -30,6 +35,9 @@ namespace SiteAdaptation.AddIn.Pane
         }
 
         public bool Running { get { return at >= 0; } }
+
+        // R741. True when the read for the build must run before Check, asked once per build when Check is next. Null never runs it
+        public Func<bool> ReadFirst { get; set; }
 
 
         // The first step, null when a build runs already. Set up site runs only when it has not run yet, as a run of it again makes the read and the review
@@ -43,6 +51,7 @@ namespace SiteAdaptation.AddIn.Pane
             messages.Clear();
             steps.Clear();
             added = 0;
+            readAsked = false;
             steps.AddRange(Order.Where(step => step != 1 || !Ran(step)));
             at = 0;
             return Before(steps[at]);
@@ -114,6 +123,15 @@ namespace SiteAdaptation.AddIn.Pane
                 steps.Insert(at, now.Value);
                 step = now.Value;
                 now = status(step);
+            }
+            // After the steps Check waits on, so a read of stage 1 run again in this build comes before the read for the build
+            if (steps[at] == CheckStep && !readAsked && ReadFirst != null)
+            {
+                readAsked = true;
+                if (ReadFirst())
+                {
+                    steps.Insert(at, ReadForCheck);
+                }
             }
             return steps[at];
         }
