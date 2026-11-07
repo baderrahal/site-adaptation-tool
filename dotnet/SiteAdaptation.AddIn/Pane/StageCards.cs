@@ -162,6 +162,18 @@ namespace SiteAdaptation.AddIn.Pane
             }
         }
 
+        internal static bool SameFolder(string one, string other)
+        {
+            try
+            {
+                return string.Equals(Path.GetFullPath(one).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar), Path.GetFullPath(other).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar), StringComparison.OrdinalIgnoreCase);
+            }
+            catch (Exception failure) when (failure is ArgumentException || failure is NotSupportedException || failure is PathTooLongException)
+            {
+                return false;
+            }
+        }
+
         public static string Write(string configFile, string workRoot, string chosen, string workFolder)
         {
             string refused = Refusal(configFile, workRoot, chosen, workFolder);
@@ -172,6 +184,11 @@ namespace SiteAdaptation.AddIn.Pane
             try
             {
                 JObject config = JObject.Parse(WorkFiles.ReadText(configFile));
+                // R769, F24 of the short check. The config is an input of step 1, so the same folder chosen again leaves the file as it is and step 1 done
+                if (config["inputRoot"]?.Type == JTokenType.String && SameFolder((string)config["inputRoot"], chosen))
+                {
+                    return null;
+                }
                 config["inputRoot"] = Path.GetFullPath(chosen);
                 string temporary = configFile + ".choosing";
                 File.WriteAllText(temporary, config.ToString(Newtonsoft.Json.Formatting.Indented));
@@ -192,6 +209,21 @@ namespace SiteAdaptation.AddIn.Pane
         public const int SetUpStep = 1;
         public const int ReadDataStep = 2;
         public const int ReviewStep = 3;
+
+        // R769, F24 of the short check. The step Choose project folder runs once the folder is written: the read when step 1 is done on the config
+        // as it is now, else step 1, as a new folder changes the config, an input of step 1, and the read would only meet "2 Read data needs step 1"
+        public static int StepAfterFolder(IReadOnlyList<StepStatus> statuses)
+        {
+            StepKind first = statuses != null && statuses.Count > 0 ? statuses[0].Kind : StepKind.None;
+            return first == StepKind.Done || first == StepKind.Issues ? ReadDataStep : SetUpStep;
+        }
+
+        // R769. The same with the folder the config named before the write: another folder changed the config, so step 1 runs again whatever the
+        // statuses still say before the pane hashes the config again
+        public static int StepAfterFolder(IReadOnlyList<StepStatus> statuses, string before, string chosen)
+        {
+            return before != null && chosen != null && ProjectFolderPick.SameFolder(before, chosen) ? StepAfterFolder(statuses) : SetUpStep;
+        }
         public const int ReportStep = 9;
         private bool settingsOpen;
         private string rulesLine;
@@ -324,7 +356,7 @@ namespace SiteAdaptation.AddIn.Pane
         {
             DialogPicker.Start = ProjectFolderPick.Chosen(Model.Settings?.ConfigFile) ?? DialogPicker.Start;
             pickLine = null;
-            if (Ran(SetUpStep))
+            if (StepAfterFolder(Model.Statuses) == ReadDataStep)
             {
                 ChooseFolderRequested?.Invoke();
                 return;
@@ -339,17 +371,29 @@ namespace SiteAdaptation.AddIn.Pane
             pickLine = ProjectFolderPick.Write(Model.Settings.ConfigFile, WorkRootNow?.Invoke(), chosen, WorkFolderNow?.Invoke());
             if (pickLine == null)
             {
-                // Review 1 of PR 3: a Baseplan the folder chosen before gave goes with that folder, so a second choice takes its own
-                string row = Model.Settings.InputPath(InputKeys.Baseplan);
-                if (WorkFolder.Inside(row, before) && !WorkFolder.Inside(row, chosen))
-                {
-                    Model.PickInput(InputKeys.Baseplan, null);
-                }
-                Model.PickConfig(Model.Settings.ConfigFile);
-                Fast7.SetUpBaseplan.Fill(Model.Settings, Model.PickInput);
-                Model.RequestRun(SetUpStep);
+                FolderChosen(before, chosen);
             }
             Card1.Line = Card1Line();
+        }
+
+        // R768, R769, F24 of the short check. After a folder is written into the config, by card 1 before step 1 or by PaneHost.ChooseProjectFolder
+        // after it: a Baseplan the folder chosen before gave goes with it, an empty Baseplan row takes the one of the new folder, and the read runs
+        // only when step 1 still holds on the config, else step 1 runs first, never the box "2 Read data needs step 1". before is the folder the
+        // config named before the write
+        public void FolderChosen(string before, string chosen)
+        {
+            if (Model.Settings == null)
+            {
+                return;
+            }
+            string row = Model.Settings.InputPath(InputKeys.Baseplan);
+            if (WorkFolder.Inside(row, before) && !WorkFolder.Inside(row, chosen))
+            {
+                Model.PickInput(InputKeys.Baseplan, null);
+            }
+            Model.PickConfig(Model.Settings.ConfigFile);
+            Fast7.SetUpBaseplan.Fill(Model.Settings, Model.PickInput);
+            Model.RequestRun(StepAfterFolder(Model.Statuses, before, chosen));
         }
 
         // The line of card 1: a refused folder, else the ask for step 1, else the line of the read

@@ -610,3 +610,4 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R766 Dry run first line.
 - R767 Villa plots of all plots.
 - R768 Baseplan of the chosen folder.
+- R769 Folder keeps step 1.
