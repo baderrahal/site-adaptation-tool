@@ -17,8 +17,8 @@ using SiteAdaptation.Common.Review;
 
 namespace SiteAdaptation.Tests
 {
-    // R740 to R742, F16 and F4 of run 1 of FAST-3. The Build fills the input rows from the project folder, reads the drawings, road surfaces and workbooks for
-    // 4 Check itself before Check, and makes its plan on the design values of the config of the run. Every file name is made up, every file is a stand in
+    // R740 and R741, F16 of run 1 of FAST-3. The Build fills the input rows from the project folder and reads the drawings, road surfaces and workbooks for
+    // 4 Check itself before Check. Every file name is made up, every file is a stand in
     public sealed class R740_BuildReadTests : IDisposable
     {
         private const string Road = "Made Up Road A";
@@ -63,7 +63,9 @@ namespace SiteAdaptation.Tests
             Directory.CreateDirectory(book);
             File.WriteAllText(Path.Combine(book, "plots.csv"), "stand in");
             File.WriteAllText(Path.Combine(book, "labels.csv"), "stand in");
-            config["addin"]["readData"] = new JObject { ["cadLayers"] = "layers.json", ["dataBookFolder"] = book, ["dataBookFiles"] = new JObject { ["plotsCsv"] = "plots.csv", ["labels"] = "labels.csv" } };
+            File.WriteAllText(Path.Combine(book, "border.csv"), "stand in");
+            // The border is there, as in the data book of a real project, and the read for the build must leave it out: the worker starts the plot table on it
+            config["addin"]["readData"] = new JObject { ["cadLayers"] = "layers.json", ["dataBookFolder"] = book, ["dataBookFiles"] = new JObject { ["plotsCsv"] = "plots.csv", ["labels"] = "labels.csv", ["border"] = "border.csv" } };
             return config;
         }
 
@@ -331,24 +333,6 @@ namespace SiteAdaptation.Tests
             // Not needed, the chain is as before
             var plain = new BuildChain(number => "Step" + number, number => new StepStatus(StepKind.Done)) { ReadFirst = () => false };
             Assert.Equal(4, plain.Start());
-        }
-
-        [Fact]
-        public void R742_the_plan_takes_the_design_values_of_the_config_of_the_run_and_says_why_when_they_do_not_read()
-        {
-            string work = Path.Combine(root, "work");
-            string read = Path.Combine(work, "read-a");
-            Directory.CreateDirectory(read);
-            File.WriteAllText(Path.Combine(read, "plots.json"), "{\"plots\":[]}");
-            File.WriteAllText(Path.Combine(read, "project_profile.json"), "{}");
-            JObject config = JObject.Parse(File.ReadAllText(WorkerRunTests.RepoConfig()));
-            ((JObject)config[DesignValues.Block]).Remove("placer");
-            string configFile = Path.Combine(root, "broken.json");
-            File.WriteAllText(configFile, config.ToString());
-            SiteBuildResult result = SiteBuildPlan.Make(new SiteBuildPlace { ConfigFile = configFile, ReadFolder = read, WorkFolder = work });
-            Assert.StartsWith("the design values were not read from the config " + configFile, result.Failure);
-            Assert.Contains("placer", result.Failure);
-            Assert.False(Directory.Exists(work) && Directory.GetFiles(work, "request_*").Length > 0);
         }
 #endif
     }

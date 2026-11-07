@@ -194,7 +194,7 @@ namespace SiteAdaptation.Common.ReadData
             {
                 Schedules(config, read, found, stops);
             }
-            DataBook(read, workFolder, found, stops);
+            DataBook(read, workFolder, found, stops, forBuild);
             ReadPlan plan = Plan(found, stops, configPath, order);
             return forBuild ? new ReadPlan(plan.Inputs, plan.Steps.Where(step => !PlotTableSteps.Contains(step)).ToList(), plan.Stops, plan.ConfigPath, plan.RoadOrder) : plan;
         }
@@ -294,7 +294,7 @@ namespace SiteAdaptation.Common.ReadData
                 if (read != null)
                 {
                     Schedules(config, read, found, lacks);
-                    DataBook(read, workFolder, found, lacks);
+                    DataBook(read, workFolder, found, lacks, false);
                 }
                 return read == null || lacks.Count > 0 ? config : null;
             }
@@ -334,7 +334,8 @@ namespace SiteAdaptation.Common.ReadData
         }
 
         // The road levels read plots.csv and labels.csv and the plot table the border of the data book, by addin.readData of config
-        private static void DataBook(JObject read, string workFolder, List<KeyValuePair<string, string>> found, List<string> stops)
+        // R740. The read for the build leaves out the border, which only the plot table takes, as the worker starts the plot table on a border
+        private static void DataBook(JObject read, string workFolder, List<KeyValuePair<string, string>> found, List<string> stops, bool forBuild)
         {
             string folder = Text(read, "dataBookFolder");
             JObject files = read["dataBookFiles"] as JObject;
@@ -344,7 +345,7 @@ namespace SiteAdaptation.Common.ReadData
                 return;
             }
             string book = Path.IsPathRooted(folder) ? folder : Path.Combine(Path.GetDirectoryName(Path.GetFullPath(workFolder)), folder);
-            foreach (JProperty file in files.Properties().OrderBy(item => item.Name, StringComparer.Ordinal))
+            foreach (JProperty file in files.Properties().Where(item => !forBuild || item.Name != PlotTable.BorderRole).OrderBy(item => item.Name, StringComparer.Ordinal))
             {
                 string name = file.Value.Type == JTokenType.String ? (string)file.Value : null;
                 if (name == null)

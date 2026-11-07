@@ -86,14 +86,6 @@ namespace SiteAdaptation.AddIn.Pane
                 result.Failure = SiteBuildText.NoRead;
                 return result;
             }
-            // R742, F4 of run 1. The plan runs in the process of Revit, whose folder has no config of the repo above it, so the design values come from the
-            // config of the run before any request is written, as a button takes them from the settings of its session
-            string refused = DesignValues.UseConfigFile(place.ConfigFile);
-            if (refused != null)
-            {
-                result.Failure = refused;
-                return result;
-            }
             string runId = "build-" + DateTime.UtcNow.ToString("yyyyMMddHHmmssfff", CultureInfo.InvariantCulture);
             string output = Path.Combine(place.WorkFolder, FolderPrefix + runId);
             var inputs = new List<WorkerFile> { Input("plotTable", table), Input("projectProfile", profile), Input("config", place.ConfigFile) };
