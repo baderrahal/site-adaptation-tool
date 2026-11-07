@@ -8,7 +8,7 @@ Goal:
 - F24 of the short check needs PaneHost.cs, F6 and F13 need PaneHost.cs and BuildChain.cs, build-1 stopped after PR 256.
 
 Done:
-- PaneHost.cs and BuildChain.cs taken off FAST-5-build-1 and put on FAST-7-build-3, with item 9, the part of F24 in PaneHost.cs. CHOSEN by Lead, a fresh build-1 session for one line costs more than build-3, which holds the cards.
+- PaneHost.cs and BuildChain.cs taken off FAST-5-build-1 and put on FAST-7-build-3, with item 8, the part of F24 in PaneHost.cs. CHOSEN by Lead, a fresh build-1 session for one line costs more than build-3, which holds the cards.
 
 Checked:
 - grep of steps/tasks: no other open task lists the two files.
