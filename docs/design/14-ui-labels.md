@@ -766,7 +766,8 @@ The page How it works of Lane C NEWPROJ-UI, word for word from docs/design/board
 
 - `How it works`
 - `Read once`
-- `The tool puts each villa on its plot at the right level. It works in nine steps, one button each, always in this order. Each step needs the one before.`
+- `The tool puts each villa on its plot at the right level. The pane holds three cards, used in this order: Project data, Build site, Review and deliver. Each card runs the steps listed under it, and Advanced keeps one button per step.` CHOSEN, F17 of run 1 of FAST-3, FAST-7-build-3: the window teaches the 3 cards, not the nine steps of version 1 (R764)
+- `Card <n>, <name>: <name>` CHOSEN, F17, the head of each card over its first step, the card title and its main button (R764)
 - `Nothing changes in the model until you press Apply.`
 - `<n> steps`
 - `<n> buttons in the pane`
