@@ -150,3 +150,27 @@ Lead's order of 14:40, Bader's: the short check after PR 256 (F16) and PR 254 (F
 2. Lead's work-around order of 17:00 for F24 was folder first, then 1 Set up site, then Build. On this add-in Choose project folder is grey until step 1 is Done (enabled False by UI Automation at 17:19, R761), so the folder could not come first. Build and 3 Review data were grey too.
 3. 17:20 1 Set up site, 5 of 5 pass, Apply: card 1 "No data check yet. Choose the project folder.", Build still grey (s23-p2-after-setup.png).
 4. 17:24 Choose project folder, S1 again: this time the box "2 Read data, Dry run done, nothing was changed. Reads the folder and the settings file. Files in the folder: 37, 1317.4 MiB" (s24-p2-folder-box.png). So the work-around of F24 that worked: Set up site, choose the folder (step 1 undone), save and reopen or not, Set up site again, choose the same folder again. Apply 17:25.
+5. 17:37 What the tool read: 7 files read, "2,618 of 2,964 villa plots of all plots" (F9 words fixed), Shared parameters Strong (F10 fixed), Group levels Weak "Areas found by distance only: 2" (s26-read-end.png). Close, Confirm what was found with Typology_Rev8.1 (2570 plots) and Neighbourhood_ID (2955 plots), both proposed, Confirm: "Your values are saved. Press Read data again to read with them." F22 stands.
+6. 17:43 Choose project folder again, S1, Apply, 655 s: "Areas from the confirmed column: 13". Close, Cancel on Confirm (values stay). Scope under Advanced: Neighbourhood 01A of the list -, 010, 012, 013, 01A, 01B, 02, 021, 022, 023, 03. Card 2: "Scope: the neighbourhood 01A." Steps 1 and 2 Done, Build enabled (s31-scope.png).
+7. 18:02 Build on card 2, Preview first ticked. The box "No rules are chosen for this project. Use the rules template of site adaptation manual ... Rev 06?" Yes. Preview of the build: "2615 plots with an outline, 2619 issues", Go on. 2 Read data reused the read, What the tool read Close, Confirm Cancel, "3 Review data, NBH 01A, 278 plots", Save review, Close. 4 Check box "builds NBH 01A on the read ... from 30 inputs", Apply.
+8. 18:05 4 Check ran and opened "4 Check, NBH 01A, 297 plots": profile parsons2024Rev6, 0 overrides, All 911 rows, Floor 852, Unit code 16, Level 11, Parameter 28, "3 plots follow every rule" (s35-check.png). F16 is past, Check no longer stops on the missing reads. The window has no Close button. Closed by its frame, the Build asked "4 Check, Nothing changes until Apply" again, 5 times from 18:05 to 18:13, each Check committed (run_4_*.json, plan_01A.json). Save overrides kept the window open. 18:13 Cancel on the next Check box: "Build stopped at Check, cancelled." Step 4 then showed "1 issue", step 5 Ready. F25.
+9. 18:25 as a check of the floor step only, Run 5 Floors and ramps of Advanced (Next step): "Floors: place 538, move 0, already placed 0, skip 0, listed 269", Apply. Revit's own box "Warning, Highlighted floors overlap", OK at 18:27 (s40-1-warning.png). The step ended with "271 issues", step 6 Ready.
+10. 18:47:40 the copy saved by the Save button of the quick access bar (Ctrl+S with the pane in focus did not save at 18:45). 18:49:25 File, Exit Revit. 18:50:05 "Revit exited", "revit left open: False", no lock, no Revit process.
+
+## Result of the short check
+
+FAIL by the pass of Lead's order: the Build of card 2 did not run to the end, it loops on Check (F25) and was stopped there by Cancel at 18:13. Counts placed:
+
+| Part | Placed | How |
+|---|---|---|
+| Floors and ramps | 538 floors on 269 plots of 01A: 269 generic, 269 ramp, 0 yard | Run 5 of Advanced, not the Build. floors_01A.json of the project work folder, "placed" 538, counts place 538, move 0, keep 0, skip 0 |
+| Road toposolid | none, "made" false | toposolid_01A.json: the surface Top Surface-02 does not cover the scope, 807 of 807 ramp road edge points are off it |
+| Levels | 0, step 6 Ready, never ran | |
+| Villa links | 0, step 7 never ran | |
+| Walls | 0, step 8 never ran | |
+
+Where the Build stopped: step 7 of 11, Check, "Build stopped at Check, cancelled.", after 5 committed Check runs.
+
+S1 after the two parts: 37 files, SHA-256, size and write time equal to s1_before_short.json, 0 changed, 0 new, 0 gone (s1_after_short.json, compared by a script).
+
+Second check by another method: the count of floors is read twice, from the dry run box of Revit by UI Automation at 18:25 ("place 538, listed 269") and from floors_01A.json on disk after the run (538 placed, 269 distinct plots, by a script). Not seen in Revit: a count of the floor elements in the model itself, Revit was closed before it.
