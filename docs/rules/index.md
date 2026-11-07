@@ -625,6 +625,6 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 
 - R795 New project config.
 - R796 New project rules profile.
-- R797 New project window reads the copy to be.
-- R798 Read and step 4 name no past job.
+- R797 Window reads the new copy.
+- R798 Read and step 4 neutral.
 - R799 Own position file.
