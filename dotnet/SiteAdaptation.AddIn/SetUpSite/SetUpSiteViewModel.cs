@@ -139,6 +139,22 @@ namespace SiteAdaptation.AddIn.SetUpSite
         // No stop is found, the slope is the one the view was made with, and nothing differs (Q158) or the dry run has filled the view
         public bool CanApply => SiteTicked && view.Stops.Count == 0 && SameSlope && (view.NothingDiffers || (view.DryRunDone && (!dryRunSlope.HasValue || Math.Abs(dryRunSlope.Value - SelectedSlope) < 1e-9)));
 
+        // R766, F2 of run 1. Why a grey Apply waits, beside it in the foot: a dry run first, then the tick of the site drawing. A stop says
+        // its own words in the red box above, so the line is empty then, as it is while Apply is on
+        public string ApplyWaitLine
+        {
+            get
+            {
+                // Review 1 of PR 2: a stop of a callback stands in StopsLine too, and another slope asks for a dry run even where nothing differed
+                if (CanApply || view.Stops.Count > 0 || StopsShown)
+                {
+                    return string.Empty;
+                }
+                bool dryDone = SameSlope && (view.NothingDiffers || (view.DryRunDone && (!dryRunSlope.HasValue || Math.Abs(dryRunSlope.Value - SelectedSlope) < 1e-9)));
+                return !dryDone ? SetUpSiteText.DryRunFirst : !SiteTicked ? SetUpSiteText.TickSiteFirst : string.Empty;
+            }
+        }
+
         public IReadOnlyList<CurrentFileViewModel> CurrentFiles { get; private set; }
 
         public bool CurrentShown => view.CurrentFiles != null;
@@ -302,6 +318,10 @@ namespace SiteAdaptation.AddIn.SetUpSite
         private void Changed(string name)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+            if (name == nameof(CanApply))
+            {
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ApplyWaitLine)));
+            }
         }
     }
 

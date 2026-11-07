@@ -22,6 +22,8 @@ namespace SiteAdaptation.AddIn.Pane
 
         public const string NoDocument = "Open a project first.";
         public const string SetUpFirst = "Set up this project first, in Settings.";
+        // R765, F7 of run 1
+        public const string SetupNotSaved = "The setup of this project was not saved with the model, so the project, the input rows and the scope are gone. The reads stay in the work folder. Set up the project again in Settings, then save the model.";
         public const string Done = "Done";
         public const string DoneIssues = "Done, <n> issues";
         public const string Ready = "Ready";
@@ -29,6 +31,8 @@ namespace SiteAdaptation.AddIn.Pane
         public const string Waits = "Waits for stage <n>";
 
         public const string NoRead = "No data check yet. Choose the project folder.";
+        // R761, F1 of run 1
+        public const string SetUpBeforeFolder = "Run 1 Set up site first, it places the site. Then choose the project folder.";
         public const string ReadStopped = "The last read stopped and holds nothing to fix: <name>. Fix the cause and choose the folder again.";
 
         // Choose project folder, R681

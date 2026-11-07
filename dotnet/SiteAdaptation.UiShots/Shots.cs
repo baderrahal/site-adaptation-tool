@@ -48,13 +48,16 @@ namespace SiteAdaptation.UiShots
         public const string PaneStage2 = "pane-stage-2";
         public const string PaneStage3 = "pane-stage-3";
         public const string PaneStage2Stopped = "pane-stage-2-stopped";
+        public const string PaneStagesHead = "pane-stages-head";
+        public const string SetUpDryRunFirst = "setup-site-dry-run-first";
+        public const string ScanResultsCheck = "scan-results-check";
         public const string ProjectRules = "project-rules";
         public const string BuildPreview = "build-preview";
         public static readonly string[] Windows = { RibbonIcons, Pane, PaneFirstOpen, SetUpSite, ReviewData, Rules, CheckTable, UpdateFromReport, NewProject, HowItWorks, ScanResults };
 
         // R492. Drawn by the command line and Render, not in Windows: UiShotTests counts 11 windows and holds each of them to the sizes of the spec,
         // so the window Road surfaces joins Windows once Bader approves its draft and that test follows
-        public static readonly string[] Drafts = { RoadSurfaces, HelpBox, SetUpNoSource, ConfirmProfile, PaneStage1, PaneStage2, PaneStage3, PaneStage2Stopped, ProjectRules, BuildPreview };
+        public static readonly string[] Drafts = { RoadSurfaces, HelpBox, SetUpNoSource, ConfirmProfile, PaneStage1, PaneStage2, PaneStage3, PaneStage2Stopped, PaneStagesHead, SetUpDryRunFirst, ScanResultsCheck, ProjectRules, BuildPreview };
 
         private const double Dpi = 96.0;
 
@@ -81,6 +84,9 @@ namespace SiteAdaptation.UiShots
                 case PaneStage2: return StageCardShot(2);
                 case PaneStage3: return StageCardShot(3);
                 case PaneStage2Stopped: return StoppedCardShot();
+                case PaneStagesHead: return BoxShot(LaidOutStages(true), "HeadBox");
+                case SetUpDryRunFirst: return SetUpDryRunFirstPage();
+                case ScanResultsCheck: return Draw(Body(LaidOutCheckOnly()));
                 case ProjectRules: return ProjectRulesPage();
                 case BuildPreview: return BuildPreviewPage();
                 default: throw new ArgumentException("no window " + window + ", only " + string.Join(", ", Windows), nameof(window));
@@ -232,6 +238,21 @@ namespace SiteAdaptation.UiShots
         private static BitmapSource SetUpPage()
         {
             SetUpSiteWindow window = LaidOutSetUp(SampleSetUpView(true, true));
+            FrameworkElement body = Body(window);
+            var bitmap = new RenderTargetBitmap((int)body.ActualWidth, (int)body.ActualHeight, Dpi, Dpi, PixelFormats.Pbgra32);
+            bitmap.Render(body);
+            bitmap.Freeze();
+            return bitmap;
+        }
+
+        // R766, F2. The window before its dry run, Apply grey and the line beside it that asks for the dry run
+        private static BitmapSource SetUpDryRunFirstPage()
+        {
+            SetUpSiteView view = SampleSetUpView(true, true);
+            view.DryRunDone = false;
+            view.NothingDiffers = false;
+            view.Stops.Clear();
+            SetUpSiteWindow window = LaidOutSetUp(view);
             FrameworkElement body = Body(window);
             var bitmap = new RenderTargetBitmap((int)body.ActualWidth, (int)body.ActualHeight, Dpi, Dpi, PixelFormats.Pbgra32);
             bitmap.Render(body);

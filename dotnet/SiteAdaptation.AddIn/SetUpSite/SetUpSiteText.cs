@@ -57,6 +57,10 @@ namespace SiteAdaptation.AddIn.SetUpSite
         public const string SourceTitle = "Position source";
         public const string SourceHelp = "Use CAD, pick a position file or type Easting, Northing and Angle. Apply stays off until a source works.";
         public const string CurrentHelpOther = "Tick each file that is the current issue.";
+
+        // R766, F2 of run 1. The line beside a grey Apply
+        public const string DryRunFirst = "Press Dry run first. Apply turns on after it.";
+        public const string TickSiteFirst = "Tick the site drawing Current under Current files. Apply turns on then.";
         public const string CheckTitleCad = "Check points from CAD";
         public const string CheckTitleFile = "Check points from the position file";
         public const string CheckTitleTyped = "Check points from the typed values";

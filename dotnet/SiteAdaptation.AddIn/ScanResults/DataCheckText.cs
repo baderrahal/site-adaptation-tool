@@ -12,6 +12,10 @@ namespace SiteAdaptation.AddIn.ScanResults
 
         public static readonly string[] Marks = { "Strong", "Usable", "Weak", "Missing" };
 
+        // R767, F9 of run 1. The head count of a data check that listed plots apart: the villa plots of all numbered plots
+        public const string VillaPlotsOfAll = "villa plots of all plots";
+        public const string CountOfAll = "<n> of <n>";
+
         // The window when only the check is shown, because the read cannot go on or has nothing to pick
         public const string CheckLine = "The tool read the folder you gave and says what it holds for each need. Nothing changes in the model.";
         public const string CheckFoot = "The check wrote nothing in your folder and nothing in the model.";
