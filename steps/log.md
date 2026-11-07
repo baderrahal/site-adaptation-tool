@@ -9,9 +9,10 @@ Goal:
 
 Done:
 - UiLabelTests.cs added to the list of FAST-7-build-3 by exact path.
+- ScanResultsWindow.xaml too, for F9, its header of the check window is a fixed text shared with the old scan view of step 2.
 
 Checked:
-- grep of steps/tasks: FAST-5 and FAST-6 do not hold it. A new label of build-1 goes to build-3 by steps/seam.md.
+- grep of steps/tasks: FAST-5 and FAST-6 hold neither file. A new label of build-1 goes to build-3 by steps/seam.md.
 
 Remains:
 - Nothing for this change.

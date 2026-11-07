@@ -29,6 +29,7 @@ allowed:
   - dotnet/SiteAdaptation.UiShots/
   - docs/design/14-ui-labels.md
   - dotnet/SiteAdaptation.Tests/UiLabelTests.cs
+  - dotnet/SiteAdaptation.AddIn/ScanResults/ScanResultsWindow.xaml
   - dotnet/SiteAdaptation.Tests/FAST7/
   - docs/rules/23-fast7-r760-up.md
   - docs/rules/index.md
