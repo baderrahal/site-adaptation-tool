@@ -7,7 +7,7 @@
 F26 is fixed and F27 is fixed in code, but the FAST-8 done when cannot pass on 01A of S1.
 - F26: Check no longer takes plots.csv or labels.csv from the data book of the work root. The plot table of the read stands in for them, and a read with no plot table stops as missing (R780).
 - F27: Floors and ramps takes, of the road surfaces the build read, the one with the most ramp road edge points, and says which (R781). Highlighted floors overlap of two plots no longer stops on a Revit box, it is listed with its floors in the issues (R782).
-- Measured with a script that shares no code with the C#: no road surface of S1 covers 01A. The 6 surfaces that cover its 807 points are ground or grading, and config excludes them. So no road toposolid of 01A can be made, Q600 in steps/seam.md for Bader. The recommended answer is to run the demo on 012.
+- Measured with a script that shares no code with the C#: no single road surface of S1 holds the ramp road edge points of 01A, 16 of 807 on the 6 road surfaces, the 6 that hold all 807 are ground or grading. But the 269 plots of 01A got an ffl from two road surfaces, Compiled West_MM and Part 4 Top Surfaces, by their front corners. Q600 corrected at 22:00 in steps/seam.md: a toposolid of the road surfaces the front corners took, recommended as the next task.
 - Yard floors 0 is R410, not a fault.
 - Not seen in Revit, label revit-later.
 - The task stays open, its done when waits for Q600 and the Revit check.

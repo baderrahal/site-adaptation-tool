@@ -79,3 +79,18 @@ A lane that needs a function or a value of the other lane, or a change not in it
 - 7 Nov 21:00 build-1 to Lead, FAST-8, the yard. "0 yard" of the short check is R410, not a fault: under rev6 no yard floor is placed while designBasis.backYard.floor is false, Q225 open. The done when "places the yard floors" asks against R410. Nothing changed.
 - 7 Nov 21:20 build-1 to Lead, FAST-8, review 1. ProjectPlots.InDataBook resolves addin.readData.dataBookFolder as ReadInputs.DataBook does, a second copy of that rule, ReadInputs.cs is outside the allowed list. Needs: one helper in ReadInputs that both call. The task stays open, status open, its done when waits for Q600 and the Revit check.
 - 7 Nov 21:00 build-1 to Lead, FAST-8, F28 not built. With R780, Check of 01A takes its plots from the plot table, 278 plots in 01A, the count Review data shows (measured on the read of the short check). Check said 297 because labels.csv of the data book scoped it. Floors counts the plots with a unit and a ramp, 269. A line on card 2 that says so is left for after the second short check.
+- 7 Nov 22:00 build-1 to Lead, FAST-8, Q600 corrected and the measure per NBH of Lead's ask of 21:30. Read only, counts only, 7 LandXML files of S1 and of S1-new unchanged by SHA-256, size and write time. The correction: "no road surface of S1 covers 01A" holds for the ramp road edge points the toposolid samples (R571, 16 of 807 on the 6 road surfaces at the 5 mm snap), not for the plot fronts. plan_01A.json of the short check gives all 269 plots an ffl, their front corners took road levels from Compiled West_MM (370 corners) and Part 4 Top Surfaces (168). So 01A needs a toposolid of two surfaces, R781 takes one, and the ramp road edge lies in the hole of the road surface under the plots, off it by more than the snap. Q600 then reads: may the toposolid of an NBH join the road surfaces its front corners took, recommended yes, as the next task, and keep R485 for ground and grading.
+  The measure per NBH, CHOSEN by Code with no plan: each plot of plots.json of the read, the midpoints of its outline edges moved 0.5 m away from its centroid, on any of the 6 road surfaces of designBasis.roadLevel.surfaces. It is no valid stand in: on 01A it puts 435 of 1182 points on a road surface, where the ramp road edges of the plan put 16 of 807, and it gives 012, which holds all 1008 ramp points on Top Surface-02 (floors.roadTopography), 467 of 1377. So the share column tells no NBH apart, and only a plan of 4 Check says whether a plot gets an ffl (Q504). S1 and S1-new give the same counts per NBH (two files, other run stamps).
+
+  | NBH | plots | points on a road surface | best surface, points | ffl from a plan |
+  |---|---|---|---|---|
+  | 010 | 16 | 24 of 71 | Top Surface-01, 15 | UNKNOWN, no plan |
+  | 012 | 341 | 467 of 1377 | Top Surface-02, 418 | UNKNOWN, no plan of this read, 1008 of 1008 ramp points on Top Surface-02 by config |
+  | 013 | 416 | 569 of 1682 | Top Surface-01, 564 | UNKNOWN, no plan |
+  | 01A | 278 | 435 of 1182 | Compiled West_MM, 299 | 269 of 269 plots of the plan |
+  | 01B | 2 | 4 of 8 | Top Surface-01, 2 | UNKNOWN |
+  | 02 | 325 | 461 of 1307 | Part 4 Top Surfaces, 460 | UNKNOWN |
+  | 021 | 435 | 616 of 1756 | Top Surface-01, 577 | UNKNOWN |
+  | 022 | 305 | 454 of 1226 | Top Surface-02, 422 | UNKNOWN |
+  | 023 | 1 | 1 of 4 | Part 4 Top Surfaces, 1 | UNKNOWN |
+  | 03 | 493 | 670 of 1984 | Compiled West_MM, 597 | UNKNOWN |
