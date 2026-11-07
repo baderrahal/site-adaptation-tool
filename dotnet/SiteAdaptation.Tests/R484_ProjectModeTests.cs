@@ -394,7 +394,7 @@ namespace SiteAdaptation.Tests
         }
 
         // 4 Check of a project at this config and rules file on the read files of a seed request of the made up site, by the real worker
-        internal static RealWorker CheckOn(string root, WorkerRequest seed, string config, string rules, string levelProfile, string runId, string mode, out RunLater end)
+        internal static RealWorker CheckOn(string root, WorkerRequest seed, string config, string rules, string levelProfile, string runId, string mode, out RunLater end, IReadOnlyList<string> picked = null)
         {
             string Seeded(string role) => seed.Inputs.Single(input => input.Role == role).Path;
             string prototypes = Path.GetDirectoryName(seed.Inputs.First(input => input.Role.StartsWith(BuildSteps.PrototypeRole, StringComparison.Ordinal)).Path);
@@ -422,7 +422,7 @@ namespace SiteAdaptation.Tests
 
             var worker = new RealWorker();
             var roles = new Dictionary<string, string> { ["Settings"] = CheckRun.Config, ["Rules"] = CheckRun.Rules, ["Prototypes"] = CheckRun.Prototypes };
-            var run = new CheckRun(roles, worker, null, new WorkerDocument { Path = @"C:\Projects\a.rvt", SessionId = "s1" }, () => new SettingsScope(), new NoTable(), null, levelProfile) { ModePick = () => mode };
+            var run = new CheckRun(roles, worker, null, new WorkerDocument { Path = @"C:\Projects\a.rvt", SessionId = "s1" }, () => new SettingsScope(), new NoTable(), null, levelProfile) { ModePick = () => mode, RoadPick = picked == null ? (Func<IReadOnlyList<string>>)null : () => picked };
             var pane = new[] { new RunInput("Settings", config, false), new RunInput("Rules", rules, false), new RunInput("Prototypes", prototypes, true) };
             RunLater ended = null;
             run.Body().Start(new RunContext(4, "4 Check", runId, work, null, true, pane, new Dictionary<string, string>()), later => ended = later);

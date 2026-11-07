@@ -361,7 +361,7 @@ namespace SiteAdaptation.Common
             {
                 var site = new Site(run, config);
                 // R407. The design basis read once for the whole run, a mode outside designBasis.modes refused before any step
-                basis = DesignBasis.Of(site.Settings, () => run.Input(CivilRole));
+                basis = DesignBasis.Of(site.Settings, () => run.Input(CivilRole), request.RoadSurfaces);
                 // R492. The road surfaces picked in Set up, under rev6 alone
                 basis.TakePick(request.RoadSurfaces);
                 mode = basis.Mode;

@@ -51,22 +51,32 @@ namespace SiteAdaptation.Common.Settings
             }
             // R799. Set up site checks the CAD against this file, the past file under the work root filled the Position file column of every new project
             Replace(config, "addin.position.file", WorkRoot.Mark + "/" + ShippedSet.ProjectsFolder + "/" + projectFolder + "/position/position.json");
-            // A reader that does not lay the mode of the settings over config still takes the mode of a new project
-            string mode = ProjectModes.NewProject(config);
-            if (mode != null)
-            {
-                config["designBasis"]["mode"] = mode;
-            }
             return config;
         }
 
-        // R796. The rules profile of a new project: named by the project, and no rule says a past job measure
-        public static JObject Rules(JObject shipped, string projectName)
+        // R796. The rules profile of a new project: named by the project, and no rule says a past job measure. shippedProfile is the profile path the
+        // shipped config names, the status block of R401 keys its entries by it, so they move to the path of the new profile
+        public static JObject Rules(JObject shipped, string projectName, string shippedProfile)
         {
             JObject rules = (JObject)shipped.DeepClone();
             if (rules["project"] != null)
             {
                 rules["project"] = projectName;
+            }
+            // CHOSEN by Code. The surfaces a key rule was measured against on the past models name past road surfaces, no build reads them
+            foreach (JObject profile in ((rules["levelProfiles"] as JObject)?.Properties() ?? Enumerable.Empty<JProperty>()).Select(item => item.Value).OfType<JObject>())
+            {
+                foreach (JObject rule in ((profile["keyRules"] as JObject)?.Properties() ?? Enumerable.Empty<JProperty>()).Select(item => item.Value).OfType<JObject>())
+                {
+                    rule.Remove("candidates");
+                }
+            }
+            JObject status = rules["status"] as JObject;
+            JToken entries = shippedProfile == null ? null : status?[shippedProfile];
+            if (entries != null)
+            {
+                status.Remove(shippedProfile);
+                status[RulesPath(shippedProfile)] = entries;
             }
             foreach (JObject rule in ((rules["manualRules"] as JObject)?["rules"] as JArray ?? new JArray()).OfType<JObject>())
             {

@@ -157,17 +157,28 @@ namespace SiteAdaptation.Common.Settings
                 string full = Path.GetFullPath(path);
                 if (SamePath(full, ShippedConfig))
                 {
-                    string text = readText(path);
-                    return text == null ? null : NewProjectValues.Config(JObject.Parse(text), name).ToString();
+                    return AsNew(readText(path), text => NewProjectValues.Config(text, name));
                 }
                 string profile = ShippedProfile(readText);
                 if (profile != null && SamePath(full, Path.Combine(shipped, profile)))
                 {
-                    string text = readText(path);
-                    return text == null ? null : NewProjectValues.Rules(JObject.Parse(text), name).ToString();
+                    return AsNew(readText(path), text => NewProjectValues.Rules(text, name, profile));
                 }
                 return readText(path);
             };
+        }
+
+        // A file that does not read as an object is given as it is, so the window says it as before
+        private static string AsNew(string text, Func<JObject, JObject> make)
+        {
+            try
+            {
+                return text == null ? null : make(JObject.Parse(text)).ToString();
+            }
+            catch (Exception failure) when (failure is Newtonsoft.Json.JsonException || failure is InvalidCastException || failure is ArgumentException || failure is InvalidOperationException)
+            {
+                return text;
+            }
         }
 
         private string ShippedProfile(Func<string, string> readText)
@@ -200,7 +211,7 @@ namespace SiteAdaptation.Common.Settings
                 string to = Path.GetFullPath(Path.Combine(folder, NewProjectValues.RulesPath((string)config["profile"])));
                 if (File.Exists(from))
                 {
-                    string rules = NewProjectValues.Rules(JObject.Parse(File.ReadAllText(from)), name).ToString();
+                    string rules = NewProjectValues.Rules(JObject.Parse(File.ReadAllText(from)), name, (string)config["profile"]).ToString();
                     File.Delete(from);
                     File.WriteAllText(to, rules);
                 }

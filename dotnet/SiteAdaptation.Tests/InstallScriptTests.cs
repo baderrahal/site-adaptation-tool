@@ -97,14 +97,15 @@ namespace SiteAdaptation.Tests
             Assert.Equal(0, Install(NoRevit).Item1);
             string workRoot = Path.Combine(root, "work root");
             ProjectSet set = new ShippedSet(SetFolder, workRoot, "Site A", true).Take(File.ReadAllText);
-            ProjectSettings settings = SetupSave.Apply(new SetupDraft { NewSet = set }, new ProjectSettings(), File.ReadAllText);
-            Assert.Equal(DesignBasis.Rev6, settings.ProjectMode);
-            string before = FileHash.Sha256(settings.ConfigFile);
             using (var steps = new LevelFloorStepTests())
             {
                 WorkerRequest seed = steps.Request("seed", BuildPlan.Steps);
+                // R795. A new project names no road surface of the past job, the person picks those of the made up site in Set up
+                ProjectSettings settings = SetupSave.Apply(new SetupDraft { NewSet = set, RoadSurfaces = Picked(seed) }, new ProjectSettings(), File.ReadAllText);
+                Assert.Equal(DesignBasis.Rev6, settings.ProjectMode);
+                string before = FileHash.Sha256(settings.ConfigFile);
                 SiteAdaptation.Common.Flow.RunLater end;
-                R484_ProjectModeTests.RealWorker worker = R484_ProjectModeTests.CheckOn(Path.Combine(root, "site"), seed, settings.ConfigFile, settings.RulesFile, settings.LevelProfile, "4_set", settings.ProjectMode, out end);
+                R484_ProjectModeTests.RealWorker worker = R484_ProjectModeTests.CheckOn(Path.Combine(root, "site"), seed, settings.ConfigFile, settings.RulesFile, settings.LevelProfile, "4_set", settings.ProjectMode, out end, settings.RoadSurfaces);
                 Assert.True(worker.Exit == 0, "exit " + worker.Exit + ": " + WorkerAnswer.Read(WorkerFiles.AnswerPath(worker.Request.OutputFolder, worker.Request.RunId)).Message);
                 Assert.Null(end.Failure);
                 Assert.True(File.Exists(Path.Combine(worker.Request.OutputFolder, BuildPlan.FileName(null))));
@@ -134,7 +135,7 @@ namespace SiteAdaptation.Tests
             {
                 WorkerRequest seed = steps.Request("seed", BuildPlan.Steps);
                 SiteAdaptation.Common.Flow.RunLater end;
-                R484_ProjectModeTests.RealWorker worker = R484_ProjectModeTests.CheckOn(Path.Combine(root, "site"), seed, settings.ConfigFile, settings.RulesFile, settings.LevelProfile, "4_list", settings.ProjectMode, out end);
+                R484_ProjectModeTests.RealWorker worker = R484_ProjectModeTests.CheckOn(Path.Combine(root, "site"), seed, settings.ConfigFile, settings.RulesFile, settings.LevelProfile, "4_list", settings.ProjectMode, out end, Picked(seed));
                 Assert.True(worker.Exit == 0, "exit " + worker.Exit + ": " + WorkerAnswer.Read(WorkerFiles.AnswerPath(worker.Request.OutputFolder, worker.Request.RunId)).Message);
                 Assert.Null(end.Failure);
                 Newtonsoft.Json.Linq.JObject plan = Newtonsoft.Json.Linq.JObject.Parse(File.ReadAllText(Path.Combine(worker.Request.OutputFolder, BuildPlan.FileName(null))));
@@ -142,6 +143,12 @@ namespace SiteAdaptation.Tests
                 Assert.DoesNotContain("3", written);
                 Assert.Contains("5", written);
             }
+        }
+
+        // The road surfaces of the made up site by name, as Set up picks them
+        private static System.Collections.Generic.List<string> Picked(WorkerRequest seed)
+        {
+            return seed.Inputs.Where(input => input.Role.StartsWith(WorkerRunner.RoadSurfaceRole, StringComparison.Ordinal)).Select(input => input.Role.Substring(WorkerRunner.RoadSurfaceRole.Length)).ToList();
         }
 
         private static string Checks()
