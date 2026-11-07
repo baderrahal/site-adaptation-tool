@@ -2,6 +2,30 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## S1-new, the villa types of 010, 7 Nov 2026
+
+Goal:
+- Bader's order of 14:40 item 3: a demo folder where a neighbourhood not used for tuning gets villa types.
+
+Done:
+- S1-new in the work root, a copy of S1 with one workbook changed: 11 rows added to the sales sheet by an edit of the sheet XML, every other zip entry byte equal. The 11 plots of 010 whose footprint block holds one prototype code by the rule of R731.
+- steps/bader-form-7nov.md, one item, the 5 plots left. FAST-3-revit-test.md holds the Sunday run of 010 on S1-new.
+
+Checked:
+- The worker of the installed add-in on S1-new with the confirmed profile of run 1: 11 of the 16 plots of 010 with a villa type, the 2,599 plots outside 010 the same as the S1 read, status done, 0 issues. S1 37 files hashed before and after, 0 changed.
+
+Remains:
+- The short check of 01A, run 2 at 23:30, the Sunday run of 010.
+
+Known bugs:
+- PH_1-DLUS calls the 11 plots Multi Family, the drawing and the schedule disagree on 010.
+
+Next:
+- Lead reads the short check.
+
+Your turn:
+- Item 1 of steps/bader-form-7nov.md, by Sun 8 Nov 11:00, A by default.
+
 ## FAST-7 PR 3, Set up site takes the Baseplan of the folder, 7 Nov 2026
 
 Goal:
