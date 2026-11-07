@@ -2,6 +2,29 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## FAST-3-revit-test run 1b, 01A from Advanced, 7 Nov 2026
+
+Goal:
+- Bader's order of 10:05: on an empty model copy, the old steps 1 to 9 from Advanced on NBH 01A, marked tuned, to prove stages 2 and 3 still build there, faults to steps/seam.md as F18 and up.
+
+Done:
+- Two parts in Revit, 10:40 to 12:22 and 12:27 to 14:06, the copy saved at the end of each, Revit closed by the driver, no lock left. Steps 1 to 3 Done on 01A, 278 plots. Faults F18 to F23 in steps/seam.md, the run 1b section of steps/revit-results/FAST-3-revit-test.md.
+
+Checked:
+- S1 by SHA-256, size and write time before and after: 37 files, 0 changed, 0 new. The stop at Check against the read folder on disk, which holds no read_baseplan.json, read_villaBlocks.json, read_curbs.json or read_workbooks.json.
+
+Remains:
+- Steps 4 to 9 did not run. 4 Check stopped on F16 from Advanced too, Run 2 Read data of Advanced is the data check of card 1. No floor, level, villa link, wall or report built. Lead closed run 1b at 14:10.
+
+Known bugs:
+- F16 on the 6 Nov 23:00 add-in. F18, step 2 of Advanced read the input root of the past job, not the input rows. F21, step 1 Done lost over a save and reopen. F22, two reads of about 12 minutes before a neighbourhood scope.
+
+Next:
+- Lead's short check once PR 256 (F16) is on main and installed: 01A from a fresh empty copy, card 1 then Build to the end.
+
+Your turn:
+- None.
+
 ## FAST-7 PR 2, card 1, the gear, How it works, 7 Nov 2026
 
 Goal:
