@@ -65,6 +65,14 @@ At 23:10:
 - 22:20 main a99ea93 built and installed, F25, F26, F27 in. revit-test started on short check 2 of 01A.
 - Lanes: build-2 on FAST-9, build-3 on FAST-10. build-1 stopped, FAST-8 open for Q600 and the Revit check.
 
+## Sun 8 Nov 00:45, short check 2 result, FAST-11 and FAST-12
+
+- Short check 2 of 01A, PR 275: the Build of card 2 ran its 8 steps to the end with no stop at Check. 124 floors and ramps on 62 plots, the road toposolid, 124 levels, 62 villa links, 178 walls. But 62 of 278 plots, F29. New faults F30 and F31.
+- PRs 272, 273 and 274 merged. Main holds F22 and F8, not yet installed.
+- FAST-11-build-1: F29, a plot with no hand or no parameter source is still built, tagged missing, and card 2 counts what is left out. F30, card 3 counts the plots of the scope. R800 to R804.
+- FAST-12-build-3: F31, step 7 closes the upgrade box of an older Revit prototype and says it upgrades. R805 to R809.
+- Both may use Revit before 06:00 under the window lock. Run 2 at 06:00 on 01A as planned, on the install of main at that hour.
+
 ## Sat 7 Nov 23:50, run 2 moves, PR 273 widened
 
 - Short check 2 of 01A on install a99ea93 did not end by 23:00, so run 2 does not start at 23:30. It moves to Sun 06:00, the full FAST-3 on 01A, said as tuned. At 23:22 the Build had passed Check on 278 plots and went on to Floors.
