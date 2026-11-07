@@ -135,6 +135,19 @@ namespace SiteAdaptation.Tests
             Assert.True(ConfirmedFor.Holds(folder, Path.Combine(folder, "folder B")));
         }
 
+        // Review of PR 267: a write that fails after a Confirm leaves no older folder in force
+        [Fact]
+        public void R771_a_failed_write_of_the_folder_leaves_no_older_folder_in_force()
+        {
+            File.WriteAllText(Path.Combine(folder, ConfirmedProfile.FileName), "{}");
+            Assert.True(ConfirmedFor.Write(folder, Path.Combine(folder, "folder A")));
+            Assert.True(ConfirmedFor.Holds(folder, Path.Combine(folder, "folder A")));
+            // Broken on purpose: a folder name no path takes, so the write of folder B fails
+            Assert.False(ConfirmedFor.Write(folder, "folder|B"));
+            Assert.False(ConfirmedFor.Holds(folder, Path.Combine(folder, "folder A")));
+            Assert.False(File.Exists(Path.Combine(folder, ConfirmedFor.FileName)));
+        }
+
         [Fact]
         public void R771_a_quiet_read_with_nothing_confirmed_yet_still_opens_the_confirm_and_no_check_window()
         {

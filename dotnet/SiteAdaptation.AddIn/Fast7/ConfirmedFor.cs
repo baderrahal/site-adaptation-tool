@@ -39,20 +39,20 @@ namespace SiteAdaptation.AddIn.Fast7
             }
         }
 
-        // After a Confirm that saved: the folder it was confirmed for. A folder not known removes the file, so no old folder stays in force. A file
-        // that cannot be written is told back as false and no more: with no file the next quiet read opens the Confirm, as before R771, so the
-        // Confirm that just saved stays good
+        // After a Confirm that saved: the folder it was confirmed for. The file of the Confirm before goes first, so a folder not known or a write
+        // that fails leaves no old folder in force. A file that cannot be written is told back as false and no more: with no file the next quiet
+        // read opens the Confirm, as before R771, so the Confirm that just saved stays good
         public static bool Write(string workFolder, string scanFolder)
         {
             string path = Path.Combine(workFolder, FileName);
             try
             {
+                if (File.Exists(path))
+                {
+                    File.Delete(path);
+                }
                 if (string.IsNullOrEmpty(scanFolder))
                 {
-                    if (File.Exists(path))
-                    {
-                        File.Delete(path);
-                    }
                     return true;
                 }
                 File.WriteAllText(path, new JObject { ["scanFolder"] = Path.GetFullPath(scanFolder) }.ToString());
