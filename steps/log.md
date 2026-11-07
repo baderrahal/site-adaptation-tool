@@ -2,6 +2,29 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## FAST-7 takes UiLabelTests.cs, 7 Nov 2026
+
+Goal:
+- build-3 asked for dotnet/SiteAdaptation.Tests/UiLabelTests.cs, its line 203 holds the count of CHOSEN labels, 517, which each new word of FAST-7 moves.
+
+Done:
+- UiLabelTests.cs added to the list of FAST-7-build-3 by exact path.
+
+Checked:
+- grep of steps/tasks: FAST-5 and FAST-6 do not hold it. A new label of build-1 goes to build-3 by steps/seam.md.
+
+Remains:
+- Nothing for this change.
+
+Known bugs:
+- None.
+
+Next:
+- build-3 goes on with F1.
+
+Your turn:
+- Nothing.
+
 ## FAST-7 takes the label list, 7 Nov 2026
 
 Goal:
