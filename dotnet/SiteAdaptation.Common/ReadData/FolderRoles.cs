@@ -49,7 +49,10 @@ namespace SiteAdaptation.Common.ReadData
                 string key = workbookRoles?.Properties().Where(pair => pair.Value.Type == JTokenType.String && (string)pair.Value == role).Select(pair => pair.Name).FirstOrDefault();
                 Take(found, files, role, key == null ? null : Text(workbooks, key), "dataBook.rev9.workbooks by addin.workbookRoles");
             }
-            var surfaces = new HashSet<string>(RoadSurfaceChoices.Named(config, picked).Select(name => name + ".xml"), StringComparer.OrdinalIgnoreCase);
+            // As the old read names them: the surfaces named or picked under rev6, those of siteBuild.roadSurfaces under the past job
+            IEnumerable<string> named = RoadSurfaceChoices.IsRev6(config) ? RoadSurfaceChoices.Named(config, picked)
+                : ((config.SelectToken("siteBuild.roadSurfaces") as JArray) ?? new JArray()).Where(name => name.Type == JTokenType.String).Select(name => (string)name);
+            var surfaces = new HashSet<string>(named.Select(name => name + ".xml"), StringComparer.OrdinalIgnoreCase);
             Most(found, files, InputNames.RoadSurface, file => surfaces.Contains(Path.GetFileName(file)), "no folder holds a road surface named in config or picked");
             Most(found, files, InputNames.Prototypes, file => string.Equals(Path.GetExtension(file), ".rvt", StringComparison.OrdinalIgnoreCase), "no folder holds a prototype file");
             return found;
