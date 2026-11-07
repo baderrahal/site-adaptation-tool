@@ -2,6 +2,29 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## FAST-7 item 1, the stop box of Build, 7 Nov 2026
+
+Goal:
+- F12 of run 1: a Build that stops says the step and the reason in a box, not only at the end of the long line of card 2.
+
+Done:
+- R760: StagesViewModel.ShowStop and the box StopBox at the top of card 2, cleared by the next press of Build. The words of SiteBuildText, no new word. Shot steps/ui-shots/pane-stage-2-stopped.png, made up values.
+
+Checked:
+- dotnet/SiteAdaptation.Tests/FAST7/R760_StopBoxTests.cs, a stop, a roll back and a cancel show the box, a step that ended well does not, Build clears it. Not seen in Revit.
+
+Remains:
+- The one call in PaneHost.cs is FAST-5's, its exact text in steps/seam.md for build-1. Items F1, F2, F3, F7, F9, F17, then F6 and F13.
+
+Known bugs:
+- Until build-1 adds the call, the box never shows in Revit.
+
+Next:
+- F1, card 1 holds Set up site, once Lead puts the label list on FAST-7.
+
+Your turn:
+- Nothing.
+
 ## Saturday lanes, 7 Nov 2026
 
 Goal:
