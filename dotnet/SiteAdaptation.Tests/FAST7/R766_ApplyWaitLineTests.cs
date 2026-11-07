@@ -45,6 +45,21 @@ namespace SiteAdaptation.Tests
             Assert.Contains(nameof(SetUpSiteViewModel.ApplyWaitLine), changed);
         }
 
+        // Review 1 of PR 2: where nothing differed, another ramp slope asks for a dry run, so the line asks for it too
+        [Fact]
+        public void R766_another_slope_after_nothing_differs_asks_for_the_dry_run()
+        {
+            SetUpSiteView view = Cad(false, true);
+            view.NothingDiffers = true;
+            var model = new SetUpSiteViewModel(view);
+            Assert.True(model.CanApply);
+            Assert.Equal(string.Empty, model.ApplyWaitLine);
+            Assert.True(model.RampChoices.Count > 1);
+            model.RampIndex = model.RampIndex == 0 ? 1 : 0;
+            Assert.False(model.CanApply);
+            Assert.Equal(SetUpSiteText.DryRunFirst, model.ApplyWaitLine);
+        }
+
         [Fact]
         public void R766_a_stop_speaks_in_its_own_box_so_the_line_stays_empty()
         {

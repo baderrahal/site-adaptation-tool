@@ -14,7 +14,7 @@ Done:
 - Shots in steps/ui-shots, made up values: pane-stage-1, pane-stages-head, how-it-works, setup-site-dry-run-first, scan-results-check.
 
 Checked:
-- dotnet/SiteAdaptation.Tests/FAST7, 16 tests, each with a broken case. Not seen in Revit.
+- dotnet/SiteAdaptation.Tests/FAST7, 15 new tests, most with a broken case, the gear and the How it works heads by the good case only. Not seen in Revit.
 
 Remains:
 - F2, the Baseplan of the chosen folder for Set up site, by FolderRoles.Of of FAST-5 once on main. F6 and F13 once Lead moves PaneHost.cs and BuildChain.cs.

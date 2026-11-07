@@ -145,11 +145,12 @@ namespace SiteAdaptation.AddIn.SetUpSite
         {
             get
             {
-                if (CanApply || view.Stops.Count > 0)
+                // Review 1 of PR 2: a stop of a callback stands in StopsLine too, and another slope asks for a dry run even where nothing differed
+                if (CanApply || view.Stops.Count > 0 || StopsShown)
                 {
                     return string.Empty;
                 }
-                bool dryDone = view.NothingDiffers || (view.DryRunDone && SameSlope && (!dryRunSlope.HasValue || Math.Abs(dryRunSlope.Value - SelectedSlope) < 1e-9));
+                bool dryDone = SameSlope && (view.NothingDiffers || (view.DryRunDone && (!dryRunSlope.HasValue || Math.Abs(dryRunSlope.Value - SelectedSlope) < 1e-9)));
                 return !dryDone ? SetUpSiteText.DryRunFirst : !SiteTicked ? SetUpSiteText.TickSiteFirst : string.Empty;
             }
         }

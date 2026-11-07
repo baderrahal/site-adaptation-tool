@@ -19,20 +19,31 @@ namespace SiteAdaptation.AddIn.Fast7
                 if (!string.IsNullOrEmpty(start) && Directory.Exists(start) && SHCreateItemFromParsingName(start, IntPtr.Zero, typeof(IShellItem).GUID, out IShellItem folder) == 0)
                 {
                     dialog.SetFolder(folder);
+                    Marshal.ReleaseComObject(folder);
                 }
-                if (dialog.Show(owner) != 0)
+                int shown = dialog.Show(owner);
+                if (shown == Cancelled)
                 {
                     return null;
                 }
+                // Any other failure goes to the caller, which opens the old tree in its place
+                Marshal.ThrowExceptionForHR(shown);
                 dialog.GetResult(out IShellItem result);
-                result.GetDisplayName(FileSystemPath, out IntPtr path);
                 try
                 {
-                    return Marshal.PtrToStringUni(path);
+                    result.GetDisplayName(FileSystemPath, out IntPtr path);
+                    try
+                    {
+                        return Marshal.PtrToStringUni(path);
+                    }
+                    finally
+                    {
+                        Marshal.FreeCoTaskMem(path);
+                    }
                 }
                 finally
                 {
-                    Marshal.FreeCoTaskMem(path);
+                    Marshal.ReleaseComObject(result);
                 }
             }
             finally
@@ -46,6 +57,9 @@ namespace SiteAdaptation.AddIn.Fast7
         private const uint ForceFileSystem = 0x40;
         private const uint PathMustExist = 0x800;
         private const uint FileSystemPath = 0x80058000;
+
+        // HRESULT_FROM_WIN32(ERROR_CANCELLED), what Show gives when the person presses Cancel
+        private const int Cancelled = unchecked((int)0x800704C7);
 
         [DllImport("shell32.dll", CharSet = CharSet.Unicode, PreserveSig = true)]
         private static extern int SHCreateItemFromParsingName(string path, IntPtr context, [MarshalAs(UnmanagedType.LPStruct)] Guid id, out IShellItem item);
