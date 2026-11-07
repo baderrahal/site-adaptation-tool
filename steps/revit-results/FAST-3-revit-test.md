@@ -87,3 +87,37 @@ steps/ui-shots/: pane-stage-1.png, pane-stage-2.png, pane-stage-3.png, revit-new
 
 - Floors and ramps, Levels, Place villas, Walls, Report: never ran.
 - A person using the windows: every press came from the driver.
+
+# Run 1b, Sat 7 Nov 2026, NBH 01A from Advanced
+
+Bader's order of 10:05 by Lead: on an empty model copy, the old steps 1 to 9 from Advanced, neighbourhood 01A, marked tuned (steps/truth-audit.md section 6 lists it as tuned), Bader's answer to F15. Same add-in as run 1, the one installed 6 Nov 23:00, no new install, so no Unsigned Add-In box came. Same driver, drive3.ps1 of the work root, under python/window_lock.py, parts under 110 minutes, the copy saved at the end of each part. Shots under the work root, folder `fast3-revit-test/shots/run1b`, never in git.
+
+## Model and folder, run 1b
+
+- Model: `FAST3-run1b-01A.rvt` in fast3-revit-test of the work root, copied from `FAST3-empty-model-pristine.rvt` at 10:38. `cmp` against the empty model of R2-C1: equal bytes.
+- Inputs: S1 of the scenarios, 37 files, SHA-256, size and write time taken before the run into s1_before_run1b.json of fast3-revit-test.
+- revit-wanted-build-1.txt and revit-wanted-build-3.txt: none in the lanes folder at 10:39 and at 12:22.
+
+## Part 1, 10:40 to 12:22
+
+- 10:40:37 Revit opened on the copy, process 52488, the pane said "Set up this project first, in Settings." on the 3 cards.
+1. Settings, Project setup Edit, the New project window, Save setup (a02-new-project.png, a03-after-save.png). Amber line "No rules chosen for this project yet."
+2. Advanced opened. The 8 input rows set by Browse to the files of S1: Baseplan, Villa blocks, Plot fronts, DLUS and sales (two boxes, DLUS schedule then Sales schedule), Plot numbers, Road surface the landxml folder, and Shared parameters already set. "All 8 found" (a06-inputs.png). The Road surface row first took a wrong folder by the typing walk of the folder tree, picked again and checked by shot (folder-landxml-2.png).
+3. Prototypes: the row warned "These files are Revit 2021 and upgrade on each use, use the 2024 copies. A remake from them takes 20 to 41 minutes." CHOSEN by Code: the row set to the folder prototypes_2024 of the work root, the 2024 copies of the same 13 prototype files, as the pane asks, to keep each part under 110 minutes.
+4. Run 1 Set up site: this time the window took the Baseplan of the row, "Empty project found", "This model has no site coordinates", Use CAD already chosen, check points 5 of 5 pass (b01-setup-site.png). Each Current ticked, Dry run, Apply. Step 1 Done at 11:42, its line "Coordinates from the CAD baseplan, levels and units from the rules, types from config".
+5. Run 2 Read data: the box "Dry run done, nothing was changed. Reads 19 files, 223.2 MiB." (b04-read-box.png), Apply 11:45:30. The card "Running outside Revit", no stop button (F19). It ran the data check on the input root of the past job, not on the input rows, F18. 12:17 What the tool read came: 18 files read, 2,964 plots found, 386 conflicts (b07-what-read.png). Cancel, as it read the wrong folder: "2 Read data: the read stopped at the scan, nothing was written." (F20). Step 2 stayed Ready.
+6. 12:21:17 Ctrl+S saved the copy. 12:22:31 quit, "revit left open: False", no lock, no Revit process.
+
+## Part 2, 12:27 to 14:06
+
+- 12:26 idle 303 s, no wanted file, no Revit. 12:27 Revit opened on the saved copy, no Unsigned Add-In box.
+7. Choose project folder, S1: the box "2 Read data needs step 1" (c03-needs-step1.png). Under Advanced step 1 showed Ready though it was Done and saved in part 1, F21. Run 1 Set up site again, the ticks Current kept, Dry run, Apply, Done.
+8. 12:59 Choose project folder, S1, Apply: the read of card 1, 689 s. What the tool read: 7 files read, 2,618 plots found, Shared parameters Missing (F10 again). Close, Confirm what was found with the villa type column and the area column Neighbourhood_ID proposed, Confirm (c07-confirm.png). "2 Read data done: 4 files written, 0 issues."
+9. The Scope list of Advanced offered one area, L1-1, F22. 13:20 Choose project folder again, the read with the confirmed values, 750 s. It ended on "the scope stops it: Neighbourhood: no neighbourhood is chosen", as the Neighbourhood option stood with no area picked. Scope Whole project, Run 2 Read data reused the read, then the list offered 010, 012, 013, 01A, 01B, 02, 021, 022, 023, 03. Scope 01A, Villa mode Links. Its plots.json, by a script that prints counts: 2,615 plots, 278 in 01A.
+10. Run 3 Review data: "3 Review data, NBH 01A, 278 plots", "0 of 278 checked by the team" (c13-review.png). Save review, Close: step 2 back to Ready, F23. Run 2 again on the reused read, Run 3, Save review, Close: steps 1 to 3 Done, card 1 Done, card 2 Ready.
+11. 14:03 Run 4 Check: "4 Check changed nothing, the model is as it was. The run failed: 2 Read data did not read the road surface ..." for each of the 6 surfaces, "2 Read data was done on other inputs, changed since: S1", and the read holds no read_baseplan.json, read_villaBlocks.json, read_curbs.json, read_workbooks.json (c17-check.png). F16, now from Advanced too. Step 4 stayed Ready, step 5 "Needs step 4".
+12. 14:05:16 Ctrl+S saved the copy. 14:06:23 quit, "revit left open: False", no lock, no Revit process.
+
+S1 after the two parts: 37 files, SHA-256, size and write time equal to s1_before_run1b.json, 0 changed, 0 new (s1_after_run1b.json, compared by a script).
+
+Second check of the stop at Check, by another method: the read folder of the project work folder holds data_check.json, plots.json, project_profile.json, read.json and read_plotTable.json, no read_baseplan.json, read_villaBlocks.json, read_curbs.json or read_workbooks.json (ls).
