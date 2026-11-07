@@ -58,6 +58,23 @@ At 23:10:
 - 00:46: run 1 not started. At 00:44 the PC was 5 minutes idle, then the permission check of the revit-test session (auto mode) refused the launch of the Revit driver under python/window_lock.py, with no reason given. Revit not opened, no input sent. BLOCKED until Bader allows that launch in the revit-test session, or runs the lane where it is allowed. Lead does not launch it for the lane.
 - 23:37: Bader's order, the driver presses Always Load on our own Unsigned Add-In box, PR 246.
 
+## Sat 7 Nov 22:25, the intake and short check 2
+
+- scripts/new-project-intake.ps1 tested on S1: 23 min, the raw read 10.9 min and the read with the proposed columns confirmed 12 min, the 37 files of S1 unchanged by SHA-256. It names the 7 tuned neighbourhoods with their villa types, 010 16 plots with none, as run 1. Level 1 takes the name of the area column when the read gives none, CHOSEN by Lead. The cover of each road surface stays UNKNOWN in the intake: the proxy of build-1 does not tell neighbourhoods apart, only a plan of 4 Check does (steps/seam.md, 22:00). After FAST-9 the second read should drop out.
+- Q600 corrected by build-1: all 269 plots of 01A get an ffl from two road surfaces, only the toposolid needs the two joined. Short check 2 stays on 01A. Q600 for Bader, recommended: a next task joins the surfaces the front corners took, R485 kept.
+- 22:20 main a99ea93 built and installed, F25, F26, F27 in. revit-test started on short check 2 of 01A.
+- Lanes: build-2 on FAST-9, build-3 on FAST-10. build-1 stopped, FAST-8 open for Q600 and the Revit check.
+
+## Sat 7 Nov 23:50, run 2 moves, PR 273 widened
+
+- Short check 2 of 01A on install a99ea93 did not end by 23:00, so run 2 does not start at 23:30. It moves to Sun 06:00, the full FAST-3 on 01A, said as tuned. At 23:22 the Build had passed Check on 278 plots and went on to Floors.
+- PR 273 of FAST-10 failed only the folder rules check on 7 paths outside its allowed list. Lead read the change of DesignBasis.cs and BuildSteps.cs: a new project names no road surface, so the build takes the pick of Set up. Lead added the 7 paths to the task.
+- PR 272 of FAST-9 failed only the caller check, 3 new functions of DataCheckApply.cs not under Callers. build-2 told at 23:40.
+- Open risk for Sunday: a new project names no schedule, so the plot table comes from the folder by the read and Confirm alone. No test runs that on a real folder, the Sunday run of the new project is its first proof.
+- R791 of PR 272 runs the apply in Revit: on S1 a 667 MiB gathered file, 106 to 126 s, 11 GB peak. CHOSEN by Lead at 00:00: kept for Sunday, the PC has 64 GB and 27.7 GB was free with Revit at 8.5 GB, 2 minutes beats a second read of 15. The worker way stays in steps/seam.md if the Sunday run runs short of memory.
+- By R639 a read that is not whole is never reused, so on a folder with a drawing refused for memory every press of 2 reads again. Watched on the Sunday run, the time of each press of 2 goes in its record.
+- When 272 and 273 are on main and Revit is free: Lead builds and installs main before the 06:00 run.
+
 ## Sat 7 Nov 21:40, the new project path
 
 Bader's order of 21:06: Bader gets a real new project on Sun 8 Nov, files the tool has never seen, the demo is at 17:00. FAST-8 and short check 2 keep first place.

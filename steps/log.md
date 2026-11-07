@@ -2,6 +2,80 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## FAST-9-build-2, Confirm applies to the read just made, F22, 7 Nov 2026
+
+Goal:
+- F22, Bader's order of 21:06: on a new project, one read and one Confirm, then the Scope list names the neighbourhoods of the confirmed area column and the plots carry the confirmed villa types, with no second read of about 12 minutes.
+
+Done:
+- R790: the worker command dataCheck keeps what it gathered, data_check_input.json in the read folder, and the check is DataCheckApply.Check, shared by the worker and the Confirm.
+- R791: after a Confirm that saved, ReadDataRun.ApplyConfirmed runs the check again in Revit on that file with the confirmed profile, writes data_check.json, project_profile.json, plots.json and read_plotTable.json, moves the read folder to the folder its inputs now name and writes read.json last. The next press of 2 reuses it.
+- R792: a read with no gathered file, or any fault, keeps the step done and says the values count from the next read.
+
+Checked:
+- R791_ConfirmAppliesTests on the made up project of samples/new-project with its sheet areas parted unlike the distance groups: one worker run, the Scope list N1 and N2, plot 103 VA1 from the column, a second press reused. The same press with no apply keeps the old areas and VB2, so the test sees F22. The second check by another way: a full worker read with the same confirmed profile gives the same four files but for the run stamp.
+- R790_GatheredFilesTests on net48 and net8.0. Not seen in Revit.
+- S1, read only, outside the repo under the work root: the first read gave 1 Scope entry, the check on its gathered files with the proposed profile gave 11, as a full read with that profile, and data_check.json, plots.json, project_profile.json and read_plotTable.json equal that read but for the run stamp, 2615 plots. Each read took 922 to 964 s.
+
+Remains:
+- Step 2 shows not done after the Confirm until one more press, which reads nothing. A read that is not whole is still read again on every press by R639. Both in steps/seam.md for Lead.
+
+Known bugs:
+- On S1 the gathered file is 667 MiB, 1.7 GB before it was written with no indent, and the check on it took 106 to 126 s at 11 GB peak working set, outside Revit on net8.0. In Revit that is about 2 minutes busy after Confirm, in Revit on net48 UNKNOWN. In steps/seam.md for Lead.
+
+Next:
+- revit-test checks the Confirm on the new project of 8 Nov after FAST-8 and short check 2.
+
+Your turn:
+- Answer the seam line on reads that are not whole, before the demo.
+## The intake of a new project folder, 7 Nov 2026
+
+Goal:
+- Bader's order of 21:06 item 3: a script that reads a new project folder outside Revit and writes what the form of 8 Nov needs.
+
+Done:
+- scripts/new-project-intake.ps1: the stage 1 read by the worker of the installed add-in, the raw read then the read with the proposed columns confirmed, <work root>\intake\intake.md with the needs, files by kind, proposed columns, neighbourhoods with villa types, LandXML files, run time, and the folder check.
+
+Checked:
+- Run on S1: 23 min, 0 of 37 files changed. The first run was refused on a level with no word and wrote under the Documents folder of OneDrive, both fixed, that output removed.
+
+Remains:
+- The cover of each road surface per neighbourhood, UNKNOWN until a plan of 4 Check.
+
+Known bugs:
+- None in the script.
+
+Next:
+- Short check 2, then the run on the new project of Sunday.
+
+Your turn:
+- Sun 8 Nov: name the folder of the new project.
+
+## Lead, FAST-10 allowed list widened, run 2 moves to Sun 06:00, 7 Nov 2026
+
+Goal:
+- Unblock PR 273 of FAST-10 and keep the plan true.
+
+Done:
+- steps/tasks/FAST-10-build-3.md allows the 7 paths PR 273 changed outside its list, with the reason under Scope.
+- steps/plan-fast-3days.md: run 2 moves to Sun 06:00, the state of PRs 272 and 273, the open risk of a new project with no schedule.
+
+Checked:
+- The tests job of PR 273, run 42411552782: the only FAIL lines are the folder rules check on those 7 paths. dotnet, dotnet-linux and python pass.
+- Lead read the diff of DesignBasis.cs and BuildSteps.cs: an empty road surface list is no refusal only when Set up picked surfaces, no pick refuses as before.
+
+Remains:
+- Merge main into PR 273 and rerun, merge PR 272 after its Callers fix.
+
+Known bugs:
+- A new project with no schedule takes its plot table from the folder, not seen on a real folder yet.
+
+Next:
+- Short check 2 result, then install main before run 2 at 06:00.
+
+Your turn:
+- Nothing tonight. Sun 8 Nov: the folder path of the new project by 10:00.
+
 ## FAST-8-build-1, Check reads no past file, the toposolid surface, no overlap box, 7 Nov 2026
 
 Goal:

@@ -224,6 +224,109 @@ namespace SiteAdaptation.Common.ReadData
             return Ended(context, folder, message, issues, outputs, again);
         }
 
+        // R791, F22 of FAST-9. After a Confirm that saved, the check runs again with the confirmed profile on the files the read just made gathered,
+        // in Revit and with no worker, so the plot table, plots.json and the Scope list take the confirmed columns at once. The read folder then
+        // moves to the folder its inputs now name, with the confirmed profile among them, and its record lists them: the next press of 2, and the
+        // step 2 the Build puts back, reuse it and read nothing. The inputs are those the record of the read holds from its start, with only the
+        // profile new, so a folder that changed during the read names another read. Failed with the plain reason when it cannot: before the move
+        // nothing of the read changed, after it the folder holds no record and the next press reads again (R792). It writes in the work folder only
+        public RunLater ApplyConfirmed(RunContext context, RunLater read)
+        {
+            string check = read?.Outputs?.Keys.FirstOrDefault(path => string.Equals(Path.GetFileName(path), DataCheckFile, StringComparison.OrdinalIgnoreCase));
+            if (check == null)
+            {
+                return RunLater.Failed(ApplyNoCheck);
+            }
+            string from = Path.GetDirectoryName(Path.GetFullPath(check));
+            string saved = Path.Combine(from, DataCheckApply.InputFile);
+            if (!File.Exists(saved))
+            {
+                return RunLater.Failed(ApplyNoInput);
+            }
+            if (new FileInfo(saved).Length > DataCheckApply.MaxBytes)
+            {
+                return RunLater.Failed(ApplyTooLarge);
+            }
+            JObject before = Record(Path.Combine(from, RecordFile));
+            List<ReadInput> inputs = (before?["inputs"] as JArray ?? new JArray()).OfType<JObject>().Where(item => (string)item["role"] != ConfirmedProfile.Role)
+                .Select(item => new ReadInput((string)item["role"], (string)item["path"], (long?)item["bytes"] ?? 0, (string)item["sha256"])).ToList();
+            ReadInput config = inputs.FirstOrDefault(item => item.Role == ReadInputs.Config);
+            if (config == null || !inputs.Any(item => item.Role == ReadInputs.ScanFolder))
+            {
+                return RunLater.Failed(ApplyNoRecord);
+            }
+            if (!File.Exists(config.Path) || !string.Equals(FileHash.Sha256(config.Path), config.Sha256, StringComparison.OrdinalIgnoreCase))
+            {
+                return RunLater.Failed(ApplyConfigChanged);
+            }
+            string profilePath = Path.Combine(Path.GetFullPath(context.WorkFolder), ConfirmedProfile.FileName);
+            if (!File.Exists(profilePath))
+            {
+                return RunLater.Failed(ApplyNoProfile);
+            }
+            var profile = new ReadInput(ConfirmedProfile.Role, profilePath, new FileInfo(profilePath).Length, FileHash.Sha256(profilePath));
+            inputs.Add(profile);
+            var plan = new ReadPlan(inputs, Strings(before["steps"]), new string[0], config.Path, null, true);
+            DataCheckSettings settings = DataCheckSettings.From(JObject.Parse(WorkFiles.ReadText(config.Path)));
+            DataCheckInput input = DataCheckApply.Load(WorkFiles.ReadText(saved));
+            input.Confirmed = ConfirmedProfile.From(JObject.Parse(WorkFiles.ReadText(profile.Path)), settings.GroupGapsM.Count);
+            DataCheckOutput output = DataCheckApply.Check(settings, input, new List<string>());
+            if (input.Stopped != null)
+            {
+                return RunLater.Failed(ApplyStopped.Replace("<why>", input.Stopped));
+            }
+            var stamps = new Dictionary<string, JToken>(StringComparer.OrdinalIgnoreCase);
+            var written = new Dictionary<string, JObject>(StringComparer.OrdinalIgnoreCase)
+            {
+                [DataCheckFile] = output.Check, ["project_profile.json"] = output.Profile, ["plots.json"] = output.Plots, [PlotTableFile] = DataCheckLogic.PlotTable(output.Plots),
+            };
+            foreach (string name in written.Keys)
+            {
+                string path = Path.Combine(from, name);
+                stamps[name] = File.Exists(path) ? JObject.Parse(WorkFiles.ReadText(path))[RunStamp.Key] : null;
+            }
+            string to = FolderOf(context.WorkFolder, plan);
+            if (!string.Equals(Path.GetFullPath(to).TrimEnd(Path.DirectorySeparatorChar), from.TrimEnd(Path.DirectorySeparatorChar), StringComparison.OrdinalIgnoreCase))
+            {
+                // A folder already there for these inputs is a read of the same files and the same profile, this read is the newer of the two
+                if (Directory.Exists(to))
+                {
+                    Directory.Delete(to, true);
+                }
+                Directory.Move(from, to);
+            }
+            // The record goes first and comes back last, so a write that fails leaves a folder no press reuses, which reads again
+            File.Delete(Path.Combine(to, RecordFile));
+            foreach (KeyValuePair<string, JObject> item in written)
+            {
+                if (stamps[item.Key] != null)
+                {
+                    item.Value[RunStamp.Key] = stamps[item.Key].DeepClone();
+                }
+                WorkFiles.WriteText(Path.Combine(to, item.Key), context.RunId, item.Value.ToString(Newtonsoft.Json.Formatting.Indented, new ExactDouble.Converter()));
+            }
+            var outputs = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (string path in read.Outputs.Keys)
+            {
+                string moved = Path.Combine(to, Path.GetFileName(path));
+                outputs[moved] = FileHash.Sha256(moved);
+            }
+            JObject counts = before["counts"] as JObject ?? new JObject();
+            counts["data check plots"] = ((JArray)output.Plots["plots"]).Count;
+            JObject record = Recorded(context.RunId, plan, outputs, counts, read.Issues ?? new List<string>(), new JObject());
+            WorkFiles.WriteText(Path.Combine(to, RecordFile), context.RunId, record.ToString(Newtonsoft.Json.Formatting.Indented));
+            return RunLater.Done(read.Message, read.Issues, outputs);
+        }
+
+        public const string ApplyNoCheck = "the read named no data check";
+        public const string ApplyNoInput = "the read holds no gathered files, it was made before R790";
+        public const string ApplyNoProfile = "no confirmed profile is in the work folder";
+        public const string ApplyNoRecord = "the read holds no record of a folder read";
+        public const string ApplyConfigChanged = "the settings file changed since the read started";
+        public const string ApplyNoResult = "the check gave no result";
+        public const string ApplyTooLarge = "the gathered files of the read are too large to take in Revit";
+        public const string ApplyStopped = "the check on the confirmed values stopped: <why>";
+
         // R474. sources names per value kind the source read and from where, and each conflict pick applied
         public static JObject Recorded(string runId, ReadPlan plan, IReadOnlyDictionary<string, string> outputs, JObject counts, IReadOnlyList<string> issues, JObject picks)
         {
