@@ -54,10 +54,15 @@ namespace SiteAdaptation.Tests
             Directory.Delete(folder, true);
         }
 
-        private Dictionary<string, string> ReadOutputs()
+        // A made up read of the scan folder given, with the record read.json that names it as R771 reads it
+        private Dictionary<string, string> ReadOutputs(string scanFolder = null, string name = "read_x")
         {
-            string read = Path.Combine(folder, "read_x");
+            string read = Path.Combine(folder, name);
             Directory.CreateDirectory(read);
+            File.WriteAllText(Path.Combine(read, ReadDataRun.RecordFile), new JObject
+            {
+                ["inputs"] = new JArray(new JObject { ["role"] = ReadInputs.ScanFolder, ["path"] = scanFolder ?? Path.Combine(folder, "folder A") }),
+            }.ToString());
             File.WriteAllText(Path.Combine(read, "data_check.json"), Check);
             File.WriteAllText(Path.Combine(read, "plots.json"), "{\"plots\":[{\"number\":\"1\"}]}");
             File.WriteAllText(Path.Combine(read, "project_profile.json"), Profile);
@@ -105,6 +110,29 @@ namespace SiteAdaptation.Tests
             Assert.Empty(calls);
             Assert.Contains(ScanResultsText.QuietKept, quiet.Message);
             Assert.Equal(kept, File.ReadAllBytes(confirmed));
+        }
+
+        // Lead's point of 18:20: the demo reads two folders. A profile confirmed for folder A never stands for folder B, the Confirm opens
+        [Fact]
+        public void R771_a_quiet_read_of_another_folder_than_the_one_confirmed_opens_the_confirm()
+        {
+            PaneSettings settings = Project();
+            var calls = new List<string>();
+            ConfirmProfileStep.ShowCheck = (owner, result) => calls.Add("check");
+            ConfirmProfileStep.ShowConfirm = (owner, session) => { calls.Add("confirm"); session.Confirm(); };
+            QuietRead.Now = () => false;
+            Assert.Null(Press(settings, ReadOutputs(Path.Combine(folder, "folder A"), "read_a")).Failure);
+            Assert.True(ConfirmedFor.Holds(folder, Path.Combine(folder, "FOLDER A") + Path.DirectorySeparatorChar));
+            Assert.False(ConfirmedFor.Holds(folder, Path.Combine(folder, "folder B")));
+
+            calls.Clear();
+            QuietRead.Now = () => true;
+            RunLater ended = Press(settings, ReadOutputs(Path.Combine(folder, "folder B"), "read_b"));
+            Assert.Null(ended.Failure);
+            Assert.Equal(new[] { "confirm" }, calls);
+            Assert.DoesNotContain(ScanResultsText.QuietKept, ended.Message);
+            // The Confirm of folder B now holds for B
+            Assert.True(ConfirmedFor.Holds(folder, Path.Combine(folder, "folder B")));
         }
 
         [Fact]

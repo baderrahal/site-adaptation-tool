@@ -179,6 +179,11 @@ namespace SiteAdaptation.AddIn
                 var session = new ConfirmProfile.ConfirmProfileSession(ConfirmProfile.ConfirmProfileModel.Read(Common.WorkFiles.ReadText(profile)), work, "fix-" + DateTime.UtcNow.ToString("yyyyMMddHHmmss", System.Globalization.CultureInfo.InvariantCulture));
                 ConfirmProfile.ConfirmProfileStep.ShowConfirm(owner, session);
                 said = session.Result;
+                // R771. The folder this Confirm holds for, so a quiet read of the Build keeps it only for the same folder
+                if (said == ConfirmProfile.ConfirmProfileText.Saved)
+                {
+                    Fast7.ConfirmedFor.Write(work, Fast7.ConfirmedFor.ScanFolderOf(readFolder));
+                }
             }
             catch (Exception failure)
             {

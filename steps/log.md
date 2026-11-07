@@ -9,7 +9,7 @@ Goal:
 
 Done:
 - R770: ReviewDataSession.Closed saves once when nothing is left unsaved, called by ReviewDataDialog after the window closes.
-- R771: BuildChain puts a step back once per Build and names the step running (Current). PaneHost sets QuietRead from it. ScanGate opens no window then, ConfirmProfileStep shows no check window and skips the Confirm when a confirmed profile exists, else opens it.
+- R771: BuildChain puts a step back once per Build and names the step running (Current). PaneHost sets QuietRead from it. ScanGate opens no window then, ConfirmProfileStep shows no check window and skips the Confirm only when the profile was confirmed for the same scan folder, by confirmed_for.json that each saving Confirm writes (Lead's point of 18:20, the demo reads two folders), else opens it.
 - steps/tasks/FAST-7-build-3.md status done, the last PR of FAST-7.
 
 Checked:
