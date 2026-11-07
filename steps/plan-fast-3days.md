@@ -58,6 +58,13 @@ At 23:10:
 - 00:46: run 1 not started. At 00:44 the PC was 5 minutes idle, then the permission check of the revit-test session (auto mode) refused the launch of the Revit driver under python/window_lock.py, with no reason given. Revit not opened, no input sent. BLOCKED until Bader allows that launch in the revit-test session, or runs the lane where it is allowed. Lead does not launch it for the lane.
 - 23:37: Bader's order, the driver presses Always Load on our own Unsigned Add-In box, PR 246.
 
+## Sat 7 Nov 22:25, the intake and short check 2
+
+- scripts/new-project-intake.ps1 tested on S1: 23 min, the raw read 10.9 min and the read with the proposed columns confirmed 12 min, the 37 files of S1 unchanged by SHA-256. It names the 7 tuned neighbourhoods with their villa types, 010 16 plots with none, as run 1. Level 1 takes the name of the area column when the read gives none, CHOSEN by Lead. The cover of each road surface stays UNKNOWN in the intake: the proxy of build-1 does not tell neighbourhoods apart, only a plan of 4 Check does (steps/seam.md, 22:00). After FAST-9 the second read should drop out.
+- Q600 corrected by build-1: all 269 plots of 01A get an ffl from two road surfaces, only the toposolid needs the two joined. Short check 2 stays on 01A. Q600 for Bader, recommended: a next task joins the surfaces the front corners took, R485 kept.
+- 22:20 main a99ea93 built and installed, F25, F26, F27 in. revit-test started on short check 2 of 01A.
+- Lanes: build-2 on FAST-9, build-3 on FAST-10. build-1 stopped, FAST-8 open for Q600 and the Revit check.
+
 ## Sat 7 Nov 21:40, the new project path
 
 Bader's order of 21:06: Bader gets a real new project on Sun 8 Nov, files the tool has never seen, the demo is at 17:00. FAST-8 and short check 2 keep first place.
