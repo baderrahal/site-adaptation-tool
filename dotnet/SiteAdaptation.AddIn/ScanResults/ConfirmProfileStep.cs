@@ -29,7 +29,7 @@ namespace SiteAdaptation.AddIn.ConfirmProfile
         public static Func<string, string, bool> AskDiscard { get; set; } = (label, why) => new TaskDialogConfirm().Apply(label, new RunSummary(ConfirmProfileText.DiscardAsk.Replace("<why>", why), null), false);
 
         // R792. The line a Confirm that saved adds when the check ran again on the read just made, and the one when it could not
-        public const string AppliedLine = "The confirmed columns were applied to this read, no drawing was read again. Run 2 Read data once more to take the read with them, it reads nothing.";
+        public const string AppliedLine = "They are applied to this read already, so that press reads no drawing again.";
         public const string NotAppliedLine = "The confirmed values count from the next read, <why>.";
 
         // apply is ReadDataRun.ApplyConfirmed of the same read, null keeps a Confirm that saved for the next read only, as before R791
