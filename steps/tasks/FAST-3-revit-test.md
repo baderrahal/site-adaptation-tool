@@ -29,6 +29,8 @@ Run 1b, Sat 7 Nov from 10:30, Bader's order of 10:05. Neighbourhood 01A, marked 
 
 Run 2, tonight Sat 7 Nov at 23:30 if Lead's short check after FAST-5 and FAST-6 passes, is the full run of this task on 01A, not on an untuned neighbourhood, Bader's answer to F15. Sun 8 Nov becomes the third run and the rehearsal of steps/demo-live.md.
 
+The run of Sun 8 Nov by 12:00, Bader's order of 7 Nov 14:40: neighbourhood 010, not used for tuning, on the demo folder S1-new of the work root, from an empty model copy, Choose project folder with S1-new, in the Confirm window the typology column of sheet JN Sales Data_Base_Rev09 and the area column Neighbourhood_ID of PH_1-DLUS, then Build to the end. 11 of the 16 villa plots of 010 hold a villa type there, steps/bader-form-7nov.md. Counts and one shot per card in the record, real values blanked in any shot for git.
+
 Rule ids: R720 to R729. Question ids: Q550 to Q559. Take no other id.
 
 # Build rules
