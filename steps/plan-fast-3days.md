@@ -73,7 +73,7 @@ Where it stands at 17:05:
 
 After a shut down, Lead in the main folder, in this order:
 1. git fetch, gh pr list. Merge a green PR, merge main into a red one.
-2. Start build-3 again: .venv\Scripts\python scripts\lanesun_lane.py build-3 <prompt> --model opus --effort high --resume FAST-7-build-3, the prompt says go on from steps/heads-up/build-3.md.
+2. Start build-3 again: .venv\Scripts\python scripts\lanes\run_lane.py build-3 <prompt> --model opus --effort high --resume FAST-7-build-3, the prompt says go on from steps/heads-up/build-3.md.
 3. When the F24 PR of build-3 is on main and Revit is closed: build and install main with Install-SiteAdaptation.ps1, nothing pressed.
 4. Start revit-test again on the short check: run_lane.py revit-test <prompt> --model opus --effort high --resume FAST-3-short, a fresh empty copy of the model, 01A, Choose project folder, Build to the end.
 5. Pass: run 2 at 23:30, the full FAST-3 on 01A. Fail: the fault to steps/seam.md and to the lane that holds the file, the same hour.

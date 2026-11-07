@@ -9,6 +9,8 @@ Goal:
 
 Done:
 - steps/plan-fast-3days.md: where each lane stands at 17:05 and the order to start again after a shut down.
+- FAST-7 takes ScanGate.cs and ConfirmProfileStep.cs from FAST-5 for F6, the Confirm reuses the profile the person confirmed last, and rule ids R770 to R779.
+- The plan held a carriage return from a script, R343 failed, taken out.
 - FAST-7 takes R688_BuildChainTests.cs and R740_BuildReadTests.cs for F6 and F13, in their smaller version: no stop added to the Build, the read for the build of R741 kept.
 - The driver exemption for Teams widened to the full view of the same keep awake meeting, by Bader's words of 00:16, in .claude/rules/revit.md and FAST-3-revit-test.md. The driver paused from 15:56 on that view.
 

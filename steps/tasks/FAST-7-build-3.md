@@ -33,6 +33,8 @@ allowed:
   - dotnet/SiteAdaptation.Tests/UiLabelTests.cs
   - dotnet/SiteAdaptation.AddIn/ScanResults/ScanResultsWindow.xaml
   - dotnet/SiteAdaptation.Tests/FAST7/
+  - dotnet/SiteAdaptation.AddIn/ScanResults/ScanGate.cs
+  - dotnet/SiteAdaptation.AddIn/ScanResults/ConfirmProfileStep.cs
   - dotnet/SiteAdaptation.Tests/FAST1/R688_BuildChainTests.cs
   - dotnet/SiteAdaptation.Tests/FAST5/R740_BuildReadTests.cs
   - docs/rules/23-fast7-r760-up.md
@@ -56,11 +58,11 @@ The polish of run 1, Bader's order of 7 Nov 10:05, in files FAST-5-build-1 does 
 6. F9. Settings has a gear. Report is grey while card 3 waits for stage 2. The folder picker has a path field and opens at the folder chosen before. The header of the check window says villa plots of all plots.
 7. F17. The window How it works teaches the 3 cards, not the nine steps of version 1.
 8. F24 of the short check, the part in PaneHost.cs: ChooseProjectFolder asks for the step after the folder by StagesViewModel.StepAfterFolder, so another folder, or step 1 run by its button first, never meets the box 2 Read data needs step 1. PaneHost.cs and BuildChain.cs are on this list since 7 Nov 16:40, a fault of the short check in them comes here.
-9. F6 and F13 last, the smaller version CHOSEN by Lead on 7 Nov 17:15: F13, a Close of 3 Review data with nothing changed counts as saved and the Build goes on. F6, a step 2 the chain puts back runs as the read for the build of R741, no check window, no second Confirm, never twice in one Build. The read for the build before Check (R741) stays whole. No merge of it before the short check ends. They live in the Build chain, PaneHost.cs and BuildChain.cs, FAST-5's. Start them only when FAST-5 is done on main, then Lead moves the files to this task. If FAST-5 closed them, write that and skip.
+9. F6 and F13 last, the smaller version CHOSEN by Lead on 7 Nov 17:15: F13, a Close of 3 Review data with nothing changed counts as saved and the Build goes on. F6, a step 2 the chain puts back runs as the read for the build of R741, no check window, no second Confirm, never twice in one Build. It stays a real step 2 run, so step 3 sees it. ScanGate.cs and ConfirmProfileStep.cs come from FAST-5 on 7 Nov 17:35 for it: a flag the chain sets for the step 2 it puts back skips the check window, and the Confirm takes the profile the person confirmed last for this project, never a fresh proposal. Only when no confirmed profile exists does the Confirm window open. The read for the build before Check (R741) stays whole. No merge of it before the short check ends. They live in the Build chain, PaneHost.cs and BuildChain.cs, FAST-5's. Start them only when FAST-5 is done on main, then Lead moves the files to this task. If FAST-5 closed them, write that and skip.
 
 Revit: you may open Revit for your own check, Bader's order of 7 Nov 10:05. The test host and the listener on a copy of the 01A model, never on the real one, under python/window_lock.py, one lane at a time. Keep the driver rule of .claude/rules/revit.md. Write what you opened in steps/revit-results/FAST-7-build-3.md and in the PR body. revit-test and build-1 also use Revit today. revit-test stops at the end of its next part, saving its copy, while the file revit-wanted-build-3.txt stands in the lanes folder of the work root. Write it when you need Revit, delete it when you are done. The window lock decides who goes, wait for it, never end another lane's Revit.
 
-Rule ids: R760 to R769. Question ids: Q590 to Q599. Take no other id.
+Rule ids: R760 to R779, R770 to R779 added on 7 Nov 17:35. Question ids: Q590 to Q599. Take no other id.
 
 # Done when
 

@@ -14,9 +14,7 @@ allowed:
   - dotnet/SiteAdaptation.AddIn/Commands/ReadDataBody.cs
   - dotnet/SiteAdaptation.AddIn/Commands/ButtonCommands.cs
   - dotnet/SiteAdaptation.AddIn/Commands/Buttons.cs
-  - dotnet/SiteAdaptation.AddIn/ScanResults/ScanGate.cs
   - dotnet/SiteAdaptation.AddIn/ScanResults/ScanResultsSession.cs
-  - dotnet/SiteAdaptation.AddIn/ScanResults/ConfirmProfileStep.cs
   - dotnet/SiteAdaptation.AddIn/ScanResults/ConfirmProfileSession.cs
   - dotnet/SiteAdaptation.AddIn/Fast5/
   - dotnet/SiteAdaptation.Common/ReadData/
@@ -45,7 +43,7 @@ Revit: you may open Revit for your own check, Bader's order of 7 Nov 10:05. The 
 
 Rule ids: R740 to R749. Question ids: Q571 to Q579. Take no other id.
 
-PaneHost.cs and BuildChain.cs moved to FAST-7-build-3 on 7 Nov 16:40, CHOSEN by Lead: build-1 stopped after PR 256, and build-3 needs PaneHost.cs for F24 and both for F6 and F13. A fault of the short check in those two files goes to build-3.
+PaneHost.cs and BuildChain.cs moved to FAST-7-build-3 on 7 Nov 16:40, ScanGate.cs and ConfirmProfileStep.cs at 17:35 for F6, CHOSEN by Lead: build-1 stopped after PR 256, and build-3 needs PaneHost.cs for F24 and both for F6 and F13. A fault of the short check in those two files goes to build-3.
 
 # Done when
 
