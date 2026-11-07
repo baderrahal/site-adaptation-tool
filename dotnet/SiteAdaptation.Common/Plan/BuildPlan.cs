@@ -208,7 +208,7 @@ namespace SiteAdaptation.Common
                 ["floorSettings"] = new JObject { ["types"] = floorsBlock["types"]?.DeepClone(), ["levels"] = floorsBlock["levels"]?.DeepClone(), ["plotParameter"] = floorsBlock["plotParameter"]?.DeepClone() },
                 ["sources"] = SourceTexts.DeepClone(),
                 ["statusFrom"] = StatusFrom(steps),
-                ["summary"] = LeftOut(Summary(steps, inputs, numbers, plots, lacking, walls, table), missing),
+                ["summary"] = Summary(steps, inputs, numbers, plots, lacking, walls, table, missing),
                 ["plots"] = plots,
                 ["walls"] = walls,
                 ["missing"] = missing,
@@ -658,7 +658,7 @@ namespace SiteAdaptation.Common
         public const string WrittenWithMissingKey = "writtenWithMissing";
 
         private static JObject Summary(IReadOnlyDictionary<string, JObject> steps, PlanInputs inputs, List<string> numbers, JArray plots, SortedDictionary<string, int> lacking,
-            JArray walls, JObject table)
+            JArray walls, JObject table, JArray missing)
         {
             JObject overrides = PlotsOf(steps, PlanOverrides.StepName), fronts = PlotsOf(steps, Fronts.StepName);
             var skipped = numbers.Where(number => Held(Side(overrides, number, "written")["skip"])).ToList();
@@ -700,6 +700,8 @@ namespace SiteAdaptation.Common
                 ["walls"] = WallSummary(walls, steps[Walls.StepName]["tables"]?["statusFrom"] as JObject ?? new JObject()),
                 ["rules"] = Rules(inputs, numbers, overrides, plots, table),
             };
+            // R801. Before the lists of rev6, which plan_from_book.build adds last
+            LeftOut(summary, missing);
             // R408. The lists of a build under rev6 after the rules, as plan_from_book.build adds them, none on a build of the past job
             foreach (string name in new[] { "noDoorLevel", "slopeOutsideManual" })
             {

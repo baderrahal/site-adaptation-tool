@@ -638,5 +638,5 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 ## 27-fast11-r800-up.md
 
 - R800 Plot built with a value missing.
-- R801 Card 2 names the plots left out.
-- R802 Card 3 counts the plan of the scope.
+- R801 Card 2 lists plots left out.
+- R802 Card 3 counts the scope.

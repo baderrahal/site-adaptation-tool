@@ -203,7 +203,8 @@ namespace SiteAdaptation.Tests
             // the villa plots of all plots, and How it works on the 3 cards, its line now CHOSEN and the head of each card (R761 to R767)
             // and 1 of R771, the line of a step 2 the Build put back
             // and 1 of R772, the Close of the check table
-            Assert.Equal(526, chosen);
+            // and 1 of R802, the card 3 line of the plots of the plan with no road level
+            Assert.Equal(527, chosen);
             Assert.True(matched > 100, matched.ToString());
         }
 
