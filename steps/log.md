@@ -25,6 +25,31 @@ Next:
 Your turn:
 - Sun 8 Nov: name the folder of the new project.
 
+## Lead, FAST-10 allowed list widened, run 2 moves to Sun 06:00, 7 Nov 2026
+
+Goal:
+- Unblock PR 273 of FAST-10 and keep the plan true.
+
+Done:
+- steps/tasks/FAST-10-build-3.md allows the 7 paths PR 273 changed outside its list, with the reason under Scope.
+- steps/plan-fast-3days.md: run 2 moves to Sun 06:00, the state of PRs 272 and 273, the open risk of a new project with no schedule.
+
+Checked:
+- The tests job of PR 273, run 42411552782: the only FAIL lines are the folder rules check on those 7 paths. dotnet, dotnet-linux and python pass.
+- Lead read the diff of DesignBasis.cs and BuildSteps.cs: an empty road surface list is no refusal only when Set up picked surfaces, no pick refuses as before.
+
+Remains:
+- Merge main into PR 273 and rerun, merge PR 272 after its Callers fix.
+
+Known bugs:
+- A new project with no schedule takes its plot table from the folder, not seen on a real folder yet.
+
+Next:
+- Short check 2 result, then install main before run 2 at 06:00.
+
+Your turn:
+- Nothing tonight. Sun 8 Nov: the folder path of the new project by 10:00.
+
 ## FAST-8-build-1, Check reads no past file, the toposolid surface, no overlap box, 7 Nov 2026
 
 Goal:

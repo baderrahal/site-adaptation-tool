@@ -22,6 +22,13 @@ allowed:
   - steps/heads-up/build-3.md
   - steps/seam.md
   - steps/log.md
+  - dotnet/SiteAdaptation.Common/Plan/DesignBasis.cs
+  - dotnet/SiteAdaptation.Common/Plan/BuildSteps.cs
+  - docs/design/12-ui-spec.md
+  - docs/design/14-ui-labels.md
+  - dotnet/SiteAdaptation.Tests/InstallScriptTests.cs
+  - dotnet/SiteAdaptation.Tests/R484_ProjectModeTests.cs
+  - dotnet/SiteAdaptation.Tests/R486_ShippedSetTests.cs
 ---
 
 # Scope
@@ -37,6 +44,8 @@ Not here: Common/CheckTable/ and Common/Floors/ (FAST-8-build-1), Common/ReadDat
 Revit: you may open Revit for your own check on a model copy under python/window_lock.py, Bader's order of 7 Nov 10:05, after short check 2 of revit-test, which comes first. Window shots in steps/ui-shots/ with no real value in view.
 
 Rule ids: R795 to R799. Question ids: Q615 to Q619. Take no other id.
+
+Lead, 7 Nov 23:50: the last 7 paths of allowed were added after the review of PR 273. A new project names no road surface in config, and DesignBasis.Of refused that empty list before TakePick took the pick of Set up, so the installed set reached no plan. The docs carry the new step 4 line, the 3 tests follow the new profile name and the pick.
 
 # Done when
 
