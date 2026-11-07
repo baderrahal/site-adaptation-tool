@@ -7,8 +7,9 @@ namespace SiteAdaptation.AddIn.HowItWorks
 {
     public sealed class HowRow
     {
-        public HowRow(int number, string what, string needs, string gives, string button)
+        public HowRow(int number, string what, string needs, string gives, string button, string card = "")
         {
+            Card = card ?? string.Empty;
             Number = number;
             What = what;
             Needs = needs;
@@ -21,6 +22,10 @@ namespace SiteAdaptation.AddIn.HowItWorks
         public string Needs { get; }
         public string Gives { get; }
         public string Button { get; }
+
+        // R764. The head of the card the row opens, empty on a row that is not the first step of its card
+        public string Card { get; }
+        public bool OpensCard { get { return Card.Length > 0; } }
     }
 
     // Lane C NEWPROJ-UI. The page How it works: one row per step of StepPlan in the order of the ribbon. It reads nothing and writes nothing,
@@ -33,9 +38,24 @@ namespace SiteAdaptation.AddIn.HowItWorks
         {
             CanOpenNew = canOpenNew;
             Rows = RibbonLayout.Buttons.Select(button => new HowRow(button.Number, HowItWorksText.What[button.Number - 1], HowItWorksText.Needs[button.Number - 1],
-                HowItWorksText.Gives[button.Number - 1], button.Label)).ToList();
+                HowItWorksText.Gives[button.Number - 1], button.Label, CardOf(button.Number))).ToList();
             Count = TextTemplate.Fill(HowItWorksText.Count, StepPlan.Count);
             CountLine = TextTemplate.Fill(HowItWorksText.CountLine, StepPlan.Count);
+        }
+
+        // R764. The cards of the pane in 3 stages, their titles and main buttons in the words of the pane
+        private static readonly string[] CardTitles = { StageText.Stage1, StageText.Stage2, StageText.Stage3 };
+        private static readonly string[] CardButtons = { StageText.ChooseFolder, StageText.Build, StageText.Report };
+
+        // The head of the card a step opens, empty when the step is not the first of its card
+        public static string CardOf(int step)
+        {
+            int card = StageStatus.StageOf(step);
+            if (card == 0 || StageStatus.Steps[card - 1][0] != step)
+            {
+                return string.Empty;
+            }
+            return TextTemplate.Fill(HowItWorksText.CardHead, card, CardTitles[card - 1], CardButtons[card - 1]);
         }
 
         public IReadOnlyList<HowRow> Rows { get; }

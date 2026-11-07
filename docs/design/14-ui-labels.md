@@ -141,10 +141,12 @@ The five panels and their buttons of 7.1 of docs/design/12-ui-spec.md, Bader's c
 - `Project setup` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
 - `Open a project first.` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
 - `Set up this project first, in Settings.` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
+- `The setup of this project was not saved with the model, so the project, the input rows and the scope are gone. The reads stay in the work folder. Set up the project again in Settings, then save the model.` CHOSEN, F7 of run 1 of FAST-3, FAST-7-build-3: a model closed without save after Save setup, with a read in its work folder (R765)
 - `Done, <n> issues` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
 - `Not started` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
 - `Waits for stage <n>` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
 - `No data check yet. Choose the project folder.` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
+- `Run 1 Set up site first, it places the site. Then choose the project folder.` CHOSEN, F1 of run 1 of FAST-3, FAST-7-build-3: card 1 holds step 1 and Choose project folder waits for it (R761)
 - `No build yet. Build site in stage 2 first.` CHOSEN, card 3 Review and deliver of FAST-1-build-1, item 5
 - `<n> issues from the last build.` CHOSEN, card 3 Review and deliver of FAST-1-build-1, item 5
 - `Values: computed <n>, rule <n>, person entered <n>, missing <n>, other <n>.` CHOSEN, card 3 Review and deliver of FAST-1-build-1, item 5
@@ -285,6 +287,8 @@ An entry marked CHOSEN in 5a was worded in 5a PR 2 or PR 5, where docs/design/ g
 - `Position from` CHOSEN, R514, the first row of What the tool will set
 - `Position source` CHOSEN, R513, the section above What the project has now
 - `Use CAD, pick a position file or type Easting, Northing and Angle. Apply stays off until a source works.` CHOSEN, R513
+- `Press Dry run first. Apply turns on after it.` CHOSEN, F2 of run 1 of FAST-3, FAST-7-build-3: the line beside a grey Apply before the dry run (R766)
+- `Tick the site drawing Current under Current files. Apply turns on then.` CHOSEN, F2, the line beside a grey Apply after the dry run while the site drawing is not ticked (R766)
 - `Use CAD` CHOSEN, R513
 - `Pick position file` CHOSEN, R513
 - `Easting` CHOSEN, R513
@@ -765,7 +769,8 @@ The page How it works of Lane C NEWPROJ-UI, word for word from docs/design/board
 
 - `How it works`
 - `Read once`
-- `The tool puts each villa on its plot at the right level. It works in nine steps, one button each, always in this order. Each step needs the one before.`
+- `The tool puts each villa on its plot at the right level. The pane holds three cards, used in this order: Project data, Build site, Review and deliver. Each card runs the steps listed under it, and Advanced keeps one button per step.` CHOSEN, F17 of run 1 of FAST-3, FAST-7-build-3: the window teaches the 3 cards, not the nine steps of version 1 (R764)
+- `Card <n>, <name>: <name>` CHOSEN, F17, the head of each card over its first step, the card title and its main button (R764)
 - `Nothing changes in the model until you press Apply.`
 - `<n> steps`
 - `<n> buttons in the pane`
@@ -817,6 +822,7 @@ The window What the tool read of Lane C SCAN-UI, word for word from docs/design/
 - `The tool read your files and proposes where each value comes from. If a pick is wrong, change it from the list. Nothing changes in the model.`
 - `files read`
 - `plots found`
+- `villa plots of all plots` CHOSEN, F9 of run 1 of FAST-3, FAST-7-build-3: the head count of a data check that listed plots apart, its count "<n> of <n>" (R767)
 - `conflicts`
 - `Where each value comes from`
 - `The tool picks the source that covers the most plots. The others stay as checks.`

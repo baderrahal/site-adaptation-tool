@@ -2,6 +2,32 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## FAST-7 PR 2, card 1, the gear, How it works, 7 Nov 2026
+
+Goal:
+- The polish of run 1 in build-3's files: F1, F3, F7, F9, F17 and the line of F2.
+
+Done:
+- R761 and R762: card 1 holds 1 Set up site and 3 Review data, Choose project folder waits for step 1.
+- R763: the gear of Settings, Report grey while card 3 waits, the folder dialog of Windows with a path field at the folder chosen before.
+- R764: How it works heads its steps with the 3 cards. R765: no setup and a read in the work folder say the setup was not saved. R766: the line beside a grey Apply of Set up site. R767: the check window counts villa plots of all plots.
+- Shots in steps/ui-shots, made up values: pane-stage-1, pane-stages-head, how-it-works, setup-site-dry-run-first, scan-results-check.
+
+Checked:
+- dotnet/SiteAdaptation.Tests/FAST7, 15 new tests, most with a broken case, the gear and the How it works heads by the good case only. Not seen in Revit.
+
+Remains:
+- F2, the Baseplan of the chosen folder for Set up site, by FolderRoles.Of of FAST-5 once on main. F6 and F13 once Lead moves PaneHost.cs and BuildChain.cs.
+
+Known bugs:
+- How it works still says 9 steps and 9 buttons in its head, held by NewProjectTests.cs, line in steps/seam.md.
+
+Next:
+- F2 Baseplan, then F6 and F13.
+
+Your turn:
+- Nothing.
+
 ## FAST-7 takes UiLabelTests.cs, 7 Nov 2026
 
 Goal:

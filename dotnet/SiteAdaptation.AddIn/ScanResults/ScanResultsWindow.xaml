@@ -205,7 +205,7 @@
           </StackPanel>
           <StackPanel Margin="{StaticResource SA.Gap.Left24}">
             <TextBlock Style="{StaticResource SA.Type.Count}" Foreground="{StaticResource SA.Surface}" HorizontalAlignment="Right" Text="{Binding PlotsFound}" />
-            <TextBlock Style="{StaticResource SA.Type.Body}" Foreground="{StaticResource SA.BandText}" HorizontalAlignment="Right" Text="{x:Static sr:ScanResultsText.PlotsFound}" />
+            <TextBlock Style="{StaticResource SA.Type.Body}" Foreground="{StaticResource SA.BandText}" HorizontalAlignment="Right" Text="{Binding PlotsFoundLabel}" />
           </StackPanel>
           <StackPanel Margin="{StaticResource SA.Gap.Left24}" Visibility="{Binding ShowScan, Converter={StaticResource Shown}}">
             <TextBlock Style="{StaticResource SA.Type.Count}" Foreground="{StaticResource SA.ConflictCount}" HorizontalAlignment="Right" Text="{Binding ConflictCount}" />
