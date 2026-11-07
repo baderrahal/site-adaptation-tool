@@ -162,6 +162,8 @@ namespace SiteAdaptation.Tests.FAST10
             Assert.Equal(picked, basis.Surfaces);
             Assert.Contains(DesignBasis.BadSurfaces, Assert.Throws<InvalidDataException>(() => DesignBasis.Of(config, () => null)).Message);
             Assert.Contains(DesignBasis.BadPick, Assert.Throws<InvalidDataException>(() => DesignBasis.Of(config, () => null, new string[0]).TakePick(new string[0])).Message);
+            // R781 of FAST-8 still finds its settings, the surface it names stands for none, so the one the build read that covers stands in
+            Assert.Equal(NewProjectValues.NotChosen, Common.Floors.RoadTopographySettings.Of(config).Surface);
             // A config that names surfaces keeps them where no pick is made
             Assert.Equal(pastConfig.SelectToken("designBasis.roadLevel.surfaces").Select(item => (string)item), DesignBasis.Of(ProjectModes.Apply((JObject)pastConfig.DeepClone(), DesignBasis.Rev6), () => null).Surfaces);
         }

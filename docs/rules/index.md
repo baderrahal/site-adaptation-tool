@@ -620,3 +620,11 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R780 Check takes the project plots.
 - R781 Road surface that covers ramps.
 - R782 Known words, no box.
+
+## 26-fast10-r795-up.md
+
+- R795 New project config.
+- R796 New project rules profile.
+- R797 New project window reads the copy to be.
+- R798 Read and step 4 name no past job.
+- R799 Own position file.

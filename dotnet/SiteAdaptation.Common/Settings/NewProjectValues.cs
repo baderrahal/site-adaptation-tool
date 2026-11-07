@@ -17,8 +17,11 @@ namespace SiteAdaptation.Common.Settings
         private static readonly string[] EmptyLists = { "schedules", "designBasis.roadLevel.surfaces", "siteBuild.roadSurfaces", "majority.datumSurfaces" };
         private static readonly string[] EmptyBlocks = { "connect.neighbourhoods" };
 
-        // Choose project folder writes inputRoot. The toposolid surface and the fit neighbourhood have no neutral value, null says not chosen
-        private static readonly string[] NoValue = { "inputRoot", "dataBook.locationPlan.fitNeighbourhood", "pastJob.schedule", "floors.roadTopography.surface" };
+        // Choose project folder writes inputRoot. The fit neighbourhood and the schedule of the past job have no neutral value
+        private static readonly string[] NoValue = { "inputRoot", "dataBook.locationPlan.fitNeighbourhood", "pastJob.schedule" };
+
+        // The toposolid of step 5 needs a surface by name, R781 then stands in the surface the build read that covers, so the name says it was never chosen
+        public const string NotChosen = "not chosen yet";
 
         private const string Note = "R795. The settings of a new project, copied from the shipped set of the install with every value of the past job emptied: rules profile, road surfaces, schedules and position file. Choose project folder writes inputRoot";
         private const string NotMeasured = "Not measured";
@@ -49,6 +52,7 @@ namespace SiteAdaptation.Common.Settings
             {
                 Replace(config, path, JValue.CreateNull());
             }
+            Replace(config, "floors.roadTopography.surface", NotChosen);
             // R799. Set up site checks the CAD against this file, the past file under the work root filled the Position file column of every new project
             Replace(config, "addin.position.file", WorkRoot.Mark + "/" + ShippedSet.ProjectsFolder + "/" + projectFolder + "/position/position.json");
             return config;

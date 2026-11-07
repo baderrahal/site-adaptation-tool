@@ -52,6 +52,30 @@ Next:
 Your turn:
 - Answer Q600 in steps/seam.md.
 
+## FAST-10, a new project shows no past job value, F8, 7 Nov 2026
+
+Goal:
+- F8: a project made with Empty project held the rules profile, rules name, road surfaces, schedules and position file of the past job.
+
+Done:
+- R795 to R799. dotnet/SiteAdaptation.Common/Settings/NewProjectValues.cs empties each past value of the copy Empty project makes, ShippedSet.MakeNew writes it, ShippedSet.Seen shows the window the copy to be before Save. The rules profile is profile.json, named by the folder of the model, with no past job measure. The read says once that the project names no schedule. Step 4 says "Checks each plot against the rules". The position file is the project's own and on no disk.
+- DesignBasis.Of takes the pick of Set up over an empty surface list, so a new project builds on the surfaces the person picked.
+
+Checked:
+- NewProjectNoPastJobTests, from the repo config and rules as the install ships them: no rules name, road surface, schedule or profile of the past job in the copy, the rules window, the window before and after Save and the read, the past job files unchanged. InstallScriptTests: a new project from the installed set still reaches a plan through the real worker, with a pick. Full suite green on net48 and net8.0 but the timing test R347 once, green alone. Not seen in Revit.
+
+Remains:
+- Window shots and the Revit check, after short check 2 of revit-test.
+
+Known bugs:
+- Past values outside the four kinds stay in the copy: drawings, siteBuild.answerKey, majority keys, designBasis.roadLevel.notRoad and the notes, steps/seam.md.
+
+Next:
+- Lead's intake and the demo of Sun 8 Nov.
+
+Your turn:
+- Nothing.
+
 ## The new project path, 7 Nov 2026
 
 Goal:
