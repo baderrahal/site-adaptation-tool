@@ -18,7 +18,7 @@ The polish of run 1 of FAST-3. Updated 7 Nov 2026 19:35, with PR 6 of F25, the l
 - PR 5, F13, R770. ReviewDataSession.Closed, called by ReviewDataDialog.Show after the window: a Close with nothing unsaved runs Save once.
 - PR 5, F6, R771. BuildChain.Current and putBack, a step goes back once per Build. dotnet/SiteAdaptation.AddIn/Fast7/QuietRead.cs, set in PaneHost.SetupDockablePane to chain.Current == 2. ScanGate.Ask and ConfirmProfileStep.Ended read QuietRead.On: no window, the picks kept, the Confirm skipped only when dotnet/SiteAdaptation.AddIn/Fast7/ConfirmedFor.cs Holds, the profile confirmed for the same scan folder. ConfirmedFor.Write runs after each Confirm that saved, in ConfirmProfileStep.Ended and PaneHost.FixItems. Line ScanResultsText.QuietKept.
 
-- PR 6, item 10, F25, R772. BuildChain.committed: a step that committed in this Build is never put back. CheckTableWindow CloseButton, OnClose, CheckTableText.Close.
+- PR 6, item 10, F25, R772. BuildChain.committed: a step that committed in this Build is never put back. BuildChain.WaitsOnCommitted and PaneHost.RunWhenHashed run the next step once the pane hashed the committed one, at most 10 s later. CheckTableWindow CloseButton, OnClose, CheckTableText.Close.
 - PR 5 review: ConfirmedFor.Write deletes the file of the Confirm before first.
 
 ## What calls what

@@ -27,11 +27,26 @@ namespace SiteAdaptation.Tests
             Assert.True(chain.Ended(4, RunEnd.Committed, null, out int? next, out string line));
             Assert.Equal(5, next);
             Assert.Equal(5, chain.Current);
+            // The next step waits for the pane to hash Check again, as the gate of the flow reads the same statuses
+            Assert.True(chain.WaitsOnCommitted(5));
+            state[5] = new StepStatus(StepKind.Ready);
+            Assert.False(chain.WaitsOnCommitted(5));
+            // A step that waits on a step not committed in this build is no wait of this kind
+            state[5] = new StepStatus(StepKind.NeedsStep, 3);
+            Assert.False(chain.WaitsOnCommitted(5));
 
             // A step that did not commit in this build is still put back once, as R688 asks
             var other = new Dictionary<int, StepStatus> { [4] = new StepStatus(StepKind.NeedsStep, 3), [3] = new StepStatus(StepKind.Ready) };
             var waiting = new BuildChain(number => "Step" + number, number => other.TryGetValue(number, out StepStatus held) ? held : new StepStatus(StepKind.Done));
             Assert.Equal(3, waiting.Start());
+        }
+
+        [Fact]
+        public void R772_paneHost_runs_the_next_step_once_the_step_it_waits_on_is_hashed()
+        {
+            string host = System.IO.File.ReadAllText(System.IO.Path.Combine(ThemeGateTests.RepoRoot(), "dotnet", "SiteAdaptation.AddIn", "App", "PaneHost.cs"));
+            Assert.Contains("RunWhenHashed(() => chain.WaitsOnCommitted(step), () => runStep(step));", host);
+            Assert.Contains("DateTime until = DateTime.UtcNow.AddSeconds(10);", host);
         }
 
         [Fact]

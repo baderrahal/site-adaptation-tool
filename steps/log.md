@@ -8,7 +8,7 @@ Goal:
 - Item 10, F25 of the short check: the Build looped on 4 Check, 5 runs, and the Check window had no Close.
 
 Done:
-- R772: BuildChain keeps the steps that committed in this Build and never puts one back, so after Check commits the Build goes on to step 5 though the statuses still lag. The Check window has a Close beside Save overrides.
+- R772: BuildChain keeps the steps that committed in this Build and never puts one back, so after Check commits the Build goes on to step 5, which PaneHost runs once the pane hashed Check again, at most 10 seconds later, as the gate of the flow reads the same statuses. The Check window has a Close beside Save overrides.
 - Shot steps/ui-shots/check-table.png with the Close, made up values. steps/tasks/FAST-7-build-3.md status done, the last PR of FAST-7.
 
 Checked:

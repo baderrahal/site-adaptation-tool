@@ -41,6 +41,14 @@ namespace SiteAdaptation.AddIn.Pane
 
         public bool Running { get { return at >= 0; } }
 
+        // R772. True while the step given still waits on a step this build committed, as the pane has not hashed that step again yet. The gate of
+        // the flow reads the same statuses, so the next step runs once this is false, or stops then with its own reason
+        public bool WaitsOnCommitted(int step)
+        {
+            StepStatus now = status(step);
+            return Running && now.Kind == StepKind.NeedsStep && committed.Contains(now.Value);
+        }
+
         // R771. The step running now, null with no build. A step 2 the build put back reads quietly while it is the step running
         public int? Current { get { return Running ? steps[at] : (int?)null; } }
 
