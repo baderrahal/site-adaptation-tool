@@ -199,6 +199,7 @@ namespace SiteAdaptation.AddIn.Pane
         private bool previewFirst = true;
         private string stopLine;
         private string readLine = StageText.NoRead;
+        private string pickLine;
         private string readFolder;
         private string fixFolder;
         private DateTime readStamp;
@@ -210,7 +211,7 @@ namespace SiteAdaptation.AddIn.Pane
             Model = model;
             Cards = new ReadOnlyCollection<StageCard>(new[]
             {
-                new StageCard(1, StageText.Stage1, StageText.Stage1Help, StageText.ChooseFolder, new PaneCommand(ChooseFolder, () => model.InUse && Ran(SetUpStep))),
+                new StageCard(1, StageText.Stage1, StageText.Stage1Help, StageText.ChooseFolder, new PaneCommand(ChooseFolder, () => model.InUse)),
                 new StageCard(2, StageText.Stage2, StageText.Stage2Help, StageText.Build, new PaneCommand(PressBuild, () => model.InUse && readFolder != null)),
                 new StageCard(3, StageText.Stage3, StageText.Stage3Help, StageText.Report, new PaneCommand(() => model.RequestRun(ReportStep), () => model.InUse && Waits(ReportStep) == 0)),
             });
@@ -312,11 +313,43 @@ namespace SiteAdaptation.AddIn.Pane
         }
 
         // R763, F9 of run 1. The folder dialog opens at the project folder chosen before, read from the config copy of the project
+        // R768, F1 and F2. Before step 1 ran, the folder goes into the config copy of the project and 1 Set up site runs on it, which takes the
+        // Baseplan of that folder. The read follows at the next press, once the site is placed, so an empty model never meets "2 Read data needs
+        // step 1" and Set up site never waits on a folder no one could choose. A refusal stands in card 1
         private void ChooseFolder()
         {
             DialogPicker.Start = ProjectFolderPick.Chosen(Model.Settings?.ConfigFile) ?? DialogPicker.Start;
-            ChooseFolderRequested?.Invoke();
+            pickLine = null;
+            if (Ran(SetUpStep))
+            {
+                ChooseFolderRequested?.Invoke();
+                return;
+            }
+            string chosen = PickFolder?.Invoke();
+            if (string.IsNullOrEmpty(chosen) || Model.Settings == null)
+            {
+                Card1.Line = Card1Line();
+                return;
+            }
+            pickLine = ProjectFolderPick.Write(Model.Settings.ConfigFile, WorkRootNow?.Invoke(), chosen, WorkFolderNow?.Invoke());
+            if (pickLine == null)
+            {
+                Model.PickConfig(Model.Settings.ConfigFile);
+                Model.RequestRun(SetUpStep);
+            }
+            Card1.Line = Card1Line();
         }
+
+        // The line of card 1: a refused folder, else the ask for step 1, else the line of the read
+        private string Card1Line()
+        {
+            return pickLine ?? (Model.InUse && !Ran(SetUpStep) ? StageText.SetUpBeforeFolder : readLine);
+        }
+
+        // The folder dialog and the work root, as the Revit side has them, so a test gives its own
+        public Func<string> PickFolder { get; set; } = () => new DialogPicker().Folder();
+        public Func<string> WorkRootNow { get; set; } = () => WorkFolder.Root(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), WorkFolder.ReadIfThere);
 
         private void PressBuild()
         {
@@ -383,7 +416,7 @@ namespace SiteAdaptation.AddIn.Pane
             Changed(nameof(MixOther));
             RulesCommand.Refresh();
             RulesLine = Model.HasDocument && Model.InUse ? RulesLineNow?.Invoke() : null;
-            Card1.Line = Model.InUse && !Ran(SetUpStep) ? StageText.SetUpBeforeFolder : readLine;
+            Card1.Line = Card1Line();
         }
 
         // The rows of the latest read, read again only when its data check changed

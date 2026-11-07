@@ -32,7 +32,7 @@ namespace SiteAdaptation.AddIn.Pane
 
         public const string NoRead = "No data check yet. Choose the project folder.";
         // R761, F1 of run 1
-        public const string SetUpBeforeFolder = "Run 1 Set up site first, it places the site. Then choose the project folder.";
+        public const string SetUpBeforeFolder = "Choose the project folder: 1 Set up site runs first and places the site from its Baseplan. Then choose the folder again to read the data.";
         public const string ReadStopped = "The last read stopped and holds nothing to fix: <name>. Fix the cause and choose the folder again.";
 
         // Choose project folder, R681
