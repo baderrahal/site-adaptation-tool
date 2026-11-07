@@ -573,6 +573,15 @@ namespace SiteAdaptation.Common
 
         // plan_from_book.build for the plots of the scope after the rule: the overrides of the list applied in the order the build applies them,
         // El @ Entry, then the FFL and the steps, then per plot the mirror flag, the link, its insert and rotation, the parameters and the floors
+        // R800. The key of the overrides step of a plot built not mirrored as no rule gave its hand, set only on such a plot
+        public const string HandMissingKey = "handMissing";
+
+        // R800. The hand of the rule holds no mirror flag
+        public static bool HandMissing(IReadOnlyDictionary<string, object> hand)
+        {
+            return hand == null || !hand.TryGetValue("mirrored", out object flag) || !(flag is JToken held) || held.Type == JTokenType.Null;
+        }
+
         public static Dictionary<string, PlotPlan> Of(IReadOnlyList<string> numbers, IReadOnlyDictionary<string, Dictionary<string, string>> rows, LevelBuild build,
             IReadOnlyDictionary<string, FrontItem> linkFronts, HandContext context, IReadOnlyDictionary<string, Dictionary<string, object>> hands, JObject keyRules,
             JObject levelProfile, JObject rules, JObject config, IReadOnlyDictionary<string, string> files, OverrideList list, string profileName, double step,
@@ -610,6 +619,7 @@ namespace SiteAdaptation.Common
             }
             // The hand of each plot after a mirror flag override, the link of R356 on it
             var turned = new Dictionary<string, Dictionary<string, object>>();
+            var handMissing = new HashSet<string>(StringComparer.Ordinal);
             foreach (string number in numbers)
             {
                 var hand = new Dictionary<string, object>(hands[number]);
@@ -617,6 +627,14 @@ namespace SiteAdaptation.Common
                 if (!list.Skip.ContainsKey(number) && flag != null && flag.Type == JTokenType.Boolean)
                 {
                     hand["mirrored"] = flag.DeepClone();
+                }
+                else if (build.Rev6 && !list.Skip.ContainsKey(number) && HandMissing(hand))
+                {
+                    // R800, Lead's CHOSEN of FAST-11: a new project gives most plots no hand, a plot no rule gives one is built not mirrored
+                    // with its hand tagged missing, never a hand of the past job, so the plot still gets a link and floors. Under rev6 alone,
+                    // the design basis of a new project, as a build of the past job keeps the plan of plan_from_book
+                    hand["mirrored"] = new JValue(false);
+                    handMissing.Add(number);
                 }
                 turned[number] = hand;
             }
@@ -785,6 +803,12 @@ namespace SiteAdaptation.Common
                     made["mirrored"] = mirrored.DeepClone();
                     made["insert"] = insert;
                     made["rotationDeg"] = rotation;
+                }
+                // R800. A plot with no face or front lacks its transform before any hand, as LinkFrames lists it, so only a framed plot lacks the hand
+                if (handMissing.Contains(number) && !lacks.Contains("transform"))
+                {
+                    made[HandMissingKey] = true;
+                    lacks.Insert(lacks.Contains("prototypeFile") ? 1 : 0, "mirrored");
                 }
                 if (level == null)
                 {

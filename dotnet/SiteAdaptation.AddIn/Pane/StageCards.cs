@@ -7,6 +7,7 @@ using System.Linq;
 using Newtonsoft.Json.Linq;
 using SiteAdaptation.AddIn.ScanResults;
 using SiteAdaptation.Common;
+using SiteAdaptation.Common.CheckTable;
 using SiteAdaptation.Common.Flow;
 
 namespace SiteAdaptation.AddIn.Pane
@@ -314,7 +315,42 @@ namespace SiteAdaptation.AddIn.Pane
         public string MixLine { get { return results.HasPlan ? results.Mix.Line : string.Empty; } }
         public bool RuleIssue { get { return results.RuleIssue; } }
         // R691. Q504: the plots the plan lists with no road level
-        public string NoRoadLevelLine { get { return results.NoRoadLevelCount > 0 ? TextTemplate.Fill(StageResultsText.NoRoadLevel, results.NoRoadLevelCount) : string.Empty; } }
+        // R802, F30 of short check 2. With a plan of 4 Check the line counts plotsWithNoRoadLevel of that plan, the plots of the scope steps 5 to 8
+        // build from, never the plots of the whole read the build plan lists
+        public string NoRoadLevelLine
+        {
+            get
+            {
+                if (planCount != null)
+                {
+                    return planCount.NoRoadLevel > 0 ? TextTemplate.Fill(StageResultsText.NoRoadLevelOfPlan, planCount.NoRoadLevel, planCount.Plots, planCount.Nbh ?? "all") : string.Empty;
+                }
+                return results.NoRoadLevelCount > 0 ? TextTemplate.Fill(StageResultsText.NoRoadLevel, results.NoRoadLevelCount) : string.Empty;
+            }
+        }
+
+        // R801, R802. The counts of the plan of the last run of 4 Check, read again only when the plan changed
+        private CheckPlanCount planCount;
+        private string planStamp;
+
+        private void RefreshPlan()
+        {
+            string plan = Model.HasDocument ? CheckPlanCount.LatestPlan(WorkFolderNow?.Invoke()) : null;
+            string stamp = plan == null ? null : plan + "@" + File.GetLastWriteTimeUtc(plan).Ticks;
+            if (stamp == planStamp)
+            {
+                return;
+            }
+            planStamp = stamp;
+            planCount = CheckPlanCount.Read(plan);
+        }
+
+        // R801, F29 of short check 2. Card 2 says what the last press of Build said, then the plots the plan of 4 Check leaves out with why
+        private string Card2Text()
+        {
+            string plan = planCount?.Line;
+            return string.Join(" ", new[] { buildLine, plan }.Where(part => !string.IsNullOrEmpty(part)));
+        }
 
         public bool HasMix { get { return results.HasPlan && results.Mix.Total > 0; } }
 
@@ -417,7 +453,8 @@ namespace SiteAdaptation.AddIn.Pane
         public void ShowBuild(string line)
         {
             buildLine = line;
-            Card2.Line = line ?? string.Empty;
+            RefreshPlan();
+            Card2.Line = Card2Text();
         }
 
         // R683. The one amber line of the pane until every rule of the project is confirmed, null when they all are
@@ -453,7 +490,8 @@ namespace SiteAdaptation.AddIn.Pane
                 Cards[stage - 1].Good = Cards[stage - 1].Status == StageText.Done;
                 Cards[stage - 1].Command.Refresh();
             }
-            Card2.Line = buildLine ?? string.Empty;
+            RefreshPlan();
+            Card2.Line = Card2Text();
             Changed(nameof(ScopeLine));
             Card3.Line = StageResultsText.ReportLine;
             UpdateCommand.Refresh();
