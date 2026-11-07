@@ -4,10 +4,10 @@
 
 ## Final statement
 
-- PR 1 of FAST-5, task/FAST-5-build-1: F16 in code. Each Build press fills the empty input rows from the chosen folder (R740), and right before 4 Check the Build runs the old read itself with no schedule, plot number file or border and none of the location plan steps, with no box and no Confirm (R741). Task status stays open.
-- Proven by tests: dotnet/SiteAdaptation.Tests/FAST5/R740_BuildReadTests.cs, 8 tests, a worker of the test. Proven by the real worker outside Revit: the read for the build on S1, done, 0 issues, the four reads Check takes written (steps/revit-results/FAST-5-build-1.md). That check found one fault, the data book border starts the plot table in the worker, fixed.
-- Not seen in Revit: all of it. Done when, "Choose project folder then Build places floors, levels, villa links and walls on 01A": UNKNOWN until the short check of revit-test or PR 2.
-- F4: no add-in change. My SiteBuildPlan call was taken out after Lead's word, PR 254 fixes the rounding in Common.
+F16 is built, with the F10 line and the F12 call: the Build fills the input rows from the chosen folder and reads the drawings, road surfaces and workbooks for Check itself, with no box. The real worker read S1 that way with 0 issues. Not seen in Revit yet. F4 is FAST-6's. Next: task status done once the Build to the end is seen in Revit on 01A, by revit-test's short check or this lane.
+
+- PR 256, task/FAST-5-build-1. Tests: FAST5/R740_BuildReadTests.cs 8, FAST5/F10_RawReadSheetTests.cs 1. Review 1 FAIL with 4 REAL, all fixed.
+- Done when, "Choose project folder then Build places floors, levels, villa links and walls on 01A": UNKNOWN, not seen in Revit.
 
 ## What changed, where
 
