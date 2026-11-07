@@ -65,6 +65,55 @@ namespace SiteAdaptation.Tests
             Assert.Null(settings.InputPath(InputKeys.VillaBlocks));
         }
 
+        // Review 1 of PR 3: choose folder A, cancel Set up site, choose folder B. The Baseplan of A goes with A, B gives its own
+        [Fact]
+        public void R768_choose_project_folder_before_step_1_fills_the_baseplan_of_each_folder_chosen_and_runs_step_1()
+        {
+            string workRoot = Path.Combine(root, "work");
+            string copy = Path.Combine(workRoot, ShippedSetFolder, "Made up", "config", "project.json");
+            Directory.CreateDirectory(Path.GetDirectoryName(copy));
+            PaneSettings made = Project("Made Plan.dwg");
+            File.Copy(made.ConfigFile, copy);
+            string folderA = Path.Combine(root, "project");
+            string folderB = Path.Combine(root, "project B");
+            Directory.CreateDirectory(folderB);
+            File.WriteAllText(Path.Combine(folderB, "Made Plan.dwg"), "stand in");
+            string own = Path.Combine(root, "my own plan.dwg");
+            File.WriteAllText(own, "stand in");
+            Fast7Sta.Run(() =>
+            {
+                StagesPage page = SiteAdaptation.UiShots.Shots.LaidOutStages(false);
+                var stages = (StagesViewModel)page.DataContext;
+                var steps = new List<StepStatus> { new StepStatus(StepKind.Ready) };
+                for (int before = 1; before <= 8; before++)
+                {
+                    steps.Add(new StepStatus(StepKind.NeedsStep, before));
+                }
+                stages.Model.SetSteps(steps);
+                stages.Model.Settings.ConfigFile = copy;
+                stages.Model.PickInput(InputKeys.Baseplan, null);
+                stages.WorkRootNow = () => workRoot;
+                var asked = new List<int>();
+                stages.Model.RunRequested += asked.Add;
+
+                stages.PickFolder = () => folderA;
+                stages.Card1.Command.Execute(null);
+                Assert.Equal(Path.Combine(folderA, "Made Plan.dwg"), stages.Model.Settings.InputPath(InputKeys.Baseplan));
+                stages.PickFolder = () => folderB;
+                stages.Card1.Command.Execute(null);
+                Assert.Equal(Path.Combine(folderB, "Made Plan.dwg"), stages.Model.Settings.InputPath(InputKeys.Baseplan));
+                Assert.Equal(new[] { 1, 1 }, asked);
+
+                // A Baseplan a person set outside both folders stays through a new choice
+                stages.Model.PickInput(InputKeys.Baseplan, own);
+                stages.PickFolder = () => folderA;
+                stages.Card1.Command.Execute(null);
+                Assert.Equal(own, stages.Model.Settings.InputPath(InputKeys.Baseplan));
+            });
+        }
+
+        private static readonly string ShippedSetFolder = SiteAdaptation.Common.Settings.ShippedSet.ProjectsFolder;
+
         [Fact]
         public void R768_a_baseplan_a_person_set_stays_and_a_name_the_folder_lacks_leaves_the_row_empty()
         {

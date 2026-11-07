@@ -12,7 +12,7 @@ The polish of run 1 of FAST-3. Updated 7 Nov 2026, after PR 3.
 - F7, R765. StageStatus.Of takes readThere: no setup and a read say StageText.SetupNotSaved.
 - F2 part, R766. SetUpSiteViewModel.ApplyWaitLine beside a grey Apply.
 - docs/design/14-ui-labels.md, 7 new CHOSEN words, UiLabelTests.cs count 524.
-- PR 3, F2, R768. dotnet/SiteAdaptation.AddIn/Fast7/SetUpBaseplan.cs Fill takes the Baseplan of the folder by Fast5.BuildRead.FillRows, Baseplan row only, called by SetUpSiteBody.For. StagesViewModel.ChooseFolder before step 1 writes the folder by ProjectFolderPick.Write and runs step 1, after it asks the Revit side for the read as before. PickFolder and WorkRootNow stand for the dialog and the work root.
+- PR 3, F2, R768. dotnet/SiteAdaptation.AddIn/Fast7/SetUpBaseplan.cs Fill takes the Baseplan of the folder by Fast5.BuildRead.FillRows, Baseplan row only, called by StagesViewModel.ChooseFolder after a person chose the folder, never by Set up site itself, so the inputRoot a config copy came with never fills it. StagesViewModel.ChooseFolder before step 1 writes the folder by ProjectFolderPick.Write and runs step 1, after it asks the Revit side for the read as before. PickFolder and WorkRootNow stand for the dialog and the work root.
 
 ## What calls what
 

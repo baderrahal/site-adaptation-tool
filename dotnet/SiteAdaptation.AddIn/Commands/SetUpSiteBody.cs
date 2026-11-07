@@ -20,8 +20,6 @@ namespace SiteAdaptation.AddIn
         {
             Autodesk.Revit.DB.Document document = application.ActiveUIDocument.Document;
             DocumentSession session = PaneHost.Current.Sessions.Seen(document, document.PathName, document.Title);
-            // R768, F2. An empty Baseplan row takes the Baseplan of the chosen project folder before the CAD request reads the rows
-            Fast7.SetUpBaseplan.Fill(session.Settings, session.Settings.Pick);
             // R441, the section Current files: the ticks and the rules file chosen go into the settings of the pane before the record
             ISetUpSiteDialog dialog = new CurrentFilesDialog(Dialog(application.MainWindowHandle), () => session.Settings.Project, next =>
             {

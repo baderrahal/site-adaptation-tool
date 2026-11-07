@@ -7,7 +7,8 @@ namespace SiteAdaptation.AddIn.Fast7
 {
     // R768, F2 of run 1 of FAST-3. Set up site takes the Baseplan of the chosen project folder, so no person browses the Baseplan row of Advanced
     // before step 1. The file is the one FolderRoles.Of of R740 finds by the name config gives, the same the Build fills its rows by. Only the
-    // Baseplan row, and only when it is empty or its file is gone: a row a person set stays
+    // Baseplan row, and only when it is empty or its file is gone: a row a person set stays. Called only right after a person chose the folder in card 1,
+    // so the inputRoot a new project copy came with, a past job folder perhaps, never fills it
     public static class SetUpBaseplan
     {
         // The path taken into the Baseplan row, null when the row stays as it was

@@ -219,7 +219,11 @@ namespace SiteAdaptation.AddIn.Pane
             SettingsCommand = new PaneCommand(() => SettingsOpen = !SettingsOpen, () => true);
             RulesCommand = new PaneCommand(() => RulesRequested?.Invoke(), () => model.InUse);
             UpdateCommand = new PaneCommand(() => UpdateRequested?.Invoke(), () => model.InUse);
-            SetUpCommand = new PaneCommand(() => model.RequestRun(SetUpStep), () => model.InUse);
+            SetUpCommand = new PaneCommand(() =>
+            {
+                pickLine = null;
+                model.RequestRun(SetUpStep);
+            }, () => model.InUse);
             ReviewCommand = new PaneCommand(() => model.RequestRun(ReviewStep), () => model.InUse && Waits(ReviewStep) == 0);
             model.PropertyChanged += OnModelChanged;
             Refresh();
@@ -313,8 +317,8 @@ namespace SiteAdaptation.AddIn.Pane
         }
 
         // R763, F9 of run 1. The folder dialog opens at the project folder chosen before, read from the config copy of the project
-        // R768, F1 and F2. Before step 1 ran, the folder goes into the config copy of the project and 1 Set up site runs on it, which takes the
-        // Baseplan of that folder. The read follows at the next press, once the site is placed, so an empty model never meets "2 Read data needs
+        // R768, F1 and F2. Before step 1 ran, the folder goes into the config copy of the project, an empty Baseplan row takes the Baseplan of that
+        // folder, and 1 Set up site runs on it. Only a folder a person chose here fills the row, never the inputRoot a config copy came with. The read follows at the next press, once the site is placed, so an empty model never meets "2 Read data needs
         // step 1" and Set up site never waits on a folder no one could choose. A refusal stands in card 1
         private void ChooseFolder()
         {
@@ -331,10 +335,18 @@ namespace SiteAdaptation.AddIn.Pane
                 Card1.Line = Card1Line();
                 return;
             }
+            string before = ProjectFolderPick.Chosen(Model.Settings.ConfigFile);
             pickLine = ProjectFolderPick.Write(Model.Settings.ConfigFile, WorkRootNow?.Invoke(), chosen, WorkFolderNow?.Invoke());
             if (pickLine == null)
             {
+                // Review 1 of PR 3: a Baseplan the folder chosen before gave goes with that folder, so a second choice takes its own
+                string row = Model.Settings.InputPath(InputKeys.Baseplan);
+                if (WorkFolder.Inside(row, before) && !WorkFolder.Inside(row, chosen))
+                {
+                    Model.PickInput(InputKeys.Baseplan, null);
+                }
                 Model.PickConfig(Model.Settings.ConfigFile);
+                Fast7.SetUpBaseplan.Fill(Model.Settings, Model.PickInput);
                 Model.RequestRun(SetUpStep);
             }
             Card1.Line = Card1Line();
