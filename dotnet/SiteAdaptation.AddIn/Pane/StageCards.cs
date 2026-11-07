@@ -142,6 +142,24 @@ namespace SiteAdaptation.AddIn.Pane
             return null;
         }
 
+        // R763. The project folder the config names, null with none, no config or one that does not read
+        public static string Chosen(string configFile)
+        {
+            if (string.IsNullOrEmpty(configFile) || !File.Exists(configFile))
+            {
+                return null;
+            }
+            try
+            {
+                string root = (string)JObject.Parse(WorkFiles.ReadText(configFile))["inputRoot"];
+                return string.IsNullOrWhiteSpace(root) ? null : root;
+            }
+            catch (Exception failure) when (failure is IOException || failure is UnauthorizedAccessException || failure is Newtonsoft.Json.JsonException || failure is InvalidCastException || failure is ArgumentException)
+            {
+                return null;
+            }
+        }
+
         public static string Write(string configFile, string workRoot, string chosen, string workFolder)
         {
             string refused = Refusal(configFile, workRoot, chosen, workFolder);
@@ -190,9 +208,9 @@ namespace SiteAdaptation.AddIn.Pane
             Model = model;
             Cards = new ReadOnlyCollection<StageCard>(new[]
             {
-                new StageCard(1, StageText.Stage1, StageText.Stage1Help, StageText.ChooseFolder, new PaneCommand(() => ChooseFolderRequested?.Invoke(), () => model.InUse && Ran(SetUpStep))),
+                new StageCard(1, StageText.Stage1, StageText.Stage1Help, StageText.ChooseFolder, new PaneCommand(ChooseFolder, () => model.InUse && Ran(SetUpStep))),
                 new StageCard(2, StageText.Stage2, StageText.Stage2Help, StageText.Build, new PaneCommand(PressBuild, () => model.InUse && readFolder != null)),
-                new StageCard(3, StageText.Stage3, StageText.Stage3Help, StageText.Report, new PaneCommand(() => model.RequestRun(ReportStep), () => model.InUse)),
+                new StageCard(3, StageText.Stage3, StageText.Stage3Help, StageText.Report, new PaneCommand(() => model.RequestRun(ReportStep), () => model.InUse && Waits(ReportStep) == 0)),
             });
             FixItemsCommand = new PaneCommand(() => FixItemsRequested?.Invoke(fixFolder), () => fixFolder != null);
             SettingsCommand = new PaneCommand(() => SettingsOpen = !SettingsOpen, () => true);
@@ -225,6 +243,7 @@ namespace SiteAdaptation.AddIn.Pane
         public PaneCommand ReviewCommand { get; }
         public string ReviewButton { get { return RibbonLayout.Button(ReviewStep).Label; } }
 
+        // R763, F9 of run 1. Report of card 3 is grey while step 9 waits on a step before it, as card 3 then says it waits for stage 2.
         // A step ran when it is done, with or without issues
         private bool Ran(int step)
         {
@@ -288,6 +307,13 @@ namespace SiteAdaptation.AddIn.Pane
             {
                 StopLine = line;
             }
+        }
+
+        // R763, F9 of run 1. The folder dialog opens at the project folder chosen before, read from the config copy of the project
+        private void ChooseFolder()
+        {
+            DialogPicker.Start = ProjectFolderPick.Chosen(Model.Settings?.ConfigFile) ?? DialogPicker.Start;
+            ChooseFolderRequested?.Invoke();
         }
 
         private void PressBuild()

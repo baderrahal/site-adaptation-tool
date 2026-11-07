@@ -1,3 +1,4 @@
+using System;
 using System.Windows;
 using System.Windows.Controls;
 using Microsoft.Win32;
@@ -59,12 +60,30 @@ namespace SiteAdaptation.AddIn.Pane
             return dialog.ShowDialog() == true ? dialog.FileName : null;
         }
 
+        // R763, F9 of run 1. The folder a folder dialog opens at: the folder picked before in this Revit session, or the project folder
+        // Choose project folder sets before it opens the dialog
+        public static string Start { get; set; }
+
+        // R763. The folder dialog of Windows with a path field, opened at Start. The old tree of Windows Forms only when the shell refuses it
         public string Folder()
         {
-            using (var dialog = new System.Windows.Forms.FolderBrowserDialog { ShowNewFolderButton = false })
+            string picked;
+            try
             {
-                return dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK ? dialog.SelectedPath : null;
+                picked = Fast7.FolderDialog.Pick(Start, System.Diagnostics.Process.GetCurrentProcess().MainWindowHandle);
             }
+            catch (Exception failure) when (failure is System.Runtime.InteropServices.COMException || failure is InvalidCastException)
+            {
+                using (var dialog = new System.Windows.Forms.FolderBrowserDialog { ShowNewFolderButton = false, SelectedPath = Start ?? string.Empty })
+                {
+                    picked = dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK ? dialog.SelectedPath : null;
+                }
+            }
+            if (!string.IsNullOrEmpty(picked))
+            {
+                Start = picked;
+            }
+            return picked;
         }
     }
 }
