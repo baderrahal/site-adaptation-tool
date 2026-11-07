@@ -9,6 +9,7 @@ using SiteAdaptation.AddIn.Pane;
 using SiteAdaptation.AddIn.ScanResults;
 using SiteAdaptation.Common;
 using SiteAdaptation.Common.Flow;
+using SiteAdaptation.Common.ReadData;
 
 namespace SiteAdaptation.AddIn.ConfirmProfile
 {
@@ -27,7 +28,12 @@ namespace SiteAdaptation.AddIn.ConfirmProfile
         // The Apply or Cancel prompt the flow already uses, a stand-in in the tests. True when the person says to discard
         public static Func<string, string, bool> AskDiscard { get; set; } = (label, why) => new TaskDialogConfirm().Apply(label, new RunSummary(ConfirmProfileText.DiscardAsk.Replace("<why>", why), null), false);
 
-        public static ButtonBody Wrap(ButtonBody read, PaneSettings settings, IntPtr owner)
+        // R792. The line a Confirm that saved adds when the check ran again on the read just made, and the one when it could not
+        public const string AppliedLine = "The confirmed columns were applied to this read, no drawing was read again. Run 2 Read data once more to take the read with them, it reads nothing.";
+        public const string NotAppliedLine = "The confirmed values count from the next read, <why>.";
+
+        // apply is ReadDataRun.ApplyConfirmed of the same read, null keeps a Confirm that saved for the next read only, as before R791
+        public static ButtonBody Wrap(ButtonBody read, PaneSettings settings, IntPtr owner, Func<RunContext, RunLater, RunLater> apply = null)
         {
             if (read == null)
             {
@@ -48,7 +54,7 @@ namespace SiteAdaptation.AddIn.ConfirmProfile
                         Refused(context, refused, done);
                         return;
                     }
-                    read.Start(context, later => Ended(owner, context, later, done));
+                    read.Start(context, later => Ended(owner, context, later, done, apply));
                 },
             };
         }
@@ -95,7 +101,7 @@ namespace SiteAdaptation.AddIn.ConfirmProfile
         }
 
         // In the API context of Revit, by the hand of the pane, as the end of the read
-        private static void Ended(IntPtr owner, RunContext context, RunLater later, Action<RunLater> done)
+        private static void Ended(IntPtr owner, RunContext context, RunLater later, Action<RunLater> done, Func<RunContext, RunLater, RunLater> apply)
         {
             if (later.Failure != null)
             {
@@ -136,17 +142,40 @@ namespace SiteAdaptation.AddIn.ConfirmProfile
                 }
                 var session = new ConfirmProfileSession(ConfirmProfileModel.Read(WorkFiles.ReadText(profile)), context.WorkFolder, context.RunId);
                 ShowConfirm(owner, session);
+                // A close by the X is a Cancel, the read stays done and says nothing was saved
+                string line = session.Result ?? ConfirmProfileText.CancelledLine;
                 if (session.Result == ConfirmProfileText.Saved)
                 {
                     Fast7.ConfirmedFor.Write(context.WorkFolder, scanFolder);
+                    if (apply != null)
+                    {
+                        RunLater applied = Applied(apply, context, later);
+                        if (applied.Failure == null)
+                        {
+                            done(RunLater.Done((later.Message ?? "") + " " + line + " " + AppliedLine, applied.Issues, applied.Outputs));
+                            return;
+                        }
+                        line += " " + NotAppliedLine.Replace("<why>", applied.Failure);
+                    }
                 }
-                // A close by the X is a Cancel, the read stays done and says nothing was saved
-                string line = session.Result ?? ConfirmProfileText.CancelledLine;
                 done(RunLater.Done((later.Message ?? "") + " " + line, later.Issues, later.Outputs));
             }
             catch (Exception failure)
             {
                 done(RunLater.Failed(RunTexts.ChangedNothing(context.Label, RunTexts.Failed(failure.Message))));
+            }
+        }
+
+        // R792. A fault of the check run again is no fault of the read: the read stays done and the line says why the values wait for the next read
+        private static RunLater Applied(Func<RunContext, RunLater, RunLater> apply, RunContext context, RunLater later)
+        {
+            try
+            {
+                return apply(context, later) ?? RunLater.Failed(ReadDataRun.ApplyNoCheck);
+            }
+            catch (Exception failure)
+            {
+                return RunLater.Failed(failure.GetType().Name + ": " + failure.Message);
             }
         }
 
