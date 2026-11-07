@@ -29,6 +29,14 @@ namespace SiteAdaptation.Common.Floors
         public IReadOnlyList<string> AcceptWarnings { get; set; } = new string[0];
         public string PlotParameter { get; set; }
 
+        // R781. The same settings for another surface the build read
+        public RoadTopographySettings For(string surface)
+        {
+            var copy = (RoadTopographySettings)MemberwiseClone();
+            copy.Surface = surface;
+            return copy;
+        }
+
         public static RoadTopographySettings Of(JObject config)
         {
             JToken block = config?["floors"]?["roadTopography"];
@@ -65,6 +73,12 @@ namespace SiteAdaptation.Common.Floors
 
         // Built once, a press plans twice
         public TinSurface Tin => tin ?? (tin = TinSurface.Of(Surface));
+
+        // R781. The other road surfaces the build read, each read only when asked, in the order of the request
+        public IReadOnlyList<Func<RoadSurfaceRead>> Others { get; set; } = new Func<RoadSurfaceRead>[0];
+
+        // R781. Why this surface and not the one of floors.roadTopography.surface, null when that one was taken
+        public string Why { get; set; }
     }
 
     // R571. The road edge of one ramp in shared coordinates, its two front corners with their z
@@ -210,6 +224,39 @@ namespace SiteAdaptation.Common.Floors
             return plan;
         }
 
+        // R781, F27 of the short check of 7 Nov. Of the road surfaces the build read, the one with the most ramp road edge points on it, so a
+        // surface of another part of the site is never taken because it is first in the order. The surface of floors.roadTopography.surface is
+        // asked first and kept when every point lies on it, so the others are read only when it misses some. A tie keeps the earlier surface
+        public static RoadSurfaceRead Covering(RoadSurfaceRead first, IEnumerable<RampEdge> edges)
+        {
+            List<RampEdge> ramps = edges.ToList();
+            int OnIt(RoadSurfaceRead read) => ramps.SelectMany(edge => Samples(edge, read.Tin, read.Settings.SnapM)).Count(point => point.SurfaceLevel.HasValue);
+            int total = ramps.Count * SampleNames.Length;
+            int firstOn = OnIt(first);
+            RoadSurfaceRead best = first;
+            int bestOn = firstOn;
+            IReadOnlyList<Func<RoadSurfaceRead>> others = first.Others ?? new Func<RoadSurfaceRead>[0];
+            if (firstOn < total)
+            {
+                foreach (Func<RoadSurfaceRead> other in others)
+                {
+                    RoadSurfaceRead read = other();
+                    int on = OnIt(read);
+                    if (on > bestOn)
+                    {
+                        best = read;
+                        bestOn = on;
+                    }
+                }
+            }
+            if (!ReferenceEquals(best, first))
+            {
+                best.Why = Line + "of " + (others.Count + 1) + " road surfaces the build read, " + best.Settings.Surface + " holds the most ramp road edge points, " + bestOn + " of " + total
+                    + ", so the toposolid takes it, " + first.Settings.Surface + " of " + RoadTopographySettings.Block + "surface holds " + firstOn;
+            }
+            return best;
+        }
+
         // The hull by the monotone chain, counter clockwise from the lowest easting
         private static List<double[]> Hull(IEnumerable<double[]> points)
         {
@@ -353,9 +400,11 @@ namespace SiteAdaptation.Common.Floors
             }
         }
 
+        private static readonly string[] SampleNames = { "start", "middle", "end" };
+
         private static IEnumerable<RoadEdgePoint> Samples(RampEdge edge, TinSurface tin, double snap)
         {
-            var at = new[] { "start", "middle", "end" };
+            string[] at = SampleNames;
             for (int index = 0; index < at.Length; index++)
             {
                 double share = index / 2.0;
