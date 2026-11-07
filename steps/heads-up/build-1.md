@@ -1,29 +1,34 @@
-# build-1 heads-up, FAST-5-build-1
+# build-1 heads-up, FAST-8-build-1
 
-7 Nov 2026. F16, the Build from card 1 to the end. F4 left to FAST-6 by Lead's word of 12:00.
+7 Nov 2026. F26 and F27 of the short check of 01A. Task branch task/FAST-8-build-1.
 
 ## Final statement
 
-F16 is built, with the F10 line and the F12 call: the Build fills the input rows from the chosen folder and reads the drawings, road surfaces and workbooks for Check itself, with no box. The real worker read S1 that way with 0 issues. Not seen in Revit yet. F4 is FAST-6's. Next: task status done once the Build to the end is seen in Revit on 01A, by revit-test's short check or this lane.
-
-- PR 256, task/FAST-5-build-1. Tests: FAST5/R740_BuildReadTests.cs 8, FAST5/F10_RawReadSheetTests.cs 1. Review 1 FAIL with 4 REAL, all fixed.
-- Done when, "Choose project folder then Build places floors, levels, villa links and walls on 01A": UNKNOWN, not seen in Revit.
+F26 is fixed and F27 is fixed in code, but the FAST-8 done when cannot pass on 01A of S1.
+- F26: Check no longer takes plots.csv or labels.csv from the data book of the work root. The plot table of the read stands in for them, and a read with no plot table stops as missing (R780).
+- F27: Floors and ramps takes, of the road surfaces the build read, the one with the most ramp road edge points, and says which (R781). Highlighted floors overlap of two plots no longer stops on a Revit box, it is listed with its floors in the issues (R782).
+- Measured with a script that shares no code with the C#: no single road surface of S1 holds the ramp road edge points of 01A, 16 of 807 on the 6 road surfaces, the 6 that hold all 807 are ground or grading. But the 269 plots of 01A got an ffl from two road surfaces, Compiled West_MM and Part 4 Top Surfaces, by their front corners. Q600 corrected at 22:00 in steps/seam.md: a toposolid of the road surfaces the front corners took, recommended as the next task.
+- Yard floors 0 is R410, not a fault.
+- Not seen in Revit, label revit-later.
+- The task stays open, its done when waits for Q600 and the Revit check.
+- Review 1 of PR 269 found 4 REAL faults, all fixed.
 
 ## What changed, where
 
-- dotnet/SiteAdaptation.Common/ReadData/FolderRoles.cs: FolderRoles.Of, the files of the rows found in the folder by the names of config.
-- dotnet/SiteAdaptation.Common/ReadData/ReadInputs.cs: ReadInputs.ForBuild and PlotTableSteps, the old read with no schedule, plot numbers, border or location plan steps.
-- dotnet/SiteAdaptation.AddIn/Fast5/BuildRead.cs: Needed, FillRows, Start, Answered. The read folder holds a copy of read_plotTable.json of stage 1 and a record of a read whose run id ends -build.
-- dotnet/SiteAdaptation.AddIn/Pane/BuildChain.cs: ReadFirst and the step ReadForCheck, 10, put in right before 4 once per Build, after the steps 4 waits on.
-- dotnet/SiteAdaptation.AddIn/App/PaneHost.cs: FillRows at each Build press, runStep runs the read for the build or RequestRun, endOf is the one end of every step of the Build, Buttons.ChainEnded calls it. endOf calls stages.ShowStop(end, line) after ShowBuild, F12 of FAST-7, PR 252.
-- docs/rules/21-fast5-r740-up.md, R740 and R741.
-- dotnet/SiteAdaptation.Common/ReadData/ReadDataRun.cs DataCheckRequest: F10, the parameter sheet of DataCheckSheet.Input in the request of the raw read only. Test FAST5/F10_RawReadSheetTests.cs.
+- dotnet/SiteAdaptation.Common/CheckTable/ProjectPlots.cs, new: Write, Rows and InDataBook, the plot table as plots.csv and labels.csv in plots_<read folder> of the work folder.
+- dotnet/SiteAdaptation.Common/CheckTable/CheckRun.cs: DataBookRoles. Plan skips a data book file of the read under rev6 and adds the files of ProjectPlots.Write.
+- dotnet/SiteAdaptation.Common/Floors/RoadTopography.cs: RoadTopographySettings.For, RoadSurfaceRead.Others and Why, RoadTopography.Covering.
+- dotnet/SiteAdaptation.Common/Floors/FloorLoad.cs: RoadSurface gives the named surface, else the first read, with every other road surface of the build as a lazy read, Surface reads one.
+- dotnet/SiteAdaptation.Common/Floors/FloorsRun.cs: PlanToposolid calls Covering. The preview and the after commit lines add Why.
+- dotnet/SiteAdaptation.Common/Floors/KnownWordsWarning.cs, new: TakeAndList and Line.
+- dotnet/SiteAdaptation.AddIn/Revit/WarningCollector.cs: a warning of known words that Decide refuses is deleted and its line goes to Warnings, so to the issues by ButtonFlow.
+- docs/rules/24-fast8-r780-up.md R780 to R782. Tests dotnet/SiteAdaptation.Tests/FAST8/, 16.
 
 ## What calls what
 
-Build press: PaneHost BuildRequested, BuildRead.FillRows(model.Settings, model.PickInput), SiteBuildFlow.Run, BuildChain.Start, runStep. Before Check: BuildChain.Before asks ReadFirst, BuildRead.Needed(WorkFolderNow()), and puts ReadForCheck in. runStep(ReadForCheck): BuildRead.Start with ReadDataBody.Worker, its end through LaunchedWorker.Hand to endOf, which runs 4. FolderRoles.Of is also what build-3 calls for F2.
+4 Check: CheckRun.Plan calls ProjectPlots.InDataBook per read input, then ProjectPlots.Write, which calls Rows. 5 Floors and ramps: FloorLoad.Floors gives RoadTopography, which calls FloorLoad.RoadSurface, which calls Surface. FloorsRun.PlanToposolid calls RoadTopography.Covering, which reads Others only when the named surface misses points. Revit commit: WarningCollector.Collect calls KnownWordsWarning.TakeAndList and Line.
 
 ## Next
 
-- Status done once the Build to the end is seen in Revit on 01A, by revit-test's short check or this lane.
-- Open for Lead in steps/seam.md: the data book debt. The read for the build adds no pane word, it speaks as step 2.
+- Bader answers Q600, then the second short check by revit-test.
+- F28 line on card 2, after that check.

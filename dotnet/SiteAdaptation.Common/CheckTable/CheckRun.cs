@@ -38,6 +38,9 @@ namespace SiteAdaptation.Common.CheckTable
         // The inputs of the read the build takes again, by the role the read named them
         private static readonly string[] ReadRoles = { "config", "plotsCsv", "labels" };
 
+        // R780. The roles of the read that name files of the data book of the work root, the past job, which a rev6 build never takes
+        public static readonly string[] DataBookRoles = { "plotsCsv", "labels" };
+
         // The files beside config the build reads by name (docs/design/06-settings.md section 6)
         private const string FloorFile = "floor_outlines.json";
         private static readonly string[] BesideConfig = { FloorFile, "prototype_offsets.json" };
@@ -151,6 +154,7 @@ namespace SiteAdaptation.Common.CheckTable
             plan.RoadSurfaces = RoadSurfaceChoices.ForRequest(config, picked);
             var roads = new Dictionary<string, WorkerFile>(StringComparer.Ordinal);
             var readRoads = new HashSet<string>(StringComparer.Ordinal);
+            var fromBook = new List<string>();
             var listed = new HashSet<string>(RoadSurfaceChoices.Named(config, picked).Select(name => WorkerRunner.RoadSurfaceRole + name), StringComparer.Ordinal);
             foreach (JObject input in ((JArray)record["inputs"] ?? new JArray()).OfType<JObject>())
             {
@@ -163,6 +167,13 @@ namespace SiteAdaptation.Common.CheckTable
                 // R492. A surface the list left out is no input of this build, so a change of its file stops nothing under rev6
                 if (road && rev6 && !listed.Contains(role))
                 {
+                    continue;
+                }
+                // R780. Under rev6 a file of the data book of the work root the read named is no input, the plot table of the read below stands in
+                // for it, so its change stops nothing. A file of the project the read named stays
+                if (rev6 && DataBookRoles.Contains(role) && ProjectPlots.InDataBook(path, config, context.WorkFolder))
+                {
+                    fromBook.Add(role);
                     continue;
                 }
                 if (path == null || !File.Exists(path) || !string.Equals(FileHash.Sha256(path), (string)input["sha256"], StringComparison.OrdinalIgnoreCase))
@@ -205,6 +216,19 @@ namespace SiteAdaptation.Common.CheckTable
             foreach (KeyValuePair<string, string> file in ReadFiles)
             {
                 Add(plan, file.Key, Path.Combine(plan.ReadFolder, file.Value), "the read " + Path.GetFileName(plan.ReadFolder) + " holds no " + file.Value + ", run 2 Read data again");
+            }
+            if (fromBook.Count > 0)
+            {
+                // R780. The plots of the project from the plot table of the read, missing when it holds none, never the data book
+                ProjectPlots.Written plots = ProjectPlots.Write(plan.ReadFolder, context.WorkFolder);
+                if (plots.Missing != null)
+                {
+                    plan.Stops.Add(plots.Missing);
+                }
+                else
+                {
+                    fromBook.ForEach(role => Add(plan, role, role == DataBookRoles[0] ? plots.Plots : plots.Labels, null));
+                }
             }
             string root = Path.GetDirectoryName(Path.GetDirectoryName(plan.ConfigPath));
             string rulesPath = Path0(Rules);
