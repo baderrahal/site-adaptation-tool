@@ -87,3 +87,23 @@ steps/ui-shots/: pane-stage-1.png, pane-stage-2.png, pane-stage-3.png, revit-new
 
 - Floors and ramps, Levels, Place villas, Walls, Report: never ran.
 - A person using the windows: every press came from the driver.
+
+# Run 1b, Sat 7 Nov 2026, NBH 01A from Advanced
+
+Bader's order of 10:05 by Lead: on an empty model copy, the old steps 1 to 9 from Advanced, neighbourhood 01A, marked tuned (steps/truth-audit.md section 6 lists it as tuned), Bader's answer to F15. Same add-in as run 1, the one installed 6 Nov 23:00, no new install, so no Unsigned Add-In box came. Same driver, drive3.ps1 of the work root, under python/window_lock.py, parts under 110 minutes, the copy saved at the end of each part. Shots under the work root, folder `fast3-revit-test/shots/run1b`, never in git.
+
+## Model and folder, run 1b
+
+- Model: `FAST3-run1b-01A.rvt` in fast3-revit-test of the work root, copied from `FAST3-empty-model-pristine.rvt` at 10:38. `cmp` against the empty model of R2-C1: equal bytes.
+- Inputs: S1 of the scenarios, 37 files, SHA-256, size and write time taken before the run into s1_before_run1b.json of fast3-revit-test.
+- revit-wanted-build-1.txt and revit-wanted-build-3.txt: none in the lanes folder at 10:39 and at 12:22.
+
+## Part 1, 10:40 to 12:22
+
+- 10:40:37 Revit opened on the copy, process 52488, the pane said "Set up this project first, in Settings." on the 3 cards.
+1. Settings, Project setup Edit, the New project window, Save setup (a02-new-project.png, a03-after-save.png). Amber line "No rules chosen for this project yet."
+2. Advanced opened. The 8 input rows set by Browse to the files of S1: Baseplan, Villa blocks, Plot fronts, DLUS and sales (two boxes, DLUS schedule then Sales schedule), Plot numbers, Road surface the landxml folder, and Shared parameters already set. "All 8 found" (a06-inputs.png). The Road surface row first took a wrong folder by the typing walk of the folder tree, picked again and checked by shot (folder-landxml-2.png).
+3. Prototypes: the row warned "These files are Revit 2021 and upgrade on each use, use the 2024 copies. A remake from them takes 20 to 41 minutes." CHOSEN by Code: the row set to the folder prototypes_2024 of the work root, the 2024 copies of the same 13 prototype files, as the pane asks, to keep each part under 110 minutes.
+4. Run 1 Set up site: this time the window took the Baseplan of the row, "Empty project found", "This model has no site coordinates", Use CAD already chosen, check points 5 of 5 pass (b01-setup-site.png). Each Current ticked, Dry run, Apply. Step 1 Done at 11:42, its line "Coordinates from the CAD baseplan, levels and units from the rules, types from config".
+5. Run 2 Read data: the box "Dry run done, nothing was changed. Reads 19 files, 223.2 MiB." (b04-read-box.png), Apply 11:45:30. The card "Running outside Revit", no stop button (F19). It ran the data check on the input root of the past job, not on the input rows, F18. 12:17 What the tool read came: 18 files read, 2,964 plots found, 386 conflicts (b07-what-read.png). Cancel, as it read the wrong folder: "2 Read data: the read stopped at the scan, nothing was written." (F20). Step 2 stayed Ready.
+6. 12:21:17 Ctrl+S saved the copy. 12:22:31 quit, "revit left open: False", no lock, no Revit process.
