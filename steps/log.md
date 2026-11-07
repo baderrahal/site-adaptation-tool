@@ -2,6 +2,29 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## The intake of a new project folder, 7 Nov 2026
+
+Goal:
+- Bader's order of 21:06 item 3: a script that reads a new project folder outside Revit and writes what the form of 8 Nov needs.
+
+Done:
+- scripts/new-project-intake.ps1: the stage 1 read by the worker of the installed add-in, the raw read then the read with the proposed columns confirmed, <work root>\intake\intake.md with the needs, files by kind, proposed columns, neighbourhoods with villa types, LandXML files, run time, and the folder check.
+
+Checked:
+- Run on S1: 23 min, 0 of 37 files changed. The first run was refused on a level with no word and wrote under the Documents folder of OneDrive, both fixed, that output removed.
+
+Remains:
+- The cover of each road surface per neighbourhood, UNKNOWN until a plan of 4 Check.
+
+Known bugs:
+- None in the script.
+
+Next:
+- Short check 2, then the run on the new project of Sunday.
+
+Your turn:
+- Sun 8 Nov: name the folder of the new project.
+
 ## FAST-8-build-1, Check reads no past file, the toposolid surface, no overlap box, 7 Nov 2026
 
 Goal:
