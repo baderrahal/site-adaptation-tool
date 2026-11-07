@@ -15,13 +15,14 @@ Screenshots of the real run show real coordinates, plot numbers, file names and 
 - 01:11:56 the box "Security - Unsigned Add-In" of Site Adaptation came and the driver pressed Always Load, Bader's order of 23:37. File always_load.txt of the run folder holds the time.
 - 01:20 VS Code came in front with fresh input. The driver sent nothing and waited for 5 minutes idle, then went on at 01:29:55.
 - 01:48 one click aimed at a button below the visible pane landed on the taskbar, which took the focus. Nothing opened there. The driver now refuses any point outside the visible Revit window, and brought Revit back in front only after checking that no other input had come.
+- 03:10 the driver and Revit ended at the 2 hour limit of the background tool call, right after Build was pressed (s31-after-build.png). The model was not saved, window.lock stayed. Nothing was built.
+- 03:19:13 relaunch, part 2, the same allowed command with -MaxMinutes 110. window_lock.py deleted the stale lock itself. 03:19:53 the Unsigned Add-In box came again, the driver pressed Always Load again (always_load.txt holds both times).
 
 ## Model and folder
 
 - Model: `FAST3-empty-model.rvt` in the folder fast3-revit-test of the work root, a fresh copy of the empty model of R2-C1, a project made from the Revit metric template. Proof it is an empty model: the project browser holds only Level 1, Level 2 and Site plans, no Revit link, and Set up site opened with the badge "Empty project found" and "This model has no site coordinates" (shots s01-start.png, s10-setup-site.png).
 - Folder: S1 of the scenarios of the work root, chosen in the pane by Choose project folder. SHA-256, size and write time of its 37 files were taken before the run into s1_before.json of the run folder.
-- 03:10 the driver and Revit ended at the 2 hour limit of the background tool call, right after Build was pressed (s31-after-build.png). The model was not saved, window.lock stayed. Nothing was built.
-- 03:19:13 relaunch, part 2, the same allowed command with -MaxMinutes 110. window_lock.py deleted the stale lock itself. 03:19:53 the Unsigned Add-In box came again, the driver pressed Always Load again (always_load.txt holds both times).
+
 
 ## Stage 1 Project data, card 1
 
@@ -60,3 +61,29 @@ Seen on the pane at 05:07 (d-end.png): the amber line "15 of 15 rules are not co
 20. 06:09 Build, preview, Go on, Review data with Save review then Close: stopped at Check, F16 (g-end.png).
 
 The tool did not build the site in run 1. Floors and ramps, Levels, Place villas and Walls never ran. Villa links: none, NBH 010 holds no villa type (F15), and every NBH stops at Check (F16).
+21. 06:21 to 06:36 the windows not yet shot: How it works and Update from report opened and closed by their own window close. The i of each card gives a tooltip, no window. Road surfaces (Pick surfaces) was not reached in time. 06:36:33 the driver saved the model copy, 06:37:53 Revit closed by the driver, "revit left open: False", the lock was gone, no Revit process.
+
+## What the acceptance tests ask, seen or not
+
+- The 3 cards, Project data, Build site and Review and deliver, seen in Revit from the empty model on S1, one screenshot each in steps/ui-shots, pane-stage-1.png to pane-stage-3.png, taken in Revit, the coordinates line of card 2 blanked.
+- Choose project folder: seen, it started the read only after step 1 ran from Advanced (F1). Fix items: seen, it opened Confirm what was found (step 18).
+- Preview: the tick Preview first on card 2, on by default, and the window Preview of the build with Cancel and Go on, seen (step 10).
+- Build: seen, the one ask of the manual rules once, then the chain. The progress line of card 2 said "Step 3 of 8: Review data." while the review window stood (w-review-data.png, behind the window). The Build stopped at 4 Check each time (F5, F16).
+- 4 Check: stopped, see F16. 5 Floors and ramps, 6 Levels, 7 Place villas and 8 Walls: not reached, not seen in Revit. No floor, level, villa link or wall was built.
+- Q439, a model built before: not reached, as nothing was built. The saved copy holds coordinates and settings but no floor, so a Build on it again is no test of Q439. UNKNOWN.
+- source mix: the bar of card 3 and its line, seen (pane-stage-3.png).
+- Advanced: closed by default at the first open, it holds the old step rows, the input rows and the scope (s09-advanced.png, s12-advanced-rows.png). It closed again after a relaunch and after some builds.
+- gear: no gear icon in Revit, the button at the top of the pane says Settings (F9). It opens Project setup and Rules.
+- amber: the amber line "No rules chosen for this project yet. Open Rules in Settings." and after the ask "15 of 15 rules are not confirmed. Open Rules in Settings." (s04-after-save.png, d-end.png).
+- not confirmed: the rules table showed 15 rules each "not confirmed" (revit-project-rules.png).
+- empty model: the copy opened with only the template views and no link, Set up site said "Empty project found".
+- S1: the folder of the run. 37 files, SHA-256, size and write time before and after the run equal, 0 changed, 0 new (s1_before.json, s1_after.json of the run folder).
+
+## Window shots in git
+
+steps/ui-shots/: pane-stage-1.png, pane-stage-2.png, pane-stage-3.png, revit-new-project.png, revit-project-rules.png, revit-setup-site.png, revit-scan-results.png, revit-confirm-profile.png, revit-ask-rules.png, revit-build-preview.png, revit-review-data.png, revit-how-it-works.png, revit-update-from-report.png. Each cut from a shot of the real run, a real value blanked where one stood: the check point tables, the code map, the drawing of the plot outlines, the plot numbers, areas and folder path, the coordinates line. Not shot: Road surfaces, the check table of step 4 (never opened as step 4 stopped first), the Site Adaptation Rules window of the ribbon, Use a saved project.
+
+## Not seen in Revit, UNKNOWN
+
+- Floors and ramps, Levels, Place villas, Walls, Report: never ran.
+- A person using the windows: every press came from the driver.
