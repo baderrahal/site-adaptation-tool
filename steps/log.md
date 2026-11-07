@@ -14,13 +14,14 @@ Done:
 
 Checked:
 - R791_ConfirmAppliesTests on the made up project of samples/new-project with its sheet areas parted unlike the distance groups: one worker run, the Scope list N1 and N2, plot 103 VA1 from the column, a second press reused. The same press with no apply keeps the old areas and VB2, so the test sees F22. The second check by another way: a full worker read with the same confirmed profile gives the same four files but for the run stamp.
-- R790_GatheredFilesTests on net48 and net8.0. Not seen in Revit, not run on S1.
+- R790_GatheredFilesTests on net48 and net8.0. Not seen in Revit.
+- S1, read only, outside the repo under the work root: the first read gave 1 Scope entry, the check on its gathered files with the proposed profile gave 11, as a full read with that profile, and data_check.json, plots.json, project_profile.json and read_plotTable.json equal that read but for the run stamp, 2615 plots. Each read took 922 to 964 s.
 
 Remains:
 - Step 2 shows not done after the Confirm until one more press, which reads nothing. A read that is not whole is still read again on every press by R639. Both in steps/seam.md for Lead.
 
 Known bugs:
-- The size of data_check_input.json on a real folder is UNKNOWN, it holds the drawing reads, so the hash of every reuse reads it.
+- On S1 the gathered file is 667 MiB, 1.7 GB before it was written with no indent, and the check on it took 106 to 126 s at 11 GB peak working set, outside Revit on net8.0. In Revit that is about 2 minutes busy after Confirm, in Revit on net48 UNKNOWN. In steps/seam.md for Lead.
 
 Next:
 - revit-test checks the Confirm on the new project of 8 Nov after FAST-8 and short check 2.
