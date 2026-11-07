@@ -26,6 +26,30 @@ Next:
 Your turn:
 - Item 1 of steps/bader-form-7nov.md, by Sun 8 Nov 11:00, A by default.
 
+## FAST-7 PR 3, Set up site takes the Baseplan of the folder, 7 Nov 2026
+
+Goal:
+- F2 of run 1: Set up site takes the Baseplan of the chosen folder, with FolderRoles.Of of FAST-5 now on main.
+
+Done:
+- R768: SetUpBaseplan.Fill in dotnet/SiteAdaptation.AddIn/Fast7, called by StagesViewModel.ChooseFolder right after a person chose the folder, fills an empty Baseplan row only. A Baseplan of the folder chosen before goes with it. Before step 1, Choose project folder writes the folder and runs 1 Set up site, the read follows at the next press, so card 1 never asks for a folder it cannot take.
+- R761 changed with it: Choose project folder is on from the start, its line says step 1 runs first.
+
+Checked:
+- R768_SetUpBaseplanTests and R761_CardOneStepsTests, with a refused folder, a cancelled dialog and a row a person set. Not seen in Revit.
+
+Remains:
+- F6 and F13, once Lead moves PaneHost.cs and BuildChain.cs after the short check in Revit.
+
+Known bugs:
+- None new.
+
+Next:
+- F6 and F13.
+
+Your turn:
+- Nothing.
+
 ## The demo moves to Sunday, 7 Nov 2026
 
 Goal:
