@@ -8,17 +8,17 @@ Goal:
 - F24 of the short check: after step 1, Choose project folder made step 1 Ready again and the box "2 Read data needs step 1" came.
 
 Done:
-- R769: ProjectFolderPick.Write leaves the config byte for byte when the folder is the same, so step 1 stays done. StagesViewModel.StepAfterFolder gives the step to run after the folder, the read only when step 1 still holds, else step 1.
+- R769: ProjectFolderPick.Write leaves the config byte for byte when the folder is the same, so step 1 stays done. PaneHost.ChooseProjectFolder, on FAST-7 since PR 262, hands the folder to StagesViewModel.FolderChosen as card 1 does before step 1: a Baseplan of the folder before goes, the new folder fills it, and the read runs only when step 1 still holds, else step 1.
 - The heads-up of build-3 with the final statement so far.
 
 Checked:
-- R769_FolderKeepsStepOneTests, the same folder with another case and a trailing separator, another folder, no folder before. Not seen in Revit.
+- R769_FolderKeepsStepOneTests and R768_SetUpBaseplanTests: the same folder with another case and a trailing separator, another folder with its own Baseplan, no folder before, and PaneHost calls FolderChosen. Not seen in Revit.
 
 Remains:
-- The call in PaneHost.ChooseProjectFolder for another folder, build-1's, line in steps/seam.md. F6 and F13 once PaneHost.cs and BuildChain.cs move to FAST-7.
+- F6 and F13, item 9, next PR.
 
 Known bugs:
-- Until build-1 adds the call, another folder after step 1 still meets the box.
+- None new.
 
 Next:
 - F6 and F13.
