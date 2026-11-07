@@ -1,34 +1,31 @@
-# build-1 heads-up, FAST-8-build-1
+# build-1 heads-up, FAST-11-build-1
 
-7 Nov 2026. F26 and F27 of the short check of 01A. Task branch task/FAST-8-build-1.
+8 Nov 2026. F29 and F30 of short check 2 of 01A. Task branch task/FAST-11-build-1.
 
 ## Final statement
 
-F26 is fixed and F27 is fixed in code, but the FAST-8 done when cannot pass on 01A of S1.
-- F26: Check no longer takes plots.csv or labels.csv from the data book of the work root. The plot table of the read stands in for them, and a read with no plot table stops as missing (R780).
-- F27: Floors and ramps takes, of the road surfaces the build read, the one with the most ramp road edge points, and says which (R781). Highlighted floors overlap of two plots no longer stops on a Revit box, it is listed with its floors in the issues (R782).
-- Measured with a script that shares no code with the C#: no single road surface of S1 holds the ramp road edge points of 01A, 16 of 807 on the 6 road surfaces, the 6 that hold all 807 are ground or grading. But the 269 plots of 01A got an ffl from two road surfaces, Compiled West_MM and Part 4 Top Surfaces, by their front corners. Q600 corrected at 22:00 in steps/seam.md: a toposolid of the road surfaces the front corners took, recommended as the next task.
-- Yard floors 0 is R410, not a fault.
-- Not seen in Revit, label revit-later.
-- The task stays open, its done when waits for Q600 and the Revit check.
-- Review 1 of PR 269 found 4 REAL faults, all fixed.
+F29 and F30 are fixed in code and proven outside Revit. Not seen in Revit, label revit-later.
+- F29: under rev6 the plan of 4 Check now writes a plot no rule gives a hand. It is built not mirrored and its hand is tagged missing (R800). A plot that lacks the FFL, the unit, the transform or the link fit stays out.
+- Measured on the real Check of 01A, rerun with the worker of this branch on the request of short check 2: 265 of 278 plots written, was 62. 13 left out: no floor level 9, no outline or front 2, no unit 2. 203 built with the hand missing. Counted by a Python script from plan_01A.json, sharing no code with the C#. The 30 inputs unchanged by SHA-256, size and write time.
+- CASE and Prototype Foundation Type no longer lack on any plot of 01A, the rule tables give them for the hand the plot is built with. CHOSEN by Code.
+- F29 line: card 2 adds after the Build line "13 of 278 plots are not built: no floor level 9, no outline or front 2, no unit 2. Built with a value missing: 203 plots, each value tagged missing in the plan." (R801).
+- F30: card 3 counts plotsWithNoRoadLevel of the plan of 4 Check, 11 on 01A, not the 2615 of the whole read (R802).
+- CHOSEN by Code: R800 under rev6 only, a build of the past job keeps the plan of plan_from_book, so the gate test of R360 stays as it is.
 
 ## What changed, where
 
-- dotnet/SiteAdaptation.Common/CheckTable/ProjectPlots.cs, new: Write, Rows and InDataBook, the plot table as plots.csv and labels.csv in plots_<read folder> of the work folder.
-- dotnet/SiteAdaptation.Common/CheckTable/CheckRun.cs: DataBookRoles. Plan skips a data book file of the read under rev6 and adds the files of ProjectPlots.Write.
-- dotnet/SiteAdaptation.Common/Floors/RoadTopography.cs: RoadTopographySettings.For, RoadSurfaceRead.Others and Why, RoadTopography.Covering.
-- dotnet/SiteAdaptation.Common/Floors/FloorLoad.cs: RoadSurface gives the named surface, else the first read, with every other road surface of the build as a lazy read, Surface reads one.
-- dotnet/SiteAdaptation.Common/Floors/FloorsRun.cs: PlanToposolid calls Covering. The preview and the after commit lines add Why.
-- dotnet/SiteAdaptation.Common/Floors/KnownWordsWarning.cs, new: TakeAndList and Line.
-- dotnet/SiteAdaptation.AddIn/Revit/WarningCollector.cs: a warning of known words that Decide refuses is deleted and its line goes to Warnings, so to the issues by ButtonFlow.
-- docs/rules/24-fast8-r780-up.md R780 to R782. Tests dotnet/SiteAdaptation.Tests/FAST8/, 16.
+- dotnet/SiteAdaptation.Common/Plan/PlanOverrides.cs: HandMissing and HandMissingKey. Of gives a plot with no hand the hand not mirrored under rev6, marks handMissing and lists mirrored in Lacks.
+- dotnet/SiteAdaptation.Common/Plan/BuildPlan.cs: Lacks keeps the mirrored lack of a written plot with the words of HandMissingWhy and adds insert when the fit is missing. LeftOut adds notWrittenByFirstKey and writtenWithMissing to the summary.
+- dotnet/SiteAdaptation.Common/Plan/ValueStatus.cs: MissingSource, the source of the mirrored value of such a plot.
+- dotnet/SiteAdaptation.Common/CheckTable/CheckPlanCount.cs, new: LatestPlan, Read, Of, Line, Reason.
+- dotnet/SiteAdaptation.AddIn/Pane/StageCards.cs: RefreshPlan, Card2Text, NoRoadLevelLine. StageResultsText.cs: NoRoadLevelOfPlan.
+- docs/rules/27-fast11-r800-up.md R800 to R802. Tests dotnet/SiteAdaptation.Tests/FAST11/.
 
 ## What calls what
 
-4 Check: CheckRun.Plan calls ProjectPlots.InDataBook per read input, then ProjectPlots.Write, which calls Rows. 5 Floors and ramps: FloorLoad.Floors gives RoadTopography, which calls FloorLoad.RoadSurface, which calls Surface. FloorsRun.PlanToposolid calls RoadTopography.Covering, which reads Others only when the named surface misses points. Revit commit: WarningCollector.Collect calls KnownWordsWarning.TakeAndList and Line.
+4 Check: BuildSteps calls PlanOverrides.Of, which calls HandMissing. BuildPlan.Assemble calls Lacks and LeftOut. ValueStatus.Step calls Sources, which reads HandMissingKey. Pane: PaneHost sets WorkFolderNow, StagesViewModel.Refresh and ShowBuild call RefreshPlan, which calls CheckPlanCount.LatestPlan and Read, then Card2Text reads Line. StagesPage.xaml binds NoRoadLevelLine.
 
 ## Next
 
-- Bader answers Q600, then the second short check by revit-test.
-- F28 line on card 2, after that check.
+- Run 2 of revit-test at 06:00 on 01A should build about 265 plots and show both lines.
+- The box of step 5 still says "listed" only, card 2 carries the line.

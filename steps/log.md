@@ -2,6 +2,32 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## FAST-11-build-1, the plan builds the plots of a new project, 8 Nov 2026
+
+Goal:
+- F29 and F30 of short check 2: the plan of 4 Check on 01A wrote 62 of 278 plots, and card 3 counted 2615 plots with no road level.
+
+Done:
+- R800: under rev6 a plot no rule gives a hand is built not mirrored, its hand tagged missing, listed in the missing list of the plan. A parameter with no value is left empty and listed. PlanOverrides.cs, BuildPlan.cs, ValueStatus.cs.
+- R801: the plan summary counts the plots left out by the key that stops them, and card 2 says it after the Build line. CheckPlanCount.cs, StageCards.cs.
+- R802: card 3 counts plotsWithNoRoadLevel of the plan of 4 Check, of the scope.
+
+Checked:
+- The worker of this branch on the request of the real Check of 01A: 265 of 278 plots written, 13 left out, no floor level 9, transform 2, unit 2, 203 built with the hand missing. Counted by a Python script from plan_01A.json. Inputs unchanged by SHA-256.
+- Tests: dotnet/SiteAdaptation.Tests/FAST11/, 8 on net48, 7 on net8.0.
+
+Remains:
+- Not seen in Revit, label revit-later, run 2 of revit-test at 06:00.
+
+Known bugs:
+- None found. The box of step 5 still says only "listed".
+
+Next:
+- Run 2 on 01A builds about 265 plots.
+
+Your turn:
+- None.
+
 ## Lead, FAST-11 and FAST-12 for F29 to F31 of short check 2, 8 Nov 2026
 
 Goal:
