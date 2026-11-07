@@ -58,6 +58,17 @@ At 23:10:
 - 00:46: run 1 not started. At 00:44 the PC was 5 minutes idle, then the permission check of the revit-test session (auto mode) refused the launch of the Revit driver under python/window_lock.py, with no reason given. Revit not opened, no input sent. BLOCKED until Bader allows that launch in the revit-test session, or runs the lane where it is allowed. Lead does not launch it for the lane.
 - 23:37: Bader's order, the driver presses Always Load on our own Unsigned Add-In box, PR 246.
 
+## Sat 7 Nov 21:40, the new project path
+
+Bader's order of 21:06: Bader gets a real new project on Sun 8 Nov, files the tool has never seen, the demo is at 17:00. FAST-8 and short check 2 keep first place.
+
+- FAST-9-build-2: F22, Confirm applies the confirmed villa type and area columns to the read just made, one read before Scope names the neighbourhoods. R790 to R794.
+- FAST-10-build-3: F8, a project made with Empty project shows no past job value. R795 to R799. The test window of Revit for build-3 comes after short check 2.
+- Lead: scripts/new-project-intake.ps1, the stage 1 read by the worker of the installed add-in outside Revit, into <work root>\intake\intake.md. Tested on S1 tonight.
+- steps/bader-form-8nov.md, the template of at most 5 items, filled from intake.md.
+- Sun 8 Nov, when Bader names the folder: the intake, the form, FORM READY. After his answers, revit-test builds the picked neighbourhood from an empty model copy, Build to the end, under 110 minutes. Then steps/demo-live.md part 1, said plainly as a new project.
+- Q600 of build-1, 21:00: no road surface of S1 covers 01A, so 01A plots get no ffl and steps 6 to 8 skip them. Lead asked build-1 for the cover of every neighbourhood, the answer decides the neighbourhood of short check 2.
+
 ## Sat 7 Nov 19:10, the short check failed, run 2 waits
 
 The short check of 01A on the install of 89d1c69, PR 265 of revit-test: the Build passed Check for the first time, F16 fixed, then looped on Check 5 times and was cancelled, F25. Floors and ramps placed only by Run 5 of Advanced: 538 floors on 269 plots, 269 generic and 269 ramp, 0 yard, no road toposolid, F27. Levels, villa links and walls 0. F24 needed a work around, its fix is PR 264 on main. Check read the plots file of the past job data book, F26.
