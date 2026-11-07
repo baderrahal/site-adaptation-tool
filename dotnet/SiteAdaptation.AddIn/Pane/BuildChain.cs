@@ -27,6 +27,8 @@ namespace SiteAdaptation.AddIn.Pane
         private int at = -1;
         private int added;
         private bool readAsked;
+        // R771, F6 of run 1. The steps this build put back already, so none is put back twice in one build
+        private readonly HashSet<int> putBack = new HashSet<int>();
 
         public BuildChain(Func<int, string> stepName, Func<int, StepStatus> stepStatus)
         {
@@ -35,6 +37,9 @@ namespace SiteAdaptation.AddIn.Pane
         }
 
         public bool Running { get { return at >= 0; } }
+
+        // R771. The step running now, null with no build. A step 2 the build put back reads quietly while it is the step running
+        public int? Current { get { return Running ? steps[at] : (int?)null; } }
 
         // R741. True when the read for the build must run before Check, asked once per build when Check is next. Null never runs it
         public Func<bool> ReadFirst { get; set; }
@@ -52,6 +57,7 @@ namespace SiteAdaptation.AddIn.Pane
             steps.Clear();
             added = 0;
             readAsked = false;
+            putBack.Clear();
             steps.AddRange(Order.Where(step => step != 1 || !Ran(step)));
             at = 0;
             return Before(steps[at]);
@@ -117,7 +123,7 @@ namespace SiteAdaptation.AddIn.Pane
         private int Before(int step)
         {
             StepStatus now = status(step);
-            while (now.Kind == StepKind.NeedsStep && now.Value >= 1 && now.Value < step && added < MostAdded)
+            while (now.Kind == StepKind.NeedsStep && now.Value >= 1 && now.Value < step && added < MostAdded && putBack.Add(now.Value))
             {
                 added++;
                 steps.Insert(at, now.Value);
