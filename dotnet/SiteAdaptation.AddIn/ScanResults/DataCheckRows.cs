@@ -34,6 +34,9 @@ namespace SiteAdaptation.AddIn.ScanResults
         public string Stopped { get; set; }
         public int FilesRead { get; set; }
         public int PlotsFound { get; set; }
+
+        // R767, F9 of run 1. The numbered plots R730 listed apart, as no villa goes on them, so the header says villa plots of all plots
+        public int OtherPlots { get; set; }
     }
 
     // R620. data_check.json of the worker command dataCheck (R600, R605, R606) and plots.json beside it turned into what the window shows,
@@ -82,6 +85,7 @@ namespace SiteAdaptation.AddIn.ScanResults
                 Stopped = string.IsNullOrWhiteSpace((string)root["stopped"]) ? null : (string)root["stopped"],
                 FilesRead = files.Count(file => (string)file["status"] == "read"),
                 PlotsFound = plotsJson == null ? 0 : (JObject.Parse(plotsJson)["plots"] as JArray)?.Count ?? 0,
+                OtherPlots = plotsJson == null ? 0 : (JObject.Parse(plotsJson)["otherPlots"] as JArray)?.Count ?? 0,
             };
         }
     }

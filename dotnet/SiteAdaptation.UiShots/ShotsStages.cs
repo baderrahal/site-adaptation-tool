@@ -85,8 +85,13 @@ namespace SiteAdaptation.UiShots
 
         private static BitmapSource StageCardShot(int card, Action<StagesViewModel> before = null)
         {
-            StagesPage page = LaidOutStages(true, before);
-            var box = (FrameworkElement)page.FindName("Card" + card + "Box");
+            return BoxShot(LaidOutStages(true, before), "Card" + card + "Box");
+        }
+
+        // R763. One named part of the stages page, as the gear of the head
+        private static BitmapSource BoxShot(StagesPage page, string name)
+        {
+            var box = (FrameworkElement)page.FindName(name);
             var bitmap = new RenderTargetBitmap((int)Math.Ceiling(box.ActualWidth), (int)Math.Ceiling(box.ActualHeight), Dpi, Dpi, PixelFormats.Pbgra32);
             var visual = new DrawingVisual();
             using (DrawingContext context = visual.RenderOpen())

@@ -144,11 +144,16 @@
   <DockPanel Background="{StaticResource SA.Surface}">
     <!-- The foot on SA.Panel, Cancel, Dry run and Apply. Apply is off while the view holds stops or before the dry run -->
     <Border DockPanel.Dock="Bottom" Background="{StaticResource SA.Panel}" Padding="{StaticResource SA.Pad.Foot}">
-      <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-        <Button Style="{StaticResource SA.Button.Base}" Content="Cancel" Click="OnCancel" />
-        <Button Style="{StaticResource SA.Button.DryRun}" Margin="{StaticResource SA.Gap.Left8}" Content="Dry run" Click="OnDryRun" />
-        <Button Style="{StaticResource SA.Button.Primary}" Margin="{StaticResource SA.Gap.Left8}" Content="Apply" IsEnabled="{Binding CanApply}" Click="OnApply" />
-      </StackPanel>
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
+          <Button Style="{StaticResource SA.Button.Base}" Content="Cancel" Click="OnCancel" />
+          <Button Style="{StaticResource SA.Button.DryRun}" Margin="{StaticResource SA.Gap.Left8}" Content="Dry run" Click="OnDryRun" />
+          <Button Style="{StaticResource SA.Button.Primary}" Margin="{StaticResource SA.Gap.Left8}" Content="Apply" IsEnabled="{Binding CanApply}" Click="OnApply" />
+        </StackPanel>
+        <!-- R766, F2. Why Apply is grey, the dry run first, then the tick of the site drawing -->
+        <TextBlock x:Name="ApplyWait" Style="{StaticResource SA.Type.Body}" Foreground="{StaticResource SA.Warn}" VerticalAlignment="Center" TextWrapping="Wrap"
+                   Margin="{StaticResource SA.Gap.Right8}" Text="{Binding ApplyWaitLine}" />
+      </DockPanel>
     </Border>
 
     <Border DockPanel.Dock="Bottom" Background="{StaticResource SA.ErrorGround}" Padding="{StaticResource SA.Pad.Box}"

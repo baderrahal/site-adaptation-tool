@@ -6,7 +6,9 @@ namespace SiteAdaptation.AddIn.HowItWorks
     {
         public const string Title = "How it works";
         public const string Badge = "Read once";
-        public const string Line = "The tool puts each villa on its plot at the right level. It works in nine steps, one button each, always in this order. Each step needs the one before.";
+        // R764, F17 of run 1: the window teaches the 3 cards of the pane, each card runs the steps under it, Advanced keeps a button per step
+        public const string Line = "The tool puts each villa on its plot at the right level. The pane holds three cards, used in this order: Project data, Build site, Review and deliver. Each card runs the steps listed under it, and Advanced keeps one button per step.";
+        public const string CardHead = "Card <n>, <name>: <name>";
         public const string ApplyLine = "Nothing changes in the model until you press Apply.";
         public const string Count = "<n> steps";
         public const string CountLine = "<n> buttons in the pane";

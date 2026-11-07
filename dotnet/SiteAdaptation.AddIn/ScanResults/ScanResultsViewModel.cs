@@ -149,7 +149,19 @@ namespace SiteAdaptation.AddIn.ScanResults
         public bool ShowScan { get { return !CheckOnly; } }
         public string BandLine { get { return CheckOnly ? DataCheckText.CheckLine : ScanResultsText.Line; } }
         public string FilesRead { get { return ScanView.Count(CheckOnly ? Check.FilesRead : Data.FilesRead); } }
-        public string PlotsFound { get { return ScanView.Count(CheckOnly ? Check.PlotsFound : Data.PlotsFound); } }
+        public string PlotsFound
+        {
+            get
+            {
+                // R767. A data check that listed plots apart counts the villa plots of all plots, the read of version 1 counts as before
+                return VillaOfAll ? TextTemplate.Fill(DataCheckText.CountOfAll, ScanView.Count(Check.PlotsFound), ScanView.Count(Check.PlotsFound + Check.OtherPlots))
+                    : ScanView.Count(CheckOnly ? Check.PlotsFound : Data.PlotsFound);
+            }
+        }
+
+        public string PlotsFoundLabel { get { return VillaOfAll ? DataCheckText.VillaPlotsOfAll : ScanResultsText.PlotsFound; } }
+
+        private bool VillaOfAll { get { return CheckOnly && Check != null && Check.OtherPlots > 0; } }
         public IReadOnlyList<ScanValueViewModel> Values { get; }
         public IReadOnlyList<ScanFileRow> Files { get; }
         public IReadOnlyList<ScanConflictViewModel> AllConflicts { get; }

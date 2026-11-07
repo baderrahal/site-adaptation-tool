@@ -602,3 +602,10 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 ## 23-fast7-r760-up.md
 
 - R760 Stop box of Build.
+- R761 Card 1 holds Set up site.
+- R762 Card 1 holds Review data.
+- R763 Gear, grey Report, folder dialog.
+- R764 How it works shows cards.
+- R765 Setup not saved.
+- R766 Dry run first line.
+- R767 Villa plots of all plots.

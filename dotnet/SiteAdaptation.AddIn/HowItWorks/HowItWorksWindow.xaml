@@ -13,6 +13,8 @@
         <ResourceDictionary Source="/SiteAdaptation.AddIn;component/Theme/Theme.xaml" />
       </ResourceDictionary.MergedDictionaries>
 
+      <BooleanToVisibilityConverter x:Key="Shown" />
+
       <Style x:Key="HeadText" TargetType="TextBlock" BasedOn="{StaticResource SA.Type.Label}">
         <Setter Property="Foreground" Value="{StaticResource SA.Heading}" />
       </Style>
@@ -22,6 +24,12 @@
       </Style>
 
       <DataTemplate x:Key="StepRow" DataType="{x:Type how:HowRow}">
+        <StackPanel>
+        <!-- R764, F17. The card of the pane that runs the steps below, over its first step -->
+        <Border Padding="{StaticResource SA.Pad.Cell}" Background="{StaticResource SA.Panel}" BorderBrush="{StaticResource SA.Border}" BorderThickness="{StaticResource SA.Line.Under}"
+                Visibility="{Binding OpensCard, Converter={StaticResource Shown}}">
+          <TextBlock Style="{StaticResource SA.Type.Step}" FontWeight="{StaticResource SA.Type.Label.Weight}" Foreground="{StaticResource SA.Heading}" TextWrapping="Wrap" Text="{Binding Card}" />
+        </Border>
         <Border Padding="{StaticResource SA.Pad.Cell}" BorderBrush="{StaticResource SA.Border}" BorderThickness="{StaticResource SA.Line.Under}">
           <Grid>
             <Grid.ColumnDefinitions>
@@ -42,6 +50,7 @@
             <TextBlock Grid.Column="4" Style="{StaticResource CellText}" Text="{Binding Button}" />
           </Grid>
         </Border>
+        </StackPanel>
       </DataTemplate>
     </ResourceDictionary>
   </Window.Resources>

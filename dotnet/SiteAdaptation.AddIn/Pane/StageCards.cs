@@ -44,7 +44,9 @@ namespace SiteAdaptation.AddIn.Pane
     {
         public static readonly int[][] Steps = { new[] { 1, 2, 3 }, new[] { 4, 5, 6, 7, 8 }, new[] { 9 } };
 
-        public static string Of(int stage, IReadOnlyList<StepStatus> statuses, bool hasDocument, bool settingsChosen)
+        // R765, F7 of run 1. readThere: the work folder of the model holds a read. A model with a read and no setup was closed without save
+        // after Save setup, as the setup lives in the model and the reads in the work folder, so the card says that plainly
+        public static string Of(int stage, IReadOnlyList<StepStatus> statuses, bool hasDocument, bool settingsChosen, bool readThere = false)
         {
             if (!hasDocument)
             {
@@ -52,7 +54,7 @@ namespace SiteAdaptation.AddIn.Pane
             }
             if (!settingsChosen)
             {
-                return StageText.SetUpFirst;
+                return readThere ? StageText.SetupNotSaved : StageText.SetUpFirst;
             }
             List<StepStatus> own = Steps[stage - 1].Where(step => step <= statuses.Count).Select(step => statuses[step - 1]).ToList();
             if (own.Count > 0 && own.All(step => step.Kind == StepKind.Done || step.Kind == StepKind.Issues))
@@ -142,6 +144,24 @@ namespace SiteAdaptation.AddIn.Pane
             return null;
         }
 
+        // R763. The project folder the config names, null with none, no config or one that does not read
+        public static string Chosen(string configFile)
+        {
+            if (string.IsNullOrEmpty(configFile) || !File.Exists(configFile))
+            {
+                return null;
+            }
+            try
+            {
+                string root = (string)JObject.Parse(WorkFiles.ReadText(configFile))["inputRoot"];
+                return string.IsNullOrWhiteSpace(root) ? null : root;
+            }
+            catch (Exception failure) when (failure is IOException || failure is UnauthorizedAccessException || failure is Newtonsoft.Json.JsonException || failure is InvalidCastException || failure is ArgumentException)
+            {
+                return null;
+            }
+        }
+
         public static string Write(string configFile, string workRoot, string chosen, string workFolder)
         {
             string refused = Refusal(configFile, workRoot, chosen, workFolder);
@@ -169,13 +189,16 @@ namespace SiteAdaptation.AddIn.Pane
     // R680. The pane in 3 stages over the view model of the pane of version 1, which stays whole under Advanced
     public sealed class StagesViewModel : Bindable
     {
+        public const int SetUpStep = 1;
         public const int ReadDataStep = 2;
+        public const int ReviewStep = 3;
         public const int ReportStep = 9;
         private bool settingsOpen;
         private string rulesLine;
         private string buildLine;
         private bool previewFirst = true;
         private string stopLine;
+        private string readLine = StageText.NoRead;
         private string readFolder;
         private string fixFolder;
         private DateTime readStamp;
@@ -187,14 +210,16 @@ namespace SiteAdaptation.AddIn.Pane
             Model = model;
             Cards = new ReadOnlyCollection<StageCard>(new[]
             {
-                new StageCard(1, StageText.Stage1, StageText.Stage1Help, StageText.ChooseFolder, new PaneCommand(() => ChooseFolderRequested?.Invoke(), () => model.InUse)),
+                new StageCard(1, StageText.Stage1, StageText.Stage1Help, StageText.ChooseFolder, new PaneCommand(ChooseFolder, () => model.InUse && Ran(SetUpStep))),
                 new StageCard(2, StageText.Stage2, StageText.Stage2Help, StageText.Build, new PaneCommand(PressBuild, () => model.InUse && readFolder != null)),
-                new StageCard(3, StageText.Stage3, StageText.Stage3Help, StageText.Report, new PaneCommand(() => model.RequestRun(ReportStep), () => model.InUse)),
+                new StageCard(3, StageText.Stage3, StageText.Stage3Help, StageText.Report, new PaneCommand(() => model.RequestRun(ReportStep), () => model.InUse && Waits(ReportStep) == 0)),
             });
             FixItemsCommand = new PaneCommand(() => FixItemsRequested?.Invoke(fixFolder), () => fixFolder != null);
             SettingsCommand = new PaneCommand(() => SettingsOpen = !SettingsOpen, () => true);
             RulesCommand = new PaneCommand(() => RulesRequested?.Invoke(), () => model.InUse);
             UpdateCommand = new PaneCommand(() => UpdateRequested?.Invoke(), () => model.InUse);
+            SetUpCommand = new PaneCommand(() => model.RequestRun(SetUpStep), () => model.InUse);
+            ReviewCommand = new PaneCommand(() => model.RequestRun(ReviewStep), () => model.InUse && Waits(ReviewStep) == 0);
             model.PropertyChanged += OnModelChanged;
             Refresh();
         }
@@ -210,6 +235,38 @@ namespace SiteAdaptation.AddIn.Pane
         public PaneCommand SettingsCommand { get; }
         public bool SettingsOpen { get { return settingsOpen; } set { Set(ref settingsOpen, value); } }
         public PaneCommand RulesCommand { get; }
+
+        // R761, F1 of run 1. Card 1 holds step 1 Set up site, and Choose project folder waits for it, so an empty model never meets the box
+        // "2 Read data needs step 1". The button says the label of the ribbon button, so it reads as the step row of Advanced
+        public PaneCommand SetUpCommand { get; }
+        public string SetUpButton { get { return RibbonLayout.Button(SetUpStep).Label; } }
+
+        // R762, F3 of run 1. Card 1 holds step 3 Review data, so a read is reviewed from card 1 and stage 1 can end there
+        public PaneCommand ReviewCommand { get; }
+        public string ReviewButton { get { return RibbonLayout.Button(ReviewStep).Label; } }
+
+        // R763, F9 of run 1. Report of card 3 is grey while step 9 waits on a step before it, as card 3 then says it waits for stage 2.
+        // A step ran when it is done, with or without issues
+        private bool Ran(int step)
+        {
+            if (step > Model.Statuses.Count)
+            {
+                return false;
+            }
+            StepKind kind = Model.Statuses[step - 1].Kind;
+            return kind == StepKind.Done || kind == StepKind.Issues;
+        }
+
+        // The step a step waits on, 0 when it may run
+        private int Waits(int step)
+        {
+            if (step > Model.Statuses.Count)
+            {
+                return step - 1;
+            }
+            StepStatus status = Model.Statuses[step - 1];
+            return status.Kind == StepKind.NeedsStep ? status.Value : status.Kind == StepKind.NeedsSettings ? step : 0;
+        }
 
         // R686. The scope of the build in the words of the project, and the Preview tick, on by default (CHOSEN)
         // R689. Card 3: the issues of the last build, the source mix of its values and Update from report
@@ -254,6 +311,13 @@ namespace SiteAdaptation.AddIn.Pane
             }
         }
 
+        // R763, F9 of run 1. The folder dialog opens at the project folder chosen before, read from the config copy of the project
+        private void ChooseFolder()
+        {
+            DialogPicker.Start = ProjectFolderPick.Chosen(Model.Settings?.ConfigFile) ?? DialogPicker.Start;
+            ChooseFolderRequested?.Invoke();
+        }
+
         private void PressBuild()
         {
             StopLine = null;
@@ -293,9 +357,10 @@ namespace SiteAdaptation.AddIn.Pane
         {
             bool open = Model.HasDocument;
             bool chosen = Model.InUse;
+            RefreshRead();
             for (int stage = 1; stage <= Cards.Count; stage++)
             {
-                Cards[stage - 1].Status = StageStatus.Of(stage, Model.Statuses, open, chosen);
+                Cards[stage - 1].Status = StageStatus.Of(stage, Model.Statuses, open, chosen, readFolder != null);
                 Cards[stage - 1].Good = Cards[stage - 1].Status == StageText.Done;
                 Cards[stage - 1].Command.Refresh();
             }
@@ -303,6 +368,8 @@ namespace SiteAdaptation.AddIn.Pane
             Changed(nameof(ScopeLine));
             Card3.Line = StageResultsText.ReportLine;
             UpdateCommand.Refresh();
+            SetUpCommand.Refresh();
+            ReviewCommand.Refresh();
             results = (Model.HasDocument ? ResultsNow?.Invoke() : null) ?? new StageResults();
             Changed(nameof(IssuesLine));
             Changed(nameof(MixLine));
@@ -316,7 +383,7 @@ namespace SiteAdaptation.AddIn.Pane
             Changed(nameof(MixOther));
             RulesCommand.Refresh();
             RulesLine = Model.HasDocument && Model.InUse ? RulesLineNow?.Invoke() : null;
-            RefreshRead();
+            Card1.Line = Model.InUse && !Ran(SetUpStep) ? StageText.SetUpBeforeFolder : readLine;
         }
 
         // The rows of the latest read, read again only when its data check changed
@@ -338,7 +405,7 @@ namespace SiteAdaptation.AddIn.Pane
                 CheckRows.Add(row);
             }
             fixFolder = latest != null && check.Stopped == null ? latest : null;
-            Card1.Line = latest == null ? StageText.NoRead : check.Stopped != null ? TextTemplate.Fill(StageText.ReadStopped, check.Stopped) : string.Empty;
+            readLine = latest == null ? StageText.NoRead : check.Stopped != null ? TextTemplate.Fill(StageText.ReadStopped, check.Stopped) : string.Empty;
             Changed(nameof(HasRows));
             FixItemsCommand.Refresh();
             Card2.Command.Refresh();
