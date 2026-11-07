@@ -179,6 +179,11 @@ namespace SiteAdaptation.AddIn
                 var session = new ConfirmProfile.ConfirmProfileSession(ConfirmProfile.ConfirmProfileModel.Read(Common.WorkFiles.ReadText(profile)), work, "fix-" + DateTime.UtcNow.ToString("yyyyMMddHHmmss", System.Globalization.CultureInfo.InvariantCulture));
                 ConfirmProfile.ConfirmProfileStep.ShowConfirm(owner, session);
                 said = session.Result;
+                // R771. The folder this Confirm holds for, so a quiet read of the Build keeps it only for the same folder
+                if (said == ConfirmProfile.ConfirmProfileText.Saved)
+                {
+                    Fast7.ConfirmedFor.Write(work, Fast7.ConfirmedFor.ScanFolderOf(readFolder));
+                }
             }
             catch (Exception failure)
             {
@@ -385,6 +390,8 @@ namespace SiteAdaptation.AddIn
             {
                 ReadFirst = () => Fast5.BuildRead.Needed(WorkFolderNow()),
             };
+            // R771, F6. Every step 2 of a build is one the chain put back, as BuildChain.Order holds none, and it reads with no window
+            Fast7.QuietRead.Now = () => chain.Current == StagesViewModel.ReadDataStep;
             string planLine = null;
             // R688, R741. Each end of a step of the build, from Buttons.ChainEnded or from the read for the build, shows its line and runs the next
             Func<int, Common.Flow.RunEnd, string, bool> endOf = null;

@@ -113,15 +113,33 @@ namespace SiteAdaptation.AddIn.ConfirmProfile
                 }
                 string plots = Path.Combine(Path.GetDirectoryName(check), DataCheckRows.PlotsFileName);
                 DataCheckResult result = DataCheckRows.ReadResult(WorkFiles.ReadText(check), File.Exists(plots) ? WorkFiles.ReadText(plots) : null);
-                ShowCheck(owner, result);
+                // R771, F6. A step 2 the Build put back shows no check window, a check that stopped still says why in the line below
+                bool quiet = Fast7.QuietRead.On;
+                if (!quiet)
+                {
+                    ShowCheck(owner, result);
+                }
                 // A check that stopped holds nothing to confirm, the window above told why and the press says so too
                 if (result.Stopped != null)
                 {
                     done(RunLater.Failed(RunTexts.ChangedNothing(context.Label, RunTexts.Failed(ConfirmProfileText.CheckStopped.Replace("<why>", result.Stopped)))));
                     return;
                 }
+                // R771. The read took the profile the person confirmed last for this project, so the Build keeps it and opens no Confirm. With none
+                // confirmed yet the Confirm window opens, as a Build never takes a fresh proposal in place of a person's choice
+                // Lead's point of 18:20: only a profile confirmed for the folder this read asks, so a second folder of the project gets its own Confirm
+                string scanFolder = Fast7.ConfirmedFor.ScanFolderOf(Path.GetDirectoryName(check));
+                if (quiet && Fast7.ConfirmedFor.Holds(context.WorkFolder, scanFolder))
+                {
+                    done(RunLater.Done((later.Message ?? "") + " " + ScanResultsText.QuietKept, later.Issues, later.Outputs));
+                    return;
+                }
                 var session = new ConfirmProfileSession(ConfirmProfileModel.Read(WorkFiles.ReadText(profile)), context.WorkFolder, context.RunId);
                 ShowConfirm(owner, session);
+                if (session.Result == ConfirmProfileText.Saved)
+                {
+                    Fast7.ConfirmedFor.Write(context.WorkFolder, scanFolder);
+                }
                 // A close by the X is a Cancel, the read stays done and says nothing was saved
                 string line = session.Result ?? ConfirmProfileText.CancelledLine;
                 done(RunLater.Done((later.Message ?? "") + " " + line, later.Issues, later.Outputs));
