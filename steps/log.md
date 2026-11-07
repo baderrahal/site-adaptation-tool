@@ -2,6 +2,32 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## FAST-9-build-2, Confirm applies to the read just made, F22, 7 Nov 2026
+
+Goal:
+- F22, Bader's order of 21:06: on a new project, one read and one Confirm, then the Scope list names the neighbourhoods of the confirmed area column and the plots carry the confirmed villa types, with no second read of about 12 minutes.
+
+Done:
+- R790: the worker command dataCheck keeps what it gathered, data_check_input.json in the read folder, and the check is DataCheckApply.Check, shared by the worker and the Confirm.
+- R791: after a Confirm that saved, ReadDataRun.ApplyConfirmed runs the check again in Revit on that file with the confirmed profile, writes data_check.json, project_profile.json, plots.json and read_plotTable.json, moves the read folder to the folder its inputs now name and writes read.json last. The next press of 2 reuses it.
+- R792: a read with no gathered file, or any fault, keeps the step done and says the values count from the next read.
+
+Checked:
+- R791_ConfirmAppliesTests on the made up project of samples/new-project with its sheet areas parted unlike the distance groups: one worker run, the Scope list N1 and N2, plot 103 VA1 from the column, a second press reused. The same press with no apply keeps the old areas and VB2, so the test sees F22. The second check by another way: a full worker read with the same confirmed profile gives the same four files but for the run stamp.
+- R790_GatheredFilesTests on net48 and net8.0. Not seen in Revit, not run on S1.
+
+Remains:
+- Step 2 shows not done after the Confirm until one more press, which reads nothing. A read that is not whole is still read again on every press by R639. Both in steps/seam.md for Lead.
+
+Known bugs:
+- The size of data_check_input.json on a real folder is UNKNOWN, it holds the drawing reads, so the hash of every reuse reads it.
+
+Next:
+- revit-test checks the Confirm on the new project of 8 Nov after FAST-8 and short check 2.
+
+Your turn:
+- Answer the seam line on reads that are not whole, before the demo.
+
 ## The new project path, 7 Nov 2026
 
 Goal:

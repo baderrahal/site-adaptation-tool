@@ -614,3 +614,9 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R770 Review close counts as saved.
 - R771 Quiet read in the Build.
 - R772 Check commits, Build goes on.
+
+## 25-fast9-r790-up.md
+
+- R790 The read keeps its gathered files.
+- R791 Confirm applies to the last read.
+- R792 A Confirm that cannot apply.
