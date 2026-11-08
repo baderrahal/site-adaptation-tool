@@ -323,7 +323,7 @@ namespace SiteAdaptation.AddIn.Pane
             {
                 if (planCount != null)
                 {
-                    return planCount.NoRoadLevel > 0 ? TextTemplate.Fill(StageResultsText.NoRoadLevelOfPlan, planCount.NoRoadLevel, planCount.Plots, planCount.Nbh ?? "all") : string.Empty;
+                    return planCount.NoRoadLevel > 0 ? TextTemplate.Fill(StageResultsText.NoRoadLevel, planCount.NoRoadLevel) : string.Empty;
                 }
                 return results.NoRoadLevelCount > 0 ? TextTemplate.Fill(StageResultsText.NoRoadLevel, results.NoRoadLevelCount) : string.Empty;
             }

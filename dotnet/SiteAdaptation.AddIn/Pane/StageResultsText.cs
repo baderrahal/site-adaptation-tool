@@ -9,8 +9,6 @@ namespace SiteAdaptation.AddIn.Pane
         public const string OpenRules = "Open rules";
         public const string UpdateFromReport = "Update from report";
         public const string NoRoadLevel = "<n> plots have no road level, so no floor level, and steps 6 to 8 leave them out.";
-        // R802. The plots of the plan of 4 Check with no road level, the count of that plan and its NBH, F30 of short check 2
-        public const string NoRoadLevelOfPlan = "<n> of the <n> plots of the plan of <name> have no road level, so no floor level, and steps 5 to 8 leave them out.";
         public const string ReportLine = "Report runs step 9 of version 1, Update from report reads the Excel back.";
     }
 }

@@ -76,7 +76,7 @@ namespace SiteAdaptation.Tests.FAST11
                 Assert.Equal(string.Empty, stages.Card2.Line);
                 stages.WorkFolderNow = () => work;
                 stages.Refresh();
-                Assert.Equal("2 of the 20 plots of the plan of N1 have no road level, so no floor level, and steps 5 to 8 leave them out.", stages.NoRoadLevelLine);
+                Assert.Equal("2 plots have no road level, so no floor level, and steps 6 to 8 leave them out.", stages.NoRoadLevelLine);
                 string left = "3 of 20 plots are not built: no floor level 2, no unit 1. Built with a value missing: 15 plots, each value tagged missing in the plan.";
                 Assert.Equal(left, stages.Card2.Line);
                 stages.ShowBuild("Build done: 8 steps.");

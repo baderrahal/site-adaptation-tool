@@ -24,6 +24,10 @@ Known bugs:
 
 Next:
 - Run 2 on 01A builds about 265 plots.
+
+Your turn:
+- None.
+
 ## build-3, FAST-12, step 7 and prototypes of an older Revit, 8 Nov 2026
 
 Goal:

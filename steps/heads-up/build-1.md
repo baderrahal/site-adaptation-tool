@@ -11,7 +11,7 @@ F29 and F30 are fixed in code and proven outside Revit. Not seen in Revit, label
 - F29 line: card 2 adds after the Build line "13 of 278 plots are not built: no floor level 9, no outline or front 2, no unit 2. Built with a value missing: 203 plots, each value tagged missing in the plan." (R801).
 - F30: card 3 counts plotsWithNoRoadLevel of the plan of 4 Check, 11 on 01A, not the 2615 of the whole read (R802).
 - Review 1 of PR 277 found 1 REAL fault, fixed with a test: a plot with no hand left out for its FFL was said to be built not mirrored.
-- Two files outside the allowed list, needed by the gate: docs/design/14-ui-labels.md and UiLabelTests.cs, a line in steps/seam.md.
+- Card 3 keeps the words of R691, "<n> plots have no road level ...", with n from the plan of the scope. New words need two files outside the allowed list, the folder rules check refused them, a line in steps/seam.md.
 - CHOSEN by Code: R800 under rev6 only, a build of the past job keeps the plan of plan_from_book, so the gate test of R360 stays as it is.
 
 ## What changed, where
@@ -20,7 +20,7 @@ F29 and F30 are fixed in code and proven outside Revit. Not seen in Revit, label
 - dotnet/SiteAdaptation.Common/Plan/BuildPlan.cs: Lacks keeps the mirrored lack of a written plot with the words of HandMissingWhy and adds insert when the fit is missing. LeftOut adds notWrittenByFirstKey and writtenWithMissing to the summary.
 - dotnet/SiteAdaptation.Common/Plan/ValueStatus.cs: MissingSource, the source of the mirrored value of such a plot.
 - dotnet/SiteAdaptation.Common/CheckTable/CheckPlanCount.cs, new: LatestPlan, Read, Of, Line, Reason.
-- dotnet/SiteAdaptation.AddIn/Pane/StageCards.cs: RefreshPlan, Card2Text, NoRoadLevelLine. StageResultsText.cs: NoRoadLevelOfPlan.
+- dotnet/SiteAdaptation.AddIn/Pane/StageCards.cs: RefreshPlan, Card2Text, NoRoadLevelLine.
 - docs/rules/27-fast11-r800-up.md R800 to R802. Tests dotnet/SiteAdaptation.Tests/FAST11/.
 
 ## What calls what
