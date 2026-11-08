@@ -65,6 +65,12 @@ At 23:10:
 - 22:20 main a99ea93 built and installed, F25, F26, F27 in. revit-test started on short check 2 of 01A.
 - Lanes: build-2 on FAST-9, build-3 on FAST-10. build-1 stopped, FAST-8 open for Q600 and the Revit check.
 
+## Sun 8 Nov 16:15, the end of the runs
+
+- PR 288 demo-live merged. PR 289 the phase 3 record merged 16:05, main c6f8f9e.
+- Phase 3 reached card 1 only: read 189 s, Confirm 17 s, a second full read of 216 s as one road drawing was open in Civil 3D. Stopped 15:38, the PC in use. No plot built.
+- demo-live part 1 now says card 1 only, part 2 01A as rehearsed. Faults F35 to F42 wait for after the demo.
+
 ## Sun 8 Nov 15:10, the 01A rehearsal and the phase 3 run
 
 - PR 286 the form merged 12:30, every A taken. PR 287 the demo run record merged 15:02, main 5e57f4f.
