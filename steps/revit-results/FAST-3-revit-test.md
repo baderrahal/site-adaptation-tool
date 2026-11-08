@@ -437,23 +437,23 @@ Why it stopped: at 15:19:57 the guard stopped the driver, a person was on the PC
 | Press of F36, the box after the folder pick | 15:14:36 | 15:14:40 | 4 s |
 | Press of F36, a full read, the first was not whole | 15:14:41 | 15:18:17 | 216 s |
 
-Steps 2 to 8 of the Build: not run. The 2 reads are of the tool. Between them stand the waits on Lead's answers to F40, F41 and F42, 14:45 to 15:03.
+Steps 2 to 8 of the Build: not run. The waits on Lead's answers to F40, F41 and F42, 14:45 to 15:03, stand before the first read and are not in these times.
 
 ## What was seen, in order
 
 1. Project setup: Start from "New project rules, Rev 06", Road levels left empty, "No road surface is picked.", Save setup 14:39.
 2. Choose project folder with Phase 3\Input, 14:41. Set up site: "No site drawing in the setup. CAD needs the Baseplan from the pane, or take a position file or typed values below.", "0 of 0" check points pass, Apply off. F40. Choose project folder again opened the same window.
-3. The press more than the list, Lead's answer: Advanced, row Baseplan, Browse, the one drawing of 03-Civil3D Lead named from the gathered file of the intake. Only picked. Set up site again: "the baseplan read holds no plot outline, so button 1 has no site position from CAD (R455)", Use CAD no change. F41.
+3. The press more than the list, Lead's answer: Advanced, row Baseplan, Browse, the one drawing Lead named from the gathered file of the intake. Only picked. Set up site again: "the baseplan read holds no plot outline, so button 1 has no site position from CAD (R455)", Use CAD no change. F41.
 4. Typed position, by Lead. Typed origin 0, 0, 0, refused, F42. Then Easting 500000, Northing 0, Angle 0, source tag user pick, typed by Lead, not the site, the false easting of the zone, on the copy only. "Position from: Typed in this window", "No plots read. The typed values have no check, read them again." Apply stayed off until Dry run. Apply 15:04:00, the window gone at 15:04:08.
 5. Choose project folder, the box "Reads the folder and the settings file. Files in the folder: 28, 1781.9 MiB". Apply, ONE read, What the tool read at 15:09:44, 24 files read, 392 of 3,198 villa plots of all plots:
 
 | Need | Mark | Line |
 |---|---|---|
 | Plot outlines | Strong | 3445 outlines found on a layer, 3198 with a number of their own, 247 without one, 2 numbers outside every outline |
-| Plot numbers | Weak | Plot numbers are text on layer C-PROP-TEXT, 3200 outlines hold one and 3198 numbers are distinct, 1 number appears more than once |
+| Plot numbers | Weak | Plot numbers are text on one layer, 3200 outlines hold one and 3198 numbers are distinct, 1 number appears more than once |
 | Group levels | Weak | Areas found by distance only: 1, pick the area column. Smaller groups: 92, no word for the levels, name each one once |
 | Villa types | Missing | no drawing text, block or sheet column gives a prototype code in the plots. No code table found |
-| Villa blocks | Weak | Villa blocks are inserts on layer MP_BLDG_C10, 392 of 3198 plots hold one |
+| Villa blocks | Weak | Villa blocks are inserts on one layer, 392 of 3198 plots hold one |
 | Road edges | Weak | Road edges are lines on one layer, within 20 m of 281 of 3198 plots, not scored |
 | Road levels | Missing | No Land XML surface file is in the folder, so there are no road levels |
 | Coordinates | Weak | The drawing is in meters and names no coordinate system, the plots sit in drawing space |
