@@ -34,4 +34,9 @@ F22 and the read time, Bader's order of 8 Nov 06:45 item 3: one read, a Confirm 
 
 ## Final statement
 
-Written at the end of the PR.
+FAST-15-build-2 is done in PR 284, which merges on green of job tests.
+- F22 is fixed in code. One read of S1, then one Confirm whose check runs in the worker on the gathered file of that read, so Revit loads none of it and stays free. The Scope list names the areas of the confirmed column with no second read. On S1 outside Revit the Confirm check takes 38 s, where run 2 needed a second full read of 736 s. Its four outputs equal those of that second read.
+- A second press with nothing changed reuses the read, starts no worker and says "Reuses the read of <time>, nothing changed". A read that is not whole names the first file not read. Both are proven by tests. The time in Revit is not seen.
+- The read on S1 went from 782 s to 513 s, and the gathered file from 969 MB to 57 MB. The four outputs are equal before and after, and S1 was unchanged after every run. The 8 minute target is missed by 33 s. Of those 513 s, 360 s are the pair trace of the road drawing, which runs to the cap of the profile and gives no outline either way. That choice is in steps/seam.md for Lead and Bader.
+- One review pass. Its one REAL point, the final statement, is fixed here. Its latent points are listed in the PR and not fixed, per the order of 6 Nov.
+- Not seen in Revit. revit-test checks it in item 5 of the order, label revit-later.
