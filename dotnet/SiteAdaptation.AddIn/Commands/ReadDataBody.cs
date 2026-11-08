@@ -69,8 +69,8 @@ namespace SiteAdaptation.AddIn
                 worker, document, session.Settings, owner);
             // R635. A rev6 project with no past file: the read runs the data check itself, so no scan and no second check, then the window
             // Confirm what was found over the read folder. Decided at the press, by the work folder of the run. R791: a Confirm that saved runs the
-            // check again on the read just made
-            return Choose(session.Settings, past, ConfirmProfile.ConfirmProfileStep.Wrap(read, session.Settings, owner, run.ApplyConfirmed));
+            // check again on the read just made, R820 in the worker outside Revit
+            return Choose(session.Settings, past, ConfirmProfile.ConfirmProfileStep.WrapLater(read, session.Settings, owner, run.ApplyConfirmedLater));
         }
 
         // R635. The body of the press: raw for a folder with no past file, else the old read with the scan before it

@@ -2,6 +2,34 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## build-2, FAST-15, one read and a Confirm outside Revit, 8 Nov 2026
+
+Goal:
+- Bader's order of 06:45, item 3: one read, not two, Confirm through the worker so Revit loads no gathered file, a reused read in seconds, the read measured by part on S1.
+
+Done:
+- R820: after a Confirm that saved, the worker command dataCheck runs on the gathered file of the read just made, role gathered, in place of the folder walk. Revit stays free, the press ends on the worker's answer, read.json comes last. A reused read made with the same confirmed file starts no worker.
+- R821: the reuse line says "Reuses the read of <time>, nothing changed". A read not whole still names its first file not read.
+- R822: one part line per file and stage in the worker log. The memory release runs after a drawing, workbook or PDF only, not after a peek of a surface file.
+- R823: each drawing keeps only the outline candidates of its top score, taken out right after its read.
+- docs/rules/31-fast15-r820-up.md, tests in dotnet/SiteAdaptation.Tests/FAST15/.
+
+Checked:
+- S1 read in place, 37 files hashed before and after each worker run, 0 changed. The read: 782 s before, 513 s after. The gathered file: 969 MB before, 57 MB after. The four outputs equal those of the read before.
+- The Confirm check in the worker on S1: 300 s on the whole file, 38 s on the cut file, and its four outputs equal those of run 2's second full read of 736 s, by a Python script that shares no code with the tool.
+- 9 new tests and the R790, R791, R639, R635, R636, R771 tests pass on net48.
+
+Remains:
+- The read is 513 s, over the 480 s target by 33 s. 360 s of it is the pair trace of the road drawing spent to scan.pairTimeCapS of the profile, and that drawing proposes no outline either way (R429). A line for Lead in steps/seam.md.
+
+Known bugs:
+- Not seen in Revit. Step 2 still shows not done after a Confirm until the next press, which reuses the read in seconds.
+
+Next:
+- revit-test item 5: one Choose project folder, one Confirm, then Scope lists the neighbourhoods with no second read.
+
+Your turn:
+- The cap of the pair trace, in steps/seam.md.
 ## build-3, FAST-13 villa files in Revit 2024, 8 Nov 2026
 
 Goal:
@@ -262,30 +290,7 @@ Your turn:
 
 ## FAST-9-build-2, Confirm applies to the read just made, F22, 7 Nov 2026
 
-Goal:
-- F22, Bader's order of 21:06: on a new project, one read and one Confirm, then the Scope list names the neighbourhoods of the confirmed area column and the plots carry the confirmed villa types, with no second read of about 12 minutes.
-
-Done:
-- R790: the worker command dataCheck keeps what it gathered, data_check_input.json in the read folder, and the check is DataCheckApply.Check, shared by the worker and the Confirm.
-- R791: after a Confirm that saved, ReadDataRun.ApplyConfirmed runs the check again in Revit on that file with the confirmed profile, writes data_check.json, project_profile.json, plots.json and read_plotTable.json, moves the read folder to the folder its inputs now name and writes read.json last. The next press of 2 reuses it.
-- R792: a read with no gathered file, or any fault, keeps the step done and says the values count from the next read.
-
-Checked:
-- R791_ConfirmAppliesTests on the made up project of samples/new-project with its sheet areas parted unlike the distance groups: one worker run, the Scope list N1 and N2, plot 103 VA1 from the column, a second press reused. The same press with no apply keeps the old areas and VB2, so the test sees F22. The second check by another way: a full worker read with the same confirmed profile gives the same four files but for the run stamp.
-- R790_GatheredFilesTests on net48 and net8.0. Not seen in Revit.
-- S1, read only, outside the repo under the work root: the first read gave 1 Scope entry, the check on its gathered files with the proposed profile gave 11, as a full read with that profile, and data_check.json, plots.json, project_profile.json and read_plotTable.json equal that read but for the run stamp, 2615 plots. Each read took 922 to 964 s.
-
-Remains:
-- Step 2 shows not done after the Confirm until one more press, which reads nothing. A read that is not whole is still read again on every press by R639. Both in steps/seam.md for Lead.
-
-Known bugs:
-- On S1 the gathered file is 667 MiB, 1.7 GB before it was written with no indent, and the check on it took 106 to 126 s at 11 GB peak working set, outside Revit on net8.0. In Revit that is about 2 minutes busy after Confirm, in Revit on net48 UNKNOWN. In steps/seam.md for Lead.
-
-Next:
-- revit-test checks the Confirm on the new project of 8 Nov after FAST-8 and short check 2.
-
-Your turn:
-- Answer the seam line on reads that are not whole, before the demo.
+Detail in PR 272 and docs/rules/25-fast9-r790-up.md. R790 to R792: the read keeps its gathered files and a Confirm applies the confirmed columns to that read. FAST-15 moved the check of the Confirm to the worker, R820.
 ## The intake of a new project folder, 7 Nov 2026
 
 Goal:

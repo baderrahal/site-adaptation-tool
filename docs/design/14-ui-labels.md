@@ -227,8 +227,8 @@ An entry marked CHOSEN in 5a was worded in 5a PR 2 or PR 5, where docs/design/ g
 - `<n> read the files, but the scope stops it: <n>. This read is not whole, the next press reads again: <n>.` CHOSEN in R639, as the line above on a read that is not whole
 - `Reads the folder and the settings file. Files in the folder: <n>, <n> MiB, those of a kind it knows are read.` CHOSEN in R639, the counts of the confirm of a raw read, which counts the files the folder holds and never says that many are read
 - `Reads the folder, the settings file and the values a person confirmed. Files in the folder: <n>, <n> MiB, those of a kind it knows are read.` CHOSEN in R639, as the line above
-- `Reuses the read of run <n>, the folder and the settings file are unchanged.` CHOSEN in R639, as the line above on a second run
-- `Reuses the read of run <n>, the folder, the settings file and the values a person confirmed are unchanged.` CHOSEN in R639, as the line above
+- `Reuses the read of <n>, nothing changed: the folder and the settings file are unchanged.` CHOSEN in R639, as the line above on a second run, the time of the read by R821
+- `Reuses the read of <n>, nothing changed: the folder, the settings file and the values a person confirmed are unchanged.` CHOSEN in R639, as the line above, the time of the read by R821
 - `This project names no files for the old read, so the folder is read instead.` CHOSEN in R639, the word of R635 on a project with no list of past files
 - `The old read lacks a file: <n>, and <n> more. The folder is read instead.` CHOSEN in R639, the word of R635 on a project that lacks a past file
 - `The old read lacks: <n>` CHOSEN in R639, each such file in the dry run list

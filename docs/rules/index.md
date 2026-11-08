@@ -657,3 +657,10 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 
 - R815 Walls overlap, no box.
 - R816 Card 3 counts scope issues.
+
+## 31-fast15-r820-up.md
+
+- R820 Confirm checks in the worker.
+- R821 The reuse line names the time.
+- R822 The read by part.
+- R823 Gathered file keeps top outline candidates.

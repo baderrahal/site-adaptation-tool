@@ -1,32 +1,42 @@
-# build-2, FAST-9-build-2
+# build-2, FAST-15-build-2
 
-F22, Bader's order of 7 Nov 21:06: a new project needs one read and one Confirm before Scope names its neighbourhoods. Updated 7 Nov 2026. FAST-6-build-2 notes are in the history of this file.
+F22 and the read time, Bader's order of 8 Nov 06:45 item 3: one read, a Confirm outside Revit, a reused read in seconds. Updated 8 Nov 2026. FAST-9 notes are in the history of this file.
 
 ## This PR
 
-- R790. dotnet/CadReader/DataCheckCommand.cs writes data_check_input.json, what it gathered before the check, into the read folder. dotnet/SiteAdaptation.Common/DataCheck/DataCheckApply.cs holds Write, Load and Check, the check the worker and the Confirm share. The file is written with no indent, 667 MiB on S1.
-- R791. dotnet/SiteAdaptation.Common/ReadData/ReadDataRun.cs, ApplyConfirmed: after a Confirm that saved, runs the check again in Revit on that file with confirmed_profile.json, writes the four outputs, moves the read folder to the folder of its new inputs and writes read.json last.
-- R792. A read with no gathered file, a gathered file over 1,000,000,000 bytes, a settings file changed since the read, or any fault, keeps the step done and the line says the values count from the next read.
-- Review 1: the apply takes the inputs read.json holds from the start of the read, with only the profile new, so a folder changed during the read is read again.
-- docs/rules/25-fast9-r790-up.md, tests in dotnet/SiteAdaptation.Tests/FAST9.
+- R820. dotnet/SiteAdaptation.Common/ReadData/ReadDataRun.cs, ApplyConfirmedLater: after a Confirm that saved, the read folder moves to the folder of its new inputs with no read.json, the worker command dataCheck runs with the role gathered on data_check_input.json, config and the confirmed profile, and read.json comes last on its answer. dotnet/CadReader/DataCheckCommand.cs takes the role gathered in place of the folder walk.
+- R821. RunTexts.ReadFolderReuses with ReadDataRun.RunTime, the words in docs/design/14-ui-labels.md: "Reuses the read of 04:13 on 8 Nov, nothing changed: ...".
+- R822. DataCheckCommand: a part line per file and stage in the worker log, the memory release only after a drawing, workbook or PDF.
+- R823. dotnet/SiteAdaptation.Common/DataCheck/DataCheckApply.cs, TopCandidates and Prune: each drawing keeps the outline candidates of its top score, at once after its read.
+- docs/rules/31-fast15-r820-up.md, tests in dotnet/SiteAdaptation.Tests/FAST15/R820_ConfirmInWorkerTests.cs.
 
 ## What calls what
 
-- DataCheckCommand.Run calls DataCheckApply.Write, through WorkerContext.WriteJson, and DataCheckApply.Check.
-- ReadDataBody.For builds the ReadDataRun and hands run.ApplyConfirmed to ConfirmProfileStep.Wrap. ConfirmProfileStep.Ended calls it through Applied after session.Result is Saved.
-- ReadDataRun.ApplyConfirmed calls DataCheckApply.Load, DataCheckApply.Check, DataCheckLogic.PlotTable, FolderOf and Recorded, and builds its ReadPlan from read.json of the read.
-- ReviewLoad.LatestNbhCodes, the Scope list, reads read_plotTable.json of the moved folder, which holds the confirmed areas.
+- ReadDataBody.For hands run.ApplyConfirmedLater to ConfirmProfileStep.WrapLater. ConfirmProfileStep.Ended calls it through Applied after a Confirm that saved, and calls done on the worker's answer.
+- ApplyConfirmedLater calls HoldsProfile, Prepare, Moved, WorkerRequest.Write, IWorkerStart.Start, then AppliedLater and Recorded. ApplyConfirmed of R791 calls Prepare and Moved too.
+- DataCheckCommand.Run calls DataCheckApply.Load for the role gathered, else Gather, where ReadDrawing calls DataCheckApply.Prune, which calls TopCandidates and CandidateKey. WriteOutputs and PartLine for both.
+- ReadDataRun.Preview calls RunTime and RunTexts.ReadFolderReuses.
+
+## S1, outside Revit, read in place
+
+| Part | Before | After |
+|---|---|---|
+| One read, the worker | 782 s | 513 s |
+| Road drawing, its pairs to the cap | 410 s | 424 s |
+| 19 surface files, a peek each | 237 s | 0.3 s |
+| Gathered file | 969 MB | 57 MB |
+| Confirm, the check again | 300 s in the worker on the whole file, before that not possible in Revit | 38 s in the worker |
 
 ## Next
 
-- revit-test: on the new project of 8 Nov, after FAST-8 and short check 2, one Choose project folder, one Confirm, then Scope lists the neighbourhoods of the area column.
-- Lead: the three seam lines of 7 Nov build-2. Step 2 shows not done until one more press that reads nothing. A read that is not whole is read again on every press by R639. On S1 the apply keeps Revit busy about 2 minutes.
+- revit-test, item 5: one Choose project folder, one Confirm, then Scope lists the neighbourhoods with no second read, and a second press reuses it.
+- Lead: the cap of the pair trace and the two other lines of 8 Nov 08:35 in steps/seam.md.
 
 ## Final statement
 
-FAST-9-build-2 is done in PR 272, merged on green once Lead's order on PR 273 lets it.
-- F22 is fixed in code. One read, one Confirm, and the Scope list names the neighbourhoods of the confirmed area column, the plots carry the confirmed villa types, and no drawing is read twice. The next press of 2 reuses the read.
-- Proven on S1, read only, outside the repo. The first read gives 1 Scope entry. The check on its gathered files with the proposed profile gives 11, the same as a full read with that profile, and the four output files are equal. Proven in the repo on the made up project by R791_ConfirmAppliesTests, which also shows F22 when the apply is off.
-- The cost on S1: a gathered file of 667 MiB, and about 2 minutes and 11 GB for the check, measured outside Revit. Inside Revit it runs in the API context, so Revit is busy that long after Confirm. Lead holds the choice in steps/seam.md.
-- Review 1 found no real fault in the logic. Its latent points are fixed with tests: the read keeps the inputs it recorded at its start, a changed settings file refuses the apply, the fallback reason. A gathered file over 1,000,000,000 bytes refuses the apply, and no test covers that case.
-- Not seen in Revit. revit-test checks it on the new project of 8 Nov, after FAST-8 and short check 2.
+FAST-15-build-2 is done in PR 284, which merges on green of job tests.
+- F22 is fixed in code. One read of S1, then one Confirm whose check runs in the worker on the gathered file of that read, so Revit loads none of it and stays free. The Scope list names the areas of the confirmed column with no second read. On S1 outside Revit the Confirm check takes 38 s, where run 2 needed a second full read of 736 s. Its four outputs equal those of that second read.
+- A second press with nothing changed reuses the read, starts no worker and says "Reuses the read of <time>, nothing changed". A read that is not whole names the first file not read. Both are proven by tests. The time in Revit is not seen.
+- The read on S1 went from 782 s to 513 s, and the gathered file from 969 MB to 57 MB. The four outputs are equal before and after, and S1 was unchanged after every run. The 8 minute target is missed by 33 s. Of those 513 s, 360 s are the pair trace of the road drawing, which runs to the cap of the profile and gives no outline either way. That choice is in steps/seam.md for Lead and Bader.
+- One review pass. Its one REAL point, the final statement, is fixed here. Its latent points are listed in the PR and not fixed, per the order of 6 Nov.
+- Not seen in Revit. revit-test checks it in item 5 of the order, label revit-later.
