@@ -1,30 +1,28 @@
 # revit-test heads-up, FAST-3-revit-test
 
-8 Nov 2026, 06:45. Run 2 done and closed. Revit closed by the driver at 06:27:10 after the save of 06:25:53, no Revit process, no lock. Task status stays open for the 010 run, which Lead starts.
+8 Nov 2026, 14:30. The demo run on demo-S1 is done, Revit closed at 14:23:08, lock free. Task status stays open for the Phase 3 run.
 
 ## Final statement
 
-- Run 2 on NBH 01A (tuned) from a fresh empty copy, FAST3-run2-01A.rvt, on the add-in of main 1b4f287 Lead installed at 03:18. Part 1 03:32 to 05:23 (cards 1 and 2), part 2 05:30 to 06:27 (card 3). Always Load pressed at 03:34:12 and 05:31:24.
-- Result: PASS of Lead's pass. The 3 cards ran to their end. Card 1 55 minutes, card 2 45 minutes, card 3 21 minutes (Report 23 s).
-- The road pick of F8: Set up offers Pick surfaces on the row Road levels once its folder is chosen. Picked Compiled West_MM and Part 4 Top Surfaces, in that order, at 03:47. The plan took road levels from both, 378 and 154 front corners.
-- Presses of 2 Read data: 734 s, 736 s, then a reuse of about 4 s inside the Build. F22 stands, Confirm says the confirmed values count from the next read.
-- Counts placed: floors and ramps 526 on 263 plots (263 generic, 263 ramp, 0 yard), road toposolid 1 (Compiled West_MM), levels 526 at the plan, 0 moved, villa links 263 of 13 prototype files, walls 582. Plots built: 263 of 278, 15 left out (no floor level 11, no outline or front 2, no unit 2), named on card 2. Read three ways, the step boxes, the step files, and the counts of the model by 9 Report. They agree.
-- FAST-11: F29 and F30 fixed and seen in Revit, card 3 says 13 plots have no road level, the count of the plan of 01A.
-- FAST-12: no stop on the upgrade box in step 7 (R805), the box of step 7 says "link types new to the model 13, of an older Revit 13" (R807). Step 7 shows 14 issues, the words not seen (R806 UNKNOWN). Step 7 took 28 minutes.
-- New faults in steps/seam.md: F32 the walls overlap box of Revit stops step 8, pressed OK at 05:19:28 from outside the driver by BM_CLICK. F33 the reopen of the built copy stops 13 times on the upgrade box, closed by the driver each time, 27.5 minutes. F34 card 3 says 2619 issues, the count of the whole read, card 2 says 881.
-- Part 1 ran to the 110 minute limit of the driver: step 7 was 28 minutes, the copy was saved at 05:20:50 before the driver closed Revit at 05:23:23.
-- S1 unchanged: 37 files, SHA-256, size and write time equal before and after.
-- Card shots in git, cut to the pane: steps/ui-shots/pane-stage-1.png to pane-stage-3.png, the coordinate line of card 2 blanked. The full shots stay in fast3-revit-test/shots/run2 and run2p2 of the work root.
+- The demo model of part 2 is built and saved: FAST3-demo-01A.rvt of fast3-revit-test, 15,785,984 bytes, write time 14:04:26. It is not to be changed.
+- On main 57cde47, Lead's install of 10:09. Always Load pressed once, 10:21:54, the box did not come on the later starts.
+- Pass of the order. The Build 4.2 min, target 20, met. The reopen 70 s with no box, target 5 min, met. Card 1 by Lead's count, Set up site to Scope set, 16.9 min, target 15, NOT met. The tool's own work in it is about 8 min, the rest is the driver's pace and about 4 min of its mistakes in the Scope row.
+- Times: the one read 454 s, Confirm 27 s in the worker with no second read, the reuse Apply 1.1 s and its box 3.1 s. Steps 2 to 8: 4.1, 7.7, 20.5, 62.3, 8.8, 95.9, 6.5 s.
+- Placed: 526 floors and ramps on 263 plots (263 generic, 263 ramp), 1 road toposolid, 526 levels at the plan, 263 villa links of 13 files all from Prototypes_2024, 582 walls. Plots built 263 of 278, 15 left out, the same as run 2.
+- FAST-13, FAST-14 and FAST-15 seen in Revit, detail in the record. F32, F33 and F34 fixed.
+- The run needed two presses the order does not list: F35, Advanced row Prototypes Browse, or the Build stops at Check, and F36, one more Choose project folder and Apply after Confirm, or 3 Review data stays grey. The demo needs both.
+- New faults in steps/seam.md: F35 to F39. F35's cause is UNKNOWN.
+- demo-S1 unchanged: 50 files, 0 changed, 0 gone, 0 new.
+- Not seen in Revit: the sentence of R811 on the box of step 7 (F38), File, Exit (the driver's window close closed Revit, as a person was on the laptop), the counts of the model by 9 Report (not run, it would change the demo model).
+- Slips of this session, each in the record: one shot at 11:27:30 caught a person's Explorer window and was deleted, two clicks landed harmlessly on a folder box, and one hour, 12:08 to 13:08, was lost to a wait of mine that needed a box that never came.
 
 ## What changed, where
 
-- steps/revit-results/FAST-3-revit-test.md: the run 2 section, parts 1 and 2, step 7 for FAST-12, times, result.
-- steps/seam.md: the run 2 line, F32 to F34, the R806 line for Lead.
-- steps/demo-live.md: parts 2 to 4 from the rehearsal, the road pick, the folder flow, the walls box, no reopen in the room.
-- steps/ui-shots/pane-stage-1.png to pane-stage-3.png, steps/log.md.
+- steps/revit-results/FAST-3-revit-test.md: the demo run section.
+- steps/seam.md: the demo run line, F35 to F39.
+- steps/log.md: the top entry.
 - No code. drive3.ps1 unchanged, the helpers of this run in the session scratch folder.
 
 ## Next
 
-- Lead starts the 010 run of 12:00 after Bader names the new project, or at 10:00.
-- The copy FAST3-run2-01A.rvt holds the built 01A. Opening it again costs 27 minutes of upgrade boxes, F33.
+- The Phase 3 run, Lead's order of 14:24, under the driver rule of 5 minutes idle.

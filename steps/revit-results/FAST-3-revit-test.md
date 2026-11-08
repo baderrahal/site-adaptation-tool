@@ -321,3 +321,98 @@ S1 after the two parts: 37 files, SHA-256, size and write time equal to s1_befor
 Second check by another method: each count is read three ways, from the dry run box of each step by UI Automation (place 526 listed 263, at the plan 526, place 263, place 582), from floors_01A.json, run_6_*.json, place_01A.json and walls_01A.json on disk after the run, and from the model itself, revit_counts_9_*.json that 9 Report wrote from the elements of the reopened model: 263 plots with 1 link each, 263 generic and 263 ramp floors, 0 yard, 263 plots with their levels, 582 walls on 263 plots. The three agree, read by a script that shares no code with the add-in. Not seen in Revit: the words of the issues of step 7 (R806).
 
 The card shots in git: steps/ui-shots/pane-stage-1.png (card 1 at its end, 04:34), pane-stage-2.png (card 2 at its end, 05:20, the coordinate line of the Build blanked), pane-stage-3.png (the 3 cards at the end, 06:24), cut to the pane from the screenshot of the work root. No other window shot was added, the windows of the add-in were shot in run 1.
+
+# Demo run, Sun 8 Nov 2026, NBH 01A from card 1
+
+Lead's order of 8 Nov, Bader's order of 06:45 item 5: the timed run on the demo folder, on the add-in of main 57cde47 Lead installed at 10:09 with FAST-13, FAST-14 and FAST-15. NBH 01A is marked tuned (steps/truth-audit.md section 6). The saved copy is the demo model of part 2 of the demo. Lead's two messages of the run are written below where they changed the order. Shots under the work root only, folders `fast3-revit-test/shots/demo`, `demo3` and `demo4`, none in git.
+
+## Result of the demo run
+
+| Target of the order | Limit | Measured | Result |
+|---|---|---|---|
+| Card 1, Set up site to Scope set, Lead's count, the wait for a person left out | under 15 min | 16.9 min | NOT met |
+| The Build, press to Build done | under 20 min | 4.2 min | met |
+| The reopen, with no box | under 5 min | 70 s, no box | met |
+
+The Build needed one press the order does not list, the Prototypes Browse of F35, and card 1 needed one more, F36. Both are Lead's order of the run. So the model is built, but not by the list as written.
+
+## Counts placed
+
+| Part | Placed | How |
+|---|---|---|
+| Floors and ramps | 526 on 263 plots, 263 generic and 263 ramp, 0 yard | floors_01A.json counts place 526, move 0, keep 0, skip 0, the split from plan_01A.json |
+| Road toposolid | 1, made, surface Compiled West_MM of the pick, 433 warnings taken | toposolid_01A.json |
+| Levels | 526 at the plan, 0 moved | run_6_20261108-135552-273.json, committed true |
+| Villa links | 263, of 13 prototype files, all 13 in Prototypes_2024 | place_01A.json counts place 263, swap 0, move 0, keep 0, skip 0, its file list names Prototypes_2024 13 times and the folder Prototypes 0 times |
+| Walls | 582 | walls_01A.json counts place 582, change 0, keep 0, skip 0 |
+
+Plots built of 278: 263. plan_01A.json of the check: plots 278, written 263, not written 15. Card 2: "15 of 278 plots are not built: no floor level 11, no outline or front 2, no unit 2. Built with a value missing: 201 plots". Card 3: "13 plots have no road level". The same counts as run 2.
+
+Second check by another method: the dry run box of each step, read by UI Automation before its Apply (place 526 listed 263, at the plan 526, place 263, place 582), against the step files on disk after the run. They agree. Not done: the counts of the model by 9 Report, as this copy is the demo model and must not change.
+
+## Times
+
+| What | From | To | Time |
+|---|---|---|---|
+| Card 1 by Lead's count, first pass to the first Scope set | 11:37:49 | 11:57:06 | 16.9 min, the 19.3 less 2.4 waiting for a person |
+| of which the Set up site Apply | 11:38:55 | 11:38:59 | 4 s |
+| of which the one read, press 2 Read data | 11:41:01 | 11:48:35 | 454 s |
+| of which the Confirm, in the worker, no second read | 11:51:41 | 11:52:09 | 27 s |
+| The extra press of F36, Apply on the reuse | 13:15:55 | 13:15:56 | 1.1 s |
+| The press of F36 with its windows closed and the scope set again after the restart | 13:14:56 | 13:17:42 | 2.8 min, not in the 16.9 |
+| 3 Review data to the end of its window | 13:18:29 | 13:18:55 | 26 s |
+| The reuse box, folder picked to box | 13:19:56 | 13:19:59 | 3.1 s, Cancel at 13:19:59 |
+| The Build, press to Build done | 13:53:54 | 13:58:05 | 251 s, 4.2 min |
+| Step 2 Read data, the reuse | | | 4.1 s |
+| Step 3 Review data | | | 7.7 s |
+| Step 4 Check | | | 20.5 s |
+| Step 5 Floors and ramps | | | 62.3 s |
+| Step 6 Levels | | | 8.8 s |
+| Step 7 Place villas | 13:56:12 | 13:57:45 | 95.9 s |
+| Step 8 Walls | 13:57:47 | 13:58:05 | 6.5 s |
+| The close of the model | 14:00:48 | 14:01:02 | 14 s, no box |
+| The reopen, Enter on the path to the model open | 14:01:51 | 14:03:01 | 70 s, no box |
+
+The times of steps 2 to 8 are totalSeconds of run_timing of each step, the From and To are the timeline of the driver. The 16.9 min holds the driver's own pace and about 4 min of its mistakes in the Scope row, the tool's own work in it is about 8 min. Before the 11:37:49 of Lead's count: Settings, Project setup, the road pick and Save setup, 11:29:52 to 11:36:46.
+
+## What was seen, in order
+
+1. demo-S1: 50 files, 2,458,507,216 bytes, name, size, write time and SHA-256 taken at 10:17 into demoS1_before.json of fast3-revit-test.
+2. Model: `FAST3-demo-01A.rvt` in fast3-revit-test of the work root, copied at 10:17:55 from `FAST3-empty-model-pristine.rvt`, SHA-256 equal.
+3. 10:21:54 the box "Security - Unsigned Add-In" of Site Adaptation came on the first start and the driver pressed Always Load (always_load.txt of shots/demo). It did not come on the 3 later starts of the run.
+4. Card 1, 11:29 to 11:37. Project setup started on New project rules Rev 06. Road levels Browse demo-S1\landxml, Pick surfaces offered 6, picked Compiled West_MM then Part 4 Top Surfaces, the row "Road surfaces in order (2): Compiled West_MM, Part 4 Top Surfaces", Save setup.
+5. Choose project folder demo-S1, Set up site with each Current ticked, Apply 11:38:55, the window gone at 11:38:59.
+6. Choose project folder again, the box "Reads the folder and the settings file. Files in the folder: 50, 2344.6 MiB". Apply 11:41:01, ONE read, What the tool read at 11:48:35: 7 files, 2,618 of 2,964 villa plots, Prototypes "26 prototype files found", as demo-S1 holds both folders. Close.
+7. Confirm what was found, 11:51: Typology_Rev8.1 of JN Sales Data_Base_Rev09, 2570 plots (proposed), Neighbourhood_ID of PH_1-DLUS, 2955 plots (proposed). Confirm 11:51:41, the box at 11:52:09: "Your values are saved. Press Read data again to read with them. They are applied to this read already, so that press reads no drawing again." No second read. F36 for what the card did next.
+8. Scope Neighbourhood 01A and Villa mode Links, 11:57:06. 3 Review data stayed grey, F36. The copy saved at 12:06:13. The driver's limit of 110 minutes ended this part.
+9. After the restart the card kept the read and the confirmed values, Scope went back to the whole project, F39. Choose project folder, the box at 13:15:21: "Reuses the read of 11:40 on 8 Nov, nothing changed", Apply, What the tool read in 1.1 s, Close, Cancel on Confirm. Scope 01A and Links again, 13:17:42, 3 Review data on.
+10. 3 Review data 13:18:38: "3 Review data, NBH 01A, 278 plots", "0 of 278 checked by the team", Save review, "Review saved.", Close. Choose project folder once more, the box "Reuses the read of 13:15 on 8 Nov, nothing changed: ...", Cancel.
+11. The row Prototypes. On card 1: "26 prototype files found, 26 with a villa type code in the file name. The files are opened at Read data." In Advanced: "Not chosen", F35. After the Browse of F35, 13:51: "Revit 2024 copies in Prototypes_2024 for 13 of 13 files, step 7 links them. By code:", then each of the 13 files with 2024. R812 seen in Revit, with one press more than the order lists.
+12. The Build of 13:22:45 stopped at Check, "Build stopped at Check: 4 Check needs Prototypes, the folder is not chosen", F35. Before that stop it ran a read for the build in the worker, 13:23:09 to 13:23:33 (answer_2_20261108-132309-769-build.json), which the later Build reused. Card 2 says of it "nothing was read again", whether it opened the drawings is UNKNOWN, so "one read" holds as far as those words. The Build of 13:53:54, Preview first ticked, went to its end: Preview, the reuse of step 2, Review, Check, each box of steps 5 to 8 with Apply pressed by the driver. Window seen: only those of the tool. No Revit box in step 7 or step 8.
+13. Step 7's box said "Links: place 263, swap 0, move 0, already placed 0, skip 0, listed 0, link types to load 0, to reload 0, over the footprint limit 0, link types new to the model 13, of an older Revit 0". The sentence of the order, "links the Revit 2024 copies in Prototypes_2024 for 13 of 13 prototype files (R811)", was not on the box, F38.
+14. Card 2 "Done, 867 issues", card 3 "867 issues from the last build." Saved 13:59:24, 15,761,408 bytes.
+15. The model closed through its last view tab, no box. Ctrl+O, the path, Enter 14:01:51, open at 14:03:01, no box and no upgrade box. After the reopen the steps stayed Done, the Prototypes row still named the 2024 copies. Saved 14:04:26, 15,785,984 bytes.
+
+## FAST-13, FAST-14 and FAST-15, label revit-later
+
+- FAST-13 seen in Revit. R810 and R811: step 7 linked the 13 copies of Prototypes_2024, the box said "of an older Revit 0" where run 2 said 13, and 96 s against the 28 min of run 2. R812: the row names the folder and 2024 per code, once the row has its folder (F35). F33 fixed: the reopen took 70 s with no box, against 27.5 min and 13 boxes in run 2. Not seen: the sentence of R811 on the box, F38.
+- FAST-14 seen in Revit. F32 fixed: step 8 placed 582 walls in 6.5 s with no overlap box. F34 fixed: card 2 and card 3 both say 867 issues.
+- FAST-15 seen in Revit. One read of 454 s, a Confirm of 27 s in the worker with no second read of the drawings, and a reuse box in about 3 s. Not as ordered: F36, and F35 follows the one-read flow, cause UNKNOWN.
+
+## The run itself, what the driver did outside the order
+
+- A person used this PC during the run, so the driver waited: from 10:30 to 11:27 before the first press, at 11:49 for 2.4 min inside card 1, at 13:46 for 4 min, and at 14:05 before File, Exit. Each wait left out of the times above.
+- 11:27:30, one shot broke the driver rule. The driver's front test passed with Revit minimized, and the shot held a person's Explorer window and a file copy. It was deleted at once and held no input. From then the driver also required the centre of the screen to be Revit, in lib.ps1 of the session scratch folder, drive3.ps1 unchanged. Revit was brought to the front with AttachThreadInput and SetForegroundWindow after the idle check, no key or click.
+- 11:34, two clicks of the driver landed on the Select Folder box, at 0,0 and in its file list, with no effect on the folder.
+- 12:08 to 13:08, one hour lost by the session: its wait required a box Always Load that does not come on a later start. Revit stood idle, nothing was pressed.
+- The driver's limit of 110 minutes split the run into parts: 10:20 to 12:07, 12:08 to 13:09, 13:10 to 13:42, 13:44 to the end. The copy was saved before each planned end.
+- 13:42, the answer loop of the session waited on a window that never came after F35, so the session stopped its own driver by its process id, and Revit, process 179360, by its id after it did not close in 40 s. Nothing unsaved was lost, the steps of that part live in the project folder.
+- Not done: 9 Report and Update from report, this copy is the demo model.
+
+## The end of the run
+
+- The order asked for File, Exit. Revit was closed instead by the window close of the driver, no click or key, at 14:23:08, process gone, lock free at 14:24. A person was working on the laptop from 14:05, the guard had stopped the File press at 14:05:47, and the copy was already saved at 14:04:26. The file after the close: 15,785,984 bytes, write time 14:04:26, unchanged. So File, Exit was not seen.
+- demo-S1 after the run: 50 files, name, size, write time and SHA-256 equal to demoS1_before.json, 0 changed, 0 gone, 0 new (demoS1_after.json, compared by a script at 14:24).
+- `FAST3-demo-01A.rvt` of fast3-revit-test is the demo model of part 2. It is not to be changed. Opening it sets Scope back to the whole project (F39), no Build is needed in the room.
+- Faults F35 to F39 are in steps/seam.md, Lead told at 13:40 for F35 to F37, F38 and F39 at the PR.
+- Not seen in Revit: the sentence of R811 on the box of step 7 (F38), File, Exit, the counts of the model by 9 Report.
