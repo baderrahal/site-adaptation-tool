@@ -2,6 +2,30 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Lead, demo-live part 1 from the phase 3 run, 8 Nov 2026
+
+Goal:
+- Part 1 of steps/demo-live.md true to the phase 3 run of PR 289.
+
+Done:
+- Part 1 rewritten: card 1 only, the times of the run, the Baseplan pick and typed position of F40 to F42, Scope and Build not promised.
+- Before the room: close the road drawings in Civil 3D, F36.
+
+Checked:
+- Times against the message of revit-test at 16:07 and the phase 3 record of PR 289.
+
+Remains:
+- Nothing for the demo. F35 to F42 after it.
+
+Known bugs:
+- F35 to F42 of steps/seam.md.
+
+Next:
+- The reply to Bader.
+
+Your turn:
+- Save the phase 3 model by hand as FAST3-phase3-demo if still open, or run part 1 live.
+
 ## revit-test, FAST-3 Phase 3 run, card 1 only, 8 Nov 2026
 
 Goal:
