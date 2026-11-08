@@ -65,6 +65,15 @@ At 23:10:
 - 22:20 main a99ea93 built and installed, F25, F26, F27 in. revit-test started on short check 2 of 01A.
 - Lanes: build-2 on FAST-9, build-3 on FAST-10. build-1 stopped, FAST-8 open for Q600 and the Revit check.
 
+## Sun 8 Nov 12:25, Bader's order of 11:20, the new project Phase 3
+
+- Merged since 07:00: PR 279 run 2 record, 280 tasks, 281 FAST-14, 282 and 285 shared label records, 283 FAST-13, 284 FAST-15. Main 57cde47 installed at 10:09.
+- Item 5 of 06:45, the timed run of 01A on demo-S1, runs since 10:20 in Revit. It waited for the PC to go idle until about 11:30. The one read took 454 s, the Confirm 27 s in the worker with no second read.
+- The new project is C:\02-Site Adaptation\Phase 3\Input, 26 files. Files were still being copied into it until 11:48, the intake waited for 8 quiet minutes. Intake 8.7 min outside Revit, folder unchanged by SHA-256.
+- Found: plot outlines strong, 3198 plots, 12 areas by Neighbourhood_ID, 10 villa files of new codes, the villa type column holds the old codes, a code map of 10 pairs types 1878 plots. No Land XML, so road levels missing and no plot gets a floor level.
+- steps/bader-form-8nov.md filled, 5 items. Item 3 blocks a build. Every A at 12:30 with no answer.
+- Next: when item 5 frees Revit, revit-test runs Phase 3 by the form, card 1 one read, Confirm with the code map, Scope 3C, Build to where it stops, cap 90 min, by 15:30. demo-live.md by 16:00.
+
 ## Sun 8 Nov 07:00, Bader's order of 06:45, fast enough for the room, demo at 17:00
 
 Run 2 of 01A, started 03:20 on install 1b4f287: 263 of 278 plots, 526 floors and ramps, 1 road toposolid, 526 levels, 263 villa links, 582 walls, Report in 23 s. About 1 h 40 min, card 1 55 min, card 2 45 min. PR 279.
