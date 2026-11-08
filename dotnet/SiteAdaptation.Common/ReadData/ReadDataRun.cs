@@ -94,12 +94,30 @@ namespace SiteAdaptation.Common.ReadData
             if (reusable != null)
             {
                 string runId = (string)reusable["runId"];
-                return new RunSummary(files.FromDataCheck ? RunTexts.ReadFolderReuses(runId, HasConfirmed(files)) + Instead(files) : RunTexts.ReadReuses(files.Inputs.Count, runId), Lines(files, files.Inputs.Select(input => input.Role)));
+                return new RunSummary(files.FromDataCheck ? ReusesLine(runId, HasConfirmed(files)) + Instead(files) : RunTexts.ReadReuses(files.Inputs.Count, runId), Lines(files, files.Inputs.Select(input => input.Role)));
             }
             JObject last = Last(context.WorkFolder);
             var held = new HashSet<string>(last == null ? Enumerable.Empty<string>() : ((JArray)last["inputs"]).Select(input => (string)input["role"] + "|" + (string)input["sha256"]), StringComparer.Ordinal);
             IEnumerable<string> unchanged = files.Inputs.Where(input => held.Contains(input.Role + "|" + input.Sha256)).Select(input => input.Role);
             return new RunSummary(files.FromDataCheck ? FolderCounts(files, folder) : RunTexts.ReadCounts(files.Inputs.Count, files.Inputs.Sum(input => input.Bytes) / 1048576.0), Lines(files, unchanged));
+        }
+
+        // R821. The dry run of a raw read reused, by the time of the read, so a person knows which read comes back in seconds. In place of
+        // RunTexts.ReadFolderReuses, whose words docs/design/14-ui-labels.md lists
+        public static string ReusesLine(string runId, bool confirmed)
+        {
+            return "Reuses the read of " + RunTime(runId) + ", nothing changed: " + (confirmed ? "the folder, the settings file and the values a person confirmed are unchanged." : "the folder and the settings file are unchanged.");
+        }
+
+        // R821. A run id is the button, then the time as yyyyMMdd-HHmmss and more. Its time as "08:13 on 8 Nov", the run id itself when it holds none
+        public static string RunTime(string runId)
+        {
+            string[] parts = (runId ?? "").Split('_');
+            if (parts.Length > 1 && parts[1].Length >= 15 && DateTime.TryParseExact(parts[1].Substring(0, 15), "yyyyMMdd-HHmmss", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out DateTime at))
+            {
+                return at.ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture) + " on " + at.ToString("d MMM", System.Globalization.CultureInfo.InvariantCulture);
+            }
+            return "run " + runId;
         }
 
         // R639. The confirm line of a raw read: what it reads, why it takes the folder, and why it reads again when the same files were read before

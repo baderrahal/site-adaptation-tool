@@ -380,9 +380,9 @@ namespace SiteAdaptation.Tests
         [Fact]
         public void R821_the_reuse_line_names_the_time_of_the_read_by_its_run_id()
         {
-            Assert.Equal("Reuses the read of 04:13 on 8 Nov, nothing changed: the folder and the settings file are unchanged.", RunTexts.ReadFolderReuses("2_20261108-041329-266", false));
-            Assert.Equal("09:05 on 1 Dec", RunTexts.RunTime("2_20261201-090501-001-build"));
-            Assert.Equal("run odd", RunTexts.RunTime("odd"));
+            Assert.Equal("Reuses the read of 04:13 on 8 Nov, nothing changed: the folder and the settings file are unchanged.", ReadDataRun.ReusesLine("2_20261108-041329-266", false));
+            Assert.Equal("09:05 on 1 Dec", ReadDataRun.RunTime("2_20261201-090501-001-build"));
+            Assert.Equal("run odd", ReadDataRun.RunTime("odd"));
         }
 
         // R822. The line of one part of the read in the worker log, names and seconds only

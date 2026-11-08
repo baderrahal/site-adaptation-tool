@@ -5,7 +5,7 @@ F22 and the read time, Bader's order of 8 Nov 06:45 item 3: one read, a Confirm 
 ## This PR
 
 - R820. dotnet/SiteAdaptation.Common/ReadData/ReadDataRun.cs, ApplyConfirmedLater: after a Confirm that saved, the read folder moves to the folder of its new inputs with no read.json, the worker command dataCheck runs with the role gathered on data_check_input.json, config and the confirmed profile, and read.json comes last on its answer. dotnet/CadReader/DataCheckCommand.cs takes the role gathered in place of the folder walk.
-- R821. dotnet/SiteAdaptation.Common/Flow/RunTexts.cs, ReadFolderReuses and RunTime: "Reuses the read of 04:13 on 8 Nov, nothing changed: ...".
+- R821. ReadDataRun.ReusesLine and RunTime: "Reuses the read of 04:13 on 8 Nov, nothing changed: ...".
 - R822. DataCheckCommand: a part line per file and stage in the worker log, the memory release only after a drawing, workbook or PDF.
 - R823. dotnet/SiteAdaptation.Common/DataCheck/DataCheckApply.cs, TopCandidates and Prune: each drawing keeps the outline candidates of its top score, at once after its read.
 - docs/rules/31-fast15-r820-up.md, tests in dotnet/SiteAdaptation.Tests/FAST15/R820_ConfirmInWorkerTests.cs.
@@ -15,7 +15,7 @@ F22 and the read time, Bader's order of 8 Nov 06:45 item 3: one read, a Confirm 
 - ReadDataBody.For hands run.ApplyConfirmedLater to ConfirmProfileStep.WrapLater. ConfirmProfileStep.Ended calls it through Applied after a Confirm that saved, and calls done on the worker's answer.
 - ApplyConfirmedLater calls HoldsProfile, Prepare, Moved, WorkerRequest.Write, IWorkerStart.Start, then AppliedLater and Recorded. ApplyConfirmed of R791 calls Prepare and Moved too.
 - DataCheckCommand.Run calls DataCheckApply.Load for the role gathered, else Gather, where ReadDrawing calls DataCheckApply.Prune, which calls TopCandidates and CandidateKey. WriteOutputs and PartLine for both.
-- ReadDataRun.Preview calls RunTexts.ReadFolderReuses, which calls RunTime.
+- ReadDataRun.Preview calls ReusesLine, which calls RunTime.
 
 ## S1, outside Revit, read in place
 

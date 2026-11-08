@@ -103,21 +103,9 @@ namespace SiteAdaptation.Common.Flow
                 + " Files in the folder: " + files + ", " + System.Math.Round(mib, 1).ToString(System.Globalization.CultureInfo.InvariantCulture) + " MiB, those of a kind it knows are read.";
         }
 
-        // R821. The time of the read by its run id, so a person knows which read is reused in seconds
         public static string ReadFolderReuses(string runId, bool confirmed)
         {
-            return "Reuses the read of " + RunTime(runId) + ", nothing changed: " + (confirmed ? "the folder, the settings file and the values a person confirmed are unchanged." : "the folder and the settings file are unchanged.");
-        }
-
-        // R821. A run id is the button, then the time as yyyyMMdd-HHmmss and more. Its time as "08:13 on 8 Nov", the run id itself when it holds none
-        public static string RunTime(string runId)
-        {
-            string[] parts = (runId ?? "").Split('_');
-            if (parts.Length > 1 && parts[1].Length >= 15 && System.DateTime.TryParseExact(parts[1].Substring(0, 15), "yyyyMMdd-HHmmss", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out System.DateTime at))
-            {
-                return at.ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture) + " on " + at.ToString("d MMM", System.Globalization.CultureInfo.InvariantCulture);
-            }
-            return "run " + runId;
+            return "Reuses the read of run " + runId + (confirmed ? ", the folder, the settings file and the values a person confirmed are unchanged." : ", the folder and the settings file are unchanged.");
         }
 
         // R639. R635 sends a project that lacks a file of the old read to the folder on purpose. The plot table then differs, so a person is told which file did it
