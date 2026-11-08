@@ -31,6 +31,33 @@ Next:
 
 Your turn:
 - The folder path of the new project by 10:00.
+## revit-test, FAST-3 run 2, the full run on 01A, 8 Nov 2026
+
+Goal:
+- Lead's order of 03:20: the full run of FAST-3 on 01A, marked tuned, from an empty model through the 3 cards, on main 1b4f287 with the fixes of F22, F8, F29, F30 and F31, and the rehearsal of part 2 of steps/demo-live.md.
+
+Done:
+- Card 1: the road pick of F8 in the New project window (Compiled West_MM, Part 4 Top Surfaces), Set up site from the folder, two reads of 734 and 736 s, Confirm, scope 01A, Review saved. 55 minutes.
+- Card 2: the Build ran its 8 steps to the end in 45 minutes. 526 floors and ramps on 263 plots, 1 road toposolid, 526 levels at the plan, 263 villa links of 13 files, 582 walls. 263 of 278 plots of 01A built.
+- Card 3: Report in 23 s, Update from report on the same Excel "No changes found".
+- Record: the run 2 section of steps/revit-results/FAST-3-revit-test.md. Card shots steps/ui-shots/pane-stage-1.png to 3, the coordinate line blanked. The demo script updated from the rehearsal.
+
+Checked:
+- Each count three ways: the dry run box of the step by UI Automation, the step file on disk, and revit_counts of 9 Report read from the model. They agree, read by a script with no add-in code.
+- S1: 37 files equal before and after, SHA-256, size and write time.
+
+Remains:
+- The 010 run of 12:00, started by Lead. Task status stays open.
+- R806: the words of the 14 issues of step 7 are not seen, the pane shows only the count.
+
+Known bugs:
+- F32, the walls overlap box of Revit stops step 8. F33, the reopen of the built model stops 13 times on the upgrade box, 27 minutes. F34, card 3 counts the issues of the whole read. In steps/seam.md.
+
+Next:
+- Lead picks the fixes of F32 to F34 before the demo at 17:00.
+
+Your turn:
+- None.
 
 ## FAST-11-build-1, the plan builds the plots of a new project, 8 Nov 2026
 
