@@ -25,6 +25,30 @@ Next:
 Your turn:
 - The open Revit holds FAST3-phase3 not saved, Save As by hand if it is wanted.
 
+## Lead, demo-live for 17:00, 8 Nov 2026
+
+Goal:
+- Item 6 of Bader's order of 11:20: steps/demo-live.md for the room, with measured times.
+
+Done:
+- demo-live.md rewritten: part 1 Phase 3, part 2 01A as rehearsed, no live Build, what does not work yet with F35 to F42.
+- plan-fast-3days.md, the 15:10 section.
+
+Checked:
+- Times and counts against steps/revit-results/FAST-3-revit-test.md, Result of the demo run, Counts placed, Times. Phase 3 counts against steps/bader-form-8nov.md.
+
+Remains:
+- The Revit times of phase 3, its run ends 15:45, a next PR adds them.
+
+Known bugs:
+- F35 to F42 of steps/seam.md, worked around in the runs. Report not run on the demo copy, said in the script.
+
+Next:
+- The phase 3 times, then the reply to Bader.
+
+Your turn:
+- Open the demo model before the room, as the script says.
+
 ## revit-test, FAST-3 demo run on demo-S1, 8 Nov 2026
 
 Goal:

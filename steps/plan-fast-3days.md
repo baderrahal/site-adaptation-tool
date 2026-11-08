@@ -65,6 +65,13 @@ At 23:10:
 - 22:20 main a99ea93 built and installed, F25, F26, F27 in. revit-test started on short check 2 of 01A.
 - Lanes: build-2 on FAST-9, build-3 on FAST-10. build-1 stopped, FAST-8 open for Q600 and the Revit check.
 
+## Sun 8 Nov 15:10, the 01A rehearsal and the phase 3 run
+
+- PR 286 the form merged 12:30, every A taken. PR 287 the demo run record merged 15:02, main 5e57f4f.
+- 01A on demo-S1: card 1 16.9 min, not met, the read 454 s, Confirm 27 s, reuse 3.1 s, Build 4.2 min, step 7 96 s, reopen 70 s with no box. 263 of 278 plots built. Faults F35 to F39 in steps/seam.md, worked around in the run, no fix before the demo.
+- Phase 3: Set up site took no baseplan (F40), found no outline in it (F41), refused 0, 0, 0 (F42). Lead typed 500000, 0, 0, not the site. Applied 15:04, the read runs, hard stop 15:45.
+- steps/demo-live.md rewritten for 17:00 with the measured times. Next: the phase 3 times into it after its PR, then the reply to Bader.
+
 ## Sun 8 Nov 12:25, Bader's order of 11:20, the new project Phase 3
 
 - Merged since 07:00: PR 279 run 2 record, 280 tasks, 281 FAST-14, 282 and 285 shared label records, 283 FAST-13, 284 FAST-15. Main 57cde47 installed at 10:09.
