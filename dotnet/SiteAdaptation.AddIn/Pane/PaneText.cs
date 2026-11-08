@@ -72,6 +72,10 @@ namespace SiteAdaptation.AddIn.Pane
         public const string SurfacesNoSetup = "Pick a saved project under Start from first.";
         // R496. The year read and the Revit the add-in runs on fill the two slots
         public const string OldPrototypes = "These files are Revit <n> and upgrade on each use, use the <n> copies. A remake from them takes 20 to 41 minutes.";
+        // R812. The running Revit, the folder of copies, the copies found, the files, then the year per code
+        public const string PrototypeCopies = "Revit <n> copies in <n> for <n> of <n> files, step 7 links them. By code: <n>.";
+        public const string CodeNoCopy = "<n> <n> no copy";
+        public const string YearNotRead = "year not read";
 
         public const string NotChosen = "Not chosen";
         public const string Size = "<n> MiB";

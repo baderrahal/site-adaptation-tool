@@ -33,13 +33,26 @@ namespace SiteAdaptation.AddIn.PlaceVillas
             return Upgrades(run.Body(), document);
         }
 
+        // R811, F33. Step 7 links the copy of the running Revit of each prototype file found beside the plan's folder, so Revit upgrades
+        // nothing on load and the saved model reopens with no upgrade box. A version that is no number finds no copy. The host gives
+        // Load through it
+        public static VillaInputs WithCopies(VillaInputs inputs, string current)
+        {
+            if (inputs?.Plan?.PrototypeFolder != null && int.TryParse(current, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out int running))
+            {
+                inputs.Copies = PrototypeCopies.Find(inputs.Plan.PrototypeFolder, running);
+            }
+            return inputs;
+        }
+
         // R806, R807, F31. The box of step 7 counts the link types new to the model and names each file of an older Revit, and the
         // issues of the step list each file Revit upgraded as it loaded and the upgrade boxes the tool closed
         private static ButtonBody Upgrades(ButtonBody body, UpgradingVillaDocument document)
         {
             Func<RunContext, RunSummary> preview = body.Preview;
             Func<RunContext, IReadOnlyList<string>> apply = body.Apply;
-            body.Preview = context => LinkUpgrade.Add(preview(context), LinkUpgrade.NewFiles(Load(context), document.LinkTypes()), UpgradingVillaDocument.VersionOf, document.Current);
+            body.Preview = context => LinkUpgrade.WithCopies(LinkUpgrade.Add(preview(context), LinkUpgrade.NewFiles(Load(context), document.LinkTypes()), UpgradingVillaDocument.VersionOf, document.Current),
+                Load(context)?.Copies);
             body.Apply = context => apply(context).Concat(document.TakeIssues()).ToList();
             return body;
         }

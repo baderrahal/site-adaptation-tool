@@ -60,6 +60,12 @@ namespace SiteAdaptation.AddIn
             // R496. The row Prototypes warns for files older than this Revit, the look runs off the UI thread. A version text that is no
             // number gives no warning
             host.model.FormatLook = host.probe.LookFormat;
+            // R812. The copies of this Revit beside the folder, looked for on a thread of their own as the format is
+            host.model.CopiesLook = (folder, year, done) => System.Threading.Tasks.Task.Factory.StartNew(() =>
+            {
+                Common.PlaceVillas.PrototypeCopies copies = Common.PlaceVillas.PrototypeCopies.Find(folder, year);
+                host.probe.Post(() => done(copies));
+            }, System.Threading.CancellationToken.None, System.Threading.Tasks.TaskCreationOptions.LongRunning, System.Threading.Tasks.TaskScheduler.Default);
             host.model.RunningRevit = int.TryParse(application.ControlledApplication.VersionNumber, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out int running) ? running : (int?)null;
             host.runEvent = ExternalEvent.Create(runner);
             host.answerEvent = ExternalEvent.Create(new AnswerHandler(host));
@@ -88,7 +94,9 @@ namespace SiteAdaptation.AddIn
             PlaceVillas.PlaceVillasBody.Load = context =>
             {
                 PaneSettings settings = host.model.Settings ?? new PaneSettings();
-                return Common.PlaceVillas.VillaLoad.Load(context, settings.Scope, settings.ConfigFile, settings.VillaMode, settings.LevelProfile);
+                // R811. The copies of this Revit beside the plan's prototype folder, so step 7 links no file Revit must upgrade
+                return PlaceVillas.PlaceVillasBody.WithCopies(Common.PlaceVillas.VillaLoad.Load(context, settings.Scope, settings.ConfigFile, settings.VillaMode, settings.LevelProfile),
+                    application.ControlledApplication.VersionNumber);
             };
             host.model.RunRequested += number =>
             {

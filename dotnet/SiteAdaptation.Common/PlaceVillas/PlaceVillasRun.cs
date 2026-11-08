@@ -393,7 +393,7 @@ namespace SiteAdaptation.Common.PlaceVillas
                     decision.Listed.Add("plot " + number + ": skipped, prototypeFile must be a file name in the prototype folder, not a path");
                     continue;
                 }
-                string file = Path.Combine(plan.PrototypeFolder, name);
+                string file = inputs.PrototypeFile(name);
                 if (!document.FileExists(file))
                 {
                     throw new InvalidDataException("the prototype file " + file + " of plot " + number + " is not in the folder, nothing was placed (03b 7 Stop)");

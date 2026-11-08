@@ -57,7 +57,7 @@ namespace SiteAdaptation.AddIn.PlaceVillas
                 {
                     continue;
                 }
-                string file = Path.Combine(plan.PrototypeFolder, name);
+                string file = inputs.PrototypeFile(name);
                 if (!loaded.Contains(Full(file)) && !files.Any(other => string.Equals(Full(other), Full(file), StringComparison.OrdinalIgnoreCase)))
                 {
                     files.Add(file);
@@ -90,6 +90,19 @@ namespace SiteAdaptation.AddIn.PlaceVillas
             }
             string counts = summary.Counts + ", link types new to the model " + read.Count + ", of an older Revit " + older;
             return new RunSummary(counts, lines.Concat(summary.PerPlot).ToList());
+        }
+
+        // R811. The box of step 7 says how many files it links from the copies beside the prototype folder, first, and names each file
+        // with no copy. No line when no folder of copies was found
+        public static RunSummary WithCopies(RunSummary summary, PrototypeCopies copies)
+        {
+            if (summary == null || copies?.CopiesFolder == null)
+            {
+                return summary;
+            }
+            var lines = new List<string> { "links the Revit " + copies.Running + " copies in " + Path.GetFileName(copies.CopiesFolder) + " for " + copies.CopyCount + " of " + copies.Codes.Count + " prototype files (R811)" };
+            lines.AddRange(copies.Codes.Where(code => code.Copy == null).Select(code => "prototype " + code.Name + " has no Revit " + copies.Running + " copy, it is linked from " + Path.GetFileName(copies.Folder) + " as before"));
+            return new RunSummary(summary.Counts, lines.Concat(summary.PerPlot).ToList());
         }
 
         // R806. The issues of the step: each file Revit upgraded as it loaded, and how many times the tool closed the upgrade box

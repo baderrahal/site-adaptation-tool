@@ -128,6 +128,9 @@ The five panels and their buttons of 7.1 of docs/design/12-ui-spec.md, Bader's c
 - `Input folder` CHOSEN, R635, the name of the folder among the inputs of a read of a folder with no past file, in the line that says an input changed since the dry run
 - `Confirmed values` CHOSEN, R636, the name of the confirmed file among the same inputs
 - `These files are Revit <n> and upgrade on each use, use the <n> copies. A remake from them takes 20 to 41 minutes.` CHOSEN, by Bader, the line under the row Prototypes when the oldest file is older than the running Revit, the first <n> is the format read, the second the running Revit (R496)
+- `Revit <n> copies in <n> for <n> of <n> files, step 7 links them. By code: <n>.` CHOSEN, by Code, FAST-13, the line under the row Prototypes when a folder beside it holds copies of the running Revit, the running Revit, the folder of copies, the copies found, the files, then the code and year of each file (R812)
+- `<n> <n> no copy` CHOSEN, by Code, FAST-13, a code with no copy in that line, the code then its year (R812)
+- `year not read` CHOSEN, by Code, FAST-13, the year of a code whose file did not read (R812)
 - `Project data` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
 - `Build site` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
 - `Review and deliver` CHOSEN, the pane in 3 stages of FAST-1-build-1, Bader's order of 6 Nov 2026 (R680, R681)
