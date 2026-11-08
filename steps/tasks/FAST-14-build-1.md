@@ -2,7 +2,7 @@
 id: FAST-14-build-1
 lane: build-1
 stage: 2
-status: open
+status: done
 allowed:
   - dotnet/SiteAdaptation.AddIn/BoundaryWalls/WallsBody.cs
   - dotnet/SiteAdaptation.AddIn/Revit/RevitWallDocument.cs
@@ -18,6 +18,7 @@ allowed:
   - docs/rules/index.md
   - steps/log.md
   - steps/seam.md
+  - docs/design/14-ui-labels.md
 ---
 
 # Scope
@@ -29,7 +30,7 @@ Bader's order of Sun 8 Nov 06:45, item 2. The demo is today at 17:00 Riyadh. Rec
 
 Not here: the files of FAST-13-build-3 and FAST-15-build-2. A change there is a line in steps/seam.md.
 
-Shared records, the one exception to no path in two lists, as every PR carries its own log entry and the folder rules check reads this list: docs/rules/index.md by python/rules_index.py, steps/log.md with this PR's entry on top, steps/seam.md for lines to Lead. Merge main before every push.
+Shared records, the one exception to no path in two lists, as every PR carries its own log entry and the folder rules check reads this list: docs/rules/index.md by python/rules_index.py, docs/design/14-ui-labels.md for new pane words UiLabelTests reads (Lead, 8 Nov 07:45, asked by build-3), steps/log.md with this PR's entry on top, steps/seam.md for lines to Lead. Merge main before every push.
 
 Revit: you may open Revit for your own check, Bader's order of 7 Nov 10:05, on a copy of the run 2 model of 01A under python/window_lock.py, never the real one, and only while revit-test runs nothing. Keep the driver rule of .claude/rules/revit.md.
 

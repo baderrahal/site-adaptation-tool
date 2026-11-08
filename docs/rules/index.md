@@ -652,3 +652,8 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R810 Copies found beside the folder.
 - R811 Step 7 links the copies.
 - R812 Row names the copies.
+
+## 30-fast14-r815-up.md
+
+- R815 Walls overlap, no box.
+- R816 Card 3 counts scope issues.
