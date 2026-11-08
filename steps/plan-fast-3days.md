@@ -65,6 +65,21 @@ At 23:10:
 - 22:20 main a99ea93 built and installed, F25, F26, F27 in. revit-test started on short check 2 of 01A.
 - Lanes: build-2 on FAST-9, build-3 on FAST-10. build-1 stopped, FAST-8 open for Q600 and the Revit check.
 
+## Sun 8 Nov 07:00, Bader's order of 06:45, fast enough for the room, demo at 17:00
+
+Run 2 of 01A, started 03:20 on install 1b4f287: 263 of 278 plots, 526 floors and ramps, 1 road toposolid, 526 levels, 263 villa links, 582 walls, Report in 23 s. About 1 h 40 min, card 1 55 min, card 2 45 min. PR 279.
+
+- 0. PR 279, the run 2 record, merges first.
+- 1. FAST-13-build-3: villa files in Revit 2024, step 7 under 5 min, the reopen with no upgrade box. R810 to R814.
+- 2. FAST-14-build-1: F32 step 8 takes its wall overlap warnings with no box, F34 card 3 counts the issues of the scope. R815 to R819.
+- 3. FAST-15-build-2: F22 Confirm through the worker outside Revit, a reused read in seconds from card 1, the read by part and the cuts for one neighbourhood. Read under 8 min, reuse under 10 s. R820 to R829.
+- Files split by exact path, no code path in two lists. The shared records index.md, log.md and seam.md are in each list, every PR carries its own log entry.
+- The demo folder is <work root>\demo-S1, made by Lead at 07:00: a copy of S1 with the 13 Revit 2024 villa copies in Prototypes_2024. S1 unchanged, 37 files by SHA-256.
+- 5. When 1 to 3 are on main: install, revit-test runs 01A on demo-S1 from an empty model copy, card 1 with one read, Build to its end, save as the demo model, reopen once. Pass: card 1 under 15 min, Build under 20 min, reopen under 5 min with no box.
+- 6. The read of demo-S1 and of the new project folder runs once before 16:00.
+- 7. New project: the intake first, then the form, FORM READY. A build of it only if Bader answers before 14:00.
+- 8. steps/demo-live.md rewritten by 13:00 with measured times.
+
 ## Sun 8 Nov 00:45, short check 2 result, FAST-11 and FAST-12
 
 - Short check 2 of 01A, PR 275: the Build of card 2 ran its 8 steps to the end with no stop at Check. 124 floors and ramps on 62 plots, the road toposolid, 124 levels, 62 villa links, 178 walls. But 62 of 278 plots, F29. New faults F30 and F31.
