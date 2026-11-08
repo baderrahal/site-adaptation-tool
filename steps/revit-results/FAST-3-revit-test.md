@@ -416,3 +416,61 @@ The times of steps 2 to 8 are totalSeconds of run_timing of each step, the From 
 - `FAST3-demo-01A.rvt` of fast3-revit-test is the demo model of part 2. It is not to be changed. Opening it sets Scope back to the whole project (F39), no Build is needed in the room.
 - Faults F35 to F39 are in steps/seam.md, Lead told at 13:40 for F35 to F37, F38 and F39 at the PR.
 - Not seen in Revit: the sentence of R811 on the box of step 7 (F38), File, Exit, the counts of the model by 9 Report.
+
+# Phase 3 run, Sun 8 Nov 2026, card 1 only, stopped at 15:38
+
+Lead's order of 14:24, Bader's order of 11:20 item 4: the new project for part 1 of the demo, the real folder Phase 3\Input read in place, on the add-in of main 57cde47. Model `FAST3-phase3.rvt` in fast3-revit-test, a fresh copy of the empty model, 14:29. Shots under fast3-revit-test/shots/phase3 of the work root, none in git.
+
+## Result of the Phase 3 run
+
+NOT finished. Card 1 got through Set up site, the read, Confirm and the two presses of F35 and F36. Not done: Scope 3C, 3 Review data, the preview, the Build, the save as FAST3-phase3-demo. No element was placed, no plot built, as the Build was not pressed. So the counts per element and the plots built that the order asks are none, and the reason is the run stopped, not the road levels.
+
+Why it stopped: at 15:19:57 the guard stopped the driver, a person was on the PC, and no 5 idle minutes came by 15:37. At 15:38 Revit, process 89596, was in front with FAST3-demo-01A open in a 3D view and input 2 s before, so a person was working in the Revit the driver had started. The limit of the driver at 15:46 would have closed and force stopped it, so the session stopped its own driver by its id at 15:38:52 and sent no input. Revit stayed open for that person. Its FAST3-phase3 is not saved: the file on disk is the empty copy, write time 03:18:06, Set up site lives only in that open Revit.
+
+## Times
+
+| What | From | To | Time |
+|---|---|---|---|
+| Set up site, Apply | 15:04:00 | 15:04:08 | 7.8 s |
+| The first read | 15:06:36 | 15:09:44 | 189 s |
+| Confirm, in the worker, no second read | 15:11:21 | 15:11:38 | 17 s |
+| Press of F36, the box after the folder pick | 15:14:36 | 15:14:40 | 4 s |
+| Press of F36, a full read, the first was not whole | 15:14:41 | 15:18:17 | 216 s |
+
+Steps 2 to 8 of the Build: not run. The 2 reads are of the tool. Between them stand the waits on Lead's answers to F40, F41 and F42, 14:45 to 15:03.
+
+## What was seen, in order
+
+1. Project setup: Start from "New project rules, Rev 06", Road levels left empty, "No road surface is picked.", Save setup 14:39.
+2. Choose project folder with Phase 3\Input, 14:41. Set up site: "No site drawing in the setup. CAD needs the Baseplan from the pane, or take a position file or typed values below.", "0 of 0" check points pass, Apply off. F40. Choose project folder again opened the same window.
+3. The press more than the list, Lead's answer: Advanced, row Baseplan, Browse, the one drawing of 03-Civil3D Lead named from the gathered file of the intake. Only picked. Set up site again: "the baseplan read holds no plot outline, so button 1 has no site position from CAD (R455)", Use CAD no change. F41.
+4. Typed position, by Lead. Typed origin 0, 0, 0, refused, F42. Then Easting 500000, Northing 0, Angle 0, source tag user pick, typed by Lead, not the site, the false easting of the zone, on the copy only. "Position from: Typed in this window", "No plots read. The typed values have no check, read them again." Apply stayed off until Dry run. Apply 15:04:00, the window gone at 15:04:08.
+5. Choose project folder, the box "Reads the folder and the settings file. Files in the folder: 28, 1781.9 MiB". Apply, ONE read, What the tool read at 15:09:44, 24 files read, 392 of 3,198 villa plots of all plots:
+
+| Need | Mark | Line |
+|---|---|---|
+| Plot outlines | Strong | 3445 outlines found on a layer, 3198 with a number of their own, 247 without one, 2 numbers outside every outline |
+| Plot numbers | Weak | Plot numbers are text on layer C-PROP-TEXT, 3200 outlines hold one and 3198 numbers are distinct, 1 number appears more than once |
+| Group levels | Weak | Areas found by distance only: 1, pick the area column. Smaller groups: 92, no word for the levels, name each one once |
+| Villa types | Missing | no drawing text, block or sheet column gives a prototype code in the plots. No code table found |
+| Villa blocks | Weak | Villa blocks are inserts on layer MP_BLDG_C10, 392 of 3198 plots hold one |
+| Road edges | Weak | Road edges are lines on one layer, within 20 m of 281 of 3198 plots, not scored |
+| Road levels | Missing | No Land XML surface file is in the folder, so there are no road levels |
+| Coordinates | Weak | The drawing is in meters and names no coordinate system, the plots sit in drawing space |
+| Prototypes | Strong | 10 prototype files found, 10 with a villa type code in the file name |
+| Rule sets | Missing | No rule set file is in the folder, the rules are chosen in the add-in |
+| Shared parameters | Strong | 10 parameters for the villa links in shared_parameters.xlsx, each with a GUID |
+
+Files not read: one road drawing of 05-Roads, "IOException: The process cannot access the file ... because it is being used by another process", it was open in a Civil 3D on this PC. The tool wrote it down and went on.
+
+6. Confirm what was found, by steps/bader-form-8nov.md: Landuse_Level_4 of SEDRA_3-SDF, 1904 plots (proposed), Neighbourhood_ID of SEDRA_3-DLUS, 3198 plots (proposed), the Code map box empty before and the 10 lines of the order typed. Confirm 15:11:21, the box at 15:11:38: "This read is not whole, the next press reads again: files or folders not read 1".
+7. F35: Advanced, row Prototypes, "Not chosen", Browse, 04-Revit, 15:13. The row: "These files are Revit 2021 and upgrade on each use, use the 2024 copies. A remake from them takes 20 to 41 minutes."
+8. F36: Choose project folder once more. Not the reuse of the order: the box "Reads again, the last read of these files is not whole" (the file open in Civil 3D). Apply 15:14:41, a full read of 216 s. What the tool read: 2,370 of 3,198 villa plots, Group levels "Areas from the confirmed column: 12. Smaller groups: 92, words Neighbourhood_ID", Villa types "read from the confirmed column for 1904 of 3198 plots, the drawing gives another code on 27, 26 with no prototype file. Code map confirmed." Close, Cancel on Confirm so the confirmed values stay. 3 Review data on at 15:18:44.
+
+## Files
+
+Phase 3\Input before (14:30) and after (15:39), name, size, write time and SHA-256: 26 files, 0 changed, 0 gone. The after list holds 4 more: the .dwl and .dwl2 lock files of two drawings, 54 and 204 bytes. The before list skipped hidden files, so these 4 are not proved new. They are Civil 3D's own files of the open drawings, the tool writes none. The read box counted 28 files at 15:06, 2 more than the 26, which 2 is UNKNOWN.
+
+Faults F40, F41 and F42 in steps/seam.md, owner build-2, each told to Lead the same hour. The road level stop of the order was not reached.
+
+Not seen in Revit: Scope 3C, 3 Review data, the preview, every step of the Build, the save of FAST3-phase3-demo.

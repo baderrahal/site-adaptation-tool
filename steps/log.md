@@ -2,6 +2,29 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## revit-test, FAST-3 Phase 3 run, card 1 only, 8 Nov 2026
+
+Goal:
+- Lead's order of 14:24: the new project of part 1 of the demo, to the Build's stop.
+
+Done:
+- Set up site on a position typed by Lead, not the site, one read 189 s, Confirm 17 s, the presses of F35 and F36.
+
+Checked:
+- Phase 3\Input, 26 files hashed before and after, 0 changed. Nothing written there by the tool.
+
+Remains:
+- Scope 3C, 3 Review data, the preview, the Build and the save were not run. A person was on the PC from 15:19.
+
+Known bugs:
+- F40 to F42 in steps/seam.md. Step 1 cannot pass on a folder with no plot layer the settings know.
+
+Next:
+- Lead decides how the demo shows this project.
+
+Your turn:
+- The open Revit holds FAST3-phase3 not saved, Save As by hand if it is wanted.
+
 ## revit-test, FAST-3 demo run on demo-S1, 8 Nov 2026
 
 Goal:
