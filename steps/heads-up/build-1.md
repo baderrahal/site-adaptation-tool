@@ -4,7 +4,13 @@
 
 ## Final statement
 
-Written at the end of the task, see below.
+F32 and F34 are fixed in code and proven outside Revit. Not seen in Revit, label revit-later, PR 281.
+- F32, R815: step 8 gives its transaction Revit's own words of the walls overlap, so the collector takes that warning with no box and lists each wall in the issues of the step, one line per warning. Other words still show.
+- The words equal the summary of BuiltInFailures.OverlapFailures.WallsOverlap in RevitAPI.xml of Revit 2024 and the box of run 2, by a Python check with no add-in code.
+- F34, R816: once steps 4 to 8 ran, card 3 says the issue count of card 2, the scope. On the counts of run 2 that gives 881, not 2619.
+- The wait of step 8: before 7.4 minutes on the box in run 2, after UNKNOWN until revit-test runs item 5.
+- That GetDescriptionText gives the whole three sentences is UNKNOWN until Revit. The floors words of R782 worked the same way in run 2.
+- One review pass, PASS, no REAL fault. build-1 did not open Revit and wrote no revit-wanted-build-1.txt.
 
 ## What changed, where, what calls what
 
