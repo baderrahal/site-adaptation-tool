@@ -57,11 +57,11 @@ namespace SiteAdaptation.AddIn.Pane
             {
                 return readThere ? StageText.SetupNotSaved : StageText.SetUpFirst;
             }
-            List<StepStatus> own = Steps[stage - 1].Where(step => step <= statuses.Count).Select(step => statuses[step - 1]).ToList();
-            if (own.Count > 0 && own.All(step => step.Kind == StepKind.Done || step.Kind == StepKind.Issues))
+            List<StepStatus> own = Own(stage, statuses);
+            int? done = IssuesWhenDone(stage, statuses);
+            if (done != null)
             {
-                int issues = own.Where(step => step.Kind == StepKind.Issues).Sum(step => step.Value);
-                return issues == 0 ? StageText.Done : TextTemplate.Fill(StageText.DoneIssues, issues);
+                return done == 0 ? StageText.Done : TextTemplate.Fill(StageText.DoneIssues, done.Value);
             }
             if (own.Any(step => step.Kind == StepKind.Ready || step.Kind == StepKind.Done || step.Kind == StepKind.Issues))
             {
@@ -70,6 +70,23 @@ namespace SiteAdaptation.AddIn.Pane
             // A step of this stage waits on a step of an earlier stage, which names that stage
             int waited = own.Where(step => step.Kind == StepKind.NeedsStep).Select(step => StageOf(step.Value)).Where(other => other < stage).DefaultIfEmpty(0).Min();
             return waited > 0 ? TextTemplate.Fill(StageText.Waits, waited) : StageText.NotStarted;
+        }
+
+        // R816, F34 of run 2. The issues of the steps of a stage when every one of them ran, the count of "Done, n issues", else null. The
+        // steps run on the scope, so card 3 counts what card 2 counts
+        public static int? IssuesWhenDone(int stage, IReadOnlyList<StepStatus> statuses)
+        {
+            List<StepStatus> own = Own(stage, statuses);
+            if (own.Count == 0 || !own.All(step => step.Kind == StepKind.Done || step.Kind == StepKind.Issues))
+            {
+                return null;
+            }
+            return own.Where(step => step.Kind == StepKind.Issues).Sum(step => step.Value);
+        }
+
+        private static List<StepStatus> Own(int stage, IReadOnlyList<StepStatus> statuses)
+        {
+            return Steps[stage - 1].Where(step => step <= statuses.Count).Select(step => statuses[step - 1]).ToList();
         }
 
         public static int StageOf(int step)
@@ -311,7 +328,22 @@ namespace SiteAdaptation.AddIn.Pane
         private StageResults results = new StageResults();
         public PaneCommand UpdateCommand { get; private set; }
         public Func<StageResults> ResultsNow { get; set; }
-        public string IssuesLine { get { return results.HasPlan || results.Issues.Count > 0 ? TextTemplate.Fill(StageResultsText.IssuesCount, results.Issues.Count) : StageResultsText.NoBuild; } }
+        // R816, F34 of run 2. Once card 2 is done the count is the issues of its steps on the scope, as card 2 says it, never the issues the
+        // build plan lists for the whole read. Before that the plan count stands, as R689 gave it
+        public string IssuesLine
+        {
+            get
+            {
+                int? scope = Model.HasDocument && Model.InUse ? StageStatus.IssuesWhenDone(BuildStage, Model.Statuses) : null;
+                if (scope != null)
+                {
+                    return TextTemplate.Fill(StageResultsText.IssuesCount, scope.Value);
+                }
+                return results.HasPlan || results.Issues.Count > 0 ? TextTemplate.Fill(StageResultsText.IssuesCount, results.Issues.Count) : StageResultsText.NoBuild;
+            }
+        }
+
+        private const int BuildStage = 2;
         public string MixLine { get { return results.HasPlan ? results.Mix.Line : string.Empty; } }
         public bool RuleIssue { get { return results.RuleIssue; } }
         // R691. Q504: the plots the plan lists with no road level
