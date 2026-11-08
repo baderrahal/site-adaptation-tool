@@ -2,7 +2,7 @@
 id: FAST-15-build-2
 lane: build-2
 stage: 1
-status: open
+status: done
 allowed:
   - dotnet/SiteAdaptation.AddIn/ScanResults/ConfirmProfileStep.cs
   - dotnet/SiteAdaptation.AddIn/ScanResults/ConfirmProfileSession.cs

@@ -2,6 +2,34 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## build-2, FAST-15, one read and a Confirm outside Revit, 8 Nov 2026
+
+Goal:
+- Bader's order of 06:45, item 3: one read, not two, Confirm through the worker so Revit loads no gathered file, a reused read in seconds, the read measured by part on S1.
+
+Done:
+- R820: after a Confirm that saved, the worker command dataCheck runs on the gathered file of the read just made, role gathered, in place of the folder walk. Revit stays free, the press ends on the worker's answer, read.json comes last. A reused read made with the same confirmed file starts no worker.
+- R821: the reuse line says "Reuses the read of <time>, nothing changed". A read not whole still names its first file not read.
+- R822: one part line per file and stage in the worker log. The memory release runs after a drawing, workbook or PDF only, not after a peek of a surface file.
+- R823: each drawing keeps only the outline candidates of its top score, taken out right after its read.
+- docs/rules/31-fast15-r820-up.md, tests in dotnet/SiteAdaptation.Tests/FAST15/.
+
+Checked:
+- S1 read in place, 37 files hashed before and after each worker run, 0 changed. The read: 782 s before, 513 s after. The gathered file: 969 MB before, 57 MB after. The four outputs equal those of the read before.
+- The Confirm check in the worker on S1: 300 s on the whole file, 38 s on the cut file, and its four outputs equal those of run 2's second full read of 736 s, by a Python script that shares no code with the tool.
+- 9 new tests and the R790, R791, R639, R635, R636, R771 tests pass on net48.
+
+Remains:
+- The read is 513 s, over the 480 s target by 33 s. 360 s of it is the pair trace of the road drawing spent to scan.pairTimeCapS of the profile, and that drawing proposes no outline either way (R429). A line for Lead in steps/seam.md.
+
+Known bugs:
+- Not seen in Revit. Step 2 still shows not done after a Confirm until the next press, which reuses the read in seconds.
+
+Next:
+- revit-test item 5: one Choose project folder, one Confirm, then Scope lists the neighbourhoods with no second read.
+
+Your turn:
+- The cap of the pair trace, in steps/seam.md.
 ## build-1, FAST-14, the walls box and card 3 of run 2, 8 Nov 2026
 
 Goal:
