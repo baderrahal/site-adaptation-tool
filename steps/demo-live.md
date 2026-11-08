@@ -1,6 +1,6 @@
 # Live demo, Sun 8 Nov 2026, 17:00 Riyadh
 
-The script for the managers, 40 minutes in the room, in plain words. Every time below was measured today on the add-in of main 57cde47, installed at 10:09. Nothing comes from the past job: no past model, no override list, no past Excel. Records: steps/revit-results/FAST-3-revit-test.md, sections "Result of the demo run" for 01A and phase 3 for the new project. The intake of the new project: steps/bader-form-8nov.md. Written by Lead, Bader's order of 11:20, item 6.
+The script for the managers, 40 minutes in the room, in plain words. Every time below was measured today on the add-in of main 57cde47, installed at 10:09, except the times named run 2, which are of 7 Nov. Nothing comes from the past job: no past model, no override list, no past Excel. Records: steps/revit-results/FAST-3-revit-test.md, sections "Result of the demo run" for 01A and phase 3 for the new project. The intake of the new project: steps/bader-form-8nov.md. Written by Lead, Bader's order of 11:20, item 6.
 
 ## What was run before the room
 
@@ -39,7 +39,7 @@ Say: 01A was used for tuning the rules of the past job, so this shows the tool o
 | Card 1, Set up site to Scope set | under 15 min | 16.9 min, not met, the tool's own work about 8 min | 55 min |
 | The read | under 8 min | 454 s, one read | two reads, 734 s and 736 s |
 | Confirm | | 27 s, no second read | could not apply in Revit |
-| A reused read | under 10 s | 3.1 s | none |
+| A reused read | under 10 s | 3.1 s, from card 1 | about 4 s, inside the Build only |
 | The Build, all steps | under 20 min | 4.2 min | card 2 45 min |
 | Step 7 Place villas | under 5 min | 96 s | 28 min |
 | Step 8 Walls | | 6.5 s, no box | 7.4 min on a box |
@@ -59,8 +59,8 @@ Say these in plain words, they are true today.
 - Extra presses after the one read. After Confirm, Review data stays grey until Choose project folder is pressed once more, it then reuses the read in seconds (F36). The Prototypes folder is not filled by the one read, it is picked once in Advanced (F35). The reuse box says one line that is not true of a reuse (F37).
 - On a new project, Set up site does not take the site drawing from the folder, the person picks it once in Advanced, row Baseplan (F40). Then Use CAD finds no plot outline in that drawing, where the read finds 3445, so the phase 3 run typed the site position by hand, Easting 500000, Northing 0, Angle 0, the false easting of the zone and not the site (F41, F42).
 - Scope goes back to the whole project when a model is opened again (F39).
-- Plots not built and why. On 01A, 15 of 278: 11 have no road surface under their front corners, so no floor level, 2 have no outline front, 2 have no villa type.
-- Plots built with a value missing, 201 on 01A, most of them the hand: the files give no villa block for them, so they are built not mirrored and the hand is tagged missing in the plan and the report.
+- Plots not built and why. On 01A, 15 of 278: 11 have no floor level, as they get no road level, 2 have no outline or front, 2 have no villa type.
+- Plots built with a value missing, 201 on 01A, the hand among them: where the files give no villa block, the plot is built not mirrored and the hand is tagged missing in the plan and the report.
 - No yard floors. The rules of Rev 06 hold the back yard floor false, so step 5 places generic and ramp floors only.
 - A new project with no Land XML stops at the preview, as part 1 shows.
 
