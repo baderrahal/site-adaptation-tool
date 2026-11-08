@@ -2,6 +2,35 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Lead, FAST-13 to FAST-15 for a demo fast enough for the room, 8 Nov 2026
+
+Goal:
+- Bader's order of 06:45: cut the read, step 7, step 8 and the reopen of run 2 before the demo of 17:00.
+
+Done:
+- steps/tasks/FAST-13-build-3.md, villa files in Revit 2024, R810 to R814.
+- steps/tasks/FAST-14-build-1.md, F32 and F34, R815 to R819.
+- steps/tasks/FAST-15-build-2.md, one read and a reused read, R820 to R829.
+- steps/plan-fast-3days.md: section Sun 8 Nov 07:00.
+- <work root>\demo-S1, outside git: a copy of S1 with the 13 Revit 2024 villa copies of run 1b in Prototypes_2024.
+
+Checked:
+- A script over the three allowed lists: only docs/rules/index.md, steps/log.md and steps/seam.md are in more than one, every code path exists on main.
+- scripts/checks/folder_rules.py line 40 refuses a file outside the allowed list, so the shared records stay in each list.
+- S1: 37 files, SHA-256, size and write time equal before and after the copy.
+- All 13 villa files of S1 have a 2024 copy of the same name in prototypes_2024.
+
+Remains:
+- Start the three lanes, item 5 when they are on main.
+
+Known bugs:
+- F22, F32, F33, F34 until the three tasks merge.
+
+Next:
+- The intake of the new project when Bader names the folder.
+
+Your turn:
+- The folder path of the new project by 10:00.
 ## revit-test, FAST-3 run 2, the full run on 01A, 8 Nov 2026
 
 Goal:
