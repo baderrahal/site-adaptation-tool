@@ -129,6 +129,17 @@ namespace SiteAdaptation.Common.PlaceVillas
         // R465. The names of the parameter sheet button 7 does not fill, another button's, none's or left out, never written by it
         public ICollection<string> FilledByOthers { get; set; } = new HashSet<string>();
 
+        // R811. The copies of the running Revit beside the prototype folder of the plan, set by the add-in. Null links every file of the
+        // plan's folder as before
+        public PrototypeCopies Copies { get; set; }
+
+        // R811. The prototype file step 7 links for a file name of the plan
+        public string PrototypeFile(string name)
+        {
+            return Copies != null && Plan?.PrototypeFolder != null && string.Equals(Copies.Folder, Path.GetFullPath(Plan.PrototypeFolder).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar), StringComparison.OrdinalIgnoreCase)
+                ? Copies.FileFor(name) : Path.Combine(Plan.PrototypeFolder, name);
+        }
+
         // R377. The inputs from the files of the work folder: the plan held by the SHA-256 the record of the last real run of 4 names,
         // addin.lightMode of the Settings file, the Villa mode of the pane row, the footprint read of button 2 and the record of the last
         // real run of 7, place_<NBH>.json, null before the first

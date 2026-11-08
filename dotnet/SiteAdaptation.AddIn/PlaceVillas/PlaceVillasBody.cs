@@ -27,19 +27,35 @@ namespace SiteAdaptation.AddIn.PlaceVillas
         public static ButtonBody For(UIApplication application)
         {
             var document = new UpgradingVillaDocument(new RevitVillaDocument(application.ActiveUIDocument.Document), application);
-            var run = new PlaceVillasRun(document, Load,
+            Func<RunContext, VillaInputs> load = context => WithCopies(Load(context), document.Current);
+            var run = new PlaceVillasRun(document, load,
                 context => new ShapeCache(context.WorkFolder, new RevitBaseShapeReader(application, context.WorkFolder), Hash), Hash, LinkLoadDialog.Ask,
                 context => new MassFileSet(new RevitMassFileMaker(application, context.WorkFolder), Hash, Root));
-            return Upgrades(run.Body(), document);
+            return Upgrades(run.Body(), document, load);
+        }
+
+        // R811, F33. Step 7 links the copy of the running Revit of each prototype file found beside the plan's folder, so Revit upgrades
+        // nothing on load and the saved model reopens with no upgrade box. A version that is no number finds no copy
+        public static VillaInputs WithCopies(VillaInputs inputs, string current)
+        {
+            if (inputs?.Plan?.PrototypeFolder != null && int.TryParse(current, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out int running))
+            {
+                inputs.Copies = PrototypeCopies.Find(inputs.Plan.PrototypeFolder, running);
+            }
+            return inputs;
         }
 
         // R806, R807, F31. The box of step 7 counts the link types new to the model and names each file of an older Revit, and the
         // issues of the step list each file Revit upgraded as it loaded and the upgrade boxes the tool closed
-        private static ButtonBody Upgrades(ButtonBody body, UpgradingVillaDocument document)
+        private static ButtonBody Upgrades(ButtonBody body, UpgradingVillaDocument document, Func<RunContext, VillaInputs> load)
         {
             Func<RunContext, RunSummary> preview = body.Preview;
             Func<RunContext, IReadOnlyList<string>> apply = body.Apply;
-            body.Preview = context => LinkUpgrade.Add(preview(context), LinkUpgrade.NewFiles(Load(context), document.LinkTypes()), UpgradingVillaDocument.VersionOf, document.Current);
+            body.Preview = context =>
+            {
+                VillaInputs inputs = load(context);
+                return LinkUpgrade.WithCopies(LinkUpgrade.Add(preview(context), LinkUpgrade.NewFiles(inputs, document.LinkTypes()), UpgradingVillaDocument.VersionOf, document.Current), inputs?.Copies);
+            };
             body.Apply = context => apply(context).Concat(document.TakeIssues()).ToList();
             return body;
         }
