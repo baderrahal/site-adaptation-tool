@@ -30,6 +30,29 @@ Next:
 Your turn:
 - The form by 12:30, else every A.
 
+## revit-test, FAST-3 demo run on demo-S1, 8 Nov 2026
+
+Goal:
+- Item 5 of Bader's order of 06:45: the timed run, the demo model of part 2.
+
+Done:
+- 01A from an empty copy on main 57cde47. Build 4.2 min, reopen 70 s with no box, 263 of 278 plots built.
+
+Checked:
+- Counts from the step boxes and the step files agree. demo-S1 hashed, 0 changed.
+
+Remains:
+- Card 1 16.9 min, target 15 not met. File, Exit not seen, the driver closed Revit.
+
+Known bugs:
+- F35 to F39 in steps/seam.md. F35 stops the Build unless the row Prototypes is browsed.
+
+Next:
+- The Phase 3 run, Lead's order of 14:24.
+
+Your turn:
+- The driver presses only at 5 minutes idle, say so in .claude/rules/revit.md if that should change.
+
 ## build-2, FAST-15, one read and a Confirm outside Revit, 8 Nov 2026
 
 Goal:
