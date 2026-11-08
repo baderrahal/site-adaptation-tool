@@ -2,6 +2,33 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## build-3, FAST-13 villa files in Revit 2024, 8 Nov 2026
+
+Goal:
+- Item 1 of Bader's order of 06:45, F33: step 7 and the reopen take the Revit 2024 copy of each villa file, target step 7 under 5 minutes for 263 links against 28 minutes in run 2.
+
+Done:
+- R810 PrototypeCopies.Find, the copies of the running Revit in a folder beside the Prototypes folder whose name holds the year, each read by the R496 look.
+- R811 step 7 links the copy of a code, else the file of the folder as before, and its box says how many it links from the copies.
+- R812 the line under the row Prototypes names the folder of copies and the year per code.
+- docs/rules/29-fast13-r810-up.md, 7 tests in dotnet/SiteAdaptation.Tests/FAST13/PrototypeCopiesTests.cs.
+
+Checked:
+- On demo-S1, read in place, headers only: the built Common finder found Prototypes_2024 and 13 copies of 13 in 0.08 s. python/rvt_info.py, no shared code, read 13 files of 2021 and 13 of 2024 of the same names.
+- A mutation of the step 7 line back to the plan's folder failed the R811 test.
+
+Remains:
+- Step 7 time after and the reopen with no upgrade box, UNKNOWN until revit-test runs item 5. Not seen in Revit.
+
+Known bugs:
+- The test host of ButtonsRunHost.cs reads the prototype loop from the plan's folder, outside the task, line in steps/seam.md.
+
+Next:
+- Item 5 of revit-test on demo-S1.
+
+Your turn:
+- None.
+
 ## Lead, FAST-13 to FAST-15 for a demo fast enough for the room, 8 Nov 2026
 
 Goal:

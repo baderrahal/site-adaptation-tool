@@ -94,7 +94,9 @@ namespace SiteAdaptation.AddIn
             PlaceVillas.PlaceVillasBody.Load = context =>
             {
                 PaneSettings settings = host.model.Settings ?? new PaneSettings();
-                return Common.PlaceVillas.VillaLoad.Load(context, settings.Scope, settings.ConfigFile, settings.VillaMode, settings.LevelProfile);
+                // R811. The copies of this Revit beside the plan's prototype folder, so step 7 links no file Revit must upgrade
+                return PlaceVillas.PlaceVillasBody.WithCopies(Common.PlaceVillas.VillaLoad.Load(context, settings.Scope, settings.ConfigFile, settings.VillaMode, settings.LevelProfile),
+                    application.ControlledApplication.VersionNumber);
             };
             host.model.RunRequested += number =>
             {
