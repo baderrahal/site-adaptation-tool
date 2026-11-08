@@ -10,6 +10,7 @@ using System.Windows.Input;
 using SiteAdaptation.AddIn.NewProject;
 using SiteAdaptation.Common;
 using SiteAdaptation.Common.Flow;
+using SiteAdaptation.Common.PlaceVillas;
 using SiteAdaptation.Common.Settings;
 using SiteAdaptation.Common.Steps;
 
@@ -343,17 +344,24 @@ namespace SiteAdaptation.AddIn.Pane
         // Null in a test with no disk. The host gives DiskProbe.LookFormat
         public Action<string, Action<int?>> FormatLook { get; set; }
 
+        // R812. Looks for the copies of the running Revit beside a folder off the UI thread, null when none count. Null in a test with no
+        // disk, then the row says what R496 says. The host gives PrototypeCopies.Find on a thread of its own
+        public Action<string, int, Action<PrototypeCopies>> CopiesLook { get; set; }
+
         private readonly Dictionary<string, KnownFormat> formats = new Dictionary<string, KnownFormat>(StringComparer.OrdinalIgnoreCase);
         private readonly HashSet<string> looking = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         private sealed class KnownFormat
         {
-            public KnownFormat(long size, long stamp, int? oldest)
+            public KnownFormat(long size, long stamp, int? oldest, PrototypeCopies copies)
             {
                 Size = size;
                 Stamp = stamp;
                 Oldest = oldest;
+                Copies = copies;
             }
+
+            public PrototypeCopies Copies { get; }
 
             public long Size { get; }
             public long Stamp { get; }
@@ -380,7 +388,8 @@ namespace SiteAdaptation.AddIn.Pane
             if (formats.TryGetValue(path, out KnownFormat known) && known.Size == facts.Size && known.Stamp == facts.Stamp)
             {
                 int? year = PrototypeFormats.OldYear(known.Oldest, RunningRevit.Value);
-                row.ShowNote(year == null ? string.Empty : TextTemplate.Fill(PaneText.OldPrototypes, year.Value, RunningRevit.Value));
+                row.ShowNote(known.Copies?.CopiesFolder != null ? CopiesNote(known.Copies)
+                    : year == null ? string.Empty : TextTemplate.Fill(PaneText.OldPrototypes, year.Value, RunningRevit.Value));
                 return;
             }
             row.ShowNote(string.Empty);
@@ -390,13 +399,34 @@ namespace SiteAdaptation.AddIn.Pane
             }
             FormatLook(path, oldest =>
             {
-                looking.Remove(path);
-                formats[path] = new KnownFormat(facts.Size, facts.Stamp, oldest);
-                if (document != null)
+                Action<PrototypeCopies> done = copies =>
                 {
-                    RefreshAll();
+                    looking.Remove(path);
+                    formats[path] = new KnownFormat(facts.Size, facts.Stamp, oldest, copies);
+                    if (document != null)
+                    {
+                        RefreshAll();
+                    }
+                };
+                if (CopiesLook == null)
+                {
+                    done(null);
+                }
+                else
+                {
+                    CopiesLook(path, RunningRevit.Value, done);
                 }
             });
+        }
+
+        // R812. The row names the folder of copies, how many it holds and the year found per code, a code with no copy keeps the year of
+        // its own file and says so
+        public static string CopiesNote(PrototypeCopies copies)
+        {
+            IEnumerable<string> codes = copies.Codes.Select(code => code.Copy != null || code.Year == copies.Running
+                ? code.Code + " " + code.Year.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                : TextTemplate.Fill(PaneText.CodeNoCopy, code.Code, code.Year == null ? PaneText.YearNotRead : code.Year.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+            return TextTemplate.Fill(PaneText.PrototypeCopies, copies.Running, Path.GetFileName(copies.CopiesFolder), copies.CopyCount, copies.Codes.Count, string.Join(", ", codes));
         }
 
         private void RefreshSurfaces()

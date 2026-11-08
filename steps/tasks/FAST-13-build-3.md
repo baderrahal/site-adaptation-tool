@@ -2,7 +2,7 @@
 id: FAST-13-build-3
 lane: build-3
 stage: 2
-status: open
+status: done
 allowed:
   - dotnet/SiteAdaptation.AddIn/PlaceVillas/LinkUpgrade.cs
   - dotnet/SiteAdaptation.AddIn/PlaceVillas/PlaceVillasBody.cs
