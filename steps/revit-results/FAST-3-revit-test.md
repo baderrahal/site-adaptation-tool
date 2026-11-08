@@ -279,3 +279,45 @@ PASS by the pass of Lead's order: the Build ran to its end, 8 steps, with no sto
 Plots built of 278: 263. plan_01A.json of the check: plots 278, written 263, not written 15. Missing by key: mirrored 211, levels.ffl 13, Number of Steps 13, Prototype FFL 13, parameters CASE 2, Prototype Foundation Type 2, transform 2, unit 2. roadSurfacesOfFrontCorners: Compiled West_MM 378, Part 4 Top Surfaces 154, none 16, so both picked surfaces gave levels. plotsWithNoRoadLevel 13, each tried on the two picked surfaces, 11 with "no road surface covers the corner within snapM 0.005 m" and 2 with "no front frame, so no front corners to take a road level at". Read by a script from the plan file.
 
 The lines of FAST-11 on plots left out and no road level: card 2 names "15 of 278 plots are not built: no floor level 11, no outline or front 2, no unit 2" and "Built with a value missing: 201 plots", card 3 names "13 plots have no road level", the count of the plan of the scope, not of the whole read (F30 fixed and seen in Revit). The two cards agree: the 13 of card 3 are the 11 with no floor level and the 2 with no front of card 2.
+
+## Part 2, from 05:30, card 3
+
+- revit-wanted-build-1.txt and revit-wanted-build-3.txt: none in the lanes folder at 05:29. Idle 545 s.
+- 05:30:29 Revit opened on the saved copy, process 121404. 05:31:24 the box "Security - Unsigned Add-In" of Site Adaptation came again and the driver pressed Always Load (always_load.txt of shots/run2p2).
+1. 05:34 the main window had no title yet: Revit was upgrading the 13 linked prototype files of Revit 2021 again on open, and stood on its own box "Structural Analytical Model Upgrade". The driver closed it each time, Revit in front, idle 916 s at the first, only the keep awake Teams window: 05:36:06, 05:38:23, 05:39:46, 05:42:08, 05:43:39, 05:45:11, 05:46:46, 05:48:15, 05:50:11, 05:51:50, 05:53:21, 05:54:51, 05:56:24, 13 times (upgrade_boxes.txt). The model was open at 05:58:00, 27.5 minutes after the start. F33.
+2. 05:58 the pane after the save and reopen (s41-p2-open.png): the amber line "15 of 15 rules are not confirmed. Open Rules in Settings.", card 1 Done with its data check rows, card 2 "Done, 881 issues" and "15 of 278 plots are not built: no floor level 11, no outline or front 2, no unit 2. Built with a value missing: 201 plots, each value tagged missing in the plan.", card 3 Ready, "2619 issues from the last build." with Open rules, "13 plots have no road level, so no floor level, and steps 6 to 8 leave them out.", the source mix bar "Values: computed 9879, rule 10907, person entered 2614, missing 10595, other 0." F21 not seen: the steps stayed Done after the reopen. The Advanced list: step 4 Check 1 issue, 5 Floors and ramps 267 issues, 6 Levels 15 issues, 7 Place villas 14 issues, 8 Walls 584 issues, so 881 on card 2. The Prototypes row of Advanced: "These files are Revit 2021 and upgrade on each use, use the 2024 copies. A remake from them takes 20 to 41 minutes."
+3. 06:02:52 Report on card 3 (s42-card3-before.png): the box "9 Report, Nothing changes until Apply. Report Excel files: 1" (s43-report-box.png), Apply 06:03:28. The Excel 00101-PSN-01A-XXX-SCH-TU-090000.xlsx of the project work folder written 06:03:32, the run ended 06:03:51 (run_9 log), so 23 s. No window after it. Card 3 Done. Its sheets: Cover, Plot schedule (278 plots), Floors (526 rows), Walls (582 rows), Issues (1058 rows), Overrides, Rules used, Summary, Placed, Skipped, Assumed, Accepted warnings, Settings.
+4. 06:21:29 Update from report: the window "Update from report", Browse, the Open box, the report Excel of step 3 typed by Alt+N, Enter. "No changes found in this Excel.", 0 changes found, 0 follow the rules, 0 break a manual rule, 0 not editable ignored, "15 manual rules of the block name no updateChecks, so no change is held against them: M01 ... M15 (R402)". Dry run and Apply 0 changes both off (s46-update-picked.png). Cancel 06:24:00. The model was not changed.
+5. 06:24:44 the 3 cards at the end (s47-card3-end.png). 06:25:51 the copy saved by the Save button of the quick access bar, 15,769,600 bytes, write time 06:25:53. 06:26:44 the driver asked to quit, 06:27:10 "revit left open: False", no lock, no Revit process. Part 2 took 05:30:29 to 06:27:10, 57 minutes, of which 27.5 in the reopen.
+
+## Step 7 for FAST-12, R805 to R807
+
+- No stop on "Structural Analytical Model Upgrade" in step 7: 04:43:39 to 05:11:58, the only window of Revit was Load Link, the driver pressed nothing (R805, seen in Revit). The box does stop the reopen of the model, 13 times, F33.
+- The box of step 7 said "link types new to the model 13, of an older Revit 13" beside "link types to load 0" (R807, seen in Revit, s32-villas-box.png).
+- The issues of step 7: 14, on the Advanced list, which fits 13 upgraded files and one line of the boxes closed (R806). The words of the 14 lines: UNKNOWN, not seen. They are in no file of the work folder and not in the report Excel, the pane shows only the count. A line for Lead under F34 in steps/seam.md.
+
+## Times of run 2
+
+| What | From | To | Minutes |
+|---|---|---|---|
+| Card 1, setup, road pick, Rules, Set up site, two reads, Confirm, scope, Review | 03:39 | 04:34 | 55 |
+| 2 Read data, press 1, a full read | 03:57:14 | 04:09:28 | 12.2 (734 s) |
+| 2 Read data, press 2, a full read with the confirmed values | 04:14:05 | 04:26:21 | 12.3 (736 s) |
+| 2 Read data, press 3, inside the Build, the read reused | 04:37:36 | 04:37:40 | about 4 s |
+| Card 2, Build to its end | 04:35:40 | 05:20:16 | 45 |
+| of which step 7 Place villas | 04:43:39 | 05:11:58 | 28 |
+| of which the wait on the walls box, F32 | 05:12:05 | 05:19:28 | 7.4 |
+| Reopen of the built copy, F33 | 05:30:29 | 05:58:00 | 27.5 |
+| Card 3, Report and Update from report | 06:02:52 | 06:24:00 | 21, of which Report 23 s |
+
+## Result of run 2
+
+PASS by the pass of Lead's order: the 3 cards ran to their end on 01A from an empty model, card 1 with the road pick of F8, card 2 with the Build to its end, card 3 with Report and Update from report. The Build placed 526 floors and ramps on 263 plots, 1 road toposolid, 526 levels at the plan, 263 villa links of 13 prototype files, 582 walls, 263 of the 278 plots of 01A built. Three new faults, F32 (the walls overlap box stops step 8), F33 (the reopen stops 13 times on the upgrade box), F34 (card 3 counts the issues of the whole read).
+
+For the demo: the person answers the rules box, Preview, the reuse box of step 2, Review, the boxes of steps 4 to 8, the walls overlap box of Revit, and on a reopen 13 upgrade boxes. The full run needs about 55 minutes for card 1 and 45 for card 2, more than the 30 of the demo script, the reads and step 7 take most of it.
+
+S1 after the two parts: 37 files, SHA-256, size and write time equal to s1_before_run2.json, 0 changed, 0 new, 0 gone (s1_after_run2.json, compared by a script).
+
+Second check by another method: each count is read three ways, from the dry run box of each step by UI Automation (place 526 listed 263, at the plan 526, place 263, place 582), from floors_01A.json, run_6_*.json, place_01A.json and walls_01A.json on disk after the run, and from the model itself, revit_counts_9_*.json that 9 Report wrote from the elements of the reopened model: 263 plots with 1 link each, 263 generic and 263 ramp floors, 0 yard, 263 plots with their levels, 582 walls on 263 plots. The three agree, read by a script that shares no code with the add-in. Not seen in Revit: the words of the issues of step 7 (R806).
+
+The card shots in git: steps/ui-shots/pane-stage-1.png (card 1 at its end, 04:34), pane-stage-2.png (card 2 at its end, 05:20, the coordinate line of the Build blanked), pane-stage-3.png (the 3 cards at the end, 06:24), cut to the pane from the screenshot of the work root. No other window shot was added, the windows of the add-in were shot in run 1.
