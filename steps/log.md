@@ -2,6 +2,29 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Lead, the label list shared by FAST-13 to FAST-15, 8 Nov 2026
+
+Goal:
+- Unblock FAST-13, its new pane words must be in docs/design/14-ui-labels.md for UiLabelTests R372.
+
+Done:
+- docs/design/14-ui-labels.md added to the allowed list of FAST-13, FAST-14 and FAST-15 as a shared record, beside index.md, log.md and seam.md.
+
+Checked:
+- scripts/checks/folder_rules.py reads the allowed list from the base of the PR, so a lane cannot add the path itself.
+
+Remains:
+- The three lane PRs.
+
+Known bugs:
+- None new.
+
+Next:
+- Item 5 of Bader's order when the three tasks are on main.
+
+Your turn:
+- The folder path of the new project by 10:00.
+
 ## Lead, FAST-13 to FAST-15 for a demo fast enough for the room, 8 Nov 2026
 
 Goal:
