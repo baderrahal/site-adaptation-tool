@@ -2,6 +2,34 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Lead, the intake of Phase 3 and the form of 8 Nov, 8 Nov 2026
+
+Goal:
+- Bader's order of 11:20, items 1 and 2: read the new project outside Revit and fill the form.
+
+Done:
+- scripts/new-project-intake.ps1 on C:\02-Site Adaptation\Phase 3\Input after the copy into it ended, <work root>\intake\intake.md.
+- A check of the code map by the worker on the gathered file of the read (R820), 13 s.
+- steps/bader-form-8nov.md filled, 5 items, a recommended answer first. steps/plan-fast-3days.md section 12:25.
+
+Checked:
+- Intake: "8.7 min, folder changed: 0", 26 files.
+- The workbook read in place by openpyxl, hashed before and after, unchanged: no sheet holds the new villa codes, Landuse_Level_4 holds the old ones.
+- The worker with the code map: villaType "read from the confirmed column for 1904 of 3198 plots", 1878 with a type of a villa file by area 3H 497, 3B 467, 3G 365, 3A 356, 3C 193.
+
+Remains:
+- Item 4: revit-test runs Phase 3 after item 5.
+
+Known bugs:
+- No Land XML in Phase 3, so no floor level and no plot built (form item 3).
+- The first intake failed on a file still being copied, the script needs a quiet folder.
+
+Next:
+- Item 4 at the end of item 5, demo-live.md by 16:00.
+
+Your turn:
+- The form by 12:30, else every A.
+
 ## build-2, FAST-15, one read and a Confirm outside Revit, 8 Nov 2026
 
 Goal:
