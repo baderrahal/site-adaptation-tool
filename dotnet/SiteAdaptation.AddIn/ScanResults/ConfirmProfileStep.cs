@@ -35,6 +35,13 @@ namespace SiteAdaptation.AddIn.ConfirmProfile
         // apply is ReadDataRun.ApplyConfirmed of the same read, null keeps a Confirm that saved for the next read only, as before R791
         public static ButtonBody Wrap(ButtonBody read, PaneSettings settings, IntPtr owner, Func<RunContext, RunLater, RunLater> apply = null)
         {
+            return WrapLater(read, settings, owner, apply == null ? (Action<RunContext, RunLater, Action<RunLater>>)null : (context, later, ended) => ended(apply(context, later)));
+        }
+
+        // R820. apply is ReadDataRun.ApplyConfirmedLater of the same read, which runs the check in the worker and hands its end on later, so the
+        // press ends once the worker answered and Revit is free while it runs
+        public static ButtonBody WrapLater(ButtonBody read, PaneSettings settings, IntPtr owner, Action<RunContext, RunLater, Action<RunLater>> apply)
+        {
             if (read == null)
             {
                 throw new ArgumentNullException(nameof(read));
@@ -101,7 +108,7 @@ namespace SiteAdaptation.AddIn.ConfirmProfile
         }
 
         // In the API context of Revit, by the hand of the pane, as the end of the read
-        private static void Ended(IntPtr owner, RunContext context, RunLater later, Action<RunLater> done, Func<RunContext, RunLater, RunLater> apply)
+        private static void Ended(IntPtr owner, RunContext context, RunLater later, Action<RunLater> done, Action<RunContext, RunLater, Action<RunLater>> apply)
         {
             if (later.Failure != null)
             {
@@ -149,13 +156,10 @@ namespace SiteAdaptation.AddIn.ConfirmProfile
                     Fast7.ConfirmedFor.Write(context.WorkFolder, scanFolder);
                     if (apply != null)
                     {
-                        RunLater applied = Applied(apply, context, later);
-                        if (applied.Failure == null)
-                        {
-                            done(RunLater.Done((later.Message ?? "") + " " + line + " " + AppliedLine, applied.Issues, applied.Outputs));
-                            return;
-                        }
-                        line += " " + NotAppliedLine.Replace("<why>", applied.Failure);
+                        Applied(apply, context, later, applied => done(applied.Failure == null
+                            ? RunLater.Done((later.Message ?? "") + " " + line + " " + AppliedLine, applied.Issues, applied.Outputs)
+                            : RunLater.Done((later.Message ?? "") + " " + line + " " + NotAppliedLine.Replace("<why>", applied.Failure), later.Issues, later.Outputs)));
+                        return;
                     }
                 }
                 done(RunLater.Done((later.Message ?? "") + " " + line, later.Issues, later.Outputs));
@@ -167,15 +171,26 @@ namespace SiteAdaptation.AddIn.ConfirmProfile
         }
 
         // R792. A fault of the check run again is no fault of the read: the read stays done and the line says why the values wait for the next read
-        private static RunLater Applied(Func<RunContext, RunLater, RunLater> apply, RunContext context, RunLater later)
+        // R820: the end comes once, from the worker's answer or from a throw before the worker started
+        private static void Applied(Action<RunContext, RunLater, Action<RunLater>> apply, RunContext context, RunLater later, Action<RunLater> ended)
         {
+            bool once = false;
+            Action<RunLater> end = applied =>
+            {
+                if (once)
+                {
+                    return;
+                }
+                once = true;
+                ended(applied ?? RunLater.Failed(ReadDataRun.ApplyNoResult));
+            };
             try
             {
-                return apply(context, later) ?? RunLater.Failed(ReadDataRun.ApplyNoResult);
+                apply(context, later, end);
             }
             catch (Exception failure)
             {
-                return RunLater.Failed(failure.GetType().Name + ": " + failure.Message);
+                end(RunLater.Failed(failure.GetType().Name + ": " + failure.Message));
             }
         }
 

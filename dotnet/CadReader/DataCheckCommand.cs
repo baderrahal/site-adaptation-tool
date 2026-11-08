@@ -26,8 +26,11 @@ namespace CadReader
             {
                 throw run.Refusal("a data check names no output folder (R600)");
             }
-            string folder = Path.GetFullPath(run.Input(FolderRole));
             JObject config = JObject.Parse(WorkFiles.ReadText(run.Input("config")));
+            // R820, F22. A Confirm hands the gathered files of the read just made in place of the folder, so the check runs again outside Revit
+            // and no drawing is read twice
+            bool again = request.Inputs.Any(item => item.Role == DataCheckApply.GatheredRole);
+            string folder = again ? null : Path.GetFullPath(run.Input(FolderRole));
             var input = new DataCheckInput();
             DataCheckSettings settings = null;
             DataCheckOutput output;
@@ -47,21 +50,60 @@ namespace CadReader
             {
                 output = DataCheckLogic.Stopped(null, input, "The project settings hold no values for this check, so nothing was read.");
             }
+            else if (again)
+            {
+                var clock = System.Diagnostics.Stopwatch.StartNew();
+                ConfirmedProfile confirmed = input.Confirmed;
+                try
+                {
+                    input = DataCheckApply.Load(WorkFiles.ReadText(run.Input(DataCheckApply.GatheredRole)));
+                }
+                catch (InvalidDataException refused)
+                {
+                    throw run.Refusal(refused.Message);
+                }
+                input.Confirmed = confirmed;
+                Console.Error.WriteLine(PartLine(DataCheckApply.InputFile, "load", clock.Elapsed.TotalSeconds));
+                clock.Restart();
+                output = DataCheckApply.Check(settings, input, run.Issues);
+                Console.Error.WriteLine(PartLine("the plots", "check", clock.Elapsed.TotalSeconds));
+            }
             else
             {
+                var clock = System.Diagnostics.Stopwatch.StartNew();
                 Gather(run, folder, settings, input);
                 string sheetPath = ReadParameterSheet(run, input);
+                Console.Error.WriteLine(PartLine("all files", "gather", clock.Elapsed.TotalSeconds));
+                clock.Restart();
                 // R790. The gathered files before the check, so a Confirm runs the check again on this read and reads no drawing twice
                 run.WriteJson(request.OutputFolder, DataCheckApply.InputFile, (writer, exact) => DataCheckApply.Write(writer, exact, input, sheetPath));
+                Console.Error.WriteLine(PartLine(DataCheckApply.InputFile, "write", clock.Elapsed.TotalSeconds));
+                clock.Restart();
                 output = DataCheckApply.Check(settings, input, run.Issues);
+                Console.Error.WriteLine(PartLine("the plots", "check", clock.Elapsed.TotalSeconds));
             }
-            run.WriteJson(request.OutputFolder, SiteAdaptation.Common.ReadData.ReadDataRun.DataCheckFile, output.Check);
-            run.WriteJson(request.OutputFolder, "project_profile.json", output.Profile);
-            run.WriteJson(request.OutputFolder, "plots.json", output.Plots);
-            run.WriteJson(request.OutputFolder, SiteAdaptation.Common.ReadData.ReadDataRun.PlotTableFile, DataCheckLogic.PlotTable(output.Plots));
-            run.Counts["data check plots"] = ((JArray)output.Plots["plots"]).Count;
+            WriteOutputs(run, output);
             run.Counts["data check drawings read"] = input.CadReads.Count;
             run.Counts["data check files not read"] = input.Notes.Count(note => !note.Read);
+        }
+
+        // The four outputs of a check, the same for a check on the folder and one on the gathered files of a read (R820)
+        private static void WriteOutputs(WorkerContext run, DataCheckOutput output)
+        {
+            var clock = System.Diagnostics.Stopwatch.StartNew();
+            string folder = run.Request.OutputFolder;
+            run.WriteJson(folder, SiteAdaptation.Common.ReadData.ReadDataRun.DataCheckFile, output.Check);
+            run.WriteJson(folder, "project_profile.json", output.Profile);
+            run.WriteJson(folder, "plots.json", output.Plots);
+            run.WriteJson(folder, SiteAdaptation.Common.ReadData.ReadDataRun.PlotTableFile, DataCheckLogic.PlotTable(output.Plots));
+            run.Counts["data check plots"] = ((JArray)output.Plots["plots"]).Count;
+            Console.Error.WriteLine(PartLine("the four outputs", "write", clock.Elapsed.TotalSeconds));
+        }
+
+        // R822. One part of the read and its time in the worker log, names and counts only
+        public static string PartLine(string name, string kind, double seconds)
+        {
+            return "part | " + kind + " | " + name + " | " + seconds.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " s";
         }
 
         // R632. The file the window wrote with what a person confirmed, an optional input. One that cannot be read stops the run with its reason,
@@ -179,6 +221,8 @@ namespace CadReader
         private static void Try(WorkerContext run, DataCheckInput input, string name, string path, string kind, Action<InputMark> read, double? peakMiB = null)
         {
             bool important = kind == "drawing" || kind == "workbook" || kind == "pdf";
+            // R822. The time of each file in the worker log, so the read is measured by part
+            var clock = System.Diagnostics.Stopwatch.StartNew();
             try
             {
                 // Opened inside the try, a file another program holds open fails here and is recorded, the run carries on (R606)
@@ -201,7 +245,13 @@ namespace CadReader
             }
             finally
             {
-                WorkerMemory.Release();
+                // R822. The release is two full compacting collections, about 12 s each on S1 once a large drawing is held, so it runs after a
+                // read that made much, never after a peek of a few KB at the head of a surface, rule or text file, 19 of them on S1
+                if (important)
+                {
+                    WorkerMemory.Release();
+                }
+                Console.Error.WriteLine(PartLine(name, kind, clock.Elapsed.TotalSeconds));
             }
         }
 
@@ -222,6 +272,8 @@ namespace CadReader
             var problems = new List<string>();
             JObject read = CadScan.Inventory(CadExtractor.Open(path, problems), name, path, mark.Size, mark.Sha256, settings.Scan.PairMinSegments, settings.Scan.PairThreads, settings.Scan.PairTimeCapS,
                 Console.Error.WriteLine, true);
+            // R823. The candidates no check can take go at once, on S1 922 of 1,033 MB, so the heap stays small for every later file and the check
+            DataCheckApply.Prune(settings, read);
             input.CadReads.Add(read);
             if (problems.Count > 0)
             {

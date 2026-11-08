@@ -14,6 +14,9 @@ namespace SiteAdaptation.Common
         public const string InputFile = "data_check_input.json";
         public const string Format = "site-adaptation-data-check-input";
 
+        // R820. The role of the gathered files in a request of the worker command dataCheck, given in place of the folder
+        public const string GatheredRole = "gathered";
+
         // R790. The longest file Load takes, in bytes: its text is one .NET string, which holds at most about 1.07 billion characters. A larger
         // file is refused by the apply before it is read, the confirmed values then count from the next read (R792)
         public const long MaxBytes = 1000000000;
@@ -37,6 +40,67 @@ namespace SiteAdaptation.Common
             {
                 item.WriteTo(writer, exact);
             }
+        }
+
+        // R823. The drawing read just made with only the candidates TopCandidates keeps, taken out at once so the read holds no more than the check
+        // can use. Gives the count taken out
+        public static int Prune(DataCheckSettings settings, JObject read)
+        {
+            HashSet<string> kept = TopCandidates(settings, read);
+            if (kept == null)
+            {
+                return 0;
+            }
+            var candidates = (JArray)read["candidates"];
+            List<JToken> gone = candidates.Where(candidate => !kept.Contains(CandidateKey(read, candidate))).ToList();
+            foreach (JToken candidate in gone)
+            {
+                candidate.Remove();
+            }
+            return gone.Count;
+        }
+
+        // R823, F22 of FAST-15. The outline candidates of one drawing a check can still take: those of the top score of the drawing, every one of a
+        // tie kept, so the pick in the drawing, the pick across drawings and the break of a tie of R601 come out as on the whole list. The score of an
+        // outline is the faces that hold one plot number, from the texts, the label pattern and the faces alone, no confirmed value changes it, so a
+        // Confirm takes the same outline. A drawing whose best score is 0 proposes no outline, so none is kept. On S1 the other candidates were 922 of
+        // the 1,033 MB of the file. Null keeps every candidate: a drawing with none, or one the scan cannot score
+        public static HashSet<string> TopCandidates(DataCheckSettings settings, JObject read)
+        {
+            if (settings == null || !(read["candidates"] is JArray candidates) || candidates.Count == 0)
+            {
+                return null;
+            }
+            List<JObject> rows;
+            try
+            {
+                var prototypes = new HashSet<string>(StringComparer.Ordinal);
+                JObject scan = ScanLogic.Result(settings.Scan, prototypes, prototypes, settings.StrongShare, new HashSet<string>(StringComparer.Ordinal), new[] { read },
+                    new ScanWorkbook[0], new ScanPdf[0], new JArray());
+                rows = ((JArray)scan["rows"]).OfType<JObject>().Where(row => (string)row["kind"] == "plotOutline").ToList();
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+            if (rows.Count == 0)
+            {
+                return null;
+            }
+            int best = rows.Max(row => (int)row["score"]);
+            if (best <= 0)
+            {
+                return new HashSet<string>(StringComparer.Ordinal);
+            }
+            return new HashSet<string>(rows.Where(row => (int)row["score"] == best).Select(row => (string)row["source"]), StringComparer.Ordinal);
+        }
+
+        // The source of a candidate as the plotOutline row of the scan names it, file and its layers in ordinal order
+        private static string CandidateKey(JObject read, JToken candidate)
+        {
+            IEnumerable<string> layers = (candidate["layers"] as JArray ?? new JArray()).Select(layer => layer.Type == JTokenType.Null ? "" : (string)layer).OrderBy(name => name, StringComparer.Ordinal);
+            string source = read["source"] == null || read["source"].Type == JTokenType.Null ? "" : (string)read["source"];
+            return source + "|" + string.Join(ScanLogic.LayerJoin, layers);
         }
 
         // The parameter sheet is kept by its path, as the shape of its rows is the sheet reader's

@@ -232,41 +232,15 @@ namespace SiteAdaptation.Common.ReadData
         // nothing of the read changed, after it the folder holds no record and the next press reads again (R792). It writes in the work folder only
         public RunLater ApplyConfirmed(RunContext context, RunLater read)
         {
-            string check = read?.Outputs?.Keys.FirstOrDefault(path => string.Equals(Path.GetFileName(path), DataCheckFile, StringComparison.OrdinalIgnoreCase));
-            if (check == null)
+            Applying apply = Prepare(context, read, out string refused);
+            if (apply == null)
             {
-                return RunLater.Failed(ApplyNoCheck);
+                return RunLater.Failed(refused);
             }
-            string from = Path.GetDirectoryName(Path.GetFullPath(check));
-            string saved = Path.Combine(from, DataCheckApply.InputFile);
-            if (!File.Exists(saved))
-            {
-                return RunLater.Failed(ApplyNoInput);
-            }
-            if (new FileInfo(saved).Length > DataCheckApply.MaxBytes)
-            {
-                return RunLater.Failed(ApplyTooLarge);
-            }
-            JObject before = Record(Path.Combine(from, RecordFile));
-            List<ReadInput> inputs = (before?["inputs"] as JArray ?? new JArray()).OfType<JObject>().Where(item => (string)item["role"] != ConfirmedProfile.Role)
-                .Select(item => new ReadInput((string)item["role"], (string)item["path"], (long?)item["bytes"] ?? 0, (string)item["sha256"])).ToList();
-            ReadInput config = inputs.FirstOrDefault(item => item.Role == ReadInputs.Config);
-            if (config == null || !inputs.Any(item => item.Role == ReadInputs.ScanFolder))
-            {
-                return RunLater.Failed(ApplyNoRecord);
-            }
-            if (!File.Exists(config.Path) || !string.Equals(FileHash.Sha256(config.Path), config.Sha256, StringComparison.OrdinalIgnoreCase))
-            {
-                return RunLater.Failed(ApplyConfigChanged);
-            }
-            string profilePath = Path.Combine(Path.GetFullPath(context.WorkFolder), ConfirmedProfile.FileName);
-            if (!File.Exists(profilePath))
-            {
-                return RunLater.Failed(ApplyNoProfile);
-            }
-            var profile = new ReadInput(ConfirmedProfile.Role, profilePath, new FileInfo(profilePath).Length, FileHash.Sha256(profilePath));
-            inputs.Add(profile);
-            var plan = new ReadPlan(inputs, Strings(before["steps"]), new string[0], config.Path, null, true);
+            string from = apply.From, saved = apply.Saved;
+            ReadPlan plan = apply.Plan;
+            JObject before = apply.Before;
+            ReadInput config = apply.Config, profile = apply.Profile;
             DataCheckSettings settings = DataCheckSettings.From(JObject.Parse(WorkFiles.ReadText(config.Path)));
             DataCheckInput input = DataCheckApply.Load(WorkFiles.ReadText(saved));
             input.Confirmed = ConfirmedProfile.From(JObject.Parse(WorkFiles.ReadText(profile.Path)), settings.GroupGapsM.Count);
@@ -285,18 +259,8 @@ namespace SiteAdaptation.Common.ReadData
                 string path = Path.Combine(from, name);
                 stamps[name] = File.Exists(path) ? JObject.Parse(WorkFiles.ReadText(path))[RunStamp.Key] : null;
             }
-            string to = FolderOf(context.WorkFolder, plan);
-            if (!string.Equals(Path.GetFullPath(to).TrimEnd(Path.DirectorySeparatorChar), from.TrimEnd(Path.DirectorySeparatorChar), StringComparison.OrdinalIgnoreCase))
-            {
-                // A folder already there for these inputs is a read of the same files and the same profile, this read is the newer of the two
-                if (Directory.Exists(to))
-                {
-                    Directory.Delete(to, true);
-                }
-                Directory.Move(from, to);
-            }
             // The record goes first and comes back last, so a write that fails leaves a folder no press reuses, which reads again
-            File.Delete(Path.Combine(to, RecordFile));
+            string to = Moved(from, FolderOf(context.WorkFolder, plan));
             foreach (KeyValuePair<string, JObject> item in written)
             {
                 if (stamps[item.Key] != null)
@@ -318,13 +282,198 @@ namespace SiteAdaptation.Common.ReadData
             return RunLater.Done(read.Message, read.Issues, outputs);
         }
 
+        // What an apply of a Confirm works on, made by Prepare once every refusal is passed
+        private sealed class Applying
+        {
+            public string From;
+            public string Saved;
+            public JObject Before;
+            public ReadInput Config;
+            public ReadInput Profile;
+            public ReadPlan Plan;
+        }
+
+        // R791, R820. The refusals both applies share, in this order: no check, no gathered file, too large, no record of a folder read, the
+        // settings file changed since the read started, no confirmed profile. Null with the reason when one holds
+        private static Applying Prepare(RunContext context, RunLater read, out string refused)
+        {
+            refused = null;
+            string check = read?.Outputs?.Keys.FirstOrDefault(path => string.Equals(Path.GetFileName(path), DataCheckFile, StringComparison.OrdinalIgnoreCase));
+            if (check == null)
+            {
+                refused = ApplyNoCheck;
+                return null;
+            }
+            string from = Path.GetDirectoryName(Path.GetFullPath(check));
+            string saved = Path.Combine(from, DataCheckApply.InputFile);
+            if (!File.Exists(saved))
+            {
+                refused = ApplyNoInput;
+                return null;
+            }
+            if (new FileInfo(saved).Length > DataCheckApply.MaxBytes)
+            {
+                refused = ApplyTooLarge;
+                return null;
+            }
+            JObject before = Record(Path.Combine(from, RecordFile));
+            List<ReadInput> inputs = (before?["inputs"] as JArray ?? new JArray()).OfType<JObject>().Where(item => (string)item["role"] != ConfirmedProfile.Role)
+                .Select(item => new ReadInput((string)item["role"], (string)item["path"], (long?)item["bytes"] ?? 0, (string)item["sha256"])).ToList();
+            ReadInput config = inputs.FirstOrDefault(item => item.Role == ReadInputs.Config);
+            if (config == null || !inputs.Any(item => item.Role == ReadInputs.ScanFolder))
+            {
+                refused = ApplyNoRecord;
+                return null;
+            }
+            if (!File.Exists(config.Path) || !string.Equals(FileHash.Sha256(config.Path), config.Sha256, StringComparison.OrdinalIgnoreCase))
+            {
+                refused = ApplyConfigChanged;
+                return null;
+            }
+            string profilePath = Path.Combine(Path.GetFullPath(context.WorkFolder), ConfirmedProfile.FileName);
+            if (!File.Exists(profilePath))
+            {
+                refused = ApplyNoProfile;
+                return null;
+            }
+            var profile = new ReadInput(ConfirmedProfile.Role, profilePath, new FileInfo(profilePath).Length, FileHash.Sha256(profilePath));
+            inputs.Add(profile);
+            return new Applying
+            {
+                From = from, Saved = saved, Before = before, Config = config, Profile = profile,
+                Plan = new ReadPlan(inputs, Strings(before["steps"]), new string[0], config.Path, null, true),
+            };
+        }
+
+        // R820, F22 of FAST-15. The apply of R791 with the check outside Revit: the worker command dataCheck takes the gathered files of the read
+        // just made in place of the folder, started as the read is, so Revit loads none of them and stays free while it runs. The read folder
+        // moves first to the folder its inputs now name, with no record, so a worker that fails leaves a folder the next press reads again (R792).
+        // The worker writes the four outputs there, then read.json comes last with the inputs of the start and the confirmed profile
+        public void ApplyConfirmedLater(RunContext context, RunLater read, Action<RunLater> done)
+        {
+            // A reused read that was made with this same confirmed file holds its values already, a Confirm of the same values starts no worker
+            if (HoldsProfile(context, read))
+            {
+                done(RunLater.Done(read.Message, read.Issues, read.Outputs));
+                return;
+            }
+            Applying apply = Prepare(context, read, out string refused);
+            if (apply == null)
+            {
+                done(RunLater.Failed(refused));
+                return;
+            }
+            string work = Path.GetFullPath(context.WorkFolder);
+            lock (Running)
+            {
+                if (!Running.Add(work))
+                {
+                    done(RunLater.Failed(RunTexts.ReadRunning(context.Label)));
+                    return;
+                }
+            }
+            try
+            {
+                string to = Moved(apply.From, FolderOf(context.WorkFolder, apply.Plan));
+                string gathered = Path.Combine(to, DataCheckApply.InputFile);
+                string known = read.Outputs.Where(output => string.Equals(Path.GetFileName(output.Key), DataCheckApply.InputFile, StringComparison.OrdinalIgnoreCase)).Select(output => output.Value).FirstOrDefault();
+                var request = new WorkerRequest
+                {
+                    FormatVersion = WorkerRequest.CurrentFormatVersion, RunId = context.RunId + ConfirmRunSuffix, Document = document, Command = DataCheckCommand,
+                    Inputs = new List<WorkerFile>
+                    {
+                        new WorkerFile { Role = ReadInputs.Config, Path = apply.Config.Path, Sha256 = apply.Config.Sha256 },
+                        new WorkerFile { Role = DataCheckApply.GatheredRole, Path = gathered, Sha256 = string.IsNullOrEmpty(known) ? FileHash.Sha256(gathered) : known },
+                        new WorkerFile { Role = ConfirmedProfile.Role, Path = apply.Profile.Path, Sha256 = apply.Profile.Sha256 },
+                    },
+                    Scope = new WorkerScope { Kind = "project" }, OutputFolder = to,
+                    TimeLimitS = AddinConfig.Load(apply.Config.Path).WorkerTimeLimitS(DataCheckCommand),
+                    ProjectMode = ModePick?.Invoke(),
+                };
+                string requestPath = request.Write(work);
+                worker.Start(requestPath, work, request, answer =>
+                {
+                    lock (Running)
+                    {
+                        Running.Remove(work);
+                    }
+                    done(AppliedLater(context, read, apply, to, answer));
+                });
+            }
+            catch
+            {
+                lock (Running)
+                {
+                    Running.Remove(work);
+                }
+                throw;
+            }
+        }
+
+        // R820. True when read.json of the read lists confirmed_profile.json of the work folder with its SHA-256 as it is now
+        private static bool HoldsProfile(RunContext context, RunLater read)
+        {
+            string check = read?.Outputs?.Keys.FirstOrDefault(path => string.Equals(Path.GetFileName(path), DataCheckFile, StringComparison.OrdinalIgnoreCase));
+            string profile = Path.Combine(Path.GetFullPath(context.WorkFolder), ConfirmedProfile.FileName);
+            if (check == null || !File.Exists(profile))
+            {
+                return false;
+            }
+            JObject record = Record(Path.Combine(Path.GetDirectoryName(Path.GetFullPath(check)), RecordFile));
+            string sha = FileHash.Sha256(profile);
+            return (record?["inputs"] as JArray ?? new JArray()).OfType<JObject>()
+                .Any(item => (string)item["role"] == ConfirmedProfile.Role && string.Equals((string)item["sha256"], sha, StringComparison.OrdinalIgnoreCase));
+        }
+
+        // The run id of the worker run of a Confirm, the run id of the press with this end, so its request and answer files stand beside the read's
+        public const string ConfirmRunSuffix = "-confirm";
+
+        // The read folder at the folder of its new inputs, its record taken away until the apply ended. A folder already there for these inputs is
+        // a read of the same files and the same profile, this read is the newer of the two
+        private static string Moved(string from, string to)
+        {
+            if (!string.Equals(Path.GetFullPath(to).TrimEnd(Path.DirectorySeparatorChar), from.TrimEnd(Path.DirectorySeparatorChar), StringComparison.OrdinalIgnoreCase))
+            {
+                if (Directory.Exists(to))
+                {
+                    Directory.Delete(to, true);
+                }
+                Directory.Move(from, to);
+            }
+            File.Delete(Path.Combine(to, RecordFile));
+            return to;
+        }
+
+        private RunLater AppliedLater(RunContext context, RunLater read, Applying apply, string to, WorkerAnswer answer)
+        {
+            if (answer == null || answer.Status != WorkerExit.Status(WorkerExit.Done))
+            {
+                return RunLater.Failed(RunTexts.ReadWorker(answer?.Status ?? "with no answer", answer?.Message ?? ""));
+            }
+            var hashes = (answer.Outputs ?? new List<WorkerFile>()).ToDictionary(output => Path.GetFullPath(output.Path), output => output.Sha256, StringComparer.OrdinalIgnoreCase);
+            var outputs = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (string path in read.Outputs.Keys)
+            {
+                string moved = Path.GetFullPath(Path.Combine(to, Path.GetFileName(path)));
+                outputs[moved] = hashes.TryGetValue(moved, out string sha) ? sha : FileHash.Sha256(moved);
+            }
+            JObject counts = apply.Before["counts"] as JObject ?? new JObject();
+            if (answer.Counts != null && answer.Counts.TryGetValue("data check plots", out int plots))
+            {
+                counts["data check plots"] = plots;
+            }
+            JObject record = Recorded(context.RunId, apply.Plan, outputs, counts, read.Issues ?? new List<string>(), new JObject());
+            WorkFiles.WriteText(Path.Combine(to, RecordFile), context.RunId, record.ToString(Newtonsoft.Json.Formatting.Indented));
+            return RunLater.Done(read.Message, read.Issues, outputs);
+        }
+
         public const string ApplyNoCheck = "the read named no data check";
         public const string ApplyNoInput = "the read holds no gathered files, it was made before R790";
         public const string ApplyNoProfile = "no confirmed profile is in the work folder";
         public const string ApplyNoRecord = "the read holds no record of a folder read";
         public const string ApplyConfigChanged = "the settings file changed since the read started";
         public const string ApplyNoResult = "the check gave no result";
-        public const string ApplyTooLarge = "the gathered files of the read are too large to take in Revit";
+        public const string ApplyTooLarge = "the gathered files of the read are too large for one check, over 1,000,000,000 bytes";
         public const string ApplyStopped = "the check on the confirmed values stopped: <why>";
 
         // R474. sources names per value kind the source read and from where, and each conflict pick applied
