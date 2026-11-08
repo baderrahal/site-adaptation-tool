@@ -647,6 +647,11 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R806 Upgraded files listed.
 - R807 Box counts new link types.
 
+## 30-fast14-r815-up.md
+
+- R815 Walls overlap, no box.
+- R816 Card 3 counts scope issues.
+
 ## 31-fast15-r820-up.md
 
 - R820 Confirm checks in the worker.

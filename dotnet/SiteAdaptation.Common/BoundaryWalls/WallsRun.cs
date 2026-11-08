@@ -83,6 +83,8 @@ namespace SiteAdaptation.Common.BoundaryWalls
         {
             Decision decision = Decide(context);
             WallInputs inputs = decision.Inputs;
+            // R815, F32. The walls overlap Revit raises at the commit is taken without its box and listed in the issues of the step
+            context.AcceptKnownWarnings(WallOverlapWarning.List());
             var made = new List<KeyValuePair<Step, string>>();
             var standing = new List<string>();
             foreach (Step step in decision.Steps)

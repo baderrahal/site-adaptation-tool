@@ -2,6 +2,32 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## build-1, FAST-14, the walls box and card 3 of run 2, 8 Nov 2026
+
+Goal:
+- Bader's order of 06:45, item 2: step 8 takes the walls overlap with no Revit box (F32), card 3 counts the issues of the scope (F34).
+
+Done:
+- R815: step 8 gives its transaction the words of Revit's walls overlap, WarningCollector takes it with no box and lists each wall in the issues of the step, one line per warning.
+- R816: card 3 says the issue count of card 2 once the steps 4 to 8 ran, the count of the scope.
+- docs/rules/30-fast14-r815-up.md, tests in dotnet/SiteAdaptation.Tests/FAST14/.
+
+Checked:
+- The words of the warning against RevitAPI.xml of Revit 2024, BuiltInFailures.OverlapFailures.WallsOverlap, equal to the box of run 2 step 20.
+- 6 new tests pass on net48 and net8.0, R380, R459, R689 and R802 stay green.
+
+Remains:
+- The check in Revit, owed to revit-test in item 5, label revit-later, steps/revit-results/FAST-14-build-1.md.
+
+Known bugs:
+- The wait of step 8 after the change: UNKNOWN until revit-test runs item 5. Before: 7.4 minutes on the box in run 2.
+
+Next:
+- revit-test item 5 once FAST-13 and FAST-15 merge.
+
+Your turn:
+- Nothing for this task.
+
 ## Lead, FAST-13 to FAST-15 for a demo fast enough for the room, 8 Nov 2026
 
 Goal:
