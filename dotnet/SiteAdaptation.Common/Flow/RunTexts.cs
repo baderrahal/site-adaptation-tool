@@ -103,9 +103,10 @@ namespace SiteAdaptation.Common.Flow
                 + " Files in the folder: " + files + ", " + System.Math.Round(mib, 1).ToString(System.Globalization.CultureInfo.InvariantCulture) + " MiB, those of a kind it knows are read.";
         }
 
-        public static string ReadFolderReuses(string runId, bool confirmed)
+        // R821. when is the time of the read, ReadDataRun.RunTime of its run id, so a person knows which read comes back in seconds
+        public static string ReadFolderReuses(string when, bool confirmed)
         {
-            return "Reuses the read of run " + runId + (confirmed ? ", the folder, the settings file and the values a person confirmed are unchanged." : ", the folder and the settings file are unchanged.");
+            return "Reuses the read of " + when + (confirmed ? ", nothing changed: the folder, the settings file and the values a person confirmed are unchanged." : ", nothing changed: the folder and the settings file are unchanged.");
         }
 
         // R639. R635 sends a project that lacks a file of the old read to the folder on purpose. The plot table then differs, so a person is told which file did it
