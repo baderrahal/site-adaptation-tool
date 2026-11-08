@@ -2,7 +2,7 @@
 id: FAST-14-build-1
 lane: build-1
 stage: 2
-status: open
+status: done
 allowed:
   - dotnet/SiteAdaptation.AddIn/BoundaryWalls/WallsBody.cs
   - dotnet/SiteAdaptation.AddIn/Revit/RevitWallDocument.cs

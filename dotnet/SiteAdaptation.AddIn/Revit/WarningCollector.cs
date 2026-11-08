@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Autodesk.Revit.DB;
+using SiteAdaptation.Common.BoundaryWalls;
 using SiteAdaptation.Common.Flow;
 using SiteAdaptation.Common.Floors;
 
@@ -39,8 +40,9 @@ namespace SiteAdaptation.AddIn.Revit
                     else if (KnownWordsWarning.TakeAndList(Known, text, accepted))
                     {
                         // R782. Known words on floors the list does not pair: no box of Revit holds an unwatched run, the issue lists the floors
+                        // R815. The walls overlap of step 8 names walls, not floors, so its line says so
                         accessor.DeleteWarning(message);
-                        Warnings.Add(KnownWordsWarning.Line(text, elements));
+                        Warnings.Add(WallOverlapWarning.Owns(text) ? WallOverlapWarning.Line(elements) : KnownWordsWarning.Line(text, elements));
                     }
                     else
                     {
@@ -74,7 +76,8 @@ namespace SiteAdaptation.AddIn.Revit
         private WarningElement Read(Document document, ElementId id)
         {
             Element element = document.GetElement(id);
-            Parameter plot = element?.LookupParameter(Known.PlotParameter);
+            // R815. The list of step 8 names no plot parameter, and LookupParameter takes no null
+            Parameter plot = string.IsNullOrEmpty(Known.PlotParameter) ? null : element?.LookupParameter(Known.PlotParameter);
             return new WarningElement
             {
                 Id = element?.UniqueId, TypeName = element == null ? null : document.GetElement(element.GetTypeId())?.Name,
