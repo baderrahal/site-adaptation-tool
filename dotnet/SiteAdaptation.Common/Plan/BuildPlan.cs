@@ -54,6 +54,9 @@ namespace SiteAdaptation.Common
         private static readonly JObject SourceTexts = new JObject { ["plots"] = "plots.csv of the data book snapshot", ["survey"] = "the new site file", ["pastModel"] = "none" };
         private const string NoUnit = "plots.csv holds no row or no Typology_Rev9 for the plot";
         private const string NoFfl = "levels.py gives no FFL";
+        // R800. The words LinkFrames.Lacks gives a unit with no fit, and what the build did with a plot whose hand is missing
+        private const string NoFit = "plotFrame holds no anchor and offset for ";
+        public const string HandMissingWhy = ", so the plot is built not mirrored and its hand is tagged missing (R800)";
         private const string NoSiteLevel = "the new site file has no level ";
         private const string NoOutline = "no fitted outline for ";
         private const string Within = "within 5 mm";
@@ -205,7 +208,7 @@ namespace SiteAdaptation.Common
                 ["floorSettings"] = new JObject { ["types"] = floorsBlock["types"]?.DeepClone(), ["levels"] = floorsBlock["levels"]?.DeepClone(), ["plotParameter"] = floorsBlock["plotParameter"]?.DeepClone() },
                 ["sources"] = SourceTexts.DeepClone(),
                 ["statusFrom"] = StatusFrom(steps),
-                ["summary"] = Summary(steps, inputs, numbers, plots, lacking, walls, table),
+                ["summary"] = Summary(steps, inputs, numbers, plots, lacking, walls, table, missing),
                 ["plots"] = plots,
                 ["walls"] = walls,
                 ["missing"] = missing,
@@ -297,12 +300,23 @@ namespace SiteAdaptation.Common
             }
             string unit = (string)ov["unit"];
             // An override of the mirror flag gives the link the hand the rule did not, so it lacks no mirror flag
+            bool handMissing = ov[PlanOverrides.HandMissingKey]?.Type == JTokenType.Boolean && (bool)ov[PlanOverrides.HandMissingKey];
             foreach (JObject lack in (Of(steps, LinkFrames.StepName, number)["lacks"] as JArray ?? new JArray()).OfType<JObject>())
             {
                 if ((string)lack["key"] != "mirrored" || !Held(ov["mirrored"]))
                 {
                     found.Add((JObject)lack.DeepClone());
                 }
+                else if (handMissing)
+                {
+                    // R800. Built not mirrored, the hand still listed as missing. A plot left out for another key is built in no hand, review 1 of PR 277
+                    found.Add(written ? Lack("mirrored", (string)lack["why"] + HandMissingWhy) : (JObject)lack.DeepClone());
+                }
+            }
+            // R800. The step linkFrame stops at the missing hand, the fit of the unit is only tried on the hand the build gave
+            if (handMissing && !Held(ov["insert"]))
+            {
+                found.Add(Lack("insert", NoFit + unit));
             }
             if (!Held(ov["ffl"]))
             {
@@ -611,8 +625,40 @@ namespace SiteAdaptation.Common
             return new JObject(names.Select(name => new JProperty(name, counts[name])));
         }
 
+        // R801. The plots the plan leaves out, each once by the first key it lacks, as the missing list orders them, and the count of the
+        // plots it writes with a value missing, so card 2 names both. missingByKey counts a plot under every key it lacks
+        public static JObject LeftOut(JObject summary, JArray missing)
+        {
+            var by = new SortedDictionary<string, int>(StringComparer.Ordinal);
+            int withMissing = 0;
+            foreach (JObject item in missing.OfType<JObject>())
+            {
+                if (item["written"]?.Type == JTokenType.Boolean && (bool)item["written"])
+                {
+                    withMissing++;
+                    continue;
+                }
+                // Under rev6 a missing hand stops no plot, so a plot with no hand and no FFL is counted under the FFL
+                List<string> keys = (item["missing"] as JArray ?? new JArray()).OfType<JObject>().Select(lack => (string)lack["key"]).ToList();
+                string first = keys.FirstOrDefault(Stops.Contains) ?? keys.FirstOrDefault();
+                if (first != null)
+                {
+                    by[first] = by.TryGetValue(first, out int count) ? count + 1 : 1;
+                }
+            }
+            summary[NotWrittenByKey] = new JObject(by.Select(item => new JProperty(item.Key, item.Value)));
+            summary[WrittenWithMissingKey] = withMissing;
+            return summary;
+        }
+
+        // R801. The keys whose lack leaves a plot out of the plan, as PlanOverrides writes a plot with a file, an insert and an FFL
+        private static readonly HashSet<string> Stops = new HashSet<string>(StringComparer.Ordinal) { "skip", "unit", "prototypeFile", "transform", "insert", "levels.ffl" };
+
+        public const string NotWrittenByKey = "notWrittenByFirstKey";
+        public const string WrittenWithMissingKey = "writtenWithMissing";
+
         private static JObject Summary(IReadOnlyDictionary<string, JObject> steps, PlanInputs inputs, List<string> numbers, JArray plots, SortedDictionary<string, int> lacking,
-            JArray walls, JObject table)
+            JArray walls, JObject table, JArray missing)
         {
             JObject overrides = PlotsOf(steps, PlanOverrides.StepName), fronts = PlotsOf(steps, Fronts.StepName);
             var skipped = numbers.Where(number => Held(Side(overrides, number, "written")["skip"])).ToList();
@@ -654,6 +700,8 @@ namespace SiteAdaptation.Common
                 ["walls"] = WallSummary(walls, steps[Walls.StepName]["tables"]?["statusFrom"] as JObject ?? new JObject()),
                 ["rules"] = Rules(inputs, numbers, overrides, plots, table),
             };
+            // R801. Before the lists of rev6, which plan_from_book.build adds last
+            LeftOut(summary, missing);
             // R408. The lists of a build under rev6 after the rules, as plan_from_book.build adds them, none on a build of the past job
             foreach (string name in new[] { "noDoorLevel", "slopeOutsideManual" })
             {

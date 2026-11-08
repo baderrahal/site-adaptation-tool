@@ -2,7 +2,7 @@
 id: FAST-11-build-1
 lane: build-1
 stage: 2
-status: open
+status: done
 allowed:
   - dotnet/SiteAdaptation.Common/Plan/PlanOverrides.cs
   - dotnet/SiteAdaptation.Common/Plan/BuildPlan.cs

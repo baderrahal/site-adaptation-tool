@@ -635,6 +635,12 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R798 Read and step 4 neutral.
 - R799 Own position file.
 
+## 27-fast11-r800-up.md
+
+- R800 Plot built with a value missing.
+- R801 Card 2 lists plots left out.
+- R802 Card 3 counts the scope.
+
 ## 28-fast12-r805-up.md
 
 - R805 Upgrade box closed.

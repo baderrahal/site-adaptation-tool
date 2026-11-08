@@ -265,6 +265,7 @@ namespace SiteAdaptation.Common
         private const string Estimate = "estimate";
         private const string LocationPlan = "locationPlan";
         private const string OverrideSource = "override";
+        public const string MissingSource = "missing";
         private static readonly string[] FloorFields = { "type", "level", "levelElevation", "outline", "plotValue" };
 
         public static ValueStatusTable Table(JObject config, JObject rules, string levelProfile)
@@ -301,9 +302,11 @@ namespace SiteAdaptation.Common
         {
             var applied = new HashSet<string>(plan.Overrides["applied"] as List<string> ?? new List<string>());
             var found = new List<Tuple<string, string>> { Tuple.Create("unit", LocationPlan), Tuple.Create("prototypeFile", Computed) };
+            // R800. A hand no rule gave is written as not mirrored with the source missing
+            bool handMissing = plan.Overrides.TryGetValue(PlanOverrides.HandMissingKey, out object missing) && missing is bool held && held;
             foreach (string field in new[] { "insert", "rotationDeg", "mirrored" })
             {
-                found.Add(Tuple.Create(field, applied.Contains(field) ? OverrideSource : Computed));
+                found.Add(Tuple.Create(field, applied.Contains(field) ? OverrideSource : field == "mirrored" && handMissing ? MissingSource : Computed));
             }
             found.AddRange(new[] { "ffl", "ssl", "entry", "height", "steps", "roadAtFrontM" }.Select(name => Tuple.Create("levels." + name, Estimate)));
             JObject sources = plan.Parameters["sources"] as JObject ?? new JObject();
