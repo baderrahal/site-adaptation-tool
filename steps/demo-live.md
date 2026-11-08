@@ -1,53 +1,70 @@
-# Live demo, Mon 9 Nov 2026
+# Live demo, Sun 8 Nov 2026, 17:00 Riyadh
 
-The script for the managers, in plain words. Nothing is run before the room sits down. Nothing comes from the past job, no past model, no override list, no past Excel. Written by revit-test from run 1 of FAST-3 on 7 Nov, steps/revit-results/FAST-3-revit-test.md. Where run 1 hit a fault of the fix list in steps/seam.md, the step says what to do until it is fixed. Lead takes out those notes as the fixes land.
+The script for the managers, 40 minutes in the room, in plain words. Every time below was measured today on the add-in of main 57cde47, installed at 10:09, except the times named run 2, which are of 7 Nov. Nothing comes from the past job: no past model, no override list, no past Excel. Records: steps/revit-results/FAST-3-revit-test.md, sections "Result of the demo run" for 01A and phase 3 for the new project. The intake of the new project: steps/bader-form-8nov.md. Written by Lead, Bader's order of 11:20, item 6.
 
-## The neighbourhood, 01A, used for tuning
+## What was run before the room
 
-The demo and run 2 of FAST-3 use neighbourhood 01A, Bader's order of 7 Nov 10:05. 01A was used for tuning the rules of the past job, so this demo shows the tool on a neighbourhood it was tuned on, not on new ground. Say so in the room. The untuned neighbourhoods of this folder hold no villa type, so no villa link is placed there (F15 of steps/seam.md).
+Say this first, plainly. The tool reads a whole project folder once, outside Revit. On the 01A folder that read took 454 s, one read, where run 2 of 7 Nov needed two reads of about 12 minutes each. Confirm what was found then applied the confirmed columns in 27 s, with no second read. A second press with nothing changed reuses the read, the box comes in 3.1 s and says "Reuses the read of <time>, nothing changed". Both models of the room were made before it, so nothing in the room waits for a read.
 
 ## Before the room, 10 minutes
 
-1. Close every Revit. Copy the empty model to a new name in the work folder, never open the one of the last demo.
-2. Start Revit once, open the copy, and if the box Security - Unsigned Add-In comes, press Always Load. Close Revit with File, Exit, not by ending the process, so Revit keeps that answer (F11).
-3. Have the project folder ready, the copy of the project files the tool reads. It is read in place and never written.
-4. Close mail, chat and meeting windows on the shared screen.
+1. Close every Revit. Close mail, chat and meeting windows on the shared screen.
+2. Start Revit once on an empty model copy. If the box Security - Unsigned Add-In comes, press Always Load. Close Revit with File, Exit.
+3. Open the demo model of part 2, FAST3-demo-01A.rvt in fast3-revit-test of the work root. It opened in 70 s with no box in the rehearsal. Do not press Build on it, it is built. Opening it sets Scope back to the whole project (F39), set Scope Neighbourhood 01A again in Advanced if card 2 is to name 01A.
+4. Have the model of part 1 ready, FAST3-phase3-demo.rvt in the work root, made by the phase 3 run. It holds the read of the new project, so the read is not run in the room.
 
-## 1. An empty model, 2 minutes
+## Part 1, the new project, 12 minutes
 
-1. Open the model copy. Show the project browser: Level 1, Level 2, Site, no link, nothing built.
-2. Show the pane on the right: three cards, Project data, Build site, Review and deliver, each saying what it waits for. Settings at the top. Advanced closed at the bottom.
-3. Say: everything the tool builds comes from the files of this project and the rules we choose for it, and every value says where it came from.
+Say: this is the first run of the tool on a second project, the Phase 3 folder, files it had never seen before today. The folder is read in place and never written, the SHA-256 of every file was the same before and after each run.
 
-## 2. Project data, 15 minutes, 55 in the rehearsal
+1. The setup: Settings, Project setup, Start from New project rules, Rev 06. Nothing of the past job is offered: no road surface, no schedule, no rules name.
+2. The read, outside Revit, 26 files: 8.7 min for the intake, of which the raw read 4.6 min. One Civil 3D model drawing takes 215 s of it, the workbook 8.6 s, the PDF 7.4 s, each road drawing 0.8 to 4.4 s.
+3. What the tool read, for each need Strong, Usable, Weak or Missing with one line why. Read it out: the plot outlines Strong, 3198 plots in 12 neighbourhoods. The villa files Strong, 10. The villa type Missing until the code map: the schedule holds the old codes, the villa files the new ones. The road levels Missing, the folder holds no Land XML.
+4. Confirm what was found: the villa type column Landuse_Level_4 with the 10 pairs of the code map, old to new, and the area column Neighbourhood_ID. With them 1878 of 1904 plots read get a villa file.
+5. Scope 3C, 197 plots, 193 typed. Review data shows the plot table.
+6. Card 2, the preview of the Build. With no road level no plot gets a floor level, so the tool builds no plot of this folder past the preview, and card 2 says so.
+7. What is missing, said plainly: the finished road surfaces as Land XML, so nothing is built past the preview today. The coordinate system, the drawing names none. The hand of most plots, 392 of 3198 hold a villa block. When the team saves the road surfaces as Land XML, the same buttons build it.
 
-Rehearsed in run 2 of FAST-3 on 8 Nov from 03:32, steps/revit-results/FAST-3-revit-test.md. Card 1 took 55 minutes there, most of it in the two reads.
+The times of the phase 3 run in Revit are in the phase 3 section of the record.
 
-1. Settings, Project setup, Edit. The New project window lists the files the tool needs and who gives each. Start from New project rules, Rev 06.
-2. The row Road levels: Browse, pick the landxml folder of the project. Then Pick surfaces lists the road surfaces of that folder, each unticked. Tick the ones that give the floor levels, for 01A Compiled West_MM and Part 4 Top Surfaces, in that order. Use these picks. The row then says "Road surfaces in order (2): ...". Pick surfaces before the folder says the folder holds no road surface files. Save setup.
-3. Point at the amber line: no rules chosen yet. Settings, Rules, Open shows the rules of the manual, each missing and not confirmed. Close, the first Build asks about them.
-4. Card 1, Choose project folder, pick the project folder in the Select Folder box. The window 1 Set up site opens by itself with the site drawing of the folder. Show the 5 check points against the drawing. Tick Current on each file, Dry run, Apply.
-5. Choose project folder again, the same folder. The box shows the files and their size and that nothing changes until Apply. Apply.
-6. The read runs outside Revit, about 12 minutes on a full site (734 s in the rehearsal). Revit stays free, show it: pan the view, open a menu. Talk through the next part while it runs.
-7. The window What the tool read: for each need, Strong, Usable, Weak or Missing, with one line why. Close.
-8. The window Confirm what was found: the column that gives each plot its villa type, the column that gives its area, the code map from the schedule, and a hand per prototype, left empty. Confirm. The box says the confirmed values count from the next read (F22), so Choose project folder a third time, Apply, another 12 minutes. Close What the tool read, Cancel on Confirm, the values stay.
+## Part 2, 01A, built before the room, 15 minutes
 
-## 3. Build site, 15 minutes, 45 in the rehearsal
+Say: 01A was used for tuning the rules of the past job, so this shows the tool on ground it was tuned on.
 
-1. Advanced, Scope, Neighbourhood, pick 01A. Say it was used for tuning. Villa mode Links. Do this before 3 Review data, which needs one neighbourhood.
-2. 3 Review data: 278 plots of 01A. Save review, Close.
-3. Card 2, Build, Preview first ticked. The one ask: use the rules of the manual for this project. Yes. The amber line then counts the rules not yet confirmed.
-4. The preview counts the plots and issues, nothing is written to the model yet. Go on.
-5. 2 Read data says it reuses the last read, Apply, a few seconds. 3 Review data opens again, Save review, Close.
-6. The Build goes through Check, Floors and ramps, Levels, Place villas and Walls, each with a box that counts what it will do, Apply on each. Check opens its table, Close goes on.
-7. Place villas links the prototype files. On files of an older Revit it took 28 minutes for 263 links of 13 files in the rehearsal, with no box to answer. Plan the talk for it, or use prototypes saved in Revit 2024.
-8. Until F32 is fixed: after Walls, Revit shows its own box "Highlighted walls overlap". Press OK, the walls are kept. Cancel would undo them.
-9. Card 2 then says Done with its issues, the plots built of the scope and the plots left out with why.
-10. Do not close and open the built model in the room. Until F33 is fixed, the open upgrades the old prototype files again and stops 13 times on "Structural Analytical Model Upgrade", 27 minutes.
-## 4. Review and deliver, 5 minutes
+1. The demo model, opened before the room. The counts: 526 floors and ramps on 263 plots, 1 road toposolid, 526 levels, 263 villa links of 13 villa files, all 13 the Revit 2024 copies, 582 walls.
+2. The times of the rehearsal, against the targets of the order of 06:45:
 
-1. Card 3: the issues of the build with Open rules, the plots with no road level, and the bar of where each value came from, computed, rule, person entered, missing.
-2. Report writes the Excel file, 23 s in the rehearsal: the plot schedule, floors, walls, issues, rules used, placed, skipped and assumed values. Update from report reads an edited Excel back and shows each change before it is applied. The same Excel unedited says "No changes found in this Excel." and keeps Apply off.
+| What | Target | Today | Run 2 of 7 Nov |
+|---|---|---|---|
+| Card 1, Set up site to Scope set | under 15 min | 16.9 min, not met, the tool's own work about 8 min | 55 min |
+| The read | under 8 min | 454 s, one read | two reads, 734 s and 736 s |
+| Confirm | | 27 s, no second read | could not apply in Revit |
+| A reused read | under 10 s | 3.1 s, from card 1 | about 4 s, inside the Build only |
+| The Build, all steps | under 20 min | 4.2 min | card 2 45 min |
+| Step 7 Place villas | under 5 min | 96 s | 28 min |
+| Step 8 Walls | | 6.5 s, no box | 7.4 min on a box |
+| The reopen | under 5 min, no box | 70 s, no box | 27.5 min, 13 boxes |
+
+3. Card 2 names the plots built and the plots left out with why: "15 of 278 plots are not built: no floor level 11, no outline or front 2, no unit 2. Built with a value missing: 201 plots".
+4. Card 3: 867 issues of the scope, the same count as card 2, with Open rules, "13 plots have no road level", and the source bar, where each value came from: computed, rule, person entered, missing.
+5. Report writes the Excel file, 23 s in run 2: the plot schedule, floors, walls, issues, rules used, placed, skipped and assumed values. Open it. Update from report reads an edited Excel back and shows each change before it is applied. Report was not run on this copy in the rehearsal.
+
+## Part 3, one live Build
+
+Not shown. The Build of 01A takes 4.2 min, but the model of part 2 is built and must not change, and a new copy needs card 1 first. If there is time, say the times of the table instead.
+
+## What does not work yet
+
+Say these in plain words, they are true today.
+- Extra presses after the one read. After Confirm, Review data stays grey until Choose project folder is pressed once more, it then reuses the read in seconds (F36). The Prototypes folder is not filled by the one read, it is picked once in Advanced (F35). The reuse box says one line that is not true of a reuse (F37).
+- On a new project, Set up site does not take the site drawing from the folder, the person picks it once in Advanced, row Baseplan (F40). Then Use CAD finds no plot outline in that drawing, where the read finds 3445, so the phase 3 run typed the site position by hand, Easting 500000, Northing 0, Angle 0, the false easting of the zone and not the site (F41, F42).
+- Scope goes back to the whole project when a model is opened again (F39).
+- Plots not built and why. On 01A, 15 of 278: 11 have no floor level, as they get no road level, 2 have no outline or front, 2 have no villa type.
+- Plots built with a value missing, 201 on 01A, the hand among them: where the files give no villa block, the plot is built not mirrored and the hand is tagged missing in the plan and the report.
+- No yard floors. The rules of Rev 06 hold the back yard floor false, so step 5 places generic and ramp floors only.
+- A new project with no Land XML stops at the preview, as part 1 shows.
+
+All of these are in steps/seam.md for the next build.
 
 ## If something stops
 
