@@ -2,6 +2,29 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Lead, the label count of UiLabelTests for FAST-13 and FAST-15, 8 Nov 2026
+
+Goal:
+- Unblock PR 283 of FAST-13: UiLabelTests.cs line 206 pins the count of chosen labels at 526, its 3 new lines of R812 make 529.
+
+Done:
+- dotnet/SiteAdaptation.Tests/UiLabelTests.cs added to the allowed list of FAST-13 and FAST-15, the count only, by the lines each task adds.
+
+Checked:
+- Changing the count on main before PR 283 lands would fail main, so the lane changes it in its own PR.
+
+Remains:
+- PR 283 and the PR of FAST-15.
+
+Known bugs:
+- None new.
+
+Next:
+- Item 5 of Bader's order when FAST-13 and FAST-15 are on main.
+
+Your turn:
+- The folder path of the new project by 10:00.
+
 ## Lead, the label list shared by FAST-13 to FAST-15, 8 Nov 2026
 
 Goal:
