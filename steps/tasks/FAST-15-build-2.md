@@ -24,6 +24,7 @@ allowed:
   - steps/log.md
   - steps/seam.md
   - docs/design/14-ui-labels.md
+  - dotnet/SiteAdaptation.Tests/UiLabelTests.cs
 ---
 
 # Scope
@@ -39,7 +40,7 @@ Target: one read under 8 minutes, a reused read under 10 seconds.
 
 Not here: the files of FAST-13-build-3 (PaneViewModel.cs, PaneText.cs, PaneHost.cs, CheckRun.cs, BuildSteps.cs, PlaceVillas) and FAST-14-build-1. A change there is a line in steps/seam.md.
 
-Shared records, the one exception to no path in two lists, as every PR carries its own log entry and the folder rules check reads this list: docs/rules/index.md by python/rules_index.py, docs/design/14-ui-labels.md for new pane words UiLabelTests reads (Lead, 8 Nov 07:45, asked by build-3), steps/log.md with this PR's entry on top, steps/seam.md for lines to Lead. Merge main before every push.
+Shared records, the one exception to no path in two lists, as every PR carries its own log entry and the folder rules check reads this list: docs/rules/index.md by python/rules_index.py, docs/design/14-ui-labels.md for new pane words UiLabelTests reads (Lead, 8 Nov 07:45, asked by build-3), and its count in dotnet/SiteAdaptation.Tests/UiLabelTests.cs, only that count and only by the lines this task adds (Lead, 8 Nov 08:55), steps/log.md with this PR's entry on top, steps/seam.md for lines to Lead. Merge main before every push.
 
 You do not open Revit. Tests and the worker on S1 outside Revit prove it, the PR says "not seen in Revit", revit-test checks it in item 5 of the order. Real inputs are read in place and never written, S1 hashed before and after any run on it.
 
