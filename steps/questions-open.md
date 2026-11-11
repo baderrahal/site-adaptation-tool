@@ -149,10 +149,6 @@ Q306. A neighbourhood picked after the first read (Lane B Task 6, R457, R366). T
 - Recommended: button 2 takes the project key as button 1 does, since the pick does not change what is read.
 - Other: keep the key and refresh the rows at the pick, so the box asks for step 2 before step 3.
 
-Q336. Link parameter group is Text not Data (Lane D D2, R460, R464). The read KC2 of the IMC key copy in Revit gives all 10 shared link parameters the group Text (autodesk.parameter.group:text-1.0.0) and the spec String, 338 links, 337 holding a value (RAN, round_addin\reads\KC2\run4\testhost_KC2_parameters.json). The sheet held Data, CHOSEN in FIX-1NOV-D. D2 wrote Text into config/shared_parameters.xlsx for the 10 rows, so button 1 binds them under Text as the past job does, and R464 moves a parameter a model holds under Data to Text. Plot is a project parameter of the key with no GUID, the read gives it no group, it stays Data.
-- Recommended: Text, as the past links hold it.
-- Other: Data, the group of FIX-1NOV-D, by editing the Group column back.
-
 Q337. Swap back in the same model unproven (Lane D D3, R450, R467, Q323). Bader asked to point config at the mass files again, reload and confirm the masses return. A buttons job cannot open an existing model, the guard of Q323 refuses it, so D3S ran on a new project from the template (RAN, 336 masses placed). The masses return by the config alone, a reload inside one model is UNKNOWN. The same guard is why D3L started from the template and not from a copy of SA-demo-start.rvt.
 - Recommended: Answer Q323 as it recommends, then run the swap back on the D3L model once.
 - Other: Accept the proof on two new projects.
@@ -280,10 +276,6 @@ Q419. Ramp slope limit does nothing under the past job (Lane C RULES-3NOV-C, R54
 - Recommended: Keep it in the table and let the row say Rev 06 only, in Part 2.
 - Other: Hide the two rows under the past job.
 
-Q441. Order of the raw input changes (Lane C TRUTH-4NOV-C). The tool stops with no past output, steps/truth-audit.md section 5.
-- Recommended: Truth first, short list 7, 5, 11, then 1, 2, then 3, 4, 6.
-- Other: 1 and 2 first.
-
 Q450. Report defaults of old number, revision, status (Lane B, R550, R552). CHOSEN: Old Plot No. is baseplanLabel of plots.csv, v9PlotNumber differs, revision P01, status S0.
 - Recommended: keep these, addin.report in config changes them.
 - Other: name the column and codes.
@@ -309,9 +301,6 @@ Q452. Button 1 on a past model, the 6b line (R508). 01_next says changes nothing
 
 Q453. More overlap warnings from no template (6b). 722 against 510 on IMD, the plan the same, cause UNKNOWN.
 - Recommended: leave it, no number moves.
-
-Q454. Report name section on the demo config (R542). Hidden, C:\SA-demo\config has no fileName block, so not seen in Revit.
-- Recommended: refresh that config, then one look.
 
 Q455. A villa on an open space strip (6b, R557). Plot 1995 of 022 and 2656 of 02: type OS, 150 m2, no block, a DP4 number. 1995 is built. Label 1985 beside it, 300 m2, has no number.
 - Recommended: leave a row of type OS with no block out, listed in Skipped.
