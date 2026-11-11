@@ -2,14 +2,13 @@
 
 A Revit 2024 add-in, C# on .NET Framework 4.8, that takes a project's site drawings, schedules and prototypes and builds the site model: levels, floors, ramps, villa links and walls, then checks it and reports. Python stays in the repo as the test checker only. The rules live in docs/rules/ and nowhere else, docs/rules/index.md finds a rule by id.
 
-## Fast build, 6 to 8 Nov
+## The old project on Bader's PC, from 12 Nov
 
-Bader's order of 6 Nov, it overrides the lines below until it is deleted after 8 Nov.
-- One reviewer pass per PR, fix REAL only, merge on green within the hour. No breaker, second review, S1, hold-out, parity or scoring per PR, no second check of the task skill. Job tests stays required.
-- No records PR. Each PR carries its own top entry of steps/log.md under the seven headings.
-- A task may ship in several PRs, one card or one function each, pushed at least every 2 hours. Its last PR sets done.
-- No design work, the design is the 3-stage sketch of 4 Nov and the task text. Live plan steps/plan-fast-3days.md, asks between lanes steps/seam.md.
-- 7 Nov: build-1 and build-3 test in Revit before the PR, on a model copy, window lock, .claude/revit-lanes.txt.
+Bader's order of 12 Nov. The fast build is over, steps/history/CLAUDE-fast-build-6nov.md.
+- The goal: the tool builds every neighbourhood of Phase 1 from an empty model, each result measured against the past Revit models. Phase 3, the new project path, waits for that.
+- The work machine is Bader's PC, steps/pc-setup.md. One Revit at a time, 16 GB. Civil 3D 2026.
+- The work root is C:\SA-work\SiteAdaptation, written into %APPDATA%\SiteAdaptation\machine.json by scripts/set-machine.ps1. No path of a user or a tool folder in a script, hook or rule.
+- The live plan is steps/plan.md. S1 and the hold-out per PR wait until their folders and answers exist again here, steps/old-project-pc.md.
 
 ## The 3 stages and the rules
 
@@ -93,7 +92,7 @@ Plain English. No em-dashes, no semicolons, no emoji, in every file, commit and 
 ## Commands
 
 ```
-py -3.12 -m venv .venv
+%LOCALAPPDATA%\Programs\Python\Python312\python.exe -m venv .venv
 .venv\Scripts\python -m pip install -r requirements.txt
 .venv\Scripts\python -m pytest python
 dotnet build dotnet\SiteAdaptation.sln -c Release

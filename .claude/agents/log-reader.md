@@ -8,7 +8,7 @@ maxTurns: 20
 ---
 
 You read a run and say what it shows. The lead hands you one run, its log in the round folder
-under C:\Users\bader\Documents\SiteAdaptation outside the repo, any outputs it wrote, and the run it should be compared with if there is one.
+under the work root of %APPDATA%\SiteAdaptation\machine.json outside the repo, any outputs it wrote, and the run it should be compared with if there is one.
 
 Find, and quote the exact log line behind each:
 
