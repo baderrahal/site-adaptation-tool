@@ -32,7 +32,7 @@ Lead, on Bader's own PC (Windows 11 Pro, user bader), main 0c31771. Bader's orde
 
 - `pwsh scripts\set-machine.ps1` wrote %APPDATA%\SiteAdaptation\machine.json with workRoot C:\SA-work\SiteAdaptation and made the folder. RAN, output: `WROTE ...\machine.json, workRoot C:\SA-work\SiteAdaptation`.
 - CHOSEN by Code: the order named C:\SA-work. The readers of the machine file refuse a work root whose last folder is not named SiteAdaptation (dotnet/SiteAdaptation.Common/WorkRoot.cs:82, dotnet/SiteAdaptation.TestHost/TestHostPaths.ps1:135), since the test host keeps its files in a folder of that name. So C:\SA-work is the work folder and C:\SA-work\SiteAdaptation the work root. The folders of the order lie in it: prototypes_2024, answer-key, scenarios.
-- The script refuses a root the readers would refuse and a root under an input root. scripts/checks/test_set_machine.py, 6 passed.
+- The script refuses a root the readers would refuse and a root under an input root. scripts/checks/test_set_machine.py, 7 passed, a root that ends in a backslash among the refused.
 
 ## Laptop paths
 
@@ -41,7 +41,7 @@ Searched every tracked file for the laptop user name, PortableGit and the pwsh f
 - The hits left are records of past rounds under steps/ and docs/rules/, kept as they are.
 - Changed: two agent files and README.md named C:\Users\bader\Documents\SiteAdaptation, they now name the work root. .claude/rules/revit.md said the laptop has enough memory, it now says one Revit at a time. CLAUDE.md lost the fast build section of 6 Nov, kept in steps/history/CLAUDE-fast-build-6nov.md, and holds the order of 12 Nov.
 - Civil 3D: every version named in code and config is already 2026 (python/c3d_probe.json:3 and :213, dotnet/SiteAdaptation.C3DProbe/Civil/SiteAdaptation.C3DProbe.Civil.csproj:7). 2025 stands only in records of the laptop.
-- Left as they are, they hold this PC's own user and Revit rewrites them at each run: the Assembly path of dotnet/SiteAdaptation.TestHost/SiteAdaptationTestHost_Revit2024.addin:5 and dotnet/SiteAdaptation.Placer/SiteAdaptationPlacer_Revit2024.addin:5.
+- Left as they are: the Assembly path of dotnet/SiteAdaptation.TestHost/SiteAdaptationTestHost_Revit2024.addin:5 and dotnet/SiteAdaptation.Placer/SiteAdaptationPlacer_Revit2024.addin:5 holds a folder of this PC's own user, as committed before the laptop. Whether a run reads that line or the manifest the install writes into the add-ins folder is UNKNOWN, not traced. steps/audit-12nov.md section 5 names them for the public repo.
 
 ## Lanes
 

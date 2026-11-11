@@ -21,7 +21,8 @@ if (-not $AppData) { Stop-Refused 'no APPDATA folder is known' }
 $plain = $WorkRoot -match '^[A-Za-z]:\\' -and @($WorkRoot -split '\\') -notcontains '..' -and $WorkRoot.IndexOf('/') -lt 0 -and
     $WorkRoot.IndexOf(':', 2) -lt 0 -and [IO.Path]::GetFullPath($WorkRoot) -ceq $WorkRoot
 if (-not $plain) { Stop-Refused "the work root is not a plain full path: $WorkRoot" }
-if ((Split-Path $WorkRoot -Leaf) -cne 'SiteAdaptation') { Stop-Refused "the last folder of the work root must be named SiteAdaptation: $WorkRoot" }
+# A root that ends in a backslash has no last folder name for WorkRoot.Of, and Get-WorkRoot of the test host refuses it by name
+if ($WorkRoot.EndsWith('\') -or (Split-Path $WorkRoot -Leaf) -cne 'SiteAdaptation') { Stop-Refused "the last folder of the work root must be named SiteAdaptation: $WorkRoot" }
 # A run writes only under the work root, so the work root never lies in a folder of real inputs
 foreach ($inputRoot in Get-InputRoots (Get-RepoRoot $PSScriptRoot)) {
     if (Test-InsideFolder $WorkRoot $inputRoot) { Stop-Refused "the work root lies under the input root ${inputRoot}: $WorkRoot" }

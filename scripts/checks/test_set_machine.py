@@ -35,9 +35,12 @@ def test_keeps_the_other_keys(tmp_path):
     assert json.loads(machine.read_text(encoding="utf-8"))["other"] == 3
 
 
-@pytest.mark.parametrize("root", [r"C:\SA-work", r"SiteAdaptation", r"C:\a\..\SiteAdaptation", r"C:\02-Site Adaptation\SiteAdaptation"])
+@pytest.mark.parametrize("root", [r"C:\SA-work", r"SiteAdaptation", r"C:\a\..\SiteAdaptation", r"C:\02-Site Adaptation\SiteAdaptation", "C:\\sa-test-none\\SiteAdaptation\\"])
 def test_refuses_a_root_the_readers_refuse(tmp_path, root):
     done = run(tmp_path / "appdata", root)
     assert done.returncode == 1
     assert "REFUSED" in done.stdout
+    # The root that ends in a backslash is a plain full path, so it is the name check that refuses it
+    if root.endswith("\\"):
+        assert "last folder" in done.stdout
     assert not (tmp_path / "appdata" / "SiteAdaptation" / "machine.json").exists()
