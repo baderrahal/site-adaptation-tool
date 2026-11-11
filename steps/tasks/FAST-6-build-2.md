@@ -2,7 +2,7 @@
 id: FAST-6-build-2
 lane: build-2
 stage: 1
-status: open
+status: done
 allowed:
   - dotnet/SiteAdaptation.AddIn/ScanResults/DataCheckStep.cs
   - dotnet/CadReader/DataCheckCommand.cs
@@ -46,3 +46,7 @@ The data check says Shared parameters strong from the pane on the S1 folder, pro
 - Keep steps/heads-up/<lane>.md current: what changed, where, what calls what, what is next. One page.
 
 At the end, put your final statement in the PR body and in steps/heads-up/<lane>.md, then push.
+
+# Closed
+
+Closed by Lead on 12 Nov 2026, not finished. Bader's order of 12 Nov ended the fast build and the demo. What was left of this task is in steps/audit-12nov.md and steps/plan.md.

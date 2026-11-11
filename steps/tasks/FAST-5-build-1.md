@@ -2,7 +2,7 @@
 id: FAST-5-build-1
 lane: build-1
 stage: 2
-status: open
+status: done
 allowed:
   - dotnet/SiteAdaptation.AddIn/Pane/SiteBuildFlow.cs
   - dotnet/SiteAdaptation.AddIn/Pane/SiteBuildPlan.cs
@@ -61,3 +61,7 @@ On the S1 folder, neighbourhood 01A, from an empty model copy: Choose project fo
 - Keep steps/heads-up/<lane>.md current: what changed, where, what calls what, what is next. One page.
 
 At the end, put your final statement in the PR body and in steps/heads-up/<lane>.md, then push.
+
+# Closed
+
+Closed by Lead on 12 Nov 2026, not finished. Bader's order of 12 Nov ended the fast build and the demo. What was left of this task is in steps/audit-12nov.md and steps/plan.md.

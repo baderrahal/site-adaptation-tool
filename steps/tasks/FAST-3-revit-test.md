@@ -2,7 +2,7 @@
 id: FAST-3-revit-test
 lane: revit-test
 stage: 3
-status: open
+status: done
 allowed:
   - steps/revit-results/
   - steps/ui-shots/
@@ -45,3 +45,7 @@ Rule ids: R720 to R729. Question ids: Q550 to Q559. Take no other id.
 - Keep steps/heads-up/<lane>.md current: what changed, where, what calls what, what is next. One page.
 
 At the end, put your final statement in the PR body and in steps/heads-up/<lane>.md, then push.
+
+# Closed
+
+Closed by Lead on 12 Nov 2026, not finished. Bader's order of 12 Nov ended the fast build and the demo. What was left of this task is in steps/audit-12nov.md and steps/plan.md.
