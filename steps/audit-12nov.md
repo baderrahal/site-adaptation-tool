@@ -13,7 +13,7 @@ Counts at a glance:
 | Rule ids used in code with no rule line | 3: R689, R690, R691 |
 | Buttons | 35: 34 reach the code they name, 1 reaches nothing |
 | Faults F1 to F42 | 26 fixed, 13 open, 2 explained, 1 UNKNOWN |
-| Fixed faults seen in Revit after the fix | 22 of 26, 1 partly, 3 not seen |
+| Fixed faults seen in Revit after the fix | 21 of 26, 2 partly, 3 not seen |
 | Backlog lines | 264: 245 keep, 11 done, 8 no longer apply |
 | Open questions with full text in questions-open.md | 101: 98 keep, 1 done, 2 no longer apply |
 
@@ -223,7 +223,7 @@ All 42 are defined in steps/seam.md. R3 is steps/revit-results/FAST-3-revit-test
 | F41 | New project: Use CAD finds no plot outline | open, cause not measured | yes, R3:446 | seam.md:123 |
 | F42 | A typed origin outside one UTM zone is refused | open | yes, R3:447 | seam.md:124 |
 
-Counts: fixed 26, open 13 (F11, F18, F19, F20, F23, F35 to F42), explained 2 (F14, F15), UNKNOWN 1 (F21). Of the 26 fixed, 22 were seen in Revit after the fix, 1 partly (F12), 3 not seen (F4, F7, F17).
+Counts: fixed 26, open 13 (F11, F18, F19, F20, F23, F35 to F42), explained 2 (F14, F15), UNKNOWN 1 (F21). Of the 26 fixed, 21 were seen in Revit after the fix, 2 partly (F9, F12), 3 not seen (F4, F7, F17).
 
 ## 3. Remaining features
 
@@ -235,13 +235,13 @@ The numbers are of neighbourhood 01A of folder S1, which was used for tuning, un
 |---|---|---|---|
 | Site coordinates | partly | S1: 5 of 5 check points pass from the CAD drawing, 8 Nov (R3:244). Phase 3: 0 check points, a typed position used (R3:445) | F40, F41, F42 |
 | Plot read | works on S1 | 2,618 of 2,964 numbered plots are villa plots, 278 in 01A, one read 454 s, 8 Nov (R3:385). Scenario S1: 1,873 of 1,891 plot numbers right, 6 Nov (steps/scenarios.md:9) | A file open in Civil 3D makes the read not whole |
-| Villa type | partly, a person confirms a column | After Confirm a type for 2,570 of 2,964 plots, 32 with no villa file, 8 Nov (R3:249). Scenario S1: 233 of 1,891 right with no confirm, 1,859 with it | An area with no type column gets no villa (F15) |
+| Villa type | partly, a person confirms a column | After Confirm a type for 2,570 of 2,964 plots, 32 with no villa file, 8 Nov (R3:249). Scenario S1: 233 of 1,891 right with no confirm (steps/scenarios.md:9), 1,859 with it (steps/scenarios.md:53) | An area with no type column gets no villa (F15) |
 | Road levels | partly | 13 of 278 plots of 01A have no road level, 8 Nov (R3:279) | The person picks the surfaces. No Land XML, no plot built |
 | Road toposolid | partly | 1 made from one surface, 433 warnings taken, 8 Nov (R3:344) | 01A needs two surfaces and the tool takes one, Q600. No one checked its shape |
 | Floors, ramps, yards | floors and ramps work, yards not built in the new mode | 526 floors on 263 plots: 263 generic, 263 ramp, 0 yard, 62 s, 8 Nov (R3:343) | 0 yard floors in every run of 6 to 8 Nov. It is rule R410, the Rev 06 set holds the back yard floor off, Q225 open (seam.md:79) |
 | Levels | works on 01A | 526 levels at the plan on 263 plots, 0 moved, 8 Nov (R3:345) | 15 plots listed with no level (R3:260) |
-| Villa links, mirror, rotation | links work, mirror mostly missing, rotation UNKNOWN | 263 links of 13 villa files, 96 s, 8 Nov (R3:346). The plan lacks the mirror value on 211 of 278 plots (R3:279). Scenario S1: mirror right on 735 of 1,891 | A source for the hand of each prototype. Whether rotation is right is in no record |
-| Walls | partly | 582 walls on 263 plots, 6.5 s, 8 Nov (R3:347) | 584 issues of step 8 in run 2 (R3:288). No person looked at the walls |
+| Villa links, mirror, rotation | links work, mirror mostly missing, rotation UNKNOWN | 263 links of 13 villa files, 96 s, 8 Nov (R3:346). The plan lacks the mirror value on 211 of 278 plots (R3:279). Scenario S1: mirror right on 735 of 1,891 with no confirm (steps/scenarios.md:9) and on 448 of 1,891 with a confirmed profile (steps/scenarios.md:53) | A source for the hand of each prototype. Whether rotation is right is in no record |
+| Walls | partly | 582 walls on 263 plots, 6.5 s, 8 Nov (R3:347) | 584 issues of step 8 in run 2 (R3:288), a run before the last one. No person looked at the walls |
 | Shared parameters on links | partly, not counted in Revit | The sheet reads 10 parameters each with a GUID (R3:246). CASE and Foundation Type missing on 2 of 278 plots on 8 Nov, 213 on 7 Nov (R3:279, R3:222) | They follow an assumed hand on about 201 plots, so they may be wrong. No run counted the values on the links in Revit |
 | Report | works, run once | 1 Excel in 23 s, 13 sheets, 278 plot rows, 526 floor rows, 582 wall rows, 8 Nov (R3:289) | Not run on the last copy |
 | Update from report | partly | Opened with an unedited Excel: 0 changes found, 8 Nov (R3:290) | An edited Excel was never tested |
@@ -277,7 +277,7 @@ Kept on purpose:
 - Ten old pane and window draft questions have no answer on record and may be dropped by Bader in one go: Q284, Q285, Q286, Q287, Q291, Q293, Q370, Q405, Q407, Q409.
 
 Found and not changed:
-- The index of steps/questions-open.md, lines 9 to 22, still names 16 ids that steps/questions-closed.md closed: Q148, Q149, Q156, Q190, Q214 to Q216, Q218 to Q221, Q331, Q333, Q338, Q391, Q394. They sit inside long lines, so they were not cut by line. Line 22 is a broken copy of part of line 20.
+- The index of steps/questions-open.md, lines 9 to 22, still names 17 ids that steps/questions-closed.md closed: Q148, Q149, Q156, Q190, Q214 to Q216, Q218 to Q221, Q331, Q333, Q336, Q338, Q391, Q394. Q441 and Q454 were not looked for there. They sit inside long lines, so they were not cut by line. Line 22 is a broken copy of part of line 20.
 - 14 open questions have no backlog line: Q495, Q497, Q498, Q501, Q502, Q503, Q505 to Q508, Q513 to Q516.
 - 109 more open questions have their full text in steps/history/questions-open-older.md and were not read one by one.
 
