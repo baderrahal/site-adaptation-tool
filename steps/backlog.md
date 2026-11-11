@@ -4,7 +4,6 @@ One backlog by stage, one line each with its Q or R id if it has one. Sources: s
 
 ## 1 Project data
 
-- The pane in 3 stages, Project data, Build site, Review and deliver, with Settings and Advanced, Bader asked several times, task R2-C4-revit-test of 6 Nov 2026
 - Step 2 reads with no past schedule, truth audit item 1, Large
 - Remove the need for plots.csv, labels.csv and phase1_border.csv, border from a CAD ring the team picks, truth audit item 2, Large
 - Remove needless stops: prototype_offsets.json, floor_outlines.json past values, addin.position.file under CAD, truth audit item 7, Small
@@ -54,7 +53,6 @@ One backlog by stage, one line each with its Q or R id if it has one. Sources: s
 - Q327 Elevation of the shared origin from CAD
 - Q329 The rule that picks the control points
 - Q334 An xlsx read inside Revit
-- Q336 Link parameter group is Text not Data
 - Q345 The key of a conflict pick
 - Q346 A villa block pick of one layer
 - Q348 A conflict pick of the first source
@@ -74,8 +72,6 @@ One backlog by stage, one line each with its Q or R id if it has one. Sources: s
 ## 2 Build site
 
 - Link fits measured from the prototype, not stored, linkOrigin.byCode, truth audit item 4, Medium
-- Set boundary wall thickness from the manual, parameter GUIDs from a client sheet with its source, Q149, truth audit item 9, Small
-- A mark per value of computed, rule, pick or past in the plan, truth audit item 11, Medium
 - Button 5 replaces floors the tool placed when the outline changed, Q439, truth audit item 12, Medium
 - Remade key copy not filed, Q069, Lane B
 - Pane buttons 1 to 9 not pressed on the 6b build, Rev 6 not run on the zones, Lane B
@@ -88,7 +84,6 @@ One backlog by stage, one line each with its Q or R id if it has one. Sources: s
 - Second review of R575, it writes into a model and has had none, Lane D
 - A run line or file for what a real press did and for each mass that does not fit, Q476, Q470, Lane D
 - A person looks at the built plots, no one did in 6b, Lane B
-- Q149 M14 boundary wall of an irregular plot
 - Q150 M15 foundation depth, at least or equal
 - Q153 A lone copy of a tagged element
 - Q160 A plot list takes unit plots only
@@ -157,7 +152,6 @@ One backlog by stage, one line each with its Q or R id if it has one. Sources: s
 
 ## 3 Review and deliver
 
-- No past job shares on a new project report, each sheet says which values were past, rule or computed, truth audit item 10, Small
 - The mark per value also in the check table and the report, truth audit item 11, Medium
 - Report file name section not seen in Revit, Lane B and C
 - 4 Check title reads 1 plots, steps/check-2nov.md:49, Lane C
@@ -184,13 +178,11 @@ One backlog by stage, one line each with its Q or R id if it has one. Sources: s
 - Q343 Passing joint rows in the check chips
 - Q347 A second Update before 4 Check runs again
 - Q355 A Wrong on a plot of two numbers
-- Q394 Update from report on a new project
 - Q405 Export to Excel hidden in Rules
 - Q414 How long a whole project takes
 - Q417 Whole project stops at step 3
 - Q450 Report defaults of old number, revision, status
 - Q451 Report Issues column against its sheets
-- Q454 Report name section on the demo config
 - Q476 What a real press shows of the toposolid
 
 ## Rules
@@ -224,38 +216,27 @@ One backlog by stage, one line each with its Q or R id if it has one. Sources: s
 - Q415 Pane lines say more than is built
 - Q419 Ramp slope limit does nothing under the past job
 - Q437 One hand entry turns the joint off
-- Q441 Order of the raw input changes
 - Q472 Ramp front overrides stand off the road
 
 ## Later
 
-- The close of R2 by Lead: /audit, steps/r2-check.md with every Lead waiver and its reason, the scenarios table before and after C1, the hold-out at 5, 20 and 50 mm, the source mix, steps/usage.md, /questions at most 10, the R2 merged message. Bader's order of 5 Nov, in no task file
 - Theme height cap of HelpBox and RuleValues not seen in Revit, Lane B
 - Road tick R574 seen in a rendered image only, Lane C and D
 - Listener cases not run in Revit: throw inside Revit, killed, hung, slot 2, Lane C
 - A UI check in the gate, a theme key that does not exist failed nothing, Lane B
 - A build per lane, one add-in folder makes every Revit pass wait on installs, steps/revit-listener.md:22, Lane B
 - Move the 6b driver and second method scripts into the repo, tools only with values out, Lane B
-- Refresh C:\SA-demo\config, it may lack floors.plotPull and floors.roadTopography, Q454, Lane B and D
-- Do not show the dry run kit again until truth audit 7, 5 and 11 are done, Lane C
 - R347 worker tests of WorkerRunTests on a 1 s time limit fail at random under load, 4 tests, moved out of the required job tests on 5 Nov 2026 by Bader's order, as reruns to get green hide faults. They still run in job dotnet of test.yml, which is not required. The first move took out every R347 test, and PR 210 then broke two others every run with the required job green, so those came back. Fix: measure the timing they rest on and take it from the run, not the clock, then put them back. steps/latent.md:183
 - R310 process samples fail at random on this PC, 3 tests, idle as well as under load, measured 5 and 6 Nov: ParsonsModelTests.cs:126 Expected Integer Actual Null, and :204. A sample takes 21 to 31 s when it passes. Measure the CIM time on this PC and take the limit from it, steps/latent.md Gate R310 at idle as well, Lead
 - R104 FreezeGuardTests failed once on net8.0 on the Windows runner of job tests, run 41856763267, and passed on the same commit in run 41856748086, cause not measured, setup-lanes
 - A rule that a round's test model is rechecked against main before it starts, Lane D
 - Stale records: steps/lane-b.md:15 and :18, steps/PROGRESS.md line 1 date, the index of steps/questions-open.md does not match its text, Lane B and C
 - steps/questions-open.md and steps/log.md are near the 100 KB cap of R400, move text before the next long entry, Lane A, B and C
-- Clean up 55 worktrees: Lane D TOPO, agent-ad19500003cae4104, agent-afa7793be2038fb39 and others with nothing ahead, by Bader's own command, no git worktree prune, Lane A, B, C and D
 - Delete origin/records/6c-3nov-c-stop, one stale line, Lane C
-- Delete lane_c_wt\listener and the old flags of check_6c by hand, keep truth_4nov for the raw input test, Lane C
-- Delete p_topo copies after Q439, worktree p3novb\head and the 4 local lane-b branches, Lane B and D
-- Remove siteBuild.minFreeGB from python/window_lock.py:180, Bader's rule is no RAM floor, the code still applies 2 GB, setup-lanes
-- Turn on job tests as the required check of main, setup-lanes
 - Lane role edge cases: a cd into the main folder takes the lead role, a separate clone takes the lead role, a nested worktree that lost its .git walks up to the lead role, setup-lanes review
 - The task file is parsed in lane.ps1 and in check_common.py, and the work root in lane.ps1 and project_profile.py, with no parity test, setup-lanes review
 - The caller check finds a use by pattern, a function of the same name still counts, a compiler based check is the real answer, setup-lanes review
 - A Lead line in a PR body waives the task folder check, only the lane hooks hold a lane to its role, setup-lanes review
-- Give samples/new-project a made up project, then the clean folder test runs, setup-lanes
-- Decide which zones are held out and how predictions reach GitHub with no real value in git, setup-lanes
 - Q151 Q075 moved without the majority run
 - Q154 Freeze guard limit for an image job
 - Q181 Timing of the labels J11 and J14
