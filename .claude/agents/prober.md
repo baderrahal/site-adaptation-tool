@@ -11,7 +11,7 @@ You measure. Nothing about the host program is assumed in this repo, and you are
 known. The lead hands you one question.
 
 Every file you write goes outside the repo, under
-`C:\Users\bader\Documents\SiteAdaptation\round_addin\probes`. Never under `tools/probes`,
+`round_addin\probes` under the work root of `%APPDATA%\SiteAdaptation\machine.json`. Never under `tools/probes`,
 `docs/history` or any other folder of the repo.
 
 How a measurement is made:

@@ -2,7 +2,7 @@
 id: FAST-12-build-3
 lane: build-3
 stage: 2
-status: open
+status: done
 allowed:
   - dotnet/SiteAdaptation.AddIn/PlaceVillas/
   - dotnet/SiteAdaptation.AddIn/Revit/WarningCollector.cs
@@ -47,3 +47,7 @@ One PR merged on green: step 7 on a copy of the 01A model loads the Revit 2021 p
 - Keep steps/heads-up/<lane>.md current: what changed, where, what calls what, what is next. One page.
 
 At the end, put your final statement in the PR body and in steps/heads-up/<lane>.md, then push.
+
+# Closed
+
+Closed by Lead on 12 Nov 2026, not finished. Bader's order of 12 Nov ended the fast build and the demo. What was left of this task is in steps/audit-12nov.md and steps/plan.md.

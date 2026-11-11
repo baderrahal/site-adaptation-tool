@@ -9,6 +9,9 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "scripts" / "scenarios"))
+import scenario_tools as tools  # noqa: E402
+
 HOOKS = ROOT / ".claude" / "hooks"
 pytestmark = pytest.mark.skipif(sys.platform != "win32" or shutil.which("powershell") is None, reason="the lane hooks are Windows PowerShell")
 
@@ -118,7 +121,8 @@ def test_status_file_is_never_edited_by_hand(lanes):
 def test_outside_the_repo_a_lane_writes_only_to_scratch_and_work_folders(lanes):
     tree = lanes["build-1"]
     assert edit(tree, Path(os.environ["TEMP"]) / "scratch" / "a.txt")[0] == 0
-    assert edit(tree, Path.home() / "Documents" / "SiteAdaptation" / "logs" / "a.txt")[0] == 0
+    # The work root of this machine, the machine file when there is one, as the hook reads it
+    assert edit(tree, tools.work_root() / "logs" / "a.txt")[0] == 0
     assert edit(tree, Path.home() / ".claude" / "memory" / "a.md")[0] == 0
     code, _, err = edit(tree, r"C:\SA-demo\config\project.json")
     assert code == 2 and "outside this worktree" in err
