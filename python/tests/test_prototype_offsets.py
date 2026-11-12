@@ -38,7 +38,7 @@ def write_offsets(path, **sections):
 def test_r100_the_shipped_file_is_read_with_both_sections_and_every_group_has_the_keys_a_rule_needs():
     data = prototype_offsets.load()
     assert isinstance(prototype_offsets.entry_offset(data), float)
-    assert len(data["groups"]) > 0
+    assert len({(group["block"], group["position"]) for group in data["groups"]}) == len(data["groups"]) > 0
     for group in data["groups"]:
         assert set(prototype_offsets.GROUP_KEYS) <= set(group)
         assert len(group["offset"]) == 2 and set(group["relative"]) >= {"rotationDeg", "mirrored"}

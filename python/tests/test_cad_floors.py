@@ -14,7 +14,6 @@ FLOORS = {"types": {"generic": ["Generic 150mm"], "yard": ["yard"], "ramp": ["Ra
 JOB = {"neighbourhood": "XX", "schedule": "s.xlsx", "sheet": "S", "prototypes": "C:\\x\\past.json"}
 DOCUMENT = {"surveyPoint": {"position": [0, 0, 0], "sharedPosition": [0, 0, 0]}, "angleToTrueNorthDeg": 0.0,
             "floors": [{"level": "L1", "levelElevation": 0.0}, {"level": "L2", "levelElevation": 4.0}]}
-RAW_PROFILE = {"typologies": {"DP1": {"plot_width_m": 10}}, "plot": {"long_side": 25000}, "ramp": {"front_setback": {"default": 5000}}}
 SETTINGS = {"analysis": ANALYSIS, "cadLinks": {"floorWidthStepM": 0.5}}
 
 

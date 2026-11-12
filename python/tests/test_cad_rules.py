@@ -7,8 +7,6 @@ import cad_rules
 import project_profile
 
 ANALYSIS = {"toleranceM": 0.01, "partyWallShare": 0.75, "roadEdgeLayers": ["RD-CURB-LINE"], "unitPlotTypes": ["VL4", "DP2"]}
-RAW_PROFILE = {"typologies": {"VD2": {"plot_width_m": 12}}, "plot": {"long_side": 25000}, "cluster_max_units": 4, "cluster_split_positions": [2, 3],
-               "steps": {"base_height": {"default": 100, "DP1": 100, "TH1": 100}, "legend": [[0.1, 1], [0.54, 3]]}}
 
 
 def box(x0, y0, x1, y1):
