@@ -1,13 +1,25 @@
-STATE RUNNING, task/FAST-2-build-2-src, 2026-11-06 18:22
+STATE WAITING, 2026-11-12 02:33
 # Progress
-Written by scripts/status.ps1 -Progress at 2026-11-06 18:22 from git, PRs and checks, never by hand. Main is at 4c11b72.
+Written by scripts/status.ps1 -Progress at 2026-11-12 02:33 from git, PRs and checks, never by hand. Main is at 08ce9861.
 
 ## State
 
-- Task FAST-1-build-1, lane build-1, status open
-- Task FAST-2-build-2, lane build-2, status open
-- Task FAST-3-revit-test, lane revit-test, status waiting
-- Task FAST-4-build-3, lane build-3, status open
+- Task FAST-1-build-1, lane build-1, status done
+- Task FAST-10-build-3, lane build-3, status done
+- Task FAST-11-build-1, lane build-1, status done
+- Task FAST-12-build-3, lane build-3, status done
+- Task FAST-13-build-3, lane build-3, status done
+- Task FAST-14-build-1, lane build-1, status done
+- Task FAST-15-build-2, lane build-2, status done
+- Task FAST-2-build-2, lane build-2, status done
+- Task FAST-3-revit-test, lane revit-test, status done
+- Task FAST-4-build-3, lane build-3, status done
+- Task FAST-5-build-1, lane build-1, status done
+- Task FAST-6-build-2, lane build-2, status done
+- Task FAST-7-build-3, lane build-3, status done
+- Task FAST-8-build-1, lane build-1, status done
+- Task FAST-9-build-2, lane build-2, status done
+- Task PC-1-revit-test, lane revit-test, status open
 - Task R1-build-1, lane build-1, status done
 - Task R1-revit-test, lane revit-test, status done
 - Task R2-C1-build-1, lane build-1, status done
@@ -23,14 +35,14 @@ Written by scripts/status.ps1 -Progress at 2026-11-06 18:22 from git, PRs and ch
 
 ## Done
 
-- PR 232, merged 11/6/2026 : FAST-1-build-1 PR 2: the rules of a project, the amber line, the manual template shipped, the parameter sheet
-- PR 231, merged 11/6/2026 : FAST-4-build-3, the plot read and the mirror, the seam answers, FAST-1 item 2b
-- PR 230, merged 11/6/2026 : Q560 Plot on floors, the seam of build-1 for FAST-2
-- PR 229, merged 11/6/2026 : FAST-2 PR 1: shared parameters strong from the sheet, R700, and no RAM floor in Python, R701
-- PR 228, merged 11/6/2026 : FAST-1-build-1 PR 1: the pane in 3 stages, stage 1 wired
-- PR 227, merged 11/6/2026 : FAST-1 seam: UiLabelTests.cs, R680 and R681, Revit opening to FAST-3
-- PR 226, merged 11/6/2026 : run_lane.py: effort, CLAUDE_PROJECT_DIR and Git Bash on PATH for a hidden lane
-- PR 225, merged 11/6/2026 : Bader's form answered, the account name out of public files, the final statement line
+- PR 293, merged 11/11/2026: Lead: the audit of 12 Nov
+- PR 292, merged 11/11/2026: Lead: this PC is the work machine
+- PR 290, merged 11/8/2026 : Lead: demo-live part 1 from the phase 3 run
+- PR 289, merged 11/8/2026 : FAST-3 Phase 3 run: the record of card 1, F40 to F42
+- PR 288, merged 11/8/2026 : Lead: demo-live for 17:00 with the measured times
+- PR 287, merged 11/8/2026 : FAST-3 demo run: the record on demo-S1, F35 to F39
+- PR 286, merged 11/8/2026 : Lead: the form of 8 Nov filled from the intake of Phase 3
+- PR 285, merged 11/8/2026 : Lead: the label count of UiLabelTests for FAST-13 and FAST-15
 
 ## Open bugs
 
@@ -38,12 +50,11 @@ Written by scripts/status.ps1 -Progress at 2026-11-06 18:22 from git, PRs and ch
 
 ## Bader's turn
 
-- 211 questions open, steps/questions-open.md and steps/history/questions-open-older.md
+- 207 questions open, steps/questions-open.md and steps/history/questions-open-older.md
 - Read steps/bader-trust.md
 
 ## Next three steps
 
-- Task FAST-1-build-1 in lane build-1, open
-- Task FAST-2-build-2 in lane build-2, open
-- Task FAST-3-revit-test in lane revit-test, waiting
-Hash of the lines above, a hand edit fails a test: 211ab80b1d8ef0d46650ddf2922fe050d9d71921bbc6399cb0afedca072a8a64
+- Task PC-1-revit-test in lane revit-test, open
+- Task SETUP-sign-2 in lane revit-test, waiting
+Hash of the lines above, a hand edit fails a test: c8acf37d37d4dacbd95893c4426ff06cb3891e0c312e20114037a6217602a588
