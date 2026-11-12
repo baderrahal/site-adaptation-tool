@@ -110,9 +110,9 @@ class Run:
         cells = [cell.strip() for cell in line.strip("|").split("|")]
         return dict(zip(("nbh", "model", "plots", "position", "ffl", "rotation", "mirror", "floors", "yards", "walls", "levels", "result"), cells))
 
-    def failed_rows(self, column):
+    def failed_rows(self, column, neighbourhood="N1"):
         with open(self.rows, encoding="utf-8", newline="") as handle:
-            return [(row["side"], int(row["row"])) for row in csv.DictReader(handle) if row["column"] == column]
+            return [(row["side"], int(row["row"])) for row in csv.DictReader(handle) if row["column"] == column and row["neighbourhood"] == neighbourhood]
 
 
 BUILT = "The built side against the past models"
@@ -158,7 +158,7 @@ def test_r835_no_built_folder_counts_0_built_of_each_neighbourhood(tmp_path):
     assert first["floors"] == "0 of 100, fail" and first["result"] == "fail"
     assert run.row(BUILT, "N3")["plots"] == "UNKNOWN, no past model" and run.row(BUILT, "N3")["result"] == "UNKNOWN"
     assert "0 of 3 neighbourhoods pass, 2 fail, 1 UNKNOWN." in run.text
-    assert len(run.failed_rows("plots")) == 80
+    assert run.failed_rows("plots") == run.failed_rows("plots", "N2") == [("past", line) for line in range(2, 42)]
 
 
 def test_r836_a_built_side_just_inside_every_limit_passes(tmp_path):

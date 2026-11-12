@@ -1224,5 +1224,18 @@
     "utmEastM": [166000, 834000],
     "utmNorthM": [0, 9330000],
     "utmSouthNorthM": [1116915, 10000000]
+  },
+  "compare": {
+    "note": "R835 to R839. The pass level of python/compare_built.py, a built model against the answer key, docs/truth.md The pass level. Each value holds its source. The script holds no limit of its own and stops when a value or a source is missing.",
+    "plotsBuiltPercent": {"value": 95, "source": "Bader 12 Nov 2026", "meaning": "the least share of the plots of the past model that are built"},
+    "heldPercent": {"value": 95, "source": "Bader 12 Nov 2026", "meaning": "the least share of the built plots that hold each of position, FFL, rotation and mirror"},
+    "positionMm": {"value": 5, "source": "Bader 12 Nov 2026", "meaning": "the largest distance in plan of a villa link from its past link, held as X and Y, the level is the column FFL (R836)"},
+    "fflMm": {"value": 5, "source": "Bader 12 Nov 2026", "meaning": "the largest difference of FFL, held as the origin Z of the villa link (R836)"},
+    "rotationDeg": {"value": 0.1, "source": "Bader 12 Nov 2026", "meaning": "the largest difference of the rotation of a villa link, the short way round"},
+    "countPercent": {"value": 5, "source": "Bader 12 Nov 2026", "meaning": "floors, yards, walls and levels each within this share of the past count. Floors are the floors that are no yard (R837)"},
+    "yardModels": {"value": ["IMC", "IMD", "IME", "IMF"], "source": "Bader 12 Nov 2026", "meaning": "the past models yards are counted on"},
+    "linksOnlyModels": {"value": ["IMA", "IMB"], "source": "Bader 12 Nov 2026", "meaning": "the past models that count for plots, position, rotation and mirror only"},
+    "job": {"value": "parsons", "source": "CHOSEN by Code (R835), the job of config/area_codes.json whose rows of kind model name the neighbourhood of each folder of the answer key"},
+    "neighbourhoods": {"value": ["010", "012", "013", "01A", "01B", "02", "021", "022", "03"], "source": "steps/revit-results/OLD-1-revit-test.md, the 9 neighbourhoods the Scope list of the baseline run of 12 Nov 2026 named, CHOSEN by Code (R835) as the rows of the built side"}
   }
 }

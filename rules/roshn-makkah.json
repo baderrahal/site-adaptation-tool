@@ -1031,7 +1031,17 @@
       "coordinates.controlPointLimitMm": {"status": "RECOMMENDED", "question": "Q329", "where": "coordinates.note"},
       "coordinates.utmEastM": {"status": "CHOSEN by Code", "where": "coordinates.note"},
       "coordinates.utmNorthM": {"status": "CHOSEN by Code", "where": "coordinates.note"},
-      "coordinates.utmSouthNorthM": {"status": "CHOSEN by Code", "where": "coordinates.note"}
+      "coordinates.utmSouthNorthM": {"status": "CHOSEN by Code", "where": "coordinates.note"},
+      "compare.plotsBuiltPercent.value": {"status": "DOCUMENT", "document": "Bader 12 Nov 2026", "pageOrSheet": "UNKNOWN", "source": "compare.plotsBuiltPercent.source"},
+      "compare.heldPercent.value": {"status": "DOCUMENT", "document": "Bader 12 Nov 2026", "pageOrSheet": "UNKNOWN", "source": "compare.heldPercent.source"},
+      "compare.positionMm.value": {"status": "DOCUMENT", "document": "Bader 12 Nov 2026", "pageOrSheet": "UNKNOWN", "source": "compare.positionMm.source"},
+      "compare.fflMm.value": {"status": "DOCUMENT", "document": "Bader 12 Nov 2026", "pageOrSheet": "UNKNOWN", "source": "compare.fflMm.source"},
+      "compare.rotationDeg.value": {"status": "DOCUMENT", "document": "Bader 12 Nov 2026", "pageOrSheet": "UNKNOWN", "source": "compare.rotationDeg.source"},
+      "compare.countPercent.value": {"status": "DOCUMENT", "document": "Bader 12 Nov 2026", "pageOrSheet": "UNKNOWN", "source": "compare.countPercent.source"},
+      "compare.yardModels.value": {"status": "DOCUMENT", "document": "Bader 12 Nov 2026", "pageOrSheet": "UNKNOWN", "source": "compare.yardModels.source"},
+      "compare.linksOnlyModels.value": {"status": "DOCUMENT", "document": "Bader 12 Nov 2026", "pageOrSheet": "UNKNOWN", "source": "compare.linksOnlyModels.source"},
+      "compare.job.value": {"status": "CHOSEN by Code", "where": "compare.job.source"},
+      "compare.neighbourhoods.value": {"status": "CHOSEN by Code", "where": "compare.neighbourhoods.source"}
     }
   }
 }
