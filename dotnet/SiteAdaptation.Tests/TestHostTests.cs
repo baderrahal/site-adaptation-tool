@@ -355,8 +355,6 @@ namespace SiteAdaptation.Tests
         [WindowsFact]
         public void R110_each_window_has_its_own_job_file_by_code_and_kind_in_the_site_adaptation_folder()
         {
-            Assert.Equal(@"C:\Docs\SiteAdaptation\testhost_job_C10.json", TestHostGuard.JobPath(@"C:\Docs", "C10", false));
-            Assert.Equal(@"C:\Docs\SiteAdaptation\testhost_job_C10_upgrade.json", TestHostGuard.JobPath(@"C:\Docs", "C10", true));
             Assert.Equal("TH1", TestHostGuard.CodeOfJobPath(@"C:\Docs\SiteAdaptation\testhost_job_TH1_upgrade.json", @"C:\Docs"));
             Assert.Null(TestHostGuard.CodeOfJobPath(@"C:\Docs\SiteAdaptation\testhost_job.json", @"C:\Docs"));
             Assert.Null(TestHostGuard.CodeOfJobPath(@"C:\Other\testhost_job_C10.json", @"C:\Docs"));

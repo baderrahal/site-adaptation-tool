@@ -217,7 +217,7 @@ namespace SiteAdaptation.Tests
                     ["createdUtc"] = DateTime.UtcNow.ToString("o"), ["totalMinutes"] = 13 };
                 GuardResult guard = TestHostGuard.Check(job.ToString(), token, DateTime.UtcNow, File.Exists, Directory.Exists);
                 Assert.True(guard.Act, guard.Reason);
-                Assert.Null(TestHostGuard.CheckJobPath(TestHostGuard.JobPath(documents, "SA5A", false), guard.Job, documents));
+                Assert.Null(TestHostGuard.CheckJobPath(Path.Combine(TestHostGuard.SiteAdaptationFolder(documents), "testhost_job_SA5A.json"), guard.Job, documents));
                 Assert.Null(FileIdentity.CheckTargetFolder((string)made["folder"]));
 
                 Tuple<int, string, string> again = Pwsh("try { New-AddinRunFolder -Docs " + Quoted(root) + " -Code SA5A -Stamp 20261028-090000 } catch { 'stopped' }");

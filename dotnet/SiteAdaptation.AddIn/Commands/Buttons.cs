@@ -14,11 +14,6 @@ namespace SiteAdaptation.AddIn
         // The pane side sets it at start. No button with a body runs before then
         public static IRunState State { get; set; }
 
-        public static string NotBuiltText(int number)
-        {
-            return RunTexts.NotBuilt(RibbonLayout.Button(number).Label);
-        }
-
         public static Result Run(int number, UIApplication application)
         {
             return Run(RibbonLayout.Button(number), application);

@@ -71,11 +71,11 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R70 Row split.
 - R71 Front by road edge.
 - R72 Xref resolution.
-- R73 Block scan.
+- R73 Withdrawn.
 - R74 Excel unit by baseplan label.
 - R75 Cluster with no Rev 6 match.
-- R76 Second block match.
-- R77 Block against link.
+- R76 Withdrawn.
+- R77 Withdrawn.
 - R80 Plan file.
 - R81 Plan from the past job.
 - R82 Shared position proof.
@@ -133,12 +133,12 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R131 Villa hand test.
 - R132 CASE second letter test.
 - R133 FFL split test.
-- R134 Second method for the rule tests.
+- R134 Withdrawn.
 - R135 Floor outlines in the link frame.
 - R136 Ramp type and front level.
 - R137 Floors in the plan from CAD.
 - R138 Floors against a plan.
-- R139 Second method for the floors.
+- R139 Withdrawn.
 - R150 Civil 3D probe.
 - R151 Core console runner.
 - R152 TIN border.
@@ -236,7 +236,7 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R249 The past key by surface version.
 - R250 Second method for round DATA-4.
 - R251 Audit of DATA-4.
-- R252 Xref search.
+- R252 Withdrawn.
 - R253 DXF of a copy and its count.
 - R254 Readers against the third count.
 - R255 Two road layouts.
@@ -266,7 +266,7 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R279 Hands of a plan from CAD.
 - R280 Overrides in a plan from CAD.
 - R281 Second method for round 17.
-- R282 Hands against a Native key.
+- R282 Withdrawn.
 
 ## 04-addin-r300-r327.md
 
@@ -335,7 +335,7 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R366 The scope of a button and the step state.
 - R367 The settings JSON kept in the project.
 - R368 Element tags and the second run.
-- R369 The second method of Phase 4.
+- R369 Withdrawn.
 - R381 Button 9 Report.
 - R385 One rounding rule in Python and C#.
 - R386 Use and skip in the override list.
@@ -402,7 +402,7 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R475 Yard stays inside its plot.
 - R476 Review lists the plots of Check.
 - R477 Footprint check by same type.
-- R478 Wall compare by wall centre.
+- R478 Withdrawn.
 - R479 One villa type by prototype file.
 - R480 C10 side wall by hand.
 - R481 Parted walls read weak measured.
@@ -474,7 +474,7 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R466 Test host jobs load design values.
 - R467 Link folder of a buttons run.
 - R468 Copy saved after each button.
-- R469 Plan of a zone against its key.
+- R469 Withdrawn.
 - R490 Road surfaces named in order.
 - R491 Each corner takes first surface.
 - R492 Road surfaces picked in Set up.
@@ -571,6 +571,9 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R686 The plan behind Build.
 - R687 The 2D preview.
 - R688 The one Build runs the steps.
+- R689 Card 3 of the last build.
+- R690 Update from report on card 3.
+- R691 Plots with no road level.
 
 ## 19-fast2-r700-up.md
 

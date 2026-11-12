@@ -289,10 +289,11 @@ def test_r340_a_ramp_front_the_rule_alone_gives_holds_by_the_rule_at_the_pass_li
 # R272, R338 the committed override list and keyRules of the rerun
 def test_r272_the_committed_list_holds_no_parsons_override_with_no_value_and_a_parsons_build_loads_it():
     import json
-    import override_source
+    from pathlib import Path
     import plan_rules
+    import project_profile
     from test_addin_levels import LP, SETTINGS
-    path = override_source.list_path(SETTINGS)
+    path = project_profile.ROOT / "config" / "overrides" / Path(SETTINGS.get("profile")).name
     data = json.loads(path.read_text(encoding="utf-8"))
     assert not [item for item in data["overrides"] if item["source"] == "parsons" and item["value"] is None]
     # Q075 (Bader, 2026-10-29): the native entries with no value moved to cannot in 4h-1, each marked Q075, and none is left in overrides

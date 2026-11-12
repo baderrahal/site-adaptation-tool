@@ -406,19 +406,6 @@ namespace SiteAdaptation.Common
             return new Regex("^(?:" + pattern.Replace("(?P<", "(?<") + ")\\z", RegexOptions.CultureInvariant);
         }
 
-        // R179. The kind of a text line, the first pattern of the config it matches in full, else other
-        public static string Classify(string text, IEnumerable<KeyValuePair<string, string>> patterns)
-        {
-            foreach (KeyValuePair<string, string> pattern in patterns)
-            {
-                if (FullMatch(pattern.Value).IsMatch(text))
-                {
-                    return pattern.Key;
-                }
-            }
-            return "other";
-        }
-
         // R180. location_plan.pair_labels: each code line with the number line just under it, nearest first and one to one, the pairs in
         // the order of the score, the code and the number, and the codes and numbers left alone
         public static List<int[]> PairLabels(IReadOnlyList<TextLine> codes, IReadOnlyList<TextLine> numbers, double dyLow, double dyHigh, double dxMax, out List<int> loneCodes, out List<int> loneNumbers)

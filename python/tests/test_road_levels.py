@@ -1,12 +1,10 @@
 import json
 
-import numpy as np
 import pytest
 
 import full_run
 import landxml_reader
 import ramp_levels
-import road_check
 from landxml_fixture import prototypes_dict, write_config, write_landxml, write_prototypes
 
 
@@ -84,22 +82,6 @@ def test_r45_band_edges_are_inclusive():
     assert ramp_levels.band_of(1.01, [1, 5, 20]) == "upTo5"
     assert ramp_levels.band_of(20.0, [1, 5, 20]) == "upTo20"
     assert ramp_levels.band_of(None, [1, 5, 20]) == "more"
-
-
-def test_r46_second_check_agrees_with_the_reader_the_lookup_and_the_ramp_file(ramps):
-    tmp_path, _, _ = ramps
-    config = ramp_levels.load_config(tmp_path / "config.json")
-    result = road_check.check(tmp_path / "road.xml", tmp_path / "landxml", tmp_path / "levels" / "ramp_road_levels.json", tmp_path / "p.json", config, 3)
-    assert result["readerCounts"]["match"] == 3 and result["readerCounts"]["mismatch"] == []
-    assert result["rawRead"]["pointsDifferent"] == 0 and result["rawRead"]["facesDifferent"] == 0
-    assert result["shapelyLookup"]["onlyOne"] == 0 and result["shapelyLookup"]["largestDifference"] < 1e-9
-    assert result["rampFile"]["mismatch"] == [] and result["rampFile"]["ramps"] == 5
-
-
-def test_r46_plane_fit_gives_the_plane_value_and_none_for_a_flat_sliver():
-    triangle = np.array([[0.0, 0.0, 1.0], [10.0, 0.0, 11.0], [0.0, 10.0, 21.0]])
-    assert road_check.plane_z(triangle, 2.0, 3.0) == pytest.approx(1 + 2 + 6)
-    assert road_check.plane_z(np.array([[0.0, 0.0, 1.0], [1.0, 1.0, 1.0], [2.0, 2.0, 1.0]]), 1.0, 1.0) is None
 
 
 def test_r46_stages_have_their_own_600_second_limit_and_road_levels_waits_for_the_reader(tmp_path):

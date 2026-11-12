@@ -2,7 +2,7 @@
 id: OLD-1d2-build-1
 lane: build-1
 stage: rules
-status: open
+status: done
 allowed:
   - dotnet/
   - python/

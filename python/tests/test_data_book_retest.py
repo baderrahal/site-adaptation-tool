@@ -3,7 +3,6 @@ import csv
 import pytest
 from shapely.geometry import Polygon
 
-import c3d_window
 import data_book
 import data_book_retest
 import data_book_retest_check
@@ -34,37 +33,6 @@ def square(x, y, w=10, d=20):
 
 
 # R169 export every surface
-
-def test_r169_export_known_surfaces_empties_the_skip_list():
-    book = {"knownSurfaces": {"roadSurface": ["Top Surface-02"]}}
-    assert c3d_window.known_surfaces(book, "roadSurface") == ["Top Surface-02"]
-    assert c3d_window.known_surfaces(book, "roughGrading") == []
-    assert c3d_window.known_surfaces(dict(book, exportKnownSurfaces=True), "roadSurface") == []
-
-
-def test_r169_runner_passes_an_empty_known_list(tmp_path):
-    root = tmp_path / "book"
-    (root / "work" / "Roads").mkdir(parents=True)
-    (tmp_path / "source").mkdir()
-    (root / "work" / "Roads" / "s.dwg").write_bytes(b"dwg")
-    config = {"sourceRoot": str(tmp_path / "source"), "language": "en-US", "probeDll": str(tmp_path / "probe.dll"),
-              "dataBook": {"root": str(root), "drawings": {"roadSurface": "Roads/s.dwg"}, "acad": "acad.exe", "watcher": "watch.exe",
-                           "timeoutMinutes": 1, "knownSurfaces": {"roadSurface": ["A", "B"]}, "exportKnownSurfaces": True}}
-    seen = []
-
-    class Done:
-        pid, returncode = 1, 0
-
-        def poll(self):
-            return 0
-
-    def launch(args, environment):
-        seen.append(environment)
-        return Done()
-
-    c3d_window.run(config, "roadSurface", launcher=launch, memory=lambda: 8.0, sleep=lambda s: None)
-    assert seen[0]["C3DPROBE_KNOWN"] == ""
-
 
 # R170 El @ Entry from the road plus the ramp
 

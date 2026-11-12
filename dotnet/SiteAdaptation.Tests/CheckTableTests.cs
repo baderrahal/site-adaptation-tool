@@ -418,8 +418,8 @@ namespace SiteAdaptation.Tests
 
             Assert.True(session.Model.DoorShown);
             Assert.True(session.Model.DoorHelpShown);
-            session.PickDoorLevel("civilFile");
-            session.PickDoorLevel("roadPlusSlope");
+            session.Model.DoorSource = "civilFile";
+            session.Model.DoorSource = "roadPlusSlope";
             Assert.Empty(picked);
             Assert.Equal("roadPlusSlope", session.Model.DoorSource);
 
@@ -427,9 +427,9 @@ namespace SiteAdaptation.Tests
             var civil = new CheckTableSession(view, new CheckTableCallbacks { DoorLevel = picked.Add }, null, null);
             Assert.False(civil.Model.DoorHelpShown);
             Assert.Equal("", civil.Model.DoorHelp);
-            civil.PickDoorLevel("civilFile");
-            civil.PickDoorLevel("civilFile");
-            civil.PickDoorLevel("survey");
+            civil.Model.DoorSource = "civilFile";
+            civil.Model.DoorSource = "civilFile";
+            civil.Model.DoorSource = "survey";
             Assert.Equal(new[] { "civilFile" }, picked);
             Assert.Equal("civilFile", civil.Model.DoorSource);
             // A pick is no override, so Save overrides stays as it was

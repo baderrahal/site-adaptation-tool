@@ -22,8 +22,6 @@ from collections import Counter
 from shapely.geometry import box
 from shapely.strtree import STRtree
 
-import common
-import plan_rules
 import project_profile
 import value_status
 
@@ -503,12 +501,6 @@ def entry(wall):
     sources = {"plots": PLOTS_SOURCE, "ends": ends, "base": SOURCE, "top": SOURCE}
     return {"plot": wall["plot"], "edge": wall["edge"], **{field: {"value": wall[field], "source": sources[field]} for field in FIELDS},
             "basePlot": wall["basePlot"], "topPlot": wall["topPlot"]}
-
-
-def ffl_of(entry):
-    """The FFL of a plan entry at the decimals of the plan, None for none."""
-    value = (((entry or {}).get("levels") or {}).get("ffl") or {}).get("value")
-    return None if value is None else common.fixed(value, plan_rules.FFL_DECIMALS)
 
 
 def mark(item, wall, table, applied):

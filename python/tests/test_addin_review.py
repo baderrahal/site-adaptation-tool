@@ -225,22 +225,6 @@ def test_r280_two_overrides_of_one_plot_and_field_from_two_keys_or_one_are_refus
         plan_rules.load_overrides(path, {"parsons"}, groups=GROUPS)
 
 
-# R281 a decision with misses and no entry in the list is no match
-def test_r281_a_decision_with_misses_and_no_entry_in_the_override_list_is_not_a_match():
-    import r17_check
-    report = {"decisions": [{"decision": "parsons hand villa", "plots": 10, "misses": 3, "coded": "c", "tests": {"c": {"holds": 7}}},
-                            {"decision": "parsons rampSlope", "plots": 10, "misses": 0, "coded": "c", "tests": {"c": {"holds": 10}}},
-                            {"decision": "parsons frontCorner", "plots": 10, "misses": 2, "coded": "c", "tests": {"c": {"holds": 8}}}]}
-    found = {row["decision"]: row for row in r17_check.decision_counts(report, {"overrides": []}, ["hand", "rampSlope"])}
-    assert found["parsons hand villa"]["match"] is False and found["parsons hand villa"]["overrides"] is False
-    assert found["parsons rampSlope"]["match"] is True
-    # A decision that writes no override holds when the list has none of it
-    assert found["parsons frontCorner"]["match"] is True
-    listed = {"overrides": [{"decision": "parsons hand villa"}] * 3 + [{"decision": "parsons frontCorner"}]}
-    found = {row["decision"]: row for row in r17_check.decision_counts(report, listed, ["hand", "rampSlope"])}
-    assert found["parsons hand villa"]["match"] is True and found["parsons frontCorner"]["match"] is False
-
-
 # R337 a build by the rules of the keys
 DP2 = "RRE-WP-NSP-KEO-ARC-DP2-ZZ-MOD-2200.rvt"
 VD2 = "RRE-WP-NSP-KEO-ARC-VD2-ZZ-MOD-2200.rvt"

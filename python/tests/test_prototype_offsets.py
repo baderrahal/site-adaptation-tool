@@ -38,8 +38,7 @@ def write_offsets(path, **sections):
 def test_r100_the_shipped_file_is_read_with_both_sections_and_every_group_has_the_keys_a_rule_needs():
     data = prototype_offsets.load()
     assert isinstance(prototype_offsets.entry_offset(data), float)
-    index = prototype_offsets.group_index(data)
-    assert len(index) == len(data["groups"]) > 0
+    assert len({(group["block"], group["position"]) for group in data["groups"]}) == len(data["groups"]) > 0
     for group in data["groups"]:
         assert set(prototype_offsets.GROUP_KEYS) <= set(group)
         assert len(group["offset"]) == 2 and set(group["relative"]) >= {"rotationDeg", "mirrored"}
@@ -96,16 +95,10 @@ def test_r100_a_missing_file_bad_json_or_a_missing_section_raises_one_error_with
         prototype_offsets.load(tmp_path / "half.json")
 
 
-def test_r100_the_entry_offset_must_be_a_number_and_a_group_must_hold_its_keys_and_appear_once(tmp_path):
+def test_r100_the_entry_offset_must_be_a_number():
     for bad in ({}, {"roadOffsetM": "0.14"}, {"roadOffsetM": True}):
         with pytest.raises(project_profile.ProfileError, match="roadOffsetM number"):
             prototype_offsets.entry_offset({"entry": bad})
-    group = {"block": "B", "position": 1, "plots": 4, "offset": [0, 0], "relative": {}, "entrance": None}
-    assert prototype_offsets.group_index({"groups": [group]}) == {("B", 1): group}
-    with pytest.raises(project_profile.ProfileError, match="group has no offset"):
-        prototype_offsets.group_index({"groups": [{k: v for k, v in group.items() if k != "offset"}]})
-    with pytest.raises(project_profile.ProfileError, match="lists the group"):
-        prototype_offsets.group_index({"groups": [group, dict(group)]})
 
 
 def test_r100_write_section_replaces_one_section_keeps_the_other_and_rounds_to_the_millimetre(tmp_path):

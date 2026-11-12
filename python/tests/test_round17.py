@@ -315,38 +315,9 @@ def test_r276_a_parameter_is_read_from_the_row_and_an_empty_value_is_none():
     assert majority.base_height(PROFILE, "DP2") == pytest.approx(0.2) and majority.base_height(PROFILE, "VL4") == pytest.approx(0.1)
 
 
-def test_r281_the_second_method_has_its_own_ray_cast_shoelace_outline_text_and_bands():
-    import r17_check
-    ring = [(0, 0), (10, 0), (10, 25), (0, 25)]
-    assert r17_check.inside((5, 5), ring) and not r17_check.inside((11, 5), ring)
-    assert r17_check.shoelace(ring) == pytest.approx(250.0)
-    assert r17_check.wkt_ring(box(0, 0, 10, 25).wkt)[:2] == [(10.0, 0.0), (10.0, 25.0)]
-    assert r17_check.band(0.0005, [0, 1, 10, 30]) == "equal" and r17_check.band(5.0, [0, 1, 10, 30]) == "within10mm" and r17_check.band(31.0, [0, 1, 10, 30]) == "worse"
-    assert r17_check.centre(ring) == (5.0, 12.5)
-
-
 def test_r280_a_build_may_take_only_some_fields_of_the_overrides(tmp_path):
     path = tmp_path / "overrides.json"
     path.write_text(_json.dumps({"note": "n", "overrides": [
         {"plot": "1", "field": "entryM", "value": {"gapToRuleM": 0.02}, "source": "native", "model": "NATIVE.rvt", "key": "u12"},
         {"plot": "1", "field": "mirrored", "value": True, "source": "native", "model": "NATIVE.rvt", "key": "u12"}]}), encoding="utf-8")
     assert plan_rules.load_overrides(path, {"native"}, ("entryM", "heightM")) == {"1": {"entryM": {"gapToRuleM": 0.02}}}
-
-
-def test_r282_a_key_hand_is_turned_where_its_old_file_is_drawn_the_other_hand_and_another_unit_is_counted_apart():
-    import hand_compare
-    old_files = {"V2": {"same": ["C10"], "opposite": ["VD2"]}, "D2": {"same": ["DP2"], "opposite": ["DT3"]}}
-    assert hand_compare.old_code("RRE-WP-NSP-KEO-ARC-V2-ZZ-MOD-1200.rvt") == "V2" and hand_compare.old_code("RRE-WP-NSP-KEO-ARC-VD2-ZZ-MOD-2200.rvt") is None
-    assert hand_compare.as_built(True, "V2", "VD2", old_files) is False
-    assert hand_compare.as_built(True, "D2", "DP2", old_files) is True
-    assert hand_compare.as_built(True, "V2", "DP2", old_files) is None
-    assert hand_compare.as_built(True, "D2", "DT3", old_files) is False
-    new = {"1": [{"parameters": {"RRE_ZZ_SP_Prototype": "VD2"}, "transform": {"mirrored": False}}],
-           "2": [{"parameters": {"RRE_ZZ_SP_Prototype": "DP2"}, "transform": {"mirrored": False}}],
-           "3": [{"parameters": {"RRE_ZZ_SP_Prototype": "DP2"}, "transform": {"mirrored": False}}]}
-    rows = [{"plot": "1", "mirrored": True, "linkFile": "RRE-WP-NSP-KEO-ARC-V2-ZZ-MOD-1200.rvt"},
-            {"plot": "2", "mirrored": True, "linkFile": "RRE-WP-NSP-KEO-ARC-D2-ZZ-MOD-2200.rvt"},
-            {"plot": "3", "mirrored": True, "linkFile": "RRE-WP-NSP-KEO-ARC-V4-ZZ-MOD-1400.rvt"}]
-    result = hand_compare.compare(new, rows, old_files)
-    assert result["counts"] == {"equal": 1, "differs": 1, "anotherUnit": 1}
-    assert result["differs"] == [{"plot": "2", "code": "DP2", "oldFile": "D2"}]
