@@ -183,7 +183,9 @@ namespace SiteAdaptation.Tests
 
             // The host hands each ask to the one entry of the engine
             string host = Source("App", "PaneHost.cs");
-            Assert.Contains("model.RequestRun(StagesViewModel.ReadDataStep);", host);
+            Assert.Contains("stages.ChooseFolderRequested += () => ChooseProjectFolder(stages);", host);
+            Assert.Contains("stages.FolderChosen(before, chosen);", host);
+            Assert.Contains("Model.RequestRun(StepAfterFolder(Model.Statuses, before, chosen));", Source("Pane", "StageCards.cs"));
             Assert.Contains("runner.Command = Common.ButtonsRun.UpdateCommand;", host);
             Assert.Contains("Buttons.Run(command, app);", host);
             Assert.Contains("Buttons.Run(Number, app);", host);
@@ -205,7 +207,6 @@ namespace SiteAdaptation.Tests
             {
                 Assert.DoesNotMatch(@"\bRun [1-9] [A-Z]", text);
                 Assert.DoesNotContain("or the ribbon", text);
-                Assert.DoesNotContain("ribbon button", text);
             }
             Assert.Contains("The three cards of the pane start every step.", guide);
             foreach (string file in new[] { "StageText.cs", "StageResultsText.cs", "SiteBuildText.cs", "PaneText.cs" })

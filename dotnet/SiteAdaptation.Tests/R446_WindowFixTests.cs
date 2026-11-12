@@ -215,7 +215,9 @@ namespace SiteAdaptation.Tests
             steps[8] = new StepStatus(StepKind.Ready);
             model.SetSteps(steps);
             Assert.Equal("Next step", model.BoxLabel);
-            Assert.Equal("Run 9 " + "Report", model.BoxButton);
+            Assert.Equal("Report", model.BoxName);
+            // R845. The box names the step and has no button to run it
+            Assert.False(model.BoxButtonShown);
         }
 
         [Fact]

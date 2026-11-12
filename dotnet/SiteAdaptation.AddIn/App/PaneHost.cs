@@ -147,7 +147,7 @@ namespace SiteAdaptation.AddIn
         }
 
         // R681. Choose project folder: the folder goes into the config copy of this new project, then StagesViewModel.FolderChosen runs the read on it
-        // as a press of its row does, or step 1 first when the folder changed the config, R769. A refusal is said and nothing runs
+        // or step 1 first when the folder changed the config, R769. A refusal is said and nothing runs
         private void ChooseProjectFolder(StagesViewModel stages)
         {
             PaneSettings settings = model.Settings;
@@ -413,10 +413,10 @@ namespace SiteAdaptation.AddIn
                 Place = () => BuildPlace(stages), AskRules = AskRules, UseManual = () => RulesPlace() == null ? null : RulesWindow.ProjectRulesTable.UseManual(RulesPlace()),
                 ShowPreview = ShowPreview,
             };
-            // R688. The steps of version 1 one after another, each by RequestRun as a press of its row, and each end back here through Buttons.ChainEnded
+            // R688. The steps of version 1 one after another, each by RequestRun, and each end back here through Buttons.ChainEnded
             // R741. The read for the build is a read of step 2, so it goes by the name of that step
-            Func<int, string> stepName = number => model.Steps.FirstOrDefault(step => step.Number == (number == BuildChain.ReadForCheck ? StagesViewModel.ReadDataStep : number))?.Name
-                ?? number.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            Func<int, string> stepName = number => number == BuildChain.ReadForCheck ? PaneViewModel.StepName(StagesViewModel.ReadDataStep)
+                : number >= 1 && number <= StepPlan.Count ? PaneViewModel.StepName(number) : number.ToString(System.Globalization.CultureInfo.InvariantCulture);
             var chain = new BuildChain(stepName,
                 number => number <= model.Statuses.Count ? model.Statuses[number - 1] : new StepStatus(StepKind.None))
             {
@@ -481,10 +481,10 @@ namespace SiteAdaptation.AddIn
                 }
                 return results;
             };
-            // R690. Update from report of version 1 from card 3, the command of its ribbon button
+            // R690, R846. Update from report of version 1 from card 3, by the name the engine knows it by
             stages.UpdateRequested += () =>
             {
-                runner.Command = nameof(Commands.UpdateFromReportCommand);
+                runner.Command = Common.ButtonsRun.UpdateCommand;
                 runEvent.Raise();
             };
             endOf = (number, end, message) =>
@@ -676,7 +676,7 @@ namespace SiteAdaptation.AddIn
         }
     }
 
-    // The box button of the pane runs a ribbon button through the one entry of Buttons
+    // A button of a card runs a step, or Update from report, through the one entry of Buttons
     internal sealed class RunButtonHandler : IExternalEventHandler
     {
         public int Number { get; set; }

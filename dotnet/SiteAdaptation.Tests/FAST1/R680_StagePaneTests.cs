@@ -153,7 +153,7 @@ namespace SiteAdaptation.Tests
                 var frame = (Frame)page.FindName("OldPane");
                 System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
                 Assert.IsType<SitePanePage>(frame.Content);
-                Assert.Equal(9, ((SitePanePage)frame.Content).DataContext is PaneViewModel model ? model.Steps.Count : 0);
+                Assert.Same(stages.Model, ((SitePanePage)frame.Content).DataContext);
                 Assert.False(stages.SettingsOpen);
                 stages.SettingsCommand.Execute(null);
                 Assert.True(stages.SettingsOpen);

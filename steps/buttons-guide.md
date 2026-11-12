@@ -37,7 +37,7 @@ Only a Neighbourhood scope passes step 3 today, see 3 Review data (Q417). Times 
 
 ## What every button shares
 
-- The pane or the ribbon starts a button. Both run the same thing.
+- The three cards of the pane start every step. No ribbon button and no row of Advanced starts one.
 - Each button needs the one before it. 9 Report needs only 4 Check. A model with no setup reads Needs setup.
 - Dry run first is on by default. A box then shows the counts with Apply and Cancel. Cancel is the default and changes nothing in the model. A dry run writes its files under the work folder in dry\<run>, they are not a real result.
 - 4 Check has no dry run, so the tool unticks it when 4 runs and it stays off. Steps after 4 still ask Apply or Cancel, with the counts only and no list per plot.
@@ -137,7 +137,7 @@ After the first run the line of this step in the pane says where the coordinates
 
 **Before it.** New project. The Baseplan row picked.
 
-**What the user clicks.** Run 1 Set up site. In the window:
+**What the user clicks.** Card 1, 1 Set up site. In the window:
 
 1. Tick Current on each current file. Apply waits for the site drawing.
 2. Check the two tables, What the project has now and What the tool will set.
@@ -174,7 +174,7 @@ Boxes: No site drawing in the setup, pick the Baseplan in the pane first. Nothin
 
 **What the user clicks.**
 
-1. Run 2 Read data.
+1. Card 1, Choose project folder, once 1 Set up site is done.
 2. Apply on the dry run box.
 3. In What the tool read: Use the proposed for all, then Use these picks.
 4. After it, pick the Scope: Whole project, Neighbourhood or Plot list. Step 3 takes Neighbourhood only. The list is empty until step 2 ends, so do not press Neighbourhood before it.
@@ -198,7 +198,7 @@ Boxes: a missing file names it, for example needs Villa blocks, the file is not 
 
 **What the user clicks.**
 
-1. Run 3 Review data.
+1. Card 1, 3 Review data.
 2. Ok or Wrong per row, or Confirm all proposed.
 3. Save review.
 4. Close.
@@ -234,7 +234,7 @@ Zoom to plot and Export to Excel are there if needed. Boxes: closing unsaved ask
 
 **What the user clicks.**
 
-1. Run 4 Check.
+1. Card 2, Build. It runs 4 Check, then steps 5 to 8.
 2. Apply.
 3. When 4 Check opens, pick a row, see why, then Rule, Past or Skip.
 4. Save overrides if anything changed.
@@ -259,7 +259,7 @@ Zoom to plot and Export to Excel are there if needed. Boxes: closing unsaved ask
 
 **What the user clicks.**
 
-1. Run 5 Floors and ramps.
+1. Card 2, Build runs it after 4 Check.
 2. Apply.
 3. Wait for the Revit box, 485 warnings on NBH 012, then OK. Cancel undoes the step.
 
@@ -283,7 +283,7 @@ Do not click anywhere while the Revit box is open. A press waits behind it and f
 
 **Before it.** Step 5.
 
-**What the user clicks.** Run 6 Levels, then Apply. A box names the Excel if another program holds it open. Close that program and run again.
+**What the user clicks.** Card 2, Build runs it after 5 Floors and ramps, then Apply. A box names the Excel if another program holds it open. Close that program and run again.
 
 **What it writes.**
 
@@ -309,7 +309,7 @@ Do not click anywhere while the Revit box is open. A press waits behind it and f
 
 **Before it.** Step 6. Keep Masses unless asked.
 
-**What the user clicks.** Run 7 Place villas, then Apply. Box, when a link type must load or reload: Link types to load before Place villas, with Load and Cancel. Load clears the Undo list of Revit.
+**What the user clicks.** Card 2, Build runs it after 6 Levels, then Apply. Box, when a link type must load or reload: Link types to load before Place villas, with Load and Cancel. Load clears the Undo list of Revit.
 
 **What it writes.**
 
@@ -331,7 +331,7 @@ Do not click anywhere while the Revit box is open. A press waits behind it and f
 
 **Before it.** Step 7.
 
-**What the user clicks.** Run 8 Walls, then Apply.
+**What the user clicks.** Card 2, Build runs it after 7 Place villas, then Apply.
 
 **What it writes.** Boundary walls in Revit. walls_<NBH>.json in the work folder.
 
@@ -351,7 +351,7 @@ Do not click anywhere while the Revit box is open. A press waits behind it and f
 
 **Before it.** Step 4. Steps 5 to 8 give it the counts, so run them first.
 
-**What the user clicks.** Run 9 Report, then Apply. Then Open folder, open the report Excel.
+**What the user clicks.** Card 3, Report, then Apply. Then Open folder, open the report Excel.
 
 **What it writes.** Work folder: the report Excel, named <project>-<originator>-<volume>-<level>-<type>-<role>-<number>.xlsx, for example 00101-PSN-012-XXX-SCH-TU-090000.xlsx. Set the name under Report file name in New project. Sheets Cover, Plot schedule, Floors, Walls, Issues, Overrides, Rules used, Summary, Placed, Skipped, Assumed, Accepted warnings and Settings. revit_counts_<run>.json, accepted_warnings_<run>_<NBH>.json.
 

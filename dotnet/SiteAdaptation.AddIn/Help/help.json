@@ -14,7 +14,7 @@
    ],
    "before": "New project. The Baseplan row picked.",
    "click": [
-    "Run 1 Set up site. In the window:",
+    "Card 1, 1 Set up site. In the window:",
     "Tick Current on each current file. Apply waits for the site drawing.",
     "Check the two tables, What the project has now and What the tool will set.",
     "Pick the Ramp slope. Default 0.5%.",
@@ -40,7 +40,7 @@
    ],
    "before": "Step 1. All input rows picked.",
    "click": [
-    "Run 2 Read data.",
+    "Card 1, Choose project folder, once 1 Set up site is done.",
     "Apply on the dry run box.",
     "In What the tool read: Use the proposed for all, then Use these picks.",
     "After it, pick the Scope: Whole project, Neighbourhood or Plot list. Step 3 takes Neighbourhood only. The list is empty until step 2 ends, so do not press Neighbourhood before it.",
@@ -61,7 +61,7 @@
    ],
    "before": "Step 2. Scope on Neighbourhood. It shows one NBH, so Whole project or Plot list stops here with: Choose an NBH in Scope of the pane. 4 Check needs this step, so those scopes do not go on past it.",
    "click": [
-    "Run 3 Review data.",
+    "Card 1, 3 Review data.",
     "Ok or Wrong per row, or Confirm all proposed.",
     "Save review.",
     "Close.",
@@ -90,7 +90,7 @@
    ],
    "before": "Steps 1 to 3.",
    "click": [
-    "Run 4 Check.",
+    "Card 2, Build. It runs 4 Check, then steps 5 to 8.",
     "Apply.",
     "When 4 Check opens, pick a row, see why, then Rule, Past or Skip.",
     "Save overrides if anything changed.",
@@ -113,7 +113,7 @@
    ],
    "before": "Step 4.",
    "click": [
-    "Run 5 Floors and ramps.",
+    "Card 2, Build runs it after 4 Check.",
     "Apply.",
     "Wait for the Revit box, 485 warnings on NBH 012, then OK. Cancel undoes the step.",
     "Do not click anywhere while the Revit box is open. A press waits behind it and fires after OK."
@@ -136,7 +136,7 @@
    ],
    "before": "Step 5.",
    "click": [
-    "Run 6 Levels, then Apply. A box names the Excel if another program holds it open. Close that program and run again."
+    "Card 2, Build runs it after 5 Floors and ramps, then Apply. A box names the Excel if another program holds it open. Close that program and run again."
    ],
    "limits": [
     "Q412 Level 1 is empty after the build, use the 3D view.",
@@ -155,7 +155,7 @@
    ],
    "before": "Step 6. Keep Masses unless asked.",
    "click": [
-    "Run 7 Place villas, then Apply. Box, when a link type must load or reload: Link types to load before Place villas, with Load and Cancel. Load clears the Undo list of Revit."
+    "Card 2, Build runs it after 6 Levels, then Apply. Box, when a link type must load or reload: Link types to load before Place villas, with Load and Cancel. Load clears the Undo list of Revit."
    ],
    "limits": [
     "Q277 Footprint block names unlike the unit.",
@@ -173,7 +173,7 @@
    ],
    "before": "Step 7.",
    "click": [
-    "Run 8 Walls, then Apply."
+    "Card 2, Build runs it after 7 Place villas, then Apply."
    ],
    "limits": [
     "Q266 Walls on edges other units meet. The wall rule is weak, 2,539 of 3,427 walls hold on the keys.",
@@ -193,7 +193,7 @@
    ],
    "before": "Step 4. Steps 5 to 8 give it the counts, so run them first.",
    "click": [
-    "Run 9 Report, then Apply. Then Open folder, open the report Excel."
+    "Card 3, Report, then Apply. Then Open folder, open the report Excel."
    ],
    "limits": [
     "Q451 The Issues column of Summary differs from sheet Issues.",

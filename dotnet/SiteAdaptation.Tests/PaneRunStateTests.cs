@@ -106,10 +106,10 @@ namespace SiteAdaptation.Tests
             var state = new PaneRunState(model, () => @"D:\Work", path => null);
 
             state.Committed(1, Record(new string[0], new[] { @"D:\Work\a.json" }, HashA));
-            Assert.Equal("Ready", model.Steps[0].ChipText);
+            Assert.Equal("Ready", StepWords.Of(model)[0]);
             state.Committed(1, Record(new string[0], new string[0], HashA));
-            Assert.Equal(new[] { "Done", "Ready", "Needs step 2" }, model.Steps.Take(3).Select(step => step.ChipText));
-            Assert.Equal("Run 2 Read data", model.BoxButton);
+            Assert.Equal(new[] { "Done", "Ready", "Needs step 2" }, StepWords.Of(model).Take(3));
+            Assert.Equal("Read data", model.BoxName);
             Assert.Equal(0, state.MissingStep(2));
             // Step 2 is done only with every input of button 2 on disk and hashed as in its run (R366)
             foreach (string key in InputKeys.All)
@@ -119,16 +119,14 @@ namespace SiteAdaptation.Tests
             }
             var inputs = PaneRunState.InputsOf(model.Settings, 2).ToDictionary(input => input.Name, input => HashA);
             state.Committed(2, new RunRecord("run2", inputs, new[] { "one", "two" }, new Dictionary<string, string>(), new string[0]));
-            Assert.Equal("2 issues", model.Steps[1].ChipText);
-            Assert.Equal("Done with 2 issues", model.Steps[1].ChipTip);
-            Assert.Equal(MarkKind.Issues, model.Steps[1].Mark);
-            Assert.Equal("Ready", model.Steps[2].ChipText);
+            Assert.Equal("2 issues", StepWords.Of(model)[1]);
+            Assert.Equal("Ready", StepWords.Of(model)[2]);
 
             DocumentSession first = model.Document;
             model.Load(new DocumentSession("other", Folder + "Other.rvt", "Other"));
-            Assert.Equal("Needs setup", model.Steps[0].ChipText);
+            Assert.Equal("Needs setup", StepWords.Of(model)[0]);
             model.Load(first);
-            Assert.Equal("Done", model.Steps[0].ChipText);
+            Assert.Equal("Done", StepWords.Of(model)[0]);
         }
 
         private const string HashA = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
@@ -146,11 +144,11 @@ namespace SiteAdaptation.Tests
             var state = new PaneRunState(model, () => @"D:\Work", path => null);
 
             state.Committed(1, Record(new string[0], new string[0], HashA));
-            Assert.Equal(new[] { "Done", "Ready", "Needs step 2" }, model.Steps.Take(3).Select(step => step.ChipText));
+            Assert.Equal(new[] { "Done", "Ready", "Needs step 2" }, StepWords.Of(model).Take(3));
 
             disk.Add(Folder + "project.json", HashB, 2);
             model.Load(model.Document);
-            Assert.Equal(new[] { "Ready", "Needs step 1" }, model.Steps.Take(2).Select(step => step.ChipText));
+            Assert.Equal(new[] { "Ready", "Needs step 1" }, StepWords.Of(model).Take(2));
             Assert.Equal(1, state.MissingStep(2));
         }
 
@@ -199,19 +197,19 @@ namespace SiteAdaptation.Tests
                 var settings = new PaneSettings { ConfigFile = config };
                 settings.Project.RoadSurfaces = new List<string> { "Job__A", "Job__B" };
                 PaneViewModel model = FourStepsDone(config, new HashDisk(), settings, out PaneRunState state);
-                Assert.Equal(new[] { "Done", "Done", "Done", "Done" }, model.Steps.Take(4).Select(step => step.ChipText));
+                Assert.Equal(new[] { "Done", "Done", "Done", "Done" }, StepWords.Of(model).Take(4));
 
                 // The pick that names the list of config in its order is the same effective order, so nothing goes stale
                 settings.Project.RoadSurfaces = null;
                 model.Load(model.Document);
-                Assert.Equal(new[] { "Done", "Done", "Done", "Done" }, model.Steps.Take(4).Select(step => step.ChipText));
+                Assert.Equal(new[] { "Done", "Done", "Done", "Done" }, StepWords.Of(model).Take(4));
 
                 settings.Project.RoadSurfaces = new List<string> { "Job__B", "Job__A" };
                 model.Load(model.Document);
-                Assert.Equal(new[] { "Done", "Ready", "Needs step 2", "Needs step 3" }, model.Steps.Take(4).Select(step => step.ChipText));
+                Assert.Equal(new[] { "Done", "Ready", "Needs step 2", "Needs step 3" }, StepWords.Of(model).Take(4));
                 Assert.Equal(4, state.MissingStep(9));
                 Assert.Equal(3, state.MissingStep(4));
-                Assert.Equal("Needs step 4", model.Steps[8].ChipText);
+                Assert.Equal("Needs step 4", StepWords.Of(model)[8]);
                 Assert.Contains(PaneRunState.InputsOf(settings, 2), input => input.Name == PaneRunState.RoadOrderInput && input.Text == "Job__B\nJob__A");
             }
             finally
@@ -235,7 +233,7 @@ namespace SiteAdaptation.Tests
                 settings.Project.RoadSurfaces = new List<string> { "Job__B" };
                 Assert.Equal(8, PaneRunState.InputsOf(settings, 2).Count);
                 model.Load(model.Document);
-                Assert.Equal(new[] { "Done", "Done", "Done", "Done" }, model.Steps.Take(4).Select(step => step.ChipText));
+                Assert.Equal(new[] { "Done", "Done", "Done", "Done" }, StepWords.Of(model).Take(4));
                 Assert.Equal(0, state.MissingStep(9));
             }
             finally
@@ -255,13 +253,13 @@ namespace SiteAdaptation.Tests
             var outputs = new Dictionary<string, string> { { @"D:\Work\site.json", HashC } };
 
             state.Committed(1, new RunRecord("run1", new Dictionary<string, string> { { "Settings", HashA } }, new string[0], outputs, new string[0]));
-            Assert.Equal("Ready", model.Steps[0].ChipText);
+            Assert.Equal("Ready", StepWords.Of(model)[0]);
             disk.Add(@"D:\Work\site.json", HashC);
             model.Load(model.Document);
-            Assert.Equal("Done", model.Steps[0].ChipText);
+            Assert.Equal("Done", StepWords.Of(model)[0]);
             disk.Add(@"D:\Work\site.json", HashB, 2);
             model.Load(model.Document);
-            Assert.Equal("Ready", model.Steps[0].ChipText);
+            Assert.Equal("Ready", StepWords.Of(model)[0]);
         }
 
         // R366 and Q144: the pane maps each line of StepStates, 9 Report needs 4 Check only, so 9 is Ready once 4 is done
@@ -299,7 +297,7 @@ namespace SiteAdaptation.Tests
             var model = new PaneViewModel(disk);
             model.Load(session);
             Assert.Equal(Folder + "project.json", model.Settings.ConfigFile);
-            Assert.Equal(new[] { "Done", "Ready" }, model.Steps.Take(2).Select(step => step.ChipText));
+            Assert.Equal(new[] { "Done", "Ready" }, StepWords.Of(model).Take(2));
 
             // The 5a reader took any text as a hash, R367 refuses one that is not 64 lower case hex digits and names it
             entity.Json = "{\"formatVersion\": 1, \"inputs\": {\"baseplan\": {\"path\": \"a.dwg\", \"sha256\": \"ab\"}}}";
@@ -372,9 +370,9 @@ namespace SiteAdaptation.Tests
 
                 RunOutcome outcome = flow.Run(1, "1 Set up site", body, document);
                 Assert.Equal(RunEnd.Committed, outcome.End);
-                Assert.Equal("Done", model.Steps[0].ChipText);
-                Assert.Equal("Ready", model.Steps[1].ChipText);
-                Assert.Equal("Run 2 Read data", model.BoxButton);
+                Assert.Equal("Done", StepWords.Of(model)[0]);
+                Assert.Equal("Ready", StepWords.Of(model)[1]);
+                Assert.Equal("Read data", model.BoxName);
             }
             finally
             {

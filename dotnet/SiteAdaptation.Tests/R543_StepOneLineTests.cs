@@ -59,7 +59,10 @@ namespace SiteAdaptation.Tests
             };
             model.Load(new DocumentSession("s", "C:\\made\\Site.rvt", "Site"));
             Assert.Equal(Path.Combine("work", SetUpRun.SiteFile), asked);
-            Assert.Equal(PaneText.StepLine1Typed, model.Steps[0].Line);
+            // R845. The row of step 1 is gone, the box says the line of step 1 while it is the next step
+            model.LoadSettings(new PaneSettings { ConfigFile = "C:\\made\\project.json" });
+            Assert.Equal("Set up site", model.BoxName);
+            Assert.StartsWith(PaneText.StepLine1Typed + ". ", model.BoxLine);
         }
 #endif
     }

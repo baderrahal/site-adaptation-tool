@@ -1,13 +1,13 @@
 namespace SiteAdaptation.AddIn.HowItWorks
 {
     // Lane C NEWPROJ-UI, docs/design/boards/HowItWorks.dc.html word for word. Every text the window shows, in the files of the window so
-    // the text test of R372 finds it there. The button of each step is its ribbon label, RibbonLayout
+    // the text test of R372 finds it there. The button of each step is the button of the card that runs it (R845)
     public static class HowItWorksText
     {
         public const string Title = "How it works";
         public const string Badge = "Read once";
-        // R764, F17 of run 1: the window teaches the 3 cards of the pane, each card runs the steps under it, Advanced keeps a button per step
-        public const string Line = "The tool puts each villa on its plot at the right level. The pane holds three cards, used in this order: Project data, Build site, Review and deliver. Each card runs the steps listed under it, and Advanced keeps one button per step.";
+        // R764, F17 of run 1: the window teaches the 3 cards of the pane, each card runs the steps under it. R845: no step has a button of its own in Advanced
+        public const string Line = "The tool puts each villa on its plot at the right level. The pane holds three cards, used in this order: Project data, Build site, Review and deliver. Each card runs the steps listed under it.";
         public const string CardHead = "Card <n>, <name>: <name>";
         public const string ApplyLine = "Nothing changes in the model until you press Apply.";
         public const string Count = "<n> steps";

@@ -9,7 +9,6 @@ namespace SiteAdaptation.AddIn.Pane
         public const string ShowRefused = "Revit would not show the pane now. Open a project and try again.";
 
         public const string NextLabel = "Next step";
-        public const string RunButton = "Run <n> <name>";
         public const string DryRunOn = "Dry run is on.";
         public const string DryRunOff = "Dry run is off.";
         public const string DryRunNoStep4 = "4 Check has no dry run yet, so the tool unticks Dry run when it runs.";
@@ -95,16 +94,6 @@ namespace SiteAdaptation.AddIn.Pane
         public const string StepLine7 = "Places a villa on each plot at its FFL";
         public const string StepLine8 = "Boundary walls";
         public const string StepLine9 = "Excel report of the run";
-
-        public const string Done = "Done";
-        public const string Issues = "<n> issues";
-        public const string DoneWithIssues = "Done with <n> issues";
-        public const string Ready = "Ready";
-        public const string NeedsStep = "Needs step <n>";
-        public const string NeedsSettings = "Needs setup";
-
-        // The steps after 4 folded into one row on first open, as "Floors and ramps to 9 Report"
-        public const string FoldedSteps = "<name> to <n> <name>";
 
         // R543. What site.json says the last step 1 did, the plain line until it ran
         public static string StepOneLine(string siteText)
