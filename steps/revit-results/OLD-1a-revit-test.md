@@ -20,7 +20,7 @@ Lane revit-test on Bader's PC, branch task/OLD-1a-revit-test from origin/main 1f
 4. python\c3d_probe.json still names folders of Documents and of the laptop: probeRoot, dataBook.root, the window lock and landxmlDir (lines 8, 93, 185, 219). I did not use it and did not change it. I passed --config with a settings file under the work root, old-1a\c3d_probe_old1a.json, which holds only the keys c3d_window.py reads and no windowLock block. The lock was taken once, by python\window_lock.py around the command, from siteBuild.lock of config\project.json.
 5. The builds went to old-1a\artifacts by --artifacts-path, so the repo holds no new bin or obj folder.
 6. The probe writes into landxml of its own root. I moved the 7 files from old-1a\landxml to landxml of the work root, the place docs\truth.md names, with Move-Item, no file changed.
-7. Civil 3D ended with exit code 3762504530, which is 0xE0434352, after the probe had written data.json with done true. The run record says done true, unchanged true, stopped null, error null. Why the exit code is not 0 is UNKNOWN, not looked into. No data.error.txt was written.
+7. Civil 3D ended with exit code 3762504530, which is 0xE0434352, after the probe had written data.json with done true. The run record says done true and unchanged true, and holds no stopped key and no error key. The windowClosed line of windows.jsonl says exitCode 0, that is the exit of c3d_window.py, which goes by done. Why the exit code is not 0 is UNKNOWN, not looked into. No data.error.txt was written.
 8. The names of siteBuild.roadSurfaces are the drawing name, two underscores and the surface name. That is the file name the probe gives, less .xml. The name inside each file is the surface name alone. I matched by file name. Which of the two the build asks for on this PC is UNKNOWN, not run here.
 9. status in steps\tasks\OLD-1a-revit-test.md is still open. The task file is not in the allowed list of the task, so I did not set it.
 
@@ -63,7 +63,7 @@ All 7 are TIN surfaces, none is a reference. Drawing points and Drawing triangle
 | EXISTING_11.5 Sqkm | 4,681 | 8,682 | 4,681 | 8,682 | 405,563 |
 | Total | 1,236,571 | 2,222,636 | 1,236,553 | 2,222,636 | 124,088,490 |
 
-Faces equal the drawing triangles on 7 of 7. Points are fewer than the drawing points on 4 surfaces, by 1, 3, 8 and 6, 18 in all. The probe writes only the points a triangle uses and joins two points closer than 0.1 mm in plan (DataCommands.cs lines 569 and 592 to 602). Which of the two made each difference is UNKNOWN, not measured.
+Faces equal the drawing triangles on 7 of 7. Points are fewer than the drawing points on 4 surfaces, by 1, 3, 8 and 6, 18 in all. The probe writes only the points a triangle uses and joins the points that round to the same 0.1 mm in X and in Y (DataCommands.cs lines 569 and 592 to 602). Which of the two made each difference is UNKNOWN, not measured.
 
 Each file is named Makkah Phase 1_Road Surface C3D__ and the surface name, with .xml.
 
