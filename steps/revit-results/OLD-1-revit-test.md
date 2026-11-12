@@ -52,8 +52,8 @@ The same Revit as part 0, on `old-1b\OLD1-site.rvt`. Card 1 ran once.
 
 7. 11:55:58 Choose project folder, the Select Folder box, C:\02-Site Adaptation. The window 1 Set up site opened by itself with the Baseplan "ROSHN Makkah Baseplan.dwg" of the folder, "Empty project found", "This model has no site coordinates.", "The place Boston, MA comes from the Revit template, it is not the site.", position from "CAD, the plot outlines of the baseplan", "5 of 5 check points pass", the coordinate system line "no input states a system, EPSG 32637 of config". The three Current ticked (Site drawing, Road surface, Parameter sheet), Dry run, Apply 11:57:06, the window gone by 11:57:21. Step 1 by its run_timing: Committed, 54.0 s.
 8. 11:57:49 Choose project folder again, the same folder. The box: "2 Read data, Dry run done, nothing was changed. Reads the folder and the settings file. Files in the folder: 376, 5963.6 MiB, those of a kind it knows are read. The old read lacks a file: the project names no neighbourhood schedule (R798), and 3 more. The folder is read instead." Apply 11:58:27.
-9. Read 1 in the worker, 11:58:28 to 11:59:29, 61 s. What the tool read: "10 files read", "2,618 of 2,964 villa plots of all plots". Under Files not read, 10 drawings, each with a line of this shape: "free memory 1.53 GiB, the CEC Building Footprint.dwg read needs 1.96 GiB". The 10: Base Plans/CEC Building Footprint.dwg and the 9 of step 13.
-10. Close, then Confirm what was found: Villa type column "Typology_Rev8.1 in JN Sales Data_Base_Rev09 of PSN-ZZZ-XXX-SCH-TM-000201- DLUS Schedule_(Rev9)_Accomodation_Schedule.xlsx, 2570 plots (proposed)", note "2 columns tie and hold the same code on every plot, the first is proposed". Area column "Neighbourhood_ID in PH_1-DLUS of" the same workbook, "2955 plots (proposed)". Code map, 16 pairs, "Proposed from" the Reference sheet of that workbook. Hand of each prototype, 13 rows C10 to VL6, each "no guess". Group levels, 2 fields, empty. Both proposed columns kept, no hand picked, no word typed. Confirm 12:00:28, the box at 12:00:45, 17 s: "2 Read data done: 5 files written, 0 issues. The old read lacks a file: the project names no neighbourhood schedule (R798), and 3 more. The folder is read instead. This read is not whole, the next press reads again: files or folders not read 10, the first is Base Plans/CEC Building Footprint.dwg, free memory 1.53 GiB, the CEC Building Footprint.dwg read needs 1.96 GiB. Your values are saved. Press Read data again to read with them. They are applied to this read already, so that press reads no drawing again."
+9. Read 1 in the worker, 11:58:28 to 11:59:29, 61 s. What the tool read: "10 files read", "2,618 of 2,964 villa plots of all plots". Under Files not read, 10 drawings, each with a line of this shape: "free memory 1.53 GiB, the (footprint drawing) read needs 1.96 GiB". The 10: the footprint drawing and the 9 of step 13.
+10. Close, then Confirm what was found: Villa type column "Typology_Rev8.1 in JN Sales Data_Base_Rev09 of PSN-ZZZ-XXX-SCH-TM-000201- DLUS Schedule_(Rev9)_Accomodation_Schedule.xlsx, 2570 plots (proposed)", note "2 columns tie and hold the same code on every plot, the first is proposed". Area column "Neighbourhood_ID in PH_1-DLUS of" the same workbook, "2955 plots (proposed)". Code map, 16 pairs, "Proposed from" the Reference sheet of that workbook. Hand of each prototype, 13 rows C10 to VL6, each "no guess". Group levels, 2 fields, empty. Both proposed columns kept, no hand picked, no word typed. Confirm 12:00:28, the box at 12:00:45, 17 s: "2 Read data done: 5 files written, 0 issues. The old read lacks a file: the project names no neighbourhood schedule (R798), and 3 more. The folder is read instead. This read is not whole, the next press reads again: files or folders not read 10, the first is the footprint drawing, free memory 1.53 GiB, the (footprint drawing) read needs 1.96 GiB. Your values are saved. Press Read data again to read with them. They are applied to this read already, so that press reads no drawing again."
 11. `dotnet build-server shutdown` by this lane, to give back the memory of its own build. Free memory 3.23 GB before the next press.
 12. 12:01:39 Choose project folder a third time. The box: "Reads the folder, the settings file and the values a person confirmed. Files in the folder: 376, 5963.6 MiB ... Reads again, the last read of these files is not whole: files or folders not read 10 ...". Apply 12:02:03.
 13. Read 2 in the worker, to 12:03:32, about 90 s. What the tool read: "12 files read", "2,615 of 2,964 villa plots of all plots". The footprint drawing was read this time. Files not read, 9, each for free memory, the free memory 1.86 to 2.19 GiB at its turn:
@@ -83,7 +83,7 @@ A line for Lead: on this PC, 16 GB, the read can never be whole. 7 of the 9 draw
 | Group levels | Usable | Areas from the confirmed column: 13. Smaller groups: 138, words Neighbourhood_ID. |
 | Villa types | Weak | Villa type is read from the confirmed column for 2570 of 2964 plots, the drawing gives another code on 2172, 32 with no prototype file. Code map confirmed. |
 | Villa blocks | Usable | Villa blocks are inserts on 6 layers, 2079 of 2964 plots hold one. |
-| Road edges | Weak | Road edges are lines on layer MP_WADI_CHAN, within 20 m of 279 of 2964 plots, not scored. |
+| Road edges | Weak | Road edges are lines on layer (one layer, its name left out here), within 20 m of 279 of 2964 plots, not scored. |
 | Road levels | Missing | No Land XML surface file is in the folder, so there are no road levels. |
 | Coordinates | Weak | The drawing is in meters and names no coordinate system, the plots sit in drawing space. |
 | Prototypes | Usable | 78 prototype files found, 26 with a villa type code in the file name. The files are opened at Read data. |
@@ -117,7 +117,7 @@ Villa types of the read: 15 codes on 2,570 plots, 45 plots with none. 010 and 01
 
 ### Fix items
 
-12:04:15 Fix items opened the window Confirm what was found. Its rows, every one:
+12:04:21 Fix items opened the window Confirm what was found. Its rows, every one:
 
 | Row | Value shown |
 |---|---|
@@ -139,7 +139,7 @@ Cancel. The box "Nothing was saved. The read stays as it is."
 
 Scope Neighbourhood 01A and Villa mode Links set in Advanced, the Level profile parsons2024Rev6 as it stood. Card 2: "Scope: the neighbourhood 01A. The plan and its preview show every plot of stage 1." Save on the quick access bar, 12:10:09, 5,693,440 bytes. `old-1b\OLD1-card1.rvt` is a file copy of that save.
 
-A driver fault of this lane, not of the tool: at 12:04 the box "Nothing was saved." stayed open while the driver pressed Browse of the Prototypes row behind it. The folder was taken. The box then closed only by its frame at 12:07, not by its Close button. From then the driver closes every box before the next press.
+A driver fault of this lane, not of the tool: the box "Nothing was saved." stayed open while the driver pressed Browse of the Prototypes row behind it at 12:05:01. The folder was taken. The box then closed only by its frame at 12:06:11, not by its Close button. From then the driver closes every box before the next press.
 
 ### Times of card 1
 
@@ -158,15 +158,15 @@ The same Revit, the same model. Preview first ticked, Dry run first as it stood.
 
 | Neighbourhood | Plots read | Build pressed | Stopped | Time, press to stop | Read 2 again | Review | Plots built | Floors, by type | Levels | Links | Walls | Issues of the preview |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 01A | 278 | 12:12:05 | at Read data, about 12:15:30 | 3.4 min | yes, 131.6 s | "3 Review data, NBH 01A, 278 plots", "0 of 278 checked by the team", Save review, Close, 13.2 s | 0 | 0 | 0 | 0 | 0 | 2619 |
-| 010 | 16 | 12:17:53 | at Read data, by 12:18:42 | under 50 s | no | none | 0 | 0 | 0 | 0 | 0 | 2619 |
-| 012 | 342 | 12:19:31 | at Read data, by 12:20:54 | under 85 s | no | none | 0 | 0 | 0 | 0 | 0 | 2619 |
-| 013 | 416 | 12:21:46 | at Read data, by 12:22:35 | under 50 s | no | none | 0 | 0 | 0 | 0 | 0 | 2619 |
-| 01B | 2 | 12:23:19 | at Read data, by 12:24:09 | under 50 s | no | none | 0 | 0 | 0 | 0 | 0 | 2619 |
-| 02 | 325 | 12:24:52 | at Read data, by 12:25:41 | under 50 s | no | none | 0 | 0 | 0 | 0 | 0 | 2619 |
-| 021 | 435 | 12:26:25 | at Read data, by 12:27:13 | under 50 s | no | none | 0 | 0 | 0 | 0 | 0 | 2619 |
-| 022 | 305 | 12:27:57 | at Read data, by 12:28:47 | under 50 s | no | none | 0 | 0 | 0 | 0 | 0 | 2619 |
-| 03 | 493 | 12:29:31 | at Read data, by 12:30:20 | under 50 s | no | none | 0 | 0 | 0 | 0 | 0 | 2619 |
+| 01A | 278 | 12:12:13 | at Read data, about 12:15:30 | 3.3 min | yes, 131.6 s | "3 Review data, NBH 01A, 278 plots", "0 of 278 checked by the team", Save review, Close, 13.2 s | 0 | 0 | 0 | 0 | 0 | 2619 |
+| 010 | 16 | 12:18:02 | at Read data, by 12:18:42 | 40 s at most | no | none | 0 | 0 | 0 | 0 | 0 | 2619 |
+| 012 | 342 | 12:19:41 | at Read data, by 12:20:54 | 73 s at most | no | none | 0 | 0 | 0 | 0 | 0 | 2619 |
+| 013 | 416 | 12:21:54 | at Read data, by 12:22:35 | 41 s at most | no | none | 0 | 0 | 0 | 0 | 0 | 2619 |
+| 01B | 2 | 12:23:27 | at Read data, by 12:24:09 | 42 s at most | no | none | 0 | 0 | 0 | 0 | 0 | 2619 |
+| 02 | 325 | 12:25:00 | at Read data, by 12:25:41 | 41 s at most | no | none | 0 | 0 | 0 | 0 | 0 | 2619 |
+| 021 | 435 | 12:26:33 | at Read data, by 12:27:13 | 40 s at most | no | none | 0 | 0 | 0 | 0 | 0 | 2619 |
+| 022 | 305 | 12:28:06 | at Read data, by 12:28:47 | 41 s at most | no | none | 0 | 0 | 0 | 0 | 0 | 2619 |
+| 03 | 493 | 12:29:39 | at Read data, by 12:30:20 | 41 s at most | no | none | 0 | 0 | 0 | 0 | 0 | 2619 |
 
 The exact words of card 2, the same on all 9: "Build stopped at Read data: labels of the data book is not on disk: C:\SA-work\SiteAdaptation\data_book\location_plan\labels.csv. plotsCsv of the data book is not on disk: C:\SA-work\SiteAdaptation\data_book\plots.csv. roadSurface: no folder holds a road surface named in config or picked. prototypes: two folders hold 13 each, C:\02-Site Adaptation\00_Revit Models\Zone 02\ARC\Prototypes and C:\02-Site Adaptation\00_Revit Models\Zone 02\ARC\Prototypes_2024"
 
@@ -178,7 +178,7 @@ What was seen on 01A, in order:
 4. 3 Review data, Save review, Close.
 5. Card 2: "Build plan: 2615 plots, 0 ready for every step, 2615 marked, 2619 issues. ... 2619 issues go to the issues list." then the stop words above.
 
-The 8 later Builds: the preview, Go on, then no box, no worker and no window. Each press wrote a new build plan (answer_build of the work folder, status done, plots 2615, marked 2615, blocking 0, issues 2619) and nothing after it. The driver read the stop line on the card 30 to 60 s after Go on. That line is word for word the line of the Build before, so the card alone does not prove it was written again. What proves the stop: Revit stood with no window and no worker, and the work folder holds no file of step 4 to 8 for any neighbourhood. A line for Lead: after the stop of 01A the later Builds asked no read again though the read is not whole, why is UNKNOWN.
+The 8 later Builds: the preview, Go on, then no box, no worker and no window. Each press wrote a new build plan (answer_build of the work folder, status done, plots 2615, marked 2615, blocking 0, issues 2619) and nothing after it. The work folder holds 10 build plans, 2 of them of 01A: the first, at the press before the rules box, with 2618 issues, the second after the Yes with 2619. The driver read the stop line on the card 30 to 60 s after Go on. That line is word for word the line of the Build before, so the card alone does not prove it was written again. What proves the stop: Revit stood with no window and no worker, and the work folder holds no file of step 4 to 8 for any neighbourhood. A line for Lead: after the stop of 01A the later Builds asked no read again though the read is not whole, why is UNKNOWN.
 
 ### Why it stops, for Lead
 
@@ -202,7 +202,7 @@ Not run. The button Report of card 3 was off after the 9 Builds, the card said "
 | Claim | First method | Second method | Result |
 |---|---|---|---|
 | The input folder is unchanged | hash_inputs.py, Python, all 837 files before and after | PowerShell: 837 files and the same bytes now, 0 files written after 11:40 today, and Get-FileHash of a random 60 files against the before list | equal, 0 of 60 differ |
-| Each of the 9 Builds stopped at Read data | the line of card 2 read by UI Automation, kept per neighbourhood in old-1b\logs, files b and the neighbourhood and _pane_end.txt | the work folder of the model on disk: 0 files of step 4 to 8 (no plan, floors, place, walls, toposolid, run_4 or run_5), 1 review file, 9 build plans | agree |
+| Each of the 9 Builds stopped at Read data | the line of card 2 read by UI Automation, kept per neighbourhood in old-1b\logs, files b and the neighbourhood and _pane_end.txt | the work folder of the model on disk: 0 files of step 4 to 8 (no plan, floors, place, walls, toposolid, run_4 or run_5), 1 review file, 10 build plans, 2 of them of 01A | agree |
 | The cause is the data book | the words of the card | the code lines named above and ls of data_book | agree |
 | Plots per neighbourhood | the Review window of 01A, 278 | read_counts.py on plots.json of the read, 278 for 01A | equal for 01A, the other 8 by the script alone |
 | Revit closed, the lock back | windows.jsonl | no Revit process, no window.lock | agree |
@@ -219,6 +219,8 @@ Not run. The button Report of card 3 was off after the 9 Builds, the card said "
 8. The stop words end with two notes that read as causes and are not, the road surface and prototype sentences.
 9. The driver of the laptop is not on this PC. The new one is old-1b\scripts under the work root, patterns and window messages only.
 10. status in steps\tasks\OLD-1b-revit-test.md is still open, the task file is not in the allowed list of the task.
+11. Two lines of the task are not met. Done when asks that the Report ran on the last model: it did not run, the button was off. Step 4 asks one neighbourhood per part with the model saved at the end of each part: CHOSEN by this lane, all 9 ran in the one Revit window of 44.9 minutes with one save at its end, 12:31:25, since each Build stopped in under 4 minutes and wrote nothing to the model.
+12. The times of a press are those of old-1b\logs\driver.log. The names of the footprint drawing, its folder and the road edge layer are left out of the quoted lines, config does not name them.
 
 ## Not seen in Revit
 
@@ -229,5 +231,5 @@ Not run. The button Report of card 3 was off after the 9 Builds, the card said "
 ## Left under the work root
 
 - old-1b: OLD1-site.rvt with its two Revit backups, OLD1-card1.rvt, OLD1-empty-pristine.rvt, inputs-before.json, inputs-after.json, scripts (the driver, hash_inputs.py, read_counts.py), logs (driver.log, the text of every window, real values in them, never in git).
-- OLD1-site_347b04be, the work folder of the model: the reads, the review of 01A, 9 build plans. New projects\OLD1-site_347b04be: the settings and rules of the project.
+- OLD1-site_347b04be, the work folder of the model: the reads, the review of 01A, 10 build plans. New projects\OLD1-site_347b04be: the settings and rules of the project.
 - round_addin\logs\windows.jsonl: 3 new lines of round OLD-1b.

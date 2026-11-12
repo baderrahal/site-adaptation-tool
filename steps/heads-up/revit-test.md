@@ -9,7 +9,8 @@
 - The cause is one, not of a neighbourhood: the read for the build needs labels.csv and plots.csv of data_book of the past job (ReadInputs.cs lines 201 and 365 to 386). This PC holds no data_book and no window sets the two files. The road surface and prototype sentences are notes, both rows were set in a window.
 - Card 1 ran once: Set up site 5 of 5 check points, 2 reads of 61 and about 90 s, 2,615 villa plots of 2,964, 9 neighbourhoods in the Scope list, the skip settings of PR 299 seen working (3 folders and 8 files left out). The road surfaces: the tool does not find landxml of the work root by itself, the row Road levels of Settings takes it by Browse and offers 6 of the 7 surfaces.
 - The read is never whole on this PC: 9 drawings need 2.73 to 53.15 GiB of free memory.
-- Card 3 Report: not run, the button was off, "Waits for stage 2".
+- Card 3 Report: not run, the button was off, "Waits for stage 2". So the Done when line "the Report ran on the last model" is not met.
+- Not as the task says: all 9 neighbourhoods ran in one Revit window with one save at its end, not one per part, CHOSEN by this lane since each Build stopped in under 4 minutes and wrote nothing to the model.
 - Total time: one Revit window, 11:46:46 to 12:31:40, 44.9 minutes. The whole task 11:40 to 12:45.
 - Input folder: 837 files, gone 0, added 0, changed 0 by SHA-256, before and after.
 - Opened in Revit: Revit 2024.3 once, a new project from DefaultMetric.rte saved as old-1b\OLD1-site.rvt under the work root. No file of the input folder was opened in Revit.
