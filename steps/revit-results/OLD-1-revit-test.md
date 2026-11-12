@@ -151,3 +151,83 @@ A driver fault of this lane, not of the tool: at 12:04 the box "Nothing was save
 | Confirm, in the worker | 12:00:28 | 12:00:45 | 17 s |
 | Read 2, the worker | 12:02:03 | 12:03:32 | about 90 s, 9 drawings not read |
 | Card 1 in all, to the save | 11:53 | 12:10 | 17 min, the pace of the driver in it |
+
+## Part 1, card 2 Build site, 12:12 to 12:30
+
+The same Revit, the same model. Preview first ticked, Dry run first as it stood. Nothing was built: every Build stopped at its own read, before 4 Check. One row per neighbourhood:
+
+| Neighbourhood | Plots read | Build pressed | Stopped | Time, press to stop | Read 2 again | Review | Plots built | Floors, by type | Levels | Links | Walls | Issues of the preview |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 01A | 278 | 12:12:05 | at Read data, about 12:15:30 | 3.4 min | yes, 131.6 s | "3 Review data, NBH 01A, 278 plots", "0 of 278 checked by the team", Save review, Close, 13.2 s | 0 | 0 | 0 | 0 | 0 | 2619 |
+| 010 | 16 | 12:17:53 | at Read data, by 12:18:42 | under 50 s | no | none | 0 | 0 | 0 | 0 | 0 | 2619 |
+| 012 | 342 | 12:19:31 | at Read data, by 12:20:54 | under 85 s | no | none | 0 | 0 | 0 | 0 | 0 | 2619 |
+| 013 | 416 | 12:21:46 | at Read data, by 12:22:35 | under 50 s | no | none | 0 | 0 | 0 | 0 | 0 | 2619 |
+| 01B | 2 | 12:23:19 | at Read data, by 12:24:09 | under 50 s | no | none | 0 | 0 | 0 | 0 | 0 | 2619 |
+| 02 | 325 | 12:24:52 | at Read data, by 12:25:41 | under 50 s | no | none | 0 | 0 | 0 | 0 | 0 | 2619 |
+| 021 | 435 | 12:26:25 | at Read data, by 12:27:13 | under 50 s | no | none | 0 | 0 | 0 | 0 | 0 | 2619 |
+| 022 | 305 | 12:27:57 | at Read data, by 12:28:47 | under 50 s | no | none | 0 | 0 | 0 | 0 | 0 | 2619 |
+| 03 | 493 | 12:29:31 | at Read data, by 12:30:20 | under 50 s | no | none | 0 | 0 | 0 | 0 | 0 | 2619 |
+
+The exact words of card 2, the same on all 9: "Build stopped at Read data: labels of the data book is not on disk: C:\SA-work\SiteAdaptation\data_book\location_plan\labels.csv. plotsCsv of the data book is not on disk: C:\SA-work\SiteAdaptation\data_book\plots.csv. roadSurface: no folder holds a road surface named in config or picked. prototypes: two folders hold 13 each, C:\02-Site Adaptation\00_Revit Models\Zone 02\ARC\Prototypes and C:\02-Site Adaptation\00_Revit Models\Zone 02\ARC\Prototypes_2024"
+
+What was seen on 01A, in order:
+
+1. The box "No rules are chosen for this project. Use the rules template of site adaptation manual 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06? Its rules name the unit types of that one manual, so check they fit this project. They stay not confirmed until a person confirms them. Use the manual template for this project now?" Yes. It came once, not on the 8 later Builds.
+2. Preview of the build: "2615 plots with an outline, 2619 issues. Nothing is written to the model yet." Go on. The same line on all 9, the preview counts the whole read, not the scope.
+3. The box 2 Read data, "Reads again, the last read of these files is not whole: files or folders not read 9 ...". Apply. The read ran again, 131.6 s by run_timing, with no What the tool read and no Confirm window after it.
+4. 3 Review data, Save review, Close.
+5. Card 2: "Build plan: 2615 plots, 0 ready for every step, 2615 marked, 2619 issues. ... 2619 issues go to the issues list." then the stop words above.
+
+The 8 later Builds: the preview, Go on, then no box, no worker and no window. Each press wrote a new build plan (answer_build of the work folder, status done, plots 2615, marked 2615, blocking 0, issues 2619) and nothing after it. The driver read the stop line on the card 30 to 60 s after Go on. That line is word for word the line of the Build before, so the card alone does not prove it was written again. What proves the stop: Revit stood with no window and no worker, and the work folder holds no file of step 4 to 8 for any neighbourhood. A line for Lead: after the stop of 01A the later Builds asked no read again though the read is not whole, why is UNKNOWN.
+
+### Why it stops, for Lead
+
+- The read for the build always asks for labels and plotsCsv of addin.readData.dataBookFiles in the folder data_book beside the work folder of the model (dotnet\SiteAdaptation.Common\ReadData\ReadInputs.cs lines 201 and 365 to 386, called by dotnet\SiteAdaptation.AddIn\Fast5\BuildRead.cs line 74). data_book is not on this PC (RAN ls, "No such file or directory", and steps\revit-results\PC-1-revit-test.md said the same). No window sets these two files. On the laptop the work root held the data book of the past job, so this stop did not show on 8 Nov.
+- The two last sentences of the stop are not stops. They are the notes of FolderRoles why the project folder gave no row (BuildRead.cs line 77, FolderRoles.cs lines 55 and 90): landxml is not inside the project folder, and two folders of the project folder hold 13 villa files each. Both rows were set by a person before the Build, Road surface "landxml" with 6 surfaces in order and Prototypes "Prototypes_2024", and stayed so after it ("7 of 8 found"). Whether the Build would take the road levels of the pick is UNKNOWN, the Build did not get that far.
+- So the baseline of card 2 on this PC is 0 of 9 neighbourhoods built, by one cause that is not of a neighbourhood. Step c has no built model to compare.
+- Card 3 after the Builds: "2615 plots have no road level, so no floor level, and steps 6 to 8 leave them out." and "Values: computed 9879, rule 10907, person entered 2614, missing 10595, other 0." The head line: "15 of 15 rules are not confirmed. Open Rules in Settings."
+
+## Card 3, Report
+
+Not run. The button Report of card 3 was off after the 9 Builds, the card said "Waits for stage 2" and "2619 issues from the last build.", and step 9 in the list of Advanced said "Needs step 4". Step 4 Check stood Ready, steps 5 to 8 each waited for the one before. Update from report was on and was not pressed. No Excel was written.
+
+## The end
+
+- 12:31:25 Save on the quick access bar, `old-1b\OLD1-site.rvt`, 5,697,536 bytes. It holds card 1 and no built element. 12:31:35 the main window closed by its frame, 12:31:40 Revit gone, the lock deleted (round_addin\logs\windows.jsonl: lockTaken 11:46:46, windowClosed after 44.9 minutes, lockDeleted). One Revit window in the whole task, under the 110 minutes of a part.
+- The input folder after, 12:32: 837 files, 8,874,086,637 bytes. Against old-1b\inputs-before.json: "before 837, after 837, gone 0, added 0, changed 0 (by size 0, by write time 0, by SHA-256 0)" (old-1b\inputs-after.json).
+- scripts\checks\write_places.py --check: "PASS write places: nothing new on C:\, in Documents or in the repo outside the build folders".
+
+## Second check, by a different method
+
+| Claim | First method | Second method | Result |
+|---|---|---|---|
+| The input folder is unchanged | hash_inputs.py, Python, all 837 files before and after | PowerShell: 837 files and the same bytes now, 0 files written after 11:40 today, and Get-FileHash of a random 60 files against the before list | equal, 0 of 60 differ |
+| Each of the 9 Builds stopped at Read data | the line of card 2 read by UI Automation, kept per neighbourhood in old-1b\logs, files b and the neighbourhood and _pane_end.txt | the work folder of the model on disk: 0 files of step 4 to 8 (no plan, floors, place, walls, toposolid, run_4 or run_5), 1 review file, 9 build plans | agree |
+| The cause is the data book | the words of the card | the code lines named above and ls of data_book | agree |
+| Plots per neighbourhood | the Review window of 01A, 278 | read_counts.py on plots.json of the read, 278 for 01A | equal for 01A, the other 8 by the script alone |
+| Revit closed, the lock back | windows.jsonl | no Revit process, no window.lock | agree |
+
+## Lines for Lead
+
+1. Card 2 builds nothing on this PC: the read for the build needs labels.csv and plots.csv of data_book of the past job, which this PC does not hold and no window sets. Exact words above.
+2. The read is never whole on 16 GB: 9 drawings need 2.73 to 53.15 GiB of free memory, so each press of Choose project folder reads again, and the first read also left out the footprint drawing at 1.53 GiB free.
+3. Card 1 says Road levels Missing while Settings holds the road folder Found with 6 surfaces picked.
+4. The tool does not find landxml of the work root by itself, a person browses the row Road levels. The 7th surface file, EXISTING_11.5 Sqkm, is not offered.
+5. The Scope list holds 9 neighbourhoods and the card says 13 areas. 010 and 01B hold no villa type. 3 plots have the area "-" or none.
+6. Card 1 says "78 prototype files found", six folders of 13, and the Prototypes row stays "Not chosen" until a person browses it.
+7. After the first stop the later Builds do not ask the read again, though the read is not whole.
+8. The stop words end with two notes that read as causes and are not, the road surface and prototype sentences.
+9. The driver of the laptop is not on this PC. The new one is old-1b\scripts under the work root, patterns and window messages only.
+10. status in steps\tasks\OLD-1b-revit-test.md is still open, the task file is not in the allowed list of the task.
+
+## Not seen in Revit
+
+- 4 Check, 5 Floors and ramps, 6 Levels, 7 Place villas, 8 Walls, 9 Report: never ran, for any neighbourhood.
+- Whether one neighbourhood fits in 110 minutes on this PC: UNKNOWN, no Build got past its read. What is measured: card 1 takes 17 minutes, a read 61 to 132 s.
+- A person using the windows, and any picture of a window.
+
+## Left under the work root
+
+- old-1b: OLD1-site.rvt with its two Revit backups, OLD1-card1.rvt, OLD1-empty-pristine.rvt, inputs-before.json, inputs-after.json, scripts (the driver, hash_inputs.py, read_counts.py), logs (driver.log, the text of every window, real values in them, never in git).
+- OLD1-site_347b04be, the work folder of the model: the reads, the review of 01A, 9 build plans. New projects\OLD1-site_347b04be: the settings and rules of the project.
+- round_addin\logs\windows.jsonl: 3 new lines of round OLD-1b.
