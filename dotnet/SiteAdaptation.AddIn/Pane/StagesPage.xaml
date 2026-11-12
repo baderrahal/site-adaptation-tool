@@ -215,8 +215,8 @@
           </StackPanel>
         </Border>
 
-        <!-- Advanced: the pane of version 1 whole, its 9 step rows among it, closed by default -->
-        <Expander Margin="{StaticResource SA.Pad.Section}" Header="{x:Static pane:StageText.Advanced}" IsExpanded="False">
+        <!-- Advanced: the pane of version 1 with no step row (R845), closed by default -->
+        <Expander x:Name="AdvancedBox" Margin="{StaticResource SA.Pad.Section}" Header="{x:Static pane:StageText.Advanced}" IsExpanded="False">
           <Frame x:Name="OldPane" NavigationUIVisibility="Hidden" Focusable="False" />
         </Expander>
       </StackPanel>

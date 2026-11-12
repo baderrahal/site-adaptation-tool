@@ -33,7 +33,8 @@ namespace SiteAdaptation.Tests
             int two = line.IndexOf(StageText.Stage2, System.StringComparison.Ordinal);
             int three = line.IndexOf(StageText.Stage3, System.StringComparison.Ordinal);
             Assert.True(one > 0 && one < two && two < three, line);
-            Assert.Contains(StageText.Advanced, line);
+            // R845. Advanced keeps no button per step, so the line no longer sends a person there
+            Assert.DoesNotContain(StageText.Advanced, line);
         }
 
         [Fact]

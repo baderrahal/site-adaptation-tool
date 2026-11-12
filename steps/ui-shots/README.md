@@ -6,9 +6,10 @@ Control 3 of docs/design/12-ui-spec.md, UI controls. Each PNG is a render of a w
 
 | File | Window | State |
 |---|---|---|
-| ribbon-icons.png | The 11 ribbon icons in the order of the ribbon, 32 px over 16 px: 1 to 4, Site Adaptation Rules, 5 to 9, Update from report | Draft |
-| pane.png | The pane in use, filled like the NBH 012 column of 7.2 of docs/design/07-mock.md, its steps in the order of docs/design/13-workflow-changes.md | Draft |
-| pane-first-open.png | The pane on first open, no settings file chosen, with the line of a past job | Draft |
+| ribbon-icons.png | The 2 ribbon icons in the order of the ribbon, 32 px over 16 px: Site Adaptation Rules, Show pane. The step buttons left the ribbon (R846) | Draft |
+| pane.png | The page of Advanced in use, filled like the NBH 012 column of 7.2 of docs/design/07-mock.md, with no step row and no button in the Next step box, Road topography in the Scope part (R845) | Draft |
+| pane-advanced.png | The whole pane with Advanced open: the 3 cards with made up rows, and under them the page of Advanced with no step row (R845), sample data only, drawn from the Drafts list of Shots | Draft, not seen in Revit |
+| pane-first-open.png | The page of Advanced on first open, no settings file chosen, with the line of a past job and no step row (R845) | Draft |
 | setup-site.png | The Set up site window of button 1, an existing site file after the dry run, 7 of 7 check points pass, made up numbers, the content of the window at 1280 wide with no title bar of Windows | Draft |
 | setup-site-no-source.png | The Set up site window on a blank model with no usable source, the plain lines and the stop, Apply off, made up numbers, drawn from the Drafts list of Shots | Draft (R513) |
 | review-data.png | The Review data window of button 3, NBH 012 with 5 made up plots, the first three with a plan of button 4 and corners, two checked OK and one Wrong, plot 31 selected, the cluster confirm of R442 with plots 32 and 33 proposed as one cluster, 32 confirmed, 34 with no proposal, the content of the window at 1280 wide with no title bar of Windows | Draft |
@@ -17,7 +18,7 @@ Control 3 of docs/design/12-ui-spec.md, UI controls. Each PNG is a render of a w
 | update-from-report.png | The Update from report window of 5f, the level Excel and the report Excel of NBH 012 picked, 4 changes and 1 cell not editable, one change that breaks manual rule M08 unticked, made up numbers, the content of the window at 1280 wide with no title bar of Windows | Draft |
 | new-project.png | The New project window of Lane C NEWPROJ-UI, the site drawing and the plot list found, road levels and the parameter sheet missing as on the board, sample counts 337 plots and 14 villa types, the content of the window at 1080 wide with no title bar of Windows | Draft (Q286) |
 | road-surfaces.png | The window Road surfaces of Lane D FIX-2NOV-D, R492, two surfaces ticked in order, sample names made up, no board holds it | Draft (Q370) |
-| how-it-works.png | The How it works page of Lane C NEWPROJ-UI, the 9 steps, the content of the window at 1080 wide with no title bar of Windows | Draft (Q286) |
+| how-it-works.png | The How it works page of Lane C NEWPROJ-UI, the 9 steps, each with the button of the card that runs it, 5 buttons in the pane (R845), the content of the window at 1080 wide with no title bar of Windows | Draft (Q286) |
 | pane-stage-1.png | Card 1 Project data of the pane in 3 stages, taken in Revit in FAST-3-revit-test run 1 on 7 Nov 2026, the rows of the first read of S1, counts and the layer names of config only, the road edge line blanked as its layer name is in no config | Taken in Revit, for Bader's check |
 | pane-stage-2.png | Card 2 Build site, taken in Revit in FAST-3-revit-test run 1, scope NBH 010, the line of the plan and where the Build stopped, the coordinates of the drawing blanked | Taken in Revit, for Bader's check |
 | build-preview.png | The 2D preview of a plan of FAST-1-build-1 item 4, 7 made up plot outlines north up and the line of plots and issues, Cancel and Go on | Draft, not seen in Revit |

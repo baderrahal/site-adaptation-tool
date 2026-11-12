@@ -64,14 +64,6 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R574_only_the_real_row_of_step_5_has_the_tick()
-        {
-            PaneViewModel model = Model(new FakeProbe());
-            Assert.Equal(PaneViewModel.RoadTopographyStep, Assert.Single(model.Steps, step => step.HasRoadTick).Number);
-            Assert.DoesNotContain(model.FirstSteps, step => step.HasRoadTick);
-        }
-
-        [Fact]
         public void R574_the_tick_of_the_pane_writes_the_settings_of_the_project()
         {
             PaneViewModel model = Model(new FakeProbe());
@@ -108,10 +100,7 @@ namespace SiteAdaptation.Tests
             Assert.False(model.SettingsRow.Found);
             Assert.Null(model.SettingsRow.ToolTip);
             Assert.Equal("Filled from your setup. You can change any of them after.", model.InputHelp);
-            Assert.Equal(new[] { "Needs setup", "Needs step 1", "Needs step 2", "Needs step 3", "Needs step 4", "Needs step 5", "Needs step 6", "Needs step 7", "Needs step 4" }, model.Steps.Select(step => step.ChipText));
-            Assert.All(model.Steps, step => Assert.Equal(MarkKind.Waiting, step.Mark));
-            Assert.Equal(new[] { "Set up site", "Read data", "Review data", "Check", "Floors and ramps to 9 Report" }, model.ShownSteps.Select(step => step.Name));
-            Assert.Equal("Needs step 4", model.ShownSteps.Last().ChipText);
+            Assert.Equal(new[] { "Needs setup", "Needs step 1", "Needs step 2", "Needs step 3", "Needs step 4", "Needs step 5", "Needs step 6", "Needs step 7", "Needs step 4" }, StepWords.Of(model));
             Assert.Equal("Or start from a saved project:", model.StartSavedLine);
             model.SetSavedStarts(new[] { "Job A", "Job B" });
             Assert.Equal("Or start from a saved project such as Job A:", model.StartSavedLine);
@@ -228,8 +217,8 @@ namespace SiteAdaptation.Tests
             Assert.Equal("Saved for this project", model.SettingsRow.FileName);
             Assert.True(model.SettingsRow.Found);
             Assert.Null(model.SettingsRow.ToolTip);
-            Assert.Equal("Run 1 Set up site", model.BoxButton);
-            Assert.Equal(9, model.ShownSteps.Count);
+            Assert.Equal("Set up site", model.BoxName);
+            Assert.False(model.BoxButtonShown);
 
             probe.Projects[Folder + "rules.json"] = "Job rules";
             model.PickRules(Folder + "rules.json");
@@ -284,9 +273,11 @@ namespace SiteAdaptation.Tests
             Assert.Equal("Next step", model.BoxLabel);
             Assert.Equal("Set up site", model.BoxName);
             Assert.Equal("Coordinates, levels and types, set in step 1. Dry run is on.", model.BoxLine);
-            Assert.Equal("Run 1 Set up site", model.BoxButton);
-            Assert.Equal(new[] { "Ready", "Needs step 1", "Needs step 2", "Needs step 3", "Needs step 4", "Needs step 5", "Needs step 6", "Needs step 7", "Needs step 4" }, model.Steps.Select(step => step.ChipText));
-            Assert.Equal(MarkKind.Next, model.Steps[0].Mark);
+            // R845. The box names the next step and has no button to run it
+            Assert.Equal(string.Empty, model.BoxButton);
+            Assert.False(model.BoxButtonShown);
+            Assert.Equal(new[] { "Ready", "Needs step 1", "Needs step 2", "Needs step 3", "Needs step 4", "Needs step 5", "Needs step 6", "Needs step 7", "Needs step 4" }, StepWords.Of(model));
+            Assert.Equal(1, StepPlan.Next(model.Statuses));
             Assert.True(model.DryRun);
 
             model.DryRun = false;
@@ -294,34 +285,11 @@ namespace SiteAdaptation.Tests
             Assert.False(model.Settings.DryRunFirst);
             var runs = new List<int>();
             model.RunRequested += runs.Add;
+            // R845. A press on the box runs no step, a card asks by RequestRun
             model.BoxCommand.Execute(null);
+            Assert.Empty(runs);
+            model.RequestRun(1);
             Assert.Equal(new[] { 1 }, runs);
-        }
-
-        [Fact]
-        public void R444_a_click_on_a_step_row_runs_a_step_that_is_ready_or_done_through_the_box_path_and_a_step_that_waits_does_nothing()
-        {
-            PaneViewModel model = Model(new FakeProbe());
-            model.Load(new DocumentSession("s", Folder + "Site.rvt", "Site"));
-            model.LoadSettings(new PaneSettings { ConfigFile = Folder + "project.json" });
-            var runs = new List<int>();
-            model.RunRequested += runs.Add;
-
-            Assert.True(model.Steps[0].Runnable);
-            Assert.Equal("Run 1 Set up site", model.Steps[0].RowTip);
-            model.Steps[0].RunCommand.Execute(null);
-            Assert.False(model.Steps[1].Runnable);
-            Assert.Equal("Needs step 1", model.Steps[1].RowTip);
-            model.Steps[1].RunCommand.Execute(null);
-            model.Steps[8].RunCommand.Execute(null);
-            Assert.Equal(new[] { 1 }, runs);
-
-            PaneViewModel none = Model(new FakeProbe());
-            var noRuns = new List<int>();
-            none.RunRequested += noRuns.Add;
-            Assert.All(none.Steps, step => Assert.False(step.Runnable));
-            none.Steps[0].RunCommand.Execute(null);
-            Assert.Empty(noRuns);
         }
 
         [Fact]
@@ -342,7 +310,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R372_the_steps_of_the_mock_mark_done_issues_the_next_step_and_waiting_with_the_short_chip_and_its_tooltip()
+        public void R372_the_steps_of_the_mock_hold_done_issues_the_next_step_and_waiting_and_the_box_names_the_next()
         {
             PaneViewModel model = Model(new FakeProbe());
             model.Load(new DocumentSession("s", Folder + "Site.rvt", "Site"));
@@ -354,15 +322,12 @@ namespace SiteAdaptation.Tests
                 new StepStatus(StepKind.Ready),
             });
 
-            Assert.Equal(new[] { "Done", "Done", "Done", "1,247 issues", "Ready", "Needs step 5", "Needs step 6", "Needs step 7", "Ready" }, model.Steps.Select(step => step.ChipText));
-            Assert.Equal("Done with 1,247 issues", model.Steps[3].ChipTip);
-            Assert.Null(model.Steps[4].ChipTip);
-            Assert.Equal(new[] { MarkKind.Done, MarkKind.Done, MarkKind.Done, MarkKind.Issues, MarkKind.Next, MarkKind.Waiting, MarkKind.Waiting, MarkKind.Waiting, MarkKind.Waiting },
-                model.Steps.Select(step => step.Mark));
-            Assert.Equal("Run 5 Floors and ramps", model.BoxButton);
+            Assert.Equal(new[] { "Done", "Done", "Done", "1,247 issues", "Ready", "Needs step 5", "Needs step 6", "Needs step 7", "Ready" }, StepWords.Of(model));
+            Assert.Equal(5, StepPlan.Next(model.Statuses));
+            Assert.Equal("Floors and ramps", model.BoxName);
+            Assert.False(model.BoxButtonShown);
             Assert.Equal("Generic, yard and ramp floors. Dry run is on.", model.BoxLine);
-            Assert.Equal(new[] { "Set up site", "Read data", "Review data", "Check", "Floors and ramps", "Levels", "Place villas", "Walls", "Report" }, model.Steps.Select(step => step.Name));
-            Assert.Equal(PaneText.StepLines, model.Steps.Select(step => step.Line));
+            Assert.Equal(new[] { "Set up site", "Read data", "Review data", "Check", "Floors and ramps", "Levels", "Place villas", "Walls", "Report" }, Enumerable.Range(1, 9).Select(PaneViewModel.StepName));
             Assert.Throws<ArgumentException>(() => model.SetSteps(new StepStatus[8]));
         }
 
@@ -529,7 +494,6 @@ namespace SiteAdaptation.Tests
             Assert.False(model.BoxCommand.CanExecute(null));
             Assert.Equal(string.Empty, model.InputHelp);
             Assert.All(model.InputRows.Concat(new[] { model.SettingsRow, model.RulesRow }), row => Assert.False(row.Shown));
-            Assert.All(model.Steps, step => Assert.Equal(StepKind.None, step.Chip));
             Assert.False(model.DryRun);
             Assert.False(model.VillaMasses);
             Assert.Null(model.Settings);
@@ -537,22 +501,21 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R372_a_document_with_an_empty_title_reads_not_saved_and_one_with_no_path_shows_its_steps_with_no_status()
+        public void R372_a_document_with_an_empty_title_reads_not_saved()
         {
             PaneViewModel model = Model(new FakeProbe());
             model.Load(new DocumentSession("s", string.Empty, string.Empty));
             Assert.Equal("not saved", model.ProjectName);
-            Assert.All(model.Steps, step => Assert.Equal(StepKind.None, step.Chip));
             Assert.True(model.BoxCommand.CanExecute(null));
             model.Load(new DocumentSession("s", Folder + "Site.rvt", "Site"));
             Assert.Equal("Site", model.ProjectName);
-            Assert.Equal(StepKind.NeedsSettings, model.Steps[0].Chip);
+            Assert.Equal(StepKind.NeedsSettings, model.Statuses[0].Kind);
         }
 
         // R382, Revit run 3 of Lane B 5a: the detached document gave a bare PathName and a Title, so it has no work folder and its
         // steps show no status, as a document with no path. A file on a share is saved
         [Fact]
-        public void R382_a_bare_file_name_gets_no_work_folder_and_its_steps_show_no_status()
+        public void R382_a_bare_file_name_gets_no_work_folder()
         {
             foreach (string path in new[] { "SA5A-CENTRAL-TEST-NEW_detached.rvt", @"sub\x.rvt", "BIM 360://Project/Site.rvt" })
             {
@@ -561,10 +524,6 @@ namespace SiteAdaptation.Tests
             }
             Assert.Equal(@"D:\Root\Site_", WorkFolder.For(@"D:\Root", @"\\server\share\Site.rvt").Substring(0, 13));
             Assert.True(new DocumentSession("s", @"\\server\share\Site.rvt", "Site").HasPath);
-
-            PaneViewModel model = Model(new FakeProbe());
-            model.Load(new DocumentSession("s", "SA5A-CENTRAL-TEST-NEW_detached.rvt", "SA5A-CENTRAL-TEST-NEW_detached"));
-            Assert.All(model.Steps, step => Assert.Equal(StepKind.None, step.Chip));
         }
 
         // Review 1 of PR 99, Revit run 3: the detached document showed its Title as the project while its steps showed no status. A
@@ -694,7 +653,6 @@ namespace SiteAdaptation.Tests
             PaneViewModel model = Model(new FakeProbe());
             model.Load(session);
             Assert.Equal("not saved", model.ProjectName);
-            Assert.All(model.Steps, step => Assert.Equal(StepKind.None, step.Chip));
 
             session.Settings.ConfigFile = Folder + "project.json";
             DocumentSession saved = sessions.SavedAs(key, Folder + "New Site.rvt", "New Site");
@@ -703,7 +661,7 @@ namespace SiteAdaptation.Tests
             Assert.Equal(Folder + "project.json", saved.Settings.ConfigFile);
             model.Load(saved);
             Assert.Equal("New Site", model.ProjectName);
-            Assert.Equal("Ready", model.Steps[0].ChipText);
+            Assert.Equal("Ready", StepWords.Of(model)[0]);
 
             // Review 2 of PR 90: a document the add-in does not know, a family or a linked one, gets no session on a save as
             object family = new object();
@@ -885,10 +843,10 @@ namespace SiteAdaptation.Tests
         [Fact]
         public void R372_the_text_template_fills_each_value_in_order_and_refuses_a_count_that_differs()
         {
-            Assert.Equal("Run 4 Place villas", TextTemplate.Fill(PaneText.RunButton, 4, "Place villas"));
-            Assert.Equal("1,247 issues", TextTemplate.Fill(PaneText.Issues, TextTemplate.Count(1247)));
-            Assert.Throws<ArgumentException>(() => TextTemplate.Fill(PaneText.RunButton, 4));
-            Assert.Throws<ArgumentException>(() => TextTemplate.Fill(PaneText.Ready, 4));
+            Assert.Equal("Or start from a saved project such as Job A:", TextTemplate.Fill(PaneText.StartSaved, "Job A"));
+            Assert.Equal("1,247 MiB", TextTemplate.Fill(PaneText.Size, TextTemplate.Count(1247)));
+            Assert.Throws<ArgumentException>(() => TextTemplate.Fill(PaneText.SizeAndHash, 4));
+            Assert.Throws<ArgumentException>(() => TextTemplate.Fill(PaneText.NotChosen, 4));
             Assert.Equal("2.91", PaneViewModel.SizeText(3056293));
         }
 
@@ -1033,6 +991,29 @@ namespace SiteAdaptation.Tests
                     throw new InvalidOperationException("the document is closed");
                 }
                 return 7;
+            }
+        }
+    }
+
+    // R845. The rows of Advanced are gone. The state of each step in the words its row said, read from PaneViewModel.Statuses, which the cards
+    // read, so the tests of the step states hold the same states as before
+    internal static class StepWords
+    {
+        public static List<string> Of(PaneViewModel model)
+        {
+            return model.Statuses.Select(Word).ToList();
+        }
+
+        private static string Word(StepStatus status)
+        {
+            switch (status.Kind)
+            {
+                case StepKind.Done: return "Done";
+                case StepKind.Issues: return status.Value.ToString("N0", System.Globalization.CultureInfo.InvariantCulture) + " issues";
+                case StepKind.Ready: return "Ready";
+                case StepKind.NeedsStep: return "Needs step " + status.Value;
+                case StepKind.NeedsSettings: return "Needs setup";
+                default: return string.Empty;
             }
         }
     }

@@ -35,10 +35,11 @@ namespace SiteAdaptation.Tests
         {
             Assert.All(new[] { HowItWorksText.What, HowItWorksText.Needs, HowItWorksText.Gives }, column => Assert.Equal(StepPlan.Count, column.Length));
             var model = new HowItWorksViewModel();
-            Assert.Equal(RibbonLayout.Buttons.Select(button => button.Label), model.Rows.Select(row => row.Button));
+            // R845. The Button column names the button of the card that runs the step, no step has a button of its own any more
+            Assert.Equal(new[] { "1 Set up site", "Choose project folder", "3 Review data", "Build", "Build", "Build", "Build", "Build", "Report" }, model.Rows.Select(row => row.Button));
             Assert.Equal(Enumerable.Range(1, StepPlan.Count), model.Rows.Select(row => row.Number));
             Assert.Equal("9 steps", model.Count);
-            Assert.Equal("9 buttons in the pane", model.CountLine);
+            Assert.Equal("5 buttons in the pane", model.CountLine);
             int ended = 0;
             model.Finished += () => ended++;
 

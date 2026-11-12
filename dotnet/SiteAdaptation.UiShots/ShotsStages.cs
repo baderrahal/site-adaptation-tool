@@ -32,6 +32,12 @@ namespace SiteAdaptation.UiShots
         // folder of the temp folder, read as the pane reads the work folder of a model, so the shot shows what a person sees after a read
         public static StagesPage LaidOutStages(bool withRows, Action<StagesViewModel> before = null)
         {
+            return LaidOutStages(withRows, before, false);
+        }
+
+        // R845. advancedOpen opens the part Advanced under the cards before the page is laid out, closed as a person first sees it otherwise
+        private static StagesPage LaidOutStages(bool withRows, Action<StagesViewModel> before, bool advancedOpen)
+        {
             var model = new PaneViewModel(new SampleProbe()) { ReadText = Sample.ConfigText };
             model.Load(Sample.Document());
             model.LoadSettings(Sample.Settings());
@@ -58,6 +64,12 @@ namespace SiteAdaptation.UiShots
             }
             before?.Invoke(stages);
             var page = new StagesPage(stages, new SitePanePage(model));
+            if (advancedOpen)
+            {
+                ((System.Windows.Controls.Expander)page.FindName("AdvancedBox")).IsExpanded = true;
+                // A Frame shows its page once it navigates, which the dispatcher runs
+                System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+            }
             double width = (double)page.FindResource("SA.Size.Pane");
             double height = 0;
             for (int pass = 0; pass < 4; pass++)
@@ -81,6 +93,16 @@ namespace SiteAdaptation.UiShots
         private static BitmapSource StoppedCardShot()
         {
             return StageCardShot(2, stages => stages.ShowStop(Common.Flow.RunEnd.Stopped, SampleStop));
+        }
+
+        // R845. The whole pane with Advanced open: the 3 cards, and under them the old pane with no step row
+        private static BitmapSource AdvancedOpenShot()
+        {
+            StagesPage page = LaidOutStages(true, null, true);
+            var bitmap = new RenderTargetBitmap((int)page.ActualWidth, (int)page.ActualHeight, Dpi, Dpi, PixelFormats.Pbgra32);
+            bitmap.Render(page);
+            bitmap.Freeze();
+            return bitmap;
         }
 
         private static BitmapSource StageCardShot(int card, Action<StagesViewModel> before = null)

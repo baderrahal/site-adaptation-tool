@@ -88,7 +88,8 @@ namespace SiteAdaptation.Tests
         [Fact]
         public void R505_each_pane_section_but_the_first_has_a_line_above()
         {
-            Assert.Equal(3, Regex.Matches(Pane, "<Border BorderBrush=\"\\{StaticResource SA.Border\\}\" BorderThickness=\"\\{StaticResource SA.Line.Over\\}\"").Count);
+            // R845. Two since the Steps part left Advanced: Input files and Scope
+            Assert.Equal(2, Regex.Matches(Pane, "<Border BorderBrush=\"\\{StaticResource SA.Border\\}\" BorderThickness=\"\\{StaticResource SA.Line.Over\\}\"").Count);
             Assert.Contains("x:Key=\"SA.Line.Over\"", Theme);
         }
 
@@ -122,17 +123,6 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R505_step_names_are_medium_the_next_one_semibold_and_the_chip_semibold()
-        {
-            string theme = Theme;
-            string pane = Pane;
-            Assert.Matches("x:Key=\"SA.Type.StepName.Weight\">Medium<", theme);
-            Assert.Contains("SA.Type.StepName.Weight", pane);
-            Assert.Contains("x:Key=\"SA.Pane.Chip\"", theme);
-            Assert.Contains("SA.Pane.Chip", pane);
-        }
-
-        [Fact]
         public void R505_the_dry_run_box_has_a_border_of_one_pixel()
         {
             Assert.Matches("<Border Margin=\"\\{StaticResource SA.Gap.Top8\\}\" Background=\"\\{StaticResource SA.Panel\\}\" BorderBrush=\"\\{StaticResource SA.Border\\}\" BorderThickness=\"\\{StaticResource SA.Line.All\\}\"", Pane);
@@ -142,15 +132,6 @@ namespace SiteAdaptation.Tests
         public void R505_a_link_in_a_line_of_text_is_semibold()
         {
             Assert.Matches("(?s)x:Key=\"SA.Pane.Link\".*?FontWeight\" Value=\"\\{StaticResource SA.Type.Label.Weight\\}\"", Theme);
-        }
-
-        [Fact]
-        public void R505_on_first_open_the_steps_have_grey_names_and_a_plain_status()
-        {
-            string pane = Pane;
-            Assert.Contains("x:Key=\"SA.StepWaitName\" Color=\"#6B7682\"", Theme);
-            Assert.Contains("DataContext.FirstOpen", pane.Substring(pane.IndexOf("x:Key=\"StepRow\"", StringComparison.Ordinal)));
-            Assert.Contains("SA.StepWaitName", pane);
         }
 
         [Fact]

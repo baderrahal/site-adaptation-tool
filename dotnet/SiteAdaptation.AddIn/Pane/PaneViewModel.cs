@@ -17,7 +17,7 @@ using SiteAdaptation.Common.Steps;
 namespace SiteAdaptation.AddIn.Pane
 {
     // R372, docs/design/12-ui-spec.md 7.2. The pane of the active document, top to bottom, with no Revit type, so its logic is
-    // tested without Revit. Every text comes from PaneText, the ribbon labels or the settings
+    // tested without Revit. Every text comes from PaneText, the step labels or the settings
     public sealed class PaneViewModel : Bindable
     {
         private readonly IInputProbe probe;
@@ -61,12 +61,6 @@ namespace SiteAdaptation.AddIn.Pane
                 new FileRowViewModel(PaneText.Prototypes, true, InputKeys.Prototypes),
                 new FileRowViewModel(PaneText.SharedParameters, false, InputKeys.ParameterSheet),
             });
-            Steps = new ReadOnlyCollection<StepRowViewModel>(RibbonLayout.Buttons.Select(button => new StepRowViewModel(button.Number, StepName(button.Number), PaneText.StepLines[button.Number - 1], number => RunRequested?.Invoke(number))).ToList());
-            // PaneFirst board: on first open steps 1 to 4, then one row for the steps after 4 up to the last
-            FoldedStep = new StepRowViewModel(FoldFrom, TextTemplate.Fill(PaneText.FoldedSteps, StepName(FoldFrom), StepPlan.Count, StepName(StepPlan.Count)), string.Empty);
-            // R574. Only the real row of step 5, the folded row of first open carries the same number
-            Steps.Single(step => step.Number == RoadTopographyStep).HasRoadTick = true;
-            FirstSteps = new ReadOnlyCollection<StepRowViewModel>(Steps.Take(FoldFrom - 1).Concat(new[] { FoldedStep }).ToList());
             BoxCommand = new PaneCommand(OnBox, () => document != null);
             ImportCommand = new PaneCommand(ImportPreSetting, () => document != null);
             ExportCommand = new PaneCommand(ExportPreSetting, () => document != null);
@@ -75,10 +69,10 @@ namespace SiteAdaptation.AddIn.Pane
             Load(null);
         }
 
-        private const int FoldFrom = 5;
+        // R845. The line of each step, which the box says for the next one. Step 1 takes the source of its last run (R543)
+        private readonly string[] stepLines = (string[])PaneText.StepLines.Clone();
 
-        // The box button opens New project on first open, else asks for a run of the ribbon button it names. A click on a step row
-        // that can run asks the same (R444)
+        // R680, R845. A card asks for the run of a step by RequestRun. No row and no box of Advanced asks for one
         public event Action<int> RunRequested;
 
         // NEWPROJ-UI. The Revit side opens the window of each, the pane holds no window
@@ -97,11 +91,6 @@ namespace SiteAdaptation.AddIn.Pane
         public string StartSavedLine { get { return startSavedLine; } private set { Set(ref startSavedLine, value); } }
         public PaneCommand NewProjectCommand { get; }
         public PaneCommand HowItWorksCommand { get; }
-        public StepRowViewModel FoldedStep { get; }
-        public ReadOnlyCollection<StepRowViewModel> FirstSteps { get; }
-
-        // The steps the pane shows: all of them in use, steps 1 to 4 and the folded row on first open
-        public ReadOnlyCollection<StepRowViewModel> ShownSteps { get { return FirstOpen ? FirstSteps : Steps; } }
         public PaneSettings Settings { get { return document == null ? null : document.Settings; } }
         public string ProjectName { get { return projectName; } private set { Set(ref projectName, value); } }
         public string BoxLabel { get { return boxLabel; } private set { Set(ref boxLabel, value); } }
@@ -118,7 +107,6 @@ namespace SiteAdaptation.AddIn.Pane
         public FileRowViewModel SettingsRow { get; }
         public FileRowViewModel RulesRow { get; }
         public ReadOnlyCollection<FileRowViewModel> InputRows { get; }
-        public ReadOnlyCollection<StepRowViewModel> Steps { get; }
         public IReadOnlyList<string> LevelProfiles { get { return levelProfiles; } private set { Set(ref levelProfiles, value); } }
         public IReadOnlyList<string> NbhCodes { get { return nbhCodes; } private set { Set(ref nbhCodes, value); } }
 
@@ -191,8 +179,6 @@ namespace SiteAdaptation.AddIn.Pane
                 }
             }
         }
-
-        public const int RoadTopographyStep = 5;
 
         // R574. The tick Road topography of 5 Floors and ramps, on with no document as on in a new project
         public bool RoadTopography
@@ -565,7 +551,7 @@ namespace SiteAdaptation.AddIn.Pane
             ImportCommand.Refresh();
             ExportCommand.Refresh();
             NewProjectCommand.Refresh();
-            foreach (string name in new[] { nameof(HasDocument), nameof(FirstOpen), nameof(InUse), nameof(ShownSteps), nameof(Settings), nameof(ScopeWhole), nameof(ScopeNbh), nameof(ScopePlots), nameof(Nbh), nameof(Plots), nameof(DryRun), nameof(RoadTopography), nameof(VillaMasses), nameof(VillaLinks) })
+            foreach (string name in new[] { nameof(HasDocument), nameof(FirstOpen), nameof(InUse), nameof(Settings), nameof(ScopeWhole), nameof(ScopeNbh), nameof(ScopePlots), nameof(Nbh), nameof(Plots), nameof(DryRun), nameof(RoadTopography), nameof(VillaMasses), nameof(VillaLinks) })
             {
                 Changed(name);
             }
@@ -783,24 +769,17 @@ namespace SiteAdaptation.AddIn.Pane
         private void RefreshStepOne()
         {
             string folder = document != null && document.HasPath ? WorkFolderOf?.Invoke(document.Path) : null;
-            Steps[0].Line = PaneText.StepOneLine(folder == null ? null : ReadText(Path.Combine(folder, Common.SetUp.SetUpRun.SiteFile)));
+            stepLines[0] = PaneText.StepOneLine(folder == null ? null : ReadText(Path.Combine(folder, Common.SetUp.SetUpRun.SiteFile)));
         }
 
         private void RefreshSteps()
         {
             RefreshStepOne();
-            int next = StepPlan.Next(statuses);
-            bool shown = document != null && document.HasPath;
-            foreach (StepRowViewModel step in Steps)
-            {
-                step.Show(shown ? statuses[step.Number - 1] : new StepStatus(StepKind.None), step.Number == next && shown);
-            }
-            FoldedStep.Show(shown ? statuses[FoldFrom - 1] : new StepStatus(StepKind.None), false);
             // R680. The stage cards follow the steps
             Changed(nameof(Statuses));
         }
 
-        // R680. A main button of a stage card asks for the run of a step of version 1, as a click on its row does
+        // R680. A button of a stage card asks for the run of a step of version 1
         public void RequestRun(int number)
         {
             RunRequested?.Invoke(number);
@@ -830,9 +809,10 @@ namespace SiteAdaptation.AddIn.Pane
             }
             BoxLabel = PaneText.NextLabel;
             BoxName = next == 0 ? string.Empty : StepName(next);
-            BoxLine = next == 0 ? string.Empty : Steps[next - 1].Line + ". " + (DryRun ? (next == NoDryRunStep ? PaneText.DryRunNoStep4 : PaneText.DryRunOn) : PaneText.DryRunOff);
-            BoxButton = next == 0 ? string.Empty : TextTemplate.Fill(PaneText.RunButton, next, StepName(next));
-            BoxButtonShown = next != 0;
+            BoxLine = next == 0 ? string.Empty : stepLines[next - 1] + ". " + (DryRun ? (next == NoDryRunStep ? PaneText.DryRunNoStep4 : PaneText.DryRunOn) : PaneText.DryRunOff);
+            // R845. The box names the next step and runs none, the cards are the only way in
+            BoxButton = string.Empty;
+            BoxButtonShown = false;
         }
 
         // R446. The files of the last run of 9 Report once it is done and no step is left to run, else null
@@ -854,10 +834,9 @@ namespace SiteAdaptation.AddIn.Pane
                 NewProjectRequested?.Invoke();
                 return;
             }
-            int next = StepPlan.Next(statuses);
-            if (next != 0)
+            // R845. While a step is next the box has no button, and a press that still reaches it runs nothing
+            if (StepPlan.Next(statuses) != 0)
             {
-                RunRequested?.Invoke(next);
                 return;
             }
             IReadOnlyList<string> reports = ReportFiles();
@@ -1012,78 +991,6 @@ namespace SiteAdaptation.AddIn.Pane
             Found = isFound;
             FileName = name;
             ToolTip = tip;
-        }
-    }
-
-    public enum MarkKind
-    {
-        Waiting,
-        Next,
-        Done,
-        Issues,
-    }
-
-    public sealed class StepRowViewModel : Bindable
-    {
-        private StepKind chip;
-        private string chipText = string.Empty;
-        private string chipTip;
-        private MarkKind mark;
-        private bool runnable;
-        private string rowTip;
-        private string line;
-
-        public StepRowViewModel(int number, string name, string line, Action<int> run = null)
-        {
-            Number = number;
-            Name = name;
-            this.line = line;
-            // R444. A done step runs again, the next step runs, a step that waits does nothing and its chip says what it needs
-            RunCommand = new PaneCommand(() =>
-            {
-                if (Runnable)
-                {
-                    run?.Invoke(Number);
-                }
-            }, () => true);
-            this.run = run;
-        }
-
-        private readonly Action<int> run;
-
-        public PaneCommand RunCommand { get; }
-        public bool Runnable { get { return runnable; } private set { Set(ref runnable, value); } }
-        public string RowTip { get { return rowTip; } private set { Set(ref rowTip, value); } }
-
-        public int Number { get; }
-        public string Name { get; }
-        public bool HasRoadTick { get; internal set; }
-        public string Line { get { return line; } set { Set(ref line, value); } }
-
-        // R540. The key of the row in the help file and its one line on hover
-        public string HelpKey => Common.Help.HelpBook.StepKey(Number);
-        public string HelpLine => Help.HelpFile.Book.Find(HelpKey)?.Line;
-        public StepKind Chip { get { return chip; } private set { Set(ref chip, value); } }
-        public string ChipText { get { return chipText; } private set { Set(ref chipText, value); } }
-        public string ChipTip { get { return chipTip; } private set { Set(ref chipTip, value); } }
-        public MarkKind Mark { get { return mark; } private set { Set(ref mark, value); } }
-
-        internal void Show(StepStatus status, bool next)
-        {
-            Chip = status.Kind;
-            ChipTip = status.Kind == StepKind.Issues ? Common.CountText.Issues(TextTemplate.Fill(PaneText.DoneWithIssues, TextTemplate.Count(status.Value))) : null;
-            switch (status.Kind)
-            {
-                case StepKind.Done: ChipText = PaneText.Done; break;
-                case StepKind.Issues: ChipText = Common.CountText.Issues(TextTemplate.Fill(PaneText.Issues, TextTemplate.Count(status.Value))); break;
-                case StepKind.Ready: ChipText = PaneText.Ready; break;
-                case StepKind.NeedsStep: ChipText = TextTemplate.Fill(PaneText.NeedsStep, status.Value); break;
-                case StepKind.NeedsSettings: ChipText = PaneText.NeedsSettings; break;
-                default: ChipText = string.Empty; break;
-            }
-            Mark = status.Kind == StepKind.Done ? MarkKind.Done : status.Kind == StepKind.Issues ? MarkKind.Issues : next ? MarkKind.Next : MarkKind.Waiting;
-            Runnable = run != null && (status.Kind == StepKind.Done || status.Kind == StepKind.Issues || status.Kind == StepKind.Ready);
-            RowTip = Runnable ? TextTemplate.Fill(PaneText.RunButton, Number, Name) : ChipText.Length == 0 ? null : ChipText;
         }
     }
 
