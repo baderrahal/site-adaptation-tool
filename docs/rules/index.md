@@ -680,3 +680,5 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R837 Counts held against past counts.
 - R838 Past models measured first.
 - R839 The compare page is checked.
+- R840 Road levels take card 1 plots.
+- R843 A Build stop names only stops.

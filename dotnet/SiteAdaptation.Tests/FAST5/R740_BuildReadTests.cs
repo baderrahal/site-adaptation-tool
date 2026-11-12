@@ -59,13 +59,7 @@ namespace SiteAdaptation.Tests
             config["dataBook"]["rev9"]["workbooks"] = new JObject { ["d"] = "any/Made Book D.xlsx", ["s"] = "Made Book S.xlsx" };
             config["addin"]["workbookRoles"] = new JObject { ["d"] = "dlus", ["s"] = "sales" };
             config["dataCheck"]["skipFolders"] = new JArray("old");
-            string book = Path.Combine(root, "book");
-            Directory.CreateDirectory(book);
-            File.WriteAllText(Path.Combine(book, "plots.csv"), "stand in");
-            File.WriteAllText(Path.Combine(book, "labels.csv"), "stand in");
-            File.WriteAllText(Path.Combine(book, "border.csv"), "stand in");
-            // The border is there, as in the data book of a real project, and the read for the build must leave it out: the worker starts the plot table on it
-            config["addin"]["readData"] = new JObject { ["cadLayers"] = "layers.json", ["dataBookFolder"] = book, ["dataBookFiles"] = new JObject { ["plotsCsv"] = "plots.csv", ["labels"] = "labels.csv", ["border"] = "border.csv" } };
+            config["addin"]["readData"] = new JObject { ["cadLayers"] = "layers.json" };
             return config;
         }
 
@@ -138,6 +132,8 @@ namespace SiteAdaptation.Tests
             string folder = Folder();
             string configFile = ConfigFile(Config(folder));
             string work = Path.Combine(root, "work");
+            // R840. The plots and labels of the road levels come from the read of card 1, here a made up one
+            MadeRead(work, "2_20261107-010000-000", MadeTable);
             ReadPlan plan = ReadInputs.ForBuild(Pane(configFile, folder, null), Roles, work);
             Assert.Empty(plan.Stops);
             Assert.Equal(new[] { "baseplan", "cadLayers", "config", "curbs", "dlus", "labels", "plotsCsv", WorkerRunner.RoadSurfaceRole + Road, "sales", "villaBlocks" },
@@ -153,6 +149,20 @@ namespace SiteAdaptation.Tests
             List<RunInput> broken = Pane(configFile, folder, null);
             broken[1] = new RunInput("Baseplan", Path.Combine(folder, "gone.dwg"), false);
             Assert.Contains(ReadInputs.ForBuild(broken, Roles, work).Stops, stop => stop.StartsWith("Baseplan is not on disk", StringComparison.Ordinal));
+        }
+
+        // A plot table of stage 1 with one made up plot, and another one
+        private const string MadeTable = "{\"plots\":[{\"baseplanLabel\":\"MU-1\",\"officialNumber\":\"9001\",\"nbhId\":\"Z9\"}]}";
+        private const string OtherTable = "{\"plots\":[{\"baseplanLabel\":\"MU-2\",\"officialNumber\":\"9002\",\"nbhId\":\"Z9\"}]}";
+
+        // A read of stage 1 by the data check: its record and plot table only, as run 1 found it
+        private static string MadeRead(string work, string runId, string table)
+        {
+            string folder = Path.Combine(work, "read_" + runId.Replace("_", "").Replace("-", ""));
+            Directory.CreateDirectory(folder);
+            File.WriteAllText(Path.Combine(folder, ReadDataRun.PlotTableFile), table);
+            File.WriteAllText(Path.Combine(folder, ReadDataRun.RecordFile), new JObject { ["format"] = ReadDataRun.RecordFormat, ["runId"] = runId, ["inputs"] = new JArray(), ["outputs"] = new JArray() }.ToString());
+            return folder;
         }
 
 #if NETFRAMEWORK
@@ -174,16 +184,6 @@ namespace SiteAdaptation.Tests
                 }
                 ended(new WorkerAnswer { RunId = request.RunId, Status = WorkerExit.Status(WorkerExit.Done), Outputs = outputs, Counts = new Dictionary<string, int>(), Issues = new List<string>() });
             }
-        }
-
-        // A read of stage 1 by the data check: its record and plot table only, as run 1 found it
-        private static string StageOneRead(string work, string runId, string table)
-        {
-            string folder = Path.Combine(work, "read_" + runId.Replace("_", "").Replace("-", ""));
-            Directory.CreateDirectory(folder);
-            File.WriteAllText(Path.Combine(folder, ReadDataRun.PlotTableFile), table);
-            File.WriteAllText(Path.Combine(folder, ReadDataRun.RecordFile), new JObject { ["format"] = ReadDataRun.RecordFormat, ["runId"] = runId, ["inputs"] = new JArray(), ["outputs"] = new JArray() }.ToString());
-            return folder;
         }
 
         private const string Label = "2 Made up read";
@@ -218,7 +218,7 @@ namespace SiteAdaptation.Tests
             PaneSettings settings = Settings(folder);
             BuildRead.FillRows(settings, settings.Pick);
             string work = Path.Combine(root, "work");
-            string stageOne = StageOneRead(work, "2_20261107-010000-000", "{\"plots\":[]}");
+            string stageOne = MadeRead(work, "2_20261107-010000-000", MadeTable);
             Assert.True(BuildRead.Needed(work));
             var worker = new MadeWorker();
             bool? ok = null;
@@ -234,7 +234,7 @@ namespace SiteAdaptation.Tests
             Assert.NotEqual(stageOne, read);
             Assert.False(BuildRead.Needed(work));
             Assert.Equal(File.ReadAllText(Path.Combine(stageOne, ReadDataRun.PlotTableFile)), File.ReadAllText(Path.Combine(read, ReadDataRun.PlotTableFile)));
-            // The record names what Check holds against the files now: the config of the run, the road surface by its role, the data book files
+            // The record names what Check holds against the files now: the config of the run, the road surface by its role, the plots and labels of the plot table
             JObject record = JObject.Parse(File.ReadAllText(Path.Combine(read, ReadDataRun.RecordFile)));
             List<string> roles = record["inputs"].Select(input => (string)input["role"]).ToList();
             Assert.Contains(WorkerRunner.RoadSurfaceRole + Road, roles);
@@ -245,7 +245,7 @@ namespace SiteAdaptation.Tests
 
             // A read of stage 1 again with the same plot table makes it latest, the read for the build is then reused with no worker and latest again
             // A read of stage 1 after it is latest again and lacks what Check takes, so the next Build reads for the build again
-            StageOneRead(work, "2_29991231-000000-000", "{\"plots\":[]}");
+            MadeRead(work, "2_29991231-000000-000", MadeTable);
             Assert.True(BuildRead.Needed(work));
         }
 
@@ -256,7 +256,7 @@ namespace SiteAdaptation.Tests
             PaneSettings settings = Settings(folder);
             BuildRead.FillRows(settings, settings.Pick);
             string work = Path.Combine(root, "work");
-            StageOneRead(work, "2_20261107-010000-000", "{\"plots\":[]}");
+            MadeRead(work, "2_20261107-010000-000", MadeTable);
             var worker = new MadeWorker();
             var lines = new List<string>();
             var document = new WorkerDocument { Path = Path.Combine(work, "a.rvt"), SessionId = "s1" };
@@ -269,7 +269,7 @@ namespace SiteAdaptation.Tests
             Assert.StartsWith("True " + RunTexts.ReadDone(Label, 0, 0).Split('0')[0], lines[0]);
             Assert.Equal(first, ReviewLoad.LatestReadFolder(work));
             // Another plot table, so another read
-            StageOneRead(work, "2_29991231-000000-000", "{\"plots\":[{\"plot\":\"1\"}]}");
+            MadeRead(work, "2_29991231-000000-000", OtherTable);
             Assert.True(BuildRead.Needed(work));
             BuildRead.Start(settings, work, document, worker, Label, (done, said) => lines.Add(done + " " + said));
             Assert.Equal(2, worker.Requests.Count);
@@ -282,7 +282,7 @@ namespace SiteAdaptation.Tests
             string folder = Folder();
             PaneSettings settings = Settings(folder);
             string work = Path.Combine(root, "work");
-            StageOneRead(work, "2_20261107-010000-000", "{\"plots\":[]}");
+            MadeRead(work, "2_20261107-010000-000", MadeTable);
             var document = new WorkerDocument { Path = Path.Combine(work, "a.rvt"), SessionId = "s1" };
             // The baseplan row names a file that is gone
             BuildRead.FillRows(settings, settings.Pick);

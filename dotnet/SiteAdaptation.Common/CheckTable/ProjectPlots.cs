@@ -11,7 +11,8 @@ namespace SiteAdaptation.Common.CheckTable
     // R780, F26 of the short check of 7 Nov. Under rev6 the build of 4 Check takes its plots from the plot table of the read of the project,
     // read_plotTable.json of the latest read, never from plots.csv and labels.csv of the data book of the work root, which belong to the past job.
     // The worker build reads plots by the roles plotsCsv and labels as CSV, so the table is written as those two files beside the read, in a folder
-    // of the work folder, and the same table gives the same bytes, so the hash a later step holds the plan to stays the same
+    // of the work folder, and the same table gives the same bytes, so the hash a later step holds the plan to stays the same.
+    // R840. The read for the build names the same two files, so the road levels read the plots of card 1
     public static class ProjectPlots
     {
         public const string FolderPrefix = "plots_";
@@ -26,6 +27,10 @@ namespace SiteAdaptation.Common.CheckTable
 
         public const string ClientCode = "clientCode";
 
+        // The roles the worker reads the two files by
+        public const string PlotsRole = "plotsCsv";
+        public const string LabelsRole = "labels";
+
         public sealed class Written
         {
             public string Plots { get; set; }
@@ -34,8 +39,8 @@ namespace SiteAdaptation.Common.CheckTable
             public string Missing { get; set; }
         }
 
-        // R780. True for a file inside the data book of the work root, addin.readData.dataBookFolder of config beside the work folder as the read
-        // for the build takes it (ReadInputs.DataBook). False when config names none
+        // R780. True for a file inside the data book of the work root, addin.readData.dataBookFolder of config beside the work folder as the old read
+        // of step 2 takes it (ReadInputs.DataBook). False when config names none
         public static bool InDataBook(string path, JObject config, string workFolder)
         {
             JToken named = config?.SelectToken("addin.readData.dataBookFolder");
