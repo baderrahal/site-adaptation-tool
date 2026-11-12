@@ -137,3 +137,20 @@ The variable file was measured in WPF on .NET Framework 4.8 on the laptop in Lan
 ## ricaun.RevitTest (SETUP-sign)
 
 ricaun.RevitTest.TestAdapter 1.11.1 is MIT, read from the LICENSE file inside the package (READ) and from its nuspec (SEARCHED). It declares no package of its own to restore. At the start of a test run the adapter fetches the console and the Revit application of ricaun.RevitTest and loads that application into Revit 2024 as an add-in, which Revit may ask about like any unsigned add-in. Those pieces are fetched at run time and never ship with this tool. The project that uses it, dotnet/SiteAdaptation.RevitTests, is not in dotnet/SiteAdaptation.sln, so the plain `dotnet test` and the checks of GitHub never restore or run it. Its licences are checked by python/tests/test_licences.py like every other csproj under dotnet. UNKNOWN: the licence of the console and application packages the adapter fetches at run time, they were not read.
+
+## The identity kit (docs/design/identity-kit, 12 Nov 2026)
+
+The kit Bader gave on 12 Nov 2026, kept under docs/design for the windows of round 3. Nothing of it ships with the add-in yet.
+
+- Cairo 400, 500, 600 and 700, SIL Open Font Licence 1.1, READ from docs/design/identity-kit/fonts/OFL.txt, copyright 2009 The Cairo Project Authors. The licence file stays beside the fonts.
+- Fluent System Icons, Microsoft, MIT, as docs/design/identity.md section 4 says. The shapes are Geometry resources inside wpf/Theme.xaml. UNKNOWN: the licence file of the icons was not read, the kit holds none. It is read before a shape ships with the add-in.
+- The Parsons P mark of the kit, parsons-p.png, is not in the repo: the repo is public, and a company mark in its history cannot be taken back. It goes in when Bader says so or the repo is private.
+
+SHA-256 of the files as copied:
+
+- docs/design/identity-kit/fonts/Cairo_400Regular.ttf 44786a38e27c58262cbd65341beda4fa4f6c7085ec42e830b35ba1ae37807030
+- docs/design/identity-kit/fonts/Cairo_500Medium.ttf 64c7cab8e2cf003c3fc4edca1820e7e1b0ee667373cf8500060bca97262a2b65
+- docs/design/identity-kit/fonts/Cairo_600SemiBold.ttf 3fe2e182a88a5d64a96b289fd1c518bdc9b14ec91525a03990c35e91f7863a2a
+- docs/design/identity-kit/fonts/Cairo_700Bold.ttf a0e58d71b85b15902ea87914d8e31a6d22da48ac2db70213dcfd1a7dad3f198a
+- docs/design/identity-kit/fonts/OFL.txt a4554e1799d42e1405924b61eb0e0722ae1623b1f1f07f995348f96c496362a9
+- docs/design/identity-kit/wpf/Theme.xaml 40363fa1a3d2000e090c121b952141396aa0cc7febfe8395072cec1e51f7da9f

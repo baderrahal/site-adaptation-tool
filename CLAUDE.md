@@ -22,44 +22,41 @@ Standing rules of every round, Bader 12 Nov:
 
 Rules per project: each project holds its own rule set, chosen and edited in the add-in. A round names stage 1, 2, 3 or rules.
 
-## Roles and lanes
+## Who does what, Bader 12 Nov 16:55
 
-Bader decides. Design is decided in chat and Code builds only what is approved. The role comes from the folder, never from a setting:
+Bader decides. Design is decided in chat. Full text: docs/truth.md, Who does what.
 
-| Folder | Role | Does |
+| Who | Does | Never |
 |---|---|---|
-| main repo folder | lead | writes tasks and acceptance tests, merges setup, owns tests/acceptance, golden, holdout |
-| worktree named revit-test | revit tester | the only lane that opens Revit |
-| worktree named build-1 or build-2 | builder | one task at a time |
-| anything else | builder | needs a task whose lane is that folder name |
+| Cowork | writes all tool code: dotnet, python, config, rules, samples. Only in C:\Users\bader\Documents\GitHub\site-adaptation-cowork, branch cowork/work. Writes the Bridge task | commits, starts Revit |
+| Claude Code | builds, tests, tests in Revit, reports, commits, merges, keeps the records. One fresh session per task | edits tool code, a hook blocks it. A fault goes in the report |
+
+The Bridge is C:\SA-work\SiteAdaptation\Bridge, its README holds the shapes. A task closes: diff of the Cowork folder against main, Release build, quick tests, install, the Revit part with the PC to itself, the report. All pass: commit on a branch, PR, merge on green, cowork/work back to main. A fail: nothing committed, Cowork fixes. Revit starts only from the worktree revit-test, and only on Bader's order. The old lanes: steps/history/lanes-until-12nov.md.
 
 Trust an answer only if it names proof you can check in the repo.
 
 ## How to work
 
-- One task per fresh session. Round: /round. Task: /task. Then /merge, /report. Whole repo: /audit, /questions.
+- One task per fresh session. /merge, /report. Whole repo: /audit, /questions.
 - Claims need proof as a file and line or command output. Write UNKNOWN instead of guessing.
 - Never mark a thing done without a second check by a different method.
-- Never commit to main, a hook blocks it. Merge a green PR at once, never two waiting.
+- Never commit to main, a hook blocks it. Merge a green PR at once.
 - Per fix, the compare at the pass level, on its neighbourhood and on one it was not tuned on. One review pass for a small change, a second only for logic, Excel numbers, overrides or Revit model writes. Run scripts/status.ps1 -Progress after each merge.
-- Use `git push origin --delete` for a merged branch, never gh with --delete-branch.
+- Use `git push origin --delete` for a merged branch, never gh with --delete-branch, and never chain gh pr merge after a watch.
 - New question: next free Q id after checking origin/main, recommended answer first, in steps/questions-open.md.
 - A fix on its third attempt stops and goes back to measuring.
-- Push your branch every 15 minutes while working. Never leave two PRs waiting.
+- Push every 15 minutes while working. Never leave two PRs waiting.
 - Any steps for Bader are numbered, one action each, in the VS Code order: the folder, then Terminal then New Terminal, then each command on its own line. Long steps go in a file under steps/.
 - The repo is public. Every review also checks the diff holds no real coordinate, level, plot data, client file contents, or path with a client name beyond what config already names.
 - steps/PROGRESS.md and steps/STATUS.md are written by scripts/status.ps1, never by hand.
 - The scenario and hold-out answers are read by the scoring scripts alone, a hook blocks every lane.
-- Lead starts a lane with scripts/lanes/run_lane.py, a fresh session in the lane's folder. A message cannot clear a session.
 - A PR body starts with the exact line `Task: <id>` or `Lead: <reason>`, nothing after the id. Every new function goes under Callers, private ones too.
 
 Traps, 5 Nov:
 
-- Run gh merges from the lane's own folder, never chain gh pr merge after a watch, delete the remote branch on its own.
-- Never run git worktree prune without Bader. Never build a lane's folder while a runner runs from it, a worker run takes a copy of its build.
+- Never run git worktree prune without Bader.
 - A question a config value cites stays open until Bader answers, or R401 fails. A new config value needs python/rule_status.py --write.
-- A new Python file naming the mode rev6 must join the modes list of test_r62.
-- TaskStop does not end the children of a background shell. Stop by your own process id, never a whole tree.
+- TaskStop does not end the children of a background shell. Stop by your own process id, never a tree.
 - A commit of a run that may stall takes `git -c gc.auto=0`. A status script stays under the tool's time limit, and is never piped into head.
 - A person may be at this PC. A Revit driver clicks, types or shoots only with Revit in front, after 5 minutes idle, no meeting window, and stops on other input. Exceptions in .claude/rules/revit.md.
 - guard-main judges a command before it runs. Split a branch switch and a commit into two calls.
@@ -111,7 +108,7 @@ Unset SITE_ADAPTATION_INPUT before running these. The gate is green checks on th
 | .github/workflows/ | tests.yml the checks, test.yml the Linux legs of R346 |
 | config/, rules/ | project.json, override list, parameter sheet, rules profile |
 | docs/rules/ | the rules, index.md finds an id |
-| docs/design/, docs/addin-mock.md | the add-in design, the approved mock |
+| docs/design/, docs/addin-mock.md | the design, identity.md the look, the mock |
 | docs/truth.md, docs/lessons.md, docs/signoff.md | the truth, lessons, sign off of past and override values |
 | docs/repo-map.md | the long map, grep it for a path |
 | dotnet/SiteAdaptation.AddIn | the Revit add-in, ribbon, pane, windows |

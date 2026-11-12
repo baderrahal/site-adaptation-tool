@@ -76,6 +76,8 @@ Proof: dotnet/SiteAdaptation.AddIn/RulesWindow, dotnet/SiteAdaptation.Common/Pro
 | Road surfaces as LandXML | <work root>\landxml | Made in round 1 step a |
 | Test host runs, lane logs, temporary files of tests | <work root>, its folders round_addin, lanes, tmp, checks | |
 | The installed add-in | %APPDATA%\Autodesk\Revit\Addins\2024\SiteAdaptationAddIn | With the worker and the shipped settings and rules |
+| The Bridge of Cowork and Claude Code | <work root>\Bridge | One task open at a time, Who does what below |
+| The Cowork folder | C:\Users\bader\Documents\GitHub\site-adaptation-cowork | A worktree of the repo on cowork/work, by Bader's order of 12 Nov 16:55. Code only, never committed there |
 | Code and records | The repo | Public. No real coordinate, level, plot data or client file in it |
 
 The work root is read from machine.json by dotnet/SiteAdaptation.Common/WorkRoot.cs. Its last folder must be named SiteAdaptation. On a PC with no machine file the code still falls back to Documents\SiteAdaptation (WorkRoot.cs lines 57 to 60), which disagrees with the rule above and is listed.
@@ -98,6 +100,27 @@ One Revit at a time, this PC has 16 GB. Revit opens only copies of a model, made
 | tests | Acceptance, golden and hold-out tests, owned by the lead |
 
 Round 1 step d removes what the audit found dead and labels what stays, this table is written again then.
+
+## Who does what
+
+Bader, 12 Nov 16:55. Bader decides. Design is decided in chat.
+
+| Who | Does | Never |
+|---|---|---|
+| Cowork | Writes all tool code: dotnet, python, config, rules, samples, with the tests of the code. Only in the Cowork folder, C:\Users\bader\Documents\GitHub\site-adaptation-cowork, a worktree of this repo on the branch cowork/work. Writes the Bridge task | Commits, pushes, starts Revit |
+| Claude Code | Builds, tests, tests in Revit, reports, commits and merges. Keeps the records: docs, steps, .claude, .github, scripts, tests/acceptance, golden and holdout | Edits tool code. A fault it finds goes in the report |
+
+The Bridge is C:\SA-work\SiteAdaptation\Bridge: STATUS.md with one line (IDLE, TASK T001 OPEN or REPORT T001 READY, with the time), to-code, from-code, done. Its README.md holds the shape of a task (Build, Install, Model, Do, Look for, Evidence, Out of scope) and of a report (Build seen, Ran, Pass, Fail, UNKNOWN, Host limits, Processes). A brief Lead writes for Cowork lies there too and is no Bridge task.
+
+How a round closes:
+
+1. Cowork edits in the Cowork folder and writes Bridge\to-code\T00N.md.
+2. Claude Code, in one fresh session per task: reads the diff of the Cowork folder against main, builds Release, runs scripts/quick-tests.ps1, installs, runs the Revit part, and writes Bridge\from-code\T00N.md with the evidence.
+3. The Revit part runs with the PC to itself: no other lane, no Navisworks, Cowork idle, the free memory written before each press. Measured on 12 Nov, steps/revit-results/OLD-1e1-revit-test.md: with two build lanes beside it the read for the build was refused twice for free memory, 3.81 GiB asked, 3.23 GB the most seen.
+4. When all of it passes: Claude Code commits the Cowork changes on a branch with a short message, opens the PR, merges on green, and resets cowork/work to main.
+5. When any part fails: the report names it, nothing is committed, Cowork fixes.
+
+The hooks, .claude/hooks: guard-edit.ps1 refuses an Edit or Write of a file under dotnet, python, config, rules or samples, in the main folder, a worktree or the Cowork folder, for every session that runs it. Cowork runs no hook of the repo. guard-revit.ps1 lets Revit start only from the worktree revit-test. No Revit run starts until Bader's next order, 12 Nov 16:55. The lanes of before are in steps/history/lanes-until-12nov.md.
 
 ## The pass level
 
@@ -130,3 +153,7 @@ The compare is python/compare_built.py, round 1 step c. It writes steps/compare.
 | 12 Nov 03:25 | The road surfaces are joined for the toposolid, as an option in Settings, on by default. Q600 is closed |
 | 12 Nov 03:25 | No new project work: the new project path and roads from 3D solids are dropped. The installer waits until Bader asks. Whether the repo goes private waits |
 | 12 Nov 03:25 | Round 1 step d: the 3 cards are the only way in. Past job mode and its override list, light mode, the data book reads and the Python copies of C# logic are removed |
+| 12 Nov 16:45 | The Revit run of round 1 builds a small area, not all neighbourhoods |
+| 12 Nov 16:55 | Cowork writes all tool code. Claude Code builds, tests, tests in Revit, reports, commits and merges, and never edits tool code. Who does what above |
+| 12 Nov 16:55 | The revit-test run is held. No Revit run starts until Bader's next order |
+| 12 Nov 16:50 | The identity of the Parsons tools is the look of this tool: docs/design/identity.md, with the kit in docs/design/identity-kit. The windows take it in round 3, UI-1, after Bader approves the boards |

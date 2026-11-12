@@ -21,6 +21,19 @@ foreach ($inputRoot in Get-InputRoots $root) {
     if (Test-InsideFolder $file $inputRoot) { Stop-Edit "$file is in the input folder $inputRoot, input folders are read only." }
 }
 
+# Bader, 12 Nov 16:55. Cowork writes all tool code, in the Cowork folder, and runs none of these hooks. So a session that does run
+# them, the lead or a lane of Claude Code, edits no tool code path, in the main folder, a worktree or the Cowork folder. A fault it
+# finds goes in the Bridge report. The file's own repo folder decides the path, so a reach from another folder is seen too.
+$owner = Get-RepoRoot (Split-Path -Parent $file)
+if ($owner) {
+    $inside = $file.Substring($owner.TrimEnd('\').Length).TrimStart('\').Replace('\', '/')
+    foreach ($code in Get-ToolCodePaths) {
+        if ($inside.StartsWith($code + '/', [StringComparison]::OrdinalIgnoreCase)) {
+            Stop-Edit "$inside is tool code. Cowork writes all tool code in the Cowork folder, Claude Code builds, tests, reports, commits and merges. Put the fault in the Bridge report."
+        }
+    }
+}
+
 if (-not $root) { exit 0 }
 
 $role = Get-LaneRole $root

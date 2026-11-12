@@ -5,6 +5,8 @@ description: Lead only. Turns a short round goal into acceptance tests and one t
 
 # Round
 
+Since 12 Nov 16:55 a code task is a brief for Cowork under Bridge of the work root, not a lane task, docs/truth.md Who does what. This skill stays for records tasks.
+
 Run this in the main repo folder only. Argument: the round goal in one line.
 
 1. Read steps/backlog.md and steps/truth-audit.md for the items the goal touches. Plan first, then continue without waiting.
