@@ -571,6 +571,9 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R686 The plan behind Build.
 - R687 The 2D preview.
 - R688 The one Build runs the steps.
+- R689 Card 3 of the last build.
+- R690 Update from report on card 3.
+- R691 Plots with no road level.
 
 ## 19-fast2-r700-up.md
 
