@@ -16,7 +16,7 @@ using SiteAdaptation.AddIn.Pane;
 
 namespace SiteAdaptation.Tests
 {
-    // R840 to R843, task OLD-1d1-build-2. The Build runs on the input folder alone: the read for the build takes the plots and the labels of the
+    // R840 and R843, task OLD-1d1-build-2. The Build runs on the input folder alone: the read for the build takes the plots and the labels of the
     // road levels from the plot table of the read of card 1, no folder named data_book is asked for, and a stop of the Build names only stops.
     // Every file name, plot number and area is made up, every drawing a stand in. Nothing here reads a real work folder
     public sealed class R840_BuildWithNoDataBookTests : IDisposable
@@ -51,7 +51,7 @@ namespace SiteAdaptation.Tests
             return folder;
         }
 
-        // The settings of the repo as they ship, with the made up folder and names. No key of a data book is added
+        // The settings of the repo as they ship, with the made up folder and names. The data book they name for the old read is nowhere on disk
         private string ConfigFile(string folder)
         {
             JObject config = JObject.Parse(File.ReadAllText(WorkerRunTests.RepoConfig()));
@@ -132,39 +132,6 @@ namespace SiteAdaptation.Tests
             CardOneRead("{\"plots\":[]}");
             string empty = Assert.Single(ReadInputs.ForBuild(Pane(configFile, folder), Roles, Work, null, DesignBasis.Rev6).Stops);
             Assert.Contains("holds no plot with a number", empty);
-        }
-
-        [Fact]
-        public void R840_the_shipped_settings_name_no_data_book_file_for_the_read()
-        {
-            JObject read = (JObject)JObject.Parse(File.ReadAllText(WorkerRunTests.RepoConfig()))["addin"]["readData"];
-            Assert.Null(read["dataBookFiles"]);
-            Assert.DoesNotContain("dataBookFiles", File.ReadAllText(Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(WorkerRunTests.RepoConfig())),
-                "dotnet", "SiteAdaptation.Common", "ReadData", "ReadInputs.cs")));
-        }
-
-        [Fact]
-        public void R842_a_rev6_project_whose_folder_is_on_disk_reads_the_folder_also_when_every_schedule_is_there()
-        {
-            string folder = Folder();
-            string configFile = ConfigFile(folder);
-            JObject config = JObject.Parse(File.ReadAllText(configFile));
-            config["connect"]["neighbourhoods"] = new JObject { ["Z9"] = new JObject { ["schedule"] = "Made Schedule.xlsx", ["shift"] = 0 } };
-            config["dataBook"]["locationPlan"]["fitNeighbourhood"] = "Z9";
-            File.WriteAllText(configFile, config.ToString());
-            string schedule = Path.Combine(folder, (string)config["addin"]["readData"]["scheduleFolder"], "Made Schedule.xlsx");
-            Directory.CreateDirectory(Path.GetDirectoryName(schedule));
-            File.WriteAllText(schedule, "stand in");
-            Assert.True(ReadInputs.NoPastFiles(configFile, DesignBasis.Rev6, Work));
-            ReadPlan raw = ReadInputs.Raw(new[] { new RunInput("Settings", configFile, false) }, Roles, Work, DesignBasis.Rev6);
-            Assert.True(raw.FromDataCheck);
-            Assert.Empty(raw.Stops);
-            Assert.Empty(raw.PastLacks);
-            // A schedule gone is a line of the read and changes nothing else
-            File.Delete(schedule);
-            ReadPlan lacking = ReadInputs.Raw(new[] { new RunInput("Settings", configFile, false) }, Roles, Work, DesignBasis.Rev6);
-            Assert.Contains("is not on disk", Assert.Single(lacking.PastLacks));
-            Assert.Equal(raw.Hash, lacking.Hash);
         }
 
         [Fact]

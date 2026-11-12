@@ -349,12 +349,22 @@ if ($round) {
                 }
                 $settingsCopy = Get-Content -Raw (Join-Path $repo 'config\project.json') | ConvertFrom-Json
                 $settingsCopy.addin.position.file = $buttonsPosition
+                # R375. A data book folder of config with no full path lies in the work root, not in the work folder of the run, so the
+                # copy names it in full and its files are real inputs read in place
+                $bookFolder = [string]$settingsCopy.addin.readData.dataBookFolder
+                if (-not [IO.Path]::IsPathRooted($bookFolder)) {
+                    $bookFolder = Join-Path $docs $bookFolder
+                    $settingsCopy.addin.readData.dataBookFolder = $bookFolder
+                }
                 $buttonsSources = @($build.template)
                 if ($round.keyCopy) {
                     $buttonsSources += [string]$round.keyCopy
                 }
                 foreach ($entry in @($round.inputs.PSObject.Properties)) {
                     $buttonsSources += [string]$entry.Value
+                }
+                foreach ($bookFile in @($settingsCopy.addin.readData.dataBookFiles.PSObject.Properties)) {
+                    $buttonsSources += Join-Path $bookFolder ([string]$bookFile.Value)
                 }
                 # R357 and D19. The build reads pastJob.upgradedPrototypeFolder under the input root, which a run never makes there, so a
                 # prototypes input of the spec is named in full and the build reads that folder in place, hashed with the inputs above

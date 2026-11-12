@@ -678,6 +678,4 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R838 Past models measured first.
 - R839 The compare page is checked.
 - R840 Road levels take plots from card 1.
-- R841 Check takes the plots of the table.
-- R842 A rev6 project reads its folder.
 - R843 A Build stop names only stops.

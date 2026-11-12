@@ -76,7 +76,8 @@ namespace SiteAdaptation.Common.ReadData
 
     // R375. The inputs of the worker command read: the files of the pane by their role, each LandXML file of siteBuild.roadSurfaces in
     // the Road surface folder, the layer list beside config, the schedule of each neighbourhood of connect.neighbourhoods in the
-    // schedule folder of inputRoot, and for the build the plots and labels of the plot table of the latest read (R840). Every input by full
+    // schedule folder of inputRoot, and the data book files the road levels and the plot table of the old read take. The read for the
+    // build names no data book file, its plots and labels are those of the plot table of the latest read (R840). Every input by full
     // path and SHA-256, never by name
     public static class ReadInputs
     {
@@ -96,8 +97,8 @@ namespace SiteAdaptation.Common.ReadData
             return WorkerRunner.StepCommand.Where(step => step.Value == ReadDataRun.Command).Select(step => step.Key).OrderBy(step => step, StringComparer.Ordinal).ToList();
         }
 
-        // roles names the role of each input of the pane by its name there. workFolder is the work folder of the document, which holds
-        // the reads. picked gives the road surfaces picked in Set up, read under rev6 alone (R492)
+        // roles names the role of each input of the pane by its name there. workFolder is the work folder of the document, whose
+        // parent is the work root of R372 the data book folder lies in. picked gives the road surfaces picked in Set up, read under rev6 alone (R492)
         public static ReadPlan Make(IReadOnlyList<RunInput> pane, IReadOnlyDictionary<string, string> roles, string workFolder, IReadOnlyList<string> picked = null, string mode = null)
         {
             return Make(pane, roles, workFolder, picked, mode, false);
@@ -204,6 +205,7 @@ namespace SiteAdaptation.Common.ReadData
             else
             {
                 Schedules(config, read, found, stops);
+                DataBook(read, workFolder, found, stops);
             }
             ReadPlan plan = Plan(found, stops, configPath, order);
             return forBuild ? new ReadPlan(plan.Inputs, plan.Steps.Where(step => !PlotTableSteps.Contains(step)).ToList(), plan.Stops, plan.ConfigPath, plan.RoadOrder) : plan;
@@ -244,9 +246,9 @@ namespace SiteAdaptation.Common.ReadData
             }
         }
 
-        // R635. True when the read of this project takes its plot table from the data check: a rev6 project whose input root is on disk.
-        // R842. A schedule the old read lacks is named as a line and decides nothing, as the old read has no plots with the data book gone.
-        // Past job mode keeps the old read and its stops. The add-in asks this to leave out what only the old read needs, the files of the pane and the scan before it
+        // R635. True when the read of this project takes its plot table from the data check: a rev6 project whose input root is on disk and which
+        // lacks a past file of the old read, a schedule or a data book file. Past job mode keeps the old read and its stops, and so does a project
+        // that holds them all. The add-in asks this to leave out what only the old read needs, the files of the pane and the scan before it
         public static bool NoPastFiles(string configPath, string mode, string workFolder)
         {
             return RawConfig(configPath, mode, workFolder, out _) != null;
@@ -312,8 +314,9 @@ namespace SiteAdaptation.Common.ReadData
                 if (read != null)
                 {
                     Schedules(config, read, found, lacks);
+                    DataBook(read, workFolder, found, lacks);
                 }
-                return config;
+                return read == null || lacks.Count > 0 ? config : null;
             }
             catch (Exception failure) when (failure is InvalidDataException || failure is Newtonsoft.Json.JsonException || failure is IOException || failure is UnauthorizedAccessException || failure is ArgumentException || failure is NotSupportedException)
             {
@@ -365,8 +368,8 @@ namespace SiteAdaptation.Common.ReadData
             }
         }
 
-        // R840. The plots and the labels of the road levels, written from the plot table of the latest read of the work folder as Check takes
-        // them (ProjectPlots, R780). No read, or a read with no plot table, is a stop that names it
+        // R840. The plots and the labels of the road levels of the build, written from the plot table of the latest read of the work folder as
+        // Check takes them (ProjectPlots, R780). No read, or a read with no plot table, is a stop that names it
         private static void Plots(string workFolder, List<KeyValuePair<string, string>> found, List<string> stops)
         {
             string read = string.IsNullOrEmpty(workFolder) ? null : ReviewLoad.LatestReadFolder(workFolder);
@@ -378,6 +381,31 @@ namespace SiteAdaptation.Common.ReadData
             }
             found.Add(new KeyValuePair<string, string>(ProjectPlots.PlotsRole, plots.Plots));
             found.Add(new KeyValuePair<string, string>(ProjectPlots.LabelsRole, plots.Labels));
+        }
+
+        // The old read alone: its road levels read plots.csv and labels.csv and its plot table the border of the data book, by addin.readData of
+        // config. R840: the read for the build never comes here
+        private static void DataBook(JObject read, string workFolder, List<KeyValuePair<string, string>> found, List<string> stops)
+        {
+            string folder = Text(read, "dataBookFolder");
+            JObject files = read["dataBookFiles"] as JObject;
+            if (folder == null || files == null)
+            {
+                stops.Add("config names no addin.readData.dataBookFolder or dataBookFiles, the data book files of the road levels and the plot table");
+                return;
+            }
+            string book = Path.IsPathRooted(folder) ? folder : Path.Combine(Path.GetDirectoryName(Path.GetFullPath(workFolder)), folder);
+            foreach (JProperty file in files.Properties().OrderBy(item => item.Name, StringComparer.Ordinal))
+            {
+                string name = file.Value.Type == JTokenType.String ? (string)file.Value : null;
+                if (name == null)
+                {
+                    stops.Add("addin.readData.dataBookFiles." + file.Name + " of config names no file");
+                    continue;
+                }
+                string path = Path.GetFullPath(Path.Combine(book, name));
+                Add(found, stops, file.Name, path, file.Name + " of the data book is not on disk: " + path);
+            }
         }
 
         private static void Add(List<KeyValuePair<string, string>> found, List<string> stops, string role, string path, string missing)

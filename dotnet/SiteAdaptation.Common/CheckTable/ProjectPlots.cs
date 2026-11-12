@@ -9,9 +9,10 @@ using SiteAdaptation.Common.ReadData;
 namespace SiteAdaptation.Common.CheckTable
 {
     // R780, F26 of the short check of 7 Nov. Under rev6 the build of 4 Check takes its plots from the plot table of the read of the project,
-    // read_plotTable.json of the latest read, never from a data book of the past job. R840: the read for the build takes the same two files.
+    // read_plotTable.json of the latest read, never from plots.csv and labels.csv of the data book of the work root, which belong to the past job.
     // The worker build reads plots by the roles plotsCsv and labels as CSV, so the table is written as those two files beside the read, in a folder
-    // of the work folder, and the same table gives the same bytes, so the hash a later step holds the plan to stays the same
+    // of the work folder, and the same table gives the same bytes, so the hash a later step holds the plan to stays the same.
+    // R840. The read for the build names the same two files, so the road levels read the plots of card 1
     public static class ProjectPlots
     {
         public const string FolderPrefix = "plots_";
@@ -38,7 +39,22 @@ namespace SiteAdaptation.Common.CheckTable
             public string Missing { get; set; }
         }
 
-        // The two files of the plot table of the read folder, or Missing with why when the read holds no plot table
+        // R780. True for a file inside the data book of the work root, addin.readData.dataBookFolder of config beside the work folder as the read
+        // for the build takes it (ReadInputs.DataBook). False when config names none
+        public static bool InDataBook(string path, JObject config, string workFolder)
+        {
+            JToken named = config?.SelectToken("addin.readData.dataBookFolder");
+            // As ReadInputs.Text takes it, a non empty text as it stands
+            string folder = named != null && named.Type == JTokenType.String ? (string)named : "";
+            if (string.IsNullOrEmpty(path) || folder.Length == 0 || string.IsNullOrEmpty(workFolder))
+            {
+                return false;
+            }
+            string book = Path.GetFullPath(Path.IsPathRooted(folder) ? folder : Path.Combine(Path.GetDirectoryName(Path.GetFullPath(workFolder)), folder)).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
+            return Path.GetFullPath(path).StartsWith(book, StringComparison.OrdinalIgnoreCase);
+        }
+
+        // The two files of the plot table of the read folder, or Missing with why when the read holds no plot table. Never a file of the data book
         public static Written Write(string readFolder, string workFolder)
         {
             string table = readFolder == null ? null : Path.Combine(readFolder, ReadDataRun.PlotTableFile);
