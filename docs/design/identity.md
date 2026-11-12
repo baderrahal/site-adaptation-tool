@@ -44,7 +44,7 @@ Figma UI3 for the feel, Fluent 2 for the Windows details.
 | Panels | #FFFFFF | Card |
 | Cards inside panels | #FAFAF9 | Inner |
 | Lines and borders | #E7E5E4 | Line |
-| Text | #1C1917 (Ink), #292524 (Text) | Ink, Text |
+| Text | #1C1917 (Ink), RGB 41, 37, 36 (Text) | Ink, Text |
 | Second text (still dark, never grey notes) | #44403C | Quiet |
 | Hover | #F5F5F4 | Hover |
 | Pale orange behind a hovered or chosen item | #FFF4F0 | EdgeSoft |
@@ -91,7 +91,7 @@ Figma UI3 for the feel, Fluent 2 for the Windows details.
 2. In the project file, add the fonts as `<Resource Include="Fonts\*.ttf" />` and the logo as `<Resource Include="Images\*.png" />`.
 3. In `Theme.xaml`, change two names to the new project:
    - the line `xmlns:ui="clr-namespace:Navis2D3D.Ui"`, to the new UI namespace
-   - the two FontFamily lines `pack://application:,,,/Navis2D3D.Ui;component/Fonts/#Cairo`, to the new UI assembly name
+   - the two FontFamily lines, the pack address that names `Navis2D3D.Ui` before `component/Fonts/#Cairo`, to the new UI assembly name
    Some styles in it name Navis2D3D controls (sheet list rows, finding rows). Keep them as examples or delete them.
 4. Merge the dictionary in each window or pane (`<ResourceDictionary Source="Theme.xaml" />`), and use the keys: Rail for rail
    buttons, IconButton for round buttons, Primary and Plain for the two dialog buttons, Segment for the scope pill, Float for a
