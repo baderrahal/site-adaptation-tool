@@ -15,7 +15,7 @@ Done:
 - docs/truth.md, CLAUDE.md with the standing rules, steps/plan.md written again, steps/rules-vs-truth-12nov.md, the task OLD-1a-revit-test. Nine old plans, forms and demo files moved to steps/history. Q600 closed.
 
 Checked:
-- The input folder before the deletes: 837 files, gone 0, added 0, changed 0 against the record of 02:55.
+- The input folder before the deletes: 837 files, gone 0, added 0, changed 0 against inputs-after.json of the morning, and the same again after the round.
 - Build Release 0 errors. Quick tests passed with the new check inside, 2,774 dotnet tests.
 - The work root 27,645,405,299 bytes before, 3,603,847,286 after.
 

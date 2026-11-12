@@ -1,6 +1,6 @@
 # Rule lines against docs/truth.md, 12 Nov 2026
 
-Round 0, item 3. CLAUDE.md, .claude/rules, .claude/agents, the project skills and docs/rules were read against the standing rules and decisions of docs/truth.md. Found by a read only search, each line below seen by Lead before it was fixed or listed. 48 lines disagree today: 6 fixed in this PR, 42 listed with the task that fixes them.
+Round 0, item 3. CLAUDE.md, .claude/rules, .claude/agents, the project skills and docs/rules were read against the standing rules and decisions of docs/truth.md. Found by a read only search, each line below seen by Lead before it was fixed or listed. 48 lines disagree today: 6 fixed in this PR, 42 listed with the task that fixes them. Listed apart and not in the 48: 3 places in code, and the lines that will disagree only once step d has removed their part.
 
 ## Fixed in this PR
 

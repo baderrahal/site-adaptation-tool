@@ -4,7 +4,7 @@ Round 0, item 1 of Bader's order of 12 Nov 03:25: delete the copies, after provi
 
 ## How it was measured
 
-- The input folder C:\02-Site Adaptation was hashed again before any delete: 837 files, 8,874,086,637 bytes, against the record of 02:55 gone 0, added 0, changed 0 (old-project\inputs-round0-before.json of the work root).
+- The input folder C:\02-Site Adaptation was hashed again before any delete: 837 files, 8,874,086,637 bytes, against the record made after the work of the morning, old-project\inputs-after.json, gone 0, added 0, changed 0 (old-project\inputs-round0-before.json of the work root).
 - Every file of scenarios and of prototypes_2024 of the work root was hashed, 1,629 files, 27,553,158,585 bytes, and sorted: equal by SHA-256 to a file of the input folder, a file of a Revit backup folder, a manifest of a copy, or none of these (old-project\classify.json of the work root).
 - A file was deleted only when its SHA-256 is the SHA-256 of a file of the input folder in the hash of that same hour, and its size on disk was still the size hashed.
 
@@ -71,7 +71,7 @@ The 13 folders named <file>_backup beside them, 234 files, 1,088,386,268 bytes, 
 
 ## The 2 villa files that differ by 4 KB
 
-DP4 and VL4. No step needs the new one. Proof: the build takes its prototype folder from the input root with pastJob.upgradedPrototypeFolder (dotnet/SiteAdaptation.Common/Plan/BuildSteps.cs lines 287 to 311), and config/project.json line 44 names 00_Revit Models\Zone 02\ARC\Prototypes_2024 there. The folder prototypes_2024 of the work root is named only as the place Run-TestHost.ps1 -Upgrade writes to (TestHostPaths.ps1 line 170), no step reads it unless a run spec names it by hand. So the input folder copy is used, for all 13 files. Whether the content of the two pairs differs was not measured, the files were not opened.
+DP4 and VL4. No step needs the new one. Proof: the build takes its prototype folder from the input root with pastJob.upgradedPrototypeFolder (dotnet/SiteAdaptation.Common/Plan/BuildSteps.cs lines 288 to 312), and config/project.json line 44 names 00_Revit Models\Zone 02\ARC\Prototypes_2024 there. The folder prototypes_2024 of the work root is named only as the place Run-TestHost.ps1 -Upgrade writes to (TestHostPaths.ps1 line 170), no step reads it unless a run spec names it by hand. So the input folder copy is used, for all 13 files. Whether the content of the two pairs differs was not measured, the files were not opened.
 
 So the 13 new files and their folders, 2,165,531,868 bytes, are needed by no step. They are kept only because no hash proves them equal to an input file. Bader's word deletes them.
 
@@ -83,6 +83,8 @@ So the 13 new files and their folders, 2,165,531,868 bytes, are needed by no ste
 | scenarios | 25,387,626,717 bytes | 1,345,874,082 bytes |
 | prototypes_2024 | 2,165,531,868 bytes | 2,165,531,868 bytes |
 | Free on drive C | 58,129,059,840 bytes | 82,173,153,280 bytes |
+
+Measured once before the deletes and once right after. The work root shrank by 194,622 bytes less than was deleted, the hash lists and the list of the new check were written in between. Later runs add logs and temporary files, so the numbers move.
 
 ## C:\sa-test-none
 

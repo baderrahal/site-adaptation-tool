@@ -22,7 +22,7 @@ The pane shows 3 cards. They are the only way in. Each click runs the old number
 | 3 Review and deliver | Update from report | Reads the Excel a person edited and updates the model from it |
 | 3 Review and deliver | Open rules | Shown when a rule has an issue. Opens the Rules window |
 
-Proof: dotnet/SiteAdaptation.AddIn/Pane/StagesPage.xaml lines 146 to 213, StageCards.cs lines 264 to 301, BuildChain.cs line 14, App/PaneHost.cs lines 151 to 205 and 423 to 489.
+Proof: dotnet/SiteAdaptation.AddIn/Pane/StagesPage.xaml lines 146 to 213, StageCards.cs lines 264 to 301 and 423 to 482, BuildChain.cs lines 14 and 73, App/PaneHost.cs lines 151 to 205 and 423 to 489.
 
 Today an Advanced part under the cards still holds the whole old pane with one button per step (StagesPage.xaml lines 219 to 221, App/RibbonLayout.cs lines 20 to 39). Bader's decision of 12 Nov: Advanced no longer shows the 9 step buttons. Not built yet, round 1 step d.
 
@@ -50,7 +50,7 @@ The one setting per PC is the work root, in %APPDATA%\SiteAdaptation\machine.jso
 
 - Each project holds its own rule set, a copy made from the manual template rules/templates/manual.json when a person presses Use the manual template, or when Build offers it.
 - The Rules window, title "Rules of this project", shows each rule as Rule, Value, Source and Status, with Confirm or Save on the row.
-- Value: what the tool uses. Source: where it comes from, one of rule, default, computed, person entered, missing. Status: not confirmed, confirmed, or fixed.
+- Value: what the tool uses. Source: where it comes from, one of rule, default, computed, person entered, missing, and past, which goes with past job mode in round 1 step d. Status: not confirmed, confirmed, or fixed.
 - Every rule starts not confirmed. A person confirms it, or changes the value and saves, which sets the source to person entered and the status to confirmed, with who and when. Every change is written to rules_log.jsonl beside the rules.
 - The rules of a project are editable per project and saved in project_rules.json under New projects of the work root. The shipped settings cannot be edited.
 - Three rules are fixed and cannot be changed: the Saudi checks, no guessed value, every change logged.
@@ -122,7 +122,7 @@ The compare is python/compare_built.py, round 1 step c. It writes steps/compare.
 | 24 Oct | The yard floor stands 0.10 m under FFL, a team decision, the manual gives no level |
 | 12 Nov | No more demo. All work on Bader's PC. The goal is the whole old project, measured against the past models |
 | 12 Nov 03:25 | The copies under the work root are deleted once proven not needed, steps/storage-12nov.md |
-| 12 Nov 03:25 | The plan is right, with its first four tasks as one round, OLD-1 |
+| 12 Nov 03:25 | The plan is right, with its tasks 1 to 4 as one round, OLD-1, worked in the five steps a to e of steps/plan.md |
 | 12 Nov 03:25 | The pass level above |
 | 12 Nov 03:25 | Yard floor at FFL less 0.10 m, as a rule of the project the team can change in the Rules window, never a fixed value, source "Team decision 24 Oct, the manual gives no level". Q225 is answered |
 | 12 Nov 03:25 | The road surfaces are joined for the toposolid, as an option in Settings, on by default. Q600 is closed |
