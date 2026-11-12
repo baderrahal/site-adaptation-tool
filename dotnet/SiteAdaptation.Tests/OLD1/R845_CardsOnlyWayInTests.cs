@@ -118,14 +118,20 @@ namespace SiteAdaptation.Tests
             Assert.Equal(new[] { "Rules", "Pane" }, RibbonLayout.Panels.Select(panel => panel.Name));
             Assert.Equal(new[] { "Site Adaptation Rules", "Show pane" }, RibbonLayout.AllButtons.Select(button => button.Label));
             Assert.All(RibbonLayout.AllButtons, button => Assert.Equal(0, button.Number));
-            Assert.All(RibbonLayout.AllButtons, button => Assert.NotNull(typeof(RibbonLayout).Assembly.GetType(button.CommandClass)));
-
-            // No command class of a step is left for Revit to run
+            // The command classes are read from their source, a load of one would ask for the Revit API the tests do not have
             string commands = Source("Commands", "ButtonCommands.cs");
+            Assert.All(RibbonLayout.AllButtons, button => Assert.Contains("public sealed class " + button.CommandClass.Substring(RibbonButtonSpec.CommandNamespace.Length) + " : IExternalCommand", commands));
+            Assert.Equal(2, Regex.Matches(commands, @" : IExternalCommand\b").Count);
+
+            // No command class of a step is left for Revit to run, in this file or in any other of the add-in
+            string addin = Path.Combine(ThemeGateTests.RepoRoot(), "dotnet", "SiteAdaptation.AddIn");
+            List<string> sources = Directory.GetFiles(addin, "*.cs", SearchOption.AllDirectories)
+                .Where(path => !path.Contains(Path.DirectorySeparatorChar + "obj" + Path.DirectorySeparatorChar) && !path.Contains(Path.DirectorySeparatorChar + "bin" + Path.DirectorySeparatorChar))
+                .Select(File.ReadAllText).ToList();
+            Assert.True(sources.Count > 100, sources.Count.ToString());
             foreach (string gone in StepCommands)
             {
-                Assert.Null(typeof(RibbonLayout).Assembly.GetType(RibbonButtonSpec.CommandNamespace + gone));
-                Assert.DoesNotContain("class " + gone, commands);
+                Assert.All(sources, source => Assert.DoesNotContain("class " + gone, source));
             }
             // The ribbon is built from the panels alone, never from the steps
             string app = Source("App", "App.cs");

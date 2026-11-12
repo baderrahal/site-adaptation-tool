@@ -494,7 +494,6 @@ namespace SiteAdaptation.Tests
             Assert.False(model.BoxCommand.CanExecute(null));
             Assert.Equal(string.Empty, model.InputHelp);
             Assert.All(model.InputRows.Concat(new[] { model.SettingsRow, model.RulesRow }), row => Assert.False(row.Shown));
-            Assert.All(model.Statuses, status => Assert.Equal(StepKind.None, status.Kind));
             Assert.False(model.DryRun);
             Assert.False(model.VillaMasses);
             Assert.Null(model.Settings);

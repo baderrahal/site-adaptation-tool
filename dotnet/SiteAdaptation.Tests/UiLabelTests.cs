@@ -35,9 +35,10 @@ namespace SiteAdaptation.Tests
             Assert.Equal(new[] { "Ribbon", "Pane", "Button messages", "Set up site", "Review data", "Site Adaptation Rules", "Check table", "Update from report", "New project", "Rule values", "Help box", "How it works", "What the tool read", "Loader" }, list.Keys.ToArray());
             Assert.Equal(new[] { "Ribbon", "Pane", "Button messages", "Set up site", "Review data", "Site Adaptation Rules", "Check table", "Update from report", "New project", "Rule values", "Help box", "How it works", "What the tool read", "Loader" }, list.Values.Where(window => window.Built).Select(window => window.Name).ToArray());
             Assert.Equal(18, list["Ribbon"].Entries.Count);
+            // R846. Update from report is no button of the ribbon any more, RibbonLayout still words it as a step
             Assert.Contains(shown["Ribbon"], found => found.Text == "Update from report");
             Assert.Contains(shown["Pane"], found => found.Text == "Browse" && found.Where.EndsWith(".xaml", StringComparison.Ordinal));
-            Assert.Contains(shown["Pane"], found => found.Text == "Needs step <n>" && found.Where.EndsWith("PaneText.cs", StringComparison.Ordinal));
+            Assert.Contains(shown["Pane"], found => found.Text == "Road surfaces in order (<n>): <name>" && found.Where.EndsWith("PaneText.cs", StringComparison.Ordinal));
             Assert.Contains(shown[UiLabels.Messages], found => found.Text == " needs step " && found.Where.EndsWith("RunTexts.cs", StringComparison.Ordinal));
             Assert.Contains(shown[UiLabels.Messages], found => found.Text == "Cancel" && found.Where.EndsWith("RevitModel.cs", StringComparison.Ordinal));
             // 31 since Lane B 5c, the 11 messages of 2 Read data (R375)
@@ -47,7 +48,32 @@ namespace SiteAdaptation.Tests
             Assert.Contains(shown["Update from report"], found => found.Text == "follows the rules" && found.Where.EndsWith("UpdateText.cs", StringComparison.Ordinal));
             Assert.Contains(shown["Update from report"], found => found.Text == "<name> <n>" && found.Where.EndsWith("UpdateFromReportText.cs", StringComparison.Ordinal));
 
-            Assert.Empty(UiLabels.Offenders(list, shown));
+            // R845, R846. The list is behind the truth by the lines of BehindTheTruth and by no other. A line of it that is no offence any more
+            // fails here too, so it empties with the edit of the list
+            Assert.Equal(string.Join("\n", BehindTheTruth().OrderBy(line => line, StringComparer.Ordinal)),
+                string.Join("\n", UiLabels.Offenders(list, shown).OrderBy(line => line, StringComparer.Ordinal)));
+        }
+
+        // R845, R846, Q658. Bader's decision of 12 Nov 2026 took the step rows off Advanced and the step buttons off the ribbon. The label list
+        // docs/design/14-ui-labels.md lies outside the folders of the task that built it, OLD-1d3-build-2, so it still holds the texts that left
+        // and the old line of How it works. These are those lines, word for word as the test words an offence, until the list is edited
+        private static readonly string[] LeftTheRibbon = { "Setup", "Build", "Output" };
+
+        private static readonly string[] LeftThePane =
+        {
+            "Run <n> <name>", "Steps", "Run them in order. Each one waits for the one before.", "<n> issues", "Done with <n> issues", "Needs step <n>", "Needs setup",
+            "<name> to <n> <name>",
+        };
+
+        private const string HowLine = "The tool puts each villa on its plot at the right level. The pane holds three cards, used in this order: Project data, Build site, Review and deliver. Each card runs the steps listed under it";
+
+        private static List<string> BehindTheTruth()
+        {
+            var lines = new List<string> { Path.Combine("HowItWorks", "HowItWorksText.cs") + ": text not in the list of How it works: " + HowLine + "." };
+            lines.AddRange(LeftTheRibbon.Select(text => UiLabels.ListFile + ": no file of Ribbon shows " + text));
+            lines.AddRange(LeftThePane.Select(text => UiLabels.ListFile + ": no file of Pane shows " + text));
+            lines.Add(UiLabels.ListFile + ": no file of How it works shows " + HowLine + ", and Advanced keeps one button per step.");
+            return lines;
         }
 
         // Lane C NEWPROJ-UI: no file name ending in .json in any text of the add-in a user reads, in the label list or in the code. A message

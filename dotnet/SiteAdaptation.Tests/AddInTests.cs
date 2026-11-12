@@ -212,7 +212,8 @@ namespace SiteAdaptation.Tests
                 ResourceDictionary theme = ThemeDictionary.Load();
                 Color heading = ((SolidColorBrush)theme["SA.Heading"]).Color;
                 Color accent = ((SolidColorBrush)theme["SA.IconAccent"]).Color;
-                foreach (RibbonButtonSpec button in RibbonLayout.AllButtons)
+                // R846. The icons of the steps that left the ribbon stay in the theme, so each still renders
+                foreach (RibbonButtonSpec button in RibbonLayout.AllButtons.Concat(RibbonLayout.Steps))
                 {
                     foreach (double scale in new[] { 1.0, 1.5 })
                     foreach (int units in new[] { 32, 16 })

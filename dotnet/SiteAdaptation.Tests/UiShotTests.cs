@@ -64,7 +64,8 @@ namespace SiteAdaptation.Tests
                     else if (window != Shots.RibbonIcons)
                     {
                         Assert.Equal(380, bitmap.PixelWidth);
-                        Assert.True(bitmap.PixelHeight > (window == Shots.Pane ? 1000 : 600), sizes.Last());
+                        // R845. 400 since the step rows left Advanced, the pane of first open is 512 high with no Steps part
+                        Assert.True(bitmap.PixelHeight > (window == Shots.Pane ? 1000 : 400), sizes.Last());
                     }
                 }
                 Assert.Throws<ArgumentException>(() => Shots.Render("set-up-site"));
@@ -124,8 +125,10 @@ namespace SiteAdaptation.Tests
                     Assert.All(inputs, input => Assert.Contains(Visuals(input).OfType<Border>(), border => border.CornerRadius.TopLeft == 3.0
                         && border.BorderBrush == page.FindResource("SA.Border")));
                     Button primary = all.OfType<Button>().Single(button => button.Style == page.FindResource("SA.Button.Primary"));
-                    Assert.Equal(34.0, primary.ActualHeight);
-                    Assert.Equal(inUse ? 9 : 5, all.OfType<Ellipse>().Count(mark => mark.ActualWidth == 26.0));
+                    // R845. In use the box names the next step and shows no button, on first open it opens New project
+                    Assert.Equal(inUse ? 0.0 : 34.0, primary.ActualHeight);
+                    // R845. No step mark of 26 stands, the step rows left Advanced
+                    Assert.Empty(all.OfType<Ellipse>().Where(mark => mark.ActualWidth == 26.0));
 
                     // Review 1 of PR 90: the Level profile and Neighbourhood drop downs and the Plot list box start at one x
                     List<double> lefts = inputs.Select(input => input.TransformToAncestor(page).Transform(new Point(0, 0)).X).ToList();
@@ -133,7 +136,7 @@ namespace SiteAdaptation.Tests
 
                     // R505. One section after the other with a line between, each with the 16 of the spacing scale inside its box
                     List<Border> sections = all.OfType<Border>().Where(box => box.Padding == (Thickness)page.FindResource("SA.Pad.SectionBox") && Shown(box)).ToList();
-                    Assert.Equal(inUse ? 4 : 3, sections.Count);
+                    Assert.Equal(inUse ? 3 : 2, sections.Count);
                     for (int at = 1; at < sections.Count; at++)
                     {
                         double bottom = sections[at - 1].TransformToAncestor(page).Transform(new Point(0, sections[at - 1].ActualHeight)).Y;
