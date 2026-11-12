@@ -1,14 +1,16 @@
-# revit-test heads-up, PC-1-revit-test
+# revit-test heads-up, OLD-1a-revit-test
 
-12 Nov 2026, 03:05. The PR is open and not merged, Lead merges. Detail and proof in steps/revit-results/PC-1-revit-test.md.
+12 Nov 2026, 10:25. The PR is open and not merged, Lead merges. Detail and proof in steps/revit-results/OLD-1a-revit-test.md.
 
 ## Final statement
 
-- Made: prototypes_2024 under the work root, 13 villa files of format 2024 by rvt_info.py, 13 of 13 runs with log result ok, 39 minutes. Against Prototypes_2024 of the input folder 11 of 13 are equal in size.
-- Made: answer-key under the work root, 7 folders, each with the read of its key, key_reads.json and links.csv. 7 of 7 reads with log result ok.
-- Counts per key, plots as links with a plot number, villa links, floors, walls, levels: IMC 337, 338, 1,010, 926, 2. IMD 410, 411, 1,230, 1,138, 2. IME 324, 325, 972, 894, 2. IMF 490, 491, 1,470, 1,317, 2. IMG 297, 298, 594, 859, 2. IMA 432, 433, 761, 2,323, 2. IMB 301, 302, 773, 1,515, 2. Floors by type are in the record.
-- Not made: the plan of each key and past_all.csv. plan_from_past.py stopped 7 of 7 on `not found: ...\sample_output\round12\full\ROSHN Makkah Baseplan.dwg\plots.json`, past_all.py on `FileNotFoundError ... data_book\location_plan\labels.csv`.
-- Input folder: 837 files, gone 0, added 0, changed 0 by SHA-256, by two methods.
-- For Lead to accept or refuse: Run-TestHost.ps1 -Upgrade stopped on the gone plan_imc_past.json, which it reads for a file name only. I wrote a stand-in with the 13 file names of the prototype folder and nothing else, ran the 13 upgrades and deleted it. To refuse it, delete prototypes_2024.
-- The installed add-in is now the build of this worktree, same commit, the test host install refused the mixed Common DLLs.
-- The driver: no click, key or shot by this lane. The watcher pressed Load Once on the 4 boxes of this tool in each of the 20 windows, never Always Load.
+- Made: landxml under the work root, 7 LandXML files, one per surface of Roads\Makkah Phase 1_Road Surface C3D.dwg, from one window of Civil 3D 2026 under the window lock, 90 seconds.
+- Points and faces read back by landxml_reader.py: Top Surface-02 325,959 and 584,130. Top Surface-01 578,300 and 1,044,562. Part 4 Top Surfaces 123,962 and 224,235. Compiled West_MM 161,458 and 285,055. Top Surface Part 2 East Of East 40,130 and 72,377. Missed from Paste 2,063 and 3,595. EXISTING_11.5 Sqkm 4,681 and 8,682.
+- siteBuild.roadSurfaces: 6 of 6 names there, 0 missing. EXISTING_11.5 Sqkm is exported and not named in the config.
+- The probe builds and runs against Civil 3D 2026 on this PC, 0 warnings and 0 errors. No code was changed.
+- For Lead to accept or refuse: this PC holds no phase1_border.csv, which the probe needs. I gave it a square far wider than any drawing, so the files hold the whole surfaces, not the Phase 1 part. To refuse it, delete landxml.
+- Not clean: Civil 3D ended with exit code 3762504530 after the probe wrote done true. Why is UNKNOWN.
+- python/c3d_probe.json still names folders of Documents and of the laptop. Not used and not changed, the run took a settings file under the work root.
+- Input folder: the drawing equal by SHA-256, size and write time before and after. 837 files, gone 0, added 0, size differs 0 by name and size. The copy is deleted.
+- The driver: no click, key or shot by this lane. The watcher pressed No on one annotation scale box and Load Once on the security box of the probe, never Always Load.
+- status of the task file is still open, the file is not in the allowed list of the task.
