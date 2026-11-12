@@ -51,10 +51,15 @@ def load_limits(settings):
         value = entry["value"]
         if name in LIMIT_NAMES and (isinstance(value, bool) or not isinstance(value, (int, float)) or not 0 <= value < float("inf")):
             raise CompareError("compare.%s is no number of 0 or more: %r" % (name, value))
+        if name.endswith("Percent") and value > 100:
+            raise CompareError("compare.%s is a share over 100: %r" % (name, value))
         if name in LIST_NAMES and (not isinstance(value, list) or not all(isinstance(item, str) and item for item in value)):
             raise CompareError("compare.%s is no list of names: %r" % (name, value))
         limits[name] = Decimal(str(value)) if name in LIMIT_NAMES else value
         limits[name + "Source"] = str(entry["source"]).strip()
+    both = sorted(set(limits["yardModels"]) & set(limits["linksOnlyModels"]))
+    if both:
+        raise CompareError("compare.yardModels and compare.linksOnlyModels both name %s" % ", ".join(both))
     return limits
 
 
@@ -72,19 +77,25 @@ def neighbourhood_of(areas, job):
 
 
 def number(text):
+    """A cell as an exact decimal, None when it is no plain number. A size no model holds is refused too, it would overflow."""
+    text = str(text).strip()
+    if "_" in text:
+        return None
     try:
-        value = Decimal(str(text).strip())
+        value = Decimal(text)
     except InvalidOperation:
         return None
-    return value if value.is_finite() else None
+    return value if value.is_finite() and value.adjusted() < 12 else None
 
 
 def read_links(path):
     """R835. The rows of links.csv by plot number, each with its line of the file, the header being line 1. A link that names no
-    plot is counted and left out."""
+    plot is counted and left out. The line is the one the reader stands on, so an empty line above a row does not shift it."""
     by_plot, unnamed = {}, 0
     with open(path, encoding="utf-8-sig", newline="") as handle:
-        for line, row in enumerate(csv.DictReader(handle), start=2):
+        reader = csv.DictReader(handle)
+        for row in reader:
+            line = reader.line_num
             plot = (row.get("plot") or "").strip()
             if not plot:
                 unnamed += 1
@@ -98,18 +109,23 @@ def read_links(path):
 def read_counts(path):
     """R837. Floors that are no yard, yards, walls and levels of one read, None where the read lacks the count."""
     try:
-        keys = json.loads(Path(path).read_text(encoding="utf-8-sig")).get("keys") or {}
+        read = json.loads(Path(path).read_text(encoding="utf-8-sig"))
     except ValueError as error:
         raise CompareError("%s is no JSON: %s" % (Path(path).name, error)) from error
-    if len(keys) != 1:
-        raise CompareError("key_reads.json of %s holds %d reads, one is needed" % (Path(path).parent.name, len(keys)))
-    counts = next(iter(keys.values())).get("counts") or {}
-    floors = counts.get("floors") or {}
-    yard = (floors.get("byKind") or {}).get("yard")
-    whole = floors.get("count")
-    found = {"floors": whole - yard if isinstance(whole, int) and isinstance(yard, int) else None, "yards": yard,
-             "walls": (counts.get("walls") or {}).get("count"), "levels": (counts.get("levels") or {}).get("count")}
-    return {name: value if isinstance(value, int) and not isinstance(value, bool) and value >= 0 else None for name, value in found.items()}
+    keys = read.get("keys") if isinstance(read, dict) else None
+    if not isinstance(keys, dict) or len(keys) != 1:
+        raise CompareError("key_reads.json of %s does not hold one read under keys" % Path(path).parent.name)
+    entry = next(iter(keys.values()))
+    counts = entry.get("counts") if isinstance(entry, dict) else None
+    sections = {name: counts.get(name) if isinstance(counts, dict) and isinstance(counts.get(name), dict) else {} for name in ("floors", "walls", "levels")}
+    kinds = sections["floors"].get("byKind")
+    found = {"whole": sections["floors"].get("count"), "yards": kinds.get("yard") if isinstance(kinds, dict) else None,
+             "walls": sections["walls"].get("count"), "levels": sections["levels"].get("count")}
+    # A bool is an int to Python, true less true would read as 0 floors
+    found = {name: value if type(value) is int and value >= 0 else None for name, value in found.items()}
+    floors = found.pop("whole")
+    found["floors"] = floors - found["yards"] if floors is not None and found["yards"] is not None and floors >= found["yards"] else None
+    return found
 
 
 def read_side(folder, side):
@@ -240,7 +256,7 @@ def compare_model(code, nbh, past, built, limits):
         cells[name], verdicts[name] = count_cell(built["counts"][name] if built else 0, past["counts"][name], limits["countPercent"])
     fails = [fail for fail in fails if cells.get(fail[1]) != NOT_COUNTED]
     result = "fail" if False in verdicts.values() else "UNKNOWN" if None in verdicts.values() else "pass"
-    whole = result == "pass" and len(joined) == len(past["links"]) and not any(largest.values())         and all(held[name] == len(joined) for name in MEASURES if cells[name] != NOT_COUNTED)         and all(built["counts"][name] == past["counts"][name] for name in COUNTS if cells[name] != NOT_COUNTED)
+    whole = result == "pass" and len(joined) == len(past["links"]) and not any(largest[name] for name in largest if cells[name] != NOT_COUNTED)         and all(held[name] == len(joined) for name in MEASURES if cells[name] != NOT_COUNTED)         and all(built["counts"][name] == past["counts"][name] for name in COUNTS if cells[name] != NOT_COUNTED)
     note = "- %s: past links with no plot number %d, built links with no plot number %d, built plots not in the past model %d, built plots with two links %d." % (
         nbh, past["unnamed"], built["unnamed"] if built else 0, len(set(built_links) - set(past["links"])), twice)
     line = "| %s | %s | %s | %s |" % (nbh, code, " | ".join(cells[name] for name in ("plots",) + MEASURES + COUNTS), result)
@@ -341,7 +357,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
     try:
         text = run(args)
-    except (CompareError, project_profile.ProfileError, OSError) as error:
+    except (CompareError, project_profile.ProfileError, OSError, ValueError, csv.Error) as error:
         print("compare stopped: %s" % error, file=sys.stderr)
         return 2
     print(text.split("## The past models against themselves")[1].split("## Notes")[0].strip())

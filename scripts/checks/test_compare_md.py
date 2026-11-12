@@ -30,6 +30,10 @@ def test_r839_lines_of_the_script_pass():
     "- N1: the FFL is 12.345",
     "| N1 | KA | 38 of 40, 95.0 percent, largest 123456.789 mm, pass |" + " not counted |" * 8 + " pass |",
     "A note by hand.",
+    "| Plots | 95 percent of the plots of the past model built | Survey 24345.678 E 5432.1 N |",
+    "| Plots | 95 percent of the plots of the past model built | Point 2434567 |",
+    "- A1234567: past links with no plot number 1, built links with no plot number 0, built plots not in the past model 0, built plots with two links 0.",
+    "Yards are counted on 24345678, 5432100. Plots, position, rotation and mirror only are counted on KB. Floors are the floors that are no yard.",
     " # The compare",
     "0 of 3 neighbourhoods pass, 2 fail, 1 UNKNOWN. And more.",
 ])

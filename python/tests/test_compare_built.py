@@ -234,6 +234,62 @@ def test_r835_a_cell_that_is_no_number_fails_its_row_and_a_plot_outside_the_past
     assert "built plots not in the past model 1" in run.text
 
 
+def test_r835_an_empty_line_above_a_row_does_not_shift_its_line(tmp_path):
+    run = Run(tmp_path)
+    links = tmp_path / "built" / "N1" / "links.csv"
+    lines = links.read_text(encoding="utf-8").split("\n")
+    links.write_text("\n".join(lines[:1] + ["", ""] + lines[1:]), encoding="utf-8")
+    assert compare_built.main(run.argv) == 0
+    assert run.failed_rows("position") == [("built", 9)]
+
+
+@pytest.mark.parametrize("cell", ["1_0", "1E+999999", "1E+30", "Infinity", "0x10"])
+def test_r836_a_cell_of_an_odd_number_form_fails_its_row_and_stops_nothing(tmp_path, cell):
+    rows = inside_rows()
+    rows[11] = dict(rows[11], originX=cell, originZ=cell)
+    run = Run(tmp_path, built_rows=rows)
+    assert run.code == 0
+    assert run.failed_rows("position") == run.failed_rows("ffl") == [("built", 7), ("built", 13)]
+
+
+@pytest.mark.parametrize("floors", [{"count": True, "byKind": {"yard": True}}, {"count": 10, "byKind": {"yard": 12}},
+                                    {"count": 10.0, "byKind": {"yard": 2}}, {"count": -1, "byKind": {"yard": 0}}, "text"])
+def test_r837_a_count_that_is_no_whole_number_is_unknown(tmp_path, floors):
+    odd = counts(105, 42, 190, 21)
+    odd["floors"] = floors
+    run = Run(tmp_path, built_counts=odd)
+    row = run.row(BUILT, "N1")
+    assert row["floors"] == "UNKNOWN, the built read holds no count" and row["result"] != "pass"
+
+
+@pytest.mark.parametrize("text", ["[]", "null", '{"keys": {"a": null, "b": null}}', '{"keys": []}', "{"])
+def test_r837_a_counts_file_of_another_shape_stops_the_compare_in_one_line(tmp_path, capsys, text):
+    run = Run(tmp_path)
+    (tmp_path / "built" / "N1" / "key_reads.json").write_text(text, encoding="utf-8")
+    assert compare_built.main(run.argv) == 2
+    assert capsys.readouterr().err.startswith("compare stopped: ")
+
+
+def test_r835_a_links_file_that_is_no_text_stops_the_compare_in_one_line(tmp_path, capsys):
+    run = Run(tmp_path)
+    (tmp_path / "built" / "N1" / "links.csv").write_bytes(b"plot,originX\n\xff\xfe,1\n")
+    assert compare_built.main(run.argv) == 2
+    assert capsys.readouterr().err.startswith("compare stopped: ")
+
+
+def test_r836_a_share_over_100_and_a_model_in_both_lists_stop_the_compare(tmp_path, capsys):
+    run = Run(tmp_path, built=False)
+    config = Path(run.argv[1])
+    values = settings()
+    values["compare"]["heldPercent"]["value"] = 150
+    config.write_text(json.dumps(values), encoding="utf-8")
+    assert compare_built.main(run.argv) == 2 and "compare.heldPercent" in capsys.readouterr().err
+    values = settings()
+    values["compare"]["linksOnlyModels"]["value"] = ["KA", "KB"]
+    config.write_text(json.dumps(values), encoding="utf-8")
+    assert compare_built.main(run.argv) == 2 and "both name KA" in capsys.readouterr().err
+
+
 def test_r835_a_past_model_that_names_a_plot_twice_stops_the_compare(tmp_path, capsys):
     rows = past_rows()
     rows.append(dict(rows[3], elementId="5000"))

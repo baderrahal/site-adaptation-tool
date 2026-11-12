@@ -1,7 +1,8 @@
 """R839. Every line of steps/compare.md is of a form python/compare_built.py writes: counts, shares and differences in mm only.
 
-The repo is public, so a line a hand or another script added, which could hold a coordinate, a level or a plot number, fails.
-The forms are written here on their own and share no code with the script, so a change of the page changes both.
+The repo is public, so a line a hand or another script added fails. The forms are written here on their own and share no code
+with the script, so a change of the page changes both. A form check only: a number that stands where the script writes a count
+reads as a count, so the check holds a page against a line of another shape, not against a changed count.
 """
 import re
 import sys
@@ -14,10 +15,12 @@ N = r"\d{1,6}"
 TENTH = r"\d{1,7}\.\d"
 SHARE = r"%s of %s, \d{1,3}\.\d percent(?:, largest %s mm)?, (?:pass|fail)" % (N, N, TENTH)
 CELL = r"(?:%s|%s of %s, (?:pass|fail)|no plot built, fail|not counted|UNKNOWN, (?:no past model|the past read holds no count|the built read holds no count))" % (SHARE, N, N)
-NAME_OF = r"[0-9A-Za-z]{1,8}"
+# A neighbourhood id or a model code, three characters at most, so no longer number fits
+NAME_OF = r"[0-9A-Za-z]{1,3}"
 NAMES = r"(?:no model|%s(?:, %s)*)" % (NAME_OF, NAME_OF)
 LIMIT = r"\d{1,3}(?:\.\d{1,3})?"
-SOURCE = r"[A-Za-z0-9 ,.]{1,80}"
+# A source is words and a date: no number of five digits and no decimal
+SOURCE = r"(?:(?!\d{5}|\d\.\d)[A-Za-z0-9 ,.]){1,80}"
 FORMS = [re.compile("^%s$" % form) for form in (
     r"",
     r"# The compare",
@@ -38,7 +41,7 @@ FORMS = [re.compile("^%s$" % form) for form in (
     r"## The past models against themselves",
     r"\| Neighbourhood \| Past model \| Plots \| Position \| FFL \| Rotation \| Mirror \| Floors \| Yards \| Walls \| Levels \| Result \|",
     r"\|(?:---\|){12}",
-    r"\| %s \| %s \|(?: %s \|){9} (?:pass|fail|UNKNOWN) \|" % (NAME_OF, NAME_OF, CELL),
+    r"\| %s \| (?:%s|none) \|(?: %s \|){9} (?:pass|fail|UNKNOWN) \|" % (NAME_OF, NAME_OF, CELL),
     r"%s of %s past models give 100 percent in every column that is counted\." % (N, N),
     r"## The built side against the past models",
     r"A built folder was given, %s of its folders are named as a neighbourhood below\." % N,
