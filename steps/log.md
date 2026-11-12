@@ -14,9 +14,9 @@ Done:
 - This PR: steps/old-project-pc.md, steps/plan.md, steps/bader-form-12nov.md, the oldest log entries of 3 Nov split to history.
 
 Checked:
-- Build Release 0 errors. Quick tests: pytest 154 passed, dotnet 2,774 passed, 0 failed. The add-in installed for Revit 2024.
+- On main 0c31771, for PR 292: build Release 0 errors, quick tests pytest 154 passed, dotnet 2,774 passed, 0 failed, the add-in installed for Revit 2024. The PRs after it change records only.
 - The input folder: 837 files before and after, gone 0, added 0, changed 0 by SHA-256, by Lead's script and by the lane's two.
-- The audit by a claim check, 5 lines corrected. PR 292 by a review, 1 fault fixed with a test that fails without the fix.
+- The audit, the findings, the plan and the form each by a claim check, the wrong lines corrected in the same PR. PR 292 by a review, one fault fixed, a root that ends in a backslash.
 
 Remains:
 - Nothing of steps/plan.md is started, it waits for the form.
@@ -32,7 +32,7 @@ Next:
 
 Your turn:
 - Answer the five items of steps/bader-form-12nov.md.
-- Delete the empty folder C:\sa-test-none by hand, a test run of Lead made it and a safety check stopped Lead from removing it.
+- Delete the folder C:\sa-test-none by hand. It holds one empty folder and nothing else, a test run of Lead made it and a safety check stopped Lead from removing it.
 
 ## Lead, demo-live part 1 from the phase 3 run, 8 Nov 2026
 

@@ -6,14 +6,14 @@ Lead, on Bader's PC. C:\02-Site Adaptation was only read. Counts, sizes and file
 
 RAN: every file hashed once before any run, name, size, write time and SHA-256, into old-project\inputs-before.json of the work root. 837 files, 8,874,086,637 bytes.
 
-Against the manifest: SA_COPY\manifest.csv is not on this PC, and the repo holds its counts only, not its rows (steps/laptop-check.md:58, 837 inputs rows, written by this PC from its own folder on 28 Oct). The folder holds 837 files today, the same count. Whether each file is the same as on 28 Oct cannot be proven file by file, UNKNOWN. What can be proven is in the rows below.
+Against the manifest: SA_COPY\manifest.csv is not on this PC, and the repo holds its counts only, not its rows (steps/laptop-check.md:58, 837 inputs rows, written by this PC from its own folder, read on the laptop on 28 Oct). The folder holds 837 files today, the same count. Whether each file is the same as when the manifest was written cannot be proven file by file, UNKNOWN. What can be proven is in the rows below.
 
 | Folder | Files | Holds |
 |---|---|---|
 | 00_Revit Models\Zone 02 | 364 | the IMC site models of four disciplines, the villa files, their backups |
 | 01_Output | 422 | the drawings and schedules the team delivered, 12 folders, past outputs |
 | Base Plans | 6 | 6 drawings |
-| Master Plan | 5 | drawings |
+| Master Plan | 5 | 4 drawings and 1 workbook |
 | Native Files | 16 | the 4 older site model sets 1.1 to 1.4, 4 models each |
 | Revit All Zones | 15 | 7 zone models, 7 Revit 2024 copies and their manifest |
 | Roads | 4 | 4 drawings |

@@ -28,6 +28,7 @@ Answer:
 
 ## 4. Q600, join the two road surfaces
 
+Full text: Q600 in steps/questions-open.md.
 - A, recommended: yes. Where the front corners of a neighbourhood took their road level from two road surfaces, the road toposolid joins those two. R485 stays, no ground or grading surface ever stands in for a road.
 - B: no toposolid for such a neighbourhood.
 - Why it is asked: 01A takes its road levels from two surfaces and the tool makes the toposolid from one.
@@ -36,7 +37,7 @@ Answer:
 
 ## 5. The repo goes private
 
-- A, recommended: yes, now. 157 tracked files name the client project and 193 the company, and the names are in the git history too, so cleaning files would not take them away. Two things to check on the GitHub plan of the account before the switch, both UNKNOWN today: a private repo has a monthly limit of Actions minutes and the Windows jobs of the gate count more than Linux ones, and the required check of main may need a paid plan on a private repo. Say first if the team needs to read it without an invite.
+- A, recommended: yes, now. 159 tracked files name the client project or its city and 193 the company (`git grep -l -i` for roshn or makkah, and for parsons, on the branch of this form), and the names are in the git history too, so cleaning files would not take them away. Two things to check on the GitHub plan of the account before the switch, both UNKNOWN today: a private repo has a monthly limit of Actions minutes and the Windows jobs of the gate count more than Linux ones, and the required check of main may need a paid plan on a private repo. Say first if the team needs to read it without an invite.
 - B: stay public, and a later task takes the names out of the files and writes the history again.
 
 Answer:
