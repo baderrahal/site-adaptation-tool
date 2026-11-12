@@ -16,7 +16,7 @@ Lane revit-test on Bader's PC, branch task/PC-1-revit-test from origin/main 56d9
 2. CHOSEN by this lane, yours to refuse: I wrote a stand-in at that path that holds the 13 file names of pastJob.prototypeFolder as listed that minute and nothing else, with a note in it that it is not the plan, and deleted it at 02:50 after the 13th upgrade. Each code of testHost.order matched exactly one of the 13 files by the pattern of the script, 13 distinct files (RAN). The upgrade job itself is not given the plan (Run-TestHost.ps1:641 to 651), so the stand-in chose the file name and no content. If you refuse this, delete prototypes_2024, nothing else came from it. The task text said to stop a step that needs a gone file, and I did not stop this one, since it needed a name and no value of the plan.
 3. Install-TestHost.ps1 -NoBuild refused first: `The Common DLLs differ, run the install of each add-in again with Revit closed.` The add-in Lead installed was of the build of the main folder. I ran Install-SiteAdaptation.ps1 -NoBuild from the build of this worktree, same commit 56d9dd69, then the test host install said `the same in every folder of the tool and the build: True`. So the installed add-in is now the build of this worktree.
 4. The first Release build failed once: `error RG1000: Unknown build error, 'Could not find file ...\SiteAdaptation.AddIn\obj\Release\net48\CheckTable\CheckTableWindow.baml'`. The second build, same command, gave 0 errors and 23 warnings. Why is UNKNOWN, not looked into.
-5. One call of mine was wrong: the 12 codes went to my loop as one text, Run-TestHost.ps1 refused it in 9 s and no Revit started. It took the lock once, so windows.jsonl holds 22 lockTaken for 20 Revit windows.
+5. One call of mine was wrong: the 12 codes went to my loop as one text, Run-TestHost.ps1 refused it in 9 s and no Revit started. It took the lock once, so round_addin\logs\windows.jsonl holds 22 lockTaken for 20 Revit windows (RAN). The line of that call is kept in old-project\pc1\upgrade_runs.jsonl.with-my-bad-call.
 6. The plan and the table of every key are not made, see Stopped steps. They need the baseplan plots.json and the location plan labels.csv again.
 7. Left in the work root: the testhost_<code>_upgrade_* files of the 13 upgrades, round_addin\logs\windows.jsonl, an empty round_addin\work, dev-manifest-stamps.
 
@@ -57,10 +57,10 @@ Command per code, under python\window_lock.py --round PC-1: `Run-TestHost.ps1 -U
 - Every source: format 2021, workshared, central, opened detached with worksets kept, its links 4 to 9 and 0 loaded. Every target: format 2024, workshared, central, saved as a new central (RAN, the step details of each log).
 - Each run said `Source prototype unchanged: True`, and my own hash of the 13 files gave gone 0, added 0, changed 0 on 13 of 13 runs.
 - Second check, another method: python\rvt_info.py reads the bytes of the 13 new files, 13 of format 2024 and workshared (RAN).
-- Against Prototypes_2024 of the input folder, by size: 13 names in both, 11 equal in size, 2 differ, one by 4,096 bytes more and one by 4,096 less (RAN). The files of the input folder were only listed, never opened.
+- Against Prototypes_2024 of the input folder, by size: 13 names in both, 11 equal in size, 2 differ, one by 4,096 bytes more and one by 4,096 less (RAN, old-project\pc1\size_compare.txt). The files of the input folder were only listed, never opened.
 - prototypes_2024 holds 13 files and 13 backup folders Revit made beside them, 247 files in all (RAN).
 - One Revit box per upgrade, 13 in all, the same each time: TaskDialog_Views_Related_To_Analytical_Changed, answered by the test host with answer 8 in the step openSource (RAN, dialogs of each log).
-- 88 warning lines over the 13 logs, all in openSource, none stopped a run: 51 a family error Revit resolved by itself (line too short 49, sketch invalid 1, extrusion 1), 26 balusters not created, 7 one element inside another, 2 a reveal not created, 2 joined elements that do not meet (RAN, failures of each log). Whether the upgraded files lost anything a later step needs is UNKNOWN, not looked into.
+- 88 warning lines over the 13 logs, all in openSource, none stopped a run: 51 a family error Revit resolved by itself (line too short 49, sketch invalid 1, extrusion 1), 26 balusters not created, 7 one element inside another, 2 a reveal not created, 2 joined elements that do not meet (RAN, failures of each log, old-project\pc1\upgrade_warnings_by_kind.txt). Whether the upgraded files lost anything a later step needs is UNKNOWN, not looked into.
 
 ## Part 2, the answer key
 
@@ -103,12 +103,12 @@ Floors by type:
 | IMB | 733 | 0 | 0 | 0 | 0 | 0 | 40 |
 
 - First method: python\key_reads.py --reads answer-key\<key> --key <key>=<job>, written to answer-key\<key>\key_reads.json (RAN). It ties each read to its key by the model name through check_key_file, 7 of 7 accepted.
-- Second method, no code shared: my own count off the raw read, old-project\pc1 holds nothing of it, the script is in the scratch folder of the session. Links, links with a plot, link files, floors by type, walls, levels and spots are equal to the first method on 7 of 7 keys (RAN).
-- The six fields of the task, plot, prototype, position, rotation, mirror and origin Z, are held per link in answer-key\<key>\links.csv, one row per link, written by the same second script from the read. Every link with a plot number has all six. One link per key has no plot number. The plot numbers are distinct, as many as the links with one, on 7 of 7.
+- Second method, no code shared: my own count off the raw read, old-project\pc1\scripts\links_extract.py. Links, links with a plot, link files, floors by type, walls, levels and spots are equal to the first method on 7 of 7 keys (RAN, old-project\pc1\second_count.txt).
+- The six fields of the task, plot, prototype, position, rotation, mirror and origin Z, are held per link in answer-key\<key>\links.csv, one row per link, written by the same second script from the read. Every link with a plot number has all six. One link per key has no plot number. The plot numbers are distinct, as many as the links with one, on 7 of 7 (RAN, withAllSix and plotsDistinct of second_count.txt).
 - No link was loaded in any read, loaded 0 of each, as in Round ADDIN. So the position is the transform of the link in the model, and whether it holds in shared coordinates was not checked here.
-- IMA and IMB hold the same 733 Generic floors, the same id and the same whole row (RAN, my own compare). The sharedWith of key_reads.json is empty, since each key was counted in its own folder.
-- Error lines of the reader, by read: IMC 2, IMD 2, IME 2, IMF 1, IMG 0, IMA 4, IMB 4. They are of 3 kinds: a spot whose host was not found, floors of a type with no Plot parameter (yard, and the structural types of IMA and IMB), and on IMA and IMB the spots with no value (RAN).
-- Every count of the two tables equals the table of Round ADDIN Phase 2a for the same key, steps/history/round-addin/05-phase-2a.md lines 41 to 51 (READ).
+- IMA and IMB hold the same 733 Generic floors, the same id and the same whole row (RAN, old-project\pc1\read_errors_and_shared_floors.txt). The sharedWith of key_reads.json is empty, since each key was counted in its own folder.
+- Error lines of the reader, by read: IMC 2, IMD 2, IME 2, IMF 1, IMG 0, IMA 4, IMB 4. They are of 3 kinds: a spot whose host was not found, floors of a type with no Plot parameter (yard, and the structural types of IMA and IMB), and on IMA and IMB the spots with no value (RAN, the same file).
+- Every count of the two tables but the column Links with all six fields equals the table of Round ADDIN Phase 2a for the same key, steps/history/round-addin/05-phase-2a.md lines 41 to 51 (READ). That column has no counterpart there.
 - The plots of a plan, the plots that join the baseplan, are UNKNOWN: no plan was built.
 
 ### Stopped steps
