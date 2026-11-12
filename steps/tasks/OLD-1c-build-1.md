@@ -2,7 +2,7 @@
 id: OLD-1c-build-1
 lane: build-1
 stage: 3
-status: open
+status: done
 allowed:
   - python/compare_built.py
   - python/tests/test_compare_built.py
