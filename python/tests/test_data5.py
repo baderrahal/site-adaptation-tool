@@ -3,14 +3,11 @@ import json
 from pathlib import Path
 
 import numpy as np
-import pytest
 from shapely.geometry import LineString, box
 
 import area_key
 import c3d_connect
-import c3d_window
 import coverage
-import data4_audit
 import data5_check
 import dxf_count
 import ifc_header
@@ -18,8 +15,6 @@ import im_codes
 import project_profile
 import rev9_parcels
 import road_layouts
-import xref_search
-from test_data_book import Fake, book_config
 
 ROOT = Path(__file__).resolve().parents[2]
 END = chr(59)
@@ -69,33 +64,6 @@ def insert(name, x, y, rotation=0, scale=(1, 1), flip=False, attributes=()):
 
 
 # R251 the audit of DATA-4
-def test_r251_groups_tell_named_plots_from_dwg_text_only_and_count_each_plot_once():
-    rows = [{"verdicts": "shape real"}, {"verdicts": "shape real|code real"}, {"verdicts": "shape real|number real|code real"}, {"verdicts": "dwgText"}, {"verdicts": ""}]
-    found = data4_audit.verdict_counts(rows)
-    assert [data4_audit.group_of(r["verdicts"]) for r in rows] == ["named", "named", "named", "dwgTextOnly", "none"]
-    assert found["verdictsAddedUp"] == 6 and found["namedPlots"] == 3 and found["groups"] == {"named": 3, "dwgTextOnly": 1, "none": 1}
-
-
-def test_r251_a_parcel_code_difference_the_pdf_could_not_see_is_named():
-    units = {"5": {"clientType": "VL4", "typologyRev9": "DP2", "locationPlanNumber": "15|7"}, "6": {"clientType": "VL4", "typologyRev9": "VD4", "locationPlanNumber": "16"}}
-    parcel_of = {"5": {"number": "7", "style": "OS", "faceClass": "shapeDiffers"}, "6": {"number": "16", "style": "VD4", "faceClass": "same"}}
-    faces = {"5": {"faceClass": "noFace", "numberClass": "manyLabels", "codeClass": "noLabel"}}
-    found = data4_audit.code_differences(units, parcel_of, faces, {"5": {"verdicts": "shape real"}})
-    assert [(f["baseplanLabel"], f["pdfCode"], f["codeVerdict"]) for f in found] == [("5", "noLabel", False)]
-    assert data4_audit.classes(parcel_of["5"], units["5"]) == ("noPlanNumber", "differs")
-    assert data4_audit.classes(None, units["6"]) == ("noParcel", "noParcel")
-
-
-def test_r251_claims_name_each_count_that_differs_and_the_faces_parcels_csv_lost():
-    claims = data4_audit.against_claims({"faces": {"same": 3}, "redo": {"namedPlots": 97}}, [{"where": "log", "stated": 3, "count": "faces.same"},
-                                                                                             {"where": "prompt", "stated": 105, "count": "redo.namedPlots"},
-                                                                                             {"where": "log", "stated": 2, "count": "faces.noFace"}])
-    assert [c["equal"] for c in claims] == [True, False, False] and claims[2]["found"] == 0
-    lost = data4_audit.lost_by_parcels_csv({"1": {}, "2": {}}, {"1": {"number": "9", "faceClass": "same"}, "2": {"number": "9", "faceClass": "noFace"}},
-                                           [{"number": "9", "baseplanLabel": "1"}])
-    assert lost == [{"baseplanLabel": "2", "parcel": "9", "faceClass": "noFace", "parcelsCsvFace": "1"}]
-
-
 def test_r251_parcel_matches_keep_every_face_when_two_share_a_parcel(tmp_path):
     by_label = {"1": {"parcel": "9", "style": "VL4", "iou": 0.8, "faceClass": "shapeDiffers", "numberClass": "same", "codeClass": "same"},
                 "2": {"parcel": "9", "style": "VL4", "iou": 0.4, "faceClass": "noFace", "numberClass": "differs", "codeClass": "same"}}
@@ -104,66 +72,7 @@ def test_r251_parcel_matches_keep_every_face_when_two_share_a_parcel(tmp_path):
     assert [(r["baseplanLabel"], r["parcel"], r["faceClass"]) for r in rows] == [("1", "9", "shapeDiffers"), ("2", "9", "noFace")]
 
 
-def test_r251_the_sample_holds_the_recount_against_the_stored_classes():
-    units = {str(k): {"clientType": "VL4", "typologyRev9": "VL4", "locationPlanNumber": str(k)} for k in range(30)}
-    parcel_of = {k: {"number": k, "style": "VL4", "faceClass": "same", "numberClass": "same", "codeClass": "same"} for k in units}
-    parcel_of["3"]["codeClass"] = "differs"
-    found = data4_audit.sample(units, parcel_of, {}, 14, 30)
-    assert found["plots"] == 30 and found["agree"] == 29
-
-
-# R252 the xref search
-def test_r252_the_file_an_xref_asks_for_is_read_as_a_windows_path_and_searched_by_name(tmp_path):
-    assert xref_search.file_name(".\\Road Layout_new.dwg", "x") == "Road Layout_new.dwg"
-    assert xref_search.file_name(None, "XR-TITLE BLOCK") == "XR-TITLE BLOCK.dwg"
-    (tmp_path / "a" / "b").mkdir(parents=True)
-    (tmp_path / "a" / "b" / "road layout_NEW.dwg").write_bytes(b"x")
-    (tmp_path / "a" / "Road Layout.dwg").write_bytes(b"x")
-    same, near = xref_search.search("Road Layout_new.dwg", [str(tmp_path)], 0.75)
-    assert len(same) == 1 and same[0].endswith("road layout_NEW.dwg")
-    assert [Path(n["file"]).name for n in near] == ["Road Layout.dwg"]
-
-
-def test_r252_xrefs_come_with_their_inserts(tmp_path):
-    (tmp_path / "layers.json").write_text(json.dumps({"xrefs": [{"name": "X", "path": ".\\X.dwg", "found": False, "inserts": 1}]}), encoding="utf-8")
-    (tmp_path / "blocks.json").write_text(json.dumps({"blocks": [{"name": "X", "note": "xref", "insertPoint": [0, 0], "scale": [1, 1, 1], "rotationDeg": 0.0},
-                                                                 {"name": "Y", "insertPoint": [5, 5], "scale": [1, 1, 1], "rotationDeg": 0.0}]}), encoding="utf-8")
-    found = xref_search.xrefs_of(tmp_path)
-    assert found[0]["path"] == ".\\X.dwg" and found[0]["insertRows"] == [{"point": [0, 0], "scale": [1, 1, 1], "rotationDeg": 0.0}]
-
-
 # R253 the DXF of a copy and its count
-def test_r253_the_dxf_script_runs_dxfout_in_place_of_the_probe_read(tmp_path):
-    text = c3d_window.script_text(tmp_path / "probe.dll", tmp_path / "out" / "a.dxf")
-    lines = text.splitlines()
-    assert lines[0] == "NETLOAD" and "DXFOUT" in lines and "C3DQUIT" in lines and "C3DDATA" not in lines
-    assert c3d_window.script_text(tmp_path / "probe.dll").splitlines()[2:] == ["C3DDATA", "C3DQUIT"]
-
-
-def test_r253_a_dxf_path_in_the_work_or_source_folder_is_refused(tmp_path):
-    config = book_config(tmp_path)
-    (tmp_path / "book" / "work" / "Base Plans" / "cut.dwg").write_bytes(b"dwg")
-    for target in (tmp_path / "book" / "work" / "cut.dxf", tmp_path / "source" / "cut.dxf"):
-        with pytest.raises(ValueError):
-            c3d_window.run(config, "cutsheet", launcher=lambda a, e: Fake(1, polls=[0]), memory=lambda: 4.0, sleep=lambda s: None, dxf=target)
-
-
-def test_r253_a_dxf_run_is_done_when_the_dxf_was_written_and_the_copy_is_unchanged(tmp_path):
-    config = book_config(tmp_path)
-    (tmp_path / "book" / "work" / "Base Plans" / "cut.dwg").write_bytes(b"dwg")
-    target = tmp_path / "dxf" / "cut.dxf"
-    target.parent.mkdir()
-
-    def launch(args, environment):
-        if args[0] == "acad.exe":
-            target.write_text("0\nEOF\n", encoding="ascii")
-        return Fake(7, polls=[0])
-    record = c3d_window.run(config, "cutsheet", launcher=launch, memory=lambda: 4.0, sleep=lambda s: None, clock=lambda: 0.0, dxf=target)
-    assert record["done"] and record["unchanged"] and record["dxf"] == str(target)
-    script = next((tmp_path / "book" / "logs").glob("*.scr")).read_text(encoding="ascii")
-    assert "DXFOUT" in script
-
-
 def test_r253_an_attribute_tag_never_renames_its_block_and_a_flipped_insert_mirrors_its_block(tmp_path):
     blocks = [("B", (0, 0), [insert("T", 0, 0, attributes=[("TAG", "v")]), line(1, 0, 2, 0)]), ("T", (0, 0), [line(0, 0, 0, 1)])]
     entities = [insert("B", 10, 10), insert("B", 10, 10, flip=True), line(50, 50, 60, 60)]

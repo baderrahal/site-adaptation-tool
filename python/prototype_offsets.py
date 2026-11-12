@@ -55,20 +55,6 @@ def entry_offset(data):
     return float(value)
 
 
-def group_index(data):
-    """The groups by (block name, position). A group missing a key or listed twice raises ProfileError."""
-    found = {}
-    for group in data["groups"]:
-        missing = [key for key in GROUP_KEYS if key not in group]
-        if missing:
-            raise project_profile.ProfileError("prototype_offsets.json group has no " + ", ".join(missing))
-        key = (group["block"], group["position"])
-        if key in found:
-            raise project_profile.ProfileError("prototype_offsets.json lists the group " + str(key) + " twice")
-        found[key] = group
-    return found
-
-
 def plot_frame(data):
     """R121 to R123. The plotFrame section, each typology with an anchor of start or end, an offset of two numbers and a drawnSide of left, right or null."""
     frame = data.get("plotFrame")

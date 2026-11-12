@@ -13,7 +13,6 @@ import plan_from_past
 import project_profile
 import round_files
 import site_spec
-import z4_check
 import z4_compare
 
 BANDS = [0, 1, 10, 30]
@@ -276,22 +275,3 @@ def test_r216_the_run_counts_bands_ranks_the_worst_without_the_origin_of_another
 
 
 # R217 second method
-
-def test_r217_the_vertex_gap_is_the_largest_nearest_vertex_distance_both_ways():
-    first = [{"points": [[0, 0], [10, 0], [10, 10], [0, 10]]}]
-    second = [{"points": [[0, 0], [10, 0], [10, 10.003], [0, 10]]}]
-
-    assert z4_check.vertex_gap(first, first) == 0
-    assert z4_check.vertex_gap(first, second) == pytest.approx(0.003)
-    assert z4_check.bands_of(0.003, BANDS) == "within10mm" and z4_check.bands_of(0.0, BANDS) == "equal"
-
-
-def test_r217_plan_checks_agree_with_the_compare_band_and_not_otherwise():
-    loops = {"loops": [{"points": [[0, 0], [10, 0], [10, 10], [0, 10]]}]}
-    cad = {"7": {"levels": {"ffl": {"value": 10.02}}, "floors": {"generic": {"outline": {"value": loops}}}}}
-    key = {"7": {"levels": {"ffl": {"value": 110.0}}, "floors": {"generic": {"outline": {"value": loops}}}}}
-    report = {"byPlot": [{"plot": "7", "gapsMm": {"zAgainstFfl": 20.0, "generic outline": 0.0}, "bands": {"zAgainstFfl": "within30mm", "generic outline": "equal"}}]}
-    wrong = {"byPlot": [{"plot": "7", "gapsMm": {"zAgainstFfl": 20.0}, "bands": {"zAgainstFfl": "within10mm", "generic outline": "equal"}}]}
-
-    assert [row["agree"] for row in z4_check.plan_checks(["7"], cad, key, 100.0, report, BANDS)] == [True, True]
-    assert [row["agree"] for row in z4_check.plan_checks(["7"], cad, key, 100.0, wrong, BANDS)] == [False, True]

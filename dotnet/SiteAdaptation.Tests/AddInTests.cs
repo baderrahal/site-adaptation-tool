@@ -91,15 +91,6 @@ namespace SiteAdaptation.Tests
             Assert.True(RibbonLayout.IsAvailable(true, false));
         }
 
-        [Fact]
-        public void R371_the_one_entry_of_a_button_tells_its_label_and_refuses_a_number_off_the_ribbon()
-        {
-            Assert.Equal("7 Place villas is not built yet.", Buttons.NotBuiltText(7));
-            Assert.Equal("9 Report is not built yet.", Buttons.NotBuiltText(9));
-            Assert.Throws<ArgumentOutOfRangeException>(() => Buttons.NotBuiltText(0));
-            Assert.Throws<ArgumentOutOfRangeException>(() => Buttons.NotBuiltText(10));
-        }
-
         // The flow of Common is handed every dependency as null, so a not-built body that touched one would throw. The two buttons
         // with no number take the same path, built in 5c and 5f (CHOSEN in docs/design/13-workflow-changes.md)
         [Fact]

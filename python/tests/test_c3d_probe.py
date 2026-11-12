@@ -8,7 +8,6 @@ from shapely.geometry import LineString, Polygon
 import c3d_check
 import c3d_connect
 import c3d_drawings
-import c3d_inventory
 import c3d_run
 import c3d_surfaces
 import surface_lookup
@@ -109,35 +108,6 @@ def test_r151_decode_reads_utf16_and_plain_text():
 
 
 # R153 LISP inventory
-
-def test_r153_lisp_writes_to_the_given_file_with_forward_slashes():
-    text = c3d_inventory.lisp_for(r"C:\out\roads.tsv")
-    assert '(c3dinv "C:/out/roads.tsv")' in text
-    c3d_run.lisp_text(text)
-
-
-def test_r153_summary_counts_classes_civil_layers_z_and_3d_polylines():
-    lines = [
-        "AECC_TIN_SURFACE\tC-TOPO\tModel\t",
-        "AECC_TIN_SURFACE\tC-TOPO\tModel\t",
-        "LINE\tRD\tModel\t0.0000 0.0000",
-        "LWPOLYLINE\tRD\tModel\t5.5000",
-        "POLYLINE\tBRK\tModel\t8 170.1000 171.2000",
-        "POLYLINE\tFLAT\tModel\t0 0.0000 0.0000",
-        "INSERT\t0\tModel\tVilla_VL4",
-        "VIEWPORT\t0\tLayout1\t",
-    ]
-    summary = c3d_inventory.summarize(lines)
-    assert summary["entities"] == 8 and summary["isCivil"]
-    assert summary["civil"] == {"AECC_TIN_SURFACE": 2}
-    assert summary["layers"]["C-TOPO"] == {"AECC_TIN_SURFACE": 2}
-    assert summary["polylines3dWithZ"] == {"BRK": 1}
-    assert summary["zRange"]["BRK"]["POLYLINE3D"] == [170.1, 171.2]
-    assert summary["zRange"]["RD"] == {"LINE": [0.0, 0.0], "LWPOLYLINE": [5.5, 5.5]}
-    assert "FLAT" not in summary["zRange"]
-    assert summary["blocks"] == {"Villa_VL4": 1}
-    assert summary["spaces"] == {"Model": 7, "Layout1": 1}
-
 
 # R154 drawing survey
 

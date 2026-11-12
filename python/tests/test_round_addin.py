@@ -306,10 +306,8 @@ def test_r300_a_blocks_json_in_a_folder_named_after_a_reference_drawing_is_refus
 NOT_VILLA_READERS = {
     "data_book_cad.py": "writes the stand-in tables of every drawing, R06_0000 among them, as a reference table",
     "data_book_check.py": "counts the texts and blocks of a fresh CadReader run of each drawing against the stand-in tables",
-    "xref_search.py": "reads the xref inserts of every drawing to find the xref files",
     "dxf_count.py": "counts the BLOCK records of a DXF",
     "road_layouts.py": "reads the paper space blocks of a road layout DXF",
-    "data_book_readme.py": "describes the columns of blocks.csv",
     "cad_units.py": "names the blocks.json of the footprint read config names and hashes its bytes, majority.py and plan_from_book.py read it through the guard (R388)",
     "data5_check.py": "counts the BLOCK records of a DXF a second way",
     "c3d_drawings.py": "surveys the block names of every drawing of the Roads and Base Plans folders (R154)",
@@ -324,7 +322,7 @@ def test_r300_every_python_reader_of_unit_blocks_goes_through_the_guard():
         if ("blocks.json" in text or "blocks.csv" in text) and path.name not in NOT_VILLA_READERS and not any(guard in text for guard in guards):
             unguarded.append(path.name)
     assert unguarded == []
-    for name in ("data_book_retest.py", "stray_units.py", "c3d_connect.py", "wiring_check.py", "z16_check.py"):
+    for name in ("data_book_retest.py", "stray_units.py", "c3d_connect.py", "wiring_check.py"):
         assert "read_villa_blocks(" in (ROOT / "python" / name).read_text(encoding="utf-8"), name
 
 

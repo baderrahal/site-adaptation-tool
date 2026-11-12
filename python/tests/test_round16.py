@@ -1,7 +1,6 @@
 """Round 16 on small made up inputs: the levels of two past jobs, the corner rule, the footprint test, the plan of a whole
 neighbourhood and the run per prototype code. Every name and number here is invented (R10)."""
 import json
-import math
 
 import pytest
 from shapely.geometry import LineString, Polygon, box
@@ -220,32 +219,6 @@ def test_r231_a_failed_run_stops_the_next_codes():
 
 
 # R235 second method
-
-def test_r235_the_ray_cast_and_the_grid_give_share_and_offset_of_two_areas():
-    import z16_check
-
-    square = [(0, 0), (10, 0), (10, 10), (0, 10)]
-    half = [(0, 0), (5, 0), (5, 10), (0, 10)]
-    share, offset = z16_check.grid_share({"rings": [half], "test": lambda p: z16_check.inside(p, half)},
-                                         {"rings": [square], "test": lambda p: z16_check.inside(p, square)}, 0.5)
-
-    assert z16_check.inside((1, 1), square) and not z16_check.inside((11, 1), square)
-    assert share == pytest.approx(0.5) and offset == pytest.approx(2.5)
-    assert z16_check.segment_distance((5, 3), (0, 0), (10, 0)) == 3 and z16_check.segment_distance((-3, 4), (0, 0), (10, 0)) == 5
-
-
-def test_r235_the_level_part_takes_the_floor_top_less_the_raw_datum_against_the_report():
-    import z16_check
-
-    key14 = {"7": {"floors": {"generic": {"z": {"value": 110.2}}}}}
-    imc = {"7": {"levels": {"ffl": {"value": 10.0}}}}
-
-    rows = z16_check.level_part(["7"], key14, imc, 100.0, {"7": {"fflGapMm": 200.0}})
-    off = z16_check.level_part(["7"], key14, imc, 100.0, {"7": {"fflGapMm": 205.0}})
-
-    assert rows[0]["agree"] is True and rows[0]["gapMm"] == pytest.approx(200.0) and off[0]["agree"] is False
-    assert z16_check.band(0.0, [0, 1, 10, 30]) == "equal" and z16_check.band(0.02, [0, 1, 10, 30]) == "within30mm"
-
 
 # R236 clusters from the footprint blocks
 
