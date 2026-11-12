@@ -36,7 +36,7 @@
     "The layer list, the layer list. From: Settings. Folder: C:\\SA-demo\\config",
     "00101-PSN-IMC-XXX-SCH-TU-090000.xlsx, 00101-PSN-IMD-XXX-SCH-TU-090000.xlsx, past schedules. From: Settings. Folder: Inputs\\01_Output\\1.11 References",
     "Plots.csv, location_plan\\labels.csv, phase1_border.csv, the data book. From: Settings. Folder: Inputs\\data_book",
-    "The prototypes, for the scan. From: User picks. Folder: Work root\\prototypes_2024"
+    "The prototypes, for the scan. From: User picks. Folder: Inputs\\00_Revit Models\\Zone 02\\ARC\\Prototypes_2024"
    ],
    "before": "Step 1. All input rows picked.",
    "click": [
@@ -86,7 +86,7 @@
     "The rules file. From: Setup. Folder: C:\\SA-demo\\rules",
     "The rules file, the override list. From: Beside the settings. Folder: C:\\SA-demo\\config\\overrides",
     "The six road surfaces, plots.csv, labels.csv. From: Step 2 inputs. Folder: Inputs",
-    "13 prototypes. From: User picks. Folder: Work root\\prototypes_2024"
+    "13 prototypes. From: User picks. Folder: Inputs\\00_Revit Models\\Zone 02\\ARC\\Prototypes_2024"
    ],
    "before": "Steps 1 to 3.",
    "click": [
@@ -151,7 +151,7 @@
    "files": [
     "The plan. From: Step 4. Folder: Work folder",
     "13 mass files. From: Earlier run, or made from the prototypes if stale. Folder: Work root\\masses",
-    "13 prototypes. From: User picks. Folder: Work root\\prototypes_2024"
+    "13 prototypes. From: User picks. Folder: Inputs\\00_Revit Models\\Zone 02\\ARC\\Prototypes_2024"
    ],
    "before": "Step 6. Keep Masses unless asked.",
    "click": [

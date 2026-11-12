@@ -22,7 +22,7 @@ In file names, <run> is the button and the time, such as 4_20261103-141015-492, 
 |---|---|---|---|---|---|
 | New project | Names the settings and files of this model | A saved project or Empty project, the five file rows | User picks, Work root\Saved projects, Install\ShippedSet | Setup in the model. Under Empty project, a copy of the set in Work root\New projects | Not known (Q414) |
 | Input files | Holds the file picks of the model | Drawings, schedules, the road surface folder | User picks in Inputs | Nothing on disk. Picks stay in memory until the next real run (Q413) | A Browse took 30 to 60 s late in the rehearsal |
-| Prototypes | Holds the folder of villa files | 13 Revit 2024 files | User picks Work root\prototypes_2024 | Nothing on disk, as Input files | As Input files |
+| Prototypes | Holds the folder of villa files | 13 Revit 2024 files | User picks Inputs\00_Revit Models\Zone 02\ARC\Prototypes_2024 | Nothing on disk, as Input files | As Input files |
 | 1 Set up site | Sets position, levels, types and parameters | Project settings, rules, position file, parameter sheet | Project files and Inputs\position | Revit settings and types. site.json in the work folder | 8 s |
 | 2 Read data | Reads the drawings and schedules | Input files, data book, past schedules | User picks, Inputs | read_<code> and scan_<run> in the work folder | 100 s, the picks window at 49 s |
 | 3 Review data | The team checks each plot | The plot table of step 2 | Step 2 | review_<NBH>.json in the work folder | 9 s, then the team's time |
@@ -106,7 +106,7 @@ Boxes:
 | DLUS and sales, DLUS | TBD-PSN-ZZZ-XXX-SCH-TM-000201- DLUS Schedule_Rev9.0.xlsx | The DLUS schedule |
 | DLUS and sales, sales | PSN-ZZZ-XXX-SCH-TM-000201- DLUS Schedule_(Rev9)_Accomodation_Schedule.xlsx | The sales schedule |
 | Plot numbers | 01101-PSN-ZZZ-XXX-DWG-TU-005000.pdf | The location plan with plot numbers |
-| Prototypes | Work root\prototypes_2024 | 13 villa files, Revit 2024 |
+| Prototypes | Inputs\00_Revit Models\Zone 02\ARC\Prototypes_2024 | 13 villa files, Revit 2024 |
 | Shared parameters | C:\SA-demo\config\shared_parameters.xlsx | The sheet of the settings, the row reads green with its counts, 11 parameters, 12 left out |
 
 **Before it.** New project.
@@ -168,7 +168,7 @@ Boxes: No site drawing in the setup, pick the Baseplan in the pane first. Nothin
 | cad_layers.json, the layer list | Settings | C:\SA-demo\config |
 | 00101-PSN-IMC-XXX-SCH-TU-090000.xlsx, 00101-PSN-IMD-XXX-SCH-TU-090000.xlsx, past schedules | Settings | Inputs\01_Output\1.11 References |
 | plots.csv, location_plan\labels.csv, phase1_border.csv, the data book | Settings | Inputs\data_book |
-| The prototypes, for the scan | User picks | Work root\prototypes_2024 |
+| The prototypes, for the scan | User picks | Inputs\00_Revit Models\Zone 02\ARC\Prototypes_2024 |
 
 **Before it.** Step 1. All input rows picked.
 
@@ -228,7 +228,7 @@ Zoom to plot and Export to Excel are there if needed. Boxes: closing unsaved ask
 | roshn-makkah.json | Setup | C:\SA-demo\rules |
 | roshn-makkah.json, the override list | Beside the settings | C:\SA-demo\config\overrides |
 | The six road surfaces, plots.csv, labels.csv | Step 2 inputs | Inputs |
-| 13 prototypes | User picks | Work root\prototypes_2024 |
+| 13 prototypes | User picks | Inputs\00_Revit Models\Zone 02\ARC\Prototypes_2024 |
 
 **Before it.** Steps 1 to 3.
 
@@ -305,7 +305,7 @@ Do not click anywhere while the Revit box is open. A press waits behind it and f
 |---|---|---|
 | plan_<NBH>.json | Step 4 | Work folder |
 | 13 mass files | Earlier run, or made from the prototypes if stale | Work root\masses |
-| 13 prototypes | User picks | Work root\prototypes_2024 |
+| 13 prototypes | User picks | Inputs\00_Revit Models\Zone 02\ARC\Prototypes_2024 |
 
 **Before it.** Step 6. Keep Masses unless asked.
 
@@ -395,7 +395,7 @@ Limits today:
 | Input | plots.csv, labels.csv, phase1_border.csv | Inputs\data_book | 2 reads all, 4 reads two, 6 and 9 read plots.csv |
 | Input | cad_layers.json | C:\SA-demo\config | 2 reads |
 | Input | floor_outlines.json, prototype_offsets.json | C:\SA-demo\config | 4 reads |
-| Input | 13 prototypes | Work root\prototypes_2024 | 2 and 4 read, 7 under Links |
+| Input | 13 prototypes | Inputs\00_Revit Models\Zone 02\ARC\Prototypes_2024 | 2 and 4 read, 7 under Links |
 | Step 1 | site.json | Work folder | 1 writes. 4 reads |
 | Step 2 | scan_<run>\scan.json | Work folder | 2 writes |
 | Step 2 | read_<code>\, picks.json, read.json | Work folder | 2 writes. 3 and 4 read |
