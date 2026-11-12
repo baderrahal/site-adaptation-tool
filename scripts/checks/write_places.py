@@ -4,6 +4,7 @@
 after and fails on every new name that is not the work root or a build folder. The list is kept under the work root.
 """
 import argparse
+import hashlib
 import json
 import os
 import subprocess
@@ -67,6 +68,11 @@ def watched(environ=None, home=None, root=check_common.ROOT):
     return drives, str(Path(home if home is not None else Path.home()) / "Documents")
 
 
+def listing_of(work, root):
+    """The list of one repo folder. A lane saves its own from its worktree, and on 12 Nov one shared list made the main folder fail on what the lane's list did not hold."""
+    return Path(work) / "checks" / ("write_places_%s.json" % hashlib.sha256(str(Path(root).resolve()).lower().encode("utf-8")).hexdigest()[:12])
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("--save", action="store_true")
@@ -74,7 +80,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
     work = scenario_tools.work_root()
     drives, documents = watched()
-    listing = work / "checks" / "write_places.json"
+    listing = listing_of(work, check_common.ROOT)
     if args.save:
         rows = snapshot(drives, documents, check_common.ROOT)
         listing.parent.mkdir(parents=True, exist_ok=True)

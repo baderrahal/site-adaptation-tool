@@ -30,6 +30,13 @@ def test_a_new_folder_on_the_drive_root_in_documents_or_in_the_repo_fails(tmp_pa
     assert new == ["%s sa-test-none" % drive, "%s SiteAdaptation" % documents, "repo out/plan.json"]
 
 
+def test_two_repo_folders_keep_two_lists(tmp_path):
+    main, lane = tmp_path / "repo", tmp_path / "repo" / ".claude" / "worktrees" / "revit-test"
+    assert write_places.listing_of(tmp_path, main) != write_places.listing_of(tmp_path, lane)
+    assert write_places.listing_of(tmp_path, main) == write_places.listing_of(tmp_path, str(main).upper())
+    assert write_places.listing_of(tmp_path, main).parent == tmp_path / "checks"
+
+
 def test_the_work_root_in_documents_of_a_pc_with_no_machine_file_passes(tmp_path):
     drive, documents, repo = places(tmp_path)
     work = tmp_path / "drive" / "Users" / "x" / "Documents" / "SiteAdaptation"
