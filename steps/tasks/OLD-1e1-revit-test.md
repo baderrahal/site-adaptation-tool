@@ -2,7 +2,7 @@
 id: OLD-1e1-revit-test
 lane: revit-test
 stage: 2
-status: open
+status: done
 allowed:
   - steps/revit-results/
   - steps/heads-up/revit-test.md
@@ -34,3 +34,7 @@ The record is steps/revit-results/OLD-1e1-revit-test.md. Counts, times and diffe
 - Each further neighbourhood that was run has its row.
 - The input folder is unchanged by SHA-256.
 - The PR body starts with `Task: OLD-1e1-revit-test` and says what was opened in Revit.
+
+# Held by Bader, 12 Nov 16:55
+
+Bader, 16:45: build a small area only, so step 6 was dropped. Bader, 16:55: hold the run, start no Revit run until his next order. The record steps/revit-results/OLD-1e1-revit-test.md is merged as it stood: 01A built 0 of 278 plots, the Build stopped at its read twice on free memory, the data book stop is gone. The status is done only so the lane holds no open task.

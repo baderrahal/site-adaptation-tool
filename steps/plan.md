@@ -12,6 +12,8 @@ Storage (steps/storage-12nov.md), the villa files of the input folder and the up
 
 ## Round 1, OLD-1
 
+From 12 Nov 16:55 the way of working is docs/truth.md, Who does what: Cowork writes all tool code in the Cowork folder, Claude Code builds, tests, reports, commits and merges through the Bridge under the work root. Every code task from part 4 of step d on is a brief for Cowork, not a lane task. The revit-test run is held, and step e waits for Bader's order. A Revit run builds a small area, 01A, not all neighbourhoods, Bader 16:45.
+
 Five steps in this order, each its own PR, merged on green, never two waiting. One open task per lane, each task a file in steps/tasks.
 
 | Step | Task | Lane | What | Done when |
@@ -31,8 +33,8 @@ Step d is split into 4 parts by Lead on 12 Nov, each its own PR, since the basel
 | 1 | OLD-1d1-build-2 | build-2 | Merged, PR 305. The build takes plots and labels from the read of card 1, R840, R843. The data book files of the old read of step 2 stay until part 4 |
 | 2 | OLD-1d2-build-1 | build-1 | Merged, PR 306. 40 of the 42 dead parts went, 2 stay with their reason. R689 to R691 written. Q657 filed |
 | 3 | OLD-1d3-build-2 | build-2 | Advanced without the 9 step buttons, the 3 cards the only way in. R845, R846, Q658 |
-| 4 | OLD-1d4-build-1 | build-1 | The old read of step 2 and its data book files, past job mode and its override list, light mode, the old past job values of config, the Python copies of logic. Each Python file kept has a line why. R847 to R849, Q659. The folders labelled in docs/truth.md by Lead after it |
-| first run of e | OLD-1e1-revit-test | revit-test | Card 2 on 01A as soon as part 1 is merged, then the next neighbourhoods, each read and compared. The run of step e after part 4 is its own task |
+| 4 | OLD-1d4, with Cowork | Cowork | The old read of step 2 and its data book files, past job mode and its override list, light mode, the old past job values of config, the Python copies of logic. The brief is Bridge\cowork-brief-OLD-1d4.md under the work root. build-1 was stopped part way on 12 Nov 16:55, its branch task/OLD-1d4-build-1 is not merged. R847 to R849, Q659 |
+| first run of e | OLD-1e1-revit-test | revit-test | HELD by Bader, 12 Nov 16:55. 01A built 0 of 278 plots: the data book stop is gone, the Build stopped at its read twice on free memory, steps/revit-results/OLD-1e1-revit-test.md. No Revit run starts until Bader's next order |
 
 The compare of step c is merged, PR 303: the 7 past models give 100 percent against themselves, the built side 0 of 9. Q650 to Q654 are filed.
 

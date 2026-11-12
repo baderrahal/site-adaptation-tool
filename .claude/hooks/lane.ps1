@@ -98,6 +98,12 @@ function Get-CurrentTask([string]$Root) {
     return $first
 }
 
+# The folders of a repo folder that hold tool code and its tests, written by Cowork alone since 12 Nov. scripts, .claude, .github,
+# docs, steps and tests stay with Claude Code
+function Get-ToolCodePaths {
+    return @('dotnet', 'python', 'config', 'rules', 'samples')
+}
+
 function Get-ProjectConfig([string]$Root) {
     $path = Join-Path $Root 'config\project.json'
     if (-not (Test-Path -LiteralPath $path)) { return $null }

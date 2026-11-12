@@ -5,6 +5,8 @@ description: A lane does one task from steps/tasks, opens a PR, runs the reviewe
 
 # Task
 
+Since 12 Nov 16:55 no lane takes a code task: Cowork writes tool code, docs/truth.md Who does what. This skill stays for a records task or a Revit record only.
+
 Argument: the task id. One task per fresh session.
 
 1. Run `git fetch origin` and start a branch `task/<id>` from origin/main.

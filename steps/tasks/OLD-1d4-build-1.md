@@ -2,7 +2,7 @@
 id: OLD-1d4-build-1
 lane: build-1
 stage: rules
-status: open
+status: done
 allowed:
   - dotnet/
   - python/
@@ -46,3 +46,7 @@ Rule ids R847 to R849. Question id Q659. Take no other id.
 - Build and quick tests pass, with the test counts before and after and the reason for each test that went.
 - Every function left has a caller.
 - The PR body starts with `Task: OLD-1d4-build-1` and says Not seen in Revit.
+
+# Closed by Lead, 12 Nov 16:55, not finished
+
+Bader's order of 12 Nov 16:55: Cowork writes all tool code, build-1 takes no new task. The lane was stopped part way. Its branch task/OLD-1d4-build-1, commit 6ebc4c33, holds its step 0 measure in no file and step 1 partly done, 31 files, not reviewed, not merged. The scope went to Cowork as Bridge\cowork-brief-OLD-1d4.md under the work root. The status is done only so no lane holds an open task, the work is not done.

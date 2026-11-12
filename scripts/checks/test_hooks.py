@@ -15,7 +15,7 @@ import scenario_tools as tools  # noqa: E402
 HOOKS = ROOT / ".claude" / "hooks"
 pytestmark = pytest.mark.skipif(sys.platform != "win32" or shutil.which("powershell") is None, reason="the lane hooks are Windows PowerShell")
 
-TASK = "---\nid: T1\nlane: build-1\nstage: 1\nstatus: open\nallowed:\n  - python/\n---\n"
+TASK = "---\nid: T1\nlane: build-1\nstage: 1\nstatus: open\nallowed:\n  - scripts/\n---\n"
 DONE = "---\nid: T0\nlane: build-1\nstatus: done\nallowed:\n  - docs/\n---\n"
 
 
@@ -52,48 +52,48 @@ def edit(folder, path):
 
 
 def test_lead_edits_anywhere_in_a_folder(lanes):
-    (lanes["main"] / "python").mkdir()
-    assert edit(lanes["main"], lanes["main"] / "python" / "a.py")[0] == 0
+    (lanes["main"] / "scripts").mkdir()
+    assert edit(lanes["main"], lanes["main"] / "scripts" / "a.ps1")[0] == 0
     assert edit(lanes["main"], lanes["main"] / "tests" / "golden" / "a.json")[0] == 0
 
 
 def test_builder_edits_inside_its_task(lanes):
     tree = lanes["build-1"]
-    assert edit(tree, tree / "python" / "a.py")[0] == 0
+    assert edit(tree, tree / "scripts" / "a.ps1")[0] == 0
     assert edit(tree, tree / "steps" / "tasks" / "T1.md")[0] == 0
 
 
 def test_a_relative_path_is_read_from_the_lane_folder(lanes):
     tree = lanes["build-1"]
-    assert edit(tree, "python/a.py")[0] == 0
-    assert edit(tree, "dotnet/a.cs")[0] == 2
+    assert edit(tree, "scripts/a.ps1")[0] == 0
+    assert edit(tree, "tools/b.ps1")[0] == 2
 
 
 def test_builder_is_blocked_outside_its_task(lanes):
     tree = lanes["build-1"]
-    code, _, err = edit(tree, tree / "dotnet" / "a.cs")
+    code, _, err = edit(tree, tree / "tools" / "b.ps1")
     assert code == 2 and "allowed folders of task T1" in err
     # A folder whose name starts the same is not that folder, and a done task gives no folders
-    assert edit(tree, tree / "pythonic" / "a.py")[0] == 2
+    assert edit(tree, tree / "scriptsic" / "a.ps1")[0] == 2
     assert edit(tree, tree / "docs" / "a.md")[0] == 2
 
 
 @pytest.mark.parametrize("name", ["acceptance", "golden", "holdout"])
 def test_lead_tests_are_blocked_for_a_builder_even_if_allowed(lanes, name):
     tree = lanes["build-1"]
-    (tree / "steps" / "tasks" / "T1.md").write_text(TASK.replace("  - python/\n", "  - tests/\n"), encoding="utf-8")
-    code, _, err = edit(tree, tree / "tests" / name / "a.py")
+    (tree / "steps" / "tasks" / "T1.md").write_text(TASK.replace("  - scripts/\n", "  - tests/\n"), encoding="utf-8")
+    code, _, err = edit(tree, tree / "tests" / name / "a.ps1")
     assert code == 2 and "owned by the lead" in err
 
 
 def test_a_lane_with_no_open_task_edits_nothing(lanes):
     for name in ("build-2", "revit-test", "agent-x"):
-        code, _, err = edit(lanes[name], lanes[name] / "python" / "a.py")
+        code, _, err = edit(lanes[name], lanes[name] / "scripts" / "a.ps1")
         assert code == 2 and "no open task" in err and name in err
 
 
 def test_a_worktree_may_not_edit_the_main_folder(lanes):
-    code, _, err = edit(lanes["build-1"], lanes["main"] / "python" / "a.py")
+    code, _, err = edit(lanes["build-1"], lanes["main"] / "scripts" / "a.ps1")
     assert code == 2 and "main repo folder" in err
 
 
@@ -103,6 +103,25 @@ def test_new_root_file_blocked_old_root_file_passes(lanes):
     assert edit(main, main / "CLAUDE.md")[0] == 0
     (main / "README.md").write_text("x", encoding="utf-8")
     assert edit(main, main / "README.md")[0] == 0
+
+
+@pytest.mark.parametrize("path", ["dotnet/a.cs", "python/a.py", "python/tests/test_a.py", "config/project.json", "rules/a.json", "samples/a.csv"])
+def test_no_session_edits_tool_code_cowork_writes_it(lanes, path):
+    """Bader, 12 Nov 16:55: Cowork writes all tool code. The lead, a lane with the path in its task, and a session that reaches into the Cowork folder are all refused."""
+    tree = lanes["build-1"]
+    (tree / "steps" / "tasks" / "T1.md").write_text(TASK.replace("  - scripts/\n", "  - dotnet/\n  - python/\n  - config/\n  - rules/\n  - samples/\n"), encoding="utf-8")
+    cowork = lanes["tmp"] / "site-adaptation-cowork"
+    cowork.mkdir(exist_ok=True)
+    (cowork / ".git").write_text("gitdir: %s\n" % (lanes["main"] / ".git" / "worktrees" / "cowork"), encoding="utf-8")
+    for folder, root in ((lanes["main"], lanes["main"]), (tree, tree), (lanes["main"], cowork), (cowork, cowork)):
+        code, _, err = edit(folder, root / path)
+        assert code == 2 and "Cowork writes all tool code" in err, (folder, root, err)
+
+
+def test_the_records_and_the_harness_stay_with_claude_code(lanes):
+    main = lanes["main"]
+    for path in ("docs/truth.md", "steps/plan.md", "scripts/checks/a.py", ".claude/hooks/a.ps1", ".github/workflows/tests.yml", "tests/acceptance/test_a.py", "pythonic/a.py"):
+        assert edit(main, main / path)[0] == 0, path
 
 
 def test_input_folders_are_blocked_for_every_role(lanes):
@@ -304,9 +323,9 @@ def real_worktree(tmp_path):
 def test_a_lane_cannot_widen_its_own_task_and_status_done_does_not_lock_it_out(real_worktree):
     tree = real_worktree
     task = tree / "steps" / "tasks" / "T1.md"
-    task.write_text(TASK.replace("  - python/\n", "  - python/\n  - dotnet/\n").replace("status: open", "status: done"), encoding="utf-8")
-    assert edit(tree, tree / "python" / "a.py")[0] == 0
-    code, _, err = edit(tree, tree / "dotnet" / "a.cs")
+    task.write_text(TASK.replace("  - scripts/\n", "  - scripts/\n  - tools/\n").replace("status: open", "status: done"), encoding="utf-8")
+    assert edit(tree, tree / "scripts" / "a.ps1")[0] == 0
+    code, _, err = edit(tree, tree / "tools" / "b.ps1")
     assert code == 2 and "allowed folders of task T1" in err
 
 
@@ -315,7 +334,7 @@ def test_the_branch_names_the_task_when_a_lane_holds_two(tmp_path):
     (repo / "steps" / "tasks").mkdir(parents=True)
     (repo / "config").mkdir()
     (repo / "config" / "project.json").write_text("{}", encoding="utf-8")
-    other = TASK.replace("id: T1", "id: A0").replace("  - python/\n", "  - docs/\n")
+    other = TASK.replace("id: T1", "id: A0").replace("  - scripts/\n", "  - docs/\n")
     (repo / "steps" / "tasks" / "A0.md").write_text(other, encoding="utf-8")
     (repo / "steps" / "tasks" / "T1.md").write_text(TASK, encoding="utf-8")
     git_in(repo, "init", "-q")
@@ -328,9 +347,9 @@ def test_the_branch_names_the_task_when_a_lane_holds_two(tmp_path):
     git_in(repo, "worktree", "add", "-q", "--detach", str(tree), "HEAD")
     # On no task branch the first by name stands
     assert edit(tree, tree / "docs" / "a.md")[0] == 0
-    assert edit(tree, tree / "python" / "a.py")[0] == 2
+    assert edit(tree, tree / "scripts" / "a.ps1")[0] == 2
     git_in(tree, "checkout", "-q", "-b", "task/T1")
-    assert edit(tree, tree / "python" / "a.py")[0] == 0
+    assert edit(tree, tree / "scripts" / "a.ps1")[0] == 0
     assert edit(tree, tree / "docs" / "a.md")[0] == 2
 
 
@@ -342,13 +361,13 @@ def test_a_waiting_task_gives_no_folders(real_worktree):
     git_in(repo, "add", ".")
     git_in(repo, "commit", "-q", "-m", "waiting")
     git_in(repo, "update-ref", "refs/remotes/origin/main", "HEAD")
-    assert edit(tree, tree / "python" / "a.py")[0] == 2
+    assert edit(tree, tree / "scripts" / "a.ps1")[0] == 2
 
 
 def test_a_task_not_merged_gives_no_folders(real_worktree):
     tree = real_worktree
-    (tree / "steps" / "tasks" / "T2.md").write_text(TASK.replace("id: T1", "id: T2").replace("  - python/\n", "  - dotnet/\n"), encoding="utf-8")
-    assert edit(tree, tree / "dotnet" / "a.cs")[0] == 2
+    (tree / "steps" / "tasks" / "T2.md").write_text(TASK.replace("id: T1", "id: T2").replace("  - scripts/\n", "  - tools/\n"), encoding="utf-8")
+    assert edit(tree, tree / "tools" / "b.ps1")[0] == 2
 
 
 @pytest.fixture()
