@@ -16,6 +16,23 @@ namespace SiteAdaptation.Common.ReadData
         {
             public Dictionary<string, string> Paths { get; } = new Dictionary<string, string>(StringComparer.Ordinal);
             public List<string> Left { get; } = new List<string>();
+
+            // The row each line of Left is about, by the line. A line about the folder as a whole has no row
+            public Dictionary<string, string> RowOf { get; } = new Dictionary<string, string>(StringComparer.Ordinal);
+
+            public void Leave(string role, string why)
+            {
+                string line = role + ": " + why;
+                Left.Add(line);
+                RowOf[line] = role;
+            }
+        }
+
+        // R843. The lines of Left that are a cause of a stop: why the folder gave no file for a row that is still empty. A row a person
+        // picked needs no such line, so a stop of the Build never names it. A line about the folder as a whole stays
+        public static IReadOnlyList<string> Causes(Found found, Func<string, bool> picked)
+        {
+            return found.Left.Where(line => !found.RowOf.TryGetValue(line, out string role) || !picked(role)).ToList();
         }
 
         public static Found Of(JObject config, string folder, IReadOnlyList<string> picked)
@@ -62,7 +79,7 @@ namespace SiteAdaptation.Common.ReadData
             string name = string.IsNullOrWhiteSpace(named) ? null : Path.GetFileName(named.Replace('/', Path.DirectorySeparatorChar));
             if (name == null)
             {
-                found.Left.Add(role + ": config names no file in " + where);
+                found.Leave(role, "config names no file in " + where);
                 return;
             }
             List<string> same = files.Where(file => string.Equals(Path.GetFileName(file), name, StringComparison.OrdinalIgnoreCase)).ToList();
@@ -72,7 +89,7 @@ namespace SiteAdaptation.Common.ReadData
             }
             else
             {
-                found.Left.Add(role + ": " + (same.Count == 0 ? name + " is not in the folder" : same.Count + " files are named " + name));
+                found.Leave(role, same.Count == 0 ? name + " is not in the folder" : same.Count + " files are named " + name);
             }
         }
 
@@ -82,12 +99,12 @@ namespace SiteAdaptation.Common.ReadData
                 .OrderByDescending(group => group.Count()).ThenBy(group => group.Key, StringComparer.Ordinal).ToList();
             if (folders.Count == 0)
             {
-                found.Left.Add(role + ": " + none);
+                found.Leave(role, none);
                 return;
             }
             if (folders.Count > 1 && folders[1].Count() == folders[0].Count())
             {
-                found.Left.Add(role + ": two folders hold " + folders[0].Count() + " each, " + folders[0].Key + " and " + folders[1].Key);
+                found.Leave(role, "two folders hold " + folders[0].Count() + " each, " + folders[0].Key + " and " + folders[1].Key);
                 return;
             }
             found.Paths[role] = folders[0].Key;
