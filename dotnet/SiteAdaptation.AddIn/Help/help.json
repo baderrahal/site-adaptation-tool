@@ -35,7 +35,6 @@
     "The input rows above, except Prototypes for the read. From: User picks. Folder: Inputs",
     "The layer list, the layer list. From: Settings. Folder: C:\\SA-demo\\config",
     "00101-PSN-IMC-XXX-SCH-TU-090000.xlsx, 00101-PSN-IMD-XXX-SCH-TU-090000.xlsx, past schedules. From: Settings. Folder: Inputs\\01_Output\\1.11 References",
-    "Plots.csv, location_plan\\labels.csv, phase1_border.csv, the data book. From: Settings. Folder: Inputs\\data_book",
     "The prototypes, for the scan. From: User picks. Folder: Inputs\\00_Revit Models\\Zone 02\\ARC\\Prototypes_2024"
    ],
    "before": "Step 1. All input rows picked.",

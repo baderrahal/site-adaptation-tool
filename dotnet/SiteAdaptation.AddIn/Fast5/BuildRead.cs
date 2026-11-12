@@ -17,7 +17,7 @@ namespace SiteAdaptation.AddIn.Fast5
 {
     // R740, R741, F16 of run 1 of FAST-3. The read of card 1 reads the folder with the data check only, and 4 Check needs the drawings, road surfaces and
     // workbooks of the old read. So the Build fills the empty input rows from the folder and, before Check, runs the old read itself with no box and no
-    // Confirm. Its folder holds the plot table of the data check beside the old outputs, so it is the latest read every later step takes, and step 2
+    // Confirm. R840: its plots and labels are those of the plot table of card 1. Its folder holds the plot table of the data check beside the old outputs, so it is the latest read every later step takes, and step 2
     // keeps its own run and stays done. No Revit type, so a test runs it with a worker of its own
     public static class BuildRead
     {
@@ -39,14 +39,20 @@ namespace SiteAdaptation.AddIn.Fast5
             FolderRoles.Found found = Found(settings);
             foreach (KeyValuePair<string, string> role in found.Paths.OrderBy(pair => pair.Key, StringComparer.Ordinal))
             {
-                string now = settings.InputPath(role.Key);
-                if (string.IsNullOrEmpty(now) || (!File.Exists(now) && !Directory.Exists(now)))
+                if (!Picked(settings, role.Key))
                 {
                     pick(role.Key, role.Value);
                     filled.Add(role.Key);
                 }
             }
             return filled;
+        }
+
+        // A row that names a file or a folder on disk, set by a person or filled from the folder
+        private static bool Picked(PaneSettings settings, string role)
+        {
+            string now = settings.InputPath(role);
+            return !string.IsNullOrEmpty(now) && (File.Exists(now) || Directory.Exists(now));
         }
 
         // R741. The read for the build. ended gets true and the line of its end, or false and why, once, maybe before Start returns
@@ -74,8 +80,8 @@ namespace SiteAdaptation.AddIn.Fast5
             ReadPlan files = ReadInputs.ForBuild(pane, ReadDataBody.Roles, workFolder, settings.Project.RoadSurfaces, settings.Project.ProjectMode);
             if (files.Stops.Count > 0)
             {
-                // R740. Why the folder did not give a row, beside the row the read stops on
-                ended(false, string.Join(". ", files.Stops.Concat(Found(settings).Left)));
+                // R740. Why the folder did not give a row, beside the row the read stops on. R843: only for a row still empty
+                ended(false, string.Join(". ", files.Stops.Concat(FolderRoles.Causes(Found(settings), role => Picked(settings, role)))));
                 return;
             }
             string source = ReviewLoad.LatestReadFolder(workFolder);
