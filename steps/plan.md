@@ -28,10 +28,11 @@ Step d is split into 4 parts by Lead on 12 Nov, each its own PR, since the basel
 
 | Part | Task | Lane | What |
 |---|---|---|---|
-| 1 | OLD-1d1-build-2 | build-2 | The data book reads go. The build takes plots and labels from the read of card 1. R840 to R843, Q655, Q656 |
-| 2 | OLD-1d2-build-1 | build-1 | The 42 dead parts go. R689 to R691 written. R844, Q657 |
+| 1 | OLD-1d1-build-2 | build-2 | Merged, PR 305. The build takes plots and labels from the read of card 1, R840, R843. The data book files of the old read of step 2 stay until part 4 |
+| 2 | OLD-1d2-build-1 | build-1 | Merged, PR 306. 40 of the 42 dead parts went, 2 stay with their reason. R689 to R691 written. Q657 filed |
 | 3 | OLD-1d3-build-2 | build-2 | Advanced without the 9 step buttons, the 3 cards the only way in. R845, R846, Q658 |
-| 4 | OLD-1d4-build-1 | build-1 | Past job mode and its override list, light mode, the old past job values of config, the Python copies of logic. Each Python file kept has a line why. The folders labelled in docs/truth.md. R847 to R849, Q659 |
+| 4 | OLD-1d4-build-1 | build-1 | The old read of step 2 and its data book files, past job mode and its override list, light mode, the old past job values of config, the Python copies of logic. Each Python file kept has a line why. R847 to R849, Q659. The folders labelled in docs/truth.md by Lead after it |
+| first run of e | OLD-1e1-revit-test | revit-test | Card 2 on 01A as soon as part 1 is merged, then the next neighbourhoods, each read and compared. The run of step e after part 4 is its own task |
 
 The compare of step c is merged, PR 303: the 7 past models give 100 percent against themselves, the built side 0 of 9. Q650 to Q654 are filed.
 
