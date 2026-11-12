@@ -2,7 +2,7 @@
 id: OLD-1p-build-1
 lane: build-1
 stage: 1
-status: open
+status: done
 allowed:
   - config/project.json
   - rules/

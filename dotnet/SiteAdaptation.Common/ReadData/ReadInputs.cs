@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 using Newtonsoft.Json.Linq;
 using SiteAdaptation.Common.Flow;
 using SiteAdaptation.Common.Settings;
@@ -260,9 +261,11 @@ namespace SiteAdaptation.Common.ReadData
             string folder = Path.GetFullPath((string)config["inputRoot"]);
             configPath = Path.GetFullPath(configPath);
             HashSet<string> skip;
+            List<Regex> skipFiles;
             try
             {
                 skip = DataCheckSettings.SkipFoldersOf(config);
+                skipFiles = DataCheckSettings.SkipFilesOf(config);
             }
             catch (InvalidDataException refused)
             {
@@ -271,7 +274,7 @@ namespace SiteAdaptation.Common.ReadData
             var inputs = new List<ReadInput>
             {
                 new ReadInput(Config, configPath, new FileInfo(configPath).Length, FileHash.Sha256(configPath)),
-                FolderInput(folder, skip),
+                FolderInput(folder, skip, skipFiles),
             };
             string profile = Path.Combine(Path.GetFullPath(workFolder), ConfirmedProfile.FileName);
             if (File.Exists(profile))
@@ -320,14 +323,15 @@ namespace SiteAdaptation.Common.ReadData
         }
 
         // R635. Every file of the folder as a raw read walks it: a folder of skip at any depth and, as the worker walks it, a link or junction are never followed
-        public static IEnumerable<string> FilesOf(string folder, HashSet<string> skip)
+        // R831, R832. A file whose name fits skipFiles is left out as the worker leaves it out, so the hash and the folder roles see what the worker reads
+        public static IEnumerable<string> FilesOf(string folder, HashSet<string> skip, List<Regex> skipFiles)
         {
             var pending = new Stack<string>();
             pending.Push(folder);
             while (pending.Count > 0)
             {
                 string here = pending.Pop();
-                foreach (string file in Directory.GetFiles(here))
+                foreach (string file in Directory.GetFiles(here).Where(file => !DataCheckSettings.SkipsFile(skipFiles, file)))
                 {
                     yield return file;
                 }
@@ -338,11 +342,11 @@ namespace SiteAdaptation.Common.ReadData
             }
         }
 
-        private static ReadInput FolderInput(string folder, HashSet<string> skip)
+        private static ReadInput FolderInput(string folder, HashSet<string> skip, List<Regex> skipFiles)
         {
             long bytes = 0;
             var lines = new List<string>();
-            foreach (string file in FilesOf(folder, skip))
+            foreach (string file in FilesOf(folder, skip, skipFiles))
             {
                 var info = new FileInfo(file);
                 bytes += info.Length;

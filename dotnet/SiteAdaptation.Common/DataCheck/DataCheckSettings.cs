@@ -35,6 +35,7 @@ namespace SiteAdaptation.Common
         public int AreaNearPlots { get; private set; }
         public double AreaAgreement { get; private set; }
         public HashSet<string> SkipFolders { get; private set; }
+        public List<Regex> SkipFiles { get; private set; }
 
         public static DataCheckSettings From(JObject config)
         {
@@ -78,6 +79,7 @@ namespace SiteAdaptation.Common
                     : throw new InvalidDataException("dataCheck.areaNearPlots is no whole number of 1 or more (R635)"),
                 AreaAgreement = Share(block, "areaAgreement", "R635"),
                 SkipFolders = SkipFoldersOf(config),
+                SkipFiles = SkipFilesOf(config),
             };
             if (settings.UsableShare > settings.StrongShare)
             {
@@ -109,6 +111,37 @@ namespace SiteAdaptation.Common
                 throw new InvalidDataException("dataCheck.skipFolders is no list of folder names, an empty list is allowed (R635)");
             }
             return new HashSet<string>(list.Select(item => (string)item), StringComparer.OrdinalIgnoreCase);
+        }
+
+        // R831, R834. The patterns of the names of the files a raw read leaves out, held against the file name alone with no regard for case, as
+        // Windows names a file. CHOSEN by Code: settings that hold no list skip no file, a list is asked of no project. A list of another shape
+        // is refused, never read as no pattern
+        public static List<Regex> SkipFilesOf(JObject config)
+        {
+            JToken list = (config?[Block] as JObject)?["skipFiles"];
+            if (list == null)
+            {
+                return new List<Regex>();
+            }
+            if (!(list is JArray) || list.Any(item => item.Type != JTokenType.String || ((string)item).Length == 0))
+            {
+                throw new InvalidDataException("dataCheck.skipFiles is no list of file name patterns, an empty list is allowed (R834)");
+            }
+            try
+            {
+                return list.Select(item => new Regex((string)item, RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)).ToList();
+            }
+            catch (ArgumentException)
+            {
+                throw new InvalidDataException("dataCheck.skipFiles holds a text that is no pattern (R834)");
+            }
+        }
+
+        // R831. True when the name of the file fits a pattern of skipFiles, the one test the worker walk, the hash and the folder roles share
+        public static bool SkipsFile(IEnumerable<Regex> patterns, string path)
+        {
+            string name = Path.GetFileName(path ?? "");
+            return patterns.Any(pattern => pattern.IsMatch(name));
         }
 
         private static Regex Pattern(JObject block, string key, string rule)
