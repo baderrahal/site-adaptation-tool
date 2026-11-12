@@ -160,12 +160,6 @@ namespace SiteAdaptation.Common
 
         private static readonly Regex JobName = new Regex(@"\Atesthost_job_(?<code>[A-Z][A-Z0-9]{1,3})(_upgrade)?\.json\z", RegexOptions.CultureInvariant);
 
-        // R110. The job file of one window: testhost_job_<code>.json, or testhost_job_<code>_upgrade.json for an upgrade
-        public static string JobPath(string documents, string code, bool upgrade)
-        {
-            return Path.Combine(SiteAdaptationFolder(documents), "testhost_job_" + code + (upgrade ? "_upgrade" : "") + ".json");
-        }
-
         // The code a job path names, or null when the path is not a job file of the SiteAdaptation folder
         public static string CodeOfJobPath(string path, string documents)
         {

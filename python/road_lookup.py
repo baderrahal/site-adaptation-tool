@@ -3,7 +3,6 @@
 The surfaces are asked one after the other and the first that covers the point answers. The ground surface is never a
 road level. The order lives in config/road_surfaces.json and no code writes it.
 """
-from pathlib import Path
 
 import surface_lookup
 
@@ -74,7 +73,3 @@ def load(config, landxml_dir):
     lookup = RoadLevels([(name, surface_lookup.load_surface(landxml_dir, name)) for name in names])
     lookup.source = source
     return lookup
-
-
-def default_config_path():
-    return Path(__file__).resolve().parent.parent / "config" / "road_surfaces.json"

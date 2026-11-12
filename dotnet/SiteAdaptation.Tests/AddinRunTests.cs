@@ -108,7 +108,7 @@ namespace SiteAdaptation.Tests
         public void R110_an_add_in_run_sits_in_a_run_folder_under_the_work_root_never_in_it_or_beside_it()
         {
             var job = new TestHostJob { Code = "SA5A", Kind = TestHostGuard.AddinRunKind, Model = Model };
-            string jobPath = TestHostGuard.JobPath(Documents, "SA5A", false);
+            string jobPath = Path.Combine(TestHostGuard.SiteAdaptationFolder(Documents), "testhost_job_SA5A.json");
 
             Assert.Null(TestHostGuard.CheckJobPath(jobPath, job, Documents));
             job.Model = Documents + @"\SiteAdaptation\SA5A-TEST-NEW.rvt";

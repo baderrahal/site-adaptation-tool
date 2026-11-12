@@ -115,8 +115,8 @@ namespace SiteAdaptation.Tests
             GuardResult result = Check(Upgrade(), path => path == Source);
             string documents = @"C:\Users\x\Documents";
 
-            Assert.Null(TestHostGuard.CheckJobPath(TestHostGuard.JobPath(documents, "K24", true), result.Job, documents));
-            Assert.NotNull(TestHostGuard.CheckJobPath(TestHostGuard.JobPath(documents, "K24", false), result.Job, documents));
+            Assert.Null(TestHostGuard.CheckJobPath(Path.Combine(TestHostGuard.SiteAdaptationFolder(documents), "testhost_job_K24_upgrade.json"), result.Job, documents));
+            Assert.NotNull(TestHostGuard.CheckJobPath(Path.Combine(TestHostGuard.SiteAdaptationFolder(documents), "testhost_job_K24.json"), result.Job, documents));
         }
 
         [Fact]

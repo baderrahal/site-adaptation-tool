@@ -405,8 +405,8 @@ def test_r339_r340_the_rules_profile_holds_the_level_rules_of_the_keys_and_a_bui
 
 def test_r339_the_override_list_holds_the_level_misses_of_the_keys_as_gaps_and_never_a_level():
     from collections import Counter
-    import override_source
-    data = json.loads(override_source.list_path(SETTINGS).read_text(encoding="utf-8"))
+    from pathlib import Path
+    data = json.loads((project_profile.ROOT / "config" / "overrides" / Path(SETTINGS["profile"]).name).read_text(encoding="utf-8"))
     parsons = [item for item in data["overrides"] if item["source"] == "parsons"]
     fields = Counter(item["field"] for item in parsons)
     assert all(fields[field] > 0 for field in ("entryM", "heightM", "steps", "parameter RRE_ZZ_SP_Prototype-FFL", "rampFrontM"))

@@ -150,7 +150,7 @@ def test_r330_majority_keeps_the_entries_of_a_kept_source_or_field_cell_for_cell
 
 
 def test_r330_the_real_override_list_has_the_job_of_its_key_as_source_on_every_entry():
-    data = json.loads(override_source.list_path(project_profile.load_settings()).read_text(encoding="utf-8"))
+    data = json.loads((project_profile.ROOT / "config" / "overrides" / Path(project_profile.load_settings()["profile"]).name).read_text(encoding="utf-8"))
     entries = data["overrides"]
     override_source.check_entries(entries, real_groups())
     counts = override_source.counts(entries)

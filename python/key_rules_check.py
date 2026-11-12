@@ -853,11 +853,6 @@ def cluster_role(plot, cluster, ctx):
     return {"side": "left" if index < (count - 1) / 2 else "right" if index > (count - 1) / 2 else "middle", "index": index + 1}
 
 
-def cluster_side(plot, cluster, ctx):
-    role = cluster_role(plot, cluster, ctx)
-    return None if role is None else role["side"]
-
-
 def row_sides(plot, ctx, counted):
     """The side neighbours of every counted unit of the row of a plot, walked both ways."""
     found, todo = {}, [plot]

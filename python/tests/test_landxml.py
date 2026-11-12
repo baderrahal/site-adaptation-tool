@@ -70,31 +70,31 @@ def test_r41_invisible_face_is_skipped_and_counted(read):
 def test_r41_a_point_inside_an_invisible_face_has_no_level(read):
     out, _ = read
     surface = surface_lookup.load_surface(out, "Road")
-    assert surface_lookup.lookup_z(surface, 1017, 5002) is None
-    assert surface_lookup.lookup_z(surface, 1012, 5008) == pytest.approx(road_z(1012, 5008))
+    assert surface.z_at(1017, 5002) is None
+    assert surface.z_at(1012, 5008) == pytest.approx(road_z(1012, 5008))
 
 
 def test_r42_lookup_interpolates_inside_a_visible_triangle(read):
     out, _ = read
     surface = surface_lookup.load_surface(out, "Road")
     for easting, northing in [(1003, 5004), (1008, 5002), (1002, 5008), (1000.5, 5009.5)]:
-        assert surface_lookup.lookup_z(surface, easting, northing) == pytest.approx(road_z(easting, northing))
+        assert surface.z_at(easting, northing) == pytest.approx(road_z(easting, northing))
 
 
 def test_r42_a_point_outside_gives_none(read):
     out, _ = read
     surface = surface_lookup.load_surface(out, "Road")
     for easting, northing in [(999.9, 5005), (1005, 4999.9), (1005, 5010.1), (5000, 1000), (-1e9, 1e9)]:
-        assert surface_lookup.lookup_z(surface, easting, northing) is None
+        assert surface.z_at(easting, northing) is None
 
 
 def test_r42_a_point_on_a_shared_edge_gives_one_value(read):
     out, _ = read
     surface = surface_lookup.load_surface(out, "Road")
-    on_edge = surface_lookup.lookup_z(surface, 1010, 5005)
+    on_edge = surface.z_at(1010, 5005)
     assert isinstance(on_edge, float) and on_edge == pytest.approx(25)
-    assert surface_lookup.lookup_z(surface, 1005, 5005) == pytest.approx(20)
-    assert surface_lookup.lookup_z(surface, 1010, 5010) == pytest.approx(30)
+    assert surface.z_at(1005, 5005) == pytest.approx(20)
+    assert surface.z_at(1010, 5010) == pytest.approx(30)
 
 
 def test_r42_grid_lookup_agrees_with_the_plane_on_a_mesh_with_thousands_of_points():
@@ -108,15 +108,8 @@ def test_r42_grid_lookup_agrees_with_the_plane_on_a_mesh_with_thousands_of_point
     surface = surface_lookup.Surface(grid, np.array(faces))
     rng = np.random.default_rng(1)
     for easting, northing in rng.uniform(0, size * 3.0, (300, 2)):
-        assert surface_lookup.lookup_z(surface, easting, northing) == pytest.approx(0.5 * easting - 0.25 * northing)
-    assert surface_lookup.lookup_z(surface, size * 3.0 + 0.1, 5) is None
-
-
-def test_r42_lookup_many_returns_one_answer_per_point(read):
-    out, _ = read
-    surface = surface_lookup.load_surface(out, "Road")
-    answers = surface_lookup.lookup_many(surface, [(1003, 5004), (0, 0), (1008, 5002)])
-    assert answers[1] is None and len(answers) == 3 and answers[0] == pytest.approx(17)
+        assert surface.z_at(easting, northing) == pytest.approx(0.5 * easting - 0.25 * northing)
+    assert surface.z_at(size * 3.0 + 0.1, 5) is None
 
 
 def test_r42_distance_to_the_nearest_visible_triangle(read):

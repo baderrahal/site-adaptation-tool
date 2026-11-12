@@ -102,10 +102,6 @@ def setback_rings(pieces, layer):
             if piece.get("kind") == "polyline" and piece.get("layer") == layer and piece.get("closed") and len(piece.get("pts") or []) >= 3]
 
 
-def ring_distance(ring, x, y):
-    return data_book_check.edge_distance(ring, x, y)
-
-
 def check_plot(row, face, data, settings):
     counts = Counter()
     step, slack, most = settings["check"]["gridM"], settings["check"]["shareSlack"], settings["check"]["maxGridPoints"]

@@ -46,11 +46,6 @@ namespace SiteAdaptation.C3DProbe
             return edges;
         }
 
-        public double[] VertexAt(int index)
-        {
-            return vertices[index];
-        }
-
         // Chains the border edges into rings. Where more than two border edges meet at one vertex, as at a pinch
         // between two strips, the walk takes the next free edge, so every edge lands in exactly one ring
         public List<List<double[]>> Rings()

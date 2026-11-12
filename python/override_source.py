@@ -289,11 +289,6 @@ def counts(entries):
             "byKey": dict(sorted(Counter(str(item.get("key")) for item in entries).items()))}
 
 
-def list_path(settings):
-    """R330. The override list of the project, config/overrides with the file name of the rules profile."""
-    return project_profile.ROOT / "config" / "overrides" / Path(settings.get("profile")).name
-
-
 def read_list(path):
     data = json.loads(Path(path).read_text(encoding="utf-8"))
     if not isinstance(data, dict) or not isinstance(data.get("overrides"), list):

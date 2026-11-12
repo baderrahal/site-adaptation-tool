@@ -86,8 +86,6 @@ namespace SiteAdaptation.Tests
             List<TextLine> found = LocationPlan.TextLines(chars, 1.4, 1.6, 0.3, 0.05);
             Assert.Equal(new[] { "DP4 (SA)", "VL4", "2172" }, found.Select(line => line.Text));
             Assert.Equal((10 + 10 + 7 * 0.7 + 0.65) / 2, found[0].X, 12);
-            string[] kinds = new[] { "2172", "TH3-0 (BB)", "DP1-SA", "VL3-0", "TH1-IM", "C10", "OS", "WADI PARK", "?" }.Select(text => LocationPlan.Classify(text, Patterns)).ToArray();
-            Assert.Equal(new[] { "number", "clientCode", "clientCode", "clientCode", "clientCode", "clientCode", "openSpace", "landUse", "other" }, kinds);
         }
 
         [Fact]

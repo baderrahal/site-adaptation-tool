@@ -128,13 +128,3 @@ def triangle_distance(px, py, x, y, det):
 
 def load_surface(landxml_dir, name):
     return Surface.from_dir(Path(landxml_dir) / landxml_reader.folder_name(name))
-
-
-def lookup_z(surface, easting, northing):
-    """Interpolated z of a surface at a point from the visible triangle that holds it, None outside every visible triangle."""
-    return surface.z_at(easting, northing)
-
-
-def lookup_many(surface, points):
-    """z for a list of (easting, northing) points, None where a point is outside."""
-    return [surface.z_at(easting, northing) for easting, northing in points]

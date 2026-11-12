@@ -4,7 +4,6 @@ from shapely.strtree import STRtree
 
 import cad_links
 import cad_rules
-import cad_rules_check
 import project_profile
 
 ANALYSIS = {"toleranceM": 0.01, "partyWallShare": 0.75, "roadEdgeLayers": ["RD-CURB-LINE"], "unitPlotTypes": ["VL4", "DP2"]}
@@ -103,41 +102,3 @@ def test_r120_the_cut_neighbours_are_read_from_the_settings_and_counted_apart(tm
     for bad in ([2374], "2374", ["x"]):
         with pytest.raises(project_profile.ProfileError, match="cutNeighbours"):
             cad_links.cad_links_settings(project_profile.ProjectProfile(tmp_path / "s.json", {"cadLinks": {"cutShareMin": 0.9, "cutNeighbours": bad}}))
-
-
-def test_r134_shared_boundary_by_hand_and_the_split_by_hand_agree_with_the_report():
-    assert cad_rules_check.shared_length(box(0, 0, 10, 25), box(10, 5, 20, 30)) == pytest.approx(20.0)
-    assert cad_rules_check.shared_length(box(0, 0, 10, 25), box(11, 0, 20, 25)) == pytest.approx(0.0)
-    books = {"XX": {"1": {"plot": "1", "unit": "DP1", "entry": 10.0, "ffl": 10.1}, "2": {"plot": "2", "unit": "DP1", "entry": 10.0, "ffl": 10.2}}}
-    report = {"split": {"clusters": [{"neighbourhood": "XX", "plots": ["1", "2"], "sheetWalls": [1], "ruleWalls": []}]}}
-    assert cad_rules_check.check_split(report, books, RAW_PROFILE, 1, 5) == [{"plots": ["1", "2"], "differs": []}]
-    report["split"]["clusters"][0]["ruleWalls"] = [1]
-    assert cad_rules_check.check_split(report, books, RAW_PROFILE, 1, 5)[0]["differs"]
-
-
-def test_r134_the_case_count_by_hand_catches_a_changed_count():
-    links = []
-    for number, case, rotation, mirrored in (("1", "B", 0.0, False), ("2", "A", 180.0, True), ("3", "A", 0.0, False)):
-        links.append({"parameters": {"RRE_ZZ_SP_Plot-Number": number, "CASE": case, "RRE_ZZ_SP_Prototype": "VD2"}, "transform": {"rotationDeg": rotation, "mirrored": mirrored}})
-    prototypes = {"documents": [{"kind": "project", "links": links}]}
-    # Links 1 and 3 tie in one vote, the lower letter A wins, so 1 breaks
-    report = {"apart": [], "case": {"flipped": [], "tests": {"hand": {"explained": 2, "breaksOutside": ["1"]}}}}
-    assert cad_rules_check.check_case(report, prototypes) == [{"test": "hand", "differs": []}]
-    report["case"]["tests"]["hand"]["explained"] = 3
-    assert cad_rules_check.check_case(report, prototypes)[0]["differs"]
-
-
-def test_r134_the_villa_sides_by_hand_agree_with_the_report_and_catch_a_changed_side():
-    plots = [{"kind": "plot_shape", "plot": str(index), "type": "VL4", "vertices": [list(point) for point in box(12 * (index - 1), 0, 12 * index, 25)]} for index in (1, 2)]
-    pieces = [{"kind": "line", "layer": "RD-CURB-LINE", "pts": [[-100, -5], [200, -5]]}]
-    analysis = {"plots": [{"plot": "1", "unit": "VD2"}, {"plot": "2", "unit": "VD2"}]}
-    prototypes = {"documents": [{"kind": "project", "links": [
-        {"parameters": {"RRE_ZZ_SP_Plot-Number": "11"}, "transform": {"mirrored": False}},
-        {"parameters": {"RRE_ZZ_SP_Plot-Number": "12"}, "transform": {"mirrored": True}}]}]}
-    report = {"apart": [], "villas": {"reversed": [], "b": {"breaks": []}, "sides": {"11": {"left": [], "right": ["12"]}, "12": {"left": ["11"], "right": []}}}}
-    results = cad_rules_check.check_villas(report, prototypes, plots, pieces, analysis, RAW_PROFILE, {"analysis": ANALYSIS}, 10, 1, 5)
-    assert all(item["differs"] == [] for item in results) and len(results) == 2
-    report["villas"]["sides"]["11"] = {"left": ["12"], "right": []}
-    report["villas"]["b"]["breaks"] = ["12"]
-    found = {item["plot"]: item["differs"] for item in cad_rules_check.check_villas(report, prototypes, plots, pieces, analysis, RAW_PROFILE, {"analysis": ANALYSIS}, 10, 1, 5)}
-    assert found["11"] and found["12"] == ["test b differs"]

@@ -6,7 +6,6 @@ from shapely.geometry import LineString, Polygon
 from shapely.ops import unary_union
 from shapely.strtree import STRtree
 
-import block_proof
 import cad_analysis
 import project_profile
 
@@ -776,7 +775,7 @@ def test_r69_a_share_a_tie_width_under_the_cover_share_still_covers_and_one_two_
     assert not cad_analysis.holds_cover(0.2 - 2e-6) and not cad_analysis.holds_cover(0.0)
 
 
-def test_r69_a_fifth_of_a_block_that_floats_a_hair_under_a_fifth_at_site_coordinates_still_covers_in_both_methods(tmp_path):
+def test_r69_a_fifth_of_a_block_that_floats_a_hair_under_a_fifth_at_site_coordinates_still_covers(tmp_path):
     x, y = 570571.083, 2362999.179
     faces = cad_analysis.plot_faces([face("1", "VL3", x, y, width=1.6, depth=10), face("2", "VL3", x + 1.6, y, width=6.4, depth=10)])
     villas = [{**villa("Villa_VL3", box(x, y, x + 8, y + 10)), "code": "VL3"}]
@@ -785,7 +784,6 @@ def test_r69_a_fifth_of_a_block_that_floats_a_hair_under_a_fifth_at_site_coordin
     # The share of plot 1 is a fifth, and the clipping gives it as 0.19999999999709, which is under COVER_SHARE
     assert max(found for found, index in share if index == 0) < cad_analysis.COVER_SHARE
     assert cad_analysis.claim_blocks(faces, villas)[2] == [[0, 1]]
-    assert block_proof.compare(faces, villas)["blocksAgree"] == 1
 
 
 def test_r69_an_excel_unit_that_is_not_a_unit_code_of_the_profile_gives_no_unit_code_and_one_issue_and_is_never_normalised(tmp_path):

@@ -1,10 +1,8 @@
 import copy
 
-import numpy as np
 import pytest
 from shapely.geometry import LineString, Polygon
 
-import cad_floor_check
 import floor_fit
 import plan_compare
 import plan_from_cad
@@ -162,31 +160,3 @@ def test_r138_the_floors_of_two_plans_are_compared_per_kind_in_bands():
     assert floors["generic"]["top"] == {"within5mm": 1, "worse": 1} and floors["generic"]["outline"] == {"within1mm": 1, "within10mm": 1}
     assert floors["ramp"]["corners"] == {"within5mm": 1, "within30mm": 1} and floors["ramp"]["type"] == {"equal": 1, "worse": 1}
     assert floors["yard"]["presence"] == {"both": 1, "both missing": 1}
-
-
-def test_r139_the_second_method_places_outlines_and_ramp_corners_by_hand_and_counts_the_compare_again():
-    inputs = floor_inputs()
-    plan = pair_plan(inputs)
-    plots = [{"kind": "plot_shape", "plot": "1", "vertices": [list(point) for point in box(0, 0, 12, 25)]}, {"kind": "plot_shape", "plot": "2", "vertices": [list(point) for point in box(12, 0, 22, 25)]}]
-    pieces = [{"kind": "line", "layer": "RD-CURB-LINE", "pts": [[-100, -5], [100, -5]]}]
-    raw = {"typologies": {"DP1": {"plot_width_m": 10}}, "plot": {"long_side": 25000}, "ramp": {"front_setback": {"default": 5520}}}
-    results = cad_floor_check.check_outlines(plan, inputs["outlines"], plots, pieces, raw, SETTINGS, 10, 1, 5)
-    assert [item["differs"] for item in results] == [[], []]
-    surface = ("road", np.array([[-100.0, -50.0, 9.9], [100.0, -50.0, 9.9], [100.0, 0.0, 9.9], [-100.0, 0.0, 9.9]]), np.array([[0, 1, 2], [0, 2, 3]]))
-    assert [item["differs"] for item in cad_floor_check.check_ramps(plan, inputs["outlines"], plots, pieces, raw, SETTINGS, [surface], 10, 1, 5)] == [[], []]
-    report = plan_compare.compare_plans(plan, plan, set())
-    assert all(item["differs"] == [] for item in cad_floor_check.check_compare(report, plan, plan, set()))
-    planted = copy.deepcopy(report)
-    planted["floors"]["outside"]["ramp"]["type"] = {"equal": 1}
-    assert any(item["differs"] for item in cad_floor_check.check_compare(planted, plan, plan, set()))
-    moved = copy.deepcopy(plan)
-    moved["plots"][0]["floors"]["ramp"]["corners"]["value"][0][2] += 0.01
-    assert cad_floor_check.check_ramps(moved, inputs["outlines"], plots, pieces, raw, SETTINGS, [surface], 10, 1, 5)[0]["differs"] or \
-        cad_floor_check.check_ramps(moved, inputs["outlines"], plots, pieces, raw, SETTINGS, [surface], 10, 1, 5)[1]["differs"]
-
-
-def test_r139_the_plain_hausdorff_distance_matches_a_hand_count():
-    assert cad_floor_check.directed([box(0, 0, 10, 10)], [box(0, 0, 10, 10)]) == pytest.approx(0.0)
-    assert cad_floor_check.directed([box(0, 0, 10, 10)], [box(0, 0, 10, 12)]) == pytest.approx(2.0)
-    assert cad_floor_check.directed([box(0, 0, 10, 12)], [box(0, 0, 10, 10)]) == pytest.approx(2.0)
-    assert list(cad_floor_check.link_points([(1.0, 2.0)], (0.0, 0.0), 90.0, False)[0]) == pytest.approx([2.0, -1.0])

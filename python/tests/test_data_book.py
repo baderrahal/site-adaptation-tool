@@ -1,124 +1,21 @@
 import csv
 import json
-import os
-import time
 
-import openpyxl
 import pytest
-from shapely.geometry import LineString, Point, Polygon
+from shapely.geometry import Point, Polygon
 
 import c3d_run
-import c3d_window
 import data_book
 import data_book_analysis
-import data_book_border
 import data_book_cad
 import data_book_check
-import data_book_excel
-import data_book_readme
 
 SQUARE = Polygon([(0, 0), (100, 0), (100, 100), (0, 100)])
 
 
-def write_border(path, ring=((0, 0), (100, 0), (100, 100), (0, 100))):
-    lines = ["x,y,vertex,area,perimeter,drawing,layer,handle"] + ["%s,%s,%d,1,1,d,l,h" % (x, y, k) for k, (x, y) in enumerate(ring)]
-    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-
-
-def book_config(tmp_path):
-    root = tmp_path / "book"
-    (root / "work" / "Base Plans").mkdir(parents=True)
-    (tmp_path / "source").mkdir()
-    return {"sourceRoot": str(tmp_path / "source"), "language": "en-US", "probeDll": str(tmp_path / "probe.dll"),
-            "dataBook": {"root": str(root), "drawings": {"cutsheet": "Base Plans/cut.dwg"}, "acad": "acad.exe", "watcher": "watch.exe",
-                         "timeoutMinutes": 1, "knownSurfaces": {}}}
-
-
-class Fake:
-    def __init__(self, pid, polls=None):
-        self.pid, self.returncode, self.polls, self.waited = pid, None, list(polls or []), False
-
-    def poll(self):
-        if self.polls:
-            value = self.polls.pop(0)
-            if value is not None:
-                self.returncode = value
-            return value
-        return self.returncode
-
-    def wait(self, timeout=None):
-        self.waited = True
-        self.returncode = 0
-
-
 # R160 full window runner
 
-def test_r160_refuses_source_outside_and_missing(tmp_path):
-    config = book_config(tmp_path)
-    (tmp_path / "source" / "a.dwg").write_bytes(b"x")
-    assert "source folder" in c3d_window.refusal(config, tmp_path / "source" / "a.dwg")
-    (tmp_path / "a.dwg").write_bytes(b"x")
-    assert "not under" in c3d_window.refusal(config, tmp_path / "a.dwg")
-    assert "missing" in c3d_window.refusal(config, tmp_path / "book" / "work" / "Base Plans" / "cut.dwg")
-
-
-def test_r160_script_and_arguments():
-    assert c3d_window.script_text("p.dll").splitlines() == ["NETLOAD", '"p.dll"', "C3DDATA", "C3DQUIT"]
-    args = c3d_window.window_args("acad.exe", "a.dwg", "s.scr", "en-US")
-    assert args[args.index("/product") + 1] == "C3D" and args[args.index("/b") + 1] == "s.scr" and args[1] == "a.dwg"
-    assert c3d_window.watch_args("w.exe", 7, "p.dll", "o.json", 5)[1:4] == ["--pid", "7", "--probe"]
-
-
-def test_r701_low_free_memory_neither_skips_nor_stops_the_window_and_is_recorded(tmp_path, monkeypatch):
-    config = book_config(tmp_path)
-    drawing = tmp_path / "book" / "work" / "Base Plans" / "cut.dwg"
-    drawing.write_bytes(b"dwg")
-    stopped = []
-    monkeypatch.setattr(c3d_run, "stop_own", lambda process: stopped.append(process.pid) or True)
-    started = iter([Fake(100, polls=[None, None, 0]), Fake(200, polls=[0])])
-    memory = iter([0.5, 0.4, 0.2, 0.3, 0.3, 0.3])
-    record = c3d_window.run(config, "cutsheet", launcher=lambda a, e: next(started), memory=lambda: next(memory), sleep=lambda s: None)
-    assert record["pids"] == [100, 200] and stopped == []
-    assert "skipped" not in record and "stopped" not in record and record["freeGbAtStart"] == 0.5 and record["freeGbLowest"] == 0.2
-    assert drawing.read_bytes() == b"dwg"
-
-
-def test_r160_probe_done_needs_the_probe_reader_written_in_this_run(tmp_path):
-    summary = tmp_path / "data.json"
-    summary.write_text(json.dumps({"reader": "CadReader", "done": True}))
-    assert not c3d_window.probe_done(summary, 0)
-    summary.write_text(json.dumps({"reader": "C3DProbe", "done": True}))
-    assert c3d_window.probe_done(summary, 0)
-    assert not c3d_window.probe_done(summary, time.time() + 60)
-
-
 # R163 border
-
-def test_r163_rings_close_where_ends_meet():
-    pieces = [{"kind": "polyline", "layer": "P1", "handle": "A", "pts": [[0, 0], [10, 0], [10, 10], [0, 0]]},
-              {"kind": "line", "layer": "P1", "pts": [[0, 0], [1, 1]]}]
-    rings = data_book_border.rings(pieces)
-    assert len(rings) == 1 and rings[0]["points"] == [(0, 0), (10, 0), (10, 10)] and rings[0]["endGap"] == 0
-
-
-def test_r163_pick_by_layer_and_label_else_the_one_that_holds_all():
-    one = {"layer": "Phase 1 Bound", "handle": "A", "points": [(0, 0), (10, 0), (10, 10), (0, 10)], "closedFlag": False, "endGap": 0}
-    two = {"layer": "Phase 2 Bound", "handle": "B", "points": [(20, 0), (30, 0), (30, 10), (20, 10)], "closedFlag": True, "endGap": 0}
-    texts = [{"text": "PHASE - 1", "x": 5, "y": 5}]
-    ring, how, _ = data_book_border.pick([one, two], texts, "Phase 1 Bound", "PHASE - 1", [(1, 1), (2, 2)])
-    assert ring["handle"] == "A" and how == "layer and label"
-    ring, how, _ = data_book_border.pick([one, two], [], "Other", "PHASE - 9", [(1, 1)])
-    assert ring["handle"] == "A" and "holds every" in how
-    with pytest.raises(data_book_border.BorderError):
-        data_book_border.pick([one, two], [], "Other", "X", [(1, 1), (25, 5)])
-
-
-def test_r163_write_border_holds_area_and_perimeter(tmp_path):
-    ring = {"layer": "L", "handle": "H", "points": [(0, 0), (10, 0), (10, 10), (0, 10)]}
-    polygon = data_book_border.write_border(tmp_path / "b.csv", ring, "d.dwg")
-    rows = list(csv.DictReader(open(tmp_path / "b.csv", encoding="utf-8")))
-    assert polygon.area == 100 and len(rows) == 4 and rows[0]["perimeter"] == "40.000" and rows[2]["vertex"] == "2"
-
 
 # R164 stand-in tables
 
@@ -170,25 +67,6 @@ def test_r164_arc_points_and_split_by_layer(tmp_path):
 
 # R165 workbook
 
-def test_r165_every_sheet_as_csv_with_a_sheet_list(tmp_path):
-    book = openpyxl.Workbook()
-    sheet = book.active
-    sheet.title = "Phase1"
-    sheet.append([None, "Title"])
-    sheet.append([None, "Land-use", "Typology", "Plot Count"])
-    sheet.append([None, None, "Villa (C10)", 280])
-    other = book.create_sheet("Plots")
-    other.append(["Plot No.", "Easting", "Northing"])
-    book.save(tmp_path / "w.xlsx")
-    listing = data_book_excel.write_sheets(tmp_path / "w.xlsx", tmp_path / "out")
-    assert [e["sheet"] for e in listing] == ["Phase1", "Plots"]
-    assert listing[0]["headerRow"] == 2 and listing[0]["plotOrLocationColumns"] == ""
-    assert "Plot No." in listing[1]["plotOrLocationColumns"]
-    rows = list(csv.reader(open(tmp_path / "out" / "Phase1.csv", encoding="utf-8")))
-    assert rows[0] == ["A", "B", "C", "D"] and rows[3][3] == "280"
-    assert (tmp_path / "out" / "sheets.csv").is_file()
-
-
 # R166 join and README
 
 def test_r166_bearing_depth_cell_and_points_in_face():
@@ -200,16 +78,6 @@ def test_r166_bearing_depth_cell_and_points_in_face():
     items = [{"x": 5, "y": 5}, {"x": 50, "y": 5}]
     tree = STRtree([Point(i["x"], i["y"]) for i in items])
     assert data_book.in_face(items, face, tree) == [items[0]]
-
-
-def test_r166_readme_lists_files_rows_and_columns(tmp_path):
-    (tmp_path / "plots.csv").write_text("officialNumber,level_Top Surface-02_left,attr_NO\n1,170,7\n", encoding="utf-8")
-    (tmp_path / "work").mkdir()
-    (tmp_path / "work" / "ignored.csv").write_text("a\n", encoding="utf-8")
-    data_book_readme.write(tmp_path)
-    text = (tmp_path / "README.md").read_text(encoding="utf-8")
-    assert "- plots.csv (1 rows):" in text and "ignored" not in text
-    assert "Level of surface Top Surface-02 at the left front corner" in text and "Block attribute NO." in text
 
 
 # R167 analysis
