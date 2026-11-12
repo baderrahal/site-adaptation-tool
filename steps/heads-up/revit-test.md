@@ -1,16 +1,18 @@
-# revit-test heads-up, OLD-1a-revit-test
+# revit-test heads-up, OLD-1b-revit-test
 
-12 Nov 2026, 10:25. The PR is open and not merged, Lead merges. Detail and proof in steps/revit-results/OLD-1a-revit-test.md.
+12 Nov 2026, 12:45. The PR is open and not merged, Lead merges. Detail and proof in steps/revit-results/OLD-1-revit-test.md.
 
 ## Final statement
 
-- Made: landxml under the work root, 7 LandXML files, one per surface of Roads\Makkah Phase 1_Road Surface C3D.dwg, from one window of Civil 3D 2026 under the window lock, 90 seconds.
-- Points and faces read back by landxml_reader.py: Top Surface-02 325,959 and 584,130. Top Surface-01 578,300 and 1,044,562. Part 4 Top Surfaces 123,962 and 224,235. Compiled West_MM 161,458 and 285,055. Top Surface Part 2 East Of East 40,130 and 72,377. Missed from Paste 2,063 and 3,595. EXISTING_11.5 Sqkm 4,681 and 8,682.
-- siteBuild.roadSurfaces: 6 of 6 names there, 0 missing. EXISTING_11.5 Sqkm is exported and not named in the config.
-- The probe builds and runs against Civil 3D 2026 on this PC, 0 warnings and 0 errors. No code was changed.
-- For Lead to accept or refuse: this PC holds no phase1_border.csv, which the probe needs. I gave it a square far wider than any drawing, so the files hold the whole surfaces, not the Phase 1 part. To refuse it, delete landxml.
-- Not clean: Civil 3D ended with exit code 3762504530 after the probe wrote done true. Why is UNKNOWN.
-- python/c3d_probe.json still names folders of Documents and of the laptop. Not used and not changed, the run took a settings file under the work root.
-- Input folder: the drawing equal by SHA-256, size and write time before and after. 837 files, gone 0, added 0, size differs 0 by name and size. The copy is deleted.
-- The driver: no click, key or shot by this lane. The watcher pressed No on one annotation scale box and Load Once on the security box of the probe, never Always Load.
-- status of the task file is still open, the file is not in the allowed list of the task.
+- Built: 0 of 9 neighbourhoods. Stopped: 9 of 9, 01A (278 plots read), 010 (16), 012 (342), 013 (416), 01B (2), 02 (325), 021 (435), 022 (305), 03 (493), each at the read for the build, before 4 Check.
+- The exact words of card 2, the same on all 9: "Build stopped at Read data: labels of the data book is not on disk: C:\SA-work\SiteAdaptation\data_book\location_plan\labels.csv. plotsCsv of the data book is not on disk: C:\SA-work\SiteAdaptation\data_book\plots.csv. roadSurface: no folder holds a road surface named in config or picked. prototypes: two folders hold 13 each, C:\02-Site Adaptation\00_Revit Models\Zone 02\ARC\Prototypes and C:\02-Site Adaptation\00_Revit Models\Zone 02\ARC\Prototypes_2024"
+- The cause is one, not of a neighbourhood: the read for the build needs labels.csv and plots.csv of data_book of the past job (ReadInputs.cs lines 201 and 365 to 386). This PC holds no data_book and no window sets the two files. The road surface and prototype sentences are notes, both rows were set in a window.
+- Card 1 ran once: Set up site 5 of 5 check points, 2 reads of 61 and about 90 s, 2,615 villa plots of 2,964, 9 neighbourhoods in the Scope list, the skip settings of PR 299 seen working (3 folders and 8 files left out). The road surfaces: the tool does not find landxml of the work root by itself, the row Road levels of Settings takes it by Browse and offers 6 of the 7 surfaces.
+- The read is never whole on this PC: 9 drawings need 2.73 to 53.15 GiB of free memory.
+- Card 3 Report: not run, the button was off, "Waits for stage 2". So the Done when line "the Report ran on the last model" is not met.
+- Not as the task says: all 9 neighbourhoods ran in one Revit window with one save at its end, not one per part, CHOSEN by this lane since each Build stopped in under 4 minutes and wrote nothing to the model.
+- Total time: one Revit window, 11:46:46 to 12:31:40, 44.9 minutes. The whole task 11:40 to 12:45.
+- Input folder: 837 files, gone 0, added 0, changed 0 by SHA-256, before and after.
+- Opened in Revit: Revit 2024.3 once, a new project from DefaultMetric.rte saved as old-1b\OLD1-site.rvt under the work root. No file of the input folder was opened in Revit.
+- The driver: UI Automation patterns and window messages to the Revit it started, no click, no key, no shot. Always Load pressed once at 11:48:18 on the box of Site Adaptation.
+- No code changed, no JSON edited by hand. status of the task file is still open, the file is not in the allowed list.
