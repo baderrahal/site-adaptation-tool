@@ -488,6 +488,12 @@ if (-not $DryStart -and -not $round) {
         $prototype = Get-SetPrototype -Folder $sourceFolder -Names $names -Discipline $set.discipline -Code $prototypeCode
         $plots = 0
     }
+    elseif ($Upgrade) {
+        # 12 Nov. An ARC upgrade takes the one file of the code from the prototype folder too. It read the past plan only for this
+        # name, and a PC with no past plan could upgrade nothing
+        $prototype = Get-SetPrototype -Folder $sourceFolder -Names $names -Discipline $names.discipline -Code $Code
+        $plots = 0
+    }
     else {
         # The prototype file of the code comes from the plan, never from the code alone. A floor spec names its prototype code, if any
         $plan = Get-Content -Raw $planPath | ConvertFrom-Json

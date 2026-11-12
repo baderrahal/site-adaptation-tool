@@ -13,3 +13,8 @@ Q441. Order of the raw input changes (Lane C TRUTH-4NOV-C). The tool stops with 
 Q454. Report name section on the demo config (R542). Hidden, C:\SA-demo\config has no fileName block, so not seen in Revit.
 - Recommended: refresh that config, then one look.
 
+## Closed by Bader's answers of 12 Nov 03:25
+
+Q600. The road toposolid of a neighbourhood whose road levels come from two road surfaces (FAST-8, steps/seam.md lines 78 and 82, 7 Nov). On 01A every plot gets its floor level, the front corners took their road levels from two picked road surfaces, and the toposolid is made from one surface, so the road edge of the ramps lies in a hole of it.
+- Recommended: a task joins the road surfaces the front corners took into the one toposolid. R485 stays, no ground or grading surface stands in for a road.
+- Other: no toposolid for such a neighbourhood.

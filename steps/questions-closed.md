@@ -407,3 +407,4 @@ Lane B numbered its questions QL1 upward from 28 Oct 2026. At the fold in of Rou
 | Q336 | Link parameter group is Text not Data | CHOSEN by Lead 12 Nov, the recommended answer taken on 6 Nov under Bader's order of 6 Nov: Text, as the past links hold it. R706, PR 235. Full text in steps/history/questions-moved-12nov.md | 2026-11-12 |
 | Q441 | Order of the raw input changes | No longer applies, Bader's order of 12 Nov sets the order of work, steps/plan.md. Full text in steps/history/questions-moved-12nov.md | 2026-11-12 |
 | Q454 | Report name section on the demo config | No longer applies, no demo and no demo config on Bader's PC, order of 12 Nov. Full text in steps/history/questions-moved-12nov.md | 2026-11-12 |
+| Q600 | Road toposolid where two road surfaces give the road levels | CHOSEN by Bader 12 Nov 03:25: join the surfaces, an option in Settings, on by default. Text in steps/history/questions-moved-12nov.md | 2026-11-12 |
