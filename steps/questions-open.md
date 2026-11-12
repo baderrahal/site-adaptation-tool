@@ -20,6 +20,7 @@ Q326 Shared origin at the plot box centre. Q327 Elevation of the shared origin f
 Q331 Plot is no link parameter of the keys. Q332 FFL bound but never written. Q333 Categories beyond the link instances. Q334 An xlsx read inside Revit. Q336 Link parameter group is Text not Data. Q337 Swap back in the same model unproven. Q338 Input guard counts Revit .slog files. Q361 FFL rule far from keys without overrides. Q362 Chosen limits of the zone compare. Q363 Plot 2302 and two IMD FFL plots. Q370 Approve the road surface window draft. Q372 A road pick in the pane, when it is kept. Q374 The stop looks at the zone, not the neighbourhood. Q390 A wall modelled inside out, far face kept. Q391 Twin masses overlap along one side. Q392 The primary option is not every plot's condition. Q393 The chosen limits of the wall ring. Q375 Ramp type after a rampFrontM gap. Q380 The save dialog and the input folder write time. Q381 The crash on Browse For Folder. Q382 Ctrl+Z of button 1 keeps step Done. Q383 A tick on a held step reruns steps. Q385 Accepted warnings return after a save. Q386 Override list changes leave steps Done. Q412 Level 1 is empty after the build. Q413 Input picks lost before a real run. Q450 Report defaults of old number, revision, status. Q451 Report Issues column against its sheets. Q379 A new project on another PC. Q394 Update from report on a new project. Q395 A mode in memory lost on reopen. Q397 Save As of a new project keeps one list.
 
 Q332 FFL bound but never written. Q334 An xlsx read inside Revit. Q336 Link parameter group is Text not Data. Q337 Swap back in the same model unproven. slog files. Q361 FFL rule far from keys without overrides. Q362 Chosen limits of the zone compare. Q363 Plot 2302 and two IMD FFL plots. Q370 Approve the road surface window draft. Q372 A road pick in the pane, when it is kept. Q374 The stop looks at the zone, not the neighbourhood. Q390 A wall modelled inside out, far face kept. Q392 The primary option is not every plot's condition. Q393 The chosen limits of the wall ring. Q375 Ramp type after a rampFrontM gap. Q380 The save dialog and the input folder write time. Q381 The crash on Browse For Folder. Q382 Ctrl+Z of button 1 keeps step Done. Q383 A tick on a held step reruns steps. Q385 Accepted warnings return after a save. Q386 Override list changes leave steps Done. Q412 Level 1 is empty after the build. Q413 Input picks lost before a real run. Q379 A new project on another PC. Q394 Update from report on a new project. Q395 A mode in memory lost on reopen. Q397 Save As of a new project keeps one list.
+Q650 One name pattern for the skipped site models. Q651 Backup folders beside the site models. Q652 FFL of the compare is the link origin Z. Q653 Floors of the compare leave out yards. Q654 Coordinate base of a built model.
 
 The older open questions stand in steps/history/questions-open-older.md, still open, cut byte for byte to keep this file under the cap of the records.
 
@@ -416,3 +417,23 @@ Q507. Irregular plot walls and garden walls (backlog Q149, Q259). Rule M14 and t
 Q508. Real villa links mode and the move stop R523 (backlog). Both need a Revit run.
 - Recommended: They stay with the Revit lane and are not part of siteBuild.
 - Other: Plan the link position in siteBuild from the plot outline.
+
+Q650. One name pattern for the skipped site models (OLD-1p-build-1, R830 to R834). dataCheck.skipFiles of config leaves the 8 past site models out of the folder read.
+- Recommended: Keep one pattern, the Revit files named as a site model with a code of IM and one capital. It leaves out 8 files and keeps the 13 villa files.
+- Other: A list of the 8 exact names.
+
+Q651. Backup folders beside the site models (OLD-1p-build-1). The backup folder of a site model and the folder Revit_temp are walked by the folder read. They hold no file the worker opens, but their files are in the hash of the read.
+- Recommended: Leave them walked.
+- Other: Two more names in skipFolders, which needs a name pattern for folders.
+
+Q652. FFL of the compare is the link origin Z (OLD-1c-build-1, R836). Measured on the 7 past models: the origin Z is within 1 mm of the top of a floor that names the plot on 2,587 of 2,591 plots.
+- Recommended: Keep FFL as the origin Z of the villa link.
+- Other: FFL as the top of the generic floor of the plot, which needs the read of a built model to hold the floors with their plot.
+
+Q653. Floors of the compare leave out yards (OLD-1c-build-1, R837).
+- Recommended: Floors are the floors that are no yard, so a yard floor built on a model with no past yard does not fail the floors column.
+- Other: Floors as every floor of the model.
+
+Q654. Coordinate base of a built model (OLD-1c-build-1, R836). The 7 past models share one base, measured. No built model exists yet.
+- Recommended: Keep the position in the coordinates of each model until a built read exists, then hold its base against the past base first and say so on the page.
+- Other: Turn both sides into shared coordinates by the project position of each read before the compare.

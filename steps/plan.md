@@ -24,6 +24,17 @@ Five steps in this order, each its own PR, merged on green, never two waiting. O
 
 Step b needs one small code change first, in its own PR by build-1: the three other past output places skipped by settings. Today only 01_Output is skipped (dataCheck.skipFolders of config/project.json). Revit All Zones and Native Files join that list. The site models of 00_Revit Models are single files beside the folder of the villa files, and no setting skips a file today, so the task adds the smallest one, CHOSEN by Code, with its rule id and test.
 
+Step d is split into 4 parts by Lead on 12 Nov, each its own PR, since the baseline run built 0 of 9 neighbourhoods on one cause, the read for the build asks for the data book of the past job (steps/revit-results/OLD-1-revit-test.md). Part 1 goes first so step e has a model to compare.
+
+| Part | Task | Lane | What |
+|---|---|---|---|
+| 1 | OLD-1d1-build-2 | build-2 | The data book reads go. The build takes plots and labels from the read of card 1. R840 to R843, Q655, Q656 |
+| 2 | OLD-1d2-build-1 | build-1 | The 42 dead parts go. R689 to R691 written. R844, Q657 |
+| 3 | OLD-1d3-build-2 | build-2 | Advanced without the 9 step buttons, the 3 cards the only way in. R845, R846, Q658 |
+| 4 | OLD-1d4-build-1 | build-1 | Past job mode and its override list, light mode, the old past job values of config, the Python copies of logic. Each Python file kept has a line why. The folders labelled in docs/truth.md. R847 to R849, Q659 |
+
+The compare of step c is merged, PR 303: the 7 past models give 100 percent against themselves, the built side 0 of 9. Q650 to Q654 are filed.
+
 Step d, what goes and what stays:
 
 - Advanced no longer shows the 9 old step buttons. The 3 cards are the only way in. The step code stays only as the engine behind them.
@@ -31,7 +42,7 @@ Step d, what goes and what stays:
 - Python stays only for dev tools: the compare, the readers, the checks. Each file kept has a line why.
 - The rule ids R689 to R691 are written.
 - Tests change with the code, never deleted to go green.
-- Rule ids R830 to R849. Question ids Q650 to Q659.
+- Rule ids R830 to R849. Question ids Q650 to Q659. R830 to R839 and Q650 to Q654 are taken.
 
 Not known yet: how many neighbourhoods card 1 names, and whether one neighbourhood fits in 110 minutes on this PC. The first part of step b measures both.
 
