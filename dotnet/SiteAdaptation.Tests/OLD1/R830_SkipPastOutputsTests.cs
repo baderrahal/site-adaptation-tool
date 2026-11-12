@@ -38,7 +38,7 @@ namespace SiteAdaptation.Tests
         // The file names of two site models as answerKeys of config names them, no other name of a project is in this file
         private static string[] SiteModels()
         {
-            return ((JArray)RepoConfig()["answerKeys"]["keys"]).Select(key => Path.GetFileName((string)key["source"])).Distinct().Take(2).ToArray();
+            return ((JArray)RepoConfig()["answerKeys"]["keys"]).Select(key => LastName((string)key["source"])).Distinct().Take(2).ToArray();
         }
 
         // The made up tree: the sample drawing and workbook, the three past folders with three Revit files each, and one model folder that holds
@@ -65,6 +65,12 @@ namespace SiteAdaptation.Tests
             }
             Stand(Path.Combine(folder, "models", "villas", Villa));
             return folder;
+        }
+
+        // config writes a path with backslashes, which Path.GetFileName does not part on Linux, a leg of the gate
+        private static string LastName(string path)
+        {
+            return path.Substring(path.LastIndexOfAny(new[] { '\\', '/' }) + 1);
         }
 
         private static void Stand(string path)
@@ -231,14 +237,14 @@ namespace SiteAdaptation.Tests
             Assert.NotEmpty(keys);
             foreach (JObject key in keys)
             {
-                Assert.True(DataCheckSettings.SkipsFile(settings.SkipFiles, Path.GetFileName((string)key["source"])), (string)key["source"]);
+                Assert.True(DataCheckSettings.SkipsFile(settings.SkipFiles, LastName((string)key["source"])), (string)key["source"]);
                 Assert.True(DataCheckSettings.SkipsFile(settings.SkipFiles, ((string)key["copy"]).ToUpperInvariant()), (string)key["copy"]);
             }
             JObject names = (JObject)config["prototypeNames"];
             string villa = (string)names["prefix"] + (string)names["discipline"] + "-NEW1" + (string)names["suffix"] + "1.rvt";
             Assert.False(DataCheckSettings.SkipsFile(settings.SkipFiles, villa));
             // A site model name on a file that is no Revit file is no site model, the pattern holds the file type
-            Assert.False(DataCheckSettings.SkipsFile(settings.SkipFiles, Path.ChangeExtension(Path.GetFileName((string)keys[0]["source"]), ".xlsx")));
+            Assert.False(DataCheckSettings.SkipsFile(settings.SkipFiles, Path.ChangeExtension(LastName((string)keys[0]["source"]), ".xlsx")));
             Assert.Contains("CHOSEN by Code", (string)config[DataCheckSettings.Block]["skipFilesWhy"]);
         }
 
