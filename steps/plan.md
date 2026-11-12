@@ -65,6 +65,10 @@ The order below is by the numbers of 8 Nov and is set again by the first compare
 
 Also, with the task of its lane: a manual rule a person changed shows "Changed from manual Rev 06" and the old value (docs/truth.md), and the i of the card heads.
 
+## Round 3, UI-1, the identity, Bader 12 Nov 16:50
+
+The windows and the pane take the look of docs/design/identity.md, with wpf/Theme.xaml and the Cairo fonts of docs/design/identity-kit. It starts after round 2, and only after Bader approves the boards: each window is drawn on a board first, a change asked on one board goes on every board of that window. The code is Cowork's, the brief is written by Lead when the boards are approved. Not started. The Parsons P mark waits outside the repo, docs/licences.md.
+
 ## Dropped or waiting, Bader 12 Nov
 
 - NEW-1 the new project path and ROAD-1 roads from 3D solids: dropped.

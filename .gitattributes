@@ -11,3 +11,6 @@
 .claude/skills/ai-max/** -text
 # The font and its licence keep the bytes of their source, so their SHA-256 in docs/licences.md holds
 dotnet/SiteAdaptation.AddIn/Theme/Fonts/** -text
+# The identity kit keeps the bytes of its source, so its SHA-256 in docs/licences.md holds
+docs/design/identity-kit/** -text
+docs/design/identity.md -text

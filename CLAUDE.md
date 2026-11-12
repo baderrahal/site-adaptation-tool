@@ -108,7 +108,7 @@ Unset SITE_ADAPTATION_INPUT before running these. The gate is green checks on th
 | .github/workflows/ | tests.yml the checks, test.yml the Linux legs of R346 |
 | config/, rules/ | project.json, override list, parameter sheet, rules profile |
 | docs/rules/ | the rules, index.md finds an id |
-| docs/design/, docs/addin-mock.md | the add-in design, the approved mock |
+| docs/design/, docs/addin-mock.md | the design, identity.md the look, the mock |
 | docs/truth.md, docs/lessons.md, docs/signoff.md | the truth, lessons, sign off of past and override values |
 | docs/repo-map.md | the long map, grep it for a path |
 | dotnet/SiteAdaptation.AddIn | the Revit add-in, ribbon, pane, windows |

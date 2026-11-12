@@ -154,3 +154,4 @@ The compare is python/compare_built.py, round 1 step c. It writes steps/compare.
 | 12 Nov 16:45 | The Revit run of round 1 builds a small area, not all neighbourhoods |
 | 12 Nov 16:55 | Cowork writes all tool code. Claude Code builds, tests, tests in Revit, reports, commits and merges, and never edits tool code. Who does what above |
 | 12 Nov 16:55 | The revit-test run is held. No Revit run starts until Bader's next order |
+| 12 Nov 16:50 | The identity of the Parsons tools is the look of this tool: docs/design/identity.md, with the kit in docs/design/identity-kit. The windows take it in round 3, UI-1, after Bader approves the boards |
