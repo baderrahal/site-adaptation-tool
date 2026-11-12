@@ -293,7 +293,7 @@ def test_r272_the_committed_list_holds_no_parsons_override_with_no_value_and_a_p
     import plan_rules
     import project_profile
     from test_addin_levels import LP, SETTINGS
-    path = project_profile.ROOT / "config" / "overrides" / Path(SETTINGS["profile"]).name
+    path = project_profile.ROOT / "config" / "overrides" / Path(SETTINGS.get("profile")).name
     data = json.loads(path.read_text(encoding="utf-8"))
     assert not [item for item in data["overrides"] if item["source"] == "parsons" and item["value"] is None]
     # Q075 (Bader, 2026-10-29): the native entries with no value moved to cannot in 4h-1, each marked Q075, and none is left in overrides
