@@ -39,8 +39,8 @@ namespace SiteAdaptation.Common.CheckTable
             public string Missing { get; set; }
         }
 
-        // R780. True for a file inside the data book of the work root, addin.readData.dataBookFolder of config beside the work folder as the read
-        // for the build takes it (ReadInputs.DataBook). False when config names none
+        // R780. True for a file inside the data book of the work root, addin.readData.dataBookFolder of config beside the work folder as the old read
+        // of step 2 takes it (ReadInputs.DataBook). False when config names none
         public static bool InDataBook(string path, JObject config, string workFolder)
         {
             JToken named = config?.SelectToken("addin.readData.dataBookFolder");
