@@ -443,7 +443,7 @@ namespace SiteAdaptation.Tests
         [Fact]
         public void The_raw_branch_through_For_runs_one_check_with_no_scan_then_the_two_windows()
         {
-            // Dropping the raw branch of ReadDataBody.Choose fails this test: the press would go to the check of the old read and its scan
+            // R847. The read of the folder is the one body of the press, with no scan before it
             var worker = new CheckWorker();
             var calls = new List<string>();
             ConfirmProfileStep.ShowCheck = (owner, result) => calls.Add("check");
@@ -463,42 +463,20 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void Past_job_mode_keeps_the_inputs_of_the_pane_and_the_old_body_with_its_own_check()
+        public void R847_past_job_mode_takes_the_folder_and_the_one_body_of_the_read()
         {
             var worker = new SilentWorker();
-            bool confirmShown = false;
-            ConfirmProfileStep.ShowCheck = (owner, result) => confirmShown = true;
-            ConfirmProfileStep.ShowConfirm = (owner, session) => confirmShown = true;
             PaneSettings settings = Project("roshnPastJob");
             string work = Work();
-            Assert.False(ReadInputs.NoPastFiles(settings.ConfigFile, "roshnPastJob", work));
-            Assert.Equal(PaneRunState.InputsOf(settings, 2).Select(input => input.Name), PaneRunState.InputsInFolder(settings, 2, work).Select(input => input.Name));
+            Assert.Equal(new[] { PaneText.Settings, PaneText.InputFolder }, PaneRunState.InputsInFolder(settings, 2, work).Select(input => input.Name));
             var document = new DocumentSession("s1", Path.Combine(folder, "model.rvt"), "model") { Settings = settings };
             ButtonBody body = ReadDataBody.For(document, IntPtr.Zero, worker);
             body.Preview(PressContext(settings, work));
             Press(body, PressContext(settings, work));
             WorkerRequest first = Assert.Single(worker.Requests);
-            Assert.EndsWith(DataCheckStep.RunIdSuffix, first.RunId);
-            Assert.StartsWith(DataCheckStep.FolderPrefix, Path.GetFileName(first.OutputFolder));
-            Assert.False(confirmShown);
-        }
-
-        [Fact]
-        public void Choose_takes_the_body_the_project_asks_for_at_the_press()
-        {
-            int raw = 0;
-            int past = 0;
-            var rawBody = new ButtonBody { Preview = context => new RunSummary("raw", new string[0]), Start = (context, done) => raw++ };
-            var pastBody = new ButtonBody { Preview = context => new RunSummary("past", new string[0]), Start = (context, done) => past++ };
-            PaneSettings settings = Project("rev6");
-            ButtonBody body = ReadDataBody.Choose(settings, pastBody, rawBody);
-            body.Start(PressContext(settings, Work()), later => { });
-            Assert.Equal(1, raw);
-            Assert.Equal(0, past);
-            settings.Project.ProjectMode = "roshnPastJob";
-            body.Start(PressContext(settings, Work()), later => { });
-            Assert.Equal(1, raw);
-            Assert.Equal(1, past);
+            Assert.Equal(ReadDataRun.DataCheckCommand, first.Command);
+            Assert.DoesNotContain(DataCheckStep.RunIdSuffix, first.RunId);
+            Assert.StartsWith(ReadDataRun.FolderPrefix, Path.GetFileName(first.OutputFolder));
         }
 
         [Fact]
@@ -551,7 +529,6 @@ namespace SiteAdaptation.Tests
         {
             PaneSettings settings = Project("rev6");
             string work = Work();
-            Assert.True(ReadInputs.NoPastFiles(settings.ConfigFile, "rev6", work), "the planted project is a raw read");
             List<RunInput> before = PaneRunState.InputsInFolder(settings, 2, work).ToList();
             Assert.Equal(new[] { PaneText.Settings, PaneText.InputFolder }, before.Select(input => input.Name));
             Assert.True(before[1].IsFolder);
@@ -563,10 +540,10 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void Button_2_keeps_the_old_list_of_inputs_where_there_is_no_work_folder()
+        public void R847_button_2_takes_the_settings_file_and_the_folder_where_there_is_no_work_folder()
         {
             var settings = new PaneSettings();
-            Assert.Equal(PaneRunState.InputsOf(settings, 2).Count, PaneRunState.InputsInFolder(settings, 2, null).Count);
+            Assert.Equal(new[] { PaneText.Settings, PaneText.InputFolder }, PaneRunState.InputsInFolder(settings, 2, null).Select(input => input.Name));
             Assert.Equal(PaneRunState.InputsOf(settings, 4).Count, PaneRunState.InputsInFolder(settings, 4, folder).Count);
         }
 

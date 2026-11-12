@@ -365,6 +365,10 @@ namespace SiteAdaptation.Tests
             Write(Path.Combine(book, "location_plan", "labels.csv"), "number\n2301\n");
             Write(Path.Combine(book, "phase1_border.csv"), "x,y\n0,0\n");
             Directory.CreateDirectory(work);
+            // R840, R847. The read for the build takes its plots from the read of the folder, here a made up one with one made up plot
+            string read = Path.Combine(work, "read_made");
+            Write(Path.Combine(read, ReadDataRun.PlotTableFile), "{\"plots\":[{\"baseplanLabel\":\"MU-1\",\"officialNumber\":\"9001\",\"nbhId\":\"Z9\"}]}");
+            Write(Path.Combine(read, ReadDataRun.RecordFile), new JObject { ["format"] = ReadDataRun.RecordFormat, ["runId"] = "2_20200101-000000-000", ["inputs"] = new JArray(), ["outputs"] = new JArray() }.ToString());
             return inputs;
         }
 
@@ -384,16 +388,16 @@ namespace SiteAdaptation.Tests
         {
             string work = Path.Combine(root, "SiteAdaptation", "site_0123abcd");
             List<RunInput> pane = ReadPane(work, DesignBasis.Rev6, First, Second);
-            Assert.Equal(new[] { First, Second }, RoadRoles(ReadInputs.Make(pane, ReadRoles, work).Inputs.Select(input => input.Role)));
-            Assert.Equal(new[] { Third, First }, RoadRoles(ReadInputs.Make(pane, ReadRoles, work, new[] { Third, First }).Inputs.Select(input => input.Role)));
-            ReadPlan missing = ReadInputs.Make(pane, ReadRoles, work, new[] { "Made Up Job__Road Z" });
+            Assert.Equal(new[] { First, Second }, RoadRoles(ReadInputs.ForBuild(pane, ReadRoles, work).Inputs.Select(input => input.Role)));
+            Assert.Equal(new[] { Third, First }, RoadRoles(ReadInputs.ForBuild(pane, ReadRoles, work, new[] { Third, First }).Inputs.Select(input => input.Role)));
+            ReadPlan missing = ReadInputs.ForBuild(pane, ReadRoles, work, new[] { "Made Up Job__Road Z" });
             Assert.Contains("Road surface: Made Up Job__Road Z.xml of the road surfaces named is not in the folder ", Assert.Single(missing.Stops));
-            Assert.Equal("Road surface: config names no road surface and Set up picked none (R490)", Assert.Single(ReadInputs.Make(ReadPane(work, DesignBasis.Rev6), ReadRoles, work).Stops));
+            Assert.Equal("Road surface: config names no road surface and Set up picked none (R490)", Assert.Single(ReadInputs.ForBuild(ReadPane(work, DesignBasis.Rev6), ReadRoles, work).Stops));
 
             List<RunInput> past = ReadPane(work, PastMode(), First);
             JObject config = JObject.Parse(File.ReadAllText(past[0].Path));
             List<string> site = ((JArray)config["siteBuild"]["roadSurfaces"]).Select(name => (string)name).ToList();
-            Assert.Equal(site, RoadRoles(ReadInputs.Make(past, ReadRoles, work, new[] { Third }).Inputs.Select(input => input.Role)));
+            Assert.Equal(site, RoadRoles(ReadInputs.ForBuild(past, ReadRoles, work, new[] { Third }).Inputs.Select(input => input.Role)));
         }
 
         private sealed class HeldWorker : IWorkerStart
@@ -407,31 +411,7 @@ namespace SiteAdaptation.Tests
             }
         }
 
-        [Fact]
-        public void R492_the_read_run_gives_the_pick_through_road_pick_and_the_request_of_the_past_job_holds_none()
-        {
-            string work = Path.Combine(root, "SiteAdaptation", "site_0123abcd");
-            WorkerRequest Started(string mode, IReadOnlyList<string> pick)
-            {
-                List<RunInput> pane = ReadPane(work, mode, First, Second);
-                var worker = new HeldWorker();
-                var run = new ReadDataRun(ReadRoles, worker, new WorkerDocument { Path = @"C:\Models\site.rvt", SessionId = "s1" }, () => new SettingsScope(), () => new ProjectSettings()) { RoadPick = () => pick };
-                run.Body().Start(new RunContext(2, "2 Read data", "2_20261102-000001-001", work, null, true, pane, new Dictionary<string, string>()), later => { });
-                return Assert.Single(worker.Requests);
-            }
-
-            WorkerRequest picked = Started(DesignBasis.Rev6, new[] { Second, First });
-            Assert.Equal(new[] { Second, First }, picked.RoadSurfaces);
-            Assert.Equal(new[] { Second, First }, RoadRoles(picked.Inputs.Select(input => input.Role)));
-            WorkerRequest named = Started(DesignBasis.Rev6, null);
-            Assert.Null(named.RoadSurfaces);
-            Assert.Equal(new[] { First, Second }, RoadRoles(named.Inputs.Select(input => input.Role)));
-            WorkerRequest past = Started(PastMode(), new[] { Second });
-            Assert.DoesNotContain("roadSurfaces", past.ToJson());
-            Assert.Equal(6, RoadRoles(past.Inputs.Select(input => input.Role)).Count);
-        }
-
-        // R484. The read of 2 Read data under the mode of the settings on a config of the past job: the road roles of the rev6 list, the mode in the request
+        // R484, R847. The read of 2 Read data under the mode of the settings on a config of the past job: the mode in the request of the folder read
 
         [Fact]
         public void R484_the_read_run_takes_the_mode_of_the_settings_on_a_past_job_config_and_a_project_with_none_reads_the_config()
@@ -448,10 +428,11 @@ namespace SiteAdaptation.Tests
 
             WorkerRequest rev6 = Started(DesignBasis.Rev6);
             Assert.Equal(DesignBasis.Rev6, rev6.ProjectMode);
-            Assert.Equal(new[] { First, Second }, RoadRoles(rev6.Inputs.Select(input => input.Role)));
+            Assert.Equal(ReadDataRun.DataCheckCommand, rev6.Command);
+            Assert.Empty(RoadRoles(rev6.Inputs.Select(input => input.Role)));
             WorkerRequest none = Started(null);
             Assert.DoesNotContain("projectMode", none.ToJson());
-            Assert.Equal(6, RoadRoles(none.Inputs.Select(input => input.Role)).Count);
+            Assert.Equal(ReadDataRun.DataCheckCommand, none.Command);
         }
 
         [Fact]
@@ -459,15 +440,15 @@ namespace SiteAdaptation.Tests
         {
             string work = Path.Combine(root, "SiteAdaptation", "site_0123abcd");
             List<RunInput> pane = ReadPane(work, PastMode(), First, Second);
-            Assert.NotEqual(ReadInputs.Make(pane, ReadRoles, work).Hash, ReadInputs.Make(pane, ReadRoles, work, null, DesignBasis.Rev6).Hash);
-            Assert.Equal(ReadInputs.Make(pane, ReadRoles, work).Hash, ReadInputs.Make(pane, ReadRoles, work, null, PastMode()).Hash);
+            Assert.NotEqual(ReadInputs.ForBuild(pane, ReadRoles, work).Hash, ReadInputs.ForBuild(pane, ReadRoles, work, null, DesignBasis.Rev6).Hash);
+            Assert.Equal(ReadInputs.ForBuild(pane, ReadRoles, work).Hash, ReadInputs.ForBuild(pane, ReadRoles, work, null, PastMode()).Hash);
         }
 
         [Fact]
         public void R484_read_inputs_stop_on_a_mode_outside_the_modes_by_name()
         {
             string work = Path.Combine(root, "SiteAdaptation", "site_0123abcd");
-            Assert.StartsWith("the project mode manual7 is no mode of designBasis.modes", Assert.Single(ReadInputs.Make(ReadPane(work, PastMode(), First), ReadRoles, work, null, "manual7").Stops));
+            Assert.StartsWith("the project mode manual7 is no mode of designBasis.modes", Assert.Single(ReadInputs.ForBuild(ReadPane(work, PastMode(), First), ReadRoles, work, null, "manual7").Stops));
         }
 
         // 4 Check on made up files as R376_CheckRunTests makes them, the worker a stand-in, the read holding the three made up surfaces
@@ -829,33 +810,17 @@ namespace SiteAdaptation.Tests
         {
             string work = Path.Combine(root, "SiteAdaptation", "site_0123abcd");
             List<RunInput> pane = ReadPane(work, DesignBasis.Rev6, First, Second);
-            ReadPlan named = ReadInputs.Make(pane, ReadRoles, work);
-            ReadPlan swapped = ReadInputs.Make(pane, ReadRoles, work, new[] { Second, First });
+            ReadPlan named = ReadInputs.ForBuild(pane, ReadRoles, work);
+            ReadPlan swapped = ReadInputs.ForBuild(pane, ReadRoles, work, new[] { Second, First });
             Assert.NotEqual(ReadDataRun.FolderOf(work, named), ReadDataRun.FolderOf(work, swapped));
-            Assert.Equal(named.Hash, ReadInputs.Make(pane, ReadRoles, work, new[] { First, Second }).Hash);
+            Assert.Equal(named.Hash, ReadInputs.ForBuild(pane, ReadRoles, work, new[] { First, Second }).Hash);
 
             List<RunInput> past = ReadPane(work, PastMode(), First, Second);
-            ReadPlan plain = ReadInputs.Make(past, ReadRoles, work);
+            ReadPlan plain = ReadInputs.ForBuild(past, ReadRoles, work);
             var hashes = plain.Inputs.ToDictionary(input => input.Role, input => input.Sha256, StringComparer.Ordinal);
             hashes["steps"] = string.Join(",", plain.Steps);
             Assert.Equal(StepHash.Combine(hashes), plain.Hash);
-            Assert.Equal(plain.Hash, ReadInputs.Make(past, ReadRoles, work, new[] { Second }).Hash);
-        }
-
-        [Fact]
-        public void R492_the_read_run_writes_a_swapped_pick_into_a_new_folder()
-        {
-            string work = Path.Combine(root, "SiteAdaptation", "site_0123abcd");
-            string Folder(IReadOnlyList<string> pick)
-            {
-                List<RunInput> pane = ReadPane(work, DesignBasis.Rev6, First, Second);
-                var worker = new HeldWorker();
-                var run = new ReadDataRun(ReadRoles, worker, new WorkerDocument { Path = @"C:\Models\site.rvt", SessionId = "s1" }, () => new SettingsScope(), () => new ProjectSettings()) { RoadPick = () => pick };
-                run.Body().Start(new RunContext(2, "2 Read data", "2_20261102-000001-001", work, null, true, pane, new Dictionary<string, string>()), later => { });
-                return Assert.Single(worker.Requests).OutputFolder;
-            }
-
-            Assert.NotEqual(Folder(new[] { First, Second }), Folder(new[] { Second, First }));
+            Assert.Equal(plain.Hash, ReadInputs.ForBuild(past, ReadRoles, work, new[] { Second }).Hash);
         }
 
         [Fact]
@@ -877,12 +842,12 @@ namespace SiteAdaptation.Tests
                 Write(Path.Combine(folder, ReadDataRun.RecordFile), record.ToString());
             }
 
-            ReadPlan swapped = ReadInputs.Make(ReadPane(work, DesignBasis.Rev6, First, Second), ReadRoles, work, new[] { Second, First });
+            ReadPlan swapped = ReadInputs.ForBuild(ReadPane(work, DesignBasis.Rev6, First, Second), ReadRoles, work, new[] { Second, First });
             Record(swapped, First + "\n" + Second);
             Assert.Null(ReadDataRun.Reusable(folder, swapped));
             Record(swapped, Second + "\n" + First);
             Assert.NotNull(ReadDataRun.Reusable(folder, swapped));
-            ReadPlan past = ReadInputs.Make(ReadPane(work, PastMode(), First, Second), ReadRoles, work);
+            ReadPlan past = ReadInputs.ForBuild(ReadPane(work, PastMode(), First, Second), ReadRoles, work);
             Record(past, null);
             Assert.NotNull(ReadDataRun.Reusable(folder, past));
         }
@@ -928,7 +893,7 @@ namespace SiteAdaptation.Tests
             File.WriteAllText(configPath, WithNotTaken(JObject.Parse(File.ReadAllText(configPath))).ToString());
             Write(Path.Combine(root, "input", "roads", "Made Up Job__Other Grading.xml"), "<LandXML/>");
             Assert.Equal("Road surface: Made Up Job__Other Grading is no road surface: " + Ground + " (R492)",
-                Assert.Single(ReadInputs.Make(pane, ReadRoles, work, new[] { First, "Made Up Job__Other Grading" }).Stops));
+                Assert.Single(ReadInputs.ForBuild(pane, ReadRoles, work, new[] { First, "Made Up Job__Other Grading" }).Stops));
 
             DesignBasis basis = DesignBasis.Of(WithNotTaken(RoadConfig(new JObject { ["surfaces"] = new JArray(First) })), () => null);
             Assert.Equal("the road surfaces of the request name Made Up Job__Other Grading, which is no road surface: " + Ground + " (R492)",

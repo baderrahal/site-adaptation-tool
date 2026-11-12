@@ -374,50 +374,6 @@ namespace SiteAdaptation.Tests
             Assert.Equal(none.Item2.Issues, defaults.Item2.Issues);
         }
 
-        // R473, R474. Button 2 writes picks.json into the folder of the read as the input picks, so the hash of the read, and its folder,
-        // changes with a pick, and read.json names the source of each kind and from where, pick, proposal or default. With no scan and
-        // no pick every kind is the default
-        [Fact]
-        public void R474_read_json_names_each_source_and_r473_the_read_hash_changes_with_a_pick()
-        {
-            string work = Path.Combine(folder, "SiteAdaptation", "site_0123abcd");
-            List<RunInput> inputs = Inputs(work);
-            ProjectSettings settings = null;
-            var worker = new PlotTableWorker();
-            var run = new ReadDataRun(Roles, worker, new WorkerDocument { Path = @"C:\Models\site.rvt", SessionId = "s1" }, () => new SettingsScope(), () => settings);
-
-            JObject first = Start(run, worker, work, inputs, "2_20261101-000001-001");
-            Assert.All(ReadPicks.Kinds, kind => Assert.Equal("default", (string)first["sources"]["kinds"][kind]["from"]));
-            Assert.Empty((JArray)first["sources"]["conflicts"]);
-
-            string scanFolder = Path.Combine(work, "scan_2_20261101-000002-000");
-            Directory.CreateDirectory(scanFolder);
-            File.WriteAllText(Path.Combine(scanFolder, "scan.json"), Scan("baseplan.dwg", "sales.xlsx", SalesSheet()).ToString());
-            JObject second = Start(run, worker, work, inputs, "2_20261101-000003-001");
-            Assert.Equal("proposal", (string)second["sources"]["kinds"]["plotOutline"]["from"]);
-            Assert.Equal("baseplan.dwg|MP_PLOT_LINE", (string)second["sources"]["kinds"]["plotOutline"]["source"]);
-            Assert.Equal("default", (string)second["sources"]["kinds"]["villaBlock"]["from"]);
-
-            settings = Picked(new Dictionary<string, string> { ["plotOutline"] = "baseplan.dwg|MP_PLOT_ALT + MP_PLOT_LINE" },
-                new Dictionary<string, string> { ["12|villa type|" + BlockTypes] = BlockTypes });
-            JObject third = Start(run, worker, work, inputs, "2_20261101-000004-001");
-            Assert.Equal(new JObject { ["source"] = "baseplan.dwg|MP_PLOT_ALT + MP_PLOT_LINE", ["from"] = "pick" }, third["sources"]["kinds"]["plotOutline"], JToken.EqualityComparer);
-            Assert.Equal(new JObject { ["plot"] = "12", ["field"] = "villa type", ["source"] = BlockTypes }, Assert.Single((JArray)third["sources"]["conflicts"]), JToken.EqualityComparer);
-
-            List<string> folders = worker.Requests.Select(request => request.OutputFolder).ToList();
-            Assert.Equal(3, folders.Distinct(StringComparer.OrdinalIgnoreCase).Count());
-            foreach (WorkerRequest request in worker.Requests)
-            {
-                WorkerFile picks = Assert.Single(request.Inputs, input => input.Role == "picks");
-                Assert.Equal(Path.Combine(request.OutputFolder, "picks.json"), picks.Path);
-                Assert.Equal(FileHash.Sha256(picks.Path), picks.Sha256);
-            }
-            // The same pick again reuses the read of the third run and starts no worker
-            JObject again = Start(run, worker, work, inputs, "2_20261101-000005-001");
-            Assert.Equal(3, worker.Requests.Count);
-            Assert.Equal("pick", (string)again["sources"]["kinds"]["plotOutline"]["from"]);
-        }
-
         private static readonly Dictionary<string, string> Roles = new Dictionary<string, string>
         {
             ["Settings"] = "config", ["Baseplan"] = "baseplan", ["Villa blocks"] = "villaBlocks", ["Curbs"] = "curbs", ["Road surface"] = "roadSurface",
@@ -427,53 +383,6 @@ namespace SiteAdaptation.Tests
         private static string SalesSheet()
         {
             return (string)JObject.Parse(File.ReadAllText(WorkerRunTests.RepoConfig())).SelectToken("dataBook.locationPlan.sales.sheet");
-        }
-
-        private JObject Start(ReadDataRun run, PlotTableWorker worker, string work, List<RunInput> inputs, string runId)
-        {
-            var context = new RunContext(2, "2 Read data", runId, work, null, true, inputs, new Dictionary<string, string>());
-            RunLater later = null;
-            run.Body().Start(context, end => later = end);
-            Assert.NotNull(later);
-            Assert.True(later.Failure == null, later.Failure);
-            string table = later.Outputs.Keys.Single();
-            return JObject.Parse(File.ReadAllText(Path.Combine(Path.GetDirectoryName(table), ReadDataRun.RecordFile)));
-        }
-
-        // The made up inputs of button 2 as the tests of R375 make them
-        private List<RunInput> Inputs(string work)
-        {
-            string input = Path.Combine(folder, "input");
-            JObject config = JObject.Parse(File.ReadAllText(WorkerRunTests.RepoConfig()));
-            config["inputRoot"] = input;
-            string configPath = Write(Path.Combine(folder, "config", "project.json"), config.ToString());
-            Write(Path.Combine(folder, "config", "cad_layers.json"), "{}");
-            var inputs = new List<RunInput>
-            {
-                new RunInput("Settings", configPath, false),
-                new RunInput("Baseplan", Write(Path.Combine(input, "baseplan.dwg"), "a made up baseplan"), false),
-                new RunInput("Villa blocks", Write(Path.Combine(input, "blocks.dwg"), "made up blocks"), false),
-                new RunInput("Curbs", Write(Path.Combine(input, "curbs.dwg"), "made up curbs"), false),
-                new RunInput("DLUS schedule", Write(Path.Combine(input, "dlus.xlsx"), "a made up DLUS"), false),
-                new RunInput("Sales schedule", Write(Path.Combine(input, "sales.xlsx"), "a made up sales"), false),
-                new RunInput("Plot numbers", Write(Path.Combine(input, "plan.pdf"), "a made up page"), false),
-            };
-            string roads = Path.Combine(input, "roads");
-            foreach (JToken name in (JArray)config["siteBuild"]["roadSurfaces"])
-            {
-                Write(Path.Combine(roads, (string)name + ".xml"), "<LandXML/>");
-            }
-            inputs.Add(new RunInput("Road surface", roads, true));
-            foreach (JProperty hood in ((JObject)config["connect"]["neighbourhoods"]).Properties().Where(hood => hood.Value.Type == JTokenType.Object))
-            {
-                Write(Path.Combine(input, "01_Output", "1.11 References", (string)hood.Value["schedule"]), "a made up schedule of " + hood.Name);
-            }
-            string book = Path.Combine(folder, "SiteAdaptation", "data_book");
-            Write(Path.Combine(book, "plots.csv"), "label\n1\n");
-            Write(Path.Combine(book, "location_plan", "labels.csv"), "number\n2301\n");
-            Write(Path.Combine(book, "phase1_border.csv"), "x,y\n0,0\n");
-            Directory.CreateDirectory(work);
-            return inputs;
         }
 
         private static string Write(string path, string text)
@@ -547,24 +456,6 @@ namespace SiteAdaptation.Tests
         private static WorkerFile Input(string role, string path)
         {
             return new WorkerFile { Role = role, Path = path, Sha256 = FileHash.Sha256(path) };
-        }
-
-        // The worker of button 2 run in process with a made up command read that writes a plot table of one plot
-        private sealed class PlotTableWorker : IWorkerStart
-        {
-            public List<WorkerRequest> Requests { get; } = new List<WorkerRequest>();
-
-            public void Start(string requestPath, string workFolder, WorkerRequest request, Action<WorkerAnswer> ended)
-            {
-                Requests.Add(request);
-                var commands = new Dictionary<string, WorkerCommand>
-                {
-                    ["read"] = context => context.WriteJson(request.OutputFolder, ReadDataRun.PlotTableFile,
-                        new JObject { ["plots"] = new JArray(new JObject { ["baseplanLabel"] = "12", ["officialNumber"] = "2301", ["nbhId"] = "013" }) }),
-                };
-                WorkerRunner.Run(requestPath, commands, () => 1e6, () => 0.0);
-                ended(WorkerAnswer.Read(WorkerFiles.AnswerPath(workFolder, request.RunId)));
-            }
         }
     }
 }

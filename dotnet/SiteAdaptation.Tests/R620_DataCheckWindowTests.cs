@@ -371,16 +371,15 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void Button_2_of_the_pane_runs_the_check_before_anything_else()
+        public void R847_button_2_of_the_pane_goes_to_the_read_of_the_folder_and_stops_with_no_settings_file()
         {
-            // Taking the call to DataCheckStep.Wrap out of ReadDataBody.For fails this test: the press would go to the scan, not to the check
+            // R847. The press goes to the one read, of the folder: with no settings file it stops by the line of that read and starts no worker
             var worker = new FakeWorker();
             ReadDataBody.Worker = worker;
             var session = new DocumentSession("s1", Path.Combine(folder, "model.rvt"), "model");
             ButtonBody body = ReadDataBody.For(session, IntPtr.Zero);
-            RunLater end = Press(body, Context());
-            Assert.NotNull(end);
-            Assert.Contains("name no input folder", end.Failure);
+            InvalidDataException stop = Assert.Throws<InvalidDataException>(() => Press(body, Context()));
+            Assert.Contains(ReadInputs.NoSettingsFile, stop.Message);
             Assert.Empty(worker.Requests);
         }
     }

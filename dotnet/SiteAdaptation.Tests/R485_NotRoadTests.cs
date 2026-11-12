@@ -117,7 +117,7 @@ namespace SiteAdaptation.Tests
             File.WriteAllText(config, Config(PastMode(), Road).ToString());
             var pane = new List<RunInput> { new RunInput("Settings", config, false), new RunInput("Road surface", RoadFolder(), true) };
             var roles = new Dictionary<string, string> { ["Settings"] = "config", ["Road surface"] = ReadInputs.RoadSurface };
-            ReadPlan plan = ReadInputs.Make(pane, roles, Path.Combine(root, "work"), new[] { Road, Grading }, DesignBasis.Rev6);
+            ReadPlan plan = ReadInputs.ForBuild(pane, roles, Path.Combine(root, "work"), new[] { Road, Grading }, DesignBasis.Rev6);
             Assert.Contains(Line, plan.Stops);
         }
 

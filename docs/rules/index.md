@@ -682,3 +682,4 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R839 The compare page is checked.
 - R840 Road levels take card 1 plots.
 - R843 A Build stop names only stops.
+- R847 Step 2 reads the folder alone.

@@ -85,6 +85,9 @@ namespace SiteAdaptation.Common.Flow
             return label + " is running already, its worker has not ended.";
         }
 
+        // R847. The four texts of the old read of step 2, with no caller since that read went. They stay only because the label list
+        // docs/design/14-ui-labels.md still holds them and UiLabelTests fails on an entry no file shows. The list is outside the files of task
+        // OLD-1d4-build-1, so Lead takes the four entries out and these four functions with them
         public static string ReadCounts(int files, double mib)
         {
             return "Reads " + files + " files, " + System.Math.Round(mib, 1).ToString(System.Globalization.CultureInfo.InvariantCulture) + " MiB.";
@@ -93,6 +96,18 @@ namespace SiteAdaptation.Common.Flow
         public static string ReadReuses(int files, string runId)
         {
             return "Reuses the read of run " + runId + ", its " + files + " input files are unchanged.";
+        }
+
+        public static string ReadFolderInstead(IReadOnlyList<string> lacks)
+        {
+            return lacks.Count == 0
+                ? "This project names no files for the old read, so the folder is read instead."
+                : "The old read lacks a file: " + lacks[0] + (lacks.Count > 1 ? ", and " + (lacks.Count - 1) + " more" : "") + ". The folder is read instead.";
+        }
+
+        public static string ReadFolderLack(string lack)
+        {
+            return "The old read lacks: " + lack;
         }
 
         // R639. A raw read has no list of files to count, the worker picks what it opens as it walks. So the count names what was measured, the
@@ -107,19 +122,6 @@ namespace SiteAdaptation.Common.Flow
         public static string ReadFolderReuses(string when, bool confirmed)
         {
             return "Reuses the read of " + when + (confirmed ? ", nothing changed: the folder, the settings file and the values a person confirmed are unchanged." : ", nothing changed: the folder and the settings file are unchanged.");
-        }
-
-        // R639. R635 sends a project that lacks a file of the old read to the folder on purpose. The plot table then differs, so a person is told which file did it
-        public static string ReadFolderInstead(IReadOnlyList<string> lacks)
-        {
-            return lacks.Count == 0
-                ? "This project names no files for the old read, so the folder is read instead."
-                : "The old read lacks a file: " + lacks[0] + (lacks.Count > 1 ? ", and " + (lacks.Count - 1) + " more" : "") + ". The folder is read instead.";
-        }
-
-        public static string ReadFolderLack(string lack)
-        {
-            return "The old read lacks: " + lack;
         }
 
         // R639. Why a read of these same files is done again, and what the end of a read says when it is not whole

@@ -39,8 +39,9 @@ namespace SiteAdaptation.Common.CheckTable
             public string Missing { get; set; }
         }
 
-        // R780. True for a file inside the data book of the work root, addin.readData.dataBookFolder of config beside the work folder as the old read
-        // of step 2 takes it (ReadInputs.DataBook). False when config names none
+        // R780. True for a file inside the data book of the work root, addin.readData.dataBookFolder of config beside the work folder, as the old read
+        // of step 2 took it until R847. False when config names none, which is so for the shipped config since R847: the guard then holds only for a
+        // project whose own config still names the folder, against a read record made before R847
         public static bool InDataBook(string path, JObject config, string workFolder)
         {
             JToken named = config?.SelectToken("addin.readData.dataBookFolder");

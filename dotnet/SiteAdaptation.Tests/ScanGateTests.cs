@@ -69,18 +69,5 @@ namespace SiteAdaptation.Tests
             Assert.Equal("list.xlsx|Sheet 1|Type|shift 0", settings.Project.ScanPicks["villaType"]);
             Assert.Equal("feet.dwg|block|BLOCKS", settings.Project.ConflictPicks["1|villa type"]);
         }
-
-        [Fact]
-        public void R438_the_scan_of_button_2_takes_the_settings_file_as_config_and_the_drawings_of_the_pane()
-        {
-            string config = Path.Combine(folder, "project.json");
-            string site = Path.Combine(folder, "site.dwg");
-            File.WriteAllText(config, "{}");
-            File.WriteAllText(site, "x");
-            var settings = new PaneSettings { ConfigFile = config };
-            settings.Inputs[InputNames.Baseplan] = new SettingsInput { Path = site };
-            IReadOnlyList<Common.WorkerFile> inputs = ReadDataBody.ScanInputs(settings);
-            Assert.Equal(new[] { "scanCad:1", ReadInputs.Config }, inputs.Select(input => input.Role));
-        }
     }
 }

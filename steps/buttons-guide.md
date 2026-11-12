@@ -24,7 +24,7 @@ In file names, <run> is the button and the time, such as 4_20261103-141015-492, 
 | Input files | Holds the file picks of the model | Drawings, schedules, the road surface folder | User picks in Inputs | Nothing on disk. Picks stay in memory until the next real run (Q413) | A Browse took 30 to 60 s late in the rehearsal |
 | Prototypes | Holds the folder of villa files | 13 Revit 2024 files | User picks Inputs\00_Revit Models\Zone 02\ARC\Prototypes_2024 | Nothing on disk, as Input files | As Input files |
 | 1 Set up site | Sets position, levels, types and parameters | Project settings, rules, position file, parameter sheet | Project files and Inputs\position | Revit settings and types. site.json in the work folder | 8 s |
-| 2 Read data | Reads the drawings and schedules | Input files, data book, past schedules | User picks, Inputs | read_<code> and scan_<run> in the work folder | 100 s, the picks window at 49 s |
+| 2 Read data | Reads the project folder | The project folder | Settings | read_<code> in the work folder | UNKNOWN, not measured since the folder read |
 | 3 Review data | The team checks each plot | The plot table of step 2 | Step 2 | review_<NBH>.json in the work folder | 9 s, then the team's time |
 | 4 Check | Builds the plan and compares it with the past job | Step 2 reads, rules, override list, prototypes, site.json | Step 1, step 2, Project files, Prototypes | check_<run> in the work folder. Save overrides writes the override list | 23 s, then the team's time |
 | 5 Floors and ramps | Places generic, yard and ramp floors | Plan of step 4 | Step 4 | Floors in Revit. floors_<NBH>.json in the work folder | 21 s and the Revit box |
@@ -158,30 +158,27 @@ Boxes: No site drawing in the setup, pick the Baseplan in the pane first. Nothin
 
 ## 2 Read data
 
-**What it does.** The helper program CadReader.exe reads every input outside Revit. First it scans the files and shows What the tool read, where each value comes from and what conflicts. Then it reads them in full. No element changes in Revit. A read of unchanged files is reused.
+**What it does.** The helper program CadReader.exe reads the project folder outside Revit: every drawing, workbook and villa file of a kind it knows, with the past output folders skipped by the settings. Then it shows Confirm what was found. No element changes in Revit. A read of an unchanged folder is reused.
 
 **Files it needs.**
 
 | File | Where it comes from | Folder |
 |---|---|---|
-| The input rows above, except Prototypes for the read | User picks | Inputs |
-| cad_layers.json, the layer list | Settings | C:\SA-demo\config |
-| 00101-PSN-IMC-XXX-SCH-TU-090000.xlsx, 00101-PSN-IMD-XXX-SCH-TU-090000.xlsx, past schedules | Settings | Inputs\01_Output\1.11 References |
-| plots.csv, location_plan\labels.csv, phase1_border.csv, the data book | Settings | Inputs\data_book |
-| The prototypes, for the scan | User picks | Inputs\00_Revit Models\Zone 02\ARC\Prototypes_2024 |
+| The project folder | Settings | The input folder of the project |
+| The values a person confirmed, when there are some | Confirm what was found | Work folder |
 
-**Before it.** Step 1. All input rows picked.
+**Before it.** Step 1. The project folder chosen.
 
 **What the user clicks.**
 
 1. Run 2 Read data.
 2. Apply on the dry run box.
-3. In What the tool read: Use the proposed for all, then Use these picks.
+3. In Confirm what was found: confirm or correct what the tool read.
 4. After it, pick the Scope: Whole project, Neighbourhood or Plot list. Step 3 takes Neighbourhood only. The list is empty until step 2 ends, so do not press Neighbourhood before it.
 
-Boxes: a missing file names it, for example needs Villa blocks, the file is not chosen. Cancel in What the tool read stops the step. Scope stop: change the scope and run it again, the read is reused.
+Boxes: a project folder that is not on disk is named. Scope stop: change the scope and run it again, the read is reused.
 
-**What it writes.** Work folder only: read_<code>\ with read_baseplan.json, read_villaBlocks.json, read_curbs.json, read_roadSurfaces.json, read_workbooks.json, read_locationPlan.json, read_plotTable.json, picks.json, read.json and a steps folder. scan_<run>\scan.json. request_2, answer_2 and worker_2 files.
+**What it writes.** Work folder only: read_<code>\ with the data check, the project profile, the plots, read_plotTable.json and read.json. request_2, answer_2 and worker_2 files.
 
 **Limits today.**
 
@@ -391,14 +388,11 @@ Limits today:
 | Input | Six surfaces of landxml | Inputs\landxml | 2 and 4 read |
 | Input | DLUS and accommodation Excel files | Inputs | 2 reads |
 | Input | 01101-PSN-ZZZ-XXX-DWG-TU-005000.pdf | Inputs | 2 reads |
-| Input | Two 00101 past schedules | Inputs\01_Output\1.11 References | 2 reads |
-| Input | plots.csv, labels.csv, phase1_border.csv | Inputs\data_book | 2 reads all, 4 reads two, 6 and 9 read plots.csv |
 | Input | cad_layers.json | C:\SA-demo\config | 2 reads |
 | Input | floor_outlines.json, prototype_offsets.json | C:\SA-demo\config | 4 reads |
 | Input | 13 prototypes | Inputs\00_Revit Models\Zone 02\ARC\Prototypes_2024 | 2 and 4 read, 7 under Links |
 | Step 1 | site.json | Work folder | 1 writes. 4 reads |
-| Step 2 | scan_<run>\scan.json | Work folder | 2 writes |
-| Step 2 | read_<code>\, picks.json, read.json | Work folder | 2 writes. 3 and 4 read |
+| Step 2 | read_<code>\, read.json | Work folder | 2 writes. 3 and 4 read |
 | Step 3 | review_<NBH>.json | Work folder | 3 writes and reads again |
 | Step 4 | check_<run>\plan_<NBH>.json, checks_<NBH>.json, steps | Work folder | 4 writes. 5 to 9 read the plan |
 | Step 4 | run_<run>.json | Work folder | 4 writes. 9 reads |
