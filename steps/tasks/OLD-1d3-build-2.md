@@ -2,7 +2,7 @@
 id: OLD-1d3-build-2
 lane: build-2
 stage: 2
-status: open
+status: done
 allowed:
   - dotnet/SiteAdaptation.AddIn/
   - dotnet/SiteAdaptation.Common/

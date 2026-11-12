@@ -453,3 +453,14 @@ No built model exists yet, so no real input reaches the first four.
 - Breaker of PR 305, OLD-1d1-build-2, ProjectPlots.Rows: a plot of the plot table whose number another plot already took, or with no number, is left out of plots.csv with no count and no line. Since R840 the road levels of the build read that file, so such a plot gets no road level and nothing says so. The code is of R780 and was not changed. On the read of card 1 of the baseline, by a count: 2,615 plots, 2,615 rows, none left out.
 - Breaker of PR 305, BuildRead.Run: the stop SiteBuildText.NoRead on a missing plot table can no longer be reached, ReadInputs.Plots stops first on the same case with the R780 line. Left in place, it goes with the old read.
 - Breaker of PR 305, CheckRun: when the folder plots_<read> of the work folder is deleted by hand after the read for the build, 4 Check stops with 'Run 2 Read data again' and the Build does not read again by itself, as the read files are still there. No real run does this.
+
+## OLD-1d3-build-2, the 3 cards are the only way in, 12 Nov 2026
+
+Left as they are by the task, each outside its folders or its list, none reached by a person:
+
+- docs/design/14-ui-labels.md still lists 3 texts of the ribbon and 8 of the pane that left, and the old line of How it works. UiLabelTests names those 13 lines in BehindTheTruth and fails on any other, and on any of them that is edited away, so the list in the test empties with the edit of the doc (Q658).
+- docs/design/12-ui-spec.md 7.1 and docs/design/13-workflow-changes.md still word the ribbon of 28 Oct with five panels. The test of the ribbon reads docs/truth.md now.
+- Theme.xaml keeps the icons SA.Icon.1 to SA.Icon.9 and SA.Icon.UpdateFromReport, and the tokens SA.Size.StepRow, SA.Size.StepMark, SA.Grid.StepMark, SA.StepWaitName and SA.Type.StepName.Weight. No XAML uses them since the step rows and buttons left. ThemeGateTests holds them against docs/design/12-ui-spec.md, so they go with the edit of that doc.
+- Help/help.json keeps the entries step1 to step9. python/build_help.py builds them from the guide, and only the i of a step row showed them. The rows of New project still show theirs.
+- A document with no saved path showed its step rows with no status. The rows are gone, PaneViewModel.Statuses gives such a document the states of StepPlan, which the cards read as before this task.
+- The name of a step in RibbonLayout.Steps still ends in Command, as SetUpSiteCommand, though no such class is left. Update from report is found by that name by Buttons.Run and by the jobs of the test host (ButtonsRun.UpdateCommand of Common), the other nine names are read by nothing but ButtonOf.
