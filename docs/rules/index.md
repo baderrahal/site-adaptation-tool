@@ -672,3 +672,8 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R832 Three readers skip the same places.
 - R833 Left out places counted and named.
 - R834 Wrong file pattern list is refused.
+- R835 Compare joins by plot number.
+- R836 Four measures per built plot.
+- R837 Counts held against past counts.
+- R838 Past models measured first.
+- R839 The compare page is checked.
