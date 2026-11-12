@@ -95,3 +95,18 @@ Measured once before the deletes and once right after. The work root shrank by 1
 ## The new check
 
 scripts/checks/write_places.py, with its test. Before the tests it lists the names on the drive roots, in Documents and in the repo outside git. After the tests it lists them again and fails the PR on every new name that is not the work root or a build folder (bin, obj, .venv, __pycache__, .pytest_cache, .vs, TestResults). It runs as the first and the last step of job tests and inside the quick tests. CHOSEN by Lead: it sees a new name, it does not see a file added inside a folder that was already there on the drive root or in Documents.
+
+## The second tidy, 12 Nov 17:44, Bader's order of 16:55
+
+Deleted from the work root, by Bader's order:
+
+| Folder | Files | Bytes | What it held |
+|---|---|---|---|
+| prototypes_2024 | 247 | 2,165,531,868 | The 13 villa files, 1,077,145,600 bytes, and their 13 backup folders. No step needs them, the build links the villa files of the input folder |
+| scenarios | 19 | 1,345,874,082 | S3: 15 DXF saves, 1,329,640,755 bytes, 3 workbooks, 16,160,317 bytes, and S3_manifest.json, 73,010 bytes |
+
+Moved, not deleted: 78 files named testhost_<code>_upgrade_<kind>, 320,872 bytes, from the work root itself into testhost\upgrade-12nov of the work root. The order counted 84. On disk were 78, 6 kinds for each of the 13 villa codes, RAN ls.
+
+Free on C before 79,559,798,784 bytes, after 83,071,795,200. The work root after: 755,935,974 bytes. Its folders: Bridge, New projects, OLD1-site_347b04be, answer-key, checks, compare, dev-manifest-stamps, landxml, lanes, old-1a, old-1b, old-1e1, old-project, round_addin, testhost, tmp. No file lies in the work root itself.
+
+Not done: the test host still writes testhost_<name>_<kind> files into the work root itself (dotnet/SiteAdaptation.TestHost/Run-TestHost.ps1 lines 121 to 129, JobSession.cs lines 44 and 65). That change is tool code, which Cowork writes since 12 Nov 16:55. The brief is Bridge\cowork-brief-testhost-folder.md under the work root.
