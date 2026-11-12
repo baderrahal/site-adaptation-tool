@@ -80,3 +80,56 @@ The exact words of card 2: "Build stopped at Read data: the worker ended refused
 |---|---|---|---|---|---|---|---|---|---|
 | 01A | 278 | 16:37:52 | at Read data, 16:41:14, 3.4 min after the press | 0 | 0 | 0 | 0 | 0 | 2619 |
 | 01A, second press | 278 | 16:44:59 | at Read data, 16:45:16, 17 s after the press | 0 | 0 | 0 | 0 | 0 | 2619 |
+
+## Held by Bader's order of 16:55
+
+Lead passed two orders of Bader to this lane during the run. 16:45: build only a small area, 01A is the one area of this task, the other 8 neighbourhoods are not run. 16:55: hold the run now, save, close the Revit this lane started, hash the input folder, write the record as it stands, push, open no PR.
+
+- This lane had a watch running for a third press, for the minute the PC would show 4.3 GB free. It never came: 39 readings from 16:46 to 16:56, least 0.42 GB, most 1.89 GB free (old-1e1\logs\free_memory.log). No third press was made.
+- 16:55:06 Save on the quick access bar, old-1b\OLD1-site.rvt written 16:55:07, 5,697,536 bytes. It holds card 1 and no built element.
+- 16:55:24 the main window closed by its frame, 16:55:47 Revit process 43692 gone, closed by its own window alone. The lock deleted (round_addin\logs\windows.jsonl: lockTaken 16:25:09, windowClosed after 30.65 minutes, lockDeleted). No Revit process is left (RAN Get-Process). One Revit window in the whole task.
+- The input folder after, 16:56 to 16:57: 837 files, 8,874,086,637 bytes. Against old-1e1\inputs-before.json: "before 837, after 837, gone 0, added 0, changed 0 (by size 0, by write time 0, by SHA-256 0)" (old-1e1\inputs-after.json).
+- scripts\checks\write_places.py --check: "PASS write places: nothing new on C:\, in Documents or in the repo outside the build folders".
+
+## Not run
+
+- The other 8 neighbourhoods, 012, 013, 02, 03, 021, 022, 010 and 01B: not run, by Bader's order of 16:45.
+- 4 Check, 5 Floors and ramps, 6 Levels, 7 Place villas, 8 Walls: never ran, 01A stopped at the read for the build both times.
+- The read of the built model, built\01A and python\compare_built.py: not run, nothing was built. steps/compare.md is not touched. The compare row of 01A stays the one of no built folder, 0 built.
+- Card 3 Report: not run. The button Report was off at the end, the card said "Waits for stage 2" and "2619 issues from the last build."
+- A third press of Build with enough free memory, and so what stops the Build after its read: UNKNOWN.
+- The PR, the status of the task file, quick-tests and the acceptance tests: not done, by the order of 16:55.
+
+## Second check, by a different method
+
+| Claim | First method | Second method | Result |
+|---|---|---|---|
+| The input folder is unchanged | hash_inputs.py, Python, all 837 files before and after | PowerShell: 837 files and the same bytes, 0 files written after 16:00 today, Get-FileHash of a random 60 files against the before list | equal, 0 of 60 differ |
+| Both Builds stopped at the read for the build | the line of card 2 read by UI Automation, old-1e1\logs\b01A_pane_end.txt and b01A2_loop.log | the files on disk: two answers of the worker with status refused, exit code 3, 0.2 s and 0.15 s, and 0 files of step 4 to 8 in the work folder since 16:00 | agree |
+| The stop is memory | the words of the card | freeMiBBefore of the two answers, 742 and 2,695, against the code lines named above | agree |
+| Plots of 01A | the Review window, 278 | read_counts.py of this morning on the same read, 278 | equal |
+| Revit closed, the lock back | windows.jsonl | no Revit process, no lock file under the work root | agree |
+
+## Lines for Lead
+
+1. The data book stop is gone and the Build of 01A now stops at the read for the build on memory, before any file is read. Exact words and code lines above. It is not of a neighbourhood.
+2. The read for the build asks 3.81 GiB free for the whole read (Q083). This PC has 15.78 GB and showed at most 3.23 GB free today with Revit open, and 0.4 to 1.9 GB while the other lanes build and test. So on this PC, as it ran today, card 2 can not pass its read. Whether it passes with the other lanes at rest is UNKNOWN, not tried.
+3. The first press also ran the read of card 1 again, 136 s, since that read is never whole on 16 GB, and it left 0.72 GiB free for the read for the build that came right after it.
+4. The saved model does not keep the row Prototypes, the Scope or the Villa mode. A person sets them again at each open.
+5. The Scope list holds "-" as a neighbourhood, 10 names where this morning showed 9.
+6. The line of card 2 "Build plan: ..." shows the east and north of the drawing in metres. It is left out of this record.
+7. The driver now waits through the progress window "Site Adaptation" of a worker step, old-1e1\scripts\build_loop.sh. This morning's loop did not know it.
+8. The load of the other lanes, and this lane's `dotnet build-server shutdown`, are under Setup.
+9. status in steps\tasks\OLD-1e1-revit-test.md is still open.
+
+## Not seen in Revit
+
+- Any step after the read for the build, for any neighbourhood.
+- A person using a window of Revit, and any picture of a window.
+
+## Left under the work root
+
+- old-1e1: inputs-before.json, inputs-after.json, scripts (the driver), logs (driver.log, the text of every window, free_memory.log, real values in them, never in git).
+- old-1b: OLD1-site.rvt of 16:55 with card 1 and no built element, OLD1-site-baseline-end.rvt, the model of 12:31 under a new name, OLD1-card1.rvt as it was.
+- OLD1-site_347b04be, the work folder: one more read of card 1, the review of 01A again, 2 build plans, plots_read_4b1a4a1eef460af2, 2 refused requests of the read for the build.
+- round_addin\logs\windows.jsonl: 3 new lines of round OLD-1e1.
