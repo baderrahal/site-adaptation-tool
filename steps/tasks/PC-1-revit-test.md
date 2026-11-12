@@ -2,7 +2,7 @@
 id: PC-1-revit-test
 lane: revit-test
 stage: 2
-status: open
+status: done
 allowed:
   - steps/revit-results/
   - steps/heads-up/revit-test.md
