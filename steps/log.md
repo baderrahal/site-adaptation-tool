@@ -2,6 +2,38 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Lead, this PC is the work machine, the audit and the plan, 12 Nov 2026
+
+Goal:
+- Bader's order of 12 Nov: no more demo, all work on Bader's PC, the tool builds the whole old project and each result is measured against the past models.
+
+Done:
+- PR 292: scripts/set-machine.ps1, the work root C:\SA-work\SiteAdaptation, steps/pc-setup.md, the four lane worktrees, six fast build tasks closed.
+- PR 293: steps/audit-12nov.md, 19 backlog lines and 3 question blocks moved to steps/history.
+- PR 294, revit-test: the 13 villa files as Revit 2024 files and the read of the 7 zone models, answer-key under the work root.
+- This PR: steps/old-project-pc.md, steps/plan.md, steps/bader-form-12nov.md, the oldest log entries of 3 Nov split to history.
+
+Checked:
+- Build Release 0 errors. Quick tests: pytest 154 passed, dotnet 2,774 passed, 0 failed. The add-in installed for Revit 2024.
+- The input folder: 837 files before and after, gone 0, added 0, changed 0 by SHA-256, by Lead's script and by the lane's two.
+- The audit by a claim check, 5 lines corrected. PR 292 by a review, 1 fault fixed with a test that fails without the fix.
+
+Remains:
+- Nothing of steps/plan.md is started, it waits for the form.
+- No LandXML file is in the input folder, task PC-2 of the plan. S5 and the scenario answers are not made.
+
+Known bugs:
+- 13 faults open: F11, F18 to F20, F23, F35 to F42. F21 UNKNOWN.
+- PaneTests of the hash off the UI thread failed once in the gate of PR 292 on net48 and passed on the rerun.
+- Run-TestHost.ps1 -Upgrade needs plan_imc_past.json for a file name, the lane used a stand-in and deleted it.
+
+Next:
+- Bader's answers, then PC-2 and OLD-1 by revit-test, OLD-2 by build-1.
+
+Your turn:
+- Answer the five items of steps/bader-form-12nov.md.
+- Delete the empty folder C:\sa-test-none by hand, a test run of Lead made it and a safety check stopped Lead from removing it.
+
 ## Lead, demo-live part 1 from the phase 3 run, 8 Nov 2026
 
 Goal:
@@ -1923,293 +1955,7 @@ Next:
 Your turn:
 - Opened: Q470 Plots a mass of its unit does not fit. Q471 Free ends that lose a wall they had room for. Closed: Q391, Q331, Q333, Q338. 179 open, steps/questions-open.md
 
-## Lane B REPORT-3NOV-B, 2026-11-03, the report in BIM layout
-
-Goal:
-- Why the report failed in the dry run, Q307, Q408, ISO name and BIM sheets
-
-Done:
-- R550 to R555. Cover, Plot schedule, Floors, Walls first, walls in Placed, one count for pane and report (R554, ButtonRun.IssueCount)
-- Dry run report: no failure in the logs, UNKNOWN what Bader saw, see the PR
-
-Checked:
-- python/report_excel_check.py on the real book: 105,411 matches, 0 mismatches. 336 villas, 1,003 floors, 778 walls from the model read
-- Update from report by the worker: 0 changes on the plain book, 1 on an edited one
-
-Remains:
-- New project fields, Lane C after this merges. The window of Update from report not seen in Revit
-- Element ids not opened by id in Revit, the screen was in use
-
-Known bugs:
-- C:\SA-demo\config holds no fileName block, so its models keep 012_Report.xlsx until it is refreshed
-
-Next:
-- 6b
-
-Your turn:
-- Opened Q450 Report defaults of old number, revision, status. Q451 Report Issues column against its sheets. Closed Q307 What the report Summary shows after a run. See steps/questions-open.md
-
-## Lane D PARAM-3NOV-D, 2026-11-03, shared parameters shown right, on links only
-
-Goal:
-- Bader's dry run: the pane row read Not chosen, New project said the sheet is missing, Q411 floors bound but empty
-
-Done:
-- R506: the pane row shows the sheet of config, green, 11 parameters, 12 left out, New project reads Found. R507: config/shared_parameters.xlsx, the 9 RRE_ZZ_SP_ rows and CASE on RVT Links alone, Plot on Floors. An old sheet stops nothing, a button 7 row binds on links alone whatever it names, so C:\SA-demo needs no edit
-- R508: button 1 takes other categories off a links row and says so before Apply and after. A removal alone keeps the last run, so steps 2 to 9 stay done
-- CHOSEN: CASE also leaves Detail Items, Bader's check asks links only
-
-Checked:
-- RAN on a15d58c: pytest 2,509 passed, 1 skipped. dotnet 2,563 net48, 2,238 net8.0. Past plans byte equal whole project and IMC. 62 inputs the same. Parity: 13 steps, net48 and net8.0, whole project and the 7 keys, past job and rev6, 32 runs, 416 lines, 0 failures
-- Review 1: chosen sheet green though button 1 stops, line gone after the run, code names in the note. Breaker 1: the rebind took Done off 2 to 9. The stop on an old sheet taken out at Bader's fix step 1. All fixed with tests. The rest in steps/latent.md
-
-Remains:
-- The Revit check, waits for Bader to say the dry run is over: no Revit, no lock, no install, no C:\SA-demo until then. So UNKNOWN: BindParameters in Revit, whether link values survive ReInsert on fewer categories, the windows in Revit
-
-Known bugs:
-- A model keeps the old binding until a press of 1
-
-Next:
-- Bader says the dry run is over, then the Revit check on a copy of SA-dryrun3nov-done.rvt and a records PR
-
-Your turn:
-- Closed: Q411 Floor parameters bound but never filled. 180 open, steps/questions-open.md
-
-## Lane A KNOWN-3NOV-A, 2026-11-03, the known issues with a clear answer
-
-Goal:
-- Bader: fix the known issues of Lane A with a clear answer, write a recommended answer on the rest
-
-Done:
-- R520 Start from opens on the saved project, a re-pick imports. R521 Review takes the official number on 2312, saved marks move with it. Front edge in plain words, counted from 1 as Review. The override line ends with its folder
-- Breaker: built R522 no Past on another job's key, removed, the add-in gives no key reads, Q396 to steps/latent.md
-
-Checked:
-- Touched tests on both runners, full gate before the PR, review 1 and breaker 1. Q400 and the check line not seen in Revit
-- Q401, Q402 compared with the IMC key, RAN: no override wanted
-
-Remains:
-- The Revit pass of FIX-3NOV-A runs with COORD-3NOV-A: a first pass stopped twice in New project, nothing conclusive
-
-Known bugs:
-- R347 of WorkerRunTests failed once on net48 in a gate under load, passed 3 of 3 alone
-
-Next:
-- COORD-3NOV-A, RAMP-3NOV-A
-
-Your turn:
-- Closed Q376 Plain words for the front edge override. Q396 Past of a native key on new project. Q400 New project reopens on Empty project. Narrowed Q355, Q397. Recommended written Q401, Q402. Opened none.
-- 181 open, steps/questions-open.md
-
-## Lane C HELP-3NOV-C, 2026-11-03, i beside each step
-
-Goal:
-- Hover line and side box on steps 1 to 9 and New project rows, text from the guide
-
-Done:
-- R540: python/build_help.py, help file in the DLL, side box
-
-Checked:
-- Touched tests on net48 and net8.0, the pane and New project PNGs read. Not seen in Revit yet
-
-Remains:
-- RULES-3NOV-C. Second guide PR when PARAM merges, then rebuild the help file
-
-Known bugs:
-- None new
-
-Next:
-- RULES-3NOV-C
-
-Your turn:
-- Opened none. Closed none.
-- 184 open, steps/questions-open.md
-
-## Lane B FIX-3NOV-B end, 2026-11-03, undo in Revit
-
-Goal:
-- Finish task 4, the undo check of R499 in Revit
-
-Done:
-- steps/investigations/undo-3nov.md. steps/dryrun-3nov.md: the step 1 line (Q415) and the undo line
-
-Checked:
-- One undo and one redo on 9, one undo on 3, read in the pane and the journal. Records only, no code
-
-Remains:
-- 4 not proven, it stopped on picks.json of the copy. Save prompt after 3, 4, 9 alone
-
-Known bugs:
-- none new
-
-Next:
-- Known issues, REPORT-3NOV-B, 6b
-
-Your turn:
-- Opened none. Closed none. See steps/questions-open.md
-
-## Lane C known issues, 2026-11-03, FIX-KNOWN-3NOV-C
-
-Goal:
-- The issues of the guide with a clear answer
-
-Done:
-- Pick surfaces under the row (Q403), plain band (Q404), CAD label (Q406), No changes line (Q408), Ramp joint name (Q410), step 8 Boundary walls (Q415)
-
-Checked:
-- Touched tests on net48 and net8.0, text and window only, no parity
-
-Remains:
-- Not seen in Revit. Step 1 text of Q415 from Lane A. Then HELP-3NOV-C, RULES-3NOV-C
-
-Known bugs:
-- Q400, Q416, Q417, Q418
-
-Next:
-- HELP-3NOV-C
-
-Your turn:
-- Opened Q416 Road row reads optional, step 2 needs it. Q417 Whole project stops at step 3. Q418 Empty project keeps old rules on a set up model. Closed Q403, Q404, Q406, Q408, Q410.
-- 184 open, steps/questions-open.md
-
-## Lane C GUIDE-3NOV-C, 2026-11-03, plain guide to the 9 buttons
-
-Goal:
-- A plain guide to the 9 buttons for Bader and the team, records only, no code change
-
-Done:
-- steps/buttons-guide.md: the table, one part per button and pane row, every file from start to end
-
-Checked:
-- Each line against its class or config key and the files of the rehearsal run, READ. The list is in the PR body
-
-Remains:
-- Shared parameters row and New project change with Lane D PARAM-3NOV-D, a second small PR when it merges
-
-Known bugs:
-- Pane lines say more than is built, Q415. Whole project times not known, Q414
-
-Next:
-- Bader's answers. The second PR after PARAM-3NOV-D
-
-Your turn:
-- Opened Q414 How long a whole project takes. Q415 Pane lines say more than is built. Closed none.
-- 186 open, steps/questions-open.md
-
-## Lane B DRY-RUN 3 Nov, 2026-11-03, the presenter check on frozen main b1a27d9, Lane B on the laptop
-
-Goal:
-- Bader: rehearse 1 to 9 on NBH 012 through the real windows, read the shared parameters, GO or NO-GO, steps/dryrun-3nov.md
-
-Done:
-- steps/dryrun-3nov.md. Lane B made the kit, none existed: SA-dryrun3nov.rvt from SA-demo-start. C:\SA-demo config and rules refreshed from main, backup in lane_b_check\p3nov_check\backup
-- 1 to 9 run twice through the pane. Fallback SA-dryrun3nov-done.rvt with its work folder
-
-Checked:
-- Q384 in Revit: a new Revit shows all nine rows as saved (READ the pane). Parameters read in Properties on 3 villas and 3 floors, none wrong
-- Inputs same 44 by SHA-256 at 15:12 (RAN), read again before the end
-
-Remains:
-- Undo in Revit not proven, keys and the Undo button changed no row. Task 4 checks left. Two plot overlaps merged, Lane A's question. 6b after the restart
-
-Known bugs:
-- Level 1 is empty after the build (Q412). Floors hold no RRE_ZZ_SP_ values (Q411). Report Summary gaps (Q307). Pane and report issue counts differ (Q307)
-
-Next:
-- Bader's dry run at 17:00. After the restart Bader resumes Lane B: Phase 6b
-
-Your turn:
-- Q411 Floor parameters bound but never filled. Q412 Level 1 is empty after the build. Q413 Input picks lost before a real run. 184 open, steps/questions-open.md
-
-## Lane A FIX-3NOV-A, 2026-11-03, a new project runs rev6 and grading files are no roads
-
-Goal:
-- Bader: Q373 project mode in the settings, Q371 notRoad list, an Empty project with no JSON edit reaches 4 Check under rev6
-
-Done:
-- R484 mode in the settings, on the request of all 7 sites. R485 7 grading files are left out and refused under rev6
-- Breaker 1 and my check: an Empty project had no config at all, so it told Rev 06 and could not build. Bader closed Q377, Q378
-- R486 the install ships a set, Empty project copies it per model. R487 its override list is empty, R330 gives way under rev6 alone
-- Fixed by the breakers: button 4 under rev6 always stopped on the role floorOutlines, a saved past job moved to rev6 on a plain Save, Save overrides refused on an empty list, two models of one name shared a list
-- The window before Save: Pick surfaces grey and a false parameter sheet stop, found by a Revit shot, fixed, the line now under Start from
-
-Checked:
-- 5 TU zones with the set, RAN: 1,759 of 1,791, the same 32 left out as PR 145, 0 changed. Recount from the plan files equal
-- ROSHN saved project, RAN: IMC and whole project byte-equal to main, with and with no mode
-- Parity on f225518, RAN: 32 runs, 416 lines, 0 failures, past job plan byte-equal. No Python, plan, CadReader, config or rules change after it
-- Gate on 183ef5f: dotnet net48 2,526 and net8.0 2,206 passed at 183ef5f, pytest 2,509 passed, 1 skipped at 59692e9, no Python change after
-- Revit on 84e1e69, RAN, 36 minutes under the lock: Empty project, Save setup, 1 dry run, 2, 3, 4 on a copy of NBH 012. Requests hold rev6, plan 336 plots, 0 overrides, inputs 43 of 43 same. One line edited, inputRoot in the project copy, to keep inputs on copies
-- Review 1 and window review, breaker 1 and 2
-
-Remains:
-- Not seen in Revit: the window fixes after 84e1e69 (Pick surfaces active, Found sheet row, the line's place), Road surfaces window, Apply of button 1. Lane B holds the lock to the freeze. Tests only so far
-
-Known bugs:
-- A new site still needs the inputs of this job (Q379). Update from report saves nothing on a new project (Q394)
-
-Next:
-- A short Revit pass of the items in Remains after the restart
-
-Your turn:
-- Closed: Q371 Seven non road files still offered. Q373 New project does not start under rev6. Q377 Where Empty project gets its config. Q378 Override list of a new project
-- Opened: Q379 A new project on another PC. Q394 Update from report on a new project. Q395 A mode in memory lost on reopen. Q396 Past of a native key on new project. Q397 Save As of a new project keeps one list. Q398 The 443 hairline floor overlaps at step 5
-- 181 open, steps/questions-open.md
-
-## Lane C 6C-3NOV-C, 2026-11-03, window check, Excel compare, check sheet
-
-Goal:
-- Every window against its board in real Revit, the Excel compare of NBH 012, the Part 1 sheet, then Bader's row rename before the 14:00 freeze
-
-Done:
-- R505: theme, pane, New project, How it works, What the tool read, Review data, 4 Check differences fixed. steps/investigations/6c-windows.md per window and the rest by owner
-- steps/investigations/6c-excel.md. steps/part1-check.md the short form for 16:00, steps/part1-check-long.md the long check for later
-- Bader 3 Nov: row Curbs reads Plot fronts (curb lines) with its Read only line, the run input keeps the name Curbs, a key of the step hashes (R366)
-
-Checked:
-- Real windows, RAN: 3 runs through the pane on copies, buttons 1 to 9 on NBH 012 in the last two. 1,003 floors, 336 villas, 778 walls, 1,339 Placed, 688 accepted, box 485. 43 inputs the same by SHA-256
-- Excel, RAN by openpyxl and by raw XML, the same counts: FFL 324 equal, 12 differ up to 187 mm, 1 missing. Steps 334, 2, 1. Placed against past Unit 334, 2, 1
-- Dead buttons: 0 pressed dead. Two Change buttons of New project have no handler and never show
-- Review 1 with the UI checklist: REAL fixed or a question, 3 LATENT
-
-Remains:
-- The rename and the separator are not seen in Revit, only in the rendered PNG and tests, the lock was Lane B's. Road surfaces never seen in Revit. Update from report filled state not seen, my driver failed twice
-
-Known bugs:
-- Q403 Road surface row cut. Q400 New project reopen. Q408 Update silent after a pick
-
-Next:
-- Bader's dry run at 17:00, steps/dryrun-3nov.md of Lane B
-
-Your turn:
-- Opened Q400 New project reopens on Empty project. Q401 12 plots differ from the past FFL. Q402 Plots 2301 and 2302 read VD4. Q403 Road surface row cut in the pane. Q404 Set up site band shows a code name. Q405 Export to Excel hidden in Rules. Q406 Conflicts Plot column shows the CAD label. Q407 Amber in the spec or the boards. Q408 Update from report shows nothing after a pick. Q409 Two greens and the step name weight. Q410 Rule column shows R471 on joint rows. Closed none.
-- 177 open, steps/questions-open.md
-
-## Lane B FIX-3NOV-B tasks 1 and 2, 2026-11-03, step rows survive a reopen and an undo, Lane B on the laptop
-
-Goal:
-- Bader: Q384, every button 2 to 9 records its run in the model. Q382, an undo takes the Done state back
-
-Done:
-- R498: buttons 3, 5, 6, 7, 8, 9 write in the transaction of the run, 2 and 4, which have none, in a small one of their own
-- Warnings, issues after the commit and outputs go in by a second write, one undo entry by a transaction group
-- R499: an undo or redo drops the runs of the session, each step reads the entity
-- Breaker: the record keeps its outputs under the work folder, so a copy or a Save As of the model is not Done
-- Task 3: steps/investigations/two-plot-overlaps.md, the 443 are hairline laps, deepest 1.47 mm. Ramps fit the 1 mm rounding, 71 yard corners do not, cause UNKNOWN. Not run in Revit, sent to lane-a, nothing fixed
-
-Checked:
-- Parity 32 runs, 416 lines, 0 failures. Gate dotnet 2,404 and 2,109 passed. Review 1, breaker 2 passes. Fakes only so far: the group and the undo in Revit are task 4
-
-Remains:
-- Tasks 3, 4, 5 of the round. Q382 narrowed to step 4 and site.json
-
-Known bugs:
-- Override list changes leave steps Done (Q386). An undo of 3 or 4 takes the record back, not the files
-
-Next:
-- PR of task 3, hand check of tasks 1 and 2 in Revit, Phase 6b
-
-Your turn:
-- Q384 Step rows lost on a reopen, closed. Q386 Override list changes leave steps Done. 166 open, steps/questions-open.md
+The entries of 3 Nov from Lane B REPORT-3NOV-B down to Lane B FIX-3NOV-B tasks 1 and 2 are in steps/history/log-2026-11-03-older.md, cut byte for byte on 12 Nov.
 
 ## Older entries
 
