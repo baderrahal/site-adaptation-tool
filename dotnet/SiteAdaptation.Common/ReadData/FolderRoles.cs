@@ -27,16 +27,18 @@ namespace SiteAdaptation.Common.ReadData
                 return found;
             }
             HashSet<string> skip;
+            List<System.Text.RegularExpressions.Regex> skipFiles;
             try
             {
                 skip = DataCheckSettings.SkipFoldersOf(config);
+                skipFiles = DataCheckSettings.SkipFilesOf(config);
             }
             catch (InvalidDataException refused)
             {
                 found.Left.Add(refused.Message);
                 return found;
             }
-            List<string> files = ReadInputs.FilesOf(Path.GetFullPath(folder), skip).OrderBy(file => file, StringComparer.Ordinal).ToList();
+            List<string> files = ReadInputs.FilesOf(Path.GetFullPath(folder), skip, skipFiles).OrderBy(file => file, StringComparer.Ordinal).ToList();
             JObject drawings = config["drawings"] as JObject;
             string curbDrawing = Text(config.SelectToken("dataBook.join.curb"), "drawing");
             Take(found, files, InputNames.Baseplan, Text(drawings, "baseplan"), "drawings.baseplan");

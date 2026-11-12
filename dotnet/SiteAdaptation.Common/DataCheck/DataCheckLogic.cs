@@ -40,6 +40,9 @@ namespace SiteAdaptation.Common
         public List<string> Ties { get; } = new List<string>();
         public ConfirmedProfile Confirmed { get; set; }
         public List<string> SkippedFolders { get; } = new List<string>();
+
+        // R833. The files the walk left out by dataCheck.skipFiles, by their place in the folder
+        public List<string> SkippedFiles { get; } = new List<string>();
     }
 
     public sealed class DataCheckOutput
@@ -167,8 +170,18 @@ namespace SiteAdaptation.Common
                 ["stopped"] = input.Stopped,
                 ["ties"] = new JArray(input.Ties),
                 ["skippedFolders"] = new JArray(input.SkippedFolders),
+                ["skippedFiles"] = new JArray(input.SkippedFiles.OrderBy(name => name, StringComparer.Ordinal)),
+                ["skippedLine"] = SkippedLine(input),
                 ["scanChecks"] = checks ?? new JArray(),
             };
+        }
+
+        // R833. What the folder read left out and why, counted in one plain line. The names are in skippedFolders and skippedFiles beside it
+        private static string SkippedLine(DataCheckInput input)
+        {
+            int folders = input.SkippedFolders.Count, files = input.SkippedFiles.Count;
+            return Line("Left out as past outputs by the settings: " + folders + (folders == 1 ? " folder" : " folders") + " by dataCheck.skipFolders and "
+                + files + (files == 1 ? " file" : " files") + " by dataCheck.skipFiles.");
         }
 
         // R426. The kinds of villa type source in the order a plot is read by: blocks, texts, a sheet column, a PDF page

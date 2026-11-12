@@ -126,7 +126,7 @@ namespace CadReader
 
         // The files of the folder, each folder walked in ordinal order and a link or junction never followed, so a run reads only what the
         // folder holds
-        private static List<string> Files(string folder, List<DataCheckNote> notes, HashSet<string> skip, List<string> skipped)
+        private static List<string> Files(string folder, DataCheckSettings settings, DataCheckInput input)
         {
             var found = new List<string>();
             var pending = new Stack<string>();
@@ -138,14 +138,22 @@ namespace CadReader
                 {
                     foreach (string file in Directory.GetFiles(here))
                     {
-                        found.Add(file);
+                        // R831. A past site model stands as a single file beside the folder of the villa files, so it is left out by its name
+                        if (DataCheckSettings.SkipsFile(settings.SkipFiles, file))
+                        {
+                            input.SkippedFiles.Add(Relative(folder, file));
+                        }
+                        else
+                        {
+                            found.Add(file);
+                        }
                     }
                     foreach (string child in Directory.GetDirectories(here))
                     {
                         // R635. A folder of past outputs names no input of a new project, the tool cannot tell a past file by its own name
-                        if (skip.Contains(Path.GetFileName(child)))
+                        if (settings.SkipFolders.Contains(Path.GetFileName(child)))
                         {
-                            skipped.Add(Relative(folder, child));
+                            input.SkippedFolders.Add(Relative(folder, child));
                         }
                         else if ((File.GetAttributes(child) & FileAttributes.ReparsePoint) == 0)
                         {
@@ -155,7 +163,7 @@ namespace CadReader
                 }
                 catch (Exception failure)
                 {
-                    notes.Add(new DataCheckNote { Name = Relative(folder, here), Kind = "folder", Read = false, Reason = failure.GetType().Name + ": " + failure.Message });
+                    input.Notes.Add(new DataCheckNote { Name = Relative(folder, here), Kind = "folder", Read = false, Reason = failure.GetType().Name + ": " + failure.Message });
                 }
             }
             return found.OrderBy(file => file, StringComparer.Ordinal).ToList();
@@ -179,7 +187,7 @@ namespace CadReader
 
         private static void Gather(WorkerContext run, string folder, DataCheckSettings settings, DataCheckInput input)
         {
-            foreach (string path in Files(folder, input.Notes, settings.SkipFolders, input.SkippedFolders))
+            foreach (string path in Files(folder, settings, input))
             {
                 string name = Relative(folder, path);
                 string extension = Path.GetExtension(path).ToLowerInvariant();

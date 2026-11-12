@@ -121,6 +121,7 @@ namespace SiteAdaptation.Common
                 ["sheetPath"] = sheetPath,
                 ["sheetProblem"] = input.SheetProblem,
                 ["skippedFolders"] = new JArray(input.SkippedFolders),
+                ["skippedFiles"] = new JArray(input.SkippedFiles),
             };
         }
 
@@ -156,6 +157,8 @@ namespace SiteAdaptation.Common
             input.PrototypeNames.AddRange(List(file, "prototypeNames").Select(name => (string)name));
             input.Notes.AddRange(List(file, "notes").ToObject<List<DataCheckNote>>());
             input.SkippedFolders.AddRange(List(file, "skippedFolders").Select(name => (string)name));
+            // R833. A gathered file written before this rule holds no such list, it left out no file
+            input.SkippedFiles.AddRange((file["skippedFiles"] as JArray ?? new JArray()).Select(name => (string)name));
             string sheetPath = (string)file["sheetPath"];
             // The sheet as the worker read it: read again only when the worker read it whole, so a sheet it did not find stays not found
             if (input.SheetFound && input.SheetProblem == null && sheetPath != null)

@@ -664,3 +664,11 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R821 The reuse line names the time.
 - R822 The read by part.
 - R823 Gathered file keeps top outline candidates.
+
+## 32-old1-r830-up.md
+
+- R830 Past output folders are left out.
+- R831 Site models left out by name.
+- R832 Three readers skip the same places.
+- R833 Left out places counted and named.
+- R834 Wrong file pattern list is refused.
