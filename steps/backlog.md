@@ -149,7 +149,6 @@ One backlog by stage, one line each with its Q or R id if it has one. Sources: s
 - Q474 The road toposolid stands as a tall block
 - Q475 The road bends between ramp front corners
 - Q477 A plot list press sends the pane to step 2
-- Q600 The road toposolid where two road surfaces give the road levels, item 4 of steps/bader-form-12nov.md
 
 ## 3 Review and deliver
 

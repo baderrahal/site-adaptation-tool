@@ -2,6 +2,38 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Lead, round 0: storage, the truth and the plan with Bader's answers, 12 Nov 2026
+
+Goal:
+- Bader's answers of 12 Nov 03:25 to the form, and round 0 of his order: delete the copies once proven not needed, point the tool at the villa files of the input folder, docs/truth.md as the one source of truth.
+
+Done:
+- Storage, steps/storage-12nov.md: 1,363 files deleted from scenarios of the work root, 24,041,752,635 bytes, each scenario file equal by SHA-256 to a file of the input folder, and the manifests of S1, S2 and S4. Kept: 18 files of S3 no input file equals, and the 13 villa files revit-test saved with their worksharing folders.
+- The test that made C:\sa-test-none now keeps every refused root under its own folder.
+- scripts/checks/write_places.py, a new check of the gate and of the quick tests: a test run that leaves a new name on a drive root, in Documents or in the repo outside the build folders fails.
+- Run-TestHost.ps1 -Upgrade takes the file name of a code from the prototype folder. The help lines name the Prototypes_2024 folder of the inputs.
+- docs/truth.md, CLAUDE.md with the standing rules, steps/plan.md written again, steps/rules-vs-truth-12nov.md, the task OLD-1a-revit-test. Nine old plans, forms and demo files moved to steps/history. Q600 closed.
+
+Checked:
+- The input folder before the deletes: 837 files, gone 0, added 0, changed 0 against inputs-after.json of the morning, and the same again after the round.
+- Build Release 0 errors. Quick tests passed with the new check inside, 2,774 dotnet tests.
+- The work root 27,645,405,299 bytes before, 3,603,847,286 after.
+
+Remains:
+- C:\sa-test-none is still there, a safety check refuses Lead the removal of a folder on the drive root.
+- Q225 is answered by Bader and stays in the open list until the yard floor task of round 2 changes the rule that cites it (R401).
+- 42 rule lines that disagree with docs/truth.md are listed, most go with round 1 step d.
+
+Known bugs:
+- As the entry below, none new.
+
+Next:
+- Round 1 step a, the road surfaces as LandXML, by revit-test.
+
+Your turn:
+- Delete the folder C:\sa-test-none by hand.
+- Say the word if the 13 villa files of prototypes_2024 of the work root, 2.2 GB that no step needs, may go.
+
 ## Lead, this PC is the work machine, the audit and the plan, 12 Nov 2026
 
 Goal:

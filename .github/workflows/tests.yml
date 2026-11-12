@@ -25,6 +25,10 @@ jobs:
           dotnet-version: "8.0.x"
       - run: python -m pip install -r requirements.txt
 
+      # Bader's rule of 12 Nov: a test or a script writes only under the work root. The names before the tests, compared by the last step
+      - name: Write places, before the tests
+        run: python scripts/checks/write_places.py --save
+
       - name: pytest
         if: ${{ !cancelled() }}
         run: python -m pytest python -q
@@ -110,3 +114,7 @@ jobs:
       - name: No attribution check
         if: ${{ !cancelled() }}
         run: python scripts/checks/no_attribution.py
+
+      - name: Write places check
+        if: ${{ !cancelled() }}
+        run: python scripts/checks/write_places.py --check

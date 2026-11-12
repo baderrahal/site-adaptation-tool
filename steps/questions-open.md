@@ -416,7 +416,3 @@ Q507. Irregular plot walls and garden walls (backlog Q149, Q259). Rule M14 and t
 Q508. Real villa links mode and the move stop R523 (backlog). Both need a Revit run.
 - Recommended: They stay with the Revit lane and are not part of siteBuild.
 - Other: Plan the link position in siteBuild from the plot outline.
-
-Q600. The road toposolid of a neighbourhood whose road levels come from two road surfaces (FAST-8, steps/seam.md lines 78 and 82, 7 Nov). On 01A every plot gets its floor level, the front corners took their road levels from two picked road surfaces, and the toposolid is made from one surface, so the road edge of the ramps lies in a hole of it.
-- Recommended: a task joins the road surfaces the front corners took into the one toposolid. R485 stays, no ground or grading surface stands in for a road.
-- Other: no toposolid for such a neighbourhood.

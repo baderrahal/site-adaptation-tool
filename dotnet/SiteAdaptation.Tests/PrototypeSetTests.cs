@@ -131,6 +131,8 @@ namespace SiteAdaptation.Tests
                 Assert.Contains("holds 0 files", Pwsh(Refusal(pick + "VL4")));
                 Assert.Contains("holds 0 files", Pwsh(Refusal(pick + "DP")));
                 Assert.Contains("holds 0 files", Pwsh(Refusal(pick + "DP2")));
+                // 12 Nov. The ARC upgrade asks the same folder read for the discipline of prototypeNames
+                Assert.Equal("RRE-WP-NSP-KEO-ARC-DP2-ZZ-MOD-2200.rvt", Pwsh(pick.Replace("-Discipline STR", "-Discipline $config.prototypeNames.discipline") + "DP2"));
                 // The name parts come from the config, never from the code: other parts pick another file
                 File.WriteAllText(Path.Combine(folder, "ABC-STR-C10-Q-1.rvt"), "dummy");
                 string other = Config(StrSet, "{\"prefix\": \"ABC-\", \"discipline\": \"ARC\", \"suffix\": \"-Q-\"}");
@@ -253,6 +255,10 @@ namespace SiteAdaptation.Tests
             int plan = script.IndexOf("$plan = Get-Content -Raw $planPath | ConvertFrom-Json", setFile, StringComparison.Ordinal);
             Assert.True(branch > 0 && setFile > branch && other > setFile && plan > other);
             Assert.DoesNotContain("$plan", script.Substring(branch, other - branch));
+            // 12 Nov. An ARC upgrade takes its file from the prototype folder as a set does, before the branch that reads the plan
+            int arcFile = script.IndexOf("    elseif ($Upgrade) {", setFile, StringComparison.Ordinal);
+            Assert.True(arcFile > setFile && arcFile < other);
+            Assert.Contains("$prototype = Get-SetPrototype -Folder $sourceFolder -Names $names -Discipline $names.discipline -Code $Code", script.Substring(arcFile, other - arcFile));
             Assert.Contains("$sourceFolder = if ($set) { Join-Path $root $set.source } else { Join-Path $root $config.pastJob.prototypeFolder }", script);
             // Q215, D19. The ARC copies go into the folder under the work root, and no target of an upgrade lies under an input root
             Assert.Contains("$targetFolder = if ($set) { Join-Path $root $set.target } else { Get-UpgradeFolder -Docs $docs -InputRoots $inputRoots }", script);

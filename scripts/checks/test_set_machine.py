@@ -35,8 +35,11 @@ def test_keeps_the_other_keys(tmp_path):
     assert json.loads(machine.read_text(encoding="utf-8"))["other"] == 3
 
 
-@pytest.mark.parametrize("root", [r"C:\SA-work", r"SiteAdaptation", r"C:\a\..\SiteAdaptation", r"C:\02-Site Adaptation\SiteAdaptation", "C:\\sa-test-none\\SiteAdaptation\\"])
+# {tmp} is the folder of the test. A script that lost a refusal makes the folder it is given, so no root here is one the script could
+# make outside that folder: on 12 Nov the last root stood on the drive root and a broken script made it there
+@pytest.mark.parametrize("root", [r"{tmp}\SA-work", r"SiteAdaptation", r"{tmp}\a\..\SiteAdaptation", r"C:\02-Site Adaptation\SiteAdaptation", "{tmp}\\none\\SiteAdaptation\\"])
 def test_refuses_a_root_the_readers_refuse(tmp_path, root):
+    root = root.replace("{tmp}", str(tmp_path))
     done = run(tmp_path / "appdata", root)
     assert done.returncode == 1
     assert "REFUSED" in done.stdout
@@ -44,3 +47,4 @@ def test_refuses_a_root_the_readers_refuse(tmp_path, root):
     if root.endswith("\\"):
         assert "last folder" in done.stdout
     assert not (tmp_path / "appdata" / "SiteAdaptation" / "machine.json").exists()
+    assert [item.name for item in tmp_path.iterdir()] == [], "a refused root made a folder"

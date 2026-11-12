@@ -1,6 +1,6 @@
 #Requires -Version 7
 # Bader's order of 7 Nov 21:06. The stage 1 read of a new project folder, outside Revit, by the worker of the installed add-in, so Lead can
-# fill steps/bader-form-8nov.md before anyone opens Revit. It copies no file of the folder and writes only under <work root>\intake.
+# fill steps/history/bader-form-8nov.md before anyone opens Revit. It copies no file of the folder and writes only under <work root>\intake.
 # Two reads: the raw read, then a read with the proposed columns confirmed, as card 1 does today (F22 makes the second one go).
 # The folder is hashed before and after, a change fails the run, as CLAUDE.md asks of every run on real inputs.
 param(

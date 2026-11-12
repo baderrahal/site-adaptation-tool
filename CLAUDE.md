@@ -1,14 +1,16 @@
 # Site Adaptation Tool
 
-A Revit 2024 add-in, C# on .NET Framework 4.8, that takes a project's site drawings, schedules and prototypes and builds the site model: levels, floors, ramps, villa links and walls, then checks it and reports. Python stays in the repo as the test checker only. The rules live in docs/rules/ and nowhere else, docs/rules/index.md finds a rule by id.
+A Revit 2024 add-in, C# on .NET Framework 4.8, that takes a project's site drawings, schedules and prototypes and builds the site model: levels, floors, ramps, villa links and walls, then checks it and reports. Python stays in the repo as the test checker only. Read docs/truth.md first, the one source of truth. The rules live in docs/rules/ and nowhere else, docs/rules/index.md finds a rule by id.
 
 ## The old project on Bader's PC, from 12 Nov
 
-Bader's order of 12 Nov. The fast build is over, steps/history/CLAUDE-fast-build-6nov.md.
-- The goal: the tool builds every neighbourhood of Phase 1 from an empty model, each result measured against the past Revit models. Phase 3, the new project path, waits for that.
-- The work machine is Bader's PC, steps/pc-setup.md. One Revit at a time, 16 GB. Civil 3D 2026.
-- The work root is C:\SA-work\SiteAdaptation, written into %APPDATA%\SiteAdaptation\machine.json by scripts/set-machine.ps1. No path of a user or a tool folder in a script, hook or rule.
-- The live plan is steps/plan.md. S1 and the hold-out per PR wait until their folders and answers exist again here, steps/old-project-pc.md.
+The goal: the tool builds every neighbourhood of Phase 1 from an empty model, each measured against the past Revit models at the pass level of docs/truth.md. No new project work, no installer until Bader asks. The live plan is steps/plan.md. The PC is in steps/pc-setup.md.
+
+Standing rules of every round, Bader 12 Nov:
+- C:\02-Site Adaptation is read only, SHA-256 before and after every run. The tool reads it in place, with the past output folders skipped by settings (01_Output, Revit All Zones, Native Files, the site models of 00_Revit Models). No copy of it is ever made.
+- Every file the tool, a script, a test or a lane writes goes under C:\SA-work\SiteAdaptation, the work root of machine.json, scripts/set-machine.ps1. Nothing on C:\ root, nothing in Documents, nothing in the repo but code and records. scripts/checks/write_places.py fails a PR that writes elsewhere.
+- No vibe code. Add only what the task lists. Every function has a caller named in the PR. Every rule has its id, plain name, input, output and test. Where a task is silent, take the smallest version, mark it CHOSEN, go on.
+- One Revit at a time, this PC has 16 GB.
 
 ## The 3 stages and the rules
 
@@ -18,7 +20,7 @@ Bader's order of 12 Nov. The fast build is over, steps/history/CLAUDE-fast-build
 | 2 Build site | 4 Check, 5 Floors and ramps, 6 Levels, 7 Place villas, 8 Walls | the built model |
 | 3 Review and deliver | 9 Report, Update from report | the Excel files and the delivered model |
 
-Rules per project: each project holds its own rule set, chosen and edited in the add-in. A round names stage 1, 2, 3 or rules. The button map is CHOSEN by Code from the pane titles, Bader corrects it.
+Rules per project: each project holds its own rule set, chosen and edited in the add-in. A round names stage 1, 2, 3 or rules.
 
 ## Roles and lanes
 
@@ -36,13 +38,12 @@ Trust an answer only if it names proof you can check in the repo.
 ## How to work
 
 - One task per fresh session. Round: /round. Task: /task. Then /merge, /report. Whole repo: /audit, /questions.
-- Plan first, then continue without waiting.
 - Claims need proof as a file and line or command output. Write UNKNOWN instead of guessing.
 - Never mark a thing done without a second check by a different method.
 - Never commit to main, a hook blocks it. Merge a green PR at once, never two waiting.
-- Per PR, S1 and the hold-out. All five scenarios once at the end of a round, before its check. One review pass for a small change, a second only for logic, Excel numbers, overrides or Revit model writes. Run scripts/status.ps1 -Progress after each merge.
+- Per fix, the compare at the pass level, on its neighbourhood and on one it was not tuned on. One review pass for a small change, a second only for logic, Excel numbers, overrides or Revit model writes. Run scripts/status.ps1 -Progress after each merge.
 - Use `git push origin --delete` for a merged branch, never gh with --delete-branch.
-- New question: next free Q id after checking origin/main, recommended answer first, in steps/questions-open.md. That file is near the 100 KB cap of R400, move or shorten text first.
+- New question: next free Q id after checking origin/main, recommended answer first, in steps/questions-open.md.
 - A fix on its third attempt stops and goes back to measuring.
 - Push your branch every 15 minutes while working. Never leave two PRs waiting.
 - Any steps for Bader are numbered, one action each, in the VS Code order: the folder, then Terminal then New Terminal, then each command on its own line. Long steps go in a file under steps/.
@@ -65,7 +66,7 @@ Traps, 5 Nov:
 
 ## The tool must work for any project
 
-- No ROSHN data in code. Project values go in config and the rules profile. Known debt, the audit found past values in the shipped set, steps/backlog.md holds it.
+- No ROSHN data in code. Project values go in config and the rules profile.
 - No hand editing of JSON by users, every setting has a window.
 - Every value carries a source tag: computed, rule, user pick, missing, and past only in past job mode. A value tagged override or past needs an entry in docs/signoff.md.
 - Rule ids are R###, question ids are Q###. Never renumbered or reused.
@@ -74,7 +75,7 @@ Traps, 5 Nov:
 ## Past job mode
 
 - The 7 Rev 6 site models and the override list belong to the past job. They are for compare, never a source for a new project (steps/truth-audit.md).
-- Majority rule, Bader's rule since Round 17, past job mode only until Bader says otherwise: code the logic most past plots follow, put each plot it misses in config/overrides/roshn-makkah.json, mark a rule weak under majority.strongShare. CHOSEN by Code: it no longer rules a new project, by the lessons below. Full text: steps/history/CLAUDE-until-setup-lanes.md.
+- Majority rule, Bader's rule since Round 17, past job mode only until Bader says otherwise: code the logic most past plots follow, put each plot it misses in config/overrides/roshn-makkah.json, mark a rule weak under majority.strongShare.
 - The area key is the Neighbourhood_ID, never an IM letter.
 
 ## Writing
@@ -83,8 +84,7 @@ Plain English. No em-dashes, no semicolons, no emoji, in every file, commit and 
 
 ## Real files
 
-- Real drawings, sheets and workbooks stay where they are. Readers run on them in place and never write there.
-- No link or junction into C:\02-Site Adaptation, C:\10- ROSHEN MECCA or an input root of config. Runs write only under the work root. A run that reads real inputs records name, size, write time and SHA-256 of each file before and after, and fails on any change.
+- No link or junction into C:\02-Site Adaptation, C:\10- ROSHEN MECCA or an input root of config. A run that reads real inputs records name, size, write time and SHA-256 of each file before and after, and fails on any change.
 - Never copy a real file into git, this repo is public. Never commit real coordinates or levels, logs hold counts, row numbers and distances only. sample_data/ and sample_output/ stay ignored.
 - A file that fails or times out is recorded with its exact error and the run carries on. Never swap in a dummy file.
 - Run the placer and add-in only on copies of a model. Never read or write the registry.
@@ -112,7 +112,7 @@ Unset SITE_ADAPTATION_INPUT before running these. The gate is green checks on th
 | config/, rules/ | project.json, override list, parameter sheet, rules profile |
 | docs/rules/ | the rules, index.md finds an id |
 | docs/design/, docs/addin-mock.md | the add-in design, the approved mock |
-| docs/lessons.md, docs/signoff.md | lessons, sign off of past and override values |
+| docs/truth.md, docs/lessons.md, docs/signoff.md | the truth, lessons, sign off of past and override values |
 | docs/repo-map.md | the long map, grep it for a path |
 | dotnet/SiteAdaptation.AddIn | the Revit add-in, ribbon, pane, windows |
 | dotnet/SiteAdaptation.Common | logic with no Revit type |

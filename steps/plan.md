@@ -1,81 +1,58 @@
 # The plan from 12 Nov 2026
 
-The one live plan. Bader's order of 12 Nov: the tool builds the whole old project, every neighbourhood of Phase 1, from an empty model, and each result is measured against the past Revit models the team built. Phase 3 waits. steps/plan-fast-3days.md is the old plan of 6 to 8 Nov, kept as a record.
+The one live plan, written again with Bader's answers of 12 Nov 03:25. The truth is docs/truth.md: the goal, the standing rules, the pass level and the decisions are there and are not repeated here. Older plans and forms are in steps/history.
 
-Nothing of this plan starts until Bader answers steps/bader-form-12nov.md. The order below is the recommended one, item 1 of the form. Each task becomes a file in steps/tasks by /round when its turn comes, one open task per lane.
+Where it starts from, steps/audit-12nov.md and steps/old-project-pc.md: one neighbourhood, 01A, was built from an empty model on the laptop on 8 Nov, 263 of 278 plots, with 0 yard floors and the mirror value missing on 211 plots. Nothing built was ever held against a past model in Revit. The input folder holds no LandXML file, so no plot gets a road level on this PC until step a of round 1.
 
-Where it starts from, steps/audit-12nov.md and steps/old-project-pc.md: one neighbourhood, 01A, was built from an empty model on the laptop on 8 Nov, 263 of 278 plots, with 0 yard floors and the mirror value missing on 211 plots. Nothing built was ever held against a past model in Revit. This PC has 16 GB, one Revit at a time, and no speed number of the laptop holds here.
+Words: the answer key is what the 7 past models hold, read into answer-key under the work root by task PC-1-revit-test. A compare number is a count of steps/compare.md, never a coordinate or a level.
 
-Words: the answer key is what the past models of Revit All Zones hold, read into answer-key under the work root by task PC-1-revit-test. A compare number is a count of the compare table of task OLD-2, never a coordinate or a level.
+## Round 0, done by this PR
 
-## Order
+Storage (steps/storage-12nov.md), the villa files of the input folder and the upgrade script, docs/truth.md, the write places check.
 
-| # | Task | Lane | Starts when |
-|---|---|---|---|
-| 0 | PC-2 the road surfaces as LandXML again | revit-test | Bader answers the form |
-| 1 | OLD-1 the full old project run | revit-test | PC-1-revit-test and PC-2 are done |
-| 2 | OLD-2 the compare | build-1 | With OLD-1, it needs only the answer key and one built model |
-| 3 | OLD-3 to OLD-9 the fixes, worst first by the compare | build-1, build-2, build-3 | The first compare table is in steps/compare.md |
-| 4 | NEW-1 the new project path, then ROAD-1, then INST-1 | build-2, build-3, build-1 | The old project meets the pass level of the form |
+## Round 1, OLD-1
 
-## PC-2, the road surfaces as LandXML again
+Five steps in this order, each its own PR, merged on green, never two waiting. One open task per lane, each task a file in steps/tasks.
 
-- Lane: revit-test, it holds the one window of Revit or Civil 3D.
-- What: the input folder holds no LandXML file on this PC (steps/old-project-pc.md section 1). The 18 files the runs of 6 to 8 Nov took their road levels from were exports of the road drawings into the old work root, which is gone. Export them again with Civil 3D 2026 through the probe of dotnet/SiteAdaptation.C3DProbe and python/c3d_run.py, on copies of the 4 drawings of Roads under the work root, and put the files into S1 of the work root with a new manifest.
-- Files: steps/revit-results/PC-2-revit-test.md. No code, unless the probe does not build against Civil 3D 2026 on this PC, then that fix alone.
-- Rule ids: none.
-- Done when: the count of surfaces exported is in the record, each named in siteBuild.roadSurfaces of config/project.json is there, and the 4 drawings are unchanged by SHA-256.
-- Compare number: none. Without it OLD-1 builds no plot.
+| Step | Task | Lane | What | Done when |
+|---|---|---|---|---|
+| a | OLD-1a-revit-test | revit-test | The surfaces of Roads\Makkah Phase 1_Road Surface C3D.dwg exported to LandXML with Civil 3D 2026, from a copy of the drawing under the work root, into landxml of the work root. Read back with python/landxml_reader.py. The copy deleted after | The record holds the count of surfaces and of points and faces read back per surface, every name of siteBuild.roadSurfaces of config is there or named as missing, the drawing unchanged by SHA-256, the copy gone |
+| b | OLD-1b-revit-test | revit-test | The baseline run. The 3 cards on the whole old project from an empty model copy, reading the input folder in place with the past output folders skipped by settings. Card 1 once. Card 2 per neighbourhood, one per part under 110 minutes. Card 3 Report at the end. A neighbourhood that stops: its exact words, then the next | steps/revit-results/OLD-1-revit-test.md holds one row per neighbourhood with times and counts. The input folder unchanged by SHA-256 |
+| c | OLD-1c-build-1 | build-1 | python/compare_built.py with its test: the built model against answer-key, joined by plot number, the columns and the pass level of docs/truth.md. It first counts each past model against itself as 100 percent | steps/compare.md written by the script, counts only, the same bytes on a second run |
+| d | OLD-1d-build-2 | build-2 | Code cleanup by steps/audit-12nov.md, the list below | Build and all tests green, every function left has a caller, docs/truth.md labels the folders |
+| e | OLD-1e-revit-test | revit-test | Step b again on the same neighbourhoods and step c again | The compare table equal to the baseline, or better with the reason. A worse number is a fault of step d, fixed before the round ends |
 
-## OLD-1, the full old project run
+Step b needs one small code change first, in its own PR by build-1: the three other past output places skipped by settings. Today only 01_Output is skipped (dataCheck.skipFolders of config/project.json). Revit All Zones and Native Files join that list. The site models of 00_Revit Models are single files beside the folder of the villa files, and no setting skips a file today, so the task adds the smallest one, CHOSEN by Code, with its rule id and test.
 
-- Lane: revit-test.
-- What: every neighbourhood of Phase 1 built from an empty model copy. Card 1 once for the whole folder, on scenario S1 of the work root, which holds no past output and no past model. Then card 2 per neighbourhood, one neighbourhood per part, each part under 110 minutes, the model saved at the end of each part. Report at the end. A neighbourhood that stops is recorded with its exact words and the run carries on with the next.
-- Files: steps/revit-results/OLD-1-revit-test.md, steps/heads-up/revit-test.md. No code.
-- Rule ids: none.
-- Done when: the record holds one row per neighbourhood with its time per step and its counts of plots read, plots built, floors by type, levels, links, walls and issues, and the Report ran on the last model. The input folder is unchanged by SHA-256.
-- Compare number it must reach: none, it is the first measure. Its numbers fill the Built column of steps/compare.md.
-- Not known yet: how many neighbourhoods card 1 names, and whether one neighbourhood fits in 110 minutes on this PC. The first part measures both and the record says so before the second part starts.
+Step d, what goes and what stays:
 
-## OLD-2, the compare
+- Advanced no longer shows the 9 old step buttons. The 3 cards are the only way in. The step code stays only as the engine behind them.
+- Removed: the 42 dead parts of the audit, past job mode and its override list, light mode, the data book reads, the old past job values of config, and the Python copies of logic the add-in holds in C#.
+- Python stays only for dev tools: the compare, the readers, the checks. Each file kept has a line why.
+- The rule ids R689 to R691 are written.
+- Tests change with the code, never deleted to go green.
+- Rule ids R830 to R849. Question ids Q650 to Q659.
 
-- Lane: build-1.
-- What: one script that reads a built model, through the read job of the test host that already reads a past model, and the answer key, and writes one row per neighbourhood and element. Counts only.
-- The join: a built plot and a past plot are the same plot when their plot number is the same, the past side from links.csv of answer-key. The past models hold 2,591 villa links with a plot number in 7 models (steps/old-project-pc.md section 4). Whether the 7 models share one coordinate base is the first thing the script measures, on the past models alone.
-- Columns: plots built of plots in the past model. Villa position difference in mm, as the share within the pass level and the largest. Rotation right. Mirror right. FFL difference in mm, share within the pass level and the largest. Floors by type, built of past. Yard floors, built of past. Walls, built of past. Levels, built of past.
-- Files: python/compare_built.py and its test under python/tests, a C# twin only if a pane button is to show it, which this task does not ask. steps/compare.md is written by the script, never by hand. The neighbourhood of a past model comes from config/area_codes.json, the pass levels from a new block compare of config/project.json.
-- Rule ids: R830 to R839. Question ids: Q650 to Q654.
-- Done when: the script runs on the 01A model of OLD-1 and on a made up pair of files in the test, steps/compare.md holds the table, and a second run on the same files gives the same bytes. No real coordinate or level in git, a check of scripts/checks proves it on the file.
-- Yard floors are counted only against IMC, IMD, IME and IMF. IMG holds none, and IMA and IMB, the structural models, hold no yard and no ramp floor and share one set of 733 generic floors, so their floors and walls are left out of the pass level and shown apart.
-- Compare number it must reach: none of its own. It must count the past model against itself as all right, 100 percent in every column, which proves the reader and the join.
+Not known yet: how many neighbourhoods card 1 names, and whether one neighbourhood fits in 110 minutes on this PC. The first part of step b measures both.
 
-## OLD-3 to OLD-9, the fixes, worst first
+## Round 2, the fixes, worst first by the compare
 
-The order is by the numbers of 8 Nov and is set again by the first compare table. Each fix is rerun on its neighbourhood by revit-test and compared again, and its task is done only when its compare number is reached on 01A and on one neighbourhood it was not tuned on.
+The order below is by the numbers of 8 Nov and is set again by the first compare table. Each fix is rerun and compared, and is done only at the pass level on its neighbourhood and on one it was not tuned on.
 
-| Task | Lane | What | Files | Rule ids | Done when, the compare number |
-|---|---|---|---|---|---|
-| OLD-3 yard floors | build-1 | 0 yard floors placed so far. R410 holds the back yard floor off under Rev 06 because the manual gives no level, Q225. Item 3 of the form | dotnet/SiteAdaptation.Common/Floors, the rules profile, python twin, tests | R840 to R844 | Yard floors built of past at the pass level of the form, and no generic or ramp floor lost |
-| OLD-4 mirror direction | build-3 | The plan lacks the mirror value on 211 of 278 plots of 01A. The hand of each prototype has no source | dotnet/SiteAdaptation.Common/Plan, Read, the confirm window, python twin, tests | R845 to R849 | Mirror right at the pass level of the form, counted against the past links |
-| OLD-5 CASE and foundation type | build-3, after OLD-4 | They follow an assumed hand on about 201 plots. No run counted the values on the links in Revit | dotnet/SiteAdaptation.Common/Plan, the parameter step, tests | R850 to R854 | Each shared link parameter equal to the past link on the plots whose mirror is right, at the pass level |
-| OLD-6 plots with no road level | build-2 | 13 of 278 plots of 01A have no road level, 15 are not built. Q600, two road surfaces joined, item 4 of the form | dotnet/SiteAdaptation.Common/Roads, Floors, config/road_surfaces.json, tests | R855 to R859 | Plots built of plots in the past model at the pass level. FFL within the pass level on the plots that had no road level |
-| OLD-7 F35 to F39 | build-1 | The pane faults that stop or mislead a Build: prototypes row, grey Review data, reuse box words, step 7 box line, scope on reopen | dotnet/SiteAdaptation.AddIn/Pane, App, tests | R860 to R864 | OLD-1 runs a neighbourhood with no extra press and no stop of F35. Not a compare number |
-| OLD-8 F18 to F21 | build-2 | Advanced run 2 reads the past job folder, a read has no Stop, Cancel loses the read, step 1 Done over reopen | dotnet/SiteAdaptation.AddIn/Commands, Pane, the worker, tests | R865 to R869 | A read stops within 10 s of Stop and keeps what it read. Seen in Revit. Not a compare number |
-| OLD-9 F23 | build-1 | A scope change undoes step 2 with no line | dotnet/SiteAdaptation.AddIn/Pane, tests | R870 to R871 | The pane says so in one line. Seen in Revit |
+| Task | What | Rule ids |
+|---|---|---|
+| Yard floor rule | The yard floor at FFL less 0.10 m, a project rule in the Rules window the team can change, source "Team decision 24 Oct, the manual gives no level". Q225 closes with this task, the rules profile cites it until then | R850 to R854 |
+| Join option | A tick "Join surfaces for the road toposolid" under Road levels in Settings, on by default. The first picked surface wins where two overlap. Off keeps one surface and lists the plots with no toposolid on card 3. Saved per project. Card 3 names the surfaces used | R855 to R859 |
+| Mirror direction | The plan lacks the mirror value on 211 of 278 plots of 01A | R860 to R864 |
+| CASE and foundation type | They follow an assumed hand on about 201 plots | R865 to R869 |
+| Plots with no road level | 13 of 278 plots of 01A had none on 8 Nov | R870 to R874 |
+| F18 to F23 | Advanced run 2 reads the past job folder, a read has no Stop, Cancel loses the read, step 1 Done over reopen, a scope change undoes step 2 with no line | R875 to R879 |
+| F35 to F39 | The pane faults that stop or mislead a Build | R880 to R884 |
 
-Also by the audit, small, each a line of the task of its lane: the rule lines R689 to R691 written, ClusterUnconfirmed wired or removed, the i of the card heads. By the run of PC-1: Run-TestHost.ps1 -Upgrade takes the file names from the prototype folder and not from plan_imc_past.json (line 493), and the first Release build of a fresh worktree failed once on a baml file and passed on the second try, cause UNKNOWN.
+Also, with the task of its lane: a manual rule a person changed shows "Changed from manual Rev 06" and the old value (docs/truth.md), and the i of the card heads.
 
-## After the old project compares right
+## Dropped or waiting, Bader 12 Nov
 
-| Task | Lane | What | Files | Rule ids | Done when |
-|---|---|---|---|---|---|
-| NEW-1 the new project path | build-2 | F40, F41, F42 on the Phase 3 folder: the Baseplan from the folder, Use CAD finds the plot outlines, an origin of another UTM zone | dotnet/SiteAdaptation.AddIn/Commands, Common/Read, SiteSpec, tests | R872 to R879 | Card 1 passes on the Phase 3 folder with no typed position, seen in Revit |
-| ROAD-1 roads from 3D solids | build-3 | Road levels where a project has 3D solids and no Land XML | Common/Roads, the worker, tests | R880 to R889 | Road levels for the plots of a folder with no Land XML, held against the old project's Land XML levels on the same plots at the FFL pass level |
-| INST-1 an installer the team runs | build-1 | One file a team member runs with no VS Code and no repo, signed, F11 | dotnet/SiteAdaptation.AddIn install, scripts/sign, docs/design/08-install.md | R890 to R894 | A second Windows user of this PC installs and builds one neighbourhood with no box of an unsigned add-in |
-
-## Rules of the plan
-
-- One Revit at a time. The input folder is read only, SHA-256 before and after every run.
-- Never tune and test on the same data: every fix is counted on 01A and on one neighbourhood it was not tuned on.
-- A compare number is reached only in steps/compare.md, written by the script from a model built from an empty copy.
-- A fix on its third attempt stops and goes back to measuring.
+- NEW-1 the new project path and ROAD-1 roads from 3D solids: dropped.
+- INST-1 the installer: waits until Bader asks.
+- Whether the repo goes private: waits.
