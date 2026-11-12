@@ -64,7 +64,8 @@ namespace SiteAdaptation.Tests
                     else if (window != Shots.RibbonIcons)
                     {
                         Assert.Equal(380, bitmap.PixelWidth);
-                        Assert.True(bitmap.PixelHeight > (window == Shots.Pane ? 1000 : 600), sizes.Last());
+                        // R845. 400 since the step rows left Advanced, the pane of first open is 512 high with no Steps part
+                        Assert.True(bitmap.PixelHeight > (window == Shots.Pane ? 1000 : 400), sizes.Last());
                     }
                 }
                 Assert.Throws<ArgumentException>(() => Shots.Render("set-up-site"));
@@ -74,9 +75,10 @@ namespace SiteAdaptation.Tests
             Assert.Equal(11, sizes.Count);
         }
 
-        // R574, read off the laid out pane: the tick stands under step 5 in use and not on first open, where a folded row carries the number 5
+        // R574, R845, read off the laid out pane: the tick stood under the row of step 5. The rows are gone, so it stands in the Scope part beside
+        // Dry run first, in use and not on first open, as before
         [Fact]
-        public void R574_the_road_topography_tick_stands_under_step_5_in_use_only()
+        public void R574_the_road_topography_tick_stands_in_the_scope_part_in_use_only()
         {
             OnSta(() =>
             {
@@ -88,8 +90,10 @@ namespace SiteAdaptation.Tests
                     if (inUse)
                     {
                         Assert.Equal(PaneText.RoadTopographyTip, ticks[0].ToolTip);
-                        Assert.Equal(PaneViewModel.RoadTopographyStep, ((StepRowViewModel)ticks[0].DataContext).Number);
                         var model = (PaneViewModel)page.DataContext;
+                        Assert.Same(model, ticks[0].DataContext);
+                        var dryRun = Visuals(page).OfType<CheckBox>().Single(box => "Dry run first, change nothing".Equals(box.Content));
+                        Assert.Same(VisualTreeHelper.GetParent(dryRun), VisualTreeHelper.GetParent(ticks[0]));
                         Assert.Equal(model.RoadTopography, ticks[0].IsChecked);
                         ticks[0].IsChecked = !model.RoadTopography;
                         Assert.Equal(ticks[0].IsChecked, model.RoadTopography);
@@ -121,8 +125,10 @@ namespace SiteAdaptation.Tests
                     Assert.All(inputs, input => Assert.Contains(Visuals(input).OfType<Border>(), border => border.CornerRadius.TopLeft == 3.0
                         && border.BorderBrush == page.FindResource("SA.Border")));
                     Button primary = all.OfType<Button>().Single(button => button.Style == page.FindResource("SA.Button.Primary"));
-                    Assert.Equal(34.0, primary.ActualHeight);
-                    Assert.Equal(inUse ? 9 : 5, all.OfType<Ellipse>().Count(mark => mark.ActualWidth == 26.0));
+                    // R845. In use the box names the next step and shows no button, on first open it opens New project
+                    Assert.Equal(inUse ? 0.0 : 34.0, primary.ActualHeight);
+                    // R845. No step mark of 26 stands, the step rows left Advanced
+                    Assert.Empty(all.OfType<Ellipse>().Where(mark => mark.ActualWidth == 26.0));
 
                     // Review 1 of PR 90: the Level profile and Neighbourhood drop downs and the Plot list box start at one x
                     List<double> lefts = inputs.Select(input => input.TransformToAncestor(page).Transform(new Point(0, 0)).X).ToList();
@@ -130,7 +136,7 @@ namespace SiteAdaptation.Tests
 
                     // R505. One section after the other with a line between, each with the 16 of the spacing scale inside its box
                     List<Border> sections = all.OfType<Border>().Where(box => box.Padding == (Thickness)page.FindResource("SA.Pad.SectionBox") && Shown(box)).ToList();
-                    Assert.Equal(inUse ? 4 : 3, sections.Count);
+                    Assert.Equal(inUse ? 3 : 2, sections.Count);
                     for (int at = 1; at < sections.Count; at++)
                     {
                         double bottom = sections[at - 1].TransformToAncestor(page).Transform(new Point(0, sections[at - 1].ActualHeight)).Y;
@@ -149,10 +155,10 @@ namespace SiteAdaptation.Tests
             counts.ForEach(output.WriteLine);
         }
 
-        // QL14 and QL15, Bader 29 Oct 2026, read off the laid out pane at 380: each step row 40 high with its line on one line, cut
-        // with an ellipsis and its full text as tooltip, and each input row the file name alone, its size and hash in the tooltip
+        // QL15, Bader 29 Oct 2026, read off the laid out pane at 380: each input row the file name alone, its size and hash in the tooltip.
+        // R845: the half of this test on the step rows of QL14 went with the rows, no step line stands in Advanced
         [Fact]
-        public void R372_step_rows_are_40_with_the_line_on_one_line_and_input_rows_show_the_file_name_only()
+        public void R372_R845_no_step_row_stands_and_input_rows_show_the_file_name_only()
         {
             var counts = new List<string>();
             OnSta(() =>
@@ -161,20 +167,8 @@ namespace SiteAdaptation.Tests
                 {
                     SitePanePage page = Shots.LaidOutPane(inUse);
                     List<FrameworkElement> all = Visuals(page).OfType<FrameworkElement>().ToList();
-                    List<TextBlock> lines = all.OfType<TextBlock>().Where(block => PaneText.StepLines.Contains(block.Text)
-                        && block.DataContext is StepRowViewModel && Shown(block)).ToList();
-                    Assert.Equal(inUse ? 9 : 4, lines.Count);
-                    var one = new TextBlock { Style = (Style)page.FindResource("SA.Pane.Detail"), Text = "Ag" };
-                    one.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-                    foreach (TextBlock line in lines)
-                    {
-                        Assert.Equal(TextWrapping.NoWrap, line.TextWrapping);
-                        Assert.Equal(TextTrimming.CharacterEllipsis, line.TextTrimming);
-                        Assert.Equal(line.Text, line.ToolTip as string);
-                        Assert.Equal(one.DesiredSize.Height, line.ActualHeight, 1);
-                        Grid row = Ancestors(line).OfType<Grid>().First(grid => grid.Margin == (Thickness)page.FindResource("SA.Gap.Row"));
-                        Assert.Equal(40.0, row.ActualHeight);
-                    }
+                    List<TextBlock> lines = all.OfType<TextBlock>().Where(block => PaneText.StepLines.Contains(block.Text) && Shown(block)).ToList();
+                    Assert.Empty(lines);
 
                     List<Grid> rows = all.OfType<Button>().Where(button => "Browse".Equals(button.Content) && Shown(button))
                         .Select(button => (Grid)VisualTreeHelper.GetParent(button)).ToList();
@@ -195,7 +189,7 @@ namespace SiteAdaptation.Tests
                         }
                     }
                     Assert.All(rows, row => Assert.Equal(32.0, row.ActualHeight));
-                    counts.Add((inUse ? "in use" : "first open") + ": " + lines.Count + " step lines on one line in rows of 40, " + rows.Count
+                    counts.Add((inUse ? "in use" : "first open") + ": " + lines.Count + " step lines, " + rows.Count
                         + " input rows with the file name only, " + detailed + " with a size in the tooltip");
                     if (inUse)
                     {

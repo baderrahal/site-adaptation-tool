@@ -49,7 +49,7 @@ namespace SiteAdaptation.AddIn.Pane
             get { return model.DryRun; }
         }
 
-        // R446. Called by Buttons.Run before the flow, for the ribbon and the pane. A step that still waits runs nothing, so it unticks
+        // R446. Called by Buttons.Run before the flow, for every step the cards run. A step that still waits runs nothing, so it unticks
         // nothing. Review of FIX-2NOV-C: Update from report and Rules have number 0 and no step, as ButtonFlow guards it too
         public void BeforeRun(int button)
         {

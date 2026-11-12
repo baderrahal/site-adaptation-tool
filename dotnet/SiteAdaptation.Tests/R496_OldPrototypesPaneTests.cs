@@ -92,7 +92,7 @@ namespace SiteAdaptation.Tests
         {
             public static string NoteLeavesStepsAlone(PaneViewModel pane)
             {
-                return string.Join(",", pane.Steps.Select(step => step.Runnable + ":" + step.ChipText));
+                return string.Join(",", StepWords.Of(pane));
             }
         }
 

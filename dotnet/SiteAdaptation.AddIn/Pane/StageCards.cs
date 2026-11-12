@@ -292,7 +292,7 @@ namespace SiteAdaptation.AddIn.Pane
         public PaneCommand RulesCommand { get; }
 
         // R761, F1 of run 1. Card 1 holds step 1 Set up site, and Choose project folder waits for it, so an empty model never meets the box
-        // "2 Read data needs step 1". The button says the label of the ribbon button, so it reads as the step row of Advanced
+        // "2 Read data needs step 1". The button says the label of the step
         public PaneCommand SetUpCommand { get; }
         public string SetUpButton { get { return RibbonLayout.Button(SetUpStep).Label; } }
 

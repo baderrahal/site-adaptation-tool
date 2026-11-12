@@ -28,7 +28,7 @@ namespace SiteAdaptation.AddIn.HowItWorks
         public bool OpensCard { get { return Card.Length > 0; } }
     }
 
-    // Lane C NEWPROJ-UI. The page How it works: one row per step of StepPlan in the order of the ribbon. It reads nothing and writes nothing,
+    // Lane C NEWPROJ-UI. The page How it works: one row per step of StepPlan in its order. It reads nothing and writes nothing,
     // Open New project ends it with OpenNewProject set, which the pane host takes to open New project
     public sealed class HowItWorksViewModel
     {
@@ -38,9 +38,20 @@ namespace SiteAdaptation.AddIn.HowItWorks
         {
             CanOpenNew = canOpenNew;
             Rows = RibbonLayout.Buttons.Select(button => new HowRow(button.Number, HowItWorksText.What[button.Number - 1], HowItWorksText.Needs[button.Number - 1],
-                HowItWorksText.Gives[button.Number - 1], button.Label, CardOf(button.Number))).ToList();
+                HowItWorksText.Gives[button.Number - 1], ButtonOf(button.Number), CardOf(button.Number))).ToList();
             Count = TextTemplate.Fill(HowItWorksText.Count, StepPlan.Count);
-            CountLine = TextTemplate.Fill(HowItWorksText.CountLine, StepPlan.Count);
+            CountLine = TextTemplate.Fill(HowItWorksText.CountLine, Rows.Select(row => row.Button).Distinct().Count());
+        }
+
+        // R845. The button of the card that runs a step, in the words of the pane: steps 1 and 3 have their own on card 1, step 2 runs after
+        // Choose project folder, steps 4 to 8 by Build, step 9 by Report
+        public static string ButtonOf(int step)
+        {
+            if (step == StagesViewModel.SetUpStep || step == StagesViewModel.ReviewStep)
+            {
+                return RibbonLayout.Button(step).Label;
+            }
+            return CardButtons[StageStatus.StageOf(step) - 1];
         }
 
         // R764. The cards of the pane in 3 stages, their titles and main buttons in the words of the pane

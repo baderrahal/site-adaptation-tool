@@ -27,3 +27,10 @@ Bader approved these changes on the canvas "Site Adaptation UI" on 28 Oct 2026. 
 - Check table, item 4: the button is 4 Check, so the title reads "4 Check, NBH [code], [n] plots". The side box shows the manual rule of the row with "Open in Site Adaptation Rules".
 - New windows: 3 Review data, Site Adaptation Rules and Update from report, as docs/design/13-workflow-changes.md gives them.
 - Report Excel, item 6: the Summary rows of the report built in Round ADDIN 4g3 still follow the numbers of item 1 above, 1 Set up site to 7 Walls, until Phase 5e.
+
+## Bader's decision of 12 Nov 2026
+
+Where it differs from the mock and the changes above, it prevails. The full text is docs/truth.md, The 3 cards.
+
+- Ribbon, in place of item 1 and of the ribbon of 28 Oct: the tab "Site Adaptation" with two panels in this order, Rules (Site Adaptation Rules), Pane (Show pane). No numbered button and no Update from report, the 3 cards of the pane reach each of them (R846).
+- Pane, item 2: the Steps section is gone. The pane shows the 3 cards, and Advanced under them holds Project, Input files and Scope with no step row. The Next step box names the step and has no button to run it (R845).

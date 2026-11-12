@@ -3,7 +3,7 @@
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:pane="clr-namespace:SiteAdaptation.AddIn.Pane"
       xmlns:help="clr-namespace:SiteAdaptation.AddIn.Help">
-  <!-- R372, docs/design/12-ui-spec.md 7.2 top to bottom. Every colour, size and font by StaticResource of Theme.xaml, every
+  <!-- R372, docs/design/12-ui-spec.md 7.2 top to bottom, less its Steps part since R845: this page is Advanced and starts no step. Every colour, size and font by StaticResource of Theme.xaml, every
        text in docs/design/14-ui-labels.md -->
   <Page.Resources>
     <ResourceDictionary>
@@ -82,151 +82,6 @@
               <TextBlock Style="{StaticResource SA.Pane.Help}" Foreground="{StaticResource SA.Warn}" TextWrapping="Wrap" Text="{Binding Note}" />
             </Border>
           </Grid>
-        </StackPanel>
-      </DataTemplate>
-
-      <DataTemplate x:Key="StepRow" DataType="{x:Type pane:StepRowViewModel}">
-        <StackPanel>
-        <!-- R444. A click on a row runs its step through the box path, a step that waits does nothing -->
-        <Grid Margin="{StaticResource SA.Gap.Row}" Height="{StaticResource SA.Size.StepRow}" Background="Transparent" ToolTip="{Binding RowTip}">
-          <Grid.InputBindings>
-            <MouseBinding Gesture="LeftClick" Command="{Binding RunCommand}" />
-          </Grid.InputBindings>
-          <Grid.Style>
-            <Style TargetType="Grid">
-              <Style.Triggers>
-                <DataTrigger Binding="{Binding Runnable}" Value="True">
-                  <Setter Property="Cursor" Value="Hand" />
-                </DataTrigger>
-              </Style.Triggers>
-            </Style>
-          </Grid.Style>
-          <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="{StaticResource SA.Grid.StepMark}" />
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="Auto" />
-            <ColumnDefinition Width="Auto" />
-          </Grid.ColumnDefinitions>
-          <!-- R540. One line on hover, the side box on a click -->
-          <Button Grid.Column="3" Style="{StaticResource SA.Button.Info}" Margin="{StaticResource SA.Gap.Left8}" Content="{x:Static help:HelpText.Mark}" ToolTip="{Binding HelpLine}" Click="OnStepHelp" />
-          <Grid Width="{StaticResource SA.Size.StepMark}" Height="{StaticResource SA.Size.StepMark}" HorizontalAlignment="Left" VerticalAlignment="Center">
-            <Ellipse StrokeThickness="{StaticResource SA.Size.MarkStroke}">
-              <Ellipse.Style>
-                <Style TargetType="Ellipse">
-                  <Setter Property="Fill" Value="{StaticResource SA.Surface}" />
-                  <Setter Property="Stroke" Value="{StaticResource SA.BorderStrong}" />
-                  <Style.Triggers>
-                    <DataTrigger Binding="{Binding Mark}" Value="{x:Static pane:MarkKind.Done}">
-                      <Setter Property="Fill" Value="{StaticResource SA.Band}" />
-                      <Setter Property="Stroke" Value="{StaticResource SA.Band}" />
-                    </DataTrigger>
-                    <DataTrigger Binding="{Binding Mark}" Value="{x:Static pane:MarkKind.Issues}">
-                      <Setter Property="Fill" Value="{StaticResource SA.Warn}" />
-                      <Setter Property="Stroke" Value="{StaticResource SA.Warn}" />
-                    </DataTrigger>
-                    <DataTrigger Binding="{Binding Mark}" Value="{x:Static pane:MarkKind.Next}">
-                      <Setter Property="Stroke" Value="{StaticResource SA.Accent}" />
-                    </DataTrigger>
-                  </Style.Triggers>
-                </Style>
-              </Ellipse.Style>
-            </Ellipse>
-            <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Text="{Binding Number}">
-              <TextBlock.Style>
-                <Style TargetType="TextBlock" BasedOn="{StaticResource SA.Type.Label}">
-                  <Setter Property="Foreground" Value="{StaticResource SA.TextMuted}" />
-                  <Style.Triggers>
-                    <DataTrigger Binding="{Binding Mark}" Value="{x:Static pane:MarkKind.Done}">
-                      <Setter Property="Foreground" Value="{StaticResource SA.Surface}" />
-                    </DataTrigger>
-                    <DataTrigger Binding="{Binding Mark}" Value="{x:Static pane:MarkKind.Issues}">
-                      <Setter Property="Foreground" Value="{StaticResource SA.Surface}" />
-                    </DataTrigger>
-                    <DataTrigger Binding="{Binding Mark}" Value="{x:Static pane:MarkKind.Next}">
-                      <Setter Property="Foreground" Value="{StaticResource SA.Accent}" />
-                    </DataTrigger>
-                  </Style.Triggers>
-                </Style>
-              </TextBlock.Style>
-            </TextBlock>
-          </Grid>
-          <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="{StaticResource SA.Gap.Right8}">
-            <TextBlock Text="{Binding Name}">
-              <TextBlock.Style>
-                <Style TargetType="TextBlock" BasedOn="{StaticResource SA.Type.Step}">
-                  <Setter Property="FontWeight" Value="{StaticResource SA.Type.StepName.Weight}" />
-                  <Style.Triggers>
-                    <DataTrigger Binding="{Binding Mark}" Value="{x:Static pane:MarkKind.Next}">
-                      <Setter Property="FontWeight" Value="{StaticResource SA.Type.Label.Weight}" />
-                    </DataTrigger>
-                    <DataTrigger Binding="{Binding DataContext.FirstOpen, RelativeSource={RelativeSource AncestorType=Page}}" Value="True">
-                      <Setter Property="FontWeight" Value="{StaticResource SA.Type.Step.Weight}" />
-                      <Setter Property="Foreground" Value="{StaticResource SA.StepWaitName}" />
-                    </DataTrigger>
-                  </Style.Triggers>
-                </Style>
-              </TextBlock.Style>
-            </TextBlock>
-            <TextBlock Style="{StaticResource SA.Pane.Detail}" TextWrapping="NoWrap" Text="{Binding Line}" ToolTip="{Binding Line}" />
-          </StackPanel>
-          <Border Grid.Column="2" VerticalAlignment="Center" CornerRadius="{StaticResource SA.Radius.Chip}" ToolTip="{Binding ChipTip}">
-            <Border.Style>
-              <Style TargetType="Border">
-                <Setter Property="Background" Value="{StaticResource SA.WaitGround}" />
-                <Setter Property="Padding" Value="{StaticResource SA.Pad.Chip}" />
-                <Style.Triggers>
-                  <DataTrigger Binding="{Binding Chip}" Value="{x:Static pane:StepKind.None}">
-                    <Setter Property="Visibility" Value="Collapsed" />
-                  </DataTrigger>
-                  <DataTrigger Binding="{Binding Chip}" Value="{x:Static pane:StepKind.Done}">
-                    <Setter Property="Background" Value="{StaticResource SA.OkGround}" />
-                  </DataTrigger>
-                  <DataTrigger Binding="{Binding Chip}" Value="{x:Static pane:StepKind.Issues}">
-                    <Setter Property="Background" Value="{StaticResource SA.WarnGround}" />
-                  </DataTrigger>
-                  <DataTrigger Binding="{Binding Chip}" Value="{x:Static pane:StepKind.Ready}">
-                    <Setter Property="Background" Value="{StaticResource SA.InfoGround}" />
-                  </DataTrigger>
-                  <!-- The PaneFirst board: a plain status in grey text, no chip -->
-                  <DataTrigger Binding="{Binding DataContext.FirstOpen, RelativeSource={RelativeSource AncestorType=Page}}" Value="True">
-                    <Setter Property="Background" Value="{x:Null}" />
-                    <Setter Property="Padding" Value="0" />
-                  </DataTrigger>
-                </Style.Triggers>
-              </Style>
-            </Border.Style>
-            <TextBlock Text="{Binding ChipText}">
-              <TextBlock.Style>
-                <Style TargetType="TextBlock" BasedOn="{StaticResource SA.Pane.Chip}">
-                  <Setter Property="Foreground" Value="{StaticResource SA.Wait}" />
-                  <Style.Triggers>
-                    <DataTrigger Binding="{Binding Chip}" Value="{x:Static pane:StepKind.Done}">
-                      <Setter Property="Foreground" Value="{StaticResource SA.Ok}" />
-                    </DataTrigger>
-                    <DataTrigger Binding="{Binding Chip}" Value="{x:Static pane:StepKind.Issues}">
-                      <Setter Property="Foreground" Value="{StaticResource SA.Warn}" />
-                    </DataTrigger>
-                    <DataTrigger Binding="{Binding Chip}" Value="{x:Static pane:StepKind.Ready}">
-                      <Setter Property="Foreground" Value="{StaticResource SA.Info}" />
-                    </DataTrigger>
-                    <DataTrigger Binding="{Binding DataContext.FirstOpen, RelativeSource={RelativeSource AncestorType=Page}}" Value="True">
-                      <Setter Property="FontWeight" Value="{StaticResource SA.Type.Small.Weight}" />
-                    </DataTrigger>
-                  </Style.Triggers>
-                </Style>
-              </TextBlock.Style>
-            </TextBlock>
-          </Border>
-        </Grid>
-        <!-- R574. Under the row and outside its grid, so a press on the tick does not run the step -->
-        <Grid Visibility="{Binding HasRoadTick, Converter={StaticResource Shown}}">
-          <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="{StaticResource SA.Grid.StepMark}" />
-            <ColumnDefinition Width="*" />
-          </Grid.ColumnDefinitions>
-          <CheckBox Grid.Column="1" Style="{StaticResource SA.Pane.Check}" Content="{x:Static pane:PaneText.RoadTopography}" ToolTip="{x:Static pane:PaneText.RoadTopographyTip}"
-                    IsChecked="{Binding DataContext.RoadTopography, RelativeSource={RelativeSource AncestorType=Page}}" />
-        </Grid>
         </StackPanel>
       </DataTemplate>
     </ResourceDictionary>
@@ -379,6 +234,8 @@
             <StackPanel>
               <CheckBox Style="{StaticResource SA.Pane.Check}" Content="Dry run first, change nothing" IsChecked="{Binding DryRun}" />
               <TextBlock Style="{StaticResource SA.Pane.Help}" TextWrapping="Wrap" Text="{Binding DryRunNote}" Visibility="{Binding DryRunNoteShown, Converter={StaticResource Shown}}" />
+              <!-- R574, R845. The tick of 5 Floors and ramps stood under the row of step 5, which is gone -->
+              <CheckBox Style="{StaticResource SA.Pane.Check}" Content="{x:Static pane:PaneText.RoadTopography}" ToolTip="{x:Static pane:PaneText.RoadTopographyTip}" IsChecked="{Binding RoadTopography}" />
               <StackPanel Orientation="Horizontal">
                 <TextBlock Style="{StaticResource SA.Type.Body}" VerticalAlignment="Center" Margin="{StaticResource SA.Gap.Right8}" Text="Villa mode" />
                 <RadioButton Style="{StaticResource SA.Pane.Radio}" Margin="{StaticResource SA.Gap.Right8}" GroupName="Villa" Content="Masses" IsChecked="{Binding VillaMasses}" />
@@ -386,14 +243,6 @@
               </StackPanel>
             </StackPanel>
           </Border>
-        </StackPanel>
-        </Border>
-
-        <Border BorderBrush="{StaticResource SA.Border}" BorderThickness="{StaticResource SA.Line.Over}" Padding="{StaticResource SA.Pad.SectionBox}">
-        <StackPanel>
-          <TextBlock Style="{StaticResource SA.Pane.Section}" Text="Steps" />
-          <TextBlock Style="{StaticResource SA.Pane.Help}" Text="Run them in order. Each one waits for the one before." Visibility="{Binding InUse, Converter={StaticResource Shown}}" />
-          <ItemsControl Margin="{StaticResource SA.Gap.Top8}" ItemsSource="{Binding ShownSteps}" ItemTemplate="{StaticResource StepRow}" />
         </StackPanel>
         </Border>
       </StackPanel>

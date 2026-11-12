@@ -71,7 +71,7 @@ namespace SiteAdaptation.Tests
         public void R540_every_step_and_new_project_row_has_a_line_and_its_parts()
         {
             HelpBook book = Book();
-            foreach (string key in Enumerable.Range(1, 9).Select(HelpBook.StepKey).Concat(SetupRows.All.Select(row => row.Id)))
+            foreach (string key in Enumerable.Range(1, 9).Select(number => "step" + number).Concat(SetupRows.All.Select(row => row.Id)))
             {
                 HelpEntry entry = book.Find(key);
                 Assert.NotNull(entry);
@@ -88,9 +88,10 @@ namespace SiteAdaptation.Tests
         public void R540_the_file_ships_inside_the_addin_and_each_i_opens_the_box()
         {
             Assert.Contains("<EmbeddedResource Include=\"Help\\help.json\"", File.ReadAllText(Addin("SiteAdaptation.AddIn.csproj")));
-            Assert.Contains("Click=\"OnStepHelp\"", File.ReadAllText(Addin("Pane", "SitePanePage.xaml")));
+            // R845. The step rows of Advanced are gone and their i with them, the rows of New project keep theirs
+            Assert.DoesNotContain("OnStepHelp", File.ReadAllText(Addin("Pane", "SitePanePage.xaml")));
             Assert.Contains("Click=\"OnRowHelp\"", File.ReadAllText(Addin("NewProject", "NewProjectWindow.xaml")));
-            Assert.Contains("HelpBox.Show(", File.ReadAllText(Addin("Pane", "SitePanePage.xaml.cs")));
+            Assert.DoesNotContain("HelpBox.Show(", File.ReadAllText(Addin("Pane", "SitePanePage.xaml.cs")));
             Assert.Contains("HelpBox.Show(", File.ReadAllText(Addin("NewProject", "NewProjectWindow.xaml.cs")));
         }
     }

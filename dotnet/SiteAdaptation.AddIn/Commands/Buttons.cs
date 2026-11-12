@@ -7,8 +7,8 @@ using SiteAdaptation.AddIn.Revit;
 
 namespace SiteAdaptation.AddIn
 {
-    // R371, R382, docs/design/08-install.md. The one entry of a button, the ribbon command and later the test host call it, so no run
-    // logic is copied. Each button runs through the flow of R382, and in 5a every body still says it is not built yet
+    // R371, R382, docs/design/08-install.md. The one entry of a button: the two ribbon commands, the cards of the pane for each step (R846)
+    // and the test host call it, so no run logic is copied. Each button runs through the flow of R382, and in 5a every body still says it is not built yet
     public static class Buttons
     {
         // The pane side sets it at start. No button with a body runs before then
@@ -90,7 +90,7 @@ namespace SiteAdaptation.AddIn
             StepRecorder recorder = recordIn == null ? null : new StepRecorder(() => recordIn.Settings.Project, new SettingsEntity(document), () => DateTime.UtcNow);
             var flow = new ButtonFlow(State, new RevitModel(document), new TaskDialogConfirm(), InputHash.Of, () => RunIds.New(button.Number, DateTime.Now), timing, recorder);
             string configFile = document == null ? null : PaneHost.Current?.Sessions.Seen(document, document.PathName, document.Title)?.Settings?.ConfigFile;
-            // R444. One loader for every button, the ribbon and the pane both come here. A run outside Revit keeps it until its end
+            // R444. One loader for every button, the cards and the test host both come here. A run outside Revit keeps it until its end
             Loader.RunLoader loader = Loader.RunLoader.Start(button.Label, application.MainWindowHandle);
             RunOutcome outcome;
             try
@@ -153,7 +153,7 @@ namespace SiteAdaptation.AddIn
                 : button.Number == 8 && document != null ? Bodies.Of(button, null, null, null, null, null, null, null, walls)
                 : button.Number == 7 && document != null ? Bodies.Of(button, null, null, null, null, placeVillas) : Bodies.Of(button, () => SetUpSiteBody.For(application));
             // 5f. Update from report has no number, so Bodies.Of leaves it not built, its body is made here on the active document
-            if (document != null && button == RibbonLayout.ButtonOf("UpdateFromReportCommand") && UpdateFromReportBody.Dialog != null)
+            if (document != null && button == RibbonLayout.ButtonOf(Common.ButtonsRun.UpdateCommand) && UpdateFromReportBody.Dialog != null)
             {
                 body = UpdateFromReportBody.For(application);
             }

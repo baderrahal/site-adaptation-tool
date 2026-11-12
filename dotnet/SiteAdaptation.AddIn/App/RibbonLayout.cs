@@ -4,8 +4,8 @@ using System.Linq;
 
 namespace SiteAdaptation.AddIn
 {
-    // R371. The tab, the panels and the buttons of 7.1 of docs/design/12-ui-spec.md, Bader's ribbon of 28 Oct 2026, in its order
-    // and its words. No Revit type, so a test holds it against the spec and App builds the ribbon from it
+    // R371, R846. The tab, the panels and the buttons of the ribbon, and apart from them the steps the cards run. Since Bader's decision of
+    // 12 Nov 2026 the ribbon holds no step. No Revit type, so a test holds it and App builds the ribbon from Panels alone
     public static class RibbonLayout
     {
         public const string Tab = "Site Adaptation";
@@ -15,28 +15,9 @@ namespace SiteAdaptation.AddIn
 
         public static readonly IReadOnlyList<RibbonPanelSpec> Panels = new[]
         {
-            new RibbonPanelSpec("Setup", new[]
-            {
-                new RibbonButtonSpec(1, "1 Set up site", "SetUpSiteCommand"),
-                new RibbonButtonSpec(2, "2 Read data", "ReadDataCommand"),
-                new RibbonButtonSpec(3, "3 Review data", "ReviewDataCommand"),
-                new RibbonButtonSpec(4, "4 Check", "CheckCommand"),
-            }),
             new RibbonPanelSpec("Rules", new[]
             {
                 new RibbonButtonSpec("Site Adaptation Rules", "SiteAdaptationRulesCommand"),
-            }),
-            new RibbonPanelSpec("Build", new[]
-            {
-                new RibbonButtonSpec(5, "5 Floors and ramps", "FloorsAndRampsCommand"),
-                new RibbonButtonSpec(6, "6 Levels", "LevelsCommand"),
-                new RibbonButtonSpec(7, "7 Place villas", "PlaceVillasCommand"),
-                new RibbonButtonSpec(8, "8 Walls", "WallsCommand"),
-            }),
-            new RibbonPanelSpec("Output", new[]
-            {
-                new RibbonButtonSpec(9, "9 Report", "ReportCommand"),
-                new RibbonButtonSpec("Update from report", "UpdateFromReportCommand"),
             }),
             new RibbonPanelSpec("Pane", new[]
             {
@@ -44,16 +25,32 @@ namespace SiteAdaptation.AddIn
             }),
         };
 
-        // Every button of the ribbon in its order, the two with no number among them
+        // R846. The 9 steps and Update from report, the engine behind the 3 cards. None is on the ribbon and none has a command class, the name
+        // of each is the one Buttons.Run and a job of the test host find it by
+        public static readonly IReadOnlyList<RibbonButtonSpec> Steps = new[]
+        {
+            new RibbonButtonSpec(1, "1 Set up site", "SetUpSiteCommand"),
+            new RibbonButtonSpec(2, "2 Read data", "ReadDataCommand"),
+            new RibbonButtonSpec(3, "3 Review data", "ReviewDataCommand"),
+            new RibbonButtonSpec(4, "4 Check", "CheckCommand"),
+            new RibbonButtonSpec(5, "5 Floors and ramps", "FloorsAndRampsCommand"),
+            new RibbonButtonSpec(6, "6 Levels", "LevelsCommand"),
+            new RibbonButtonSpec(7, "7 Place villas", "PlaceVillasCommand"),
+            new RibbonButtonSpec(8, "8 Walls", "WallsCommand"),
+            new RibbonButtonSpec(9, "9 Report", "ReportCommand"),
+            new RibbonButtonSpec("Update from report", Common.ButtonsRun.UpdateCommand),
+        };
+
+        // Every button of the ribbon in its order
         public static IEnumerable<RibbonButtonSpec> AllButtons
         {
             get { return Panels.SelectMany(panel => panel.Buttons); }
         }
 
-        // The numbered buttons, the steps of the pane, in the order of their numbers
+        // The numbered steps in the order of their numbers
         public static IEnumerable<RibbonButtonSpec> Buttons
         {
-            get { return AllButtons.Where(button => button.Number > 0).OrderBy(button => button.Number); }
+            get { return Steps.Where(button => button.Number > 0).OrderBy(button => button.Number); }
         }
 
         public static RibbonButtonSpec Button(int number)
@@ -61,23 +58,23 @@ namespace SiteAdaptation.AddIn
             RibbonButtonSpec found = Buttons.FirstOrDefault(button => button.Number == number);
             if (found == null)
             {
-                throw new ArgumentOutOfRangeException(nameof(number), number, "the ribbon has numbered buttons " + Buttons.First().Number + " to " + Buttons.Last().Number + " only");
+                throw new ArgumentOutOfRangeException(nameof(number), number, "the steps are numbered " + Buttons.First().Number + " to " + Buttons.Last().Number + " only");
             }
             return found;
         }
 
-        // A button by the short name of its command class, the way a button with no number is found
+        // A button of the ribbon or a step by the short name of its command, the way one with no number is found
         public static RibbonButtonSpec ButtonOf(string commandName)
         {
-            RibbonButtonSpec found = AllButtons.FirstOrDefault(button => button.CommandClass == RibbonButtonSpec.CommandNamespace + commandName);
+            RibbonButtonSpec found = AllButtons.Concat(Steps).FirstOrDefault(button => button.CommandClass == RibbonButtonSpec.CommandNamespace + commandName);
             if (found == null)
             {
-                throw new ArgumentOutOfRangeException(nameof(commandName), commandName, "the ribbon has no button of that command");
+                throw new ArgumentOutOfRangeException(nameof(commandName), commandName, "no button of the ribbon and no step has that command");
             }
             return found;
         }
 
-        // A family document is no project, the buttons work on the site model only
+        // A family document is no project, Site Adaptation Rules works on the site model only
         public static bool IsAvailable(bool documentOpen, bool familyDocument)
         {
             return documentOpen && !familyDocument;

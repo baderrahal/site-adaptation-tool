@@ -43,12 +43,7 @@ namespace SiteAdaptation.Common.Help
             }));
         }
 
-        public static string StepKey(int number)
-        {
-            return "step" + number;
-        }
-
-        // Null for a key the file does not hold, the row then shows no i
+        // Null for a key the file does not hold
         public HelpEntry Find(string key)
         {
             return key != null && entries.TryGetValue(key, out HelpEntry found) ? found : null;

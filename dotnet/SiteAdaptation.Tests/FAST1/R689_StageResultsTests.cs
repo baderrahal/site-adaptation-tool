@@ -154,7 +154,7 @@ namespace SiteAdaptation.Tests
         public void R690_update_from_report_runs_the_command_of_its_ribbon_button()
         {
             string host = File.ReadAllText(Path.Combine(ThemeGateTests.RepoRoot(), "dotnet", "SiteAdaptation.AddIn", "App", "PaneHost.cs"));
-            Assert.Contains("runner.Command = nameof(Commands.UpdateFromReportCommand);", host);
+            Assert.Contains("runner.Command = Common.ButtonsRun.UpdateCommand;", host);
             Assert.Contains("Buttons.Run(command, app);", host);
         }
     }

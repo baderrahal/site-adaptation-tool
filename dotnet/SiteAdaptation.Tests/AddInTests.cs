@@ -25,36 +25,32 @@ namespace SiteAdaptation.Tests
     // touched, so no Revit is needed
     public sealed class AddInTests
     {
-        // 7.1 of docs/design/12-ui-spec.md holds the ribbon of Bader's changes of 28 Oct 2026 and prevails over item 1 of
-        // docs/addin-mock.md until the fold in, line 10 of its Rules
+        // R846. Since Bader's decision of 12 Nov 2026 the ribbon is the one of docs/truth.md: two panels and no step button. 7.1 of
+        // docs/design/12-ui-spec.md still words the ribbon of 28 Oct 2026 and no longer holds here (Q658). The 9 steps and Update from report
+        // stay as the list Steps, which no panel holds
         [Fact]
-        public void R371_the_ribbon_layout_is_the_tab_the_panels_and_the_labels_of_7_1_of_the_ui_spec_in_its_order()
+        public void R371_R846_the_ribbon_layout_is_the_tab_and_the_two_panels_of_the_truth_and_the_steps_stand_apart()
         {
-            string spec = File.ReadAllText(Path.Combine(ThemeGateTests.RepoRoot(), "docs", "design", "12-ui-spec.md")).Replace("\r\n", "\n");
-            string ribbon = spec.Split('\n').SkipWhile(text => text != "### 7.1 Ribbon").Skip(1).First(text => text.StartsWith("Ribbon tab ", StringComparison.Ordinal));
-            Match line = Regex.Match(ribbon, @"^Ribbon tab ""([^""]+)"" with five panels in this order \([^)]*\): (.*)\. Large buttons");
+            string truth = File.ReadAllText(Path.Combine(ThemeGateTests.RepoRoot(), "docs", "truth.md")).Replace("\r\n", "\n");
+            string ribbon = truth.Split('\n').Single(text => text.StartsWith("The ribbon holds ", StringComparison.Ordinal));
+            Match line = Regex.Match(ribbon, @"^The ribbon holds two buttons and no step \(R846\): (.+?) on the panel (\w+), (.+?) on the panel (\w+)\. ");
             Assert.True(line.Success, ribbon);
-            List<Tuple<string, string[]>> panels = Regex.Matches(line.Groups[2].Value, @"(\w+) \(([^)]*)\)").Cast<Match>()
-                .Select(match => Tuple.Create(match.Groups[1].Value, match.Groups[2].Value.Split(',').Select(label => label.Trim()).ToArray())).ToList();
 
-            Assert.Equal(RibbonLayout.Tab, line.Groups[1].Value);
-            Assert.Equal(5, panels.Count);
-            Assert.Equal(panels.Select(panel => panel.Item1), RibbonLayout.Panels.Select(panel => panel.Name));
-            for (int at = 0; at < panels.Count; at++)
-            {
-                Assert.Equal(panels[at].Item2, RibbonLayout.Panels[at].Buttons.Select(button => button.Label));
-            }
+            Assert.Equal("Site Adaptation", RibbonLayout.Tab);
+            Assert.Equal(new[] { line.Groups[2].Value, line.Groups[4].Value }, RibbonLayout.Panels.Select(panel => panel.Name));
+            Assert.Equal(new[] { line.Groups[1].Value, line.Groups[3].Value }, RibbonLayout.AllButtons.Select(button => button.Label));
+            Assert.All(RibbonLayout.Panels, panel => Assert.Single(panel.Buttons));
             Assert.Equal(Enumerable.Range(1, 9), RibbonLayout.Buttons.Select(button => button.Number));
             Assert.All(RibbonLayout.Buttons, button => Assert.StartsWith(button.Number + " ", button.Label));
-            Assert.Equal(new[] { "Site Adaptation Rules", "Update from report", "Show pane" }, RibbonLayout.AllButtons.Where(button => button.Number == 0).Select(button => button.Label));
-            Assert.Equal(12, RibbonLayout.AllButtons.Select(button => button.Key).Distinct().Count());
-            Assert.All(RibbonLayout.AllButtons, button => Assert.Equal(ThemeGateTests.IconKey(button.Number > 0 ? button.Number.ToString(CultureInfo.InvariantCulture) : null, button.Label), button.Key));
+            Assert.Equal(new[] { "Update from report" }, RibbonLayout.Steps.Where(button => button.Number == 0).Select(button => button.Label));
+            Assert.Equal(12, RibbonLayout.AllButtons.Concat(RibbonLayout.Steps).Select(button => button.Key).Distinct().Count());
+            Assert.All(RibbonLayout.AllButtons.Concat(RibbonLayout.Steps), button => Assert.Equal(ThemeGateTests.IconKey(button.Number > 0 ? button.Number.ToString(CultureInfo.InvariantCulture) : null, button.Label), button.Key));
             Assert.Equal("SA.Icon.UpdateFromReport.16", RibbonLayout.ButtonOf("UpdateFromReportCommand").IconKey16);
         }
 
         // A second reading of the order, from the part Order of docs/design/13-workflow-changes.md
         [Fact]
-        public void R371_the_numbered_buttons_are_the_nine_steps_of_the_order_of_the_workflow_changes()
+        public void R371_the_numbered_steps_are_the_nine_steps_of_the_order_of_the_workflow_changes()
         {
             string order = File.ReadAllLines(Path.Combine(ThemeGateTests.RepoRoot(), "docs", "design", "13-workflow-changes.md")).Single(text => text.StartsWith("- Nine numbered steps: ", StringComparison.Ordinal));
             string[] steps = order.Substring("- Nine numbered steps: ".Length).TrimEnd('.').Split(',').Select(step => step.Trim()).ToArray();
@@ -68,15 +64,22 @@ namespace SiteAdaptation.Tests
             string source = File.ReadAllText(Path.Combine(ThemeGateTests.RepoRoot(), "dotnet", "SiteAdaptation.AddIn", "Commands", "ButtonCommands.cs"));
             var classes = RibbonLayout.AllButtons.Select(button => button.CommandClass).ToList();
 
-            Assert.Equal(12, classes.Distinct().Count());
+            // R846. Two since the steps left the ribbon, each runs its own name, and a step has no command class
+            Assert.Equal(2, classes.Distinct().Count());
             foreach (RibbonButtonSpec button in RibbonLayout.AllButtons)
             {
                 string name = button.CommandClass.Substring(button.CommandClass.LastIndexOf('.') + 1);
                 Assert.StartsWith("SiteAdaptation.AddIn.Commands.", button.CommandClass);
                 Match body = Regex.Match(source, @"public sealed class " + name + @" : IExternalCommand\s*\{.*?Buttons\.Run\((\d+|nameof\(\w+\)), ", RegexOptions.Singleline);
                 Assert.True(body.Success, name);
-                Assert.Equal(button.Number > 0 ? button.Number.ToString(CultureInfo.InvariantCulture) : "nameof(" + name + ")", body.Groups[1].Value);
-                Assert.Same(button, button.Number > 0 ? RibbonLayout.Button(button.Number) : RibbonLayout.ButtonOf(name));
+                Assert.Equal("nameof(" + name + ")", body.Groups[1].Value);
+                Assert.Same(button, RibbonLayout.ButtonOf(name));
+            }
+            Assert.Equal(2, Regex.Matches(source, @" : IExternalCommand\b").Count);
+            foreach (RibbonButtonSpec step in RibbonLayout.Steps)
+            {
+                Assert.DoesNotContain("class " + step.CommandClass.Substring(step.CommandClass.LastIndexOf('.') + 1), source);
+                Assert.Same(step, step.Number > 0 ? RibbonLayout.Button(step.Number) : RibbonLayout.ButtonOf(SiteAdaptation.Common.ButtonsRun.UpdateCommand));
             }
             Assert.Throws<ArgumentOutOfRangeException>(() => RibbonLayout.ButtonOf("NoSuchCommand"));
             Assert.Matches(@"namespace SiteAdaptation\.AddIn\.Commands", source);
@@ -99,7 +102,7 @@ namespace SiteAdaptation.Tests
             var untouched = new ButtonFlow(null, null, null, null, null);
             var told = new List<string>();
             // R494. Show pane takes no flow, Buttons.Run opens the pane by hand, so it is not one of the not built buttons
-            foreach (RibbonButtonSpec button in RibbonLayout.AllButtons.Where(each => each.NeedsProject))
+            foreach (RibbonButtonSpec button in RibbonLayout.AllButtons.Concat(RibbonLayout.Steps).Where(each => each.NeedsProject))
             {
                 RunOutcome outcome = untouched.Run(button.Number, button.Label, Bodies.Of(button), null);
                 Assert.Equal(RunEnd.Stopped, outcome.End);
@@ -209,7 +212,8 @@ namespace SiteAdaptation.Tests
                 ResourceDictionary theme = ThemeDictionary.Load();
                 Color heading = ((SolidColorBrush)theme["SA.Heading"]).Color;
                 Color accent = ((SolidColorBrush)theme["SA.IconAccent"]).Color;
-                foreach (RibbonButtonSpec button in RibbonLayout.AllButtons)
+                // R846. The icons of the steps that left the ribbon stay in the theme, so each still renders
+                foreach (RibbonButtonSpec button in RibbonLayout.AllButtons.Concat(RibbonLayout.Steps))
                 {
                     foreach (double scale in new[] { 1.0, 1.5 })
                     foreach (int units in new[] { 32, 16 })
