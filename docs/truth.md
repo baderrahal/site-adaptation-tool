@@ -24,7 +24,9 @@ The pane shows 3 cards. They are the only way in. Each click runs the old number
 
 Proof: dotnet/SiteAdaptation.AddIn/Pane/StagesPage.xaml lines 146 to 213, StageCards.cs lines 264 to 301 and 423 to 482, BuildChain.cs lines 14 and 73, App/PaneHost.cs lines 151 to 205 and 423 to 489.
 
-Today an Advanced part under the cards still holds the whole old pane with one button per step (StagesPage.xaml lines 219 to 221, App/RibbonLayout.cs lines 20 to 39). Bader's decision of 12 Nov: Advanced no longer shows the 9 step buttons. Not built yet, round 1 step d.
+Advanced, the part under the cards, starts no step (R845, Bader's decision of 12 Nov, built in round 1 step d, not seen in Revit). It shows no step row and no i of a step. Its box names the next step and has no button to run it. What it holds: the Setup and Rules rows, How it works, New project, Level profile, Use a saved project and Export, the input file rows with Browse and Pick surfaces, and the Scope part.
+
+The ribbon holds two buttons and no step (R846): Site Adaptation Rules on the panel Rules, Show pane on the panel Pane. The numbered buttons 1 to 9 and Update from report left it, the cards reach each of them. Proof: App/RibbonLayout.cs, its lists Panels and Steps, Pane/SitePanePage.xaml, and the tests R845_CardsOnlyWayInTests.
 
 ## Settings
 
@@ -40,7 +42,7 @@ The gear at the head of the pane opens two rows: Project setup, Edit, the New pr
 | Before Build | Warn and build, or Stop the build, when a rule is not confirmed | Warn and build |
 | Preview first | The preview before Build | on |
 
-Still in Advanced today, leaving with it in round 1 step d unless a card needs them: Level profile, Scope (Whole project, Neighbourhood, Plot list), Dry run first, Villa mode (Masses, Links), Road topography, Pre-setting. Which of these move to a card or a window is CHOSEN by Code in that task and listed for Bader.
+Still in Advanced after round 1 step d: Level profile, Scope (Whole project, Neighbourhood, Plot list), Dry run first, Villa mode (Masses, Links), Road topography, Pre-setting. CHOSEN by Code in task OLD-1d3-build-2, listed for Bader: none of them moved to a card or a window, as that task allowed no new window and no new setting. Road topography stood under the row of step 5, which is gone, so its tick now stands in the Scope part beside Dry run first.
 
 Decided on 12 Nov, not built yet, round 2: a tick "Join surfaces for the road toposolid" under Road levels, on by default. On: the surfaces the front corners took are joined into one toposolid, and the first picked surface wins where two overlap. Off: one surface, and card 3 lists the plots with no toposolid. Saved per project. Card 3 names the surfaces used.
 
