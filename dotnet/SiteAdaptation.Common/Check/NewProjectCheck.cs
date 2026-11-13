@@ -23,24 +23,15 @@ namespace SiteAdaptation.Common
         public bool RoshnOnly => RoshnNote != null;
     }
 
-    // R412. What the worker reads of a workbook or a PDF for the check, given by the caller since OpenXml and PdfPig load only in the worker.
-    // SheetNames gives the sheet names or null when the file is no workbook. Rows gives the first count rows of a sheet as the text of each
-    // cell, a cell that is no text as an empty text, every row when count is below 0. Pdf gives the pages and the words of the first page
-    // or null when the file is no PDF
+    // R412. What the worker reads of a workbook for the check, given by the caller since OpenXml loads only in the worker. SheetNames gives
+    // the sheet names or null when the file is no workbook. Rows gives the first count rows of a sheet as the text of each cell, a cell that
+    // is no text as an empty text, every row when count is below 0. R847: the PDF reader went with the line of the location plan PDF of the
+    // data book
     public sealed class NewProjectReaders
     {
         public Func<string, IReadOnlyList<string>> SheetNames { get; set; }
 
         public Func<string, string, int, IReadOnlyList<IReadOnlyList<string>>> Rows { get; set; }
-
-        public Func<string, PdfFacts> Pdf { get; set; }
-    }
-
-    public sealed class PdfFacts
-    {
-        public int Pages { get; set; }
-
-        public IReadOnlyList<string> Tokens { get; set; }
     }
 
     public sealed class NewProjectReport
@@ -117,11 +108,6 @@ namespace SiteAdaptation.Common
         private const string ScheduleMarker = "plot no.";
         private static readonly string[] PositionParts = { "eastM", "northM", "elevationM", "angleDeg" };
         private static readonly string[] PositionPoints = { "surveyPoint", "projectBasePoint" };
-        private static readonly string[] ExcelBlocks =
-        {
-            "dataBook.rev9.dlus", "dataBook.rev9.sales", "dataBook.data5.areaKey.dlus", "dataBook.data5.areaKey.sales",
-            "dataBook.locationPlan.sales", "dataBook.locationPlan.dlus",
-        };
         private static readonly string[] HandTables = { "hand villa", "hand cluster", "hand alone" };
         private static readonly Regex ParameterPrefix = new Regex("^[A-Z]{2,5}_", RegexOptions.CultureInvariant);
         private static readonly Regex Guid = new Regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\\z", RegexOptions.CultureInvariant);
@@ -522,72 +508,6 @@ namespace SiteAdaptation.Common
             return Line(name, Ok, "the prototype folder " + shown + " holds a file for all " + codes.Count + " unit codes", note);
         }
 
-        // addin.readData.dataBookFolder in the work root when it is no full path, then work
-        private static string DataBookWork(JObject settings, string workRoot)
-        {
-            string folder = Str(settings, "addin.readData.dataBookFolder", workRoot);
-            if (folder == null)
-            {
-                return null;
-            }
-            return Path.Combine(Path.IsPathRooted(folder) ? folder : Path.Combine(workRoot, folder), "work");
-        }
-
-        private static CheckLine ExcelLine(JObject settings, string blockPath, Run run, string work)
-        {
-            JObject block = Get(settings, blockPath) as JObject;
-            JObject roles = Get(settings, "addin.workbookRoles") as JObject;
-            string key = block != null && IsText(block["workbook"]) ? (string)block["workbook"] : null;
-            string role = key != null && roles != null && IsText(roles[key]) ? (string)roles[key] : key;
-            string name = "Excel " + (!string.IsNullOrEmpty(role) ? role + " " : "") + blockPath;
-            JToken headerRow = block?["headerRow"];
-            if (block == null || !IsText(block["sheet"]) || headerRow == null || headerRow.Type != JTokenType.Integer || (long)headerRow < 1 || !(block["columns"] is JObject))
-            {
-                return Line(name, DoesNotFit, "config names no workbook, sheet, headerRow and columns in " + blockPath);
-            }
-            JToken relative = key == null ? null : Get(settings, "dataBook.rev9.workbooks." + key);
-            if (!IsText(relative) || work == null)
-            {
-                return Line(name, DoesNotFit, "config names no workbook " + key + " in dataBook.rev9.workbooks or no addin.readData.dataBookFolder");
-            }
-            string path = Path.Combine(work, (string)relative);
-            string sheet = (string)block["sheet"];
-            int row = (int)(long)headerRow;
-            List<string> columns = ((JObject)block["columns"]).Properties().Select(item => item.Value.Type == JTokenType.String ? (string)item.Value : PyText(item.Value)).ToList();
-            string note = "held to the sheet " + sheet + " and the headers " + string.Join(", ", columns);
-            string shown = Path.GetFileName(path);
-            if (!File.Exists(path))
-            {
-                return Line(name, Missing, shown + " is not there", note);
-            }
-            IReadOnlyList<string> names = run.Book(path);
-            if (names == null)
-            {
-                return Line(name, DoesNotFit, shown + " cannot be read as a workbook", note);
-            }
-            if (!names.Contains(sheet))
-            {
-                return Line(name, DoesNotFit, shown + " has no sheet " + sheet, note);
-            }
-            IReadOnlyList<IReadOnlyList<string>> rows = run.Readers.Rows(path, sheet, row);
-            if (rows.Count < row)
-            {
-                return Line(name, DoesNotFit, shown + " sheet " + sheet + " has no header row " + row, note);
-            }
-            List<string> lacking = columns.Where(column => !rows[row - 1].Contains(column)).ToList();
-            if (lacking.Count > 0)
-            {
-                return Line(name, DoesNotFit, shown + " sheet " + sheet + " row " + row + " lacks the columns: " + string.Join(", ", lacking), note);
-            }
-            return Line(name, Ok, shown + " sheet " + sheet + " row " + row + " holds all " + columns.Count + " columns the readers use", note);
-        }
-
-        // Python str() of a JSON scalar that is no text, the header a config gives as a number
-        private static string PyText(JToken value)
-        {
-            return value.Type == JTokenType.Boolean ? ((bool)value ? "True" : "False") : value.Type == JTokenType.Null ? "None" : value.ToString(Formatting.None);
-        }
-
         private static List<CheckLine> ScheduleLines(JObject settings, Run run, string inputRoot)
         {
             JObject hoods = Get(settings, "connect.neighbourhoods") as JObject;
@@ -645,52 +565,6 @@ namespace SiteAdaptation.Common
             return found;
         }
 
-        private static CheckLine PdfLine(JObject settings, Run run, string work)
-        {
-            const string name = "location plan PDF";
-            string relative = Str(settings, "dataBook.locationPlan.pdf", run.WorkRoot);
-            JObject patterns = Get(settings, "dataBook.locationPlan.patterns") as JObject;
-            List<string> kinds = Texts(Get(settings, "dataBook.locationPlan.codeKinds"));
-            if (relative == null || work == null || patterns == null || !IsText(patterns["number"]))
-            {
-                return Line(name, DoesNotFit, "config names no dataBook.locationPlan.pdf, patterns.number or addin.readData.dataBookFolder");
-            }
-            List<string> codes = kinds.Where(kind => IsText(patterns[kind])).ToList();
-            string note = "held to the ROSHN Makkah label patterns of dataBook.locationPlan.patterns: " + string.Join(", ", new[] { "number" }.Concat(codes));
-            string path = Path.Combine(work, relative);
-            string shown = Path.GetFileName(path);
-            if (!File.Exists(path))
-            {
-                return Line(name, Missing, shown + " is not there", note);
-            }
-            run.Opened(path);
-            PdfFacts found = run.Readers.Pdf(path);
-            if (found == null)
-            {
-                return Line(name, DoesNotFit, shown + " cannot be read as a PDF", note);
-            }
-            if (found.Pages != 1)
-            {
-                return Line(name, DoesNotFit, shown + " holds " + found.Pages + " pages, a location plan is one page", note);
-            }
-            var lacking = new List<string>();
-            Regex number = LocationPlan.FullMatch((string)patterns["number"]);
-            if (!found.Tokens.Any(token => number.IsMatch(token)))
-            {
-                lacking.Add("the number pattern");
-            }
-            List<Regex> expressions = codes.Select(kind => LocationPlan.FullMatch((string)patterns[kind])).ToList();
-            if (!expressions.Any(expression => found.Tokens.Any(token => expression.IsMatch(token))))
-            {
-                lacking.Add("the code patterns");
-            }
-            if (lacking.Count > 0)
-            {
-                return Line(name, DoesNotFit, shown + " page holds no text that fits: " + string.Join(", ", lacking), note);
-            }
-            return Line(name, Ok, shown + " is one page and holds text that fits the number and code patterns", note);
-        }
-
         // The report of the check. The inputs are marked before their first read and again at the end, a change throws
         public static NewProjectReport Check(string configPath, string rulesPath, string offsetsPath, string workRoot, string inputRoot, NewProjectReaders readers, string coordinateSource = null, string positionFile = null)
         {
@@ -720,11 +594,8 @@ namespace SiteAdaptation.Common
             run.Opened(configPath);
             run.Opened(rulesPath);
             string folder = PrototypeFolder(settings, root);
-            string work = DataBookWork(settings, workRoot);
             var lines = new List<CheckLine> { PositionLine(settings, run, coordinateSource, positionFile), ParameterLine(configPath, settings, rules, run), OffsetsLine(settings, rules, offsetsPath, run), HandsLine(rules, folder), PrototypeLine(rules, folder) };
-            lines.AddRange(ExcelBlocks.Select(block => ExcelLine(settings, block, run, work)));
             lines.AddRange(ScheduleLines(settings, run, root));
-            lines.Add(PdfLine(settings, run, work));
             var changed = new List<string>();
             var inputs = new List<JObject>();
             foreach (string key in run.Order)

@@ -134,6 +134,11 @@ namespace SiteAdaptation.Common.BoundaryWalls
                 ["format"] = RecordFormat, ["runId"] = context.RunId, ["plan"] = inputs.PlanPath,
                 ["placed"] = new JArray(standing.OrderBy(key => key, StringComparer.Ordinal)),
                 ["counts"] = new JObject(new[] { Act.Place, Act.Change, Act.Keep, Act.Skip }.Select(act => new JProperty(act.ToString().ToLowerInvariant(), decision.Count(act)))),
+                // R885. Each wall skipped by its key, its case and the names of the values that differ, so a skip is never a count alone. A wall
+                // skipped for an untagged wall on its line is NotByThisTool, as SecondRun calls such a wall
+                ["skipped"] = new JArray(decision.Steps.Where(step => step.Act == Act.Skip).Select(step => step.Wall.Key + ": "
+                    + (step.Outcome.Action == MatchAction.Place ? MatchCase.NotByThisTool : step.Outcome.Case)
+                    + (step.Outcome.Differences.Count == 0 ? "" : ", " + string.Join(", ", step.Outcome.Differences))).OrderBy(line => line, StringComparer.Ordinal)),
             };
             context.WriteText(RecordName(inputs.Plan.Neighbourhood ?? "all"), record.ToString(Newtonsoft.Json.Formatting.Indented));
             return decision.Listed;
@@ -149,13 +154,23 @@ namespace SiteAdaptation.Common.BoundaryWalls
             var regex = new Regex(inputs.BoundaryType);
             var found = new List<FoundElement>();
             var byHand = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+            // Two plan walls of one key stop SecondRun.Match below, so the first is enough here
+            var plannedByKey = new Dictionary<TagKey, PlannedWall>();
+            foreach (PlannedWall wall in planned)
+            {
+                if (!plannedByKey.ContainsKey(wall.Item.Key))
+                {
+                    plannedByKey[wall.Item.Key] = wall;
+                }
+            }
             foreach (WallElement element in document.Walls() ?? new List<WallElement>())
             {
                 if (element.Tag != null)
                 {
                     if (element.Tag.Key.Kind == PlacedKinds.BoundaryWall)
                     {
-                        found.Add(FoundElement.Tagged(element.UniqueId, element.Tag, WallPlan.Current(element.State)));
+                        plannedByKey.TryGetValue(element.Tag.Key, out PlannedWall plannedWall);
+                        found.Add(FoundElement.Tagged(element.UniqueId, element.Tag, WallPlan.Current(element.State, plannedWall, element.Tag, tolerance)));
                     }
                     continue;
                 }

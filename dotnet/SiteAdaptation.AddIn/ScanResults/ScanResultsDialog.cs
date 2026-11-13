@@ -26,7 +26,7 @@ namespace SiteAdaptation.AddIn.ScanResults
         public static ProjectSettings Show(IntPtr owner, string scanJsonPath, ProjectSettings settings, Func<string> pickExportPath)
         {
             ScanViewData data = ScanView.Read(File.ReadAllText(scanJsonPath), settings);
-            var session = new ScanResultsSession(data, settings, pickExportPath, ScanGate.CheckShown);
+            var session = new ScanResultsSession(data, settings, pickExportPath, null);
             var window = new ScanResultsWindow(session);
             if (owner != IntPtr.Zero)
             {

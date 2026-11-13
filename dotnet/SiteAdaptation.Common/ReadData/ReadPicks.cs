@@ -2,18 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Security.Cryptography;
-using System.Text;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using SiteAdaptation.Common.Scan;
-using SiteAdaptation.Common.Settings;
 
 namespace SiteAdaptation.Common.ReadData
 {
-    // R473, R474. The picks of the window What the tool read laid over the read of button 2. ReadDataRun resolves them against the newest
-    // scan of the work folder into picks.json, an input of the read, and the worker and python/read_steps.py take picks.json. A pick of a
-    // shape the read can not take keeps the default of config and says why
+    // R473, R474. The picks of the window What the tool read laid over the read, by picks.json, an input the worker and python/read_steps.py
+    // take. A pick of a shape the read can not take keeps the default of config and says why. R847: the old read of step 2, which resolved
+    // the picks against the newest scan and wrote picks.json, went, so no read of the add-in sends picks.json now
     public static class ReadPicks
     {
         public const string Role = "picks";
@@ -65,83 +60,6 @@ namespace SiteAdaptation.Common.ReadData
             public List<string> LayerSources { get; } = new List<string>();
             public List<PickedConflict> Conflicts { get; } = new List<PickedConflict>();
             public List<string> Lines { get; } = new List<string>();
-        }
-
-        // Per value kind the saved pick when it names a source of the scan, else the proposal of the scan, else the default, and the
-        // conflict picks whose key matches a conflict of the scan and that chose its second source, with the value of that source. scan is
-        // null when the work folder holds none
-        public static JObject Resolve(ProjectSettings settings, JObject scan, PickFiles files)
-        {
-            var lines = new List<string>();
-            var kinds = new JObject();
-            List<JObject> rows = Objects(scan?["rows"]);
-            foreach (string kind in Kinds)
-            {
-                List<JObject> ofKind = rows.Where(row => Text(row["kind"]) == kind).ToList();
-                string picked = null;
-                settings?.ScanPicks?.TryGetValue(kind, out picked);
-                string proposal = ofKind.Where(row => Text(row["proposedUse"]) != "" && Text(row["proposedUse"]) != "check").Select(row => Text(row["source"])).FirstOrDefault();
-                string source = null, from = FromDefault;
-                if (!string.IsNullOrEmpty(picked) && ofKind.Any(row => Text(row["source"]) == picked))
-                {
-                    source = picked;
-                    from = FromPick;
-                }
-                else if (!string.IsNullOrEmpty(proposal))
-                {
-                    source = proposal;
-                    from = FromProposal;
-                }
-                string refused = source == null ? null : Refusal(kind, source, files);
-                if (refused != null)
-                {
-                    // Review 1 of FIX-1NOV-A2: only a pick the user made earns a line, a proposal of the scan the read can not take falls back
-                    // quietly, else a scan whose villa type proposal is of blocks would end every read with an issue
-                    if (from == FromPick)
-                    {
-                        lines.Add(refused);
-                    }
-                    source = null;
-                    from = FromDefault;
-                }
-                kinds[kind] = new JObject { ["source"] = source, ["from"] = from };
-            }
-            var conflicts = new JArray();
-            foreach (JObject item in Objects(scan?["conflicts"]))
-            {
-                string plot = Text(item["plot"]), field = Text(item["field"]), a = Text(item["sourceA"]), b = Text(item["sourceB"]);
-                string chosen = null;
-                settings?.ConflictPicks?.TryGetValue(ScanView.ConflictKey(plot, field, b), out chosen);
-                if (chosen == null || (chosen != a && chosen != b))
-                {
-                    continue;
-                }
-                if (field != VillaTypeField)
-                {
-                    // The read takes the number, place and label of a plot from the baseplan alone, the plot drawing, so only a pick of
-                    // the other file has something the read can not take
-                    if (chosen == b)
-                    {
-                        lines.Add("the conflict pick of plot " + plot + " takes the " + field + " of " + b + ", the read takes the " + field + " from the baseplan only and keeps it (R473)");
-                    }
-                    continue;
-                }
-                // Breaker 2 of FIX-1NOV-A2: Use these picks saves every conflict with the choice it shows, the first source where the person
-                // changed nothing, so a saved first source says nothing of a person. Taken, it wrote the value of the lead source on 250 real
-                // plots. Only the second source is a choice a person made, the read keeps its own value for the rest
-                if (chosen == a)
-                {
-                    continue;
-                }
-                string value = Text(item["valueB"]);
-                if (value == "")
-                {
-                    lines.Add("the conflict pick of plot " + plot + " takes " + chosen + ", which gives no villa type, the read keeps its own (R473)");
-                    continue;
-                }
-                conflicts.Add(new JObject { ["plot"] = plot, ["field"] = field, ["source"] = chosen, ["value"] = value });
-            }
-            return new JObject { ["format"] = Format, ["kinds"] = kinds, ["conflicts"] = conflicts, ["lines"] = new JArray(lines) };
         }
 
         // The files of the read by the roles of its inputs, the sales workbook by the role addin.workbookRoles gives the workbook of
@@ -363,49 +281,6 @@ namespace SiteAdaptation.Common.ReadData
             }
             var conflicts = new JArray(Objects(picks?["conflicts"]).Select(item => new JObject { ["plot"] = item["plot"], ["field"] = item["field"], ["source"] = item["source"] }));
             return new JObject { ["kinds"] = kinds, ["conflicts"] = conflicts };
-        }
-
-        // The newest scan of the work folder (R439), null when it holds none or its scan.json does not parse
-        public static JObject LatestScan(string workFolder)
-        {
-            string path = ScanStep.Latest(workFolder);
-            if (path == null)
-            {
-                return null;
-            }
-            try
-            {
-                return JObject.Parse(WorkFiles.ReadText(path));
-            }
-            catch (JsonException)
-            {
-                return null;
-            }
-        }
-
-        // The plan of the read with picks.json as its input picks in the folder of the read. The folder is named by the hash, which takes
-        // the SHA-256 of picks.json and not its path, so the hash is taken first and the path set after
-        public static ReadPlan WithPicks(ReadPlan files, string workFolder, JObject picks)
-        {
-            byte[] bytes = new UTF8Encoding(false).GetBytes(Json(picks));
-            string sha;
-            using (SHA256 hash = SHA256.Create())
-            {
-                sha = string.Concat(hash.ComputeHash(bytes).Select(item => item.ToString("x2")));
-            }
-            var draft = new ReadPlan(files.Inputs.Concat(new[] { new ReadInput(Role, "", bytes.Length, sha) }).ToList(), files.Steps, files.Stops, files.ConfigPath, files.RoadOrder);
-            string path = Path.GetFullPath(Path.Combine(ReadDataRun.FolderOf(workFolder, draft), FileName));
-            return new ReadPlan(files.Inputs.Concat(new[] { new ReadInput(Role, path, bytes.Length, sha) }).ToList(), files.Steps, files.Stops, files.ConfigPath, files.RoadOrder);
-        }
-
-        public static string Json(JObject picks)
-        {
-            return picks.ToString(Formatting.Indented);
-        }
-
-        public static void Write(string path, string runId, JObject picks)
-        {
-            WorkFiles.WriteText(path, runId, Json(picks));
         }
 
         private static List<JObject> Objects(JToken token)

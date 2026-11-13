@@ -111,11 +111,12 @@ namespace SiteAdaptation.Tests.FAST10
             var pane = new[] { new RunInput("Settings", set.ConfigFile, false), new RunInput("Road surface", Path.Combine(root, "roads"), true) };
             var roles = new Dictionary<string, string> { ["Settings"] = ReadInputs.Config, ["Road surface"] = ReadInputs.RoadSurface };
             Directory.CreateDirectory(Path.Combine(root, "roads"));
-            ReadPlan plan = ReadInputs.Make(pane, roles, Path.Combine(root, "work"), null, DesignBasis.Rev6);
-            string lines = string.Join("\n", plan.Stops.Concat(plan.PastLacks).Concat(plan.Inputs.Select(input => input.Path)));
+            // R847. The read for the build is the one read that names files, the old read with its schedules is gone
+            ReadPlan plan = ReadInputs.ForBuild(pane, roles, Path.Combine(root, "work"), null, DesignBasis.Rev6);
+            string lines = string.Join("\n", plan.Stops.Concat(plan.Inputs.Select(input => input.Path)));
             HoldsNone(lines, "the read");
-            Assert.Contains(ReadInputs.NoSchedule, plan.Stops);
-            Assert.DoesNotContain(plan.Stops, line => line.Contains("fit schedule"));
+            Assert.DoesNotContain(plan.Stops, line => line.Contains("schedule"));
+            Assert.DoesNotContain(plan.Inputs, input => input.Role.StartsWith("schedule:", StringComparison.Ordinal));
         }
 
         [Fact]

@@ -4,6 +4,9 @@ Per key: the link instances, those with a plot number, the link files and the lo
 the key reads them as (R321), the walls by type, the spot elevations by the kind of their host and those whose value reads (R320),
 the levels, and the window time and peak memory of the read. A section the read lacks is null, never zero. Written to
 key_reads.json in the reads folder, outside the repo, counts and names only, no coordinate or level.
+
+R886. With --built JOB and --out FOLDER the same counts of the read of a built model, tied to no answer key, go to key_reads.json of that
+folder alone, the built side of python/compare_built.py.
 """
 import argparse
 import json
@@ -178,6 +181,20 @@ def key_entry(settings, reads, code, job):
     return entry, document
 
 
+def built_entry(settings, reads, job):
+    """R886. The entry of the read of a built model: the counts of key_entry with no tie to an answer key, as a built model is no key, and
+    its floors by floors.types alone, as floors.keyTypes holds the past types of a key. sharedWith is null, a built read is never in a
+    total over keys."""
+    folder = Path(reads) / job
+    prefix = "testhost_" + job + "_"
+    if not plan_from_past.JOB_CODE.fullmatch(job):
+        raise project_profile.ProfileError("the built read has no job code of the test host, a job is a capital and 1 to 3 capitals or digits, given: " + job)
+    document = project_document(load(folder / (prefix + "prototypes.json")))
+    return {"job": job, "file": (folder / (prefix + "prototypes.json")).name, "fileMib": round((folder / (prefix + "prototypes.json")).stat().st_size / 1048576.0, 2),
+            "errors": len(document.get("errors") or []), "counts": counts(document, plan_from_past.load_floors(settings)),
+            "window": window_facts(load(folder / (prefix + "run.json")), load(folder / (prefix + "log.json"))), "sharedWith": None}
+
+
 def earlier_keys(path):
     """R322, R323. The entries of the report a run before wrote, by key, so a run of one key leaves the others in the file. A file
     that is no such report is refused and never written over."""
@@ -234,8 +251,15 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description="R322. Count what each answer key read holds and how its window went.")
     parser.add_argument("--settings", default=str(project_profile.SETTINGS_PATH))
     parser.add_argument("--reads", required=True, help="the reads folder, one folder per read job with its testhost files")
-    parser.add_argument("--key", action="append", type=parse_pair, required=True, metavar="CODE=JOB")
+    given = parser.add_mutually_exclusive_group(required=True)
+    given.add_argument("--key", action="append", type=parse_pair, metavar="CODE=JOB")
+    given.add_argument("--built", metavar="JOB", help="R886. the job of the read of a built model, written to --out alone")
+    parser.add_argument("--out", help="R886. the folder of the neighbourhood of the built side that takes key_reads.json, with --built only")
     args = parser.parse_args(argv)
+    if args.built is not None:
+        return main_built(parser, args)
+    if args.out is not None:
+        parser.error("--out goes with --built only, the counts of the keys go into the reads folder")
     refuse_repeats(parser, args.key)
     plot_relations.refuse_inside_repo(Path(args.reads))
     settings = project_profile.load_settings(args.settings)
@@ -251,6 +275,25 @@ def main(argv=None):
                       "section both reads hold with the same element id and the same whole row, count them once in a total over keys.",
               "sharedNotChecked": missing, "keys": keys}
     write_json(path, report)
+    print(render(report))
+    return 0
+
+
+def main_built(parser, args):
+    """R886. key_reads.json of one built read in its own folder, the one read compare_built.py takes per neighbourhood. The folder is
+    never the reads folder, so the counts of the keys are never written over, and never inside the repo."""
+    if args.out is None:
+        parser.error("--built needs --out, the folder of the neighbourhood of the built side")
+    out = Path(args.out)
+    plot_relations.refuse_inside_repo(Path(args.reads))
+    plot_relations.refuse_inside_repo(out)
+    if out.resolve() == Path(args.reads).resolve():
+        parser.error("--out is the reads folder, whose key_reads.json holds the keys, give the folder of the neighbourhood")
+    settings = project_profile.load_settings(args.settings)
+    report = {"note": "R886. Counts of the read of a built model, no coordinate or level. Floors by kind follow floors.types alone. No answer key.",
+              "sharedNotChecked": [], "keys": {args.built: built_entry(settings, args.reads, args.built)}}
+    out.mkdir(parents=True, exist_ok=True)
+    write_json(out / OUTPUT, report)
     print(render(report))
     return 0
 

@@ -44,7 +44,8 @@ namespace SiteAdaptation.Tests
             // 31 since Lane B 5c, the 11 messages of 2 Read data (R375)
             // FIX-3NOV-B added 1, the record of a step that did not reach the model (R498)
             // R639 added 14, the words of a raw read and of a read that is not whole
-            Assert.Equal(46, list[UiLabels.Messages].Entries.Count);
+            // R847 took out 5, the words of the old read of step 2 and of what it lacked
+            Assert.Equal(41, list[UiLabels.Messages].Entries.Count);
             Assert.Contains(shown["Update from report"], found => found.Text == "follows the rules" && found.Where.EndsWith("UpdateText.cs", StringComparison.Ordinal));
             Assert.Contains(shown["Update from report"], found => found.Text == "<name> <n>" && found.Where.EndsWith("UpdateFromReportText.cs", StringComparison.Ordinal));
 
@@ -230,7 +231,9 @@ namespace SiteAdaptation.Tests
             // and 1 of R771, the line of a step 2 the Build put back
             // and 1 of R772, the Close of the check table
             // FAST-13-build-3 added 3, the line under the row Prototypes of R812 and its two parts
-            Assert.Equal(529, chosen);
+            // R847 took out 13, the 5 messages of the old read of step 2, the 7 stops of the data check before it and the line of the scan gate
+            // R848 added 3, the lines of the villa links released at the start of a Build
+            Assert.Equal(519, chosen);
             Assert.True(matched > 100, matched.ToString());
         }
 

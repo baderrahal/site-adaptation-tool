@@ -29,15 +29,15 @@ Bader decides. Design is decided in chat. Full text: docs/truth.md, Who does wha
 | Who | Does | Never |
 |---|---|---|
 | Cowork | writes all tool code: dotnet, python, config, rules, samples. Only in C:\Users\bader\Documents\GitHub\site-adaptation-cowork, branch cowork/work. Writes the Bridge task | commits, starts Revit |
-| Claude Code | builds, tests, tests in Revit, reports, commits, merges, keeps the records. One fresh session per task | edits tool code, a hook blocks it. A fault goes in the report |
+| Claude Code | builds, tests, tests in Revit, reports, commits, merges, keeps the records. One session loops on the Bridge | edits tool code, a hook blocks it. A fault goes in the report |
 
-The Bridge is C:\SA-work\SiteAdaptation\Bridge, its README holds the shapes. A task closes: diff of the Cowork folder against main, Release build, quick tests, install, the Revit part with the PC to itself, the report. All pass: commit on a branch, PR, merge on green, cowork/work back to main. A fail: nothing committed, Cowork fixes. Revit starts only from the worktree revit-test, and only on Bader's order. The old lanes: steps/history/lanes-until-12nov.md.
+The Bridge is C:\SA-work\SiteAdaptation\Bridge, its README holds the shapes. Code checks it every 5 min, Cowork every 30. A task closes: diff against main, Release build, quick tests, install, the Revit part with the PC to itself, the report. All pass: commit on a branch, PR, merge on green, cowork/work back to main. A fail: nothing committed, Cowork fixes. Revit starts only from the worktree revit-test, and only on Bader's order. The old lanes: steps/history/lanes-until-12nov.md.
 
 Trust an answer only if it names proof you can check in the repo.
 
 ## How to work
 
-- One task per fresh session. /merge, /report. Whole repo: /audit, /questions.
+- /merge, /report. Whole repo: /audit, /questions.
 - Claims need proof as a file and line or command output. Write UNKNOWN instead of guessing.
 - Never mark a thing done without a second check by a different method.
 - Never commit to main, a hook blocks it. Merge a green PR at once.

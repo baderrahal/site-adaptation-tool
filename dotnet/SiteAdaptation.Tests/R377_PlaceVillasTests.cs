@@ -315,6 +315,70 @@ namespace SiteAdaptation.Tests
             Assert.Equal(new[] { "reload loaded" }, changed.Loaded);
         }
 
+        // R848. Bader 13 Nov 2026: the villa links unload and load back. A Links run places two villas of one type, the release unloads that type,
+        // and the next run loads it back with no box and moves nothing, as both villas stand where the plan has them
+        [Fact]
+        public void R848_the_release_unloads_the_placed_villa_links_and_the_next_run_loads_them_back_with_no_box_and_no_move()
+        {
+            string path = Path.Combine(prototypes, "VD4.rvt");
+            Run first = Make(Plan(Plot("101", 1100, 0, false), Plot("102", 1200, 90, true)), VillaModes.Links);
+            Apply(first, Context("r1"));
+            FakeVillas document = first.Document;
+            Assert.Equal(2, document.Elements.Count);
+            List<PlacementSteps> before = document.Elements.Select(element => element.Steps).ToList();
+
+            VillaLinkRelease.Result released = VillaLinkRelease.Unload(document, document);
+            Assert.Equal(new[] { path }, released.Unloaded);
+            Assert.Empty(released.Failed);
+            Assert.False(document.Types.Single().Loaded);
+
+            Run second = Make(Plan(Plot("101", 1100, 0, false), Plot("102", 1200, 90, true)), VillaModes.Links, document);
+            second.LoadAnswer = false;
+            RunSummary summary = second.Body.Body().Preview(Context("r2"));
+            Assert.Contains("already placed 2", summary.Counts);
+            // The box the run would show asks only to load the type the release unloaded, so step 7 takes it with no box
+            Assert.Throws<OperationCanceledException>(() => Apply(second, Context("r2")));
+            Assert.True(VillaLinkRelease.AllReleased(second.Asked.Single(), released.Unloaded));
+
+            Run third = Make(Plan(Plot("101", 1100, 0, false), Plot("102", 1200, 90, true)), VillaModes.Links, document);
+            Apply(third, Context("r3"));
+            Assert.Equal("load " + document.Types.Single().Key, document.Loaded.Last());
+            Assert.True(document.Types.Single().Loaded);
+            Assert.Equal(2, document.Elements.Count);
+            Assert.Equal(before, document.Elements.Select(element => element.Steps).ToList());
+        }
+
+        // R848. Broken on purpose: a link the tool did not place, a type already unloaded and a reload of a changed file each stay out of the release
+        [Fact]
+        public void R848_the_release_leaves_links_it_did_not_place_and_a_changed_file_still_asks()
+        {
+            string path = Path.Combine(prototypes, "VD4.rvt");
+            string other = Path.Combine(prototypes, "Survey.rvt");
+            var document = new FakeVillas();
+            document.Types.Add(new VillaLinkType { FullPath = other, Key = "survey" });
+            document.Types.Add(new VillaLinkType { FullPath = path, Key = "villa", Loaded = false });
+            document.Elements.Add(new FakeElement { UniqueId = "s1", TypeKey = "survey", Steps = PlacementMath.Steps(new[] { 1.0, 2.0, 0.0 }, 0, false) });
+            VillaLinkRelease.Result none = VillaLinkRelease.Unload(document, document);
+            Assert.Empty(none.Unloaded);
+            Assert.Empty(document.Loaded);
+            Assert.True(document.Types[0].Loaded);
+
+            Assert.False(VillaLinkRelease.AllReleased(new[] { "load " + path, "Load clears the Undo list of Revit." }, null));
+            Assert.False(VillaLinkRelease.AllReleased(new[] { "load " + other }, new[] { path }));
+            Assert.False(VillaLinkRelease.AllReleased(new[] { "load " + path, "reload " + other + ", its file changed since the last real run of Place villas" }, new[] { path }));
+            Assert.True(VillaLinkRelease.AllReleased(new[] { "load " + path, "Load clears the Undo list of Revit." }, new[] { path }));
+
+            // A loaded link type whose path does not parse, as a cloud link gives on Revit, is passed over and stops nothing
+            document.Types.Add(new VillaLinkType { FullPath = "bad\0path", Key = "cloud" });
+            Assert.Empty(VillaLinkRelease.Unload(document, document).Unloaded);
+            Assert.False(VillaLinkRelease.AllReleased(new[] { "load bad\0path" }, new[] { path }));
+
+            Assert.True(VillaLinkRelease.Needed(3000, 3900));
+            Assert.False(VillaLinkRelease.Needed(3900, 3900));
+            Assert.False(VillaLinkRelease.Needed(null, 3900));
+            Assert.False(VillaLinkRelease.Needed(3000, null));
+        }
+
         [Fact]
         public void R377_coordinates_off_the_plan_stop_before_anything_is_placed()
         {
@@ -537,7 +601,11 @@ namespace SiteAdaptation.Tests
 
         public IReadOnlyList<VillaElement> Villas(string plotNumberGuid)
         {
-            Assert.Equal(PlotGuid, plotNumberGuid);
+            // R848. The release of the villa links reads no plot number
+            if (plotNumberGuid != null)
+            {
+                Assert.Equal(PlotGuid, plotNumberGuid);
+            }
             return Elements.Select(element => new VillaElement
             {
                 UniqueId = element.UniqueId, IsSolid = element.IsSolid, Tag = element.Tag, PlotNumber = element.PlotNumber,

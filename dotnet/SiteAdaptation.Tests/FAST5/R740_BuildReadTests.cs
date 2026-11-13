@@ -141,10 +141,6 @@ namespace SiteAdaptation.Tests
             Assert.Empty(plan.Steps.Intersect(ReadInputs.PlotTableSteps));
             Assert.Contains(ReadSteps.RoadLevels, plan.Steps);
             Assert.Contains(ReadSteps.Sales, plan.Steps);
-            // The old read on the same rows still stops on the schedules and the empty plot number row
-            ReadPlan old = ReadInputs.Make(Pane(configFile, folder, null), Roles, work);
-            Assert.Contains(old.Stops, stop => stop.Contains("(R351)"));
-            Assert.Contains(old.Stops, stop => stop.StartsWith("Plot numbers is not on disk", StringComparison.Ordinal));
             // A drawing row gone still stops the read for the build, with its row named
             List<RunInput> broken = Pane(configFile, folder, null);
             broken[1] = new RunInput("Baseplan", Path.Combine(folder, "gone.dwg"), false);

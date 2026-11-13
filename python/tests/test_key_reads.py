@@ -397,3 +397,53 @@ def test_r322_a_key_or_a_job_given_twice_is_refused(tmp_path, pairs):
     with pytest.raises(SystemExit):
         key_reads.main(["--settings", str(settings.path), "--reads", str(reads)] + key_args(*pairs))
     assert not (reads / "key_reads.json").exists()
+
+
+# R886. The counts of the read of a built model
+
+def test_r886_a_built_read_is_counted_with_no_key_tie_by_floors_types_into_its_own_folder(tmp_path):
+    import compare_built
+    import key_reads
+    settings = key_settings(tmp_path)
+    reads = tmp_path / "reads"
+    document = made_up_read()
+    # A built model is named by no key copy, which --key refuses
+    document["file"] = "Site-built.rvt"
+    write_read(reads, "QB", document)
+    out = tmp_path / "built" / "AAA"
+
+    assert key_reads.main(["--settings", str(settings.path), "--reads", str(reads), "--built", "QB", "--out", str(out)]) == 0
+
+    written = json.loads((out / "key_reads.json").read_text(encoding="utf-8"))
+    assert list(written["keys"]) == ["QB"]
+    entry = written["keys"]["QB"]
+    assert entry["sharedWith"] is None
+    # floors.types alone: Slab F is the generic of the key IMX only, so it is of no kind here
+    assert entry["counts"]["floors"]["byKind"] == {"generic": 0, "yard": 1, "ramp": 1, "none": 3}
+    assert entry["counts"]["walls"]["count"] == 3
+    assert not (reads / "key_reads.json").exists()
+    assert compare_built.read_counts(out / "key_reads.json") == {"yards": 1, "walls": 3, "levels": 2, "floors": 4}
+    with pytest.raises(project_profile.ProfileError):
+        key_reads.main(["--settings", str(settings.path), "--reads", str(reads), "--key", "IMX=QB"])
+
+
+def test_r886_a_built_read_needs_its_own_folder_outside_the_repo_and_a_job_code(tmp_path):
+    import key_reads
+    settings = key_settings(tmp_path)
+    reads = tmp_path / "reads"
+    write_read(reads, "QB", made_up_read())
+    base = ["--settings", str(settings.path), "--reads", str(reads)]
+
+    with pytest.raises(SystemExit):
+        key_reads.main(base + ["--built", "QB"])
+    with pytest.raises(SystemExit):
+        key_reads.main(base + ["--built", "QB", "--out", str(reads)])
+    with pytest.raises(SystemExit):
+        key_reads.main(base + ["--key", "IMX=QB", "--out", str(tmp_path / "x")])
+    with pytest.raises(SystemExit):
+        key_reads.main(base + ["--key", "IMX=QB", "--built", "QB", "--out", str(tmp_path / "x")])
+    with pytest.raises(ValueError):
+        key_reads.main(base + ["--built", "QB", "--out", str(project_profile.ROOT / "python" / "built")])
+    with pytest.raises(project_profile.ProfileError):
+        key_reads.main(base + ["--built", "built-1", "--out", str(tmp_path / "x")])
+    assert not (project_profile.ROOT / "python" / "built").exists()

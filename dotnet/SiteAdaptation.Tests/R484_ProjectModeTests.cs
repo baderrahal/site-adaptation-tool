@@ -667,19 +667,6 @@ namespace SiteAdaptation.Tests
             Assert.Equal(RoadPickWhy.PastJob, RoadPickState.Of(document.Settings.Project, model.ReadText).Why);
         }
 
-        [Fact]
-        public void R484_a_change_of_mode_reads_as_a_change_of_step_2_as_a_change_of_road_pick_does()
-        {
-            string config = Path.Combine(folder, "project.json");
-            File.WriteAllText(config, Config("pastMade"));
-            var settings = new PaneSettings(new ProjectSettings { ConfigFile = config });
-            Assert.DoesNotContain(PaneRunState.InputsOf(settings, 2), input => input.Name == PaneRunState.RoadOrderInput);
-            settings.Project.ProjectMode = DesignBasis.Rev6;
-            Assert.Contains(PaneRunState.InputsOf(settings, 2), input => input.Name == PaneRunState.RoadOrderInput && input.Text == "Made Up Job__Road A");
-            settings.Project.ProjectMode = "pastMade";
-            Assert.DoesNotContain(PaneRunState.InputsOf(settings, 2), input => input.Name == PaneRunState.RoadOrderInput);
-        }
-
         private sealed class NoProbe : IInputProbe
         {
             public InputFacts Look(string path, bool isFolder)

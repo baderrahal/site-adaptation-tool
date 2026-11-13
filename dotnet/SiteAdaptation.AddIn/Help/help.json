@@ -29,22 +29,19 @@
   {
    "key": "step2",
    "title": "2 Read data",
-   "line": "Reads the drawings and schedules",
-   "what": "The helper program CadReader.exe reads every input outside Revit. First it scans the files and shows What the tool read, where each value comes from and what conflicts. Then it reads them in full. No element changes in Revit. A read of unchanged files is reused.",
+   "line": "Reads the project folder",
+   "what": "The helper program CadReader.exe reads the project folder outside Revit: every drawing, workbook and villa file of a kind it knows, with the past output folders skipped by the settings. Then it shows Confirm what was found. No element changes in Revit. A read of an unchanged folder is reused.",
    "files": [
-    "The input rows above, except Prototypes for the read. From: User picks. Folder: Inputs",
-    "The layer list, the layer list. From: Settings. Folder: C:\\SA-demo\\config",
-    "00101-PSN-IMC-XXX-SCH-TU-090000.xlsx, 00101-PSN-IMD-XXX-SCH-TU-090000.xlsx, past schedules. From: Settings. Folder: Inputs\\01_Output\\1.11 References",
-    "Plots.csv, location_plan\\labels.csv, phase1_border.csv, the data book. From: Settings. Folder: Inputs\\data_book",
-    "The prototypes, for the scan. From: User picks. Folder: Inputs\\00_Revit Models\\Zone 02\\ARC\\Prototypes_2024"
+    "The project folder. From: Settings. Folder: The input folder of the project",
+    "The values a person confirmed, when there are some. From: Confirm what was found. Folder: Work folder"
    ],
-   "before": "Step 1. All input rows picked.",
+   "before": "Step 1. The project folder chosen.",
    "click": [
     "Card 1, Choose project folder, once 1 Set up site is done.",
     "Apply on the dry run box.",
-    "In What the tool read: Use the proposed for all, then Use these picks.",
+    "In Confirm what was found: confirm or correct what the tool read.",
     "After it, pick the Scope: Whole project, Neighbourhood or Plot list. Step 3 takes Neighbourhood only. The list is empty until step 2 ends, so do not press Neighbourhood before it.",
-    "Boxes: a missing file names it, for example needs Villa blocks, the file is not chosen. Cancel in What the tool read stops the step. Scope stop: change the scope and run it again, the read is reused."
+    "Boxes: a project folder that is not on disk is named. Scope stop: change the scope and run it again, the read is reused."
    ],
    "limits": [
     "Q306 A neighbourhood picked after the first read.",

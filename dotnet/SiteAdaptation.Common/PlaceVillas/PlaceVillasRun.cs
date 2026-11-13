@@ -19,6 +19,10 @@ namespace SiteAdaptation.Common.PlaceVillas
         public const string MassPart = "mass";
         public const string RecordFormat = "site-adaptation-place-villas";
 
+        // The start of each line of the box of the link types, which VillaLinkRelease reads to know the types a release unloaded (R848)
+        public const string LoadLine = "load ";
+        public const string ReloadLine = "reload ";
+
         private readonly IVillaDocument document;
         private readonly Func<RunContext, VillaInputs> load;
         private readonly Func<RunContext, ShapeCache> shapes;
@@ -174,7 +178,7 @@ namespace SiteAdaptation.Common.PlaceVillas
             {
                 return null;
             }
-            var lines = loads.Select(use => (use.Value.Load ? "load " : "reload ") + use.Key + (use.Value.Reload ? ", its file changed since the last real run of Place villas" : "")).ToList();
+            var lines = loads.Select(use => (use.Value.Load ? LoadLine : ReloadLine) + use.Key + (use.Value.Reload ? ", its file changed since the last real run of Place villas" : "")).ToList();
             lines.Add("Load clears the Undo list of Revit.");
             if (!askLoad(lines))
             {

@@ -10,7 +10,8 @@ using Xunit;
 
 namespace SiteAdaptation.Tests
 {
-    // R685. Stage 1 sends the parameter sheet with the data check, so the need sharedParameters of R700 reads it. Made up files only
+    // R685. Stage 1 sends the parameter sheet with the data check, so the need sharedParameters of R700 reads it. Made up files only. R847: the
+    // data check before the old read went, the sheet is that of DataCheckSheet.Input, which the read of the folder takes
     public sealed class R685_SheetInputTests : IDisposable
     {
         private readonly string root = Path.Combine(Path.GetTempPath(), "R685_" + Guid.NewGuid().ToString("N"));
@@ -37,20 +38,20 @@ namespace SiteAdaptation.Tests
         {
             PaneSettings settings = Settings("config/sheet.xlsx");
             // Broken on purpose: neither file on disk, no input, as the runner refuses an input that is not
-            Assert.Null(DataCheckStep.SheetInput(settings));
+            Assert.Null(DataCheckSheet.Input(settings.Project, settings.ConfigFile));
             File.WriteAllText(Path.Combine(root, "config", "sheet.xlsx"), "made up");
-            WorkerFile fromConfig = DataCheckStep.SheetInput(settings);
+            WorkerFile fromConfig = DataCheckSheet.Input(settings.Project, settings.ConfigFile);
             Assert.Equal(InputNames.ParameterSheet, fromConfig.Role);
             Assert.Equal(Path.Combine(root, "config", "sheet.xlsx"), fromConfig.Path);
             Assert.Equal(string.Empty, fromConfig.Sha256);
             string picked = Path.Combine(root, "picked.xlsx");
             settings.Pick(InputKeys.ParameterSheet, picked);
             // A picked sheet that is gone falls back on the one of config
-            Assert.Equal(fromConfig.Path, DataCheckStep.SheetInput(settings).Path);
+            Assert.Equal(fromConfig.Path, DataCheckSheet.Input(settings.Project, settings.ConfigFile).Path);
             File.WriteAllText(picked, "made up");
-            Assert.Equal(picked, DataCheckStep.SheetInput(settings).Path);
+            Assert.Equal(picked, DataCheckSheet.Input(settings.Project, settings.ConfigFile).Path);
             // A config that names no sheet and no pick gives none
-            Assert.Null(DataCheckStep.SheetInput(Settings("")));
+            Assert.Null(DataCheckSheet.Input(Settings("").Project, Settings("").ConfigFile));
         }
     }
 }

@@ -827,8 +827,8 @@ namespace CadReader
             run.Counts["ROSHN only"] = report.Lines.Count(line => line.RoshnOnly);
         }
 
-        // R412. What the check reads of a workbook and of a PDF, with OpenXml and PdfPig which only the worker loads. A file that cannot be
-        // opened gives null, the sheet rows are the cells of XlsxSheet as texts
+        // R412. What the check reads of a workbook, with OpenXml which only the worker loads. A file that cannot be opened gives null, the
+        // sheet rows are the cells of XlsxSheet as texts
         public static NewProjectReaders CheckReaders()
         {
             return new NewProjectReaders
@@ -852,22 +852,6 @@ namespace CadReader
                 {
                     IEnumerable<object[]> rows = XlsxSheet.Read(path, sheet).Rows;
                     return (count < 0 ? rows : rows.Take(count)).Select(row => (IReadOnlyList<string>)row.Select(cell => cell is string text ? SheetRows.PyStrip(text) : "").ToList()).ToList();
-                },
-                Pdf = path =>
-                {
-                    try
-                    {
-                        using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-                        using (UglyToad.PdfPig.PdfDocument document = UglyToad.PdfPig.PdfDocument.Open(stream))
-                        {
-                            string text = document.NumberOfPages == 0 ? "" : string.Concat(document.GetPage(1).Letters.Select(letter => letter.Value));
-                            return new PdfFacts { Pages = document.NumberOfPages, Tokens = text.Split((char[])null, StringSplitOptions.RemoveEmptyEntries) };
-                        }
-                    }
-                    catch (Exception)
-                    {
-                        return null;
-                    }
                 },
             };
         }

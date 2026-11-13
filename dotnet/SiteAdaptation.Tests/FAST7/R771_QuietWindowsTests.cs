@@ -16,9 +16,9 @@ using Xunit;
 
 namespace SiteAdaptation.Tests
 {
-    // R771, F6 of run 1 of FAST-3. A step 2 the Build put back shows no check window, keeps the profile the person confirmed last and the picks of
-    // the scan, and opens the Confirm only when nothing was confirmed yet. Made up values only
-    // QuietRead, ScanGate.Window and the windows of ConfirmProfileStep are one per process, so this class runs alone, after the classes that run in
+    // R771, F6 of run 1 of FAST-3. A step 2 the Build put back shows no check window, keeps the profile the person confirmed last, and opens the
+    // Confirm only when nothing was confirmed yet. Made up values only. R847: the scan gate went with the old read of step 2, its test with it
+    // QuietRead and the windows of ConfirmProfileStep are one per process, so this class runs alone, after the classes that run in
     // parallel, and no other test sees the Build's quiet read
     [CollectionDefinition(Name, DisableParallelization = true)]
     public sealed class QuietReadCollection
@@ -36,7 +36,6 @@ namespace SiteAdaptation.Tests
 
         private readonly Action<IntPtr, DataCheckResult> checkBefore = ConfirmProfileStep.ShowCheck;
         private readonly Action<IntPtr, ConfirmProfileSession> confirmBefore = ConfirmProfileStep.ShowConfirm;
-        private readonly Func<IntPtr, string, ProjectSettings, ProjectSettings> windowBefore = ScanGate.Window;
         private readonly Func<bool> quietBefore = QuietRead.Now;
         private readonly string folder = Path.Combine(Path.GetTempPath(), "R771_" + Guid.NewGuid().ToString("N"));
 
@@ -49,7 +48,6 @@ namespace SiteAdaptation.Tests
         {
             ConfirmProfileStep.ShowCheck = checkBefore;
             ConfirmProfileStep.ShowConfirm = confirmBefore;
-            ScanGate.Window = windowBefore;
             QuietRead.Now = quietBefore;
             Directory.Delete(folder, true);
         }
@@ -163,24 +161,6 @@ namespace SiteAdaptation.Tests
             Assert.False(File.Exists(Path.Combine(folder, ConfirmedProfile.FileName)));
         }
 
-        [Fact]
-        public void R771_a_quiet_scan_gate_opens_no_window_and_keeps_the_picks()
-        {
-            var settings = new PaneSettings();
-            settings.Project.ScanPicks = new SortedDictionary<string, string> { ["villaType"] = "made up.xlsx|Sheet 1|Type|shift 0" };
-            int shown = 0;
-            ScanGate.Window = (owner, path, current) => { shown++; return null; };
-            QuietRead.Now = () => true;
-            ScanGateAnswer answer = ScanGate.Ask("scan.json", settings, IntPtr.Zero, path => R435_ScanViewTests.Scan(false, 2).ToString());
-            Assert.True(answer.GoOn);
-            Assert.Equal(ScanResultsText.QuietKept, answer.Line);
-            Assert.Equal(0, shown);
-            Assert.Equal("made up.xlsx|Sheet 1|Type|shift 0", settings.Project.ScanPicks["villaType"]);
-            // Not quiet: the same scan opens the window, Cancel stops the read
-            QuietRead.Now = () => false;
-            Assert.False(ScanGate.Ask("scan.json", settings, IntPtr.Zero, path => R435_ScanViewTests.Scan(false, 2).ToString()).GoOn);
-            Assert.Equal(1, shown);
-        }
     }
 }
 #endif

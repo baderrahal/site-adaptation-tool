@@ -85,15 +85,17 @@ namespace SiteAdaptation.Tests
             settings.Pick(InputKeys.Sales, Folder + "sales.xlsx");
             settings.Pick(InputKeys.Prototypes, Folder + "prototypes");
             var state = new PaneRunState(Loaded(settings), () => @"D:\Work", path => null);
-            List<RunInput> inputs = state.Inputs(2).ToList();
-            Assert.Equal(new[] { "Settings", "Baseplan", "Villa blocks", "Curbs", "Road surface", "DLUS schedule", "Sales schedule", "Plot numbers" }, inputs.Select(input => input.Name));
-            Assert.Equal(Folder + "baseplan.dwg", inputs[1].Path);
-            Assert.Null(inputs[2].Path);
-            Assert.True(inputs[4].IsFolder);
-            Assert.Equal(Folder + "roads", inputs[4].Path);
-            Assert.Equal(Folder + "sales.xlsx", inputs[6].Path);
+            // R847. Button 2 reads the project folder, the file rows of the pane are the inputs of the read for the build
+            Assert.Equal(new[] { PaneText.Settings, PaneText.InputFolder }, state.Inputs(2).Select(input => input.Name));
+            List<RunInput> inputs = SiteAdaptation.AddIn.ReadDataBody.Inputs(settings).ToList();
+            Assert.Equal(new[] { "Baseplan", "Villa blocks", "Curbs", "Road surface", "DLUS schedule", "Sales schedule", "Plot numbers" }, inputs.Select(input => input.Name));
+            Assert.Equal(Folder + "baseplan.dwg", inputs[0].Path);
+            Assert.Null(inputs[1].Path);
+            Assert.True(inputs[3].IsFolder);
+            Assert.Equal(Folder + "roads", inputs[3].Path);
+            Assert.Equal(Folder + "sales.xlsx", inputs[5].Path);
             Assert.All(inputs, input => Assert.True(SiteAdaptation.AddIn.ReadDataBody.Roles.ContainsKey(input.Name), input.Name));
-            Assert.Equal(new[] { "config", "baseplan", "villaBlocks", "curbs", "roadSurface", "dlus", "sales", "plotNumbers" }, inputs.Select(input => SiteAdaptation.AddIn.ReadDataBody.Roles[input.Name]));
+            Assert.Equal(new[] { "baseplan", "villaBlocks", "curbs", "roadSurface", "dlus", "sales", "plotNumbers" }, inputs.Select(input => SiteAdaptation.AddIn.ReadDataBody.Roles[input.Name]));
         }
 
         [Fact]
@@ -111,13 +113,15 @@ namespace SiteAdaptation.Tests
             Assert.Equal(new[] { "Done", "Ready", "Needs step 2" }, StepWords.Of(model).Take(3));
             Assert.Equal("Read data", model.BoxName);
             Assert.Equal(0, state.MissingStep(2));
-            // Step 2 is done only with every input of button 2 on disk and hashed as in its run (R366)
-            foreach (string key in InputKeys.All)
-            {
-                model.Settings.Pick(key, Folder + key);
-                disk.Add(Folder + key, HashA);
-            }
-            var inputs = PaneRunState.InputsOf(model.Settings, 2).ToDictionary(input => input.Name, input => HashA);
+            // Step 2 is done only with every input of button 2 on disk and hashed as in its run (R366). R847: its inputs are the settings file
+            // and the project folder that file names, so the settings are a real file here, with the hash of the made up one
+            string real = Path.Combine(Path.GetTempPath(), "r372-" + Guid.NewGuid().ToString("N") + ".json");
+            File.WriteAllText(real, "{ \"inputRoot\": \"D:/Made/inputs\" }");
+            model.PickConfig(real);
+            disk.Add(real, HashA);
+            disk.Add("D:/Made/inputs", HashA);
+            var inputs = PaneRunState.InputsInFolder(model.Settings, 2, null).ToDictionary(input => input.Name, input => HashA);
+            Assert.Equal(new[] { PaneText.Settings, PaneText.InputFolder }, inputs.Keys);
             state.Committed(2, new RunRecord("run2", inputs, new[] { "one", "two" }, new Dictionary<string, string>(), new string[0]));
             Assert.Equal("2 issues", StepWords.Of(model)[1]);
             Assert.Equal("Ready", StepWords.Of(model)[2]);
@@ -127,6 +131,7 @@ namespace SiteAdaptation.Tests
             Assert.Equal("Needs setup", StepWords.Of(model)[0]);
             model.Load(first);
             Assert.Equal("Done", StepWords.Of(model)[0]);
+            File.Delete(real);
         }
 
         private const string HashA = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
@@ -163,10 +168,11 @@ namespace SiteAdaptation.Tests
             Assert.NotNull(StepHash.Over(new[] { first }));
         }
 
-        // R492, review of FIX-2NOV-D. A config on disk under the mode and each input of steps 1 to 4 a made up hash, each step committed on the hash the
-        // pane holds now, so a change of the road order is all that can make a step not done
-        private static PaneViewModel FourStepsDone(string config, HashDisk disk, PaneSettings settings, out PaneRunState state)
+        // R492, R848 review. A config on disk under the mode with its input folder, and each input of steps 1 to 4 a made up hash, each step
+        // committed on the hash the pane holds now, so a change of the road order is all that can make a step not done
+        private static PaneViewModel FourStepsDone(string config, string inputRoot, PaneSettings settings, out PaneRunState state)
         {
+            var disk = new HashDisk();
             foreach (string key in new[] { InputKeys.Baseplan, InputKeys.VillaBlocks, InputKeys.Curbs, InputKeys.RoadSurface, InputKeys.Dlus, InputKeys.Sales, InputKeys.PlotNumbers, InputKeys.Prototypes })
             {
                 settings.Pick(key, Folder + key);
@@ -175,28 +181,32 @@ namespace SiteAdaptation.Tests
             settings.RulesFile = Folder + "rules.json";
             disk.Add(settings.RulesFile, HashA);
             disk.Add(config, HashA);
+            disk.Add(inputRoot, HashA);
             PaneViewModel model = Loaded(settings, disk);
             state = new PaneRunState(model, () => @"D:\Work", path => null);
             foreach (int step in new[] { 1, 2, 3, 4 })
             {
-                var hashes = PaneRunState.InputsOf(settings, step).ToDictionary(input => input.Name, input => string.IsNullOrEmpty(input.Path) ? InputHash.Of(input) : HashA, StringComparer.Ordinal);
+                var hashes = PaneRunState.InputsInFolder(settings, step, @"D:\Work").ToDictionary(input => input.Name, input => string.IsNullOrEmpty(input.Path) ? InputHash.Of(input) : HashA, StringComparer.Ordinal);
                 state.Committed(step, new RunRecord("run" + step, hashes, new string[0], new Dictionary<string, string>(), new string[0]));
             }
             return model;
         }
 
+        // R492, review of R848. Step 2 reads the folder alone since R847 and takes no road pick, so the road order is an input of 4 Check, which
+        // reads the road levels with it. A changed pick or order under rev6 leaves step 2 done and makes 4 not done, and 9 Report needs 4
         [Fact]
-        public void R492_a_changed_pick_or_order_under_rev6_makes_step_2_not_done_and_9_report_needs_4()
+        public void R492_a_changed_pick_or_order_under_rev6_makes_step_4_not_done_and_9_report_needs_4()
         {
             string folder = Path.Combine(Path.GetTempPath(), "r492-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(folder);
             try
             {
                 string config = Path.Combine(folder, "project.json");
-                File.WriteAllText(config, "{ \"designBasis\": { \"mode\": \"rev6\", \"roadLevel\": { \"surfaces\": [\"Job__A\", \"Job__B\"] } } }");
+                string input = Path.Combine(folder, "input");
+                File.WriteAllText(config, "{ \"inputRoot\": " + Newtonsoft.Json.JsonConvert.ToString(input) + ", \"designBasis\": { \"mode\": \"rev6\", \"roadLevel\": { \"surfaces\": [\"Job__A\", \"Job__B\"] } } }");
                 var settings = new PaneSettings { ConfigFile = config };
                 settings.Project.RoadSurfaces = new List<string> { "Job__A", "Job__B" };
-                PaneViewModel model = FourStepsDone(config, new HashDisk(), settings, out PaneRunState state);
+                PaneViewModel model = FourStepsDone(config, input, settings, out PaneRunState state);
                 Assert.Equal(new[] { "Done", "Done", "Done", "Done" }, StepWords.Of(model).Take(4));
 
                 // The pick that names the list of config in its order is the same effective order, so nothing goes stale
@@ -206,11 +216,10 @@ namespace SiteAdaptation.Tests
 
                 settings.Project.RoadSurfaces = new List<string> { "Job__B", "Job__A" };
                 model.Load(model.Document);
-                Assert.Equal(new[] { "Done", "Ready", "Needs step 2", "Needs step 3" }, StepWords.Of(model).Take(4));
+                Assert.Equal(new[] { "Done", "Done", "Done", "Ready" }, StepWords.Of(model).Take(4));
                 Assert.Equal(4, state.MissingStep(9));
-                Assert.Equal(3, state.MissingStep(4));
-                Assert.Equal("Needs step 4", StepWords.Of(model)[8]);
-                Assert.Contains(PaneRunState.InputsOf(settings, 2), input => input.Name == PaneRunState.RoadOrderInput && input.Text == "Job__B\nJob__A");
+                Assert.Contains(PaneRunState.InputsOf(settings, 4), item => item.Name == PaneRunState.RoadOrderInput && item.Text == "Job__B\nJob__A");
+                Assert.DoesNotContain(PaneRunState.InputsInFolder(settings, 2, @"D:\Work"), item => item.Name == PaneRunState.RoadOrderInput);
             }
             finally
             {
@@ -226,12 +235,13 @@ namespace SiteAdaptation.Tests
             try
             {
                 string config = Path.Combine(folder, "project.json");
-                File.WriteAllText(config, "{ \"designBasis\": { \"mode\": \"madeUpPastJob\", \"roadLevel\": { \"surfaces\": [\"Job__A\"] } } }");
+                string input = Path.Combine(folder, "input");
+                File.WriteAllText(config, "{ \"inputRoot\": " + Newtonsoft.Json.JsonConvert.ToString(input) + ", \"designBasis\": { \"mode\": \"madeUpPastJob\", \"roadLevel\": { \"surfaces\": [\"Job__A\"] } } }");
                 var settings = new PaneSettings { ConfigFile = config };
-                PaneViewModel model = FourStepsDone(config, new HashDisk(), settings, out PaneRunState state);
-                Assert.Equal(8, PaneRunState.InputsOf(settings, 2).Count);
+                PaneViewModel model = FourStepsDone(config, input, settings, out PaneRunState state);
+                int before = PaneRunState.InputsOf(settings, 4).Count;
                 settings.Project.RoadSurfaces = new List<string> { "Job__B" };
-                Assert.Equal(8, PaneRunState.InputsOf(settings, 2).Count);
+                Assert.Equal(before, PaneRunState.InputsOf(settings, 4).Count);
                 model.Load(model.Document);
                 Assert.Equal(new[] { "Done", "Done", "Done", "Done" }, StepWords.Of(model).Take(4));
                 Assert.Equal(0, state.MissingStep(9));

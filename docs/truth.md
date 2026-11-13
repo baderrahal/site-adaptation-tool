@@ -12,11 +12,11 @@ The pane shows 3 cards. They are the only way in. Each click runs the old number
 
 | Card | Click | What it does |
 |---|---|---|
-| 1 Project data | Choose project folder | Takes the folder of the project, sets it as the input folder of this project, runs step 1 Set up site, then step 2 Read data on the folder |
+| 1 Project data | Choose project folder | Takes the folder of the project, sets it as the input folder of this project, runs step 1 Set up site, then step 2 Read data on the folder. Step 2 reads the project folder alone, no data book and no scan window (R847, T001) |
 | 1 Project data | 1 Set up site | Step 1 alone: units, position, Level 1 and Level 2, floor and wall types, shared parameters |
 | 1 Project data | Fix items | Shown when the data check has rows. Opens the window where a person confirms or corrects what the tool read |
 | 1 Project data | 3 Review data | Step 3: every plot against its sources, the team marks each one. Nothing changes in Revit |
-| 2 Build site | Build | Makes the plan, shows the preview when Preview first is ticked, then runs steps 1 (if not done), 4 Check, 5 Floors and ramps, 6 Levels, 7 Place villas, 8 Walls in that order. A step that waits on an earlier step runs that one first. It asks once to use the manual template when the project has no rules |
+| 2 Build site | Build | Makes the plan, shows the preview when Preview first is ticked, then runs steps 1 (if not done), 4 Check, 5 Floors and ramps, 6 Levels, 7 Place villas, 8 Walls in that order. A step that waits on an earlier step runs that one first. It asks once to use the manual template when the project has no rules. Before its first step, when free memory is under the read peak of config, it unloads the villa links the tool placed and step 7 loads them back with no box (R848, seen in Revit T001 and T002) |
 | 2 Build site | Preview first, a tick | On by default. Shows what Build will do before it changes the model |
 | 3 Review and deliver | Report | Step 9: writes the Excel report into the work folder of the model |
 | 3 Review and deliver | Update from report | Reads the Excel a person edited and updates the model from it |
@@ -110,17 +110,25 @@ Bader, 12 Nov 16:55. Bader decides. Design is decided in chat.
 | Cowork | Writes all tool code: dotnet, python, config, rules, samples, with the tests of the code. Only in the Cowork folder, C:\Users\bader\Documents\GitHub\site-adaptation-cowork, a worktree of this repo on the branch cowork/work. Writes the Bridge task | Commits, pushes, starts Revit |
 | Claude Code | Builds, tests, tests in Revit, reports, commits and merges. Keeps the records: docs, steps, .claude, .github, scripts, tests/acceptance, golden and holdout | Edits tool code. A fault it finds goes in the report |
 
-The Bridge is C:\SA-work\SiteAdaptation\Bridge: STATUS.md with one line (IDLE, TASK T001 OPEN or REPORT T001 READY, with the time), to-code, from-code, done. Its README.md holds the shape of a task (Build, Install, Model, Do, Look for, Evidence, Out of scope) and of a report (Build seen, Ran, Pass, Fail, UNKNOWN, Host limits, Processes). A brief Lead writes for Cowork lies there too and is no Bridge task.
+The Bridge is C:\SA-work\SiteAdaptation\Bridge: STATUS.md with one line (IDLE, TASK T00N OPEN, RUNNING T00N or REPORT T00N READY, with the time), to-code, from-code, done. Its README.md holds the shape of a task (Build, Install, Model, Do, Look for, Evidence, Out of scope) and of a report (Build seen, Ran, Pass, Fail, UNKNOWN, Host limits, Processes). A brief Lead writes for Cowork lies there too and is no Bridge task.
 
 How a round closes:
 
 1. Cowork edits in the Cowork folder and writes Bridge\to-code\T00N.md.
-2. Claude Code, in one fresh session per task: reads the diff of the Cowork folder against main, builds Release, runs scripts/quick-tests.ps1, installs, runs the Revit part, and writes Bridge\from-code\T00N.md with the evidence.
+2. Claude Code, in one session that checks STATUS.md every 5 minutes and runs a TASK T00N OPEN on its own (Bader 13 Nov 04:32 and 13:35, no prompt pasted per task): reads the diff of the Cowork folder against main, builds Release, runs scripts/quick-tests.ps1, installs, runs the Revit part, and writes Bridge\from-code\T00N.md with the evidence.
 3. The Revit part runs with the PC to itself: no other lane, no Navisworks, Cowork idle, the free memory written before each press. Measured on 12 Nov, steps/revit-results/OLD-1e1-revit-test.md: with two build lanes beside it the read for the build was refused twice for free memory, 3.81 GiB asked, 3.23 GB the most seen.
 4. When all of it passes: Claude Code commits the Cowork changes on a branch with a short message, opens the PR, merges on green, and resets cowork/work to main.
-5. When any part fails: the report names it, nothing is committed, Cowork fixes.
+5. When any part fails: the report names it, nothing is committed, Cowork fixes. Cowork checks STATUS.md every 30 minutes and reads a REPORT T00N READY on its own.
+6. Read tests are kept in Bridge\done\T00N with task.md, report.md and evidence. Cowork keeps notes\TRUTH.md of the Cowork folder with the newest test only.
 
-The hooks, .claude/hooks: guard-edit.ps1 refuses an Edit or Write of a file under dotnet, python, config, rules or samples, in the main folder, a worktree or the Cowork folder, for every session that runs it. Cowork runs no hook of the repo. guard-revit.ps1 lets Revit start only from the worktree revit-test. No Revit run starts until Bader's next order, 12 Nov 16:55. The lanes of before are in steps/history/lanes-until-12nov.md.
+The hooks, .claude/hooks: guard-edit.ps1 refuses an Edit or Write of a file under dotnet, python, config, rules or samples, in the main folder, a worktree or the Cowork folder, for every session that runs it. Cowork runs no hook of the repo. guard-revit.ps1 lets Revit start only from the worktree revit-test. Revit starts only on a Bridge task Bader ordered: T001 and T002 on 13 Nov, later tasks under the standing order of the Bridge loop prompt, 13 Nov 13:35. The lanes of before are in steps/history/lanes-until-12nov.md.
+
+## Where the build stands, 13 Nov
+
+- 01A builds from card 2 to its end on Bader's PC: Build 1 7.5 min, a Build on a built model 3.5 to 3.8 min, 265 villas, 530 floors, 596 walls (T001, T002 of the Bridge).
+- A Build again on a built model moves nothing: floors, links and walls already placed (R885 fixed 10 walls the second run skipped, T002).
+- First compare of 01A against its past model IMG, T002: fail. Plots 265 of 297, position 0 of 265 within 5 mm, FFL 2 of 265, rotation 90 of 265, mirror 144 of 265, floors 530 of 594, walls 596 of 859, levels 2 of 2.
+- Measured by Cowork 13 Nov: each villa sits exactly on its plan insert, and the inserts sit on real villa spots of the past model, 74 within 0.5 m. The past villa nearest each insert never has the plot number of the plan, 0 of 265, and the plan number is most often the past number plus 8 or 9. So the placing follows the plan, and the plan puts the plot numbers on the wrong spots. Where in the read this happens is UNKNOWN until the next task measures it.
 
 ## The pass level
 
@@ -152,8 +160,14 @@ The compare is python/compare_built.py, round 1 step c. It writes steps/compare.
 | 12 Nov 03:25 | Yard floor at FFL less 0.10 m, as a rule of the project the team can change in the Rules window, never a fixed value, source "Team decision 24 Oct, the manual gives no level". Q225 is answered |
 | 12 Nov 03:25 | The road surfaces are joined for the toposolid, as an option in Settings, on by default. Q600 is closed |
 | 12 Nov 03:25 | No new project work: the new project path and roads from 3D solids are dropped. The installer waits until Bader asks. Whether the repo goes private waits |
-| 12 Nov 03:25 | Round 1 step d: the 3 cards are the only way in. Past job mode and its override list, light mode, the data book reads and the Python copies of C# logic are removed |
+| 12 Nov 03:25 | Round 1 step d: the 3 cards are the only way in. Past job mode and its override list, light mode, the data book reads and the Python copies of C# logic are removed. The data book reads went in T001, the rest is open |
 | 12 Nov 16:45 | The Revit run of round 1 builds a small area, not all neighbourhoods |
 | 12 Nov 16:55 | Cowork writes all tool code. Claude Code builds, tests, tests in Revit, reports, commits and merges, and never edits tool code. Who does what above |
-| 12 Nov 16:55 | The revit-test run is held. No Revit run starts until Bader's next order |
+| 12 Nov 16:55 | The revit-test run is held. No Revit run starts until Bader's next order. Lifted on 13 Nov: Bader ordered T001 and T002, and the loop prompt of 13:35 holds his order for later tasks |
 | 12 Nov 16:50 | The identity of the Parsons tools is the look of this tool: docs/design/identity.md, with the kit in docs/design/identity-kit. The windows take it in round 3, UI-1, after Bader approves the boards |
+| 13 Nov 01:07 | Q659: a person's edits are saved per project in New projects\<model>\ under the work root, with who and when. To be built with the removal of past job mode, not built yet |
+| 13 Nov 02:16 | Claude Code closes what a Revit run does not need. The villa links unload for the reads and load back (R848) |
+| 13 Nov 04:32 | The Claude Code session that ran a Bridge task runs the next one too |
+| 13 Nov 04:34 | No vibe code, each folder holds one kind of thing, the MD files are updated every session, Cowork's TRUTH.md keeps the newest test only |
+| 13 Nov 13:35 | No prompt pasted per task: Claude Code checks the Bridge every 5 minutes, Cowork every 30. The loop prompt lets the Revit part of each task run |
+| 13 Nov 13:38 | T001 and T002 are committed although T002 failed the compare of 01A and one net48 wait outside its diff |

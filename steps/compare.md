@@ -35,14 +35,14 @@ Yards are counted on IMC, IMD, IME, IMF. Plots, position, rotation and mirror on
 
 ## The built side against the past models
 
-No built folder was given, every neighbourhood counts 0 built.
+A built folder was given, 1 of its folders are named as a neighbourhood below.
 
 | Neighbourhood | Past model | Plots | Position | FFL | Rotation | Mirror | Floors | Yards | Walls | Levels | Result |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | 010 | none | UNKNOWN, no past model | UNKNOWN, no past model | UNKNOWN, no past model | UNKNOWN, no past model | UNKNOWN, no past model | UNKNOWN, no past model | UNKNOWN, no past model | UNKNOWN, no past model | UNKNOWN, no past model | UNKNOWN |
 | 012 | IMC | 0 of 337, 0.0 percent, fail | no plot built, fail | no plot built, fail | no plot built, fail | no plot built, fail | 0 of 673, fail | 0 of 337, fail | 0 of 926, fail | 0 of 2, fail | fail |
 | 013 | IMD | 0 of 410, 0.0 percent, fail | no plot built, fail | no plot built, fail | no plot built, fail | no plot built, fail | 0 of 820, fail | 0 of 410, fail | 0 of 1138, fail | 0 of 2, fail | fail |
-| 01A | IMG | 0 of 297, 0.0 percent, fail | no plot built, fail | no plot built, fail | no plot built, fail | no plot built, fail | 0 of 594, fail | not counted | 0 of 859, fail | 0 of 2, fail | fail |
+| 01A | IMG | 265 of 297, 89.2 percent, fail | 0 of 265, 0.0 percent, largest 1905114.1 mm, fail | 2 of 265, 0.7 percent, largest 9658.0 mm, fail | 90 of 265, 33.9 percent, fail | 144 of 265, 54.3 percent, fail | 530 of 594, fail | not counted | 596 of 859, fail | 2 of 2, pass | fail |
 | 01B | none | UNKNOWN, no past model | UNKNOWN, no past model | UNKNOWN, no past model | UNKNOWN, no past model | UNKNOWN, no past model | UNKNOWN, no past model | UNKNOWN, no past model | UNKNOWN, no past model | UNKNOWN, no past model | UNKNOWN |
 | 02 | IME | 0 of 324, 0.0 percent, fail | no plot built, fail | no plot built, fail | no plot built, fail | no plot built, fail | 0 of 648, fail | 0 of 324, fail | 0 of 894, fail | 0 of 2, fail | fail |
 | 021 | IMA | 0 of 432, 0.0 percent, fail | no plot built, fail | not counted | no plot built, fail | no plot built, fail | not counted | not counted | not counted | not counted | fail |

@@ -304,8 +304,9 @@ namespace SiteAdaptation.Tests
             Assert.Equal(new[] { "J1__Access" }, run.RoadPick());
             settings.Project.RoadSurfaces = null;
             Assert.Null(run.RoadPick());
-            string read = File.ReadAllText(Path.Combine(ThemeGateTests.RepoRoot(), "dotnet", "SiteAdaptation.AddIn", "Commands", "ReadDataBody.cs"));
-            Assert.Contains("RoadPick = () => session.Settings.Project.RoadSurfaces", read);
+            // R847. The read that takes road surfaces is the read for the build, which hands the pick of the settings to ReadInputs.ForBuild
+            string read = File.ReadAllText(Path.Combine(ThemeGateTests.RepoRoot(), "dotnet", "SiteAdaptation.AddIn", "Fast5", "BuildRead.cs"));
+            Assert.Contains("ReadInputs.ForBuild(pane, ReadDataBody.Roles, workFolder, settings.Project.RoadSurfaces, settings.Project.ProjectMode)", read);
         }
 
         [Fact]

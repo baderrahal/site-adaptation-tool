@@ -36,18 +36,7 @@ namespace SiteAdaptation.Tests
                 "the tables are keyed by the KEO prototype file names of the ROSHN Makkah job",
             },
             new[] { "prototype files", "does not fit", "the prototype folder protos holds no single file for the unit codes: TH1", "files are found by the -ARC-<code>- part of the KEO file names" },
-            new[] { "Excel dlus dataBook.rev9.dlus", "does not fit", "a.xlsx sheet S1 row 2 lacks the columns: NBH", "held to the sheet S1 and the headers Plot, NBH" },
-            new[] { "Excel dlus dataBook.rev9.sales", "does not fit", "a.xlsx has no sheet Nope", "held to the sheet Nope and the headers Plot" },
-            new[] { "Excel dlus dataBook.data5.areaKey.dlus", "ok", "a.xlsx sheet S1 row 2 holds all 1 columns the readers use", "held to the sheet S1 and the headers Plot" },
-            new[] { "Excel dataBook.data5.areaKey.sales", "does not fit", "config names no workbook, sheet, headerRow and columns in dataBook.data5.areaKey.sales", null },
-            new[] { "Excel dataBook.locationPlan.sales", "does not fit", "config names no workbook, sheet, headerRow and columns in dataBook.locationPlan.sales", null },
-            new[] { "Excel dataBook.locationPlan.dlus", "does not fit", "config names no workbook, sheet, headerRow and columns in dataBook.locationPlan.dlus", null },
             new[] { "Schedule N1", "ok", "s1.xlsx sheet Sched holds the Plot No. header row", "held to the sheet Sched and a header cell with Plot No." },
-            new[]
-            {
-                "location plan PDF", "ok", "plan.pdf is one page and holds text that fits the number and code patterns",
-                "held to the ROSHN Makkah label patterns of dataBook.locationPlan.patterns: number, clientCode",
-            },
         };
 
         private readonly string folder = Path.Combine(Path.GetTempPath(), "sa_r412_" + System.Guid.NewGuid().ToString("N"));
@@ -67,32 +56,6 @@ namespace SiteAdaptation.Tests
             catch (IOException)
             {
             }
-        }
-
-        private static void MadePdf(string path)
-        {
-            byte[] content = Encoding.ASCII.GetBytes("BT /F1 10 Tf 100 300 Td (C10 12) Tj ET");
-            string[] objects =
-            {
-                "<< /Type /Catalog /Pages 2 0 R >>", "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-                "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 600 400] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>",
-                "<< /Length " + content.Length + " >>\nstream\n" + Encoding.ASCII.GetString(content) + "\nendstream", "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
-            };
-            var output = new StringBuilder("%PDF-1.4\n");
-            var offsets = new List<int>();
-            for (int number = 1; number <= objects.Length; number++)
-            {
-                offsets.Add(output.Length);
-                output.Append(number + " 0 obj\n" + objects[number - 1] + "\nendobj\n");
-            }
-            int start = output.Length;
-            output.Append("xref\n0 " + (objects.Length + 1) + "\n0000000000 65535 f \n");
-            foreach (int offset in offsets)
-            {
-                output.Append(offset.ToString("0000000000") + " 00000 n \n");
-            }
-            output.Append("trailer\n<< /Size " + (objects.Length + 1) + " /Root 1 0 R >>\nstartxref\n" + start + "\n%%EOF\n");
-            File.WriteAllBytes(path, Encoding.ASCII.GetBytes(output.ToString()));
         }
 
         // A workbook of one sheet, each row an array of texts, a null leaves the cell empty
@@ -126,7 +89,7 @@ namespace SiteAdaptation.Tests
             work = Path.Combine(folder, "w");
             root = Path.Combine(folder, "in");
             config = Path.Combine(folder, "cfg");
-            foreach (string path in new[] { Path.Combine(work, "data_book", "work", "Book"), Path.Combine(root, "refs"), Path.Combine(root, "protos"), config })
+            foreach (string path in new[] { work, Path.Combine(root, "refs"), Path.Combine(root, "protos"), config })
             {
                 Directory.CreateDirectory(path);
             }
@@ -134,8 +97,6 @@ namespace SiteAdaptation.Tests
             File.WriteAllText(Path.Combine(work, "pos.json"), JObject.Parse(@"{ 'format': 'site-adaptation-position', 'formatVersion': 1,
                 'projectPosition': { 'eastM': 1.0, 'northM': 2.0, 'elevationM': 3.0, 'angleDeg': 0.5 }, 'surveyPoint': " + point + ", 'projectBasePoint': " + point + @",
                 'levels': [ { 'name': 'L1', 'elevationM': 0.0 }, { 'name': 'L2', 'elevationM': 3.0 } ], 'levelBase': 'Project Base Point' }").ToString());
-            SheetBook(Path.Combine(work, "data_book", "work", "Book", "a.xlsx"), "S1", new List<string[]> { new[] { "title" }, new[] { "Plot", "Other" }, new[] { "1", "x" } });
-            MadePdf(Path.Combine(work, "data_book", "work", "Book", "plan.pdf"));
             var schedule = new List<string[]> { new[] { "t" } };
             schedule.AddRange(Enumerable.Repeat(new string[] { null }, 38));
             schedule.Add(new[] { "Plot No.", "Size" });
@@ -153,13 +114,8 @@ namespace SiteAdaptation.Tests
                 'inputRoot': " + Newtonsoft.Json.JsonConvert.ToString(root) + @", 'floors': { 'plotParameter': 'AA_One' },
                 'pastJob': { 'neighbourhood': 'N1', 'prototypeFolder': 'protos', 'parameters': [ 'AA_Two', 'AA_Three' ] }, 'majority': { 'parameterLevels': [] },
                 'connect': { 'neighbourhoods': { 'N1': { 'schedule': 's1.xlsx' }, 'N2': null }, 'scheduleSheet': 'Sched' },
-                'addin': { 'workbookRoles': { 'bk': 'dlus' }, 'position': { 'file': '{workRoot}/pos.json' }, 'readData': { 'dataBookFolder': 'data_book', 'scheduleFolder': 'refs' },
-                    'parameterSheet': " + Newtonsoft.Json.JsonConvert.ToString(Path.Combine(config, "parameters.xlsx")) + @" },
-                'dataBook': { 'rev9': { 'workbooks': { 'bk': 'Book/a.xlsx' },
-                        'dlus': { 'workbook': 'bk', 'sheet': 'S1', 'headerRow': 2, 'columns': { 'plot': 'Plot', 'nbh': 'NBH' } },
-                        'sales': { 'workbook': 'bk', 'sheet': 'Nope', 'headerRow': 1, 'columns': { 'plot': 'Plot' } } },
-                    'data5': { 'areaKey': { 'dlus': { 'workbook': 'bk', 'sheet': 'S1', 'headerRow': 2, 'columns': { 'plot': 'Plot' } } } },
-                    'locationPlan': { 'pdf': 'Book/plan.pdf', 'patterns': { 'number': '\\d{1,4}', 'clientCode': '[A-Z]{1,3}\\d{1,2}' }, 'codeKinds': [ 'clientCode' ] } } }").ToString());
+                'addin': { 'workbookRoles': { 'bk': 'dlus' }, 'position': { 'file': '{workRoot}/pos.json' }, 'readData': { 'scheduleFolder': 'refs' },
+                    'parameterSheet': " + Newtonsoft.Json.JsonConvert.ToString(Path.Combine(config, "parameters.xlsx")) + @" } }").ToString());
         }
 
         private NewProjectReport Run()
@@ -184,14 +140,14 @@ namespace SiteAdaptation.Tests
                 Assert.Equal(Lines[index][3] != null, report.Lines[index].RoshnOnly);
             }
             JObject json = report.ToJson();
-            Assert.Equal(JObject.Parse("{ 'ok': 4, 'missing': 0, 'doesNotFit': 9, 'roshnOnly': 9 }").ToString(), json["counts"].ToString());
-            Assert.Equal(8, report.Inputs.Count);
+            Assert.Equal(JObject.Parse("{ 'ok': 2, 'missing': 0, 'doesNotFit': 4, 'roshnOnly': 5 }").ToString(), json["counts"].ToString());
+            Assert.Equal(6, report.Inputs.Count);
             Assert.All(report.Inputs, input => Assert.True((bool)input["unchanged"]));
             Assert.Equal(report.Inputs.Select(input => (string)input["name"]).OrderBy(name => name, StringComparer.Ordinal), report.Inputs.Select(input => (string)input["name"]));
             string[] text = report.Text().Split('\n');
-            Assert.Equal("New project check, 13 lines: 4 ok, 0 missing, 9 do not fit, 9 ROSHN only", text[0]);
+            Assert.Equal("New project check, 6 lines: 2 ok, 0 missing, 4 do not fit, 5 ROSHN only", text[0]);
             Assert.Equal("position file: ok. pos.json holds the project position, the survey point, the project base point and 2 levels", text[1]);
-            Assert.Equal("Inputs opened: 8, none changed", text[text.Length - 2]);
+            Assert.Equal("Inputs opened: 6, none changed", text[text.Length - 2]);
         }
 
         // R511. The source the project holds decides, not the default of a new project in config, so a past job with its position file still gets the line. The same cases in the Python
@@ -228,17 +184,13 @@ namespace SiteAdaptation.Tests
         {
             Build();
             File.Delete(Path.Combine(work, "pos.json"));
-            File.WriteAllText(Path.Combine(work, "data_book", "work", "Book", "a.xlsx"), "not a workbook");
-            File.WriteAllText(Path.Combine(work, "data_book", "work", "Book", "plan.pdf"), "not a pdf");
             File.Delete(Path.Combine(root, "refs", "s1.xlsx"));
             File.WriteAllText(Path.Combine(config, "prototype_offsets.json"), "[]");
             File.Delete(Path.Combine(root, "protos", Prototype));
             Dictionary<string, CheckLine> got = Run().Lines.ToDictionary(line => line.Input);
             Assert.Equal(new[] { "missing", "pos.json is not there" }, new[] { got["position file"].Status, got["position file"].Text });
             Assert.Equal(new[] { "does not fit", "prototype_offsets.json cannot be read as a JSON object" }, new[] { got["villa offsets"].Status, got["villa offsets"].Text });
-            Assert.Equal(new[] { "does not fit", "a.xlsx cannot be read as a workbook" }, new[] { got["Excel dlus dataBook.rev9.dlus"].Status, got["Excel dlus dataBook.rev9.dlus"].Text });
             Assert.Equal(new[] { "missing", "s1.xlsx is not there" }, new[] { got["Schedule N1"].Status, got["Schedule N1"].Text });
-            Assert.Equal(new[] { "does not fit", "plan.pdf cannot be read as a PDF" }, new[] { got["location plan PDF"].Status, got["location plan PDF"].Text });
             Assert.Equal("the prototype folder protos holds no single file for the unit codes: C10, VL3, TH1", got["prototype files"].Text);
         }
 
@@ -282,7 +234,6 @@ namespace SiteAdaptation.Tests
                     }
                     return rows;
                 },
-                Pdf = real.Pdf,
             };
             var refused = Assert.Throws<InvalidDataException>(() => NewProjectCheck.Check(Path.Combine(config, "project.json"), Path.Combine(config, "rules.json"),
                 Path.Combine(config, "prototype_offsets.json"), work, root, touching));
@@ -324,7 +275,6 @@ namespace SiteAdaptation.Tests
                 }
             }
             merged["addin"]["position"]["file"] = Path.Combine(work, "pos.json");
-            merged["addin"]["readData"]["dataBookFolder"] = Path.Combine(work, "data_book");
             merged["addin"]["workerTimeLimitS"] = JObject.Parse(File.ReadAllText(WorkerRunTests.RepoConfig()))["addin"]["workerTimeLimitS"];
             File.WriteAllText(Path.Combine(config, "project.json"), merged.ToString());
             string output = Path.Combine(folder, "out");
@@ -343,10 +293,10 @@ namespace SiteAdaptation.Tests
             WorkerAnswer answer = WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, "n1"));
             Assert.True(code == 0, "exit " + code + ": " + answer.Message);
             Assert.Equal(new[] { NewProjectCheck.JsonName, NewProjectCheck.TextName }, Directory.GetFiles(output).Select(path => Path.GetFileName(path)).OrderBy(name => name, StringComparer.Ordinal));
-            Assert.Equal(13, answer.Counts["lines"]);
+            Assert.Equal(6, answer.Counts["lines"]);
             JObject written = JObject.Parse(File.ReadAllText(Path.Combine(output, NewProjectCheck.JsonName)));
             Assert.Equal(NewProjectCheck.Format, (string)written["format"]);
-            Assert.StartsWith("New project check, 13 lines", File.ReadAllText(Path.Combine(output, NewProjectCheck.TextName)));
+            Assert.StartsWith("New project check, 6 lines", File.ReadAllText(Path.Combine(output, NewProjectCheck.TextName)));
             string after = listed();
             Assert.Equal(before, after);
         }
