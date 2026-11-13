@@ -85,16 +85,6 @@ namespace SiteAdaptation.Common.Flow
             return label + " is running already, its worker has not ended.";
         }
 
-        public static string ReadCounts(int files, double mib)
-        {
-            return "Reads " + files + " files, " + System.Math.Round(mib, 1).ToString(System.Globalization.CultureInfo.InvariantCulture) + " MiB.";
-        }
-
-        public static string ReadReuses(int files, string runId)
-        {
-            return "Reuses the read of run " + runId + ", its " + files + " input files are unchanged.";
-        }
-
         // R639. A raw read has no list of files to count, the worker picks what it opens as it walks. So the count names what was measured, the
         // files the folder holds, and never says that many are read
         public static string ReadFolderCounts(int files, double mib, bool confirmed)
@@ -109,19 +99,6 @@ namespace SiteAdaptation.Common.Flow
             return "Reuses the read of " + when + (confirmed ? ", nothing changed: the folder, the settings file and the values a person confirmed are unchanged." : ", nothing changed: the folder and the settings file are unchanged.");
         }
 
-        // R639. R635 sends a project that lacks a file of the old read to the folder on purpose. The plot table then differs, so a person is told which file did it
-        public static string ReadFolderInstead(IReadOnlyList<string> lacks)
-        {
-            return lacks.Count == 0
-                ? "This project names no files for the old read, so the folder is read instead."
-                : "The old read lacks a file: " + lacks[0] + (lacks.Count > 1 ? ", and " + (lacks.Count - 1) + " more" : "") + ". The folder is read instead.";
-        }
-
-        public static string ReadFolderLack(string lack)
-        {
-            return "The old read lacks: " + lack;
-        }
-
         // R639. Why a read of these same files is done again, and what the end of a read says when it is not whole
         public static string ReadAgain(string why)
         {
@@ -130,7 +107,7 @@ namespace SiteAdaptation.Common.Flow
 
         public static string ReadNotWhole(string why)
         {
-            return "This read is not whole, the next press reads again: " + why + ".";
+            return "This read is not whole, the next press of 2 Read data reads again: " + why + ".";
         }
 
         public static string ReadStopped(string reason)
@@ -179,7 +156,7 @@ namespace SiteAdaptation.Common.Flow
         // R639. The same stop on a read that is not whole, which is never reused. A stopped check holds no plot, so the scope is the symptom and the why the cause
         public static string ReadScopeAgain(string label, IEnumerable<string> stops, string why)
         {
-            return label + " read the files, but the scope stops it: " + string.Join(". ", stops) + ". This read is not whole, the next press reads again: " + why + ".";
+            return label + " read the files, but the scope stops it: " + string.Join(". ", stops) + ". This read is not whole, the next press of 2 Read data reads again: " + why + ".";
         }
 
         public static string DryHeldOpen(string file)

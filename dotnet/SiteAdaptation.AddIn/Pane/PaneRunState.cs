@@ -14,9 +14,8 @@ namespace SiteAdaptation.AddIn.Pane
     // on. No Revit type, so a test fills it without Revit
     public sealed class PaneRunState : IRunState
     {
-        // R492. The name of the input of step 2 that holds the road order under rev6, a key of the hashes the user never sees, as a value is never absent
+        // R492, R848. The name of the input of step 4 that holds the road order under rev6, a key of the hashes the user never sees, as a value is never absent
         public const string RoadOrderInput = "Road surface order";
-
 
         private readonly PaneViewModel model;
         private readonly Func<string> root;
@@ -74,20 +73,20 @@ namespace SiteAdaptation.AddIn.Pane
             return InputsInFolder(model.Settings ?? new PaneSettings(), button, work);
         }
 
-        // R635. Button 2 on a rev6 project that holds no past file takes the Settings file only: the files of the pane belong to the old
-        // read, an empty row of theirs must not stop a read of the folder. work is null where there is no work folder yet, which keeps the
-        // old list
+        // R635, R847. Button 2 reads the project folder, so it takes the Settings file and the folder: an empty file row of the pane must
+        // not stop a read of the folder. work is null where there is no work folder yet, which holds no confirmed values
         public static IReadOnlyList<RunInput> InputsInFolder(PaneSettings settings, int button, string work)
         {
-            if (button == 2 && !string.IsNullOrEmpty(work) && Common.ReadData.ReadInputs.NoPastFiles(settings.ConfigFile, settings.Project.ProjectMode, work))
+            if (button == 2)
             {
                 var raw = new List<RunInput> { new RunInput(PaneText.Settings, settings.ConfigFile, false) };
                 // R635. A changed file of the folder is another read. As Road surface and Prototypes the folder is hashed by the list of its files, off
-                // the UI thread in the pane, so step 2 and the chain after it stop being done
-                raw.Add(new RunInput(PaneText.InputFolder, (string)ConfigOf(settings.ConfigFile, settings.Project.ProjectMode)["inputRoot"], true));
+                // the UI thread in the pane, so step 2 and the chain after it stop being done. A settings file that does not read names no folder
+                JToken root = ConfigOf(settings.ConfigFile, settings.Project.ProjectMode)?["inputRoot"];
+                raw.Add(new RunInput(PaneText.InputFolder, root != null && root.Type == JTokenType.String ? (string)root : null, true));
                 // What a person confirmed is an input of the read as a file is, so a new file leaves step 2 not done and the chain after it
-                string confirmed = Path.Combine(work, Common.ConfirmedProfile.FileName);
-                if (File.Exists(confirmed))
+                string confirmed = string.IsNullOrEmpty(work) ? null : Path.Combine(work, Common.ConfirmedProfile.FileName);
+                if (confirmed != null && File.Exists(confirmed))
                 {
                     raw.Add(new RunInput(PaneText.ConfirmedValues, confirmed, false));
                 }
@@ -100,21 +99,17 @@ namespace SiteAdaptation.AddIn.Pane
         public static IReadOnlyList<RunInput> InputsOf(PaneSettings settings, int button)
         {
             var inputs = new List<RunInput> { new RunInput(PaneText.Settings, settings.ConfigFile, false) };
-            if (button == 2)
+            if (button == 4)
             {
-                inputs.AddRange(ReadDataBody.Inputs(settings));
-                // R492. Under rev6 the effective road order is an input of the read as a file is, so a changed pick or order runs step 2 and the
-                // chain after it again, as a Browse does. Under the past job there is no such input, so its hashes stay as they were
-                // R484. Under the mode of the settings, so a change of mode leaves step 2 not done as a change of pick does
+                inputs.AddRange(CheckTable.CheckTableBody.Inputs(settings));
+                // R492. Under rev6 the effective road order is an input of 4 Check, which reads the road levels with it, as a file is, so a
+                // changed pick or order runs 4 and the chain after it again. Step 2 read it until R847, the read of the folder takes no road pick.
+                // Under the past job there is no such input. R484: under the mode of the settings, so a change of mode does the same
                 string order = RoadSurfaceChoices.OrderText(ConfigOf(settings.ConfigFile, settings.Project.ProjectMode), settings.Project.RoadSurfaces);
                 if (order != null)
                 {
                     inputs.Add(RunInput.OfText(RoadOrderInput, order));
                 }
-            }
-            if (button == 4)
-            {
-                inputs.AddRange(CheckTable.CheckTableBody.Inputs(settings));
             }
             return inputs;
         }

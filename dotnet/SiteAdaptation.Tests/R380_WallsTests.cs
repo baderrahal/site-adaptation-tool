@@ -108,6 +108,59 @@ namespace SiteAdaptation.Tests
             Assert.Contains("place 0, change 0, already placed 2", summary.Counts);
         }
 
+        // R885. The model held the wall 0.6 mm off its base and top, inside the read back of R380, so the wall stands as placed. Rounded to the mm
+        // it reads 10.401 where the plan and the tag say 10.4, which made the next run call it changed by hand and skip it
+        [Fact]
+        public void R885_a_wall_read_back_inside_the_tolerance_is_already_placed_at_the_next_run()
+        {
+            var document = new FakeWalls { Drift = 0.6 * DesignValues.Current.WallReadBackM };
+            Apply(Make(document), Context("8_1"));
+            document.Calls.Clear();
+
+            RunSummary summary = Make(document).Body().Preview(Context("8_2"));
+            IReadOnlyList<string> issues = Apply(Make(document), Context("8_2"));
+
+            Assert.Contains("place 0, change 0, already placed 2, skip 0", summary.Counts);
+            Assert.DoesNotContain(issues, issue => issue.Contains("changed by hand"));
+            Assert.DoesNotContain(document.Calls, call => call.StartsWith("create", StringComparison.Ordinal) || call.StartsWith("set", StringComparison.Ordinal));
+        }
+
+        // R885. The plan moved 2 mm after the placing, past the tolerance, and the wall still reads 0.6 mm off what the tag holds, so it
+        // is compared by its tag, the plan changed, and the wall is set to the new plan in place, never skipped
+        [Fact]
+        public void R885_a_wall_inside_the_tolerance_of_its_tag_is_changed_to_a_plan_that_moved_past_it()
+        {
+            var document = new FakeWalls { Drift = 0.6 * DesignValues.Current.WallReadBackM };
+            Apply(Make(document), Context("8_1"));
+            string id = document.Items[0].UniqueId;
+            List<PlanWallItem> moved = WallPlans.Two();
+            moved[0].Top += 2 * DesignValues.Current.WallReadBackM;
+
+            RunSummary summary = Make(document, moved).Body().Preview(Context("8_2"));
+            Apply(Make(document, moved), Context("8_2"));
+
+            Assert.Contains("place 0, change 1, already placed 1, skip 0", summary.Counts);
+            Assert.Equal(2, document.Items.Count);
+            Assert.Equal("8_2", document.Of(id).Tag.Run);
+        }
+
+        // R885. Past the tolerance it is a hand change as before, listed, left and named with its case in the record of the run
+        [Fact]
+        public void R885_a_wall_moved_past_the_tolerance_is_changed_by_hand_and_the_record_names_it()
+        {
+            var document = new FakeWalls();
+            Apply(Make(document), Context("8_1"));
+            document.Items[1].Height += 2 * DesignValues.Current.WallReadBackM;
+            RunContext context = Context("8_2");
+
+            IReadOnlyList<string> issues = Apply(Make(document), context);
+
+            Assert.Contains(issues, issue => issue.Contains("plot 101 wall 101|e2|p1: changed by hand in top, left as it is"));
+            JObject record = JObject.Parse(File.ReadAllText(WorkFiles.TemporaryName(Path.Combine(work, WallsRun.RecordName("012")), context.RunId)));
+            Assert.Equal(1, (int)record["counts"]["skip"]);
+            Assert.Equal(new[] { "101|101|e2|p1: ChangedByHand, top" }, record["skipped"].Select(line => (string)line));
+        }
+
         [Fact]
         public void R380_a_wall_the_plan_changed_is_changed_in_place_keeping_its_unique_id()
         {
@@ -149,10 +202,14 @@ namespace SiteAdaptation.Tests
             FakeWalls.Wall onPlan = document.ByHand(new[] { 10.0, 20.0 }, new[] { 0.0, 20.0 }, 10.0, 11.0);
             FakeWalls.Wall elsewhere = document.ByHand(new[] { 50.0, 0.0 }, new[] { 50.0, 9.0 }, 10.0, 11.0);
 
-            IReadOnlyList<string> issues = Apply(Make(document), Context());
+            RunContext context = Context();
+            IReadOnlyList<string> issues = Apply(Make(document), context);
 
             Assert.Equal(3, document.Items.Count);
             Assert.Null(onPlan.Tag);
+            // R885. The record names the skip by its case
+            JObject record = JObject.Parse(File.ReadAllText(WorkFiles.TemporaryName(Path.Combine(work, WallsRun.RecordName("012")), context.RunId)));
+            Assert.Equal(new[] { "101|101|e2|p1: NotByThisTool" }, record["skipped"].Select(line => (string)line));
             Assert.Equal(11.0, onPlan.Top, 9);
             Assert.Contains(issues, issue => issue.Contains("plot 101 wall 101|e2|p1: already placed, not by this tool, element " + onPlan.UniqueId));
             Assert.Contains(issues, issue => issue.Contains("element " + elsewhere.UniqueId + " of type BW has no tag and lies on no wall of the plan, left as it is"));

@@ -121,7 +121,7 @@ namespace SiteAdaptation.Tests
             string configPath = Config();
             string work = Path.Combine(root, "work");
             Directory.CreateDirectory(work);
-            Assert.True(ReadInputs.NoPastFiles(configPath, DesignBasis.Rev6, work));
+            Assert.Empty(ReadInputs.Raw(new[] { new RunInput("Settings", configPath, false) }, new Dictionary<string, string> { ["Settings"] = ReadInputs.Config }, work, DesignBasis.Rev6).Stops);
             string sheet = Path.Combine(root, "made up sheet.xlsx");
             File.WriteAllText(sheet, "stand in");
             WorkerRequest with = Press(configPath, work, sheet);

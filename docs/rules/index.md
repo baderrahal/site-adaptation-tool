@@ -441,7 +441,7 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R434 Saved projects of the work root.
 - R435 Scan value status.
 - R436 Save scan picks with setup.
-- R438 Button 2 scan gate.
+- R438 Withdrawn.
 - R439 Scan reuse by input hash.
 - R440 Drawing facts from the scan.
 - R441 Current files gate.
@@ -684,3 +684,7 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R843 A Build stop names only stops.
 - R845 Advanced starts no step.
 - R846 Ribbon holds no step button.
+- R847 Step 2 reads the folder alone.
+- R848 Villa links unload for reads.
+- R885 Walls within read back stay placed.
+- R886 Built model read counted.

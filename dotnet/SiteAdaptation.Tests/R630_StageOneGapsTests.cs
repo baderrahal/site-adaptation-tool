@@ -905,7 +905,7 @@ namespace SiteAdaptation.Tests
                 return 0;
             }
 
-            // The pane of a project with no past file gives the settings file alone, ReadInputs.NoPastFiles is what tells the add-in so
+            // The settings file alone, as the read of the folder takes it (R847)
             public IReadOnlyList<RunInput> Inputs(int button)
             {
                 return new[] { new RunInput("Settings", configPath, false) };
@@ -974,7 +974,7 @@ namespace SiteAdaptation.Tests
         {
             string configPath = Project(DesignBasis.Rev6);
             string work = WorkFolderOf();
-            Assert.True(ReadInputs.NoPastFiles(configPath, DesignBasis.Rev6, work));
+            Assert.Empty(ReadInputs.Raw(new[] { new RunInput("Settings", configPath, false) }, PaneRoles, work, DesignBasis.Rev6).Stops);
             var worker = new DataCheckWorker();
             var confirm = new Yes();
             RunOutcome done = Press(configPath, work, worker, DesignBasis.Rev6, confirm);
@@ -1039,21 +1039,19 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R635_past_job_mode_keeps_the_old_read_and_its_stop()
+        public void R847_past_job_mode_reads_the_folder_as_every_project_does()
         {
             const string Past = "roshnPastJob";
             string configPath = Project(Past);
             string work = WorkFolderOf();
-            Assert.False(ReadInputs.NoPastFiles(configPath, Past, work));
             var worker = new DataCheckWorker();
-            RunOutcome stopped = Press(configPath, work, worker, Past);
-            Assert.Equal(RunEnd.Stopped, stopped.End);
-            Assert.Contains("is not on disk", stopped.Message);
-            Assert.Empty(worker.Requests);
+            RunOutcome done = Press(configPath, work, worker, Past);
+            Assert.True(done.End == RunEnd.Committed, done.Message);
+            Assert.Equal(ReadDataRun.DataCheckCommand, Assert.Single(worker.Requests).Command);
         }
 
         [Fact]
-        public void R635_a_rev6_project_that_holds_every_past_file_keeps_the_old_read()
+        public void R847_a_project_that_holds_every_file_of_the_old_read_reads_the_folder_too()
         {
             string configPath = Project(DesignBasis.Rev6);
             string work = WorkFolderOf();
@@ -1066,18 +1064,21 @@ namespace SiteAdaptation.Tests
                 Directory.CreateDirectory(Path.GetDirectoryName(path));
                 File.WriteAllText(path, "made up");
             }
-            string book = Path.Combine(root, "work", (string)config["addin"]["readData"]["dataBookFolder"]);
-            foreach (JProperty file in ((JObject)config["addin"]["readData"]["dataBookFiles"]).Properties())
+            // The three files the old read took from a data book beside the work folder, which sent such a project to the old read before R847
+            string book = Path.Combine(root, "work", "data_book");
+            foreach (string name in new[] { "plots.csv", Path.Combine("location_plan", "labels.csv"), "phase1_border.csv" })
             {
-                string path = Path.Combine(book, (string)file.Value);
+                string path = Path.Combine(book, name);
                 Directory.CreateDirectory(Path.GetDirectoryName(path));
                 File.WriteAllText(path, "made up");
             }
-            Assert.False(ReadInputs.NoPastFiles(configPath, DesignBasis.Rev6, work));
-            Assert.Null(ReadInputs.Raw(new[] { new RunInput("Settings", configPath, false) }, PaneRoles, work, DesignBasis.Rev6));
-            // One gone makes it a project with no past files
-            File.Delete(Path.Combine(book, (string)((JObject)config["addin"]["readData"]["dataBookFiles"]).Properties().First().Value));
-            Assert.True(ReadInputs.NoPastFiles(configPath, DesignBasis.Rev6, work));
+            ReadPlan plan = ReadInputs.Raw(new[] { new RunInput("Settings", configPath, false) }, PaneRoles, work, DesignBasis.Rev6);
+            Assert.Empty(plan.Stops);
+            Assert.Equal(new[] { ReadInputs.Config, ReadInputs.ScanFolder }, plan.Inputs.Select(item => item.Role));
+            Assert.Empty(plan.Steps);
+            // A folder that is not on disk is the stop of the read, with the folder named
+            Directory.Delete(input, true);
+            Assert.Equal(ReadInputs.NoFolder + input, Assert.Single(ReadInputs.Raw(new[] { new RunInput("Settings", configPath, false) }, PaneRoles, work, DesignBasis.Rev6).Stops));
         }
 
         [Fact]

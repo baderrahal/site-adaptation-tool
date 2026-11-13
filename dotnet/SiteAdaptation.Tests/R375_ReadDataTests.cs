@@ -31,11 +31,8 @@ namespace SiteAdaptation.Tests
         private SettingsScope scope = new SettingsScope();
         private int runs;
 
-        private static readonly Dictionary<string, string> Roles = new Dictionary<string, string>
-        {
-            ["Settings"] = "config", ["Baseplan"] = "baseplan", ["Villa blocks"] = "villaBlocks", ["Curbs"] = "curbs", ["Road surface"] = "roadSurface",
-            ["DLUS schedule"] = "dlus", ["Sales schedule"] = "sales", ["Plot numbers"] = "plotNumbers",
-        };
+        // R847. Step 2 reads the project folder, so the settings file is its one row of the pane
+        private static readonly Dictionary<string, string> Roles = new Dictionary<string, string> { ["Settings"] = "config" };
 
         public R375_ReadDataTests()
         {
@@ -44,30 +41,11 @@ namespace SiteAdaptation.Tests
             config = JObject.Parse(File.ReadAllText(WorkerRunTests.RepoConfig()));
             config["inputRoot"] = input;
             configPath = Path.Combine(root, "config", "project.json");
-            Write(Path.Combine(root, "config", "cad_layers.json"), "{}");
             Write(configPath, config.ToString());
             state = new State(work);
             state.Inputs.Add(new RunInput("Settings", configPath, false));
-            state.Inputs.Add(new RunInput("Baseplan", Write(Path.Combine(input, "baseplan.dwg"), "a made up baseplan"), false));
-            state.Inputs.Add(new RunInput("Villa blocks", Write(Path.Combine(input, "blocks.dwg"), "made up blocks"), false));
-            state.Inputs.Add(new RunInput("Curbs", Write(Path.Combine(input, "curbs.dwg"), "made up curbs"), false));
-            string roads = Path.Combine(input, "roads");
-            foreach (JToken name in (JArray)config["siteBuild"]["roadSurfaces"])
-            {
-                Write(Path.Combine(roads, (string)name + ".xml"), "<LandXML/>");
-            }
-            state.Inputs.Add(new RunInput("Road surface", roads, true));
-            state.Inputs.Add(new RunInput("DLUS schedule", Write(Path.Combine(input, "dlus.xlsx"), "a made up DLUS"), false));
-            state.Inputs.Add(new RunInput("Sales schedule", Write(Path.Combine(input, "sales.xlsx"), "a made up sales"), false));
-            state.Inputs.Add(new RunInput("Plot numbers", Write(Path.Combine(input, "plan.pdf"), "a made up page"), false));
-            foreach (JProperty hood in ((JObject)config["connect"]["neighbourhoods"]).Properties().Where(hood => hood.Value.Type == JTokenType.Object))
-            {
-                Write(Path.Combine(input, "01_Output", "1.11 References", (string)hood.Value["schedule"]), "a made up schedule of " + hood.Name);
-            }
-            string book = Path.Combine(root, "SiteAdaptation", "data_book");
-            Write(Path.Combine(book, "plots.csv"), "label\n1\n");
-            Write(Path.Combine(book, "location_plan", "labels.csv"), "number\n2301\n");
-            Write(Path.Combine(book, "phase1_border.csv"), "x,y\n0,0\n");
+            Write(Path.Combine(input, "baseplan.dwg"), "a made up baseplan");
+            Write(Path.Combine(input, "curbs.dwg"), "made up curbs");
         }
 
         public void Dispose()
@@ -78,34 +56,26 @@ namespace SiteAdaptation.Tests
             }
         }
 
-        // R375. The real run writes one request of the command read with every read step, the location plan and the plot table among
-        // them, every input by its full path and SHA-256, into a folder named by the hash of the inputs, and Revit does not wait
+        // R375, R847. The real run writes one request of the command dataCheck with no read step, the settings file by its full path and
+        // SHA-256 and the project folder by its path, into a folder named by the hash of the inputs, and Revit does not wait
         [Fact]
-        public void R375_the_request_holds_every_read_step_and_every_input_by_full_path_and_sha256()
+        public void R375_the_request_holds_the_settings_file_and_the_project_folder_and_no_read_step()
         {
             worker.Answer = false;
             RunOutcome outcome = Run();
             Assert.Equal(RunEnd.Started, outcome.End);
             Assert.Empty(ended);
             WorkerRequest request = Assert.Single(worker.Requests);
-            Assert.Equal("read", request.Command);
-            Assert.Equal(WorkerRunner.StepCommand.Where(step => step.Value == "read").Select(step => step.Key).OrderBy(step => step, StringComparer.Ordinal), request.Steps);
-            Assert.Contains("plotTable", request.Steps);
-            Assert.Contains("locationLabels", request.Steps);
+            Assert.Equal(ReadDataRun.DataCheckCommand, request.Command);
+            Assert.True(request.Steps == null || request.Steps.Count == 0);
             Assert.Equal("project", request.Scope.Kind);
-            Assert.Equal(300, request.TimeLimitS);
-            var roles = request.Inputs.Select(item => item.Role).ToList();
-            foreach (string role in new[] { "config", "baseplan", "villaBlocks", "curbs", "dlus", "sales", "plotNumbers", "cadLayers", "schedule:IMC", "schedule:IMD", "plotsCsv", "labels", "border" })
-            {
-                Assert.Contains(role, roles);
-            }
-            Assert.Equal(((JArray)config["siteBuild"]["roadSurfaces"]).Count, roles.Count(role => role.StartsWith("roadSurface:", StringComparison.Ordinal)));
-            Assert.DoesNotContain("schedule:IME", roles);
-            foreach (WorkerFile file in request.Inputs)
-            {
-                Assert.True(Path.IsPathRooted(file.Path));
-                Assert.Equal(FileHash.Sha256(file.Path), file.Sha256);
-            }
+            Assert.True(request.TimeLimitS > 0);
+            Assert.Equal(new[] { ReadInputs.Config, ReadInputs.ScanFolder }, request.Inputs.Select(item => item.Role));
+            Assert.Equal(configPath, request.Inputs[0].Path);
+            Assert.Equal(FileHash.Sha256(configPath), request.Inputs[0].Sha256);
+            Assert.Equal(input, request.Inputs[1].Path);
+            // No role of the old read: no schedule, no data book file, no file row of the pane
+            Assert.DoesNotContain(request.Inputs, item => item.Role.StartsWith("schedule:", StringComparison.Ordinal) || item.Role == "border" || item.Role == "plotsCsv" || item.Role == "labels" || item.Role == "baseplan");
             Assert.StartsWith(Path.Combine(work, "read_"), request.OutputFolder);
             Assert.Equal(16, Path.GetFileName(request.OutputFolder).Length - "read_".Length);
             Assert.True(ReadDataRun.IsRunning(work));
@@ -118,17 +88,18 @@ namespace SiteAdaptation.Tests
             Assert.False(ReadDataRun.IsRunning(work));
         }
 
-        // R375. A done answer records the step with every output on its name and its SHA-256, a second run on unchanged inputs reuses
-        // the read and starts no worker, a changed input reads again into another folder
+        // R375. A done answer records the step with every output on its name and its SHA-256, a second run on an unchanged folder reuses
+        // the read and starts no worker, a changed file of the folder reads again into another folder
         [Fact]
         public void R375_a_done_read_is_recorded_and_a_second_run_on_unchanged_inputs_reuses_it_and_starts_no_worker()
         {
             RunOutcome first = Ended(Run());
             Assert.Equal(RunEnd.Committed, first.End);
             Assert.True(first.Record.StepDone);
-            Assert.Equal(Label + " done: 1 files written, 0 issues.", first.Message);
-            KeyValuePair<string, string> output = Assert.Single(first.Record.Outputs);
-            Assert.Equal(FileHash.Sha256(output.Key), output.Value);
+            Assert.Equal(Label + " done: 2 files written, 0 issues.", first.Message);
+            Assert.Equal(2, first.Record.Outputs.Count);
+            Assert.All(first.Record.Outputs, item => Assert.Equal(FileHash.Sha256(item.Key), item.Value));
+            KeyValuePair<string, string> output = first.Record.Outputs.Single(item => Path.GetFileName(item.Key) == ReadDataRun.PlotTableFile);
             Assert.Equal(state.Inputs.Select(item => item.Name).OrderBy(name => name), first.Record.InputHashes.Keys.OrderBy(name => name));
             Assert.Single(worker.Requests);
             Assert.True(File.Exists(Path.Combine(Path.GetDirectoryName(output.Key), ReadDataRun.RecordFile)));
@@ -145,76 +116,17 @@ namespace SiteAdaptation.Tests
             Assert.Equal(2, worker.Requests.Count);
             Assert.Equal(worker.Requests[0].OutputFolder, worker.Requests[1].OutputFolder);
 
-            File.AppendAllText(state.Inputs.First(item => item.Name == "Curbs").Path, " changed");
+            File.AppendAllText(Path.Combine(input, "curbs.dwg"), " changed");
             RunOutcome changed = Ended(Run());
             Assert.Equal(RunEnd.Committed, changed.End);
             Assert.Equal(3, worker.Requests.Count);
             Assert.NotEqual(worker.Requests[0].OutputFolder, worker.Requests[2].OutputFolder);
         }
 
-        // R375, R366. A read reused is the read of its run: its record names the run id and the inputs of the run, so the latest read every
-        // later button takes is the one step 2 used
+        // R375, R639. The dry run says what it reads, lists the settings file and the folder with their size and hash, and says which the
+        // last read holds unchanged
         [Fact]
-        public void R375_an_input_changed_and_set_back_reuses_its_read_and_makes_it_the_latest_read()
-        {
-            RunOutcome first = Ended(Run());
-            string a = Path.GetDirectoryName(first.Record.Outputs.Keys.Single());
-            string curbs = state.Inputs.First(item => item.Name == "Curbs").Path;
-            File.WriteAllText(curbs, "made up curbs changed");
-            RunOutcome second = Ended(Run());
-            Assert.NotEqual(a, Path.GetDirectoryName(second.Record.Outputs.Keys.Single()));
-            File.WriteAllText(curbs, "made up curbs");
-
-            RunOutcome third = Ended(Run());
-
-            Assert.Equal(RunEnd.Committed, third.End);
-            Assert.Equal(2, worker.Requests.Count);
-            Assert.Equal(a, ReviewLoad.LatestReadFolder(work));
-            Assert.Equal(third.Record.RunId, (string)JObject.Parse(File.ReadAllText(Path.Combine(a, ReadDataRun.RecordFile)))["runId"]);
-        }
-
-        [Fact]
-        public void R375_a_baseplan_switched_to_another_file_and_back_makes_the_first_read_the_latest_again()
-        {
-            RunOutcome first = Ended(Run());
-            string a = Path.GetDirectoryName(first.Record.Outputs.Keys.Single());
-            int at = state.Inputs.FindIndex(item => item.Name == "Baseplan");
-            RunInput p1 = state.Inputs[at];
-            state.Inputs[at] = new RunInput("Baseplan", Write(Path.Combine(input, "baseplan-2.dwg"), "another made up baseplan"), false);
-            Ended(Run());
-            state.Inputs[at] = p1;
-
-            Ended(Run());
-
-            Assert.Equal(2, worker.Requests.Count);
-            Assert.Equal(a, ReviewLoad.LatestReadFolder(work));
-        }
-
-        // The folder is named by role and SHA-256, so a file moved with the same content reuses it, and its record names the new path,
-        // which 4 Check holds against the disk
-        [Fact]
-        public void R375_an_input_moved_with_the_same_content_reuses_the_read_and_its_record_names_the_new_path()
-        {
-            RunOutcome first = Ended(Run());
-            string a = Path.GetDirectoryName(first.Record.Outputs.Keys.Single());
-            int at = state.Inputs.FindIndex(item => item.Name == "Baseplan");
-            string moved = Path.Combine(input, "moved", "baseplan.dwg");
-            Directory.CreateDirectory(Path.GetDirectoryName(moved));
-            File.Move(state.Inputs[at].Path, moved);
-            state.Inputs[at] = new RunInput("Baseplan", moved, false);
-
-            RunOutcome second = Ended(Run());
-
-            Assert.Equal(RunEnd.Committed, second.End);
-            Assert.Single(worker.Requests);
-            JObject record = JObject.Parse(File.ReadAllText(Path.Combine(a, ReadDataRun.RecordFile)));
-            Assert.Equal(moved, (string)((JArray)record["inputs"]).Single(item => (string)item["role"] == "baseplan")["path"]);
-            Assert.Equal(a, ReviewLoad.LatestReadFolder(work));
-        }
-
-        // R375. The dry run lists every file it would read with its size and SHA-256 and says which the last read holds unchanged
-        [Fact]
-        public void R375_the_dry_run_lists_each_file_with_its_size_and_sha256_and_those_the_last_read_holds_unchanged()
+        public void R375_the_dry_run_lists_the_settings_file_and_the_folder_and_those_the_last_read_holds_unchanged()
         {
             state.DryRunFirst = true;
             confirm.Answer = false;
@@ -222,59 +134,34 @@ namespace SiteAdaptation.Tests
             Assert.Equal(RunEnd.Cancelled, cancelled.End);
             Assert.Empty(worker.Requests);
             RunSummary summary = confirm.Asked.Last();
-            string baseplan = state.Inputs.First(item => item.Name == "Baseplan").Path;
-            Assert.Contains("baseplan.dwg, " + new FileInfo(baseplan).Length + " bytes, SHA-256 " + FileHash.Sha256(baseplan) + ", new or changed since the last read", summary.PerPlot);
-            Assert.StartsWith("Reads " + worker.Count(state, Roles, work) + " files, ", summary.Counts);
+            Assert.Contains("project.json, " + new FileInfo(configPath).Length + " bytes, SHA-256 " + FileHash.Sha256(configPath) + ", new or changed since the last read", summary.PerPlot);
+            Assert.StartsWith("Reads the folder and the settings file. Files in the folder: 2, ", summary.Counts);
 
             confirm.Answer = true;
             RunOutcome done = Ended(Run());
             Assert.Equal(RunEnd.Committed, done.End);
             Assert.False(Directory.Exists(Path.Combine(work, "dry")) && Directory.EnumerateFiles(Path.Combine(work, "dry"), "*", SearchOption.AllDirectories).Any());
 
-            File.AppendAllText(state.Inputs.First(item => item.Name == "Curbs").Path, " changed");
+            File.AppendAllText(Path.Combine(input, "curbs.dwg"), " changed");
             confirm.Answer = false;
             Run();
             summary = confirm.Asked.Last();
-            Assert.Contains(summary.PerPlot, line => line.StartsWith("baseplan.dwg, ", StringComparison.Ordinal) && line.EndsWith(", unchanged since the last read", StringComparison.Ordinal));
-            Assert.Contains(summary.PerPlot, line => line.StartsWith("curbs.dwg, ", StringComparison.Ordinal) && line.EndsWith(", new or changed since the last read", StringComparison.Ordinal));
+            Assert.Contains(summary.PerPlot, line => line.StartsWith("project.json, ", StringComparison.Ordinal) && line.EndsWith(", unchanged since the last read", StringComparison.Ordinal));
+            Assert.Contains(summary.PerPlot, line => line.StartsWith(input + ", ", StringComparison.Ordinal) && line.EndsWith(", new or changed since the last read", StringComparison.Ordinal));
         }
 
-        // R375, R300, R351. Each stop is named and starts no worker: an input not chosen or not on disk, the fit schedule not named in
-        // config or not on disk, a drawing of drawings.referenceOnly, a road surface of config missing from the folder, a data book file
+        // R375, R847. Each stop is named and starts no worker: a settings file that names no folder, a folder that is not on disk
         [Fact]
         public void R375_each_stop_is_named_and_starts_no_worker()
         {
-            string fit = (string)config["dataBook"]["locationPlan"]["fitNeighbourhood"];
-            string fitSchedule = Path.Combine(input, "01_Output", "1.11 References", (string)config["connect"]["neighbourhoods"][fit]["schedule"]);
-            File.Delete(fitSchedule);
-            Assert.Contains("the schedule of " + fit + ", the fit schedule, is not on disk: " + fitSchedule, Run().Message);
             JObject unnamed = (JObject)config.DeepClone();
-            unnamed["connect"]["neighbourhoods"][fit] = null;
+            unnamed.Remove("inputRoot");
             File.WriteAllText(configPath, unnamed.ToString());
-            Assert.Contains("the fit schedule of " + fit + " is not named in connect.neighbourhoods of config (R351)", Run().Message);
+            Assert.Contains(ReadInputs.NoFolder + "the settings file names no inputRoot", Run().Message);
             File.WriteAllText(configPath, config.ToString());
-            Write(fitSchedule, "the schedule again");
 
-            string reference = Write(Path.Combine(input, (string)config["drawings"]["referenceOnly"][0]), "a drawing kept for reference");
-            RunInput baseplan = state.Inputs.First(item => item.Name == "Baseplan");
-            state.Inputs[state.Inputs.IndexOf(baseplan)] = new RunInput("Baseplan", reference, false);
-            Assert.Contains("Baseplan: " + Path.GetFileName(reference) + " is kept for reference only (drawings.referenceOnly) and is never read (R300)", Run().Message);
-            state.Inputs[state.Inputs.FindIndex(item => item.Name == "Baseplan")] = baseplan;
-
-            string surface = Path.Combine(input, "roads", (string)config["siteBuild"]["roadSurfaces"][0] + ".xml");
-            File.Delete(surface);
-            Assert.Contains("Road surface: " + Path.GetFileName(surface) + " of siteBuild.roadSurfaces is not in the folder " + Path.Combine(input, "roads"), Run().Message);
-            Write(surface, "<LandXML/>");
-
-            string border = Path.Combine(root, "SiteAdaptation", "data_book", "phase1_border.csv");
-            File.Delete(border);
-            Assert.Contains("border of the data book is not on disk: " + border, Run().Message);
-            Write(border, "x,y\n0,0\n");
-
-            state.Inputs[state.Inputs.FindIndex(item => item.Name == "Curbs")] = new RunInput("Curbs", null, false);
-            Assert.Equal("2 Read data needs Curbs, the file is not chosen", Run().Message);
-            state.Inputs[state.Inputs.FindIndex(item => item.Name == "Curbs")] = new RunInput("Curbs", Path.Combine(input, "gone.dwg"), false);
-            Assert.Equal("2 Read data needs Curbs, the file is not on disk", Run().Message);
+            Directory.Delete(input, true);
+            Assert.Contains(ReadInputs.NoFolder + input, Run().Message);
             Assert.Empty(worker.Requests);
             Assert.Empty(ended);
         }
@@ -426,11 +313,6 @@ namespace SiteAdaptation.Tests
                 };
             }
 
-            public int Count(State state, IReadOnlyDictionary<string, string> roles, string workFolder)
-            {
-                return ReadInputs.Make(((IRunState)state).Inputs(2), roles, workFolder).Inputs.Count;
-            }
-
             public void Start(string requestPath, string workFolder, WorkerRequest request, Action<WorkerAnswer> ended)
             {
                 Requests.Add(request);
@@ -438,13 +320,15 @@ namespace SiteAdaptation.Tests
                 {
                     var commands = new Dictionary<string, WorkerCommand>
                     {
-                        ["read"] = context =>
+                        [ReadDataRun.DataCheckCommand] = context =>
                         {
                             if (Refuse != null)
                             {
                                 throw context.Refusal(Refuse);
                             }
                             context.WriteJson(request.OutputFolder, ReadDataRun.PlotTableFile, Table());
+                            // A whole check: no stop and no file left out, so the read is one to reuse (R639)
+                            context.WriteJson(request.OutputFolder, ReadDataRun.DataCheckFile, new JObject { ["files"] = new JArray() });
                         },
                     };
                     WorkerRunner.Run(requestPath, commands, () => 1e6, () => 0.0);

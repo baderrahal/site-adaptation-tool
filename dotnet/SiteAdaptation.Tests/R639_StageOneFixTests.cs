@@ -163,7 +163,7 @@ namespace SiteAdaptation.Tests
             }
             Assert.True(first.End == RunEnd.Committed, first.Message);
             Assert.Single(worker.Requests);
-            Assert.Contains("This read is not whole, the next press reads again", first.Message);
+            Assert.Contains("This read is not whole, the next press of 2 Read data reads again", first.Message);
             Assert.Contains(Path.GetFileName(held), first.Message);
 
             // The file is free, nothing of the folder changed, so the hash is the same and the read must still be done again
@@ -214,7 +214,7 @@ namespace SiteAdaptation.Tests
             // The whole project scope stops on no plot, and the line names the stop of the check as the cause, no change of scope helps
             RunOutcome first = Press(configPath, work, worker);
             Assert.False(first.End == RunEnd.Committed, first.Message);
-            Assert.Contains("This read is not whole, the next press reads again: the check stopped, IOException: the invented cause.", first.Message);
+            Assert.Contains("This read is not whole, the next press of 2 Read data reads again: the check stopped, IOException: the invented cause.", first.Message);
             Assert.DoesNotContain("the read is reused", first.Message);
 
             worker.Command = WholeCheck;
@@ -237,7 +237,7 @@ namespace SiteAdaptation.Tests
             var worker = new Worker { Command = StoppedCheck };
             RunOutcome stopped = Press(configPath, work, worker, null, () => new SettingsScope { Kind = "plots", Plots = "9999" });
             Assert.False(stopped.End == RunEnd.Committed, stopped.Message);
-            Assert.Contains("the next press reads again", stopped.Message);
+            Assert.Contains("the next press of 2 Read data reads again", stopped.Message);
             Assert.DoesNotContain("the read is reused", stopped.Message);
         }
 
@@ -341,46 +341,32 @@ namespace SiteAdaptation.Tests
         // 5. R635 stays and says so
 
         [Fact]
-        public void R639_a_project_that_lacks_a_past_file_takes_the_folder_and_the_dry_run_and_the_run_line_name_that_file()
+        public void R847_the_read_takes_the_folder_and_no_line_of_it_speaks_of_an_old_read()
         {
             string configPath = Project();
             string work = Work();
             ReadPlan plan = ReadInputs.Raw(new[] { new RunInput("Settings", configPath, false) }, new Dictionary<string, string> { ["Settings"] = ReadInputs.Config }, work, DesignBasis.Rev6);
-            Assert.NotNull(plan);
-            Assert.True(plan.FromDataCheck);
             Assert.Empty(plan.Stops);
-            string lack = plan.PastLacks.First();
-            Assert.Contains("not on disk", lack);
+            Assert.Contains(plan.Inputs, input => input.Role == ReadInputs.ScanFolder);
 
             var worker = new Worker();
             var confirm = new Yes();
             RunOutcome done = Press(configPath, work, worker, confirm);
             Assert.True(done.End == RunEnd.Committed, done.Message);
-            string word = lack + (plan.PastLacks.Count > 1 ? ", and " + (plan.PastLacks.Count - 1) + " more" : "") + ". The folder is read instead.";
-            Assert.Contains("The old read lacks a file: " + word, confirm.Asked.Counts);
-            Assert.Contains("The old read lacks a file: " + word, done.Message);
-            Assert.Equal(plan.PastLacks.Select(item => "The old read lacks: " + item), confirm.Asked.PerPlot.Take(plan.PastLacks.Count));
+            Assert.StartsWith("Reads the folder and the settings file.", confirm.Asked.Counts);
+            Assert.DoesNotContain("old read", confirm.Asked.Counts + done.Message + string.Join(" ", confirm.Asked.PerPlot));
 
-            // A reused read says it too, the plot table it hands on is the same one
+            // A reused read hands on the same plot table and starts no worker
             var again = new Yes();
             RunOutcome reused = Press(configPath, work, worker, again);
             Assert.Single(worker.Requests);
-            Assert.Contains("The folder is read instead.", again.Asked.Counts);
-            Assert.Contains("The folder is read instead.", reused.Message);
+            Assert.DoesNotContain("old read", again.Asked.Counts + reused.Message);
         }
 
         [Fact]
-        public void R639_the_word_of_the_old_read_is_no_part_of_the_hash_so_it_starts_no_new_read()
+        public void R639_the_count_of_files_a_folder_holds_is_no_part_of_its_hash()
         {
-            var inputs = new[] { new ReadInput("config", "c", 1, "a") };
-            Assert.Equal(new ReadPlan(inputs, new string[0], new string[0], "c", null, true).Hash, new ReadPlan(inputs, new string[0], new string[0], "c", null, true, new[] { "a lack" }).Hash);
             Assert.Equal(new ReadInput("config", "c", 1, "a", 5).Sha256, new ReadInput("config", "c", 1, "a").Sha256);
-        }
-
-        [Fact]
-        public void R639_a_project_with_no_list_of_past_files_says_so()
-        {
-            Assert.Equal("This project names no files for the old read, so the folder is read instead.", RunTexts.ReadFolderInstead(new string[0]));
         }
 
         // 6. A locked settings file
@@ -393,18 +379,17 @@ namespace SiteAdaptation.Tests
             var roles = new Dictionary<string, string> { ["Settings"] = ReadInputs.Config };
             using (new FileStream(configPath, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
             {
-                Assert.False(ReadInputs.NoPastFiles(configPath, DesignBasis.Rev6, work));
-                Assert.Null(ReadInputs.Raw(new[] { new RunInput("Settings", configPath, false) }, roles, work, DesignBasis.Rev6));
+                Assert.StartsWith("the settings file does not read: ", Assert.Single(ReadInputs.Raw(new[] { new RunInput("Settings", configPath, false) }, roles, work, DesignBasis.Rev6).Stops));
                 RunOutcome press = Press(configPath, work, new Worker());
                 Assert.Equal(RunEnd.Stopped, press.End);
                 Assert.False(string.IsNullOrEmpty(press.Message));
             }
-            Assert.True(ReadInputs.NoPastFiles(configPath, DesignBasis.Rev6, work));
+            Assert.Empty(ReadInputs.Raw(new[] { new RunInput("Settings", configPath, false) }, roles, work, DesignBasis.Rev6).Stops);
         }
 
 #if NET48
         [Fact]
-        public void R639_the_pane_refresh_on_a_locked_settings_file_gives_the_old_list_and_raises_nothing()
+        public void R639_the_pane_refresh_on_a_locked_settings_file_names_no_folder_and_raises_nothing()
         {
             string configPath = Project();
             string work = Work();
@@ -413,7 +398,8 @@ namespace SiteAdaptation.Tests
             using (new FileStream(configPath, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
             {
                 IReadOnlyList<RunInput> inputs = PaneRunState.InputsInFolder(settings, 2, work);
-                Assert.Equal(PaneRunState.InputsOf(settings, 2).Select(input => input.Name), inputs.Select(input => input.Name));
+                Assert.Equal(new[] { PaneText.Settings, PaneText.InputFolder }, inputs.Select(input => input.Name));
+                Assert.Null(inputs[1].Path);
             }
         }
 #endif

@@ -22,6 +22,11 @@ namespace SiteAdaptation.AddIn.Pane
         public const string NoReason = "the step changed nothing and gave no reason.";
         public const string BuildDone = "Build done: <n> steps.";
 
+        // R848. The villa links unloaded at the start of a Build, and those that stayed loaded with why
+        public const string LinksUnloaded = "Unloaded <n> villa links to free memory for the reads. Place villas loads back the ones it needs.";
+        public const string LinksStayed = "<n> villa links stayed loaded: <name>";
+        public const string LinksNotChecked = "The villa links stayed loaded: <name>";
+
         public const string PreviewTitle = "Preview of the build";
         public const string PreviewLine = "<n> plots with an outline, <n> issues. Nothing is written to the model yet.";
         public const string GoOn = "Go on";

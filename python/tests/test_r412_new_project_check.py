@@ -21,32 +21,8 @@ LINES = [
     ("hand tables", "does not fit", "the hand tables hold no entry for the prototype files of the unit codes: TH1",
      "the tables are keyed by the KEO prototype file names of the %s job" % npc.NAME),
     ("prototype files", "does not fit", "the prototype folder protos holds no single file for the unit codes: TH1", "files are found by the -ARC-<code>- part of the KEO file names"),
-    ("Excel dlus dataBook.rev9.dlus", "does not fit", "a.xlsx sheet S1 row 2 lacks the columns: NBH", "held to the sheet S1 and the headers Plot, NBH"),
-    ("Excel dlus dataBook.rev9.sales", "does not fit", "a.xlsx has no sheet Nope", "held to the sheet Nope and the headers Plot"),
-    ("Excel dlus dataBook.data5.areaKey.dlus", "ok", "a.xlsx sheet S1 row 2 holds all 1 columns the readers use", "held to the sheet S1 and the headers Plot"),
-    ("Excel dataBook.data5.areaKey.sales", "does not fit", "config names no workbook, sheet, headerRow and columns in dataBook.data5.areaKey.sales", None),
-    ("Excel dataBook.locationPlan.sales", "does not fit", "config names no workbook, sheet, headerRow and columns in dataBook.locationPlan.sales", None),
-    ("Excel dataBook.locationPlan.dlus", "does not fit", "config names no workbook, sheet, headerRow and columns in dataBook.locationPlan.dlus", None),
     ("Schedule N1", "ok", "s1.xlsx sheet Sched holds the Plot No. header row", "held to the sheet Sched and a header cell with Plot No."),
-    ("location plan PDF", "ok", "plan.pdf is one page and holds text that fits the number and code patterns",
-     "held to the %s label patterns of dataBook.locationPlan.patterns: number, clientCode" % npc.NAME),
 ]
-
-
-def made_pdf(path, text="(C10 12) Tj"):
-    """A PDF of one page of 600 by 400 pt with a text, the bytes built in code as test_location_plan.made_pdf builds them."""
-    content = ("BT /F1 10 Tf 100 300 Td %s ET" % text).encode()
-    objects = [b"<< /Type /Catalog /Pages 2 0 R >>", b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-               b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 600 400] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>",
-               b"<< /Length %d >>\nstream\n" % len(content) + content + b"\nendstream", b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"]
-    out, offsets = bytearray(b"%PDF-1.4\n"), []
-    for number, body in enumerate(objects, 1):
-        offsets.append(len(out))
-        out += b"%d 0 obj\n" % number + body + b"\nendobj\n"
-    start = len(out)
-    out += b"xref\n0 %d\n0000000000 65535 f \n" % (len(objects) + 1) + b"".join(b"%010d 00000 n \n" % offset for offset in offsets)
-    out += b"trailer\n<< /Size %d /Root 1 0 R >>\nstartxref\n%d\n%%%%EOF\n" % (len(objects) + 1, start)
-    path.write_bytes(bytes(out))
 
 
 def sheet_book(path, sheet, rows):
@@ -58,16 +34,14 @@ def sheet_book(path, sheet, rows):
 
 
 def build(tmp):
-    """The made up project: a config, a rules profile, an offsets file, the position file, two workbooks, a schedule, a PDF and a prototype folder."""
+    """The made up project: a config, a rules profile, an offsets file, the position file, a schedule and a prototype folder."""
     work, root, config = tmp / "w", tmp / "in", tmp / "cfg"
-    for folder in (work / "data_book" / "work" / "Book", root / "refs", root / "protos", config):
+    for folder in (work, root / "refs", root / "protos", config):
         folder.mkdir(parents=True)
     point = {"internalM": [1.0, 2.0, 3.0], "sharedM": [4.0, 5.0, 6.0]}
     (work / "pos.json").write_text(json.dumps({
         "format": "site-adaptation-position", "formatVersion": 1, "projectPosition": {"eastM": 1.0, "northM": 2.0, "elevationM": 3.0, "angleDeg": 0.5},
         "surveyPoint": point, "projectBasePoint": point, "levels": [{"name": "L1", "elevationM": 0.0}, {"name": "L2", "elevationM": 3.0}], "levelBase": "Project Base Point"}))
-    sheet_book(work / "data_book" / "work" / "Book" / "a.xlsx", "S1", [["title"], ["Plot", "Other"], ["1", "x"]])
-    made_pdf(work / "data_book" / "work" / "Book" / "plan.pdf")
     sheet_book(root / "refs" / "s1.xlsx", "Sched", [["t"]] + [[None]] * 38 + [["Plot No.", "Size"]])
     (root / "protos" / PROTOTYPE).write_bytes(b"x")
     sheet_book(config / "parameters.xlsx", "Parameters", [["Parameter", "GUID", "Data type", "Group", "Category", "Filled by", "Sample value", "Keep"],
@@ -79,12 +53,8 @@ def build(tmp):
     (config / "project.json").write_text(json.dumps({
         "inputRoot": str(root), "floors": {"plotParameter": "AA_One"}, "pastJob": {"neighbourhood": "N1", "prototypeFolder": "protos", "parameters": ["AA_Two", "AA_Three"]},
         "majority": {"parameterLevels": []}, "connect": {"neighbourhoods": {"N1": {"schedule": "s1.xlsx"}, "N2": None}, "scheduleSheet": "Sched"},
-        "addin": {"workbookRoles": {"bk": "dlus"}, "position": {"file": "{workRoot}/pos.json"}, "readData": {"dataBookFolder": "data_book", "scheduleFolder": "refs"},
-                  "parameterSheet": "cfg/parameters.xlsx"},
-        "dataBook": {"rev9": {"workbooks": {"bk": "Book/a.xlsx"}, "dlus": {"workbook": "bk", "sheet": "S1", "headerRow": 2, "columns": {"plot": "Plot", "nbh": "NBH"}},
-                              "sales": {"workbook": "bk", "sheet": "Nope", "headerRow": 1, "columns": {"plot": "Plot"}}},
-                     "data5": {"areaKey": {"dlus": {"workbook": "bk", "sheet": "S1", "headerRow": 2, "columns": {"plot": "Plot"}}}},
-                     "locationPlan": {"pdf": "Book/plan.pdf", "patterns": {"number": "\\d{1,4}", "clientCode": "[A-Z]{1,3}\\d{1,2}"}, "codeKinds": ["clientCode"]}}}))
+        "addin": {"workbookRoles": {"bk": "dlus"}, "position": {"file": "{workRoot}/pos.json"}, "readData": {"scheduleFolder": "refs"},
+                  "parameterSheet": "cfg/parameters.xlsx"}}))
     return work, root, config
 
 
@@ -101,20 +71,18 @@ def test_r412_the_check_gives_one_line_per_input_with_its_status_and_job_only_no
     (report, paths, root), work, _, _ = run(tmp_path)
     assert shown(report) == LINES
     assert [each[npc.KEY] for each in report["lines"]] == [note is not None for _, _, _, note in LINES]
-    assert report["counts"] == {"ok": 4, "missing": 0, "doesNotFit": 9, npc.KEY: 9}
+    assert report["counts"] == {"ok": 2, "missing": 0, "doesNotFit": 4, npc.KEY: 5}
     assert [each["name"] for each in report["inputs"]] == sorted(each["name"] for each in report["inputs"])
-    assert all(each["unchanged"] for each in report["inputs"]) and len(report["inputs"]) == 8
+    assert all(each["unchanged"] for each in report["inputs"]) and len(report["inputs"]) == 6
     text = new_project_check.text_of(report).split("\n")
-    assert text[0] == "New project check, 13 lines: 4 ok, 0 missing, 9 do not fit, 9 " + npc.ONLY
+    assert text[0] == "New project check, 6 lines: 2 ok, 0 missing, 4 do not fit, 5 " + npc.ONLY
     assert text[1] == "position file: ok. pos.json holds the project position, the survey point, the project base point and 2 levels"
-    assert text[-2] == "Inputs opened: 8, none changed"
+    assert text[-2] == "Inputs opened: 6, none changed"
 
 
 def test_r412_an_input_that_is_not_there_is_missing_and_one_that_cannot_be_read_does_not_fit(tmp_path):
     work, root, config = build(tmp_path)
     (work / "pos.json").unlink()
-    (work / "data_book" / "work" / "Book" / "a.xlsx").write_bytes(b"not a workbook")
-    (work / "data_book" / "work" / "Book" / "plan.pdf").write_bytes(b"not a pdf")
     (root / "refs" / "s1.xlsx").unlink()
     (config / "prototype_offsets.json").write_text("[]")
     (root / "protos" / PROTOTYPE).unlink()
@@ -122,9 +90,7 @@ def test_r412_an_input_that_is_not_there_is_missing_and_one_that_cannot_be_read_
     got = {each["input"]: (each["status"], each["text"]) for each in report["lines"]}
     assert got["position file"] == ("missing", "pos.json is not there")
     assert got["villa offsets"] == ("does not fit", "prototype_offsets.json cannot be read as a JSON object")
-    assert got["Excel dlus dataBook.rev9.dlus"] == ("does not fit", "a.xlsx cannot be read as a workbook")
     assert got["Schedule N1"] == ("missing", "s1.xlsx is not there")
-    assert got["location plan PDF"] == ("does not fit", "plan.pdf cannot be read as a PDF")
     assert got["prototype files"][1] == "the prototype folder protos holds no single file for the unit codes: C10, VL3, TH1"
     assert new_project_check.text_of(report).count("missing.") == 2
 
@@ -197,7 +163,7 @@ def test_r412_the_report_is_written_to_the_output_folder_only_and_never_beside_a
     assert sorted(path.name for path in out.iterdir()) == ["new_project_check.json", "new_project_check.txt"]
     written = json.loads((out / "new_project_check.json").read_text(encoding="utf-8"))
     assert written["format"] == "site-adaptation-new-project-check" and [each["input"] for each in written["lines"]][0] == "position file"
-    assert (out / "new_project_check.txt").read_text(encoding="utf-8").startswith("New project check, 13 lines")
+    assert (out / "new_project_check.txt").read_text(encoding="utf-8").startswith("New project check, 6 lines")
     assert sorted(str(path) for path in tmp_path.rglob("*") if out not in path.parents and path != out) == before
 
 

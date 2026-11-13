@@ -24,13 +24,5 @@ namespace SiteAdaptation.AddIn.ScanResults
         public const string UnreadHelp = "The exact reason the check gives for each file it did not read.";
         public const string StoppedTitle = "The check stopped";
 
-        // The lines button 2 ends with when the check does not give a result. the first slot is the button, the second the reason
-        public const string RunningLine = "<n>: a data check of this work folder runs now, wait for its end.";
-        public const string NoFolder = "<n>: the settings name no input folder, so the data check did not run and nothing was read.";
-        public const string FolderGone = "<n>: the input folder is not there, so the data check did not run and nothing was read.";
-        public const string NotStarted = "<n>: the data check could not start, <n>. Nothing was read.";
-        public const string NotFinished = "<n>: the data check did not finish, <n>. Nothing was read.";
-        public const string NoResult = "<n>: the data check wrote no result file, <n>. Nothing was read.";
-        public const string BadResult = "<n>: the data check result could not be read, <n>. Nothing was read.";
     }
 }

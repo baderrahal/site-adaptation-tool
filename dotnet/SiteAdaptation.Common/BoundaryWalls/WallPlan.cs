@@ -126,6 +126,35 @@ namespace SiteAdaptation.Common.BoundaryWalls
             return state?.Start == null || state.End == null ? new PlacedValues(new Dictionary<string, double[]>()) : Values(state.Start, state.End, state.Base, state.Top);
         }
 
+        // R885. What the second run compares a wall by. A wall that reads back within the tolerance of R380 of its plan wall holds the plan,
+        // else one within it of the values its tag holds holds those, else it holds what it reads. The tag holds values rounded to the mm, so
+        // half the step of that rounding of R385 is added there. A wall that reads back a part of a mm off what was set passes R380 at the
+        // placing, and the mm rounding alone made the next run call it changed by hand
+        internal static PlacedValues Current(WallReadBack state, PlannedWall planned, PlacedTag tag, double tolerance)
+        {
+            if (state?.Start == null || state.End == null)
+            {
+                return Current(state);
+            }
+            if (planned != null && Near(state, planned.Start, planned.End, planned.Base, planned.Top, tolerance))
+            {
+                return planned.Item.Plan;
+            }
+            if (tag?.Placed != null && tag.Placed.Values.TryGetValue(Line, out IReadOnlyList<double> line) && line.Count == 4
+                && tag.Placed.Values.TryGetValue(Base, out IReadOnlyList<double> bottom) && bottom.Count == 1
+                && tag.Placed.Values.TryGetValue(Top, out IReadOnlyList<double> top) && top.Count == 1
+                && Near(state, new[] { line[0], line[1] }, new[] { line[2], line[3] }, bottom[0], top[0], tolerance + 0.5 * Math.Pow(10, -JsonOut.Decimals)))
+            {
+                return tag.Placed;
+            }
+            return Current(state);
+        }
+
+        private static bool Near(WallReadBack read, double[] start, double[] end, double bottom, double top, double tolerance)
+        {
+            return Flat(read.Start, start) <= tolerance && Flat(read.End, end) <= tolerance && Math.Abs(read.Base - bottom) <= tolerance && Math.Abs(read.Top - top) <= tolerance;
+        }
+
         // R380. Null when the wall reads back on its line, base and top within the tolerance and centred on its line, else what differs
         internal static string Mismatch(WallReadBack read, PlannedWall wall, double tolerance)
         {

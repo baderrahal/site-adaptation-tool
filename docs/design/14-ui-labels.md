@@ -181,6 +181,9 @@ The five panels and their buttons of 7.1 of docs/design/12-ui-spec.md, Bader's c
 - `Build stopped at <name>: <name>` CHOSEN, the one Build runs the steps of FAST-1-build-1, item 4
 - `the step changed nothing and gave no reason.` CHOSEN, the one Build runs the steps of FAST-1-build-1, item 4
 - `Build done: <n> steps.` CHOSEN, the one Build runs the steps of FAST-1-build-1, item 4
+- `Unloaded <n> villa links to free memory for the reads. Place villas loads back the ones it needs.` CHOSEN, the start of a Build when free memory is short, Bader 13 Nov 2026 (R848)
+- `<n> villa links stayed loaded: <name>` CHOSEN, as the line above, the links that did not unload with why (R848)
+- `The villa links stayed loaded: <name>` CHOSEN, as the line above, when the release could not run (R848)
 - `Preview of the build` CHOSEN, card 2 Build site and the 2D preview of FAST-1-build-1, item 4
 - `<n> plots with an outline, <n> issues. Nothing is written to the model yet.` CHOSEN, card 2 Build site and the 2D preview of FAST-1-build-1, item 4
 - `Go on` CHOSEN, card 2 Build site and the 2D preview of FAST-1-build-1, item 4
@@ -216,24 +219,19 @@ An entry marked CHOSEN in 5a was worded in 5a PR 2 or PR 5, where docs/design/ g
 - `<n> did not finish, nothing was kept: <n>` CHOSEN in 5c, the end of a button whose worker did not end done (R375)
 - `no reason was given` CHOSEN in 5c, the reason of such an end that names none
 - `<n> is running already, its worker has not ended.` CHOSEN in 5c, a second click while the worker runs (docs/design/02-folders.md)
-- `Reads <n> files, <n> MiB.` CHOSEN in 5c, the counts of the confirm of 2 Read data
-- `Reuses the read of run <n>, its <n> input files are unchanged.` CHOSEN in 5c, as the line above on a second run
 - `<n>, <n> bytes, SHA-256 <n>, unchanged since the last read` CHOSEN in 5c, a file of the dry run list of 2 Read data
 - `<n>, <n> bytes, SHA-256 <n>, new or changed since the last read` CHOSEN in 5c, as the line above
 - `<n> done: <n> files written, <n> issues.` CHOSEN in 5c, the end of 2 Read data
 - `<n> done: the read of run <n> is reused, nothing was read again.` CHOSEN in 5c, the end of a second run of 2 Read data
 - `the worker ended <n>, <n>` CHOSEN in 5c, the reason of a worker that failed, was refused or ran past its time limit
 - `<n> read the files, but the scope stops it: <n>. Change the scope and run it again, the read is reused.` CHOSEN in 5c, the scope of R366 held against the plot table
-- `<n> read the files, but the scope stops it: <n>. This read is not whole, the next press reads again: <n>.` CHOSEN in R639, as the line above on a read that is not whole
+- `<n> read the files, but the scope stops it: <n>. This read is not whole, the next press of 2 Read data reads again: <n>.` CHOSEN in R639, as the line above on a read that is not whole
 - `Reads the folder and the settings file. Files in the folder: <n>, <n> MiB, those of a kind it knows are read.` CHOSEN in R639, the counts of the confirm of a raw read, which counts the files the folder holds and never says that many are read
 - `Reads the folder, the settings file and the values a person confirmed. Files in the folder: <n>, <n> MiB, those of a kind it knows are read.` CHOSEN in R639, as the line above
 - `Reuses the read of <n>, nothing changed: the folder and the settings file are unchanged.` CHOSEN in R639, as the line above on a second run, the time of the read by R821
 - `Reuses the read of <n>, nothing changed: the folder, the settings file and the values a person confirmed are unchanged.` CHOSEN in R639, as the line above, the time of the read by R821
-- `This project names no files for the old read, so the folder is read instead.` CHOSEN in R639, the word of R635 on a project with no list of past files
-- `The old read lacks a file: <n>, and <n> more. The folder is read instead.` CHOSEN in R639, the word of R635 on a project that lacks a past file
-- `The old read lacks: <n>` CHOSEN in R639, each such file in the dry run list
 - `Reads again, the last read of these files is not whole: <n>.` CHOSEN in R639, the confirm of a read done again
-- `This read is not whole, the next press reads again: <n>.` CHOSEN in R639, the end of such a read
+- `This read is not whole, the next press of 2 Read data reads again: <n>.` CHOSEN in R639, the end of such a read
 - `the check stopped, <n>` CHOSEN in R639, a reason of the two lines above
 - `files or folders not read <n>, the first is <n>, <n>` CHOSEN in R639, as the line above
 - `its check left no result` CHOSEN in R639, as the line above
@@ -858,7 +856,6 @@ The window What the tool read of Lane C SCAN-UI, word for word from docs/design/
 - `Files not read` CHOSEN, the section of the files the check did not read, each with the exact reason the worker wrote
 - `The exact reason the check gives for each file it did not read.` CHOSEN, as the line above
 - `The check stopped` CHOSEN, the note the worker wrote when it stopped before it finished
-- `<n>: a data check of this work folder runs now, wait for its end.` CHOSEN, the line of a press while a check of the folder runs
 - `Confirm what was found` CHOSEN by Lead, R636, the smallest version of the window Confirm what was found, no sketch covers it, draft steps/ui-shots/confirm-profile.png
 - `The tool read the folder. Below is what it found and what was confirmed before. Nothing here changes the model.` CHOSEN by Lead, R636, the smallest version of the window Confirm what was found, no sketch covers it, draft steps/ui-shots/confirm-profile.png
 - `The tool read the folder and has nothing to propose here. Fill in what you know. Nothing here changes the model.` CHOSEN by Lead, R636, the smallest version of the window Confirm what was found, no sketch covers it, draft steps/ui-shots/confirm-profile.png
@@ -911,12 +908,6 @@ The window What the tool read of Lane C SCAN-UI, word for word from docs/design/
 - `The values you confirmed were discarded. Press Read data again to read the folder without them.` CHOSEN, R636, the end line after Apply on that prompt
 
 The list of a hand in the window Confirm what was found also shows the two values left and right, ConfirmedProfile.Left and Right of Common. They are data, so they are named here and not listed as texts.
-- `<n>: the settings name no input folder, so the data check did not run and nothing was read.` CHOSEN, a stop of button 2
-- `<n>: the input folder is not there, so the data check did not run and nothing was read.` CHOSEN, as the line above
-- `<n>: the data check could not start, <n>. Nothing was read.` CHOSEN, as the line above
-- `<n>: the data check did not finish, <n>. Nothing was read.` CHOSEN, as the line above
-- `<n>: the data check wrote no result file, <n>. Nothing was read.` CHOSEN, as the line above
-- `<n>: the data check result could not be read, <n>. Nothing was read.` CHOSEN, as the line above
 - `Plot outlines` CHOSEN, the plain name of a need of R605, in the order the worker writes them
 - `Plot numbers` CHOSEN, the plain name of a need of R605, in the order the worker writes them
 - `Group levels` CHOSEN, the plain name of a need of R605, in the order the worker writes them
@@ -969,7 +960,6 @@ The list of a hand in the window Confirm what was found also shows the two value
 - `No source covers enough plots. The best covers <n> of <n>.` CHOSEN, the line for a value other than the villa type
 - `What to do: pick the source in the row Villa type, or ask the master planner which file is current.`
 - `What to do: pick the source in the row <name>.` CHOSEN, the line for a value other than the villa type
-- `Your picks are saved with the setup.` CHOSEN, the pane line of button 2 after Use these picks (R438)
 
 ### Loader
 

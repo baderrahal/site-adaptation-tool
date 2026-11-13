@@ -30,6 +30,8 @@ namespace SiteAdaptation.AddIn
         private ExternalEvent tellEvent;
         private ExternalEvent newProjectEvent;
         private TellHandler teller;
+        private ExternalEvent linksEvent;
+        private VillaLinksHandler linksHandler;
         private IntPtr owner;
 
         public static PaneHost Current { get; private set; }
@@ -68,6 +70,9 @@ namespace SiteAdaptation.AddIn
             }, System.Threading.CancellationToken.None, System.Threading.Tasks.TaskCreationOptions.LongRunning, System.Threading.Tasks.TaskScheduler.Default);
             host.model.RunningRevit = int.TryParse(application.ControlledApplication.VersionNumber, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out int running) ? running : (int?)null;
             host.runEvent = ExternalEvent.Create(runner);
+            // R848. The villa links unloaded at the start of a Build, in the API context of Revit with no transaction open
+            host.linksHandler = new VillaLinksHandler();
+            host.linksEvent = ExternalEvent.Create(host.linksHandler);
             host.answerEvent = ExternalEvent.Create(new AnswerHandler(host));
             host.Answers = new AnswerRelay(() => host.answerEvent.Raise());
             // R375. Button 2 starts CadReader.exe beside the add-in, its answer comes back through the relay
@@ -464,7 +469,26 @@ namespace SiteAdaptation.AddIn
                 stages.Refresh();
                 if (first.HasValue)
                 {
-                    runStep(first.Value);
+                    // R848. The first step runs once the links are released, from the API context the release runs in
+                    linksHandler.ConfigFile = model.Settings?.ConfigFile;
+                    Action<string> then = released =>
+                    {
+                        // The line stays with the plan line, so card 2 says it for the whole Build
+                        if (released != null)
+                        {
+                            planLine = line + " " + released;
+                            stages.ShowBuild(planLine + " " + chain.Progress);
+                        }
+                        runStep(first.Value);
+                    };
+                    linksHandler.Then = then;
+                    ExternalEventRequest asked = linksEvent.Raise();
+                    // Revit refused the event, so the Build runs as before, with no release
+                    if (asked != ExternalEventRequest.Accepted && asked != ExternalEventRequest.Pending)
+                    {
+                        linksHandler.Then = null;
+                        then(null);
+                    }
                 }
             };
             // R689. Card 3 reads the newest plan of the work folder again only when it changed
@@ -494,6 +518,11 @@ namespace SiteAdaptation.AddIn
                     return false;
                 }
                 stages.ShowBuild(planLine + " " + line);
+                // R848. The links a release unloaded are loaded back with no box only inside the Build that released them
+                if (!next.HasValue)
+                {
+                    PlaceVillas.PlaceVillasBody.Released = null;
+                }
                 // F12, R760 of FAST-7: a step that stopped says so in a box, the read for the build too
                 stages.ShowStop(end, line);
                 stages.Refresh();
@@ -673,6 +702,56 @@ namespace SiteAdaptation.AddIn
                 }
             }
             return sessions.Documents(active);
+        }
+    }
+
+    // R848. Before the first step of a Build, the villa links the tool placed are unloaded when the free memory is under the largest whole command
+    // of the worker, so the read and the plan of the worker find it. Then gives the line of the release, null when nothing was unloaded, and always
+    // runs, so a release that fails never stops the Build
+    internal sealed class VillaLinksHandler : IExternalEventHandler
+    {
+        public string ConfigFile { get; set; }
+
+        public Action<string> Then { get; set; }
+
+        public void Execute(UIApplication app)
+        {
+            Action<string> then = Then;
+            Then = null;
+            // A release of an earlier Build is never taken by this one
+            PlaceVillas.PlaceVillasBody.Released = null;
+            string line = null;
+            try
+            {
+                Document document = app.ActiveUIDocument == null ? null : app.ActiveUIDocument.Document;
+                double? need = string.IsNullOrEmpty(ConfigFile) ? null : Common.AddinConfig.Load(ConfigFile).WorkerCommandPeakMiB(Common.ReadData.ReadDataRun.Command);
+                if (document != null && !document.IsFamilyDocument && Common.PlaceVillas.VillaLinkRelease.Needed(Common.WorkerMemory.FreeMiB(), need))
+                {
+                    var villas = new Revit.RevitVillaDocument(document);
+                    Common.PlaceVillas.VillaLinkRelease.Result result = Common.PlaceVillas.VillaLinkRelease.Unload(villas, villas);
+                    PlaceVillas.PlaceVillasBody.Released = result.Unloaded;
+                    line = string.Join(" ", new[]
+                    {
+                        result.Unloaded.Count > 0 ? TextTemplate.Fill(SiteBuildText.LinksUnloaded, result.Unloaded.Count) : null,
+                        result.Failed.Count > 0 ? TextTemplate.Fill(SiteBuildText.LinksStayed, result.Failed.Count, string.Join(", ", result.Failed)) : null,
+                    }.Where(part => part != null));
+                    line = line.Length == 0 ? null : line;
+                }
+            }
+            catch (Exception failure)
+            {
+                // Any fault of the release leaves the links as they are and is said on card 2, the Build always goes on
+                line = TextTemplate.Fill(SiteBuildText.LinksNotChecked, failure.Message);
+            }
+            finally
+            {
+                then?.Invoke(line);
+            }
+        }
+
+        public string GetName()
+        {
+            return "SiteAdaptation.VillaLinks";
         }
     }
 

@@ -53,8 +53,7 @@ namespace SiteAdaptation.AddIn
         {
             Func<SettingsScope> scope = () => new SettingsScope { Kind = session.Settings.Scope.Kind, Nbh = session.Settings.Scope.Nbh, Plots = session.Settings.Scope.Plots };
             var document = new WorkerDocument { Path = session.Path, SessionId = session.SessionId };
-            // R492. The road surfaces picked in Set up, null while none was picked
-            var run = new ReadDataRun(Roles, worker, document, scope, () => session.Settings.Project) { RoadPick = () => session.Settings.Project.RoadSurfaces, ModePick = () => session.Settings.Project.ProjectMode };
+            var run = new ReadDataRun(Roles, worker, document, scope, () => session.Settings.Project) { ModePick = () => session.Settings.Project.ProjectMode };
             ButtonBody read = run.Body();
             // A run of the test host has no one to pick in the window and runs its read as before, so the runs of Lane B keep their
             // time and never wait on a window (CHOSEN, SCAN-UI)
@@ -62,34 +61,9 @@ namespace SiteAdaptation.AddIn
             {
                 return read;
             }
-            // R620. The data check first, its rows in the window What the tool read, then the scan and the read as before
-            ButtonBody past = DataCheckStep.Wrap(ScanStep.Wrap(read, worker, document, () => ScanInputs(session.Settings),
-                path => ScanResults.ScanGate.Ask(path, session.Settings, owner, WorkFiles.ReadText),
-                () => new[] { session.Settings.RulesFile, LaunchedWorker.BesideAddIn() }, () => session.Settings.Project.ProjectMode),
-                worker, document, session.Settings, owner);
-            // R635. A rev6 project with no past file: the read runs the data check itself, so no scan and no second check, then the window
-            // Confirm what was found over the read folder. Decided at the press, by the work folder of the run. R791: a Confirm that saved runs the
-            // check again on the read just made, R820 in the worker outside Revit
-            return Choose(session.Settings, past, ConfirmProfile.ConfirmProfileStep.WrapLater(read, session.Settings, owner, run.ApplyConfirmedLater));
-        }
-
-        // R635. The body of the press: raw for a folder with no past file, else the old read with the scan before it
-        public static ButtonBody Choose(PaneSettings settings, ButtonBody past, ButtonBody raw)
-        {
-            Func<RunContext, ButtonBody> pick = context => ReadInputs.NoPastFiles(settings.ConfigFile, settings.Project.ProjectMode, context.WorkFolder) ? raw : past;
-            return new ButtonBody
-            {
-                Preview = context => pick(context).Preview(context),
-                Start = (context, done) => pick(context).Start(context, done),
-                Apply = past.Apply, ReadBack = past.ReadBack, Done = past.Done, Confirm = past.Confirm, Outside = past.Outside, NotBuilt = past.NotBuilt,
-            };
-        }
-
-        // The inputs of the read with the Settings file, whose role config the scan needs, and the Prototypes folder
-        public static IReadOnlyList<WorkerFile> ScanInputs(PaneSettings settings)
-        {
-            var pane = new List<RunInput>(Inputs(settings)) { new RunInput(PaneText.Settings, settings.ConfigFile, false) };
-            return ScanStep.Inputs(pane, Roles, settings.InputPath(InputKeys.Prototypes));
+            // R635, R847. The read runs the data check on the project folder, then the window Confirm what was found over the read folder.
+            // R791: a Confirm that saved runs the check again on the read just made, R820 in the worker outside Revit
+            return ConfirmProfile.ConfirmProfileStep.WrapLater(read, session.Settings, owner, run.ApplyConfirmedLater);
         }
     }
 

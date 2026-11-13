@@ -24,13 +24,24 @@ namespace SiteAdaptation.AddIn.PlaceVillas
 
         public static bool IsSet => Load != null;
 
+        // R848. The files of the villa links the start of a Build unloaded, which step 7 loads back with no box, null for none. Taken once
+        public static IReadOnlyList<string> Released { get; set; }
+
         public static ButtonBody For(UIApplication application)
         {
             var document = new UpgradingVillaDocument(new RevitVillaDocument(application.ActiveUIDocument.Document), application);
             var run = new PlaceVillasRun(document, Load,
-                context => new ShapeCache(context.WorkFolder, new RevitBaseShapeReader(application, context.WorkFolder), Hash), Hash, LinkLoadDialog.Ask,
+                context => new ShapeCache(context.WorkFolder, new RevitBaseShapeReader(application, context.WorkFolder), Hash), Hash, AskLoad,
                 context => new MassFileSet(new RevitMassFileMaker(application, context.WorkFolder), Hash, Root));
             return Upgrades(run.Body(), document);
+        }
+
+        // R848. The box of the link types, not shown when every type to load is one the start of this Build unloaded
+        private static bool AskLoad(IReadOnlyList<string> lines)
+        {
+            IReadOnlyList<string> released = Released;
+            Released = null;
+            return VillaLinkRelease.AllReleased(lines, released) || LinkLoadDialog.Ask(lines);
         }
 
         // R811, F33. Step 7 links the copy of the running Revit of each prototype file found beside the plan's folder, so Revit upgrades

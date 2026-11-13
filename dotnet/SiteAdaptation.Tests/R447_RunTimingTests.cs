@@ -526,7 +526,7 @@ namespace SiteAdaptation.Tests
             string common = Path.Combine(ThemeGateTests.RepoRoot(), "dotnet", "SiteAdaptation.Common");
             Assert.Contains("context.Timing?.NextStep(RunTiming.WindowStep);\n                        dialog.Show(view, callbacks);",
                 File.ReadAllText(Path.Combine(common, "CheckTable", "CheckRun.cs")).Replace("\r\n", "\n"));
-            Assert.Contains("context.Timing?.NextStep(RunTiming.WindowStep);", File.ReadAllText(Path.Combine(common, "ReadData", "ScanStep.cs")));
+            // R847: the window step of the scan gate went with the old read of step 2
             Assert.Contains("context.Timing?.NextStep(RunTiming.WorkerEndStep, RunTiming.Reading);", File.ReadAllText(Path.Combine(common, "ReadData", "ReadDataRun.cs")));
 
             string buttons = File.ReadAllText(Path.Combine(ThemeGateTests.RepoRoot(), "dotnet", "SiteAdaptation.AddIn", "Commands", "Buttons.cs"));

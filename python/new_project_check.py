@@ -2,8 +2,8 @@
 
 Given a config file (and the rules profile, the offsets file, the work root and the input root as the config resolves them) it reads the
 inputs the config names and says in one plain line each what is missing or does not fit: the position file, the parameter sheet of
-addin.parameterSheet (R461), the villa offsets, the hand tables and the prototype files of every unit code of typologies, each Excel
-sheet and its header columns, the schedules, and the PDF location plan. Each line holds input, status (ok, missing, does not fit), a
+addin.parameterSheet (R461), the villa offsets, the hand tables and the prototype files of every unit code of typologies and the
+schedules. R847: the Excel sheets and the PDF location plan of the data book are no longer checked, the data book went. Each line holds input, status (ok, missing, does not fit), a
 plain sentence and the job only flag, true where the name, sheet, header, prefix or file name the input is held to is one only the
 first job has today, with a short note why. The report is a JSON file and a text file in the output folder given, the only place
 written. Every input opened is recorded by name, size, write time and SHA-256 before its first read and again at the end, and a change
@@ -29,9 +29,6 @@ POSITION_FORMAT_VERSION = 1
 # The position file parts the add-in reads, as ProjectPositionFile writes them (R353)
 POSITION_PARTS = ("eastM", "northM", "elevationM", "angleDeg")
 POSITION_POINTS = ("surveyPoint", "projectBasePoint")
-# Where config holds the Excel sheets the readers take by sheet, header row and column names (R350)
-EXCEL_BLOCKS = ("dataBook.rev9.dlus", "dataBook.rev9.sales", "dataBook.data5.areaKey.dlus", "dataBook.data5.areaKey.sales",
-                "dataBook.locationPlan.sales", "dataBook.locationPlan.dlus")
 HAND_TABLES = ("hand villa", "hand cluster", "hand alone")
 SCHEDULE_MARKER = "plot no."
 
@@ -313,46 +310,6 @@ def prototype_line(rules, folder):
     return line(name, OK, "the prototype folder %s holds a file for all %d unit codes" % (folder.name, len(codes)), note)
 
 
-def data_book_work(settings, work_root):
-    """The work folder of the data book: addin.readData.dataBookFolder in the work root when it is no full path, then work."""
-    folder = get(settings, "addin.readData.dataBookFolder")
-    if not isinstance(folder, str):
-        return None
-    path = Path(folder)
-    return (path if path.is_absolute() else Path(work_root) / path) / "work"
-
-
-def excel_line(settings, block_path, run, work):
-    block = get(settings, block_path)
-    roles = get(settings, "addin.workbookRoles")
-    key = block.get("workbook") if isinstance(block, dict) and isinstance(block.get("workbook"), str) else None
-    role = roles.get(key) if key and isinstance(roles, dict) and isinstance(roles.get(key), str) else key
-    name = "Excel %s%s" % (role + " " if role else "", block_path)
-    if (not isinstance(block, dict) or not isinstance(block.get("sheet"), str) or isinstance(block.get("headerRow"), bool)
-            or not isinstance(block.get("headerRow"), int) or block["headerRow"] < 1 or not isinstance(block.get("columns"), dict)):
-        return line(name, DOES_NOT_FIT, "config names no workbook, sheet, headerRow and columns in %s" % block_path)
-    relative = get(settings, "dataBook.rev9.workbooks." + key) if isinstance(key, str) else None
-    if not isinstance(relative, str) or work is None:
-        return line(name, DOES_NOT_FIT, "config names no workbook %s in dataBook.rev9.workbooks or no addin.readData.dataBookFolder" % key)
-    path = work / relative
-    sheet, row, columns = block["sheet"], block["headerRow"], [str(value) for value in block["columns"].values()]
-    note = "held to the sheet %s and the headers %s" % (sheet, ", ".join(columns))
-    if not path.is_file():
-        return line(name, MISSING, "%s is not there" % path.name, note)
-    book = run.book(path)
-    if book is None:
-        return line(name, DOES_NOT_FIT, "%s cannot be read as a workbook" % path.name, note)
-    if sheet not in book["names"]:
-        return line(name, DOES_NOT_FIT, "%s has no sheet %s" % (path.name, sheet), note)
-    rows = header_texts(book, sheet, row)
-    if len(rows) < row:
-        return line(name, DOES_NOT_FIT, "%s sheet %s has no header row %d" % (path.name, sheet, row), note)
-    lacking = [column for column in columns if column not in rows[row - 1]]
-    if lacking:
-        return line(name, DOES_NOT_FIT, "%s sheet %s row %d lacks the columns: %s" % (path.name, sheet, row, ", ".join(lacking)), note)
-    return line(name, OK, "%s sheet %s row %d holds all %d columns the readers use" % (path.name, sheet, row, len(columns)), note)
-
-
 def schedule_lines(settings, run, input_root):
     hoods = get(settings, "connect.neighbourhoods")
     folder, sheet = get(settings, "addin.readData.scheduleFolder"), get(settings, "connect.scheduleSheet")
@@ -385,45 +342,6 @@ def schedule_lines(settings, run, input_root):
     return found
 
 
-def read_pdf(path):
-    import pdfplumber
-    try:
-        with pdfplumber.open(str(path)) as pdf:
-            pages = len(pdf.pages)
-            text = "".join(char["text"] for char in pdf.pages[0].chars) if pages else ""
-    except Exception:
-        return None
-    return {"pages": pages, "tokens": text.split()}
-
-
-def pdf_line(settings, run, work):
-    name = "location plan PDF"
-    relative = get(settings, "dataBook.locationPlan.pdf")
-    patterns = get(settings, "dataBook.locationPlan.patterns")
-    kinds = texts(get(settings, "dataBook.locationPlan.codeKinds"))
-    if not isinstance(relative, str) or work is None or not isinstance(patterns, dict) or not isinstance(patterns.get("number"), str):
-        return line(name, DOES_NOT_FIT, "config names no dataBook.locationPlan.pdf, patterns.number or addin.readData.dataBookFolder")
-    codes = [kind for kind in kinds if isinstance(patterns.get(kind), str)]
-    note = "held to the @N@ label patterns of dataBook.locationPlan.patterns: " + ", ".join(["number"] + codes)
-    path = work / relative
-    if not path.is_file():
-        return line(name, MISSING, "%s is not there" % path.name, note)
-    run.opened(path)
-    found = read_pdf(path)
-    if found is None:
-        return line(name, DOES_NOT_FIT, "%s cannot be read as a PDF" % path.name, note)
-    if found["pages"] != 1:
-        return line(name, DOES_NOT_FIT, "%s holds %d pages, a location plan is one page" % (path.name, found["pages"]), note)
-    lacking = []
-    if not any(re.fullmatch(patterns["number"], token) for token in found["tokens"]):
-        lacking.append("the number pattern")
-    if not any(re.fullmatch(patterns[kind], token) for kind in codes for token in found["tokens"]):
-        lacking.append("the code patterns")
-    if lacking:
-        return line(name, DOES_NOT_FIT, "%s page holds no text that fits: %s" % (path.name, ", ".join(lacking)), note)
-    return line(name, OK, "%s is one page and holds text that fits the number and code patterns" % path.name, note)
-
-
 def counts_of(lines):
     return {"ok": sum(1 for each in lines if each["status"] == OK), "missing": sum(1 for each in lines if each["status"] == MISSING),
             "doesNotFit": sum(1 for each in lines if each["status"] == DOES_NOT_FIT), KEY: sum(1 for each in lines if each[KEY])}
@@ -453,12 +371,9 @@ def check(config_path, rules_path, offsets_path, work_root, input_root=None, coo
     run.opened(config_path)
     run.opened(rules_path)
     folder = prototype_folder(settings, root)
-    work = data_book_work(settings, work_root)
     lines = [position_line(settings, run, coordinate_source, position_file), parameter_line(config_path, settings, rules, run), offsets_line(settings, rules, offsets_path, run),
              hands_line(rules, folder), prototype_line(rules, folder)]
-    lines += [excel_line(settings, block, run, work) for block in EXCEL_BLOCKS]
     lines += schedule_lines(settings, run, root)
-    lines.append(pdf_line(settings, run, work))
     run.close()
     changed = []
     inputs = []
